@@ -1,0 +1,203 @@
+create extension if not exists pgcrypto;
+
+create table if not exists users (
+  id uuid primary key default gen_random_uuid(),
+  account_name text not null unique,
+  name text not null,
+  password_hash text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Migration v16 : RiftBoard utilise maintenant uniquement un nom de compte.
+alter table users add column if not exists account_name text;
+update users
+set account_name = lower(regexp_replace(coalesce(nullif(name, ''), 'compte') || '-' || substr(id::text, 1, 8), '[^a-z0-9._-]', '', 'g'))
+where account_name is null or account_name = '';
+alter table users alter column account_name set not null;
+create unique index if not exists idx_users_account_name on users(account_name);
+alter table users drop column if exists email;
+
+create table if not exists sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  user_agent text,
+  ip text,
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+
+create table if not exists teams (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references users(id) on delete cascade,
+  name text not null,
+  tag text not null,
+  region text not null default 'EUW',
+  invite_code text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(owner_id, name)
+);
+
+alter table teams add column if not exists invite_code text;
+update teams
+set invite_code = 'RIFT-' || upper(substr(encode(gen_random_bytes(5), 'hex'), 1, 6))
+where invite_code is null;
+create unique index if not exists idx_teams_invite_code on teams(invite_code);
+
+create table if not exists team_members (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  role text not null default 'member' check (role in ('owner', 'coach', 'analyst', 'player', 'viewer', 'member')),
+  created_at timestamptz not null default now(),
+  unique(team_id, user_id)
+);
+
+insert into team_members (team_id, user_id, role)
+select id, owner_id, 'owner'
+from teams
+on conflict (team_id, user_id) do nothing;
+
+create table if not exists players (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  name text not null,
+  riot_id text not null,
+  opgg_url text,
+  role text not null check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB')),
+  performance_score numeric,
+  status text default 'Non analysé',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(team_id, riot_id)
+);
+
+create table if not exists matches (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  game_id text not null,
+  region text not null default 'EUROPE',
+  opponent text,
+  result text check (result in ('Victoire', 'Défaite', 'Analyse')),
+  side text check (side in ('Blue Side', 'Red Side')),
+  duration_seconds integer,
+  duration text,
+  patch text,
+  objective_score text,
+  vision_score text,
+  impact_score text,
+  primary_focus text,
+  main_issue text,
+  raw jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique(team_id, game_id)
+);
+
+create table if not exists match_participants (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references matches(id) on delete cascade,
+  player_id uuid references players(id) on delete set null,
+  team_key text not null check (team_key in ('ALLY', 'ENEMY')),
+  summoner_name text,
+  riot_id text,
+  champion text not null,
+  role text,
+  kills integer not null default 0,
+  deaths integer not null default 0,
+  assists integer not null default 0,
+  cs integer not null default 0,
+  gold integer not null default 0,
+  damage integer not null default 0,
+  vision integer not null default 0,
+  kp numeric,
+  kda text,
+  cs_per_min numeric,
+  gold_per_min numeric,
+  kill_participation text,
+  grade text,
+  raw jsonb not null default '{}'::jsonb
+);
+
+create table if not exists champion_pool (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  player_id uuid references players(id) on delete cascade,
+  player_name text not null,
+  champion text not null,
+  games integer not null default 0,
+  wins integer not null default 0,
+  losses integer not null default 0,
+  winrate numeric not null default 0,
+  kda numeric not null default 0,
+  cs_per_min numeric not null default 0,
+  impact_grade text not null default '—',
+  verdict text not null default 'Données insuffisantes',
+  updated_at timestamptz not null default now(),
+  unique(team_id, player_id, champion)
+);
+
+create table if not exists improvements (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  rank integer not null,
+  title text not null,
+  severity text not null default 'medium',
+  proof text not null,
+  action text not null,
+  evidence jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists reports (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  match_id uuid references matches(id) on delete set null,
+  title text not null,
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete set null,
+  action text not null,
+  entity_type text,
+  entity_id uuid,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_sessions_token_hash on sessions(token_hash);
+create index if not exists idx_teams_owner on teams(owner_id);
+create index if not exists idx_team_members_user on team_members(user_id);
+create index if not exists idx_team_members_team on team_members(team_id);
+create index if not exists idx_players_team on players(team_id);
+create index if not exists idx_matches_team on matches(team_id, created_at desc);
+create index if not exists idx_participants_match on match_participants(match_id);
+create index if not exists idx_champion_pool_team on champion_pool(team_id);
+create index if not exists idx_improvements_team on improvements(team_id, rank asc);
+create index if not exists idx_reports_team on reports(team_id, created_at desc);
+
+create or replace function set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_users_updated_at on users;
+create trigger trg_users_updated_at before update on users
+for each row execute function set_updated_at();
+
+drop trigger if exists trg_teams_updated_at on teams;
+create trigger trg_teams_updated_at before update on teams
+for each row execute function set_updated_at();
+
+drop trigger if exists trg_players_updated_at on players;
+create trigger trg_players_updated_at before update on players
+for each row execute function set_updated_at();
