@@ -819,6 +819,24 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     }
   }
 
+  async function deleteTeam() {
+    if (!selectedTeam) return;
+    const confirmed = window.confirm(`Supprimer définitivement la team "${selectedTeam.name}" ? Cette action supprime aussi roster, matchs, rapports et invitations liés.`);
+    if (!confirmed) return;
+
+    setSaving(true);
+    try {
+      await apiFetch("teams-delete", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id }) });
+      setSelectedTeamId(null);
+      await refreshAll();
+      pushToast({ type: "green", title: "Team supprimée", text: "La structure et ses données liées ont été supprimées." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return <div><PageHeader eyebrow="Team manager" title="Créer ou rejoindre une team" subtitle="Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation." />
     <div className={cx("grid gap-5", selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
       <div className="space-y-5">
@@ -853,7 +871,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}</div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}<Button variant="danger" icon={saving ? Loader2 : X} onClick={deleteTeam} disabled={saving}>Supprimer</Button></div>
         </div>
 
         <>
