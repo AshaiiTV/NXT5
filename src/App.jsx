@@ -607,7 +607,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
               : "Connecte-toi pour retrouver tes teams, tes imports, tes rapports et tes paramètres sauvegardés côté serveur."}
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[[Database, "DB-first"], [Shield, "Session serveur"], [Users, "Teams" ]].map(([Icon, label]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Icon className="h-5 w-5 text-cyan-200" /><p className="mt-3 text-sm font-black text-white">{label}</p></div>)}
+            {[[BarChart3, "Profil de jeu"], [Shield, "Draft & r?les"], [Users, "Progression team" ]].map(([Icon, label]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Icon className="h-5 w-5 text-cyan-200" /><p className="mt-3 text-sm font-black text-white">{label}</p></div>)}
           </div>
         </motion.div>
 
@@ -760,6 +760,10 @@ function championDisplayName(value) {
   };
   const asset = championAssetId(raw);
   return names[asset] || raw.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
+
+function championOptions() {
+  return Object.keys(CHAMPION_STYLE_TAGS).sort((a, b) => championDisplayName(a).localeCompare(championDisplayName(b)));
 }
 
 function compositionIdentity(picks) {
@@ -1127,9 +1131,11 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     try {
       const result = await apiFetch("players-sync-most-played", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id }) });
       await refreshAll();
-      const ok = result.results?.filter((item) => item.ok).length || 0;
+      const ok = result.results?.filter((item) => item.ok && !item.skipped).length || 0;
+      const skipped = result.results?.filter((item) => item.skipped).length || 0;
       const failed = result.results?.filter((item) => !item.ok).length || 0;
-      pushToast({ type: failed ?"yellow" : "green", title: "Most played synchronisés", text: `${ok} profil${ok > 1 ?"s" : ""} analysé${ok > 1 ?"s" : ""}${failed ?`, ${failed} erreur${failed > 1 ?"s" : ""}` : ""}.` });
+      const poolCount = result.results?.reduce((sum, item) => sum + Number(item.poolCount || 0), 0) || 0;
+      pushToast({ type: failed ?"yellow" : "green", title: "Most played synchronis?s", text: `${ok} profil${ok > 1 ?"s" : ""} analys?${ok > 1 ?"s" : ""}${poolCount ?`, ${poolCount} champion${poolCount > 1 ?"s" : ""} ajout?${poolCount > 1 ?"s" : ""}` : ""}${failed ?`, ${failed} erreur${failed > 1 ?"s" : ""}` : ""}.` });
     } catch (err) {
       pushToast({ type: "red", title: "Analyse impossible", text: err.message });
     } finally {
@@ -1197,7 +1203,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
             <SelectInput label="Rôle" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role })}><option>TOP</option><option>JGL</option><option>MID</option><option>ADC</option><option>SUP</option><option>SUB</option><option>COACH</option></SelectInput>
             <div className="flex items-end"><Button type="submit" disabled={saving} icon={saving ?Loader2 : UserPlus} className="w-full">Ajouter</Button></div>
           </form>
-          <PremiumRosterTable roster={roster} />
+          <PremiumRosterTable roster={roster} championPool={(data.championPool || []).filter((row) => row.team_id === selectedTeam.id)} />
         </>
       </Surface>}
     </div>
@@ -1255,15 +1261,22 @@ function parseMostPlayed(value) {
   }
 }
 
-function MostPlayedBadges({ value }) {
+function MostPlayedBadges({ value, fallback = [] }) {
   const mostPlayed = parseMostPlayed(value).slice(0, 3);
-  if (!mostPlayed.length) return <span className="text-xs font-semibold text-slate-600">Non synchronisé</span>;
-  return <div className="flex flex-wrap gap-2">{mostPlayed.map((champion, index) => <ChampionCircle key={String(champion.championId) + "-" + champion.champion} champion={champion} index={index} />)}</div>;
+  const fallbackPlayed = fallback.slice(0, 3).map((row) => ({
+    championId: row.raw?.championId || row.champion_id || null,
+    champion: row.champion,
+    imageUrl: championSquareUrl(row),
+    points: row.games ? String(row.games) + " games" : row.impact_grade || "pool",
+  }));
+  const items = mostPlayed.length ? mostPlayed : fallbackPlayed;
+  if (!items.length) return <span className="text-xs font-semibold text-slate-600">Non synchronis?</span>;
+  return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={String(champion.championId || champion.champion) + "-" + index} champion={champion} index={index} />)}</div>;
 }
 
-function PremiumRosterTable({ roster }) {
+function PremiumRosterTable({ roster, championPool = [] }) {
   if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun joueur" text="Ajoute tes joueurs. Leurs Riot IDs et liens OP.GG seront stockes en DB." /></div>;
-  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[900px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">3 champions les plus joués</th><th className="px-4 py-3">Score</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone={item.role === "COACH" ?"purple" : "blue"}>{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{item.role === "COACH" ?<span className="text-xs font-semibold text-slate-600">Non requis</span> : <MostPlayedBadges value={item.most_played} />}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ?formatPoints(item.performance_score) : "?"}</Badge></td></tr>)}</tbody></table></div>;
+  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[900px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">3 champions les plus joués</th><th className="px-4 py-3">Score</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone={item.role === "COACH" ?"purple" : "blue"}>{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{item.role === "COACH" ?<span className="text-xs font-semibold text-slate-600">Non requis</span> : <MostPlayedBadges value={item.most_played} fallback={championPool.filter((row) => row.player_id === item.id)} />}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ?formatPoints(item.performance_score) : "?"}</Badge></td></tr>)}</tbody></table></div>;
 }
 
 function MatchIdentityBadges({ rows }) {
@@ -1329,6 +1342,7 @@ function ChampionPoolCard({ row }) {
 }
 
 function championPoolStatus(row) {
+  if (["manual", "riot_manual"].includes(String(row.source || "")) && ["lock", "pocket", "work", "danger"].includes(String(row.status || ""))) return row.status;
   const games = Number(row.games || 0);
   const winrate = Number(row.winrate || 0);
   if (games >= 3 && winrate >= 55) return "lock";
@@ -1339,6 +1353,50 @@ function championPoolStatus(row) {
 
 function championPoolStatusLabel(status) {
   return status === "lock" ? "A lock" : status === "danger" ? "A travailler" : status === "pocket" ? "Pocket" : "A valider";
+}
+
+function ManualChampionPoolPanel({ players, rows, selectedTeamId, canManage, refreshAll, pushToast }) {
+  const playablePlayers = players.filter((player) => player.team_id === selectedTeamId && player.role !== "COACH");
+  const manualRows = rows.filter((row) => row.team_id === selectedTeamId && ["manual", "riot_manual"].includes(String(row.source || "")));
+  const [form, setForm] = useState({ playerId: "", champion: "", status: "lock", notes: "" });
+  const [saving, setSaving] = useState(false);
+  const selectedPlayer = playablePlayers.find((player) => player.id === form.playerId);
+
+  useEffect(() => {
+    if (!form.playerId && playablePlayers[0]?.id) setForm((current) => ({ ...current, playerId: playablePlayers[0].id }));
+  }, [playablePlayers.map((player) => player.id).join("|")]);
+
+  async function saveManualPick(event) {
+    event.preventDefault();
+    if (!canManage) return;
+    setSaving(true);
+    try {
+      await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, ...form }) });
+      setForm((current) => ({ ...current, champion: "", notes: "" }));
+      await refreshAll();
+      pushToast({ type: "green", title: "Champion ajout?", text: "Le champion pool manuel est ? jour." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Ajout impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteManualPick(poolId) {
+    if (!canManage || !window.confirm("Retirer ce pick manuel du champion pool ?")) return;
+    setSaving(true);
+    try {
+      await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, poolId }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Pick retir?", text: "Le champion pool manuel est ? jour." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <Surface glow className="mb-5"><div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="purple">configuration manuelle</Badge><h3 className="mt-4 text-2xl font-black text-white">Champion pool d?clar?</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">Ajoute les champions que chaque joueur sait jouer, m?me sans game import?e. Ils apparaissent dans les filtres, la draft et l?identit? de compo.</p></div><Badge tone={canManage ? "green" : "yellow"}>{canManage ? "modifiable" : "lecture seule"}</Badge></div>{playablePlayers.length ? <form onSubmit={saveManualPick} className="mt-6 grid gap-3 xl:grid-cols-[1fr_1fr_.8fr_1fr_auto]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Joueur</span><select value={form.playerId} onChange={(event) => setForm({ ...form, playerId: event.target.value })} disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-black text-white outline-none">{playablePlayers.map((player) => <option key={player.id} value={player.id}>{player.role} ? {player.name}</option>)}</select></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Champion</span><input list="champion-options" value={form.champion} onChange={(event) => setForm({ ...form, champion: event.target.value })} placeholder="Kai'Sa, Orianna..." required disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-slate-650" /><datalist id="champion-options">{championOptions().map((champion) => <option key={champion} value={championDisplayName(champion)} />)}</datalist></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Statut</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-black text-white outline-none"><option value="lock">A lock</option><option value="pocket">Pocket</option><option value="work">A valider</option><option value="danger">A travailler</option></select></label><TextInput label="Note" value={form.notes} onChange={(notes) => setForm({ ...form, notes })} placeholder={selectedPlayer ? "Ex: blindable, counterpick..." : "Note staff"} icon={Clipboard} /><div className="flex items-end"><Button type="submit" disabled={!canManage || saving || !form.playerId || !form.champion.trim()} icon={saving ? Loader2 : Plus} className="w-full">Ajouter</Button></div></form> : <EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de configurer le champion pool manuel." />}{manualRows.length > 0 && <div className="mt-6"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Picks manuels</p><div className="mt-3 flex gap-3 overflow-x-auto pb-2">{manualRows.map((row) => <div key={row.id} className="w-[260px] shrink-0 rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex items-center gap-3"><img src={championSquareUrl(row)} alt={row.champion} className="h-12 w-12 rounded-full object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{row.role || "ROLE"} ? {row.player_name}</p></div></div><div className="mt-3 flex flex-wrap gap-2"><Badge tone={row.status === "lock" ? "green" : row.status === "danger" ? "red" : row.status === "pocket" ? "yellow" : "slate"}>{championPoolStatusLabel(row.status)}</Badge>{championStyleTags(row.champion).slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tag}</Badge>)}</div>{row.notes && <p className="mt-3 line-clamp-2 text-xs font-semibold leading-5 text-slate-400">{row.notes}</p>}{canManage && <button type="button" onClick={() => deleteManualPick(row.id)} disabled={saving} className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-rose-200 hover:text-white">Retirer</button>}</div>)}</div></div>}</Surface>;
 }
 
 function ChampionPoolRecommendationPanel({ rows }) {
@@ -1353,13 +1411,15 @@ function ChampionPoolRecommendationPanel({ rows }) {
   return <div className="mb-5 grid gap-3 xl:grid-cols-3">{groups.map(([Icon, title, items, t]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><p className="text-sm font-black text-white">{title}</p><div className={cx("rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><div className="mt-3 space-y-2">{items.length ? items.map((row) => <div key={row.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2"><img src={championSquareUrl(row)} alt={row.champion} className="h-9 w-9 rounded-full object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{row.player_name || "Roster"} ? {row.winrate || 0}% WR ? {row.games || 0} games</p></div></div>) : <p className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm font-semibold text-slate-500">Pas assez de donnees.</p>}</div></div>)}</div>;
 }
 
-function Champions({ data }) {
+function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember }) {
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [sortBy, setSortBy] = useState("impact");
   const roleByPlayer = new Map((data.players || []).map((player) => [String(player.name || "").toLowerCase(), player.role]));
-  const rows = data.championPool.map((row) => ({ ...row, role: row.role || roleByPlayer.get(String(row.player_name || "").toLowerCase()) || "UNK", status: championPoolStatus(row) }));
+  const activeTeamId = selectedTeamId || data.teams[0]?.id || null;
+  const canManagePool = ["owner", "captain", "coach"].includes(String(currentMember?.role || "").toLowerCase());
+  const rows = data.championPool.filter((row) => !activeTeamId || row.team_id === activeTeamId).map((row) => ({ ...row, role: row.role || roleByPlayer.get(String(row.player_name || "").toLowerCase()) || "UNK", status: championPoolStatus(row) }));
   const filtered = rows
     .filter((row) => (String(row.champion || "") + " " + String(row.player_name || "") + " " + String(row.verdict || "") + " " + String(row.role || "")).toLowerCase().includes(query.toLowerCase()))
     .filter((row) => roleFilter === "ALL" || row.role === roleFilter)
@@ -1374,7 +1434,7 @@ function Champions({ data }) {
   const risky = rows.filter((row) => row.status === "danger").length;
   const roles = ["ALL", "TOP", "JGL", "MID", "ADC", "SUP", "COACH"];
   const statuses = [["ALL", "Tous"], ["lock", "A lock"], ["pocket", "Pocket"], ["danger", "A travailler"], ["work", "A valider"]];
-  return <div><PageHeader eyebrow="Champion intelligence" title="Champion pool concret" subtitle="Filtre par role, repere les locks, les pockets et les picks a sortir temporairement avant draft ou review." /><Surface glow><ChampionPoolRecommendationPanel rows={rows} /><div className="mb-6 grid gap-3 xl:grid-cols-[1fr_auto_auto_auto]"><TextInput label="Filtrer" value={query} onChange={setQuery} placeholder="Champion, joueur, verdict..." icon={Search} /><div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Picks suivis</p><p className="mt-1 text-2xl font-black text-white">{filtered.length}</p></div><div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-100/70">Locks</p><p className="mt-1 text-2xl font-black text-white">{reliable}</p></div><div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-rose-100/70">A revoir</p><p className="mt-1 text-2xl font-black text-white">{risky}</p></div></div><div className="mb-6 grid gap-3 xl:grid-cols-[1fr_1fr_auto]"><div className="flex flex-wrap gap-2">{roles.map((role) => <button key={role} onClick={() => setRoleFilter(role)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", roleFilter === role ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-500 hover:text-white")}>{role === "ALL" ? "Tous roles" : role}</button>)}</div><div className="flex flex-wrap gap-2">{statuses.map(([id, label]) => <button key={id} onClick={() => setStatusFilter(id)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", statusFilter === id ? "border-violet-300/30 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.04] text-slate-500 hover:text-white")}>{label}</button>)}</div><select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="impact">Impact</option><option value="winrate">Winrate</option><option value="games">Volume</option><option value="kda">KDA</option></select></div>{filtered.length ? <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{filtered.map((row) => <div key={row.id} className="relative"><ChampionPoolCard row={row} /><div className="absolute left-5 top-5 z-20 flex gap-2"><Badge tone={row.status === "lock" ? "green" : row.status === "danger" ? "red" : row.status === "pocket" ? "yellow" : "slate"}>{championPoolStatusLabel(row.status)}</Badge><Badge tone="blue">{row.role}</Badge></div></div>)}</div> : <EmptyState icon={Crown} title="Champion pool vide" text="Importe plusieurs games pour afficher les picks fiables, les picks risques et les champions a travailler." />}</Surface></div>;
+  return <div><PageHeader eyebrow="Champion intelligence" title="Champion pool concret" subtitle="Filtre par role, repere les locks, les pockets et les picks a sortir temporairement avant draft ou review." /><ManualChampionPoolPanel players={data.players} rows={rows} selectedTeamId={activeTeamId} canManage={canManagePool} refreshAll={refreshAll} pushToast={pushToast} /><Surface glow><ChampionPoolRecommendationPanel rows={rows} /><div className="mb-6 grid gap-3 xl:grid-cols-[1fr_auto_auto_auto]"><TextInput label="Filtrer" value={query} onChange={setQuery} placeholder="Champion, joueur, verdict..." icon={Search} /><div className="rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Picks suivis</p><p className="mt-1 text-2xl font-black text-white">{filtered.length}</p></div><div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 px-4 py-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-100/70">Locks</p><p className="mt-1 text-2xl font-black text-white">{reliable}</p></div><div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 px-4 py-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-rose-100/70">A revoir</p><p className="mt-1 text-2xl font-black text-white">{risky}</p></div></div><div className="mb-6 grid gap-3 xl:grid-cols-[1fr_1fr_auto]"><div className="flex flex-wrap gap-2">{roles.map((role) => <button key={role} onClick={() => setRoleFilter(role)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", roleFilter === role ? "border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-500 hover:text-white")}>{role === "ALL" ? "Tous roles" : role}</button>)}</div><div className="flex flex-wrap gap-2">{statuses.map(([id, label]) => <button key={id} onClick={() => setStatusFilter(id)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", statusFilter === id ? "border-violet-300/30 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.04] text-slate-500 hover:text-white")}>{label}</button>)}</div><select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="impact">Impact</option><option value="winrate">Winrate</option><option value="games">Volume</option><option value="kda">KDA</option></select></div>{filtered.length ? <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">{filtered.map((row) => <div key={row.id} className="relative"><ChampionPoolCard row={row} /><div className="absolute left-5 top-5 z-20 flex gap-2"><Badge tone={row.status === "lock" ? "green" : row.status === "danger" ? "red" : row.status === "pocket" ? "yellow" : "slate"}>{championPoolStatusLabel(row.status)}</Badge><Badge tone="blue">{row.role}</Badge></div></div>)}</div> : <EmptyState icon={Crown} title="Champion pool vide" text="Importe plusieurs games pour afficher les picks fiables, les picks risques et les champions a travailler." />}</Surface></div>;
 }
 
 function normalizeText(value) {
@@ -1521,12 +1581,12 @@ function MainApp({ user, onLogout, pushToast, navigate, route }) {
     if (active === "dashboard") return <Dashboard data={data} loading={loading} setActive={setActive} />;
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} />;
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} />;
-    if (active === "champions") return <Champions data={data} />;
+    if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} />;
     if (active === "progression") return <Progression data={data} />;
     if (active === "scouting") return <Scouting data={data} />;
     if (active === "reports") return <Reports data={data} pushToast={pushToast} />;
     return <SettingsPage />;
-  }, [active, data, loading, selectedTeamId, currentMember, route.search]);
+  }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast]);
 
   return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} currentMember={currentMember} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
 }

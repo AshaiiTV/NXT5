@@ -35,6 +35,10 @@ export default async function handler(request, context) {
       alter table players
       add column if not exists most_played jsonb not null default '[]'::jsonb
     `;
+    await sql`alter table champion_pool add column if not exists role text`;
+    await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
+    await sql`alter table champion_pool add column if not exists notes text`;
+    await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
 
     const teams = await sql`
       select distinct teams.*
@@ -81,7 +85,63 @@ export default async function handler(request, context) {
           where id = ${player.id}
         `;
 
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed });
+        let poolCount = 0;
+        for (const [index, champion] of mostPlayed.entries()) {
+          const status = index === 0 ? 'lock' : index < 3 ? 'pocket' : 'work';
+          const verdict = index === 0 ? 'Champion principal detecte via Riot Mastery.' : 'Champion recurrent detecte via Riot Mastery.';
+          await sql`
+            insert into champion_pool (
+              team_id,
+              player_id,
+              player_name,
+              champion,
+              games,
+              wins,
+              losses,
+              winrate,
+              kda,
+              cs_per_min,
+              impact_grade,
+              verdict,
+              role,
+              status,
+              notes,
+              source,
+              updated_at
+            )
+            values (
+              ${teamId},
+              ${player.id},
+              ${player.name},
+              ${champion.champion},
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              'MASTERY',
+              ${verdict},
+              ${player.role},
+              ${status},
+              ${String(champion.points || 0) + ' mastery points'},
+              'mastery',
+              now()
+            )
+            on conflict (team_id, player_id, champion) do update
+            set player_name = excluded.player_name,
+                role = excluded.role,
+                impact_grade = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.impact_grade else excluded.impact_grade end,
+                verdict = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.verdict else excluded.verdict end,
+                status = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.status else excluded.status end,
+                notes = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.notes else excluded.notes end,
+                source = case when champion_pool.source in ('manual', 'riot_manual') then 'riot_manual' else excluded.source end,
+                updated_at = now()
+          `;
+          poolCount += 1;
+        }
+
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount });
       } catch (err) {
         await sql`
           update players

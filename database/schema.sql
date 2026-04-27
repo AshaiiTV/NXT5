@@ -197,6 +197,11 @@ create index if not exists idx_team_members_team on team_members(team_id);
 create index if not exists idx_players_team on players(team_id);
 create index if not exists idx_matches_team on matches(team_id, created_at desc);
 create index if not exists idx_participants_match on match_participants(match_id);
+alter table champion_pool add column if not exists role text;
+alter table champion_pool add column if not exists status text not null default 'work';
+alter table champion_pool add column if not exists notes text;
+alter table champion_pool add column if not exists source text not null default 'riot';
+
 create index if not exists idx_champion_pool_team on champion_pool(team_id);
 create index if not exists idx_improvements_team on improvements(team_id, rank asc);
 create index if not exists idx_reports_team on reports(team_id, created_at desc);
