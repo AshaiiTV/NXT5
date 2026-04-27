@@ -645,9 +645,10 @@ function Sidebar({ active, setActive, open, setOpen, user, onLogout, currentMemb
   );
 }
 
-function Topbar({ active, setOpen, refreshAll, loading, currentTeam }) {
+function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
-  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="hidden h-12 w-12 object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.35)] md:block" /><div><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-cyan-200/70">{nav.label}</p><h1 className="text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1></div></div></div></header>;
+  const [teamMenuOpen, setTeamMenuOpen] = useState(false);
+  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="hidden h-12 w-12 object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.35)] md:block" /><div className="relative"><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-cyan-200/70">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex items-center gap-2 rounded-2xl px-0 py-0 text-left transition hover:text-cyan-100"><h1 className="text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-5 w-5 text-cyan-200" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(88vw,360px)] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition", currentTeam?.id === team.id ? "bg-cyan-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span><span className="block text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div></div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -753,7 +754,6 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
   const [saving, setSaving] = useState(false);
   const [syncingMostPlayed, setSyncingMostPlayed] = useState(false);
   const [teamSetupOpen, setTeamSetupOpen] = useState(false);
-  const [teamMenuOpen, setTeamMenuOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(false);
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0];
   const roster = selectedTeam ? data.players.filter((player) => player.team_id === selectedTeam.id) : [];
@@ -766,6 +766,11 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     const invite = new URLSearchParams(window.location.search).get("invite");
     if (invite && !joinCode) setJoinCode(invite);
   }, [data.teams, selectedTeamId, setSelectedTeamId, joinCode]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("create") === "1") setTeamSetupOpen(true);
+  }, []);
 
   async function createTeam(event) {
     event.preventDefault();
@@ -835,7 +840,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     if (!selectedTeam?.invite_code) return;
     const link = `${window.location.origin}/creer-un-compte?invite=${selectedTeam.invite_code}`;
     await navigator.clipboard.writeText(link);
-    pushToast({ type: "green", title: "Lien copié", text: "Envoie-le à un joueur, coach ou membre du staff." });
+    pushToast({ type: "green", title: "Lien d’invitation créé", text: "Il est copié. Envoie-le à un joueur, coach ou membre du staff." });
   }
 
   async function copyMultiOpggLink() {
@@ -911,21 +916,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     }
   }
 
-  return <div><PageHeader eyebrow="Team manager" title={hasTeams ? "Gérer ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ? "Choisis la team active en haut, puis la page affiche son roster, ses invitations et ses analyses." : "Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation."} />
-    {hasTeams && <Surface className="mb-5 overflow-visible">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative">
-          <button onClick={() => setTeamMenuOpen((open) => !open)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-left text-white transition hover:bg-cyan-400/15 sm:min-w-[320px]">
-            <span><span className="block text-xs font-black uppercase tracking-[0.18em] text-cyan-200/80">Team active</span><span className="mt-1 block text-lg font-black">{selectedTeam?.name || "Sélectionner"}</span></span>
-            <Menu className="h-5 w-5 text-cyan-100" />
-          </button>
-          <AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-40 w-full min-w-[320px] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">
-            {data.teams.map((team) => <button key={team.id} onClick={() => { setSelectedTeamId(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition", selectedTeam?.id === team.id ? "bg-cyan-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span><span className="block text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span>{selectedTeam?.id === team.id && <Check className="h-4 w-4 text-cyan-200" />}</button>)}
-          </motion.div>}</AnimatePresence>
-        </div>
-        <div className="flex flex-wrap gap-2"><Button variant="ghost" icon={managementOpen ? X : Settings} onClick={() => setManagementOpen((open) => !open)}>{managementOpen ? "Fermer gestion" : "Gestion"}</Button><Button variant="ghost" icon={teamSetupOpen ? X : Plus} onClick={() => setTeamSetupOpen((open) => !open)}>{teamSetupOpen ? "Masquer création" : "Nouvelle team"}</Button></div>
-      </div>
-    </Surface>}
+  return <div><PageHeader eyebrow="Team manager" title={hasTeams ? "G?rer ton ?quipe" : "Cr?er ou rejoindre une team"} subtitle={hasTeams ? "La page affiche le roster, les invitations et les analyses de l??quipe active." : "Apr?s la cr?ation du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d?invitation."}>{hasTeams && <><Button variant="ghost" icon={managementOpen ? X : Settings} onClick={() => setManagementOpen((open) => !open)}>{managementOpen ? "Fermer gestion" : "Gestion"}</Button><Button variant="ghost" icon={teamSetupOpen ? X : Plus} onClick={() => setTeamSetupOpen((open) => !open)}>{teamSetupOpen ? "Masquer cr?ation" : "Nouvelle team"}</Button></>}</PageHeader>
     {managementOpen && selectedTeam && <TeamManagementPanel members={teamMembers} roster={roster} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} />}
     <div className={cx("grid gap-5", hasTeams ? teamSetupOpen && "xl:grid-cols-[.78fr_1.22fr]" : selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
       <div className={cx("space-y-5", hasTeams && !teamSetupOpen && "hidden")}>
@@ -956,7 +947,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!roster.length}>Copier Multi OP.GG</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}<Button variant="danger" icon={saving ? Loader2 : X} onClick={deleteTeam} disabled={saving}>Supprimer</Button></div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!roster.length}>Copier Multi OP.GG</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={UserPlus} onClick={copyInviteLink}>Créer un lien d’invitation</Button>}<Button variant="danger" icon={saving ? Loader2 : X} onClick={deleteTeam} disabled={saving}>Supprimer</Button></div>
         </div>
 
         <>
@@ -995,10 +986,10 @@ function TeamManagementPanel({ members, roster, saving, onRoleChange, onLink }) 
         <Badge tone="cyan">{members.length} compte{members.length > 1 ? "s" : ""}</Badge>
       </div>
 
-      <div className="mt-8 grid gap-5 xl:grid-cols-2">
+      <div className="mt-8 space-y-8">
         <div>
           <h4 className="mb-4 text-xl font-black text-white">Comptes dans la team</h4>
-          <div className="grid gap-4">
+          <div className="grid gap-4 xl:grid-cols-2">
           {members.map((member) => (
             <div key={member.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1022,11 +1013,11 @@ function TeamManagementPanel({ members, roster, saving, onRoleChange, onLink }) 
         </div>
 
         <div>
-          <h4 className="mb-4 text-xl font-black text-white">Slots roster & coach</h4>
-          <div className="grid gap-4">
+          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-end md:justify-between"><div><h4 className="text-xl font-black text-white">Comptes Riot disponibles</h4><p className="mt-1 text-sm font-semibold text-slate-500">Fais défiler, puis choisis le compte RiftBoard à lier au profil Riot ou coach.</p></div><Badge tone="purple">{roster.length} profil{roster.length > 1 ? "s" : ""}</Badge></div>
+          <div className="flex gap-4 overflow-x-auto pb-3">
           {roster.map((player) => (
-            <div key={player.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div key={player.id} className="w-[min(88vw,520px)] shrink-0 rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+              <div className="flex min-h-[360px] flex-col gap-4">
                 <LinkedPlayerSummary player={player} />
                 <select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none md:min-w-[260px]">
                   <option value="">Aucun compte lié</option>
@@ -1142,6 +1133,10 @@ function MainApp({ user, onLogout, pushToast, navigate, route }) {
     navigate(`${pathFromPage(pageId)}${keepInvite ? window.location.search : ""}`);
   }
 
+  function openTeamCreation() {
+    navigate("/equipes?create=1");
+  }
+
   async function refreshAll() {
     setLoading(true); setApiError("");
     try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); }
@@ -1165,7 +1160,7 @@ function MainApp({ user, onLogout, pushToast, navigate, route }) {
     return <SettingsPage />;
   }, [active, data, loading, selectedTeamId]);
 
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} currentMember={currentMember} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} refreshAll={refreshAll} loading={loading} currentTeam={currentTeam} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} currentMember={currentMember} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
 }
 
 export default function RiftBoard() {
