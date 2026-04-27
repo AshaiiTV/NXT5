@@ -34,10 +34,20 @@ export default async function handler(request, context) {
     const teamIds = teams.map((t) => t.id);
 
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], matches: [], championPool: [], improvements: [], reports: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], improvements: [], reports: [] });
     }
 
     const players = await sql`select * from players where team_id = any(${teamIds}) order by created_at asc`;
+    const teamMembers = await sql`
+      select
+        team_members.*,
+        users.account_name,
+        users.name
+      from team_members
+      join users on users.id = team_members.user_id
+      where team_members.team_id = any(${teamIds})
+      order by team_members.created_at asc
+    `;
     const matches = await sql`select * from matches where team_id = any(${teamIds}) order by created_at desc limit 50`;
     const matchIds = matches.map((m) => m.id);
     const participants = matchIds.length ? await sql`select * from match_participants where match_id = any(${matchIds}) order by team_key asc, role asc` : [];
@@ -53,7 +63,7 @@ export default async function handler(request, context) {
     const improvements = await sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`;
     const reports = await sql`select * from reports where team_id = any(${teamIds}) order by created_at desc limit 20`;
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, matches: enrichedMatches, championPool, improvements, reports });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, improvements, reports });
   } catch (err) {
     return handleError(err);
   }

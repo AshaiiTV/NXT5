@@ -101,6 +101,7 @@ function readRoute() {
 const DEFAULT_DATA = {
   dashboard: null,
   teams: [],
+  teamMembers: [],
   players: [],
   matches: [],
   championPool: [],
@@ -162,6 +163,20 @@ function tone(t) {
 
 function gradeTone(grade) {
   return grade === "S" ? "green" : grade === "A" ? "cyan" : grade === "B" ? "purple" : grade === "C" ? "yellow" : grade === "D" ? "red" : "slate";
+}
+
+function profileStatusLabel(member) {
+  const role = String(member?.role || "").toLowerCase();
+  if (role === "captain") return "Capitaine";
+  if (role === "coach") return "Coach";
+  return "Joueur";
+}
+
+function profileStatusTone(member) {
+  const role = String(member?.role || "").toLowerCase();
+  if (role === "captain") return "yellow";
+  if (role === "coach") return "purple";
+  return "blue";
 }
 
 function Badge({ children, tone: t = "slate", pulse = false }) {
@@ -324,7 +339,7 @@ function BrandLogo({ compact = false, className = "" }) {
         alt="RiftBoard"
         className={cx(
           "object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.30)]",
-          compact ? "h-12 w-12" : "h-14 w-auto max-w-[245px]"
+          compact ? "h-12 w-12" : "h-14 w-auto max-w-[180px] sm:max-w-[245px]"
         )}
       />
     </div>
@@ -342,14 +357,14 @@ function MarketingPreview() {
   const axes = ["Vision", "Gestion des objectifs", "Début de partie", "Teamfights mid/late"];
 
   return (
-    <motion.div initial={{ opacity: 0, x: 28, rotateY: -9 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} transition={{ duration: 0.75, delay: 0.1 }} className="relative hidden xl:block">
+    <motion.div initial={{ opacity: 0, x: 28, rotateY: -9 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} transition={{ duration: 0.75, delay: 0.1 }} className="relative hidden lg:block">
       <div className="absolute -inset-6 rounded-[2.6rem] bg-gradient-to-r from-cyan-400/20 via-violet-500/10 to-fuchsia-500/25 blur-2xl" />
       <div className="relative overflow-hidden rounded-[2rem] border border-cyan-300/20 bg-[#07101f]/92 p-5 shadow-2xl shadow-violet-950/45 backdrop-blur-2xl">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_88%_5%,rgba(139,92,246,.22),transparent_30%),radial-gradient(circle_at_10%_90%,rgba(34,211,238,.16),transparent_34%)]" />
-        <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="relative z-10 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
           <BrandLogo compact />
           <p className="text-sm font-black text-white">Aperçu du tableau de bord</p>
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-400">Données à importer</div>
+          <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-400">Données à importer</div>
         </div>
         <div className="relative z-10 mt-4 grid grid-cols-4 gap-3">
           {metrics.map((m) => (
@@ -380,7 +395,7 @@ function MarketingPreview() {
             <p className="font-black text-white">Axes de travail</p>
             <p className="text-xs text-slate-500">Aucune priorité inventée : tout vient des games importées</p>
             <div className="mt-4 space-y-3">
-              {axes.map((a) => <div key={a} className="flex items-center justify-between rounded-2xl bg-black/[0.18] px-3 py-2"><span className="text-sm font-bold text-slate-300">{a}</span><Badge tone="slate">À calculer</Badge></div>)}
+              {axes.map((a) => <div key={a} className="flex items-center justify-between gap-3 rounded-2xl bg-black/[0.18] px-3 py-2"><span className="min-w-0 text-sm font-bold text-slate-300">{a}</span><Badge tone="slate">À calculer</Badge></div>)}
             </div>
           </div>
         </div>
@@ -393,7 +408,7 @@ function MarketingPreview() {
           </div>
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4">
             <p className="font-black text-white">Performance d’équipe</p>
-            <p className="absolute right-4 top-4 text-sm font-black text-cyan-200/70">Données réelles uniquement</p>
+            <p className="mt-1 text-xs font-black text-cyan-200/70">Données réelles uniquement</p>
             <svg viewBox="0 0 320 120" className="mt-5 h-28 w-full"><defs><linearGradient id="line" x1="0" x2="1"><stop stopColor="#22d3ee"/><stop offset="1" stopColor="#8b5cf6"/></linearGradient></defs><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25" fill="none" stroke="url(#line)" strokeWidth="6" strokeLinecap="round" opacity=".34"/><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25 L320 120 L0 120Z" fill="url(#line)" opacity=".08"/></svg>
           </div>
         </div>
@@ -412,7 +427,7 @@ function StatStrip() {
   ];
   return (
     <div className="grid gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-4 md:grid-cols-5">
-      {stats.map(([Icon, value, label, t]) => <div key={value} className="flex items-center gap-3 border-white/10 p-3 md:not-last:border-r"><div className={cx("rounded-2xl border p-3", tone(t))}><Icon className="h-5 w-5" /></div><div><p className="text-sm font-black text-white">{value}</p><p className="text-xs font-bold text-slate-500">{label}</p></div></div>)}
+      {stats.map(([Icon, value, label, t]) => <div key={value} className="flex items-center gap-3 border-white/10 p-3 md:[&:not(:last-child)]:border-r"><div className={cx("rounded-2xl border p-3", tone(t))}><Icon className="h-5 w-5" /></div><div className="min-w-0"><p className="text-sm font-black text-white">{value}</p><p className="text-xs font-bold text-slate-500">{label}</p></div></div>)}
     </div>
   );
 }
@@ -441,9 +456,9 @@ function SiteHeader({ children, navigate }) {
   }
 
   return (
-    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-6">
+    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-6">
       <a href="/" onClick={goHome} aria-label="Accueil RiftBoard" className="transition hover:opacity-90"><BrandLogo /></a>
-      {children && <div className="flex items-center gap-3">{children}</div>}
+      {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
     </header>
   );
 }
@@ -455,20 +470,20 @@ function HomeScreen({ navigate }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_28%,rgba(139,92,246,.16),transparent_26%),radial-gradient(circle_at_85%_22%,rgba(34,211,238,.12),transparent_28%)]" />
       <SiteHeader navigate={navigate}>
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
-        <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
+        <LinkButton href="/creer-un-compte" navigate={navigate} className="px-3 py-2.5 sm:px-4">Créer un compte</LinkButton>
       </SiteHeader>
 
       <main className="relative z-10 mx-auto max-w-7xl px-5 pb-16">
-        <section className="grid min-h-[690px] items-center gap-10 py-10 xl:grid-cols-[.86fr_1.14fr]">
+        <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.88fr_1.12fr] lg:py-10">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
             <Badge tone="cyan" pulse>La plateforme d’analyse pour équipes compétitives</Badge>
-            <h1 className="mt-6 max-w-4xl text-5xl font-black leading-[0.94] tracking-[-0.055em] md:text-7xl xl:text-7xl">
+            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
               Moins de <span className="bg-gradient-to-r from-cyan-300 via-sky-400 to-violet-400 bg-clip-text text-transparent">feeling.</span> Plus de <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">décisions claires</span> après chaque game.
             </h1>
             <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">RiftBoard centralise tes games, ton roster et tes reviews pour aider ta team à savoir quoi travailler avant le prochain scrim.</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <LinkButton href="/creer-un-compte" navigate={navigate} icon={ChevronRight} className="px-7 py-4">Créer un compte</LinkButton>
-              <Button variant="ghost" icon={Search} onClick={() => document.getElementById("analytics")?.scrollIntoView({ behavior: "smooth" })} className="px-7 py-4">Voir l’aperçu</Button>
+            <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
+              <LinkButton href="/creer-un-compte" navigate={navigate} icon={ChevronRight} className="px-6 py-4 sm:px-7">Créer un compte</LinkButton>
+              <Button variant="ghost" icon={Search} onClick={() => document.getElementById("analytics")?.scrollIntoView({ behavior: "smooth" })} className="px-6 py-4 sm:px-7">Voir l’aperçu</Button>
             </div>
           </motion.div>
           <MarketingPreview />
@@ -616,22 +631,23 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
   );
 }
 
-function Sidebar({ active, setActive, open, setOpen, user, onLogout }) {
+function Sidebar({ active, setActive, open, setOpen, user, onLogout, currentMember }) {
+  const status = profileStatusLabel(currentMember);
   return (
     <>
       <AnimatePresence>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-30 bg-black/65 backdrop-blur-sm lg:hidden" />}</AnimatePresence>
       <aside className={cx("fixed left-0 top-0 z-40 flex h-screen w-76 flex-col border-r border-white/10 bg-[#070b16]/88 p-4 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-transform lg:translate-x-0", open ? "translate-x-0" : "-translate-x-full")}>
         <div className="mb-6 flex items-center justify-between"><div className="flex items-center gap-3"><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="h-11 w-11 object-contain" /><div><p className="text-lg font-black tracking-tight">RiftBoard</p><p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-600">Performance OS</p></div></div><button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button></div>
         <nav className="space-y-1.5">{NAV.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => { setActive(item.id); setOpen(false); }} className={cx("group flex w-full items-center justify-between rounded-2xl px-3.5 py-3 text-left text-sm font-black transition duration-200", selected ? "bg-gradient-to-r from-violet-500/30 via-fuchsia-500/12 to-cyan-400/12 text-white shadow-lg shadow-violet-950/20" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><span className="flex items-center gap-3"><Icon className={cx("h-5 w-5 transition", selected ? "text-cyan-200" : "text-slate-600 group-hover:text-cyan-200")} />{item.label}</span><span className={cx("rounded-lg border px-2 py-0.5 text-[0.65rem]", selected ? "border-cyan-300/25 text-cyan-100" : "border-white/8 text-slate-700")}>{item.shortcut}</span></button>; })}</nav>
-        <div className="mt-auto space-y-3"><Surface className="rounded-3xl p-4" delay={0}><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.06] text-cyan-200"><Users className="h-5 w-5" /></div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{user?.account_name || user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-600">Nom de compte</p></div></div><div className="mt-3 flex flex-wrap gap-2"><Badge tone="green" pulse>Online</Badge><Badge tone="purple">Staff access</Badge></div></Surface><Button variant="ghost" icon={LogOut} onClick={onLogout} className="w-full justify-start">Déconnexion</Button></div>
+        <div className="mt-auto space-y-3"><Surface className="rounded-3xl p-4" delay={0}><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.06] text-cyan-200"><Users className="h-5 w-5" /></div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{user?.account_name || user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-600">{status}</p></div></div><div className="mt-3 flex flex-wrap gap-2"><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge></div></Surface><Button variant="ghost" icon={LogOut} onClick={onLogout} className="w-full justify-start">Déconnexion</Button></div>
       </aside>
     </>
   );
 }
 
-function Topbar({ active, setOpen, refreshAll, loading }) {
+function Topbar({ active, setOpen, refreshAll, loading, currentTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
-  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="hidden h-12 w-12 object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.35)] md:block" /><div><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-cyan-200/70">RiftBoard</p><h1 className="text-xl font-black tracking-tight md:text-2xl">{nav.label}</h1></div></div><div className="flex items-center gap-2"><Button variant="ghost" icon={loading ? Loader2 : RefreshCw} onClick={refreshAll} disabled={loading}>Sync DB</Button><Badge tone="green" pulse>Synced</Badge></div></div></header>;
+  return <header className="sticky top-0 z-20 border-b border-white/10 bg-[#050711]/72 px-4 py-4 text-white backdrop-blur-2xl lg:px-8"><div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><button onClick={() => setOpen(true)} className="rounded-2xl border border-white/10 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="hidden h-12 w-12 object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.35)] md:block" /><div><p className="text-[0.68rem] font-black uppercase tracking-[0.26em] text-cyan-200/70">{nav.label}</p><h1 className="text-xl font-black tracking-tight md:text-2xl">{currentTeam?.name || nav.label}</h1></div></div></div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -718,15 +734,32 @@ function opggUrlFromRiotId(riotId, region) {
   return `https://www.op.gg/summoners/${String(region || "EUW").toLowerCase()}/${slug}`;
 }
 
+function multiOpggUrlFromRoster(roster, region) {
+  const summoners = roster
+    .map((player) => {
+      const [name, tag] = String(player.riot_id || "").split("#").map((part) => part.trim());
+      return name && tag ? `${name}-${tag}` : "";
+    })
+    .filter(Boolean);
+
+  if (!summoners.length) return "";
+  return `https://www.op.gg/multisearch/${String(region || "EUW").toLowerCase()}?summoners=${encodeURIComponent(summoners.join(","))}`;
+}
+
 function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast }) {
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
   const [playerForm, setPlayerForm] = useState({ name: "", riotId: "", opggUrl: "", role: "TOP" });
   const [joinCode, setJoinCode] = useState("");
   const [saving, setSaving] = useState(false);
   const [syncingMostPlayed, setSyncingMostPlayed] = useState(false);
+  const [teamSetupOpen, setTeamSetupOpen] = useState(false);
+  const [teamMenuOpen, setTeamMenuOpen] = useState(false);
+  const [managementOpen, setManagementOpen] = useState(false);
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0];
   const roster = selectedTeam ? data.players.filter((player) => player.team_id === selectedTeam.id) : [];
+  const teamMembers = selectedTeam ? (data.teamMembers || []).filter((member) => member.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
+  const hasTeams = data.teams.length > 0;
 
   useEffect(() => {
     if (!selectedTeamId && data.teams[0]?.id) setSelectedTeamId(data.teams[0].id);
@@ -756,6 +789,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
       }
       setTeamForm({ name: "", tag: "", region: "EUW", multiOpgg: "" });
       setSelectedTeamId(createdTeam.id);
+      setTeamSetupOpen(false);
       await refreshAll();
       pushToast({ type: "green", title: "Team créée", text: importedCount ? `${importedCount} joueur${importedCount > 1 ? "s" : ""} importé${importedCount > 1 ? "s" : ""} depuis le multi OP.GG.` : "Tu peux maintenant ajouter le roster ou partager le lien d’invitation." });
     } catch (err) {
@@ -771,6 +805,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     try {
       await apiFetch("teams-join", { method: "POST", body: JSON.stringify({ invite: joinCode }) });
       setJoinCode("");
+      setTeamSetupOpen(false);
       await refreshAll();
       pushToast({ type: "green", title: "Team rejointe", text: "Tu as maintenant accès à cette structure." });
     } catch (err) {
@@ -801,6 +836,45 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     const link = `${window.location.origin}/creer-un-compte?invite=${selectedTeam.invite_code}`;
     await navigator.clipboard.writeText(link);
     pushToast({ type: "green", title: "Lien copié", text: "Envoie-le à un joueur, coach ou membre du staff." });
+  }
+
+  async function copyMultiOpggLink() {
+    if (!selectedTeam || !roster.length) return;
+    const link = multiOpggUrlFromRoster(roster, selectedTeam.region);
+    if (!link) {
+      pushToast({ type: "red", title: "Multi OP.GG impossible", text: "Ajoute des Riot IDs au format Pseudo#TAG." });
+      return;
+    }
+    await navigator.clipboard.writeText(link);
+    pushToast({ type: "green", title: "Multi OP.GG copié", text: `${roster.length} joueur${roster.length > 1 ? "s" : ""} dans le lien.` });
+  }
+
+  async function linkPlayerAccount(playerId, userId) {
+    if (!selectedTeam) return;
+    setSaving(true);
+    try {
+      await apiFetch("players-link-account", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, playerId, userId: userId || null }) });
+      await refreshAll();
+      pushToast({ type: "green", title: userId ? "Compte lié" : "Compte délié", text: "La gestion de la team est à jour." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Liaison impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateMemberRole(userId, role) {
+    if (!selectedTeam) return;
+    setSaving(true);
+    try {
+      await apiFetch("team-member-role", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, userId, role }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Statut mis à jour", text: "Le profil reflète son rôle dans la team." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Modification impossible", text: err.message });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function syncMostPlayed() {
@@ -837,16 +911,31 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
     }
   }
 
-  return <div><PageHeader eyebrow="Team manager" title="Créer ou rejoindre une team" subtitle="Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation." />
-    <div className={cx("grid gap-5", selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
-      <div className="space-y-5">
+  return <div><PageHeader eyebrow="Team manager" title={hasTeams ? "Gérer ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ? "Choisis la team active en haut, puis la page affiche son roster, ses invitations et ses analyses." : "Après la création du compte, tu peux lancer ta propre structure ou rejoindre celle de ton staff avec un lien d’invitation."} />
+    {hasTeams && <Surface className="mb-5 overflow-visible">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative">
+          <button onClick={() => setTeamMenuOpen((open) => !open)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-left text-white transition hover:bg-cyan-400/15 sm:min-w-[320px]">
+            <span><span className="block text-xs font-black uppercase tracking-[0.18em] text-cyan-200/80">Team active</span><span className="mt-1 block text-lg font-black">{selectedTeam?.name || "Sélectionner"}</span></span>
+            <Menu className="h-5 w-5 text-cyan-100" />
+          </button>
+          <AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-40 w-full min-w-[320px] overflow-hidden rounded-3xl border border-white/10 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">
+            {data.teams.map((team) => <button key={team.id} onClick={() => { setSelectedTeamId(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition", selectedTeam?.id === team.id ? "bg-cyan-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span><span className="block text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-600">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span>{selectedTeam?.id === team.id && <Check className="h-4 w-4 text-cyan-200" />}</button>)}
+          </motion.div>}</AnimatePresence>
+        </div>
+        <div className="flex flex-wrap gap-2"><Button variant="ghost" icon={managementOpen ? X : Settings} onClick={() => setManagementOpen((open) => !open)}>{managementOpen ? "Fermer gestion" : "Gestion"}</Button><Button variant="ghost" icon={teamSetupOpen ? X : Plus} onClick={() => setTeamSetupOpen((open) => !open)}>{teamSetupOpen ? "Masquer création" : "Nouvelle team"}</Button></div>
+      </div>
+    </Surface>}
+    {managementOpen && selectedTeam && <TeamManagementPanel members={teamMembers} roster={roster} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} />}
+    <div className={cx("grid gap-5", hasTeams ? teamSetupOpen && "xl:grid-cols-[.78fr_1.22fr]" : selectedTeam && "xl:grid-cols-[.78fr_1.22fr]")}>
+      <div className={cx("space-y-5", hasTeams && !teamSetupOpen && "hidden")}>
         <Surface glow>
           <h3 className="text-xl font-black text-white">Créer une team</h3>
           <p className="mt-1 text-sm text-slate-500">Pour lancer une nouvelle structure, créer son roster et importer ses games.</p>
           <form onSubmit={createTeam} className="mt-5 space-y-4">
             <TextInput label="Nom de team" value={teamForm.name} onChange={(name) => setTeamForm({ ...teamForm, name })} placeholder="Nom de l'équipe" required icon={Trophy} />
             <TextInput label="Tag" value={teamForm.tag} onChange={(tag) => setTeamForm({ ...teamForm, tag })} placeholder="TAG" required icon={Shield} />
-            <SelectInput label="Région" value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })}><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option></SelectInput>
+            <SelectInput label="Région" value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })}><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option><option>BR</option><option>LAN</option><option>LAS</option><option>JP</option><option>OCE</option><option>TR</option></SelectInput>
             <TextAreaInput label="Multi OP.GG ou Riot IDs" value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} placeholder={"Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW"} icon={Clipboard} />
             {multiPlayers.length > 0 && <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{multiPlayers.length} joueur{multiPlayers.length > 1 ? "s" : ""} détecté{multiPlayers.length > 1 ? "s" : ""}</p><div className="mt-2 flex flex-wrap gap-2">{multiPlayers.map((player, index) => <Badge key={player.riotId} tone={index < 5 ? "cyan" : "slate"}>{ROSTER_ROLE_ORDER[index] || "SUB"} · {player.riotId}</Badge>)}</div></div>}
             <Button type="submit" disabled={saving} icon={saving ? Loader2 : Plus} className="w-full">Créer la team</Button>
@@ -862,24 +951,20 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, pushToast 
           </form>
         </Surface>
 
-        {data.teams.length > 0 && <Surface>
-          <h3 className="text-xl font-black text-white">Mes teams</h3>
-          <div className="mt-4 space-y-2">{data.teams.map((team) => <button key={team.id} onClick={() => setSelectedTeamId(team.id)} className={cx("group flex w-full items-center justify-between rounded-2xl border p-4 text-left transition", selectedTeam?.id === team.id ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div><p className="font-black text-white">{team.name}</p><p className="mt-1 text-xs font-semibold text-slate-600">{team.tag || "NO TAG"} · {team.region || "EUW"}</p></div><ChevronRight className="h-5 w-5 text-slate-700 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></button>)}</div>
-        </Surface>}
       </div>
 
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}<Button variant="danger" icon={saving ? Loader2 : X} onClick={deleteTeam} disabled={saving}>Supprimer</Button></div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ? Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !roster.length}>Analyser profils</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!roster.length}>Copier Multi OP.GG</Button>{selectedTeam.invite_code && <Button variant="ghost" icon={Clipboard} onClick={copyInviteLink}>Copier le lien</Button>}<Button variant="danger" icon={saving ? Loader2 : X} onClick={deleteTeam} disabled={saving}>Supprimer</Button></div>
         </div>
 
         <>
           <form onSubmit={createPlayer} className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             <TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur" required />
-            <TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder="Pseudo#TAG" required />
+            <TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder={playerForm.role === "COACH" ? "Optionnel pour coach" : "Pseudo#TAG"} required={playerForm.role !== "COACH"} />
             <TextInput label="OP.GG" value={playerForm.opggUrl} onChange={(opggUrl) => setPlayerForm({ ...playerForm, opggUrl })} placeholder="https://op.gg/..." />
-            <SelectInput label="Rôle" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role })}><option>TOP</option><option>JGL</option><option>MID</option><option>ADC</option><option>SUP</option><option>SUB</option></SelectInput>
+            <SelectInput label="Rôle" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role })}><option>TOP</option><option>JGL</option><option>MID</option><option>ADC</option><option>SUP</option><option>SUB</option><option>COACH</option></SelectInput>
             <div className="flex items-end"><Button type="submit" disabled={saving} icon={saving ? Loader2 : UserPlus} className="w-full">Ajouter</Button></div>
           </form>
           <PremiumRosterTable roster={roster} />
@@ -894,6 +979,82 @@ function formatPoints(value) {
   if (number >= 1000000) return `${(number / 1000000).toFixed(1)}M`;
   if (number >= 1000) return `${Math.round(number / 1000)}k`;
   return String(number);
+}
+
+function TeamManagementPanel({ members, roster, saving, onRoleChange, onLink }) {
+  const linkedPlayerByUser = new Map(roster.filter((player) => player.user_id).map((player) => [player.user_id, player]));
+
+  return (
+    <Surface glow className="mb-6 p-6 md:p-8">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <Badge tone="cyan">Comptes Riot & profils</Badge>
+          <h3 className="mt-4 text-3xl font-black tracking-tight text-white md:text-4xl">Gestion des comptes de la team</h3>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400 md:text-base">Associe chaque compte RiftBoard à un slot joueur ou coach. Les trois champions les plus joués doivent rester visibles ici, parce que c’est une info centrale pour le staff.</p>
+        </div>
+        <Badge tone="cyan">{members.length} compte{members.length > 1 ? "s" : ""}</Badge>
+      </div>
+
+      <div className="mt-8 grid gap-5 xl:grid-cols-2">
+        <div>
+          <h4 className="mb-4 text-xl font-black text-white">Comptes dans la team</h4>
+          <div className="grid gap-4">
+          {members.map((member) => (
+            <div key={member.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2"><p className="truncate text-2xl font-black text-white">{member.account_name || member.name}</p><Badge tone={profileStatusTone(member)}>{profileStatusLabel(member)}</Badge></div>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">Compte RiftBoard lié au profil</p>
+                </div>
+                <select value={String(member.role || "player").toLowerCase() === "captain" ? "captain" : String(member.role || "").toLowerCase() === "coach" ? "coach" : "player"} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">
+                  <option value="player">Joueur</option>
+                  <option value="coach">Coach</option>
+                  <option value="captain">Capitaine</option>
+                </select>
+              </div>
+              <div className="mt-5 rounded-2xl border border-white/10 bg-black/[0.18] p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Slot lié</p>
+                {linkedPlayerByUser.get(member.user_id) ? <div className="mt-3"><LinkedPlayerSummary player={linkedPlayerByUser.get(member.user_id)} /></div> : <p className="mt-3 text-sm font-semibold text-slate-500">Aucun joueur ou coach lié pour l’instant.</p>}
+              </div>
+            </div>
+          ))}
+          </div>
+        </div>
+
+        <div>
+          <h4 className="mb-4 text-xl font-black text-white">Slots roster & coach</h4>
+          <div className="grid gap-4">
+          {roster.map((player) => (
+            <div key={player.id} className="rounded-3xl border border-white/10 bg-white/[0.04] p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <LinkedPlayerSummary player={player} />
+                <select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving} className="rounded-2xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none md:min-w-[260px]">
+                  <option value="">Aucun compte lié</option>
+                  {members.map((member) => <option key={member.user_id} value={member.user_id}>{member.account_name || member.name}</option>)}
+                </select>
+              </div>
+            </div>
+          ))}
+          </div>
+        </div>
+      </div>
+    </Surface>
+  );
+}
+
+function LinkedPlayerSummary({ player }) {
+  const mostPlayed = parseMostPlayed(player.most_played).slice(0, 3);
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2"><Badge tone={player.role === "COACH" ? "purple" : "blue"}>{player.role}</Badge><p className="text-2xl font-black text-white">{player.name}</p></div>
+      <p className="mt-2 text-sm font-semibold text-slate-500">{player.riot_id || "Coach sans Riot ID"}</p>
+      {player.role === "COACH" ? <p className="mt-5 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-sm font-semibold text-slate-500">Pas de compte Riot requis pour ce slot coach.</p> : (
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          {mostPlayed.length ? mostPlayed.map((champion, index) => <div key={`${champion.championId}-${champion.champion}`} className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-cyan-200/70">Top {index + 1}</p><p className="mt-2 truncate text-lg font-black text-white">{champion.champion}</p><p className="mt-1 text-sm font-bold text-cyan-100">{formatPoints(champion.points)} pts</p></div>) : <div className="rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-sm font-semibold text-slate-500 sm:col-span-3">Most played non synchronisés. Lance “Analyser profils” pour remplir les champions.</div>}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function parseMostPlayed(value) {
@@ -914,7 +1075,7 @@ function MostPlayedBadges({ value }) {
 
 function PremiumRosterTable({ roster }) {
   if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun joueur" text="Ajoute tes joueurs. Leurs Riot IDs et liens OP.GG seront stockés en DB." /></div>;
-  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[980px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Most played</th><th className="px-4 py-3">Score</th><th className="px-4 py-3">Statut</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone="blue">{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id}</td><td className="px-4 py-4"><MostPlayedBadges value={item.most_played} /></td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ? formatPoints(item.performance_score) : "—"}</Badge></td><td className="px-4 py-4 text-slate-500">{item.status || "Non analysé"}</td></tr>)}</tbody></table></div>;
+  return <div className="mt-6 overflow-x-auto rounded-[1.35rem] border border-white/10"><table className="w-full min-w-[980px] text-left text-sm"><thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-600"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Most played</th><th className="px-4 py-3">Score</th><th className="px-4 py-3">Statut</th></tr></thead><tbody className="divide-y divide-white/10">{roster.map((item) => <tr key={item.id} className="bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]"><td className="px-4 py-4"><Badge tone="blue">{item.role}</Badge></td><td className="px-4 py-4 font-black text-white">{item.name}</td><td className="px-4 py-4 font-semibold text-slate-500">{item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{item.role === "COACH" ? <span className="text-xs font-semibold text-slate-600">Non requis</span> : <MostPlayedBadges value={item.most_played} />}</td><td className="px-4 py-4"><Badge tone="purple">{item.performance_score ? formatPoints(item.performance_score) : "—"}</Badge></td><td className="px-4 py-4 text-slate-500">{item.status || "Non analysé"}</td></tr>)}</tbody></table></div>;
 }
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast }) {
@@ -954,7 +1115,16 @@ function Reports({ data, pushToast }) {
 
 function SettingsPage() {
   const schema = ["users", "sessions", "teams", "players", "matches", "match_participants", "champion_pool", "improvements", "reports", "audit_logs"];
-  return <div><PageHeader eyebrow="Architecture" title="Règles techniques non négociables" subtitle="Cette page sert de garde-fou : RiftBoard reste DB-first, propre et déployable sur Netlify + Neon." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Tables Neon</h3><div className="mt-4 grid gap-2 sm:grid-cols-2">{schema.map((table) => <div key={table} className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-slate-300">{table}</div>)}</div></Surface><Surface><h3 className="text-xl font-black text-white">Principes</h3><div className="mt-4 space-y-3 text-sm leading-6 text-slate-400"><p><span className="font-black text-white">Aucun localStorage.</span> Pas de roster, match, rapport ou compte dans le navigateur.</p><p><span className="font-black text-white">Cookies HttpOnly.</span> Sessions créées par Netlify Functions et validées côté serveur.</p><p><span className="font-black text-white">Riot API serveur.</span> La clé Riot reste dans les variables Netlify.</p><p><span className="font-black text-white">Neon source of truth.</span> Le front ne fait qu’afficher et déclencher des actions.</p></div></Surface></div></div>;
+  const [riotStatus, setRiotStatus] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    apiFetch("riot-status")
+      .then((status) => { if (mounted) setRiotStatus(status); })
+      .catch((err) => { if (mounted) setRiotStatus({ configured: false, error: err.message }); });
+    return () => { mounted = false; };
+  }, []);
+  return <div><PageHeader eyebrow="Architecture" title="Règles techniques non négociables" subtitle="Cette page sert de garde-fou : RiftBoard reste DB-first, propre et déployable sur Netlify + Neon." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Tables Neon</h3><div className="mt-4 grid gap-2 sm:grid-cols-2">{schema.map((table) => <div key={table} className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-slate-300">{table}</div>)}</div></Surface><Surface><h3 className="text-xl font-black text-white">Principes</h3><div className="mt-4 space-y-3 text-sm leading-6 text-slate-400"><p><span className="font-black text-white">Aucun localStorage.</span> Pas de roster, match, rapport ou compte dans le navigateur.</p><p><span className="font-black text-white">Cookies HttpOnly.</span> Sessions créées par Netlify Functions et validées côté serveur.</p><p><span className="font-black text-white">Riot API serveur.</span> La clé Riot reste dans les variables Netlify.</p><p><span className="font-black text-white">Neon source of truth.</span> Le front ne fait qu’afficher et déclencher des actions.</p></div></Surface><Surface glow><div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div><h3 className="text-xl font-black text-white">Connexion Riot API</h3><p className="mt-2 text-sm leading-6 text-slate-400">La clé reste côté Netlify Functions. Le navigateur reçoit uniquement le statut de configuration.</p></div><Badge tone={riotStatus?.configured ? "green" : riotStatus ? "red" : "yellow"} pulse>{riotStatus?.configured ? "Connectée" : riotStatus ? "À configurer" : "Vérification"}</Badge></div><div className="mt-5 grid gap-2 sm:grid-cols-2">{["Account-V1", "Match-V5", "Champion-Mastery-V4", "Data Dragon"].map((service) => <div key={service} className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 text-sm font-black text-slate-300">{service}</div>)}</div>{riotStatus?.error && <p className="mt-4 text-sm font-semibold leading-6 text-rose-200">{riotStatus.error}</p>}</Surface></div></div>;
 }
 
 function MainApp({ user, onLogout, pushToast, navigate, route }) {
@@ -982,6 +1152,9 @@ function MainApp({ user, onLogout, pushToast, navigate, route }) {
   useEffect(() => { refreshAll(); }, []);
   useEffect(() => { setActiveState(new URLSearchParams(route.search).get("invite") ? "teams" : pageFromPath(route.path)); }, [route.path, route.search]);
 
+  const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
+  const currentMember = currentTeam ? (data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
+
   const page = useMemo(() => {
     if (active === "dashboard") return <Dashboard data={data} loading={loading} setActive={setActive} />;
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} pushToast={pushToast} />;
@@ -992,7 +1165,7 @@ function MainApp({ user, onLogout, pushToast, navigate, route }) {
     return <SettingsPage />;
   }, [active, data, loading, selectedTeamId]);
 
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} refreshAll={refreshAll} loading={loading} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} currentMember={currentMember} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} refreshAll={refreshAll} loading={loading} currentTeam={currentTeam} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
 }
 
 export default function RiftBoard() {

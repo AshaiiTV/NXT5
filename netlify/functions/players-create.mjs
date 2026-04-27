@@ -2,7 +2,7 @@ import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
 
-const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
+const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH']);
 
 export default async function handler(request, context) {
   try {
@@ -12,12 +12,19 @@ export default async function handler(request, context) {
 
     const teamId = String(body.teamId || '').trim();
     const name = String(body.name || '').trim();
-    const riotId = String(body.riotId || '').trim();
+    const riotId = String(body.riotId || '').trim() || null;
     const opggUrl = String(body.opggUrl || '').trim() || null;
     const role = String(body.role || '').trim().toUpperCase();
 
-    if (!teamId || !name || !riotId) throw Object.assign(new Error('Team, nom et Riot ID requis.'), { status: 400 });
+    if (!teamId || !name) throw Object.assign(new Error('Team et nom requis.'), { status: 400 });
     if (!ROLES.has(role)) throw Object.assign(new Error('Rôle invalide.'), { status: 400 });
+    if (role !== 'COACH' && !riotId) throw Object.assign(new Error('Riot ID requis pour un joueur.'), { status: 400 });
+
+    await sql`
+      alter table players
+      add column if not exists user_id uuid references users(id) on delete set null
+    `;
+    await sql`alter table players alter column riot_id drop not null`;
 
     const allowed = await sql`
       select teams.id

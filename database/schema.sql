@@ -52,7 +52,7 @@ create table if not exists team_members (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references teams(id) on delete cascade,
   user_id uuid not null references users(id) on delete cascade,
-  role text not null default 'member' check (role in ('owner', 'coach', 'analyst', 'player', 'viewer', 'member')),
+  role text not null default 'member' check (role in ('owner', 'captain', 'coach', 'analyst', 'player', 'viewer', 'member')),
   created_at timestamptz not null default now(),
   unique(team_id, user_id)
 );
@@ -62,13 +62,17 @@ select id, owner_id, 'owner'
 from teams
 on conflict (team_id, user_id) do nothing;
 
+alter table team_members drop constraint if exists team_members_role_check;
+alter table team_members add constraint team_members_role_check check (role in ('owner', 'captain', 'coach', 'analyst', 'player', 'viewer', 'member'));
+
 create table if not exists players (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references teams(id) on delete cascade,
+  user_id uuid references users(id) on delete set null,
   name text not null,
-  riot_id text not null,
+  riot_id text,
   opgg_url text,
-  role text not null check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB')),
+  role text not null check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH')),
   most_played jsonb not null default '[]'::jsonb,
   performance_score numeric,
   status text default 'Non analysé',
@@ -77,7 +81,11 @@ create table if not exists players (
   unique(team_id, riot_id)
 );
 
+alter table players add column if not exists user_id uuid references users(id) on delete set null;
+alter table players alter column riot_id drop not null;
 alter table players add column if not exists most_played jsonb not null default '[]'::jsonb;
+alter table players drop constraint if exists players_role_check;
+alter table players add constraint players_role_check check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH'));
 
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
