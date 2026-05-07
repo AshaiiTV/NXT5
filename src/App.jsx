@@ -1456,21 +1456,38 @@ const CHAMPION_TIERS = [
   { id: "danger", title: "À apprendre", hint: "À reprendre tranquillement avant de le sortir en game importante.", tone: "red" },
 ];
 
-function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
-  const isManual = ["manual", "riot_manual"].includes(String(row.source || ""));
-  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, row)} className={cx("group flex items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-2 transition", canManage ?"cursor-grab active:cursor-grabbing hover:border-cyan-300/25 hover:bg-white/[0.05]" : "")}><img src={championSquareUrl(row)} alt={row.champion} className="h-12 w-12 shrink-0 rounded-2xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{Number(row.games || 0) ? `${row.games} game${Number(row.games) > 1 ?"s" : ""} · ${row.winrate || 0}% WR` : "Ajout manuel"}</p></div>{canManage && isManual && <button type="button" onClick={() => onDelete(row)} disabled={saving} className="rounded-xl p-2 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>}</div>;
+const CHAMPION_LANE_POOLS = {
+  TOP: ["Aatrox", "Camille", "Chogath", "Darius", "DrMundo", "Fiora", "Gangplank", "Garen", "Gnar", "Gwen", "Irelia", "Jax", "Jayce", "Kayle", "Kennen", "Kled", "KSante", "Malphite", "Mordekaiser", "Nasus", "Olaf", "Ornn", "Pantheon", "Poppy", "Quinn", "Renekton", "Riven", "Rumble", "Ryze", "Sett", "Shen", "Singed", "Sion", "Teemo", "Tryndamere", "Urgot", "Vladimir", "Volibear", "Warwick", "Yone", "Yorick"],
+  JGL: ["Amumu", "Diana", "Ekko", "Elise", "Evelynn", "Fiddlesticks", "Gragas", "Graves", "Hecarim", "Ivern", "JarvanIV", "Karthus", "Kayn", "Khazix", "Kindred", "LeeSin", "Lillia", "Maokai", "MasterYi", "Nidalee", "Nocturne", "Nunu", "Olaf", "Poppy", "Rammus", "RekSai", "Rengar", "Sejuani", "Shyvana", "Skarner", "Taliyah", "Trundle", "Udyr", "Vi", "Viego", "Volibear", "Warwick", "XinZhao", "Zac"],
+  MID: ["Ahri", "Akali", "Anivia", "Annie", "AurelionSol", "Azir", "Cassiopeia", "Corki", "Diana", "Ekko", "Fizz", "Galio", "Hwei", "Irelia", "Kassadin", "Katarina", "Leblanc", "Lissandra", "Lux", "Malzahar", "Neeko", "Orianna", "Qiyana", "Ryze", "Sylas", "Syndra", "Taliyah", "Talon", "TwistedFate", "Veigar", "Velkoz", "Vex", "Viktor", "Vladimir", "Xerath", "Yasuo", "Yone", "Zed", "Ziggs", "Zoe"],
+  ADC: ["Aphelios", "Ashe", "Caitlyn", "Draven", "Ezreal", "Jhin", "Jinx", "Kaisa", "Kalista", "KogMaw", "Lucian", "MissFortune", "Nilah", "Samira", "Senna", "Seraphine", "Sivir", "Smolder", "Tristana", "Twitch", "Varus", "Vayne", "Xayah", "Zeri", "Ziggs"],
+  SUP: ["Alistar", "Ashe", "Bard", "Blitzcrank", "Brand", "Braum", "Janna", "Karma", "Leona", "Lulu", "Lux", "Maokai", "Milio", "Morgana", "Nami", "Nautilus", "Pyke", "Rakan", "Rell", "Renata", "Senna", "Seraphine", "Sona", "Soraka", "Swain", "TahmKench", "Taric", "Thresh", "Yuumi", "Zilean", "Zyra"],
+};
+
+function championMatchesLane(champion, lane) {
+  if (!lane || lane === "ALL") return true;
+  const id = championAssetId(champion);
+  return (CHAMPION_LANE_POOLS[lane] || []).includes(id);
 }
 
-function ChampionSearchTile({ champion, disabled, canManage, onAdd, onDragStart }) {
-  return <button type="button" draggable={canManage && !disabled} onDragStart={(event) => onDragStart(event, { champion })} onClick={() => onAdd(champion, "work")} disabled={!canManage || disabled} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", disabled ?"border-white/5 bg-white/[0.02] opacity-40" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}><img src={championSquareUrl(champion)} alt={champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><span className="truncate text-xs font-black text-white">{championDisplayName(champion)}</span></button>;
+function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
+  const isManual = ["manual", "riot_manual"].includes(String(row.source || ""));
+  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, row)} className={cx("group flex min-h-[76px] items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 transition", canManage ?"cursor-grab active:cursor-grabbing hover:border-cyan-300/25 hover:bg-white/[0.05]" : "")}><img src={championSquareUrl(row)} alt={row.champion} className="h-14 w-14 shrink-0 rounded-2xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-base font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{Number(row.games || 0) ? `${row.games} game${Number(row.games) > 1 ?"s" : ""} · ${row.winrate || 0}% WR` : "Ajout manuel"}</p></div>{canManage && isManual && <button type="button" onClick={() => onDelete(row)} disabled={saving} className="rounded-xl p-2 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>}</div>;
+}
+
+function ChampionSearchTile({ champion, disabled, canManage, targetStatus, onAdd, onDragStart }) {
+  return <button type="button" draggable={canManage && !disabled} onDragStart={(event) => onDragStart(event, { champion })} onClick={() => onAdd(champion, targetStatus)} disabled={!canManage || disabled} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", disabled ?"border-white/5 bg-white/[0.02] opacity-35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}><img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>{!disabled && <span className="hidden rounded-lg border border-white/10 px-1.5 py-0.5 text-[0.58rem] font-black uppercase tracking-[0.08em] text-slate-500 group-hover:inline">{championPoolStatusLabel(targetStatus)}</span>}</button>;
 }
 
 function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember }) {
   const activeTeamId = selectedTeamId || data.teams[0]?.id || null;
   const canManagePool = ["owner", "captain", "coach"].includes(String(currentMember?.role || "").toLowerCase());
-  const players = (data.players || []).filter((player) => player.team_id === activeTeamId && player.role !== "COACH");
+  const players = (data.players || []).filter((player) => String(player.team_id || "") === String(activeTeamId || "") && player.role !== "COACH");
+  const laneOptions = ["ALL", "TOP", "JGL", "MID", "ADC", "SUP"];
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [query, setQuery] = useState("");
+  const [laneFilter, setLaneFilter] = useState("ALL");
+  const [quickTier, setQuickTier] = useState("work");
   const [saving, setSaving] = useState(false);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || players[0];
   const selectedRows = (data.championPool || [])
@@ -1480,12 +1497,17 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
   const pickedChampionKeys = new Set(selectedRows.map((row) => championAssetId(row.champion) || championKey(row.champion)));
   const visibleChampions = championOptions()
     .filter((champion) => championDisplayName(champion).toLowerCase().includes(query.toLowerCase()))
-    .slice(0, 32);
+    .filter((champion) => championMatchesLane(champion, laneFilter))
+    .slice(0, 72);
 
   useEffect(() => {
     if (!selectedPlayerId && players[0]?.id) setSelectedPlayerId(players[0].id);
     if (selectedPlayerId && !players.some((player) => player.id === selectedPlayerId)) setSelectedPlayerId(players[0]?.id || "");
   }, [activeTeamId, players.map((player) => player.id).join("|")]);
+
+  useEffect(() => {
+    if (selectedPlayer?.role && laneOptions.includes(selectedPlayer.role)) setLaneFilter(selectedPlayer.role);
+  }, [selectedPlayer?.id]);
 
   function rowsForTier(status) {
     return selectedRows.filter((row) => row.status === status);
@@ -1538,7 +1560,109 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
     if (payload.champion) saveChampion(payload.champion, status);
   }
 
-  return <div><PageHeader eyebrow="Champion path" title="Champion pool par joueur" subtitle="Choisis un joueur, ajoute ses champions, puis déplace les icônes dans la tier list de Maîtrisé à À apprendre." /><div className="grid gap-5 xl:grid-cols-[320px_1fr]"><Surface glow><div className="flex items-center justify-between gap-3"><div><h3 className="text-xl font-black text-white">Joueurs</h3><p className="mt-1 text-sm font-semibold text-slate-500">Clique un profil pour gérer son pool.</p></div><Badge tone="blue">{players.length}</Badge></div><div className="mt-5 space-y-2">{players.length ?players.map((player) => { const count = (data.championPool || []).filter((row) => String(row.team_id || "") === String(activeTeamId || "") && (String(row.player_id || "") === String(player.id || "") || row.player_name === player.name)).length; const selected = selectedPlayer?.id === player.id; return <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("w-full rounded-2xl border p-4 text-left transition", selected ?"border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="truncate text-lg font-black text-white">{player.name}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{player.riot_id || "Profil joueur"}</p></div><Badge tone={player.role === "COACH" ?"purple" : "blue"}>{player.role}</Badge></div><div className="mt-3 flex items-center justify-between gap-3"><span className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Champions</span><span className="font-black text-cyan-100">{count}</span></div></button>; }) : <EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de construire les champion pools." />}</div></Surface><div className="space-y-5">{selectedPlayer ?<><Surface glow><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">{selectedPlayer.role}</Badge><h3 className="mt-3 text-3xl font-black text-white">{selectedPlayer.name}</h3><p className="mt-2 text-sm font-semibold text-slate-500">{selectedPlayer.riot_id || "Champion pool manuel"}</p></div><Badge tone={canManagePool ? "green" : "yellow"}>{canManagePool ? "drag & drop actif" : "lecture seule"}</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-4">{CHAMPION_TIERS.map((tier) => <div key={tier.id} className={cx("rounded-2xl border p-4", tone(tier.tone))}><p className="text-xs font-black uppercase tracking-[0.16em] opacity-80">{tier.title}</p><p className="mt-2 text-2xl font-black text-white">{rowsForTier(tier.id).length}</p></div>)}</div></Surface><Surface><div className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div className="w-full md:max-w-md"><TextInput label="Ajouter un champion" value={query} onChange={setQuery} placeholder="Cherche Ahri, Renekton, Kai'Sa..." icon={Search} /></div><p className="text-sm font-semibold text-slate-500">Clique pour ajouter dans À travailler, ou glisse l’icône directement dans une colonne.</p></div><div className="grid max-h-[280px] gap-2 overflow-auto pr-1 sm:grid-cols-2 lg:grid-cols-4">{visibleChampions.map((champion) => { const disabled = pickedChampionKeys.has(championAssetId(champion) || championKey(champion)); return <ChampionSearchTile key={champion} champion={champion} disabled={disabled} canManage={canManagePool && !saving} onAdd={saveChampion} onDragStart={onDragStart} />; })}</div></Surface><div className="grid gap-4 2xl:grid-cols-4">{CHAMPION_TIERS.map((tier) => { const items = rowsForTier(tier.id); return <Surface key={tier.id} className="min-h-[360px]" delay={0}><div onDragOver={(event) => event.preventDefault()} onDrop={(event) => dropOnTier(event, tier.id)} className="flex min-h-[320px] flex-col rounded-[1.35rem] border border-white/10 bg-black/20 p-3"><div className="mb-3"><div className="flex items-center justify-between gap-3"><h3 className="text-xl font-black text-white">{tier.title}</h3><Badge tone={tier.tone}>{items.length}</Badge></div><p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{tier.hint}</p></div><div className="space-y-2">{items.length ?items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManagePool && !saving} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-white/10 p-5 text-center text-sm font-semibold leading-6 text-slate-600">Glisse un champion ici.</div>}</div></div></Surface>; })}</div></> : <Surface glow><EmptyState icon={Crown} title="Champion pool en attente" text="Ajoute un joueur à la team pour commencer." /></Surface>}</div></div></div>;
+  return (
+    <div>
+      <PageHeader eyebrow="Champion path" title="Champion pool par joueur" subtitle="Choisis un joueur en haut, filtre par lane, puis remplis les grandes tier lists sans quitter la page." />
+      {players.length ? (
+        <>
+          <Surface glow className="mb-5">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <h3 className="text-xl font-black text-white">Joueur actif</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-500">Le choix du joueur reste en haut pour laisser toute la largeur aux tableaux.</p>
+              </div>
+              <Badge tone={canManagePool ? "green" : "yellow"}>{canManagePool ? "drag & drop actif" : "lecture seule"}</Badge>
+            </div>
+            <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
+              {players.map((player) => {
+                const pool = (data.championPool || []).filter((row) => String(row.team_id || "") === String(activeTeamId || "") && (String(row.player_id || "") === String(player.id || "") || row.player_name === player.name));
+                const selected = selectedPlayer?.id === player.id;
+                return (
+                  <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("min-w-[230px] rounded-2xl border p-4 text-left transition", selected ? "border-cyan-300/30 bg-cyan-400/10 shadow-lg shadow-cyan-950/20" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-lg font-black text-white">{player.name}</p>
+                        <p className="mt-1 truncate text-xs font-semibold text-slate-500">{player.riot_id || "Profil joueur"}</p>
+                      </div>
+                      <Badge tone={player.role === "COACH" ? "purple" : "blue"}>{player.role}</Badge>
+                    </div>
+                    <div className="mt-4 grid grid-cols-4 gap-1">
+                      {CHAMPION_TIERS.map((tier) => <span key={tier.id} className={cx("rounded-lg border px-1.5 py-1 text-center text-[0.62rem] font-black", selected && tier.id === quickTier ? "border-cyan-300/30 text-cyan-100" : "border-white/10 text-slate-600")}>{pool.filter((row) => championPoolStatus(row) === tier.id).length}</span>)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </Surface>
+
+          {selectedPlayer && (
+            <>
+              <Surface className="mb-5">
+                <div className="grid gap-5 xl:grid-cols-[minmax(300px,430px)_1fr] xl:items-start">
+                  <div>
+                    <TextInput label="Ajouter un champion" value={query} onChange={setQuery} placeholder="Cherche Ahri, Renekton, Kai'Sa..." icon={Search} />
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {laneOptions.map((lane) => (
+                        <button key={lane} type="button" onClick={() => setLaneFilter(lane)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", laneFilter === lane ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.035] text-slate-500 hover:text-white")}>{lane === "ALL" ? "Toutes lanes" : lane}</button>
+                      ))}
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">Clic rapide vers</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {CHAMPION_TIERS.map((tier) => (
+                          <button key={tier.id} type="button" onClick={() => setQuickTier(tier.id)} className={cx("rounded-2xl border px-3 py-2 text-left text-xs font-black transition", quickTier === tier.id ? "border-cyan-300/35 bg-cyan-400/10 text-white" : "border-white/10 bg-white/[0.035] text-slate-500 hover:text-white")}>{tier.title}</button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-xl font-black text-white">{selectedPlayer.name}</h3>
+                        <p className="mt-1 text-sm font-semibold text-slate-500">{visibleChampions.length} champions affichés · clic vers {championPoolStatusLabel(quickTier)} ou drag vers une colonne.</p>
+                      </div>
+                      <Badge tone="cyan">{selectedPlayer.role}</Badge>
+                    </div>
+                    <div className="grid max-h-[390px] gap-2 overflow-auto pr-1 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-8">
+                      {visibleChampions.map((champion) => {
+                        const disabled = pickedChampionKeys.has(championAssetId(champion) || championKey(champion));
+                        return <ChampionSearchTile key={champion} champion={champion} disabled={disabled} canManage={canManagePool && !saving} targetStatus={quickTier} onAdd={saveChampion} onDragStart={onDragStart} />;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </Surface>
+
+              <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-4">
+                {CHAMPION_TIERS.map((tier) => {
+                  const items = rowsForTier(tier.id);
+                  return (
+                    <Surface key={tier.id} className="min-h-[580px]" delay={0}>
+                      <div onDragOver={(event) => event.preventDefault()} onDrop={(event) => dropOnTier(event, tier.id)} className="flex min-h-[540px] flex-col rounded-[1.35rem] border border-white/10 bg-black/20 p-4">
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-2xl font-black text-white">{tier.title}</h3>
+                            <Badge tone={tier.tone}>{items.length}</Badge>
+                          </div>
+                          <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">{tier.hint}</p>
+                        </div>
+                        <div className="grid flex-1 content-start gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                          {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManagePool && !saving} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-semibold leading-6 text-slate-600">Glisse un champion ici.</div>}
+                        </div>
+                      </div>
+                    </Surface>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </>
+      ) : (
+        <Surface glow><EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de construire les champion pools." /></Surface>
+      )}
+    </div>
+  );
 }
 
 function normalizeText(value) {
