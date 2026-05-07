@@ -27,7 +27,7 @@ export default async function handler(request, context) {
         and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul le propriétaire peut lier ou délier un compte.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut lier ou délier un compte.'), { status: 403 });
 
     const player = await sql`
       select id

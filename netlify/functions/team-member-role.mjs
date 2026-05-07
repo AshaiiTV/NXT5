@@ -27,7 +27,17 @@ export default async function handler(request, context) {
         and (teams.owner_id = ${user.id} or team_members.role = 'captain')
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul le propriétaire peut modifier les statuts.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner ou un capitaine peut modifier les statuts.'), { status: 403 });
+
+    const target = await sql`
+      select role
+      from team_members
+      where team_id = ${teamId}
+        and user_id = ${userId}
+      limit 1
+    `;
+    if (!target[0]) throw Object.assign(new Error('Compte introuvable dans cette team.'), { status: 404 });
+    if (target[0].role === 'owner') throw Object.assign(new Error('Le statut owner ne peut pas être modifié.'), { status: 400 });
 
     const rows = await sql`
       update team_members
@@ -36,7 +46,6 @@ export default async function handler(request, context) {
         and user_id = ${userId}
       returning *
     `;
-    if (!rows[0]) throw Object.assign(new Error('Compte introuvable dans cette team.'), { status: 404 });
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

@@ -37,7 +37,7 @@ export default async function handler(request, context) {
         and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul un capitaine ou coach peut modifier le champion pool.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut modifier le champion pool.'), { status: 403 });
 
     if (action === 'delete') {
       if (!poolId) throw Object.assign(new Error('Pick requis.'), { status: 400 });

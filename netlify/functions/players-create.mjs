@@ -29,12 +29,12 @@ export default async function handler(request, context) {
     const allowed = await sql`
       select teams.id
       from teams
-      left join team_members on team_members.team_id = teams.id
+      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
+        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Team introuvable ou non autorisée.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut ajouter un profil Riot.'), { status: 403 });
 
     const rows = await sql`
       insert into players (team_id, name, riot_id, opgg_url, role)

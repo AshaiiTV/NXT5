@@ -88,13 +88,13 @@ export default async function handler(request, context) {
     const teams = await sql`
       select distinct teams.*
       from teams
-      left join team_members on team_members.team_id = teams.id
+      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
+        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
       limit 1
     `;
     const team = teams[0];
-    if (!team) throw Object.assign(new Error('Team introuvable ou non autorisée.'), { status: 403 });
+    if (!team) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut synchroniser les most played.'), { status: 403 });
 
     const players = await sql`select * from players where team_id = ${teamId} order by created_at asc`;
     if (!players.length) throw Object.assign(new Error('Ajoute au moins un joueur avant de synchroniser les most played.'), { status: 400 });
