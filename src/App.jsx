@@ -668,15 +668,21 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
   );
 }
 
-function Sidebar({ active, setActive, open, setOpen, user, onLogout, currentMember }) {
+function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember }) {
   const status = profileStatusLabel(currentMember);
   return (
     <>
       <AnimatePresence>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-30 bg-black/65 backdrop-blur-sm lg:hidden" />}</AnimatePresence>
-      <aside className={cx("fixed left-0 top-0 z-40 flex h-screen w-76 flex-col border-r border-white/10 bg-[#070b16]/88 p-4 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-transform lg:translate-x-0", open ?"translate-x-0" : "-translate-x-full")}>
-        <div className="mb-6 flex items-center justify-between"><div className="flex items-center gap-3"><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="h-11 w-11 object-contain" /><div><p className="text-lg font-black tracking-tight">RiftBoard</p><p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-600">League tools</p></div></div><button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button></div>
-        <nav className="space-y-1.5">{NAV.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => { setActive(item.id); setOpen(false); }} className={cx("group flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm font-black transition duration-200", selected ?"bg-gradient-to-r from-violet-500/30 via-fuchsia-500/12 to-cyan-400/12 text-white shadow-lg shadow-violet-950/20" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-200" : "text-slate-600 group-hover:text-cyan-200")} /><span className="truncate">{item.label}</span></button>; })}</nav>
-        <div className="mt-auto space-y-3"><Surface className="rounded-3xl p-4" delay={0}><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.06] text-cyan-200"><Users className="h-5 w-5" /></div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-600">{status}</p></div></div><div className="mt-3 flex flex-wrap gap-2"><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge></div></Surface><Button variant="ghost" icon={LogOut} onClick={onLogout} className="w-full justify-start">Déconnexion</Button></div>
+      <aside className={cx("fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-white/10 bg-[#070b16]/88 p-4 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-all duration-300 lg:translate-x-0", collapsed ?"lg:w-24" : "lg:w-76", open ?"translate-x-0 w-76" : "-translate-x-full w-76")}>
+        <button type="button" onClick={() => setCollapsed(!collapsed)} className="absolute -right-4 top-6 hidden h-9 w-9 items-center justify-center rounded-2xl border border-white/10 bg-[#080d19] text-cyan-100 shadow-xl shadow-black/40 transition hover:border-cyan-300/30 hover:bg-cyan-400/10 lg:flex" title={collapsed ?"Afficher le menu" : "Cacher le menu"}>
+          <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
+        </button>
+        <div className={cx("mb-6 flex items-center", collapsed ?"justify-center" : "justify-between")}>
+          <div className="flex items-center gap-3"><img src="/riftboard-rb-mark.svg" alt="RiftBoard" className="h-11 w-11 object-contain" /><div className={cx("transition lg:block", collapsed && "lg:hidden")}><p className="text-lg font-black tracking-tight">RiftBoard</p><p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-slate-600">League tools</p></div></div>
+          <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
+        </div>
+        <nav className="space-y-1.5">{NAV.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => { setActive(item.id); setOpen(false); }} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-2xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-violet-500/30 via-fuchsia-500/12 to-cyan-400/12 text-white shadow-lg shadow-violet-950/20" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-200" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
+        <div className="mt-auto space-y-3"><Surface className={cx("rounded-3xl", collapsed ?"p-3" : "p-4")} delay={0}><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.06] text-cyan-200"><Users className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-600">{status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge></div></Surface><Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
       </aside>
     </>
   );
@@ -1476,7 +1482,7 @@ function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
 }
 
 function ChampionSearchTile({ champion, disabled, canManage, targetStatus, onAdd, onDragStart }) {
-  return <button type="button" draggable={canManage && !disabled} onDragStart={(event) => onDragStart(event, { champion })} onClick={() => onAdd(champion, targetStatus)} disabled={!canManage || disabled} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", disabled ?"border-white/5 bg-white/[0.02] opacity-35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}><img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>{!disabled && <span className="hidden rounded-lg border border-white/10 px-1.5 py-0.5 text-[0.58rem] font-black uppercase tracking-[0.08em] text-slate-500 group-hover:inline">{championPoolStatusLabel(targetStatus)}</span>}</button>;
+  return <button type="button" draggable={canManage && !disabled} onDragStart={(event) => onDragStart(event, { champion })} onClick={() => onAdd(champion, targetStatus)} disabled={!canManage || disabled} className={cx("group flex min-w-0 items-center gap-2 rounded-2xl border p-2 text-left transition", disabled ?"border-white/5 bg-white/[0.02] opacity-35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}><img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span></button>;
 }
 
 function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember }) {
@@ -1489,8 +1495,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
   const [laneFilter, setLaneFilter] = useState("ALL");
   const [quickTier, setQuickTier] = useState("work");
   const [saving, setSaving] = useState(false);
+  const [localPool, setLocalPool] = useState(data.championPool || []);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || players[0];
-  const selectedRows = (data.championPool || [])
+  const selectedRows = (localPool || [])
     .filter((row) => String(row.team_id || "") === String(activeTeamId || "") && selectedPlayer && (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name))
     .map((row) => ({ ...row, role: row.role || selectedPlayer?.role || "UNK", status: championPoolStatus(row) }))
     .sort((a, b) => Number(b.games || 0) - Number(a.games || 0) || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
@@ -1508,6 +1515,10 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
   useEffect(() => {
     if (selectedPlayer?.role && laneOptions.includes(selectedPlayer.role)) setLaneFilter(selectedPlayer.role);
   }, [selectedPlayer?.id]);
+
+  useEffect(() => {
+    if (!saving) setLocalPool(data.championPool || []);
+  }, [data.championPool, saving]);
 
   function rowsForTier(status) {
     return selectedRows.filter((row) => row.status === status);
@@ -1528,12 +1539,38 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
 
   async function saveChampion(champion, status) {
     if (!canManagePool || !selectedPlayer || !champion) return;
+    const championName = championDisplayName(champion);
+    const championId = championAssetId(champion);
+    const existing = (localPool || []).find((row) => String(row.team_id || "") === String(activeTeamId || "") && (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name) && championAssetId(row.champion) === championId);
+    const optimistic = {
+      ...(existing || {}),
+      id: existing?.id || `optimistic-${selectedPlayer.id}-${championId}`,
+      team_id: activeTeamId,
+      player_id: selectedPlayer.id,
+      player_name: selectedPlayer.name,
+      role: selectedPlayer.role,
+      champion: championName,
+      status,
+      source: existing?.source === "riot" ? "riot_manual" : (existing?.source || "manual"),
+      games: existing?.games || 0,
+      wins: existing?.wins || 0,
+      losses: existing?.losses || 0,
+      winrate: existing?.winrate || 0,
+      kda: existing?.kda || 0,
+      cs_per_min: existing?.cs_per_min || 0,
+      impact_grade: existing?.impact_grade || "MANUAL",
+    };
+    setLocalPool((current) => existing
+      ? current.map((row) => row.id === existing.id ? optimistic : row)
+      : [...current, optimistic]);
     setSaving(true);
     try {
-      await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ teamId: activeTeamId, playerId: selectedPlayer.id, champion: championDisplayName(champion), status, notes: "" }) });
-      await refreshAll();
-      pushToast({ type: "green", title: "Champion pool mis à jour", text: `${championDisplayName(champion)} est placé dans ${championPoolStatusLabel(status)}.` });
+      const result = await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ teamId: activeTeamId, playerId: selectedPlayer.id, champion: championName, status, notes: "" }) });
+      if (result?.pick) setLocalPool((current) => current.map((row) => row.id === optimistic.id ? result.pick : row));
     } catch (err) {
+      setLocalPool((current) => existing
+        ? current.map((row) => row.id === existing.id ? existing : row)
+        : current.filter((row) => row.id !== optimistic.id));
       pushToast({ type: "red", title: "Modification impossible", text: err.message });
     } finally {
       setSaving(false);
@@ -1542,12 +1579,13 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
 
   async function deletePick(row) {
     if (!canManagePool || !window.confirm("Retirer ce champion du pool manuel ?")) return;
+    const previousPool = localPool;
+    setLocalPool((current) => current.filter((item) => item.id !== row.id));
     setSaving(true);
     try {
       await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ action: "delete", teamId: activeTeamId, poolId: row.id }) });
-      await refreshAll();
-      pushToast({ type: "green", title: "Champion retiré", text: `${championDisplayName(row.champion)} n’est plus dans la tier list manuelle.` });
     } catch (err) {
+      setLocalPool(previousPool);
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
     } finally {
       setSaving(false);
@@ -1575,7 +1613,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
             </div>
             <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
               {players.map((player) => {
-                const pool = (data.championPool || []).filter((row) => String(row.team_id || "") === String(activeTeamId || "") && (String(row.player_id || "") === String(player.id || "") || row.player_name === player.name));
+                const pool = (localPool || []).filter((row) => String(row.team_id || "") === String(activeTeamId || "") && (String(row.player_id || "") === String(player.id || "") || row.player_name === player.name));
                 const selected = selectedPlayer?.id === player.id;
                 return (
                   <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("min-w-[230px] rounded-2xl border p-4 text-left transition", selected ? "border-cyan-300/30 bg-cyan-400/10 shadow-lg shadow-cyan-950/20" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}>
@@ -1627,7 +1665,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
                     <div className="grid max-h-[390px] gap-2 overflow-auto pr-1 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-8">
                       {visibleChampions.map((champion) => {
                         const disabled = pickedChampionKeys.has(championAssetId(champion) || championKey(champion));
-                        return <ChampionSearchTile key={champion} champion={champion} disabled={disabled} canManage={canManagePool && !saving} targetStatus={quickTier} onAdd={saveChampion} onDragStart={onDragStart} />;
+                        return <ChampionSearchTile key={champion} champion={champion} disabled={disabled} canManage={canManagePool} targetStatus={quickTier} onAdd={saveChampion} onDragStart={onDragStart} />;
                       })}
                     </div>
                   </div>
@@ -1648,7 +1686,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember 
                           <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">{tier.hint}</p>
                         </div>
                         <div className="grid flex-1 content-start gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                          {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManagePool && !saving} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-semibold leading-6 text-slate-600">Glisse un champion ici.</div>}
+                          {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManagePool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-white/10 p-6 text-center text-sm font-semibold leading-6 text-slate-600">Glisse un champion ici.</div>}
                         </div>
                       </div>
                     </Surface>
@@ -1804,6 +1842,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [data, setData] = useState(DEFAULT_DATA);
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1848,7 +1887,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     return <Dashboard data={data} loading={loading} setActive={setActive} />;
   }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast, user, onUserUpdate]);
 
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} user={user} currentMember={currentMember} onLogout={logout} /><div className="relative z-10 lg:pl-76"><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-76")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto max-w-7xl px-4 py-7 lg:px-8"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div></div>;
 }
 
 export default function RiftBoard() {
