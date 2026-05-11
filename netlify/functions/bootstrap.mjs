@@ -34,7 +34,7 @@ export default async function handler(request, context) {
     const teamIds = teams.map((t) => t.id);
 
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], improvements: [], reports: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [] });
     }
 
     const players = await sql`select * from players where team_id = any(${teamIds}) order by created_at asc`;
@@ -61,9 +61,31 @@ export default async function handler(request, context) {
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
     const championPool = await sql`select * from champion_pool where team_id = any(${teamIds}) order by games desc, winrate desc`;
     const improvements = await sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`;
-    const reports = await sql`select * from reports where team_id = any(${teamIds}) order by created_at desc limit 20`;
+    await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
+    await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
+    await sql`
+      create table if not exists composition_types (
+        id uuid primary key default gen_random_uuid(),
+        team_id uuid not null references teams(id) on delete cascade,
+        created_by uuid references users(id) on delete set null,
+        title text not null,
+        notes text,
+        slots jsonb not null default '{}'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      )
+    `;
+    const compositions = await sql`select * from composition_types where team_id = any(${teamIds}) order by created_at desc limit 50`;
+    const reports = await sql`
+      select reports.*, users.name as author_name
+      from reports
+      left join users on users.id = reports.created_by
+      where reports.team_id = any(${teamIds})
+      order by reports.created_at desc
+      limit 50
+    `;
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, improvements, reports });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports });
   } catch (err) {
     return handleError(err);
   }
