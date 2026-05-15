@@ -83,6 +83,30 @@ export default async function handler(request, context) {
           ? 'Pick manuel à retravailler.'
           : 'Pick manuel à valider.';
 
+    if (poolId) {
+      const rows = await sql`
+        update champion_pool
+        set player_id = ${playerId},
+            player_name = ${player.name},
+            role = ${player.role},
+            status = ${status},
+            notes = ${notes},
+            source = case when source = 'riot' then 'riot_manual' else source end,
+            impact_grade = case when source = 'manual' then 'MANUAL' else impact_grade end,
+            verdict = ${verdict},
+            updated_at = now()
+        where id = ${poolId}
+          and team_id = ${teamId}
+        returning *
+      `;
+      if (!rows[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
+      await sql`
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        values (${user.id}, 'champion_pool.manual_update', 'champion_pool', ${rows[0].id}, ${JSON.stringify({ teamId, playerId, champion: rows[0].champion, status })}::jsonb)
+      `;
+      return json({ pick: rows[0] });
+    }
+
     const rows = await sql`
       insert into champion_pool (team_id, player_id, player_name, champion, games, wins, losses, winrate, kda, cs_per_min, impact_grade, verdict, role, status, notes, source, updated_at)
       values (${teamId}, ${playerId}, ${player.name}, ${champion}, 0, 0, 0, 0, 0, 0, 'MANUAL', ${verdict}, ${player.role}, ${status}, ${notes}, 'manual', now())
