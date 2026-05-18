@@ -142,6 +142,7 @@ async function apiFetch(path, options = {}) {
     const error = new Error(payload?.error || fallback);
     error.status = response.status;
     error.code = payload?.code || null;
+    error.retryAfter = payload?.retryAfter || null;
     throw error;
   }
 
@@ -1104,6 +1105,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const [syncingMostPlayed, setSyncingMostPlayed] = useState(false);
   const [teamSetupOpen, setTeamSetupOpen] = useState(false);
   const [managementOpen, setManagementOpen] = useState(false);
+  const [riotCooldownUntil, setRiotCooldownUntil] = useState(0);
+  const [nowTick, setNowTick] = useState(Date.now());
   const [teamEdit, setTeamEdit] = useState({ name: "", tag: "", avatarDataUrl: "", avatarZoom: 1, avatarX: 50, avatarY: 50 });
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [playerEditForm, setPlayerEditForm] = useState({ name: "", riotId: "", opggUrl: "" });
@@ -1115,6 +1118,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const hasTeams = data.teams.length > 0;
   const canManageTeam = ["owner", "captain", "coach"].includes(String(currentMember?.role || "").toLowerCase());
   const canDeleteTeam = ["owner", "captain"].includes(String(currentMember?.role || "").toLowerCase());
+  const riotCooldownSeconds = Math.max(0, Math.ceil((riotCooldownUntil - nowTick) / 1000));
 
   useEffect(() => {
     if (!selectedTeamId && data.teams[0]?.id) setSelectedTeamId(data.teams[0].id);
@@ -1127,6 +1131,12 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     if (params.get("create") === "1") setTeamSetupOpen(true);
     if (params.get("gestion") === "1") setManagementOpen(true);
   }, [routeSearch]);
+
+  useEffect(() => {
+    if (!riotCooldownUntil) return undefined;
+    const timer = window.setInterval(() => setNowTick(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [riotCooldownUntil]);
 
   useEffect(() => {
     if (!selectedTeam) return;
@@ -1353,6 +1363,10 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   async function syncMostPlayed() {
     if (!selectedTeam) return;
+    if (riotCooldownSeconds > 0) {
+      pushToast({ type: "yellow", title: "Riot refroidit", text: `Réessaie dans ${formatCountdown(riotCooldownSeconds)}.` });
+      return;
+    }
     setSyncingMostPlayed(true);
     try {
       const result = await apiFetch("players-sync-most-played", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id }) });
@@ -1361,9 +1375,18 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       const skipped = result.results?.filter((item) => item.skipped).length || 0;
       const failed = result.results?.filter((item) => !item.ok).length || 0;
       const poolCount = result.results?.reduce((sum, item) => sum + Number(item.poolCount || 0), 0) || 0;
-      const firstError = result.results?.find((item) => !item.ok)?.error;
+      const firstFailed = result.results?.find((item) => !item.ok);
+      const firstError = firstFailed?.error;
+      if (firstFailed?.code === "RIOT_RATE_LIMIT") {
+        const retryAfter = Number(firstFailed.retryAfter || 120);
+        setRiotCooldownUntil(Date.now() + Math.max(30, retryAfter) * 1000);
+      }
       pushToast({ type: failed ?"yellow" : "green", title: "Most played synchronisés", text: `${ok} profil${ok > 1 ?"s" : ""} analysé${ok > 1 ?"s" : ""}${poolCount ?`, ${poolCount} champion${poolCount > 1 ?"s" : ""} ajouté${poolCount > 1 ?"s" : ""}` : ""}${failed ?`, ${failed} erreur${failed > 1 ?"s" : ""}` : ""}${firstError ?` : ${firstError}` : ""}.` });
     } catch (err) {
+      if (err.code === "RIOT_RATE_LIMIT" || err.status === 429) {
+        const retryAfter = Number(err.retryAfter || 120);
+        setRiotCooldownUntil(Date.now() + Math.max(30, retryAfter) * 1000);
+      }
       pushToast({ type: "red", title: "Analyse impossible", text: err.message });
     } finally {
       setSyncingMostPlayed(false);
@@ -1419,7 +1442,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       {selectedTeam && <Surface glow>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-500">Roster, lien d’invitation et joueurs liés à la structure.</p></div>
-          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ?Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || !gameplayRoster.length || !canManageTeam}>{syncingMostPlayed ? "Analyse en cours..." : "Analyser profils"}</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!gameplayRoster.length}>Copier Multi OP.GG</Button></div>
+          <div className="flex flex-wrap gap-2"><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge><Button variant="ghost" icon={syncingMostPlayed ?Loader2 : Crown} onClick={syncMostPlayed} disabled={syncingMostPlayed || riotCooldownSeconds > 0 || !gameplayRoster.length || !canManageTeam}>{syncingMostPlayed ? "Analyse en cours..." : riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser profils"}</Button><Button variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!gameplayRoster.length}>Copier Multi OP.GG</Button></div>
         </div>
 
         <>
@@ -1452,6 +1475,13 @@ function formatPoints(value) {
   if (number >= 1000000) return `${(number / 1000000).toFixed(1)}M`;
   if (number >= 1000) return `${Math.round(number / 1000)}k`;
   return String(number);
+}
+
+function formatCountdown(seconds) {
+  const safe = Math.max(0, Math.ceil(Number(seconds || 0)));
+  const minutes = Math.floor(safe / 60);
+  const rest = safe % 60;
+  return minutes ? `${minutes}:${String(rest).padStart(2, "0")}` : `${rest}s`;
 }
 
 function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, saving, onRoleChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam }) {

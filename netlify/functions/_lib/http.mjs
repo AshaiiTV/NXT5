@@ -9,7 +9,9 @@ export function json(data, status = 200) {
 }
 
 export function error(message, status = 400, code = null) {
-  return json(code ? { error: message, code } : { error: message }, status);
+  const payload = { error: message };
+  if (code) payload.code = code;
+  return json(payload, status);
 }
 
 export async function readJson(request) {
@@ -28,5 +30,8 @@ export function assertMethod(request, method) {
 
 export function handleError(err) {
   console.error(err);
-  return error(err.message || 'Erreur serveur.', err.status || 500, err.code || null);
+  const payload = { error: err.message || 'Erreur serveur.' };
+  if (err.code) payload.code = err.code;
+  if (err.retryAfter) payload.retryAfter = err.retryAfter;
+  return json(payload, err.status || 500);
 }

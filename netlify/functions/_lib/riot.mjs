@@ -97,9 +97,11 @@ export async function riotFetch(url, notFoundMessage, options = {}) {
     throw Object.assign(new Error(notFoundMessage || 'Ressource Riot introuvable.'), { status: 404 });
   }
   if (response.status === 429) {
+    const retryAfter = Number(response.headers.get('retry-after') || 0);
     throw Object.assign(new Error('Rate limit Riot atteint. Réessaie plus tard.'), {
       status: 429,
-      code: 'RIOT_RATE_LIMIT'
+      code: 'RIOT_RATE_LIMIT',
+      retryAfter: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null
     });
   }
   if (!response.ok) {

@@ -220,7 +220,7 @@ export default async function handler(request, context) {
               updated_at = now()
           where id = ${player.id}
         `;
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: false, error: err.message || 'Analyse impossible' });
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: false, error: err.message || 'Analyse impossible', code: err.code || null, retryAfter: err.retryAfter || null });
       }
     }
 
