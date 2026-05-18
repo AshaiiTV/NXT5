@@ -24,12 +24,6 @@ export default async function handler(request, context) {
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 
-    await sql`alter table champion_pool add column if not exists role text`;
-    await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
-    await sql`alter table champion_pool add column if not exists notes text`;
-    await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
-    await sql`alter table players add column if not exists user_id uuid references users(id) on delete set null`;
-
     const member = await sql`
       select team_members.role
       from teams

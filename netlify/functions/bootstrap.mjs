@@ -37,18 +37,39 @@ export default async function handler(request, context) {
       return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [] });
     }
 
-    const players = await sql`select * from players where team_id = any(${teamIds}) order by created_at asc`;
-    const teamMembers = await sql`
-      select
-        team_members.*,
-        users.account_name,
-        users.name
-      from team_members
-      join users on users.id = team_members.user_id
-      where team_members.team_id = any(${teamIds})
-      order by team_members.created_at asc
-    `;
-    const matches = await sql`select * from matches where team_id = any(${teamIds}) order by created_at desc limit 50`;
+    const [
+      players,
+      teamMembers,
+      matches,
+      championPool,
+      improvements,
+      compositions,
+      reports
+    ] = await Promise.all([
+      sql`select * from players where team_id = any(${teamIds}) order by created_at asc`,
+      sql`
+        select
+          team_members.*,
+          users.account_name,
+          users.name
+        from team_members
+        join users on users.id = team_members.user_id
+        where team_members.team_id = any(${teamIds})
+        order by team_members.created_at asc
+      `,
+      sql`select * from matches where team_id = any(${teamIds}) order by created_at desc limit 50`,
+      sql`select * from champion_pool where team_id = any(${teamIds}) order by games desc, winrate desc`,
+      sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`,
+      sql`select * from composition_types where team_id = any(${teamIds}) order by created_at desc limit 50`,
+      sql`
+        select reports.*, users.name as author_name
+        from reports
+        left join users on users.id = reports.created_by
+        where reports.team_id = any(${teamIds})
+        order by reports.created_at desc
+        limit 50
+      `
+    ]);
     const matchIds = matches.map((m) => m.id);
     const participants = matchIds.length ? await sql`select * from match_participants where match_id = any(${matchIds}) order by team_key asc, role asc` : [];
 
@@ -59,34 +80,6 @@ export default async function handler(request, context) {
     }
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
-    const championPool = await sql`select * from champion_pool where team_id = any(${teamIds}) order by games desc, winrate desc`;
-    const improvements = await sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`;
-    await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
-    await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
-    await sql`alter table reports add column if not exists updated_at timestamptz not null default now()`;
-    await sql`
-      create table if not exists composition_types (
-        id uuid primary key default gen_random_uuid(),
-        team_id uuid not null references teams(id) on delete cascade,
-        created_by uuid references users(id) on delete set null,
-        title text not null,
-        notes text,
-        tags jsonb not null default '[]'::jsonb,
-        slots jsonb not null default '{}'::jsonb,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now()
-      )
-    `;
-    await sql`alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb`;
-    const compositions = await sql`select * from composition_types where team_id = any(${teamIds}) order by created_at desc limit 50`;
-    const reports = await sql`
-      select reports.*, users.name as author_name
-      from reports
-      left join users on users.id = reports.created_by
-      where reports.team_id = any(${teamIds})
-      order by reports.created_at desc
-      limit 50
-    `;
 
     return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports });
   } catch (err) {

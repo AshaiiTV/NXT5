@@ -20,12 +20,6 @@ export default async function handler(request, context) {
     if (!ROLES.has(role)) throw Object.assign(new Error('Rôle invalide.'), { status: 400 });
     if (role !== 'COACH' && !riotId) throw Object.assign(new Error('Riot ID requis pour un joueur.'), { status: 400 });
 
-    await sql`
-      alter table players
-      add column if not exists user_id uuid references users(id) on delete set null
-    `;
-    await sql`alter table players alter column riot_id drop not null`;
-
     const allowed = await sql`
       select teams.id
       from teams

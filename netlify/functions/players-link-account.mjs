@@ -14,11 +14,6 @@ export default async function handler(request, context) {
 
     if (!teamId || !playerId) throw Object.assign(new Error('Team et joueur requis.'), { status: 400 });
 
-    await sql`
-      alter table players
-      add column if not exists user_id uuid references users(id) on delete set null
-    `;
-
     const allowed = await sql`
       select teams.id
       from teams

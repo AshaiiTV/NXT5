@@ -21,21 +21,6 @@ export default async function handler(request, context) {
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 
-    await sql`
-      create table if not exists composition_types (
-        id uuid primary key default gen_random_uuid(),
-        team_id uuid not null references teams(id) on delete cascade,
-        created_by uuid references users(id) on delete set null,
-        title text not null,
-        notes text,
-        tags jsonb not null default '[]'::jsonb,
-        slots jsonb not null default '{}'::jsonb,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now()
-      )
-    `;
-    await sql`alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb`;
-
     const allowed = await sql`
       select teams.id
       from teams

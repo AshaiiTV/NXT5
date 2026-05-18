@@ -16,9 +16,6 @@ export default async function handler(request, context) {
 
     if (!teamId || !userId || !ROLES.has(role)) throw Object.assign(new Error('Team, compte et statut requis.'), { status: 400 });
 
-    await sql`alter table team_members drop constraint if exists team_members_role_check`;
-    await sql`alter table team_members add constraint team_members_role_check check (role in ('owner', 'captain', 'coach', 'analyst', 'player', 'viewer', 'member'))`;
-
     const allowed = await sql`
       select teams.id
       from teams

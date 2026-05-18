@@ -30,11 +30,6 @@ export default async function handler(request, context) {
       throw Object.assign(new Error('Avatar invalide.'), { status: 400 });
     }
 
-    await sql`alter table teams add column if not exists avatar_data_url text`;
-    await sql`alter table teams add column if not exists avatar_zoom numeric not null default 1`;
-    await sql`alter table teams add column if not exists avatar_x numeric not null default 50`;
-    await sql`alter table teams add column if not exists avatar_y numeric not null default 50`;
-
     const allowed = await sql`
       select teams.id
       from teams

@@ -20,10 +20,6 @@ export default async function handler(request, context) {
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 
-    await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
-    await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
-    await sql`alter table reports add column if not exists updated_at timestamptz not null default now()`;
-
     const membership = await sql`
       select teams.owner_id, team_members.role
       from teams

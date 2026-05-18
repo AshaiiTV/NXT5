@@ -89,7 +89,6 @@ export async function requireAuth(request, context) {
     throw Object.assign(new Error('Session invalide ou expirée.'), { status: 401 });
   }
 
-  await sql`update sessions set last_seen_at = now() where id = ${user.session_id}`;
   return user;
 }
 
