@@ -47,9 +47,11 @@ DATABASE_URL=postgresql://...
 RIOT_API_KEY=RGAPI-...
 SESSION_SECRET=une_phrase_longue_random_64_caracteres_minimum
 APP_ENV=production
+RIOT_PROFILE_SYNC_MAX_MATCHES=300
 ```
 
 `DATABASE_URL` vient de Neon. Prends l'URL poolée si Neon la propose.
+`RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton "Analyser profils" recalcule les champions joués sur la saison courante.
 
 Pour générer des codes tournoi directement depuis RiftBoard, ajoute aussi au choix :
 
