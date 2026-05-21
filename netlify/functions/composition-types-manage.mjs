@@ -22,14 +22,16 @@ export default async function handler(request, context) {
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 
     const allowed = await sql`
-      select teams.id
+      select teams.id, teams.owner_id, team_members.role
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach'))
+        and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner, un capitaine ou un coach peut gérer les compositions types.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Tu dois être membre de la team pour gérer les compositions types.'), { status: 403 });
+    const role = String(allowed[0].role || '').toLowerCase();
+    const canManageAll = allowed[0].owner_id === user.id || ['owner', 'captain', 'coach'].includes(role);
 
     if (action === 'delete') {
       if (!compositionId) throw Object.assign(new Error('Composition requise.'), { status: 400 });
@@ -37,9 +39,10 @@ export default async function handler(request, context) {
         delete from composition_types
         where id = ${compositionId}
           and team_id = ${teamId}
+          and (${canManageAll} or created_by = ${user.id})
         returning *
       `;
-      if (!deleted[0]) throw Object.assign(new Error('Composition introuvable.'), { status: 404 });
+      if (!deleted[0]) throw Object.assign(new Error('Composition introuvable ou non autorisée.'), { status: 404 });
       await sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'composition_types.delete', 'composition_types', ${compositionId}, ${JSON.stringify({ teamId, title: deleted[0].title })}::jsonb)
@@ -60,9 +63,10 @@ export default async function handler(request, context) {
             updated_at = now()
         where id = ${compositionId}
           and team_id = ${teamId}
+          and (${canManageAll} or created_by = ${user.id})
         returning *
       `;
-      if (!rows[0]) throw Object.assign(new Error('Composition introuvable.'), { status: 404 });
+      if (!rows[0]) throw Object.assign(new Error('Composition introuvable ou non autorisée.'), { status: 404 });
       await sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'composition_types.update', 'composition_types', ${compositionId}, ${JSON.stringify({ teamId, title })}::jsonb)

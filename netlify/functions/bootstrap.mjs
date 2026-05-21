@@ -92,7 +92,14 @@ export default async function handler(request, context) {
       sql`select * from matches where team_id = any(${teamIds}) order by created_at desc limit 50`,
       sql`select * from champion_pool where team_id = any(${teamIds}) order by games desc, winrate desc`,
       sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`,
-      sql`select * from composition_types where team_id = any(${teamIds}) order by created_at desc limit 50`,
+      sql`
+        select composition_types.*, users.name as created_by_name
+        from composition_types
+        left join users on users.id = composition_types.created_by
+        where composition_types.team_id = any(${teamIds})
+        order by composition_types.created_at desc
+        limit 50
+      `,
       sql`
         select reports.*, users.name as author_name
         from reports
