@@ -872,7 +872,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
           </div>
           <form onSubmit={submit} className="mt-5 space-y-4">
             <TextInput label="E-mail" value={form.email} onChange={(v) => patch("email", v)} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
-            {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Ashaii Top" required icon={UserPlus} />}
+            {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" required icon={UserPlus} />}
             <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
             <PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Garde cette session active plus longtemps sur cet appareil." />
             {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
