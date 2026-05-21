@@ -1,7 +1,7 @@
 import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
-import { fetchMatchIdsByTournamentCode, fetchRiotMatch, platformFromRegion } from './_lib/riot.mjs';
+import { fetchRiotMatch, platformFromRegion, resolveMatchIdByTournamentCode } from './_lib/riot.mjs';
 import { persistAnalyzedMatch } from './_lib/analytics.mjs';
 import { cleanTournamentText, ensureTournamentCodesTable } from './_lib/tournament-codes.mjs';
 
@@ -35,9 +35,7 @@ export default async function handler(request, context) {
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
     if (tournamentCode) {
-      const matchIds = await fetchMatchIdsByTournamentCode(tournamentCode, platform);
-      gameId = String(matchIds?.[0] || '').toUpperCase();
-      if (!gameId) throw Object.assign(new Error('Aucune game terminée trouvée pour ce code tournoi.'), { status: 404 });
+      gameId = await resolveMatchIdByTournamentCode(tournamentCode, platform);
     }
 
     const match = await fetchRiotMatch(gameId);

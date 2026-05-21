@@ -86,11 +86,22 @@ export async function riotFetch(url, notFoundMessage, options = {}) {
       ...(options.headers || {})
     }
   });
+  let payload = null;
+  const contentType = response.headers.get('content-type') || '';
+  if (!response.ok && contentType.includes('application/json')) {
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+  }
+  const riotMessage = payload?.status?.message || payload?.message || null;
 
   if (response.status === 401 || response.status === 403) {
-    throw Object.assign(new Error('Clé Riot refusée. Vérifie RIOT_API_KEY dans Netlify et sa validité.'), {
+    throw Object.assign(new Error(riotMessage || 'Clé Riot refusée. Vérifie RIOT_API_KEY dans Netlify et sa validité.'), {
       status: 502,
-      code: 'RIOT_KEY_REJECTED'
+      code: 'RIOT_KEY_REJECTED',
+      riotStatus: response.status
     });
   }
   if (response.status === 404) {
@@ -105,9 +116,10 @@ export async function riotFetch(url, notFoundMessage, options = {}) {
     });
   }
   if (!response.ok) {
-    throw Object.assign(new Error(`Erreur Riot API ${response.status}.`), {
+    throw Object.assign(new Error(riotMessage || `Erreur Riot API ${response.status}.`), {
       status: 502,
-      code: 'RIOT_API_ERROR'
+      code: 'RIOT_API_ERROR',
+      riotStatus: response.status
     });
   }
 
@@ -186,6 +198,44 @@ export async function fetchMatchIdsByTournamentCode(tournamentCode, platform = '
   const regional = accountRegionFromPlatform(platform).toLowerCase();
   const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/by-tournament-code/${encodeURIComponent(tournamentCode)}/ids`;
   return riotFetch(url, 'Aucune game Riot trouvée pour ce code tournoi.');
+}
+
+export async function fetchTournamentCodeDetails(tournamentCode, platform = 'EUW1') {
+  const host = platformFromRegion(platform).toLowerCase();
+  const url = `https://${host}.api.riotgames.com/lol/tournament/v5/codes/${encodeURIComponent(tournamentCode)}`;
+  return riotFetch(url, 'Code tournoi introuvable côté Riot.');
+}
+
+export async function resolveMatchIdByTournamentCode(tournamentCode, platform = 'EUW1') {
+  const attempts = [];
+  try {
+    const ids = await fetchMatchIdsByTournamentCode(tournamentCode, platform);
+    const first = String(ids?.[0] || '').toUpperCase();
+    if (first) return first;
+    attempts.push('Match-v5 n’a retourné aucune game.');
+  } catch (err) {
+    attempts.push(err.message);
+  }
+
+  try {
+    const details = await fetchTournamentCodeDetails(tournamentCode, platform);
+    const gameId = details?.gameId || details?.matchId || details?.game_id;
+    const region = String(details?.region || platformFromRegion(platform)).toUpperCase();
+    if (gameId) return `${region}_${gameId}`;
+    attempts.push('Tournament-v5 ne contient pas encore de game terminée.');
+  } catch (err) {
+    attempts.push(err.message);
+  }
+
+  const permissionDenied = attempts.some((message) => /forbidden|unauthorized|refusée|denied|invalid api key|access/i.test(message));
+  const message = permissionDenied
+    ? 'Impossible de lire ce code tournoi avec la clé Riot actuelle. La clé fonctionne peut-être pour les matchs classiques, mais il faut l’accès Tournament API / Match by tournament code pour importer une game depuis un code tournoi.'
+    : 'Aucune game terminée trouvée pour ce code tournoi. Vérifie que la game est terminée, que le serveur est correct, et que le code n’a servi qu’à une seule partie.';
+  throw Object.assign(new Error(message), {
+    status: permissionDenied ? 502 : 404,
+    code: permissionDenied ? 'RIOT_TOURNAMENT_ACCESS_MISSING' : 'RIOT_TOURNAMENT_MATCH_NOT_FOUND',
+    details: attempts
+  });
 }
 
 export async function fetchRiotMatch(gameId) {

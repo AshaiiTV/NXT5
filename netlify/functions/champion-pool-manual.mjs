@@ -45,7 +45,7 @@ export default async function handler(request, context) {
           and champion_pool.team_id = ${teamId}
         limit 1
       `;
-      if (!target[0]) throw Object.assign(new Error('Pick manuel introuvable.'), { status: 404 });
+      if (!target[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
       if (!isCaptain && String(target[0].player_user_id || '') !== String(user.id)) {
         throw Object.assign(new Error('Seul le capitaine ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
       }
@@ -53,10 +53,10 @@ export default async function handler(request, context) {
         delete from champion_pool
         where id = ${poolId}
           and team_id = ${teamId}
-          and source in ('manual', 'riot_manual', 'match_history', 'ranked_solo_history')
+          and source in ('manual', 'riot_manual')
         returning *
       `;
-      if (!deleted[0]) throw Object.assign(new Error('Pick manuel introuvable.'), { status: 404 });
+      if (!deleted[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
       if (deleted[0].source === 'riot_manual') {
         await sql`
           insert into champion_pool (id, team_id, player_id, player_name, champion, games, wins, losses, winrate, kda, cs_per_min, impact_grade, verdict, role, status, notes, source, updated_at)
@@ -90,12 +90,12 @@ export default async function handler(request, context) {
     }
 
     const verdict = status === 'lock'
-      ? 'Pick manuel prioritaire.'
+      ? 'Pick prioritaire.'
       : status === 'pocket'
-        ? 'Pocket pick manuel.'
+        ? 'Pocket pick.'
         : status === 'danger'
-          ? 'Pick manuel à retravailler.'
-          : 'Pick manuel à valider.';
+          ? 'Pick à retravailler.'
+          : 'Pick à valider.';
 
     if (poolId) {
       if (!isCaptain) {
@@ -119,7 +119,7 @@ export default async function handler(request, context) {
             status = ${status},
             notes = ${notes},
             source = case when source = 'riot' then 'riot_manual' else source end,
-            impact_grade = case when source = 'manual' then 'MANUAL' else impact_grade end,
+            impact_grade = case when source = 'manual' then 'POOL' else impact_grade end,
             verdict = ${verdict},
             updated_at = now()
         where id = ${poolId}
@@ -136,15 +136,21 @@ export default async function handler(request, context) {
 
     const rows = await sql`
       insert into champion_pool (team_id, player_id, player_name, champion, games, wins, losses, winrate, kda, cs_per_min, impact_grade, verdict, role, status, notes, source, updated_at)
-      values (${teamId}, ${playerId}, ${player.name}, ${champion}, 0, 0, 0, 0, 0, 0, 'MANUAL', ${verdict}, ${player.role}, ${status}, ${notes}, 'manual', now())
+      values (${teamId}, ${playerId}, ${player.name}, ${champion}, 0, 0, 0, 0, 0, 0, 'POOL', ${verdict}, ${player.role}, ${status}, ${notes}, 'manual', now())
       on conflict (team_id, player_id, champion)
       do update set
         player_name = excluded.player_name,
         role = excluded.role,
+        games = excluded.games,
+        wins = excluded.wins,
+        losses = excluded.losses,
+        winrate = excluded.winrate,
+        kda = excluded.kda,
+        cs_per_min = excluded.cs_per_min,
         status = excluded.status,
         notes = excluded.notes,
         source = case when champion_pool.source = 'riot' then 'riot_manual' else 'manual' end,
-        impact_grade = case when champion_pool.source = 'riot' then champion_pool.impact_grade else 'MANUAL' end,
+        impact_grade = 'POOL',
         verdict = excluded.verdict,
         updated_at = now()
       returning *
