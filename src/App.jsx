@@ -11,6 +11,7 @@ import {
   Clipboard,
   Crown,
   Eye,
+  EyeOff,
   FileText,
   Flame,
   Gauge,
@@ -61,6 +62,7 @@ const AUTH_ROUTES = {
 
 const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/mentions-legales", "/confidentialite", "/conditions"];
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
+const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
 
 function normalizePath(pathname = "/") {
   if (!pathname || pathname === "/") return "/";
@@ -153,6 +155,20 @@ async function apiFetch(path, options = {}) {
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
+}
+
+function readRememberPreference() {
+  try {
+    return window.localStorage.getItem(REMEMBER_ME_STORAGE_KEY) !== "false";
+  } catch {
+    return true;
+  }
+}
+
+function writeRememberPreference(value) {
+  try {
+    window.localStorage.setItem(REMEMBER_ME_STORAGE_KEY, value ? "true" : "false");
+  } catch {}
 }
 
 function tone(t) {
@@ -248,12 +264,16 @@ function Button({ children, icon: Icon, variant = "primary", className = "", dis
 }
 
 function TextInput({ label, value, onChange, placeholder, type = "text", required = false, icon: Icon, disabled = false }) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword && passwordVisible ? "text" : type;
   return (
     <label className="block">
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
         {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-200/75" />}
-        <input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("w-full rounded-xl border border-cyan-100/12 bg-black/[0.26] px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/60 focus:bg-black/[0.32] focus:ring-4 focus:ring-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10")} />
+        <input type={inputType} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("w-full rounded-xl border border-cyan-100/12 bg-black/[0.26] px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/60 focus:bg-black/[0.32] focus:ring-4 focus:ring-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10", isPassword && "pr-12")} />
+        {isPassword && <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} disabled={disabled} aria-label={passwordVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute right-2.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-slate-300 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>}
       </div>
     </label>
   );
@@ -282,6 +302,20 @@ function SelectInput({ label, value, onChange, children }) {
         <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
       </div>
     </label>
+  );
+}
+
+function PremiumToggle({ checked, onChange, title, text }) {
+  return (
+    <button type="button" onClick={() => onChange(!checked)} className={cx("group flex w-full items-center justify-between gap-4 rounded-2xl border p-3 text-left transition", checked ? "border-cyan-300/35 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/[0.18] hover:border-cyan-300/20 hover:bg-white/[0.045]")}>
+      <span className="min-w-0">
+        <span className="block text-sm font-black text-white">{title}</span>
+        {text && <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">{text}</span>}
+      </span>
+      <span className={cx("relative h-7 w-12 shrink-0 rounded-full border transition", checked ? "border-cyan-200/45 bg-gradient-to-r from-cyan-400 to-fuchsia-500 shadow-[0_0_18px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.08]")}>
+        <span className={cx("absolute top-1 h-5 w-5 rounded-full bg-white shadow-lg transition", checked ? "left-6" : "left-1")} />
+      </span>
+    </button>
   );
 }
 
@@ -482,7 +516,7 @@ function LegalLinks({ navigate }) {
     ["/confidentialite", "Confidentialité"],
     ["/conditions", "Conditions"],
   ];
-  return <div className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 pb-8 text-sm font-bold text-slate-300">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="rounded-xl border-transparent bg-transparent px-0 py-0 text-sm text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span>NXT5 n’est pas affilié à Riot Games.</span></div>;
+  return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-500">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="rounded-xl border-transparent bg-transparent px-0 py-0 text-xs text-slate-400 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-600">NXT5 n’est pas affilié à Riot Games.</span></footer>;
 }
 
 const LEGAL_PAGES = {
@@ -750,6 +784,7 @@ function ResetPasswordPage({ navigate }) {
 function AuthPage({ mode, onAuth, pushToast, navigate }) {
   const isRegister = mode === "register";
   const [form, setForm] = useState({ email: "", displayName: "", password: "" });
+  const [rememberMe, setRememberMe] = useState(readRememberPreference);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const querySuffix = window.location.search || "";
@@ -762,8 +797,9 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
     setError("");
     try {
       const endpoint = isRegister ?"auth-register" : "auth-login";
-      const body = { accountName: form.email, email: form.email, displayName: form.displayName, password: form.password };
+      const body = { accountName: form.email, email: form.email, displayName: form.displayName, password: form.password, rememberMe };
       const result = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(body) });
+      writeRememberPreference(rememberMe);
       pushToast({ type: "green", title: isRegister ?"Compte créé" : "Connexion réussie", text: "Bienvenue sur NXT5." });
       const params = new URLSearchParams(window.location.search);
       const hasInvite = params.has("invite");
@@ -825,6 +861,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
             <TextInput label="E-mail" value={form.email} onChange={(v) => patch("email", v)} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
             {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Ashaii Top" required icon={UserPlus} />}
             <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
+            <PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Garde cette session active plus longtemps sur cet appareil." />
             {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
             <Button type="submit" disabled={loading} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
           </form>
@@ -856,7 +893,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
         <div className={cx("mb-6 flex items-center", collapsed ?"justify-center" : "justify-between")}>
-          <div className="flex items-center gap-3"><img src="/assets/nxt5-logo.png" alt="NXT5" className={cx("h-12 object-contain object-left drop-shadow-[0_0_24px_rgba(34,211,238,.32)]", collapsed ?"w-14" : "w-36")} /><div className={cx("transition lg:block", collapsed && "lg:hidden")}><p className="text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-cyan-100/90">Next Five</p></div></div>
+          <div className="flex items-center gap-3"><img src="/assets/nxt5-logo.png" alt="NXT5" className={cx("h-12 object-contain object-left drop-shadow-[0_0_24px_rgba(34,211,238,.32)]", collapsed ?"w-14" : "w-36")} /><div className={cx("transition lg:block", collapsed && "lg:hidden")}><p className="nxt5-wordmark text-[0.76rem] uppercase">Next Five</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-lg shadow-cyan-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
@@ -2452,6 +2489,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 function SettingsPage({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || "", email: user?.email || "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
+  const [rememberDefault, setRememberDefault] = useState(readRememberPreference);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
@@ -2491,7 +2529,13 @@ function SettingsPage({ user, onUserUpdate, pushToast }) {
     }
   }
 
-  return <div><PageHeader eyebrow="Compte" title="Paramètres" subtitle="Gère ton e-mail, ton pseudo et ton mot de passe." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Compte</h3><p className="mt-2 text-sm leading-6 text-slate-400">L’e-mail sert à te connecter et à récupérer ton compte. Le pseudo est le nom visible par les autres.</p><form onSubmit={saveProfile} className="mt-5 space-y-4"><TextInput label="E-mail" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} /><TextInput label="Pseudo" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Pseudo visible" required icon={Users} /><Button type="submit" icon={savingProfile ?Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim()}>{savingProfile ?"Enregistrement..." : "Enregistrer"}</Button></form></Surface><Surface glow><h3 className="text-xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm leading-6 text-slate-400">Le changement vérifie ton mot de passe actuel avant d’accepter le nouveau.</p><form onSubmit={savePassword} className="mt-5 space-y-4"><TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} /><TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} /><TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} /><Button type="submit" icon={savingPassword ?Loader2 : Shield} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ?"Mise à jour..." : "Changer le mot de passe"}</Button></form></Surface><Surface><h3 className="text-xl font-black text-white">Récupération</h3><div className="mt-4 space-y-3 text-sm leading-6 text-slate-400"><p><span className="font-black text-white">E-mail.</span> Il reçoit le lien de mot de passe oublié.</p><p><span className="font-black text-white">Pseudo.</span> Il est visible par les autres joueurs et le staff, et tu peux le changer quand tu veux.</p><p><span className="font-black text-white">Mot de passe.</span> Il reste haché côté serveur et n’est jamais affiché.</p></div></Surface></div></div>;
+  function updateRememberDefault(value) {
+    setRememberDefault(value);
+    writeRememberPreference(value);
+    pushToast({ type: "cyan", title: value ? "Rester connecté activé" : "Rester connecté désactivé", text: "Ce choix sera appliqué aux prochaines connexions sur cet appareil." });
+  }
+
+  return <div><PageHeader eyebrow="Compte" title="Paramètres" subtitle="Gère ton e-mail, ton pseudo, ton mot de passe et tes sessions." /><div className="grid gap-5 xl:grid-cols-2"><Surface glow><h3 className="text-xl font-black text-white">Compte</h3><p className="mt-2 text-sm leading-6 text-slate-400">L’e-mail sert à te connecter et à récupérer ton compte. Le pseudo est le nom visible par les autres.</p><form onSubmit={saveProfile} className="mt-5 space-y-4"><TextInput label="E-mail" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} /><TextInput label="Pseudo" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Pseudo visible" required icon={Users} /><Button type="submit" icon={savingProfile ?Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim()}>{savingProfile ?"Enregistrement..." : "Enregistrer"}</Button></form></Surface><Surface glow><h3 className="text-xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm leading-6 text-slate-400">Le changement vérifie ton mot de passe actuel avant d’accepter le nouveau.</p><form onSubmit={savePassword} className="mt-5 space-y-4"><TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} /><TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} /><TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} /><Button type="submit" icon={savingPassword ?Loader2 : Shield} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ?"Mise à jour..." : "Changer le mot de passe"}</Button></form></Surface><Surface><h3 className="text-xl font-black text-white">Session</h3><p className="mt-2 text-sm leading-6 text-slate-400">Choisis le comportement par défaut du bouton de connexion sur cet appareil.</p><div className="mt-5"><PremiumToggle checked={rememberDefault} onChange={updateRememberDefault} title="Rester connecté par défaut" text="Quand c’est désactivé, les prochaines sessions sont plus courtes." /></div></Surface></div></div>;
 }
 
 function MissingEmailModal({ user, onUserUpdate, pushToast }) {
@@ -2580,7 +2624,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast, user, onUserUpdate]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-76")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="w-full px-4 py-7 lg:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-76")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="w-full px-4 py-7 lg:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
 }
 
 export default function NXT5() {

@@ -3,7 +3,8 @@ import crypto from 'node:crypto';
 import { sql } from './db.mjs';
 
 export const COOKIE_NAME = 'rb_session';
-const SESSION_DAYS = 14;
+const REMEMBER_SESSION_DAYS = 30;
+const SHORT_SESSION_HOURS = 12;
 
 export function sha256(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
@@ -40,10 +41,11 @@ export function safeUser(user) {
   };
 }
 
-export async function createSession({ userId, context, request }) {
+export async function createSession({ userId, context, request, remember = true }) {
   const rawToken = crypto.randomBytes(48).toString('base64url');
   const tokenHash = sha256(rawToken);
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const maxAge = remember ? REMEMBER_SESSION_DAYS * 24 * 60 * 60 : SHORT_SESSION_HOURS * 60 * 60;
+  const expiresAt = new Date(Date.now() + maxAge * 1000);
   const userAgent = request.headers.get('user-agent') || '';
   const ip = request.headers.get('x-nf-client-connection-ip') || request.headers.get('x-forwarded-for') || '';
 
@@ -59,7 +61,7 @@ export async function createSession({ userId, context, request }) {
     secure: process.env.APP_ENV === 'production',
     sameSite: 'Lax',
     path: '/',
-    maxAge: SESSION_DAYS * 24 * 60 * 60
+    maxAge
   });
 }
 

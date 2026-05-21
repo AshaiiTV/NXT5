@@ -62,6 +62,21 @@ button, input, select, textarea {
   text-shadow: 0 0 20px rgba(0, 216, 255, 0.14);
 }
 
+.nxt5-wordmark {
+  display: inline-block;
+  transform: skewX(-10deg);
+  background: linear-gradient(90deg, #f8fbff 0%, #9feeff 38%, #8a73ff 68%, #ff4ddd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-family: "Arial Black", Impact, Inter, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-shadow:
+    0 0 10px rgba(0, 216, 255, 0.26),
+    0 0 18px rgba(217, 0, 255, 0.18);
+}
+
 .nxt5-hud-lines::before {
   content: "";
   position: absolute;

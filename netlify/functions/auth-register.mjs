@@ -14,6 +14,7 @@ export default async function handler(request, context) {
     const email = normalizeEmail(body.email);
     const displayName = String(body.displayName || '').trim().replace(/\s+/g, ' ');
     const password = String(body.password || '');
+    const remember = body.rememberMe !== false;
 
     if (!email || !displayName || !password) {
       throw Object.assign(new Error('E-mail, pseudo et mot de passe requis.'), { status: 400 });
@@ -43,7 +44,7 @@ export default async function handler(request, context) {
       values (${user.id}, 'auth.register', 'user', ${JSON.stringify({ email, displayName })}::jsonb)
     `;
 
-    await createSession({ userId: user.id, context, request });
+    await createSession({ userId: user.id, context, request, remember });
     return json({ user: safeUser(user) });
   } catch (err) {
     if (String(err.message || '').includes('idx_users_email_lower')) err.message = 'Cet e-mail est déjà utilisé.';
