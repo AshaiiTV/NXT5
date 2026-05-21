@@ -2239,6 +2239,42 @@ function availabilitySlots(value) {
   return typeof value === "object" ? value : {};
 }
 
+function dateKey(date) {
+  const copy = new Date(date);
+  copy.setHours(12, 0, 0, 0);
+  const year = copy.getFullYear();
+  const month = String(copy.getMonth() + 1).padStart(2, "0");
+  const day = String(copy.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(date, days) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function mondayOfWeek(date = new Date()) {
+  const copy = new Date(date);
+  copy.setHours(12, 0, 0, 0);
+  const day = copy.getDay() || 7;
+  copy.setDate(copy.getDate() - day + 1);
+  return copy;
+}
+
+function formatPlanningDate(date) {
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" }).format(date);
+}
+
+function formatWeekRange(start) {
+  return `${formatPlanningDate(start)} - ${formatPlanningDate(addDays(start, 6))}`;
+}
+
+function dateFromKey(key) {
+  const [year, month, day] = String(key || "").split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+}
+
 function compositionMastery(slots, rows) {
   const picked = Object.values(compositionSlots(slots)).map((slot) => rows.find((row) => row.id === slot.poolId)).filter(Boolean);
   if (!picked.length) return { label: "À remplir", tone: "slate", score: 0 };
@@ -2334,7 +2370,19 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 
 function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
-  const availability = (data.availability || []).filter((item) => item.team_id === selectedTeamId);
+  const baseWeekStart = useMemo(() => mondayOfWeek(), []);
+  const weekOptions = useMemo(() => [
+    { id: "current", label: "Semaine en cours", start: dateKey(baseWeekStart), range: formatWeekRange(baseWeekStart) },
+    { id: "next", label: "Semaine d’après", start: dateKey(addDays(baseWeekStart, 7)), range: formatWeekRange(addDays(baseWeekStart, 7)) },
+  ], [baseWeekStart]);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(weekOptions[0].start);
+  const selectedWeek = weekOptions.find((week) => week.start === selectedWeekStart) || weekOptions[0];
+  const weekStartDate = dateFromKey(selectedWeek.start);
+  const weekDays = PLANNING_DAYS.map(([day, label], index) => [day, label, addDays(weekStartDate, index)]);
+  const availability = (data.availability || []).filter((item) => {
+    const itemWeek = item.week_start ? String(item.week_start).slice(0, 10) : weekOptions[0].start;
+    return item.team_id === selectedTeamId && itemWeek === selectedWeek.start;
+  });
   const canManageAll = ["owner", "captain", "coach"].includes(String(currentMember?.role || "").toLowerCase());
   const linkedPlayer = players.find((player) => player.user_id && player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
@@ -2354,7 +2402,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   useEffect(() => {
     setDraftSlots(availabilitySlots(selectedAvailability?.slots));
     setNotes(selectedAvailability?.notes || "");
-  }, [selectedAvailability?.id, selectedAvailability?.updated_at, selectedPlayerId]);
+  }, [selectedAvailability?.id, selectedAvailability?.updated_at, selectedPlayerId, selectedWeek.start]);
 
   function slotList(playerId, day) {
     const row = availability.find((item) => item.player_id === playerId);
@@ -2374,9 +2422,9 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     if (!selectedPlayer || !selectedTeamId || !canEditSelected) return;
     setSaving(true);
     try {
-      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, slots: draftSlots, notes }) });
+      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, weekStart: selectedWeek.start, slots: draftSlots, notes }) });
       await refreshAll();
-      pushToast({ type: "green", title: "Planning mis à jour", text: "Les dispos du profil sont enregistrées." });
+      pushToast({ type: "green", title: "Planning mis à jour", text: `Les dispos du profil sont enregistrées pour ${selectedWeek.label.toLowerCase()}.` });
     } catch (err) {
       pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
@@ -2385,7 +2433,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   }
 
   const totalPlayers = players.length || 1;
-  const bestCells = PLANNING_DAYS.flatMap(([day]) => PLANNING_TIMES.map((time) => ({
+  const bestCells = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => ({
     day,
     time,
     count: players.filter((player) => slotList(player.id, day).includes(time)).length,
@@ -2397,6 +2445,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   return (
     <div>
       <PageHeader eyebrow="Organisation" title="Planning" subtitle="Chaque joueur renseigne ses dispos, puis la vue globale montre immédiatement les créneaux jouables pour l’équipe.">
+        <div className="flex flex-wrap gap-2">
+          {weekOptions.map((week) => (
+            <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} className={cx("rounded-xl border px-3 py-2 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/40 bg-cyan-400/12 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.04] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
+              <span className="block text-xs font-black uppercase tracking-[0.14em]">{week.label}</span>
+              <span className="mt-0.5 block text-xs font-semibold opacity-80">{week.range}</span>
+            </button>
+          ))}
+        </div>
         {bestCells[0]?.count > 0 && <Badge tone="cyan">Meilleur créneau : {bestCells[0].count}/{players.length}</Badge>}
       </PageHeader>
 
@@ -2413,7 +2469,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             <div className="mt-5 grid gap-2">
               {players.map((player) => {
                 const selected = player.id === selectedPlayerId;
-                const filled = PLANNING_DAYS.reduce((sum, [day]) => sum + slotList(player.id, day).length, 0);
+                const filled = weekDays.reduce((sum, [day]) => sum + slotList(player.id, day).length, 0);
                 return (
                   <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("flex items-center justify-between gap-3 rounded-2xl border p-3 text-left transition", selected ? "border-cyan-300/35 bg-cyan-400/10 text-white shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/18 hover:bg-white/[0.06] hover:text-white")}>
                     <span className="flex min-w-0 items-center gap-3">
@@ -2435,7 +2491,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             <div className="mt-4 grid gap-2">
               {bestCells.map((cell) => (
                 <div key={`${cell.day}-${cell.time}`} className={cx("flex items-center justify-between rounded-2xl border p-3", cell.count === players.length ? tone("green") : cell.count > 0 ? tone("cyan") : tone("slate"))}>
-                  <span className="font-black">{PLANNING_DAYS.find(([day]) => day === cell.day)?.[1]} · {cell.time}</span>
+                  <span className="font-black">{weekDays.find(([day]) => day === cell.day)?.[1]} · {formatPlanningDate(weekDays.find(([day]) => day === cell.day)?.[2] || weekStartDate)} · {cell.time}</span>
                   <span className="text-sm font-black">{cell.count}/{players.length}</span>
                 </div>
               ))}
@@ -2456,11 +2512,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <div className="min-w-[760px]">
                 <div className="grid grid-cols-[5.5rem_repeat(7,minmax(5.5rem,1fr))] gap-2">
                   <div />
-                  {PLANNING_DAYS.map(([day, label]) => <div key={day} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-300">{label}</div>)}
+                  {weekDays.map(([day, label, date]) => <div key={day} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-300"><span className="block">{label}</span><span className="mt-1 block text-[0.66rem] text-cyan-100/70">{formatPlanningDate(date)}</span></div>)}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
                       <div className="flex items-center rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm font-black text-white">{time}</div>
-                      {PLANNING_DAYS.map(([day]) => {
+                      {weekDays.map(([day]) => {
                         const activeSlot = (draftSlots[day] || []).includes(time);
                         return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} className={cx("min-h-12 rounded-xl border text-xs font-black transition", activeSlot ? "border-cyan-200/45 bg-cyan-300/18 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-600 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}>{activeSlot ? "DISPO" : "OFF"}</button>;
                       })}
@@ -2481,7 +2537,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-2xl font-black text-white">Planning général</h3>
-                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">Vue team complète : plus la case brille, plus le créneau est bon.</p>
+                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">Vue team complète pour {selectedWeek.label.toLowerCase()} ({selectedWeek.range}) : plus la case brille, plus le créneau est bon.</p>
               </div>
               <Badge tone="purple">{players.length} profils</Badge>
             </div>
@@ -2489,11 +2545,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <div className="min-w-[860px]">
                 <div className="grid grid-cols-[5.5rem_repeat(7,minmax(6.2rem,1fr))] gap-2">
                   <div />
-                  {PLANNING_DAYS.map(([day, label]) => <div key={day} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-300">{label}</div>)}
+                  {weekDays.map(([day, label, date]) => <div key={day} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-300"><span className="block">{label}</span><span className="mt-1 block text-[0.66rem] text-cyan-100/70">{formatPlanningDate(date)}</span></div>)}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
                       <div className="flex items-center rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm font-black text-white">{time}</div>
-                      {PLANNING_DAYS.map(([day]) => {
+                      {weekDays.map(([day]) => {
                         const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
                         const ratio = availablePlayers.length / totalPlayers;
                         const cellTone = availablePlayers.length === players.length ? "border-emerald-200/35 bg-emerald-400/14 text-emerald-50" : ratio >= 0.6 ? "border-cyan-200/35 bg-cyan-400/12 text-cyan-50" : availablePlayers.length ? "border-violet-200/25 bg-violet-400/10 text-violet-50" : "border-white/10 bg-white/[0.025] text-slate-600";

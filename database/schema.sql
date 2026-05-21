@@ -227,12 +227,13 @@ create table if not exists player_availability (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references teams(id) on delete cascade,
   player_id uuid not null references players(id) on delete cascade,
+  week_start date not null default date_trunc('week', current_date)::date,
   slots jsonb not null default '{}'::jsonb,
   notes text,
   updated_by uuid references users(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique(team_id, player_id)
+  unique(team_id, player_id, week_start)
 );
 
 create table if not exists audit_logs (
@@ -264,10 +265,13 @@ alter table reports add column if not exists match_ids jsonb not null default '[
 alter table reports add column if not exists created_by uuid references users(id) on delete set null;
 alter table reports add column if not exists updated_at timestamptz not null default now();
 alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb;
+alter table player_availability add column if not exists week_start date not null default date_trunc('week', current_date)::date;
+alter table player_availability drop constraint if exists player_availability_team_id_player_id_key;
 create index if not exists idx_composition_types_team on composition_types(team_id, created_at desc);
 create index if not exists idx_tournament_codes_team on tournament_codes(team_id, created_at desc);
 create unique index if not exists idx_tournament_codes_team_code on tournament_codes(team_id, code);
 create index if not exists idx_player_availability_team on player_availability(team_id);
+create unique index if not exists idx_player_availability_week on player_availability(team_id, player_id, week_start);
 
 create or replace function set_updated_at()
 returns trigger as $$
