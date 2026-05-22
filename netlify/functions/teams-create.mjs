@@ -1,11 +1,6 @@
-import crypto from 'node:crypto';
 import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
-
-function makeInviteCode() {
-  return `RIFT-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
-}
 
 export default async function handler(request, context) {
   try {
@@ -19,23 +14,12 @@ export default async function handler(request, context) {
 
     if (!name || !tag) throw Object.assign(new Error('Nom et tag requis.'), { status: 400 });
 
-    let team = null;
-    for (let i = 0; i < 5; i += 1) {
-      const inviteCode = makeInviteCode();
-      try {
-        const rows = await sql`
-          insert into teams (owner_id, name, tag, region, invite_code)
-          values (${user.id}, ${name}, ${tag}, ${region}, ${inviteCode})
-          returning *
-        `;
-        team = rows[0];
-        break;
-      } catch (err) {
-        if (!String(err.message || '').includes('invite')) throw err;
-      }
-    }
-
-    if (!team) throw Object.assign(new Error('Impossible de générer un code d’invitation unique.'), { status: 500 });
+    const rows = await sql`
+      insert into teams (owner_id, name, tag, region)
+      values (${user.id}, ${name}, ${tag}, ${region})
+      returning *
+    `;
+    const team = rows[0];
 
     await sql`
       insert into team_members (team_id, user_id, role)

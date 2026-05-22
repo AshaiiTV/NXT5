@@ -50,6 +50,7 @@ create table if not exists teams (
   tag text not null,
   region text not null default 'EUW',
   invite_code text,
+  invite_expires_at timestamptz,
   avatar_data_url text,
   avatar_zoom numeric not null default 1,
   avatar_x numeric not null default 0,
@@ -60,6 +61,7 @@ create table if not exists teams (
 );
 
 alter table teams add column if not exists invite_code text;
+alter table teams add column if not exists invite_expires_at timestamptz;
 alter table teams add column if not exists avatar_data_url text;
 alter table teams add column if not exists avatar_zoom numeric not null default 1;
 alter table teams add column if not exists avatar_x numeric not null default 0;

@@ -12,7 +12,7 @@ function extractInviteCode(value) {
     if (fromQuery) return String(fromQuery).trim().toUpperCase();
   } catch {}
 
-  const match = raw.match(/RIFT-[A-Z0-9]{4,12}/i);
+  const match = raw.match(/(?:NXT5|RIFT)-[A-Z0-9]{4,12}/i);
   if (match) return match[0].toUpperCase();
 
   return raw.toUpperCase();
@@ -25,15 +25,18 @@ export default async function handler(request, context) {
     const body = await readJson(request);
     const inviteCode = extractInviteCode(body.invite || body.inviteCode || body.link || body.code);
 
-    if (!inviteCode) throw Object.assign(new Error('Lien ou code d’invitation requis.'), { status: 400 });
+    if (!inviteCode) throw Object.assign(new Error('Code d’invitation requis.'), { status: 400 });
+    await sql`alter table teams add column if not exists invite_expires_at timestamptz`;
 
     const teams = await sql`
       select * from teams
       where upper(invite_code) = ${inviteCode}
+        and invite_expires_at is not null
+        and invite_expires_at > now()
       limit 1
     `;
     const team = teams[0];
-    if (!team) throw Object.assign(new Error('Aucune team ne correspond à cette invitation.'), { status: 404 });
+    if (!team) throw Object.assign(new Error('Code d’invitation invalide ou expiré. Demande un nouveau code au staff.'), { status: 404 });
 
     await sql`
       insert into team_members (team_id, user_id, role)
