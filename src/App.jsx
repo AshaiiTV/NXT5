@@ -2933,12 +2933,12 @@ function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
           <motion.svg viewBox="0 0 112 112" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 overflow-visible" fill="none" initial={false}>
             <defs><filter id="loader-electric-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
             {[
-              ["M56 7 L69 55 L60 55 L76 104 L56 87 L36 104 L52 55 L43 55 Z", "rgba(255,255,255,.92)", 0],
-              ["M28 67 L18 57 L31 50 L43 66 L49 87", "rgba(34,211,238,.95)", -28],
-              ["M84 67 L94 57 L81 50 L69 66 L63 87", "rgba(217,70,239,.95)", 28],
-              ["M16 67 C12 38 31 17 52 16", "rgba(34,211,238,.9)", -56],
-              ["M96 67 C100 38 81 17 60 16", "rgba(217,70,239,.9)", 56],
-            ].map(([d, stroke, offset]) => <motion.path key={d} d={d} stroke={stroke} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" filter="url(#loader-electric-glow)" strokeDasharray="18 145" animate={{ strokeDashoffset: [offset, offset - 163], opacity: [0.22, 1, 0.22] }} transition={{ strokeDashoffset: { duration: 1.85, repeat: Infinity, ease: "linear" }, opacity: { duration: 1.85, repeat: Infinity, ease: "easeInOut" } }} />)}
+              ["M56 9 L68 55 L61 55 L74 101 L56 86 L38 101 L51 55 L44 55 Z", "rgba(255,255,255,.92)", 0],
+              ["M34 66 L29 56 L41 62 L49 87", "rgba(34,211,238,.95)", -22],
+              ["M78 66 L83 56 L71 62 L63 87", "rgba(217,70,239,.95)", 22],
+              ["M33 48 C38 35 47 26 53 21", "rgba(34,211,238,.82)", -44],
+              ["M79 48 C74 35 65 26 59 21", "rgba(217,70,239,.82)", 44],
+            ].map(([d, stroke, offset]) => <motion.path key={d} d={d} stroke={stroke} strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" filter="url(#loader-electric-glow)" strokeDasharray="14 128" animate={{ strokeDashoffset: [offset, offset - 142], opacity: [0.18, 0.95, 0.18] }} transition={{ strokeDashoffset: { duration: 1.9, repeat: Infinity, ease: "linear" }, opacity: { duration: 1.9, repeat: Infinity, ease: "easeInOut" } }} />)}
           </motion.svg>
           <motion.div className="pointer-events-none absolute inset-0 rounded-[2rem] border border-fuchsia-300/0" animate={{ borderColor: ["rgba(217,70,239,0.05)", "rgba(34,211,238,.42)", "rgba(217,70,239,0.05)"], boxShadow: ["0 0 18px rgba(34,211,238,.14)", "0 0 46px rgba(217,70,239,.28)", "0 0 18px rgba(34,211,238,.14)"] }} transition={{ duration: 1.55, repeat: Infinity, ease: "easeInOut" }} />
         </div>
