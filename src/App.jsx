@@ -2930,16 +2930,8 @@ function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
         <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] border border-cyan-200/18 bg-cyan-400/8 shadow-[0_0_46px_rgba(34,211,238,0.24)]">
           <motion.div className="absolute inset-[-18px] rounded-[2.4rem] bg-cyan-300/10 blur-2xl" animate={{ opacity: [0.25, 0.75, 0.25], scale: [0.92, 1.12, 0.92] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
           <img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="relative z-10 h-24 w-24 object-contain drop-shadow-[0_0_30px_rgba(34,211,238,.55)]" />
-          <motion.svg viewBox="0 0 112 112" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 overflow-visible" fill="none" initial={false}>
-            <defs><filter id="loader-electric-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.2" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
-            {[
-              ["M56 9 L68 55 L61 55 L74 101 L56 86 L38 101 L51 55 L44 55 Z", "rgba(255,255,255,.92)", 0],
-              ["M34 66 L29 56 L41 62 L49 87", "rgba(34,211,238,.95)", -22],
-              ["M78 66 L83 56 L71 62 L63 87", "rgba(217,70,239,.95)", 22],
-              ["M33 48 C38 35 47 26 53 21", "rgba(34,211,238,.82)", -44],
-              ["M79 48 C74 35 65 26 59 21", "rgba(217,70,239,.82)", 44],
-            ].map(([d, stroke, offset]) => <motion.path key={d} d={d} stroke={stroke} strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" filter="url(#loader-electric-glow)" strokeDasharray="14 128" animate={{ strokeDashoffset: [offset, offset - 142], opacity: [0.18, 0.95, 0.18] }} transition={{ strokeDashoffset: { duration: 1.9, repeat: Infinity, ease: "linear" }, opacity: { duration: 1.9, repeat: Infinity, ease: "easeInOut" } }} />)}
-          </motion.svg>
+          <motion.img src="/assets/nxt5-mark.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-80 mix-blend-screen" style={{ filter: "brightness(1.65) saturate(1.6) drop-shadow(0 0 8px rgba(34,211,238,.8))", clipPath: "polygon(-20% 0, 6% 0, 38% 100%, 12% 100%)" }} animate={{ x: [-34, 38], opacity: [0, 0.95, 0] }} transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }} />
+          <motion.img src="/assets/nxt5-mark.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-70 mix-blend-screen" style={{ filter: "brightness(1.55) saturate(1.7) drop-shadow(0 0 9px rgba(217,70,239,.72))", clipPath: "polygon(62% 0, 88% 0, 120% 100%, 94% 100%)" }} animate={{ x: [34, -38], opacity: [0, 0.82, 0] }} transition={{ duration: 1.95, repeat: Infinity, ease: "easeInOut" }} />
           <motion.div className="pointer-events-none absolute inset-0 rounded-[2rem] border border-fuchsia-300/0" animate={{ borderColor: ["rgba(217,70,239,0.05)", "rgba(34,211,238,.42)", "rgba(217,70,239,0.05)"], boxShadow: ["0 0 18px rgba(34,211,238,.14)", "0 0 46px rgba(217,70,239,.28)", "0 0 18px rgba(34,211,238,.14)"] }} transition={{ duration: 1.55, repeat: Infinity, ease: "easeInOut" }} />
         </div>
         <p className="nxt5-wordmark mt-5 text-2xl uppercase leading-none">NEXT FIVE</p>
