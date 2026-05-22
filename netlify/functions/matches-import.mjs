@@ -35,7 +35,20 @@ export default async function handler(request, context) {
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
     if (tournamentCode) {
-      gameId = await resolveMatchIdByTournamentCode(tournamentCode, platform);
+      try {
+        await ensureTournamentCodesTable();
+        const storedCodes = await sql`
+          select imported_game_id
+          from tournament_codes
+          where team_id = ${teamId}
+            and code = ${tournamentCode}
+          limit 1
+        `;
+        gameId = String(storedCodes[0]?.imported_game_id || '').toUpperCase();
+      } catch (err) {
+        if (err?.code !== '42P01') throw err;
+      }
+      if (!gameId) gameId = await resolveMatchIdByTournamentCode(tournamentCode, platform);
     }
 
     const match = await fetchRiotMatch(gameId);
