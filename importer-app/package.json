@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win nsis portable --x64"
+    "dist:win": "electron-builder --win --x64"
   },
   "dependencies": {
     "electron": "^31.7.7"
@@ -27,16 +27,9 @@
     ],
     "win": {
       "target": [
-        "nsis",
         "portable"
       ],
       "artifactName": "NXT5-Importer.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
     }
   }
 }
