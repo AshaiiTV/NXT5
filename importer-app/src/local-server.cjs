@@ -82,13 +82,13 @@ function html(error = '') {
       <div class="top">
         <div>
           <h1>NXT5 Importer</h1>
-          <p>Colle un Game ID Riot ou un code tournoi, puis génère un fichier JSON prêt à importer dans NXT5. Aucune clé Riot n'est demandée ici.</p>
-          <div class="chips"><span class="chip">No key</span><span class="chip">Local JSON</span><span class="chip">Next Five</span></div>
+          <p>Colle un Game ID Riot, puis génère un fichier JSON prêt à importer dans NXT5. Aucune clé Riot n'est demandée ici.</p>
+          <div class="chips"><span class="chip">No key</span><span class="chip">Game ID</span><span class="chip">Next Five</span></div>
         </div>
         <div class="mark">5</div>
       </div>
       <form method="post" action="/export">
-        <label><span>Game ID ou code tournoi</span><input name="gameId" placeholder="EUW1_7123456789 ou code tournoi" required /></label>
+        <label><span>Game ID Riot</span><input name="gameId" placeholder="EUW1_7123456789" required /></label>
         <div class="grid">
           <label><span>Nom de l'import</span><input name="label" placeholder="Scrim, tournoi, round..." /></label>
           <label><span>Adversaire</span><input name="opponent" placeholder="Equipe adverse" /></label>
@@ -112,20 +112,20 @@ async function handleExport(req, res) {
   const opponent = String(params.get('opponent') || '').trim();
   const isGameId = /^([A-Z0-9]+)_\d+$/i.test(value);
 
-  if (!value) return send(res, 400, html('Colle un Game ID ou un code tournoi avant de générer le fichier.'));
+  if (!value) return send(res, 400, html('Colle un Game ID avant de générer le fichier.'));
+  if (!isGameId) return send(res, 400, html('Ce champ attend un Game ID Riot du type EUW1_7123456789. Un code tournoi seul ne contient pas la game et ne peut pas être importé sans l’accès Riot Match by tournament code côté serveur.'));
   const payload = {
     source: 'nxt5-importer-exe',
     version: 1,
-    gameId: isGameId ? gameId : '',
-    tournamentCode: isGameId ? '' : value,
-    platform: isGameId ? gameId.split('_')[0].toUpperCase() : 'EUW1',
+    gameId,
+    platform: gameId.split('_')[0].toUpperCase(),
     label,
     opponent,
     exportedAt: new Date().toISOString()
   };
   res.writeHead(200, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Content-Disposition': `attachment; filename="nxt5-${isGameId ? gameId : 'code-tournoi'}.json"`
+    'Content-Disposition': `attachment; filename="nxt5-${gameId}.json"`
   });
   res.end(JSON.stringify(payload, null, 2));
 }
