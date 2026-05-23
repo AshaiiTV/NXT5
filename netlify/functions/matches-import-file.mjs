@@ -2,14 +2,17 @@ import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
 import { persistAnalyzedMatch } from './_lib/analytics.mjs';
+import { fetchRiotMatch, platformFromRegion, resolveMatchIdByTournamentCode } from './_lib/riot.mjs';
 
 function unwrapImportPayload(body) {
   const payload = body?.payload || body?.file || body;
-  const match = payload?.match || payload?.riotMatch || payload;
+  const match = payload?.match || payload?.riotMatch || (payload?.info?.participants ? payload : null);
   const gameId = String(payload?.gameId || payload?.metadata?.gameId || match?.metadata?.matchId || '').trim().toUpperCase();
+  const tournamentCode = String(payload?.tournamentCode || payload?.code || payload?.metadata?.tournamentCode || '').trim().toUpperCase();
+  const platform = platformFromRegion(payload?.platform || payload?.metadata?.platform || 'EUW1');
   const label = String(body?.label || payload?.label || payload?.metadata?.label || '').trim().slice(0, 120);
   const opponent = String(body?.opponent || payload?.opponent || payload?.metadata?.opponent || '').trim().slice(0, 120);
-  return { match, gameId, label, opponent };
+  return { match, gameId, tournamentCode, platform, label, opponent };
 }
 
 function assertRiotMatchShape(match) {
@@ -29,12 +32,14 @@ export default async function handler(request, context) {
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
-    const { match, gameId, label, opponent } = unwrapImportPayload(body);
-    assertRiotMatchShape(match);
-    const resolvedGameId = gameId || String(match?.metadata?.matchId || '').trim().toUpperCase();
+    let { match, gameId, tournamentCode, platform, label, opponent } = unwrapImportPayload(body);
+    let resolvedGameId = gameId || String(match?.metadata?.matchId || '').trim().toUpperCase();
+    if (!resolvedGameId && tournamentCode) resolvedGameId = await resolveMatchIdByTournamentCode(tournamentCode, platform);
     if (!/^([A-Z0-9]+)_\d+$/.test(resolvedGameId)) {
       throw Object.assign(new Error('Game ID absent ou invalide dans le fichier. Attendu : EUW1_7123456789.'), { status: 400, code: 'NXT5_IMPORT_FILE_INVALID' });
     }
+    if (!match) match = await fetchRiotMatch(resolvedGameId);
+    assertRiotMatchShape(match);
 
     const teams = await sql`
       select distinct teams.*

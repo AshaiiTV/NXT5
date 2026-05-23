@@ -92,7 +92,7 @@ Il crée toutes les tables nécessaires : users, sessions, teams, players, match
 
 ## Import local NXT5
 
-Si Riot bloque l'import direct par code tournoi, tu peux générer un fichier local depuis un Game ID.
+Si tu veux préparer un import sans coller de clé Riot dans un outil local, tu peux générer un petit fichier JSON depuis un Game ID ou un code tournoi.
 
 ```txt
 npm run local-importer
@@ -104,27 +104,29 @@ Ouvre ensuite :
 http://127.0.0.1:5315
 ```
 
-Colle un Game ID du type `EUW1_7123456789` et une clé Riot valide. L'outil télécharge le match depuis Match-V5 et génère un fichier `nxt5-...json`.
+Colle un Game ID du type `EUW1_7123456789`, ou un code tournoi. L'outil génère uniquement un fichier `nxt5-...json` avec les infos d'import. Il ne demande aucune clé Riot.
 
 Dans NXT5 : Intégration → Importer un fichier NXT5 local → Choisir le JSON.
 
-La clé Riot entrée dans cet outil reste dans la requête locale et n'est pas stockée par NXT5.
+NXT5 finalise ensuite l'import côté serveur avec la configuration Netlify. Pour un code tournoi, Riot doit toujours autoriser l'endpoint Match-V5 par code tournoi sur la clé serveur.
 
-## Application Windows NXT5 Importer
+## Application NXT5 Importer
 
-Le dossier `importer-app` contient une petite application Windows qui fait la même chose avec une vraie fenêtre.
+Le dossier `importer-app` contient une petite application locale qui ouvre une fenêtre navigateur sur ta machine et télécharge un JSON NXT5.
 
-À chaque push qui modifie `importer-app`, GitHub Actions lance `Build NXT5 Importer` et génère un artifact Windows :
+À chaque push qui modifie `importer-app`, GitHub Actions lance `Build NXT5 Importer` et génère les fichiers Windows et Mac :
 
 ```txt
-NXT5-Importer-Windows
+NXT5-Importer.exe
+NXT5-Importer-mac.zip
+NXT5-Importer-mac-arm64.zip
 ```
 
-Il contient l'installateur et une version portable `.exe`. L'utilisation est simple :
+L'utilisation est simple :
 
-1. Ouvre `NXT5 Importer.exe`.
-2. Colle le Game ID, exemple `EUW1_7123456789`.
-3. Colle une clé Riot valide.
+1. Ouvre `NXT5 Importer`.
+2. Colle le Game ID, exemple `EUW1_7123456789`, ou un code tournoi.
+3. Ajoute un nom d'import ou un adversaire si besoin.
 4. Clique sur `Générer le fichier NXT5`.
 5. Dans NXT5, va dans `Intégration` puis `Importer un fichier NXT5 local`.
 
