@@ -110,6 +110,24 @@ Dans NXT5 : Intégration → Importer un fichier NXT5 local → Choisir le JSON.
 
 La clé Riot entrée dans cet outil reste dans la requête locale et n'est pas stockée par NXT5.
 
+## Application Windows NXT5 Importer
+
+Le dossier `importer-app` contient une petite application Windows qui fait la même chose avec une vraie fenêtre.
+
+À chaque push qui modifie `importer-app`, GitHub Actions lance `Build NXT5 Importer` et génère un artifact Windows :
+
+```txt
+NXT5-Importer-Windows
+```
+
+Il contient l'installateur et une version portable `.exe`. L'utilisation est simple :
+
+1. Ouvre `NXT5 Importer.exe`.
+2. Colle le Game ID, exemple `EUW1_7123456789`.
+3. Colle une clé Riot valide.
+4. Clique sur `Générer le fichier NXT5`.
+5. Dans NXT5, va dans `Intégration` puis `Importer un fichier NXT5 local`.
+
 ## Important
 
 Le front ne stocke aucune donnée métier en localStorage. Les données importantes passent par Neon. La clé Riot n'est jamais exposée côté navigateur.

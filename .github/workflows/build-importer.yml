@@ -1,0 +1,39 @@
+name: Build NXT5 Importer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "importer-app/**"
+      - ".github/workflows/build-importer.yml"
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows exe
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: importer-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: importer-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build exe
+        run: npm run dist:win
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: NXT5-Importer-Windows
+          path: importer-app/release/*

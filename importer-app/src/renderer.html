@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NXT5 Importer</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">NXT5 Local Tool</p>
+        <h1>Importer une game sans code tournoi</h1>
+        <p class="lead">Colle un Game ID Riot, ajoute ta clé Riot temporaire, puis génère un fichier JSON prêt à importer dans NXT5.</p>
+      </div>
+      <div class="mark">5</div>
+    </section>
+
+    <form id="form" class="panel">
+      <label>
+        <span>Game ID</span>
+        <input id="gameId" name="gameId" placeholder="EUW1_7123456789" autocomplete="off" required />
+      </label>
+
+      <label>
+        <span>Clé Riot API</span>
+        <input id="apiKey" name="apiKey" placeholder="RGAPI-..." autocomplete="off" required />
+      </label>
+
+      <div class="grid">
+        <label>
+          <span>Nom de l'import</span>
+          <input id="label" name="label" placeholder="Scrim, tournoi, round..." autocomplete="off" />
+        </label>
+        <label>
+          <span>Adversaire</span>
+          <input id="opponent" name="opponent" placeholder="Equipe adverse" autocomplete="off" />
+        </label>
+      </div>
+
+      <button id="submit" type="submit">Générer le fichier NXT5</button>
+      <p class="hint">Après génération : NXT5 → Intégration → Importer un fichier NXT5 local.</p>
+    </form>
+
+    <div id="status" class="status" hidden></div>
+  </main>
+
+  <script src="./renderer.js"></script>
+</body>
+</html>
