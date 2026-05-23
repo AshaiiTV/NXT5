@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 
 const API_BASE = "/.netlify/functions";
-const NXT5_IMPORTER_DOWNLOAD_URL = "https://github.com/AshaiiTV/Riftboard/releases/download/nxt5-importer-latest/NXT5-Importer-0.1.0-portable-x64.exe";
+const NXT5_IMPORTER_DOWNLOAD_URL = "https://github.com/AshaiiTV/Riftboard/releases/latest/download/NXT5-Importer.exe";
 
 const NAV = [
   { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },

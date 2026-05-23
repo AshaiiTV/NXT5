@@ -30,7 +30,7 @@
         "nsis",
         "portable"
       ],
-      "artifactName": "NXT5-Importer-${version}-${target}-${arch}.${ext}"
+      "artifactName": "NXT5-Importer.${ext}"
     },
     "nsis": {
       "oneClick": false,
