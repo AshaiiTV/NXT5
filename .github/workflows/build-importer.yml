@@ -78,19 +78,23 @@ jobs:
           VERSION="$(node -p "require('./package.json').version")"
           make_zip() {
             ARCH="$1"
-            APP_PATH="release/mac-${ARCH}/NXT5 Importer.app"
+            APP_DIR="release/mac"
+            if [ "$ARCH" = "arm64" ]; then
+              APP_DIR="release/mac-arm64"
+            fi
+            APP_PATH="$APP_DIR/NXT5 Importer.app"
             BUNDLE_DIR="release/NXT5 Importer Mac ${ARCH}"
             rm -rf "$BUNDLE_DIR"
             mkdir -p "$BUNDLE_DIR"
             cp -R "$APP_PATH" "$BUNDLE_DIR/"
-            cat > "$BUNDLE_DIR/Ouvrir NXT5 Importer.command" <<'EOF'
-          #!/bin/bash
-          set -e
-          DIR="$(cd "$(dirname "$0")" && pwd)"
-          APP="$DIR/NXT5 Importer.app"
-          xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
-          open "$APP"
-          EOF
+            printf '%s\n' \
+              '#!/bin/bash' \
+              'set -e' \
+              'DIR="$(cd "$(dirname "$0")" && pwd)"' \
+              'APP="$DIR/NXT5 Importer.app"' \
+              'xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true' \
+              'open "$APP"' \
+              > "$BUNDLE_DIR/Ouvrir NXT5 Importer.command"
             chmod +x "$BUNDLE_DIR/Ouvrir NXT5 Importer.command"
             rm -f "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
             ditto -c -k --sequesterRsrc --keepParent "$BUNDLE_DIR" "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
