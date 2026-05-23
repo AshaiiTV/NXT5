@@ -72,6 +72,32 @@ jobs:
           npm run dist:mac
           npm run dist:mac:arm
 
+      - name: Repack mac apps with opener
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          make_zip() {
+            ARCH="$1"
+            APP_PATH="release/mac-${ARCH}/NXT5 Importer.app"
+            BUNDLE_DIR="release/NXT5 Importer Mac ${ARCH}"
+            rm -rf "$BUNDLE_DIR"
+            mkdir -p "$BUNDLE_DIR"
+            cp -R "$APP_PATH" "$BUNDLE_DIR/"
+            cat > "$BUNDLE_DIR/Ouvrir NXT5 Importer.command" <<'EOF'
+          #!/bin/bash
+          set -e
+          DIR="$(cd "$(dirname "$0")" && pwd)"
+          APP="$DIR/NXT5 Importer.app"
+          xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
+          open "$APP"
+          EOF
+            chmod +x "$BUNDLE_DIR/Ouvrir NXT5 Importer.command"
+            rm -f "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
+            ditto -c -k --sequesterRsrc --keepParent "$BUNDLE_DIR" "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
+          }
+          make_zip x64
+          make_zip arm64
+
       - name: Upload mac app
         uses: actions/upload-artifact@v4
         with:
