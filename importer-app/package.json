@@ -6,7 +6,9 @@
   "main": "src/local-server.cjs",
   "scripts": {
     "start": "node src/local-server.cjs",
-    "dist:win": "pkg src/local-server.cjs --targets node18-win-x64 --output release/NXT5-Importer.exe"
+    "dist:win": "pkg src/local-server.cjs --targets node18-win-x64 --output release/NXT5-Importer.exe",
+    "dist:mac": "pkg src/local-server.cjs --targets node18-macos-x64 --output release/NXT5-Importer-mac",
+    "dist:mac:arm": "pkg src/local-server.cjs --targets node18-macos-arm64 --output release/NXT5-Importer-mac-arm64"
   },
   "devDependencies": {
     "@yao-pkg/pkg": "^6.3.2"
