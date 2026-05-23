@@ -90,6 +90,26 @@ Il crée toutes les tables nécessaires : users, sessions, teams, players, match
 4. Importe une game où ce joueur était présent, exemple : `EUW1_7123456789`.
 5. Va dans Reviews, Champion Pool, Compos Types et Rapports.
 
+## Import local NXT5
+
+Si Riot bloque l'import direct par code tournoi, tu peux générer un fichier local depuis un Game ID.
+
+```txt
+npm run local-importer
+```
+
+Ouvre ensuite :
+
+```txt
+http://127.0.0.1:5315
+```
+
+Colle un Game ID du type `EUW1_7123456789` et une clé Riot valide. L'outil télécharge le match depuis Match-V5 et génère un fichier `nxt5-...json`.
+
+Dans NXT5 : Intégration → Importer un fichier NXT5 local → Choisir le JSON.
+
+La clé Riot entrée dans cet outil reste dans la requête locale et n'est pas stockée par NXT5.
+
 ## Important
 
 Le front ne stocke aucune donnée métier en localStorage. Les données importantes passent par Neon. La clé Riot n'est jamais exposée côté navigateur.

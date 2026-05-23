@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "netlify dev",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "local-importer": "node tools/nxt5-importer.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
