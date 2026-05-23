@@ -3,33 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "description": "NXT5 local match importer",
-  "main": "src/main.js",
-  "type": "module",
+  "main": "src/local-server.cjs",
   "scripts": {
-    "start": "electron .",
-    "dist:win": "electron-builder --win --x64"
-  },
-  "dependencies": {
-    "electron": "^31.7.7"
+    "start": "node src/local-server.cjs",
+    "dist:win": "pkg src/local-server.cjs --targets node18-win-x64 --output release/NXT5-Importer.exe"
   },
   "devDependencies": {
-    "electron-builder": "^24.13.3"
-  },
-  "build": {
-    "appId": "app.nxt5.importer",
-    "productName": "NXT5 Importer",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "src/**/*",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        "portable"
-      ],
-      "artifactName": "NXT5-Importer.${ext}"
-    }
+    "@yao-pkg/pkg": "^6.3.2"
   }
 }
