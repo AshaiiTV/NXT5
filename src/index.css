@@ -87,3 +87,38 @@ button, input, select, textarea {
     repeating-linear-gradient(90deg, transparent 0 72px, rgba(255,255,255,0.035) 73px, transparent 74px);
   opacity: 0.48;
 }
+
+/* NXT5 favors high-contrast secondary text: readable silver over dim grey. */
+.text-slate-300 {
+  color: #eef4ff;
+}
+
+.text-slate-400 {
+  color: #dce7f8;
+}
+
+.text-slate-500 {
+  color: #c9d6ea;
+}
+
+.text-slate-600,
+.text-slate-650,
+.text-slate-700 {
+  color: #b6c4d9;
+}
+
+.text-cyan-100\/55,
+.text-cyan-100\/70,
+.text-cyan-100\/75,
+.text-fuchsia-100\/70,
+.text-emerald-100\/75 {
+  color: rgba(236, 253, 255, 0.9);
+}
+
+.placeholder\:text-slate-400::placeholder,
+.placeholder\:text-slate-500::placeholder,
+.placeholder\:text-slate-600::placeholder,
+.placeholder\:text-slate-650::placeholder {
+  color: #b8c6dc;
+  opacity: 1;
+}
