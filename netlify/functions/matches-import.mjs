@@ -17,6 +17,7 @@ export default async function handler(request, context) {
     const teamId = String(body.teamId || '').trim();
     const label = cleanTournamentText(body.label, 120);
     const opponent = cleanTournamentText(body.opponent, 120);
+    const laneAssignments = body.laneAssignments && typeof body.laneAssignments === 'object' ? body.laneAssignments : {};
 
     if (!gameId && !tournamentCode) throw Object.assign(new Error('Game ID ou code tournoi requis.'), { status: 400 });
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
@@ -65,7 +66,7 @@ export default async function handler(request, context) {
     }
 
     const match = await fetchRiotMatch(gameId);
-    let savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id });
+    let savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments });
     if (opponent || label) {
       const named = await sql`
         update matches

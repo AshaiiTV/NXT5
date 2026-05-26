@@ -12,7 +12,8 @@ function unwrapImportPayload(body) {
   const platform = platformFromRegion(payload?.platform || payload?.metadata?.platform || 'EUW1');
   const label = String(body?.label || payload?.label || payload?.metadata?.label || '').trim().slice(0, 120);
   const opponent = String(body?.opponent || payload?.opponent || payload?.metadata?.opponent || '').trim().slice(0, 120);
-  return { match, gameId, tournamentCode, platform, label, opponent };
+  const laneAssignments = body?.laneAssignments || payload?.laneAssignments || payload?.metadata?.laneAssignments || {};
+  return { match, gameId, tournamentCode, platform, label, opponent, laneAssignments };
 }
 
 function assertRiotMatchShape(match) {
@@ -32,7 +33,7 @@ export default async function handler(request, context) {
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
-    let { match, gameId, tournamentCode, platform, label, opponent } = unwrapImportPayload(body);
+    let { match, gameId, tournamentCode, platform, label, opponent, laneAssignments } = unwrapImportPayload(body);
     let resolvedGameId = gameId || String(match?.metadata?.matchId || '').trim().toUpperCase();
     if (!resolvedGameId && tournamentCode) resolvedGameId = await resolveMatchIdByTournamentCode(tournamentCode, platform);
     if (!/^([A-Z0-9]+)_\d+$/.test(resolvedGameId)) {
@@ -55,7 +56,7 @@ export default async function handler(request, context) {
     const roster = await sql`select * from players where team_id = ${teamId}`;
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
-    let savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id });
+    let savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments });
     if (opponent || label) {
       const named = await sql`
         update matches

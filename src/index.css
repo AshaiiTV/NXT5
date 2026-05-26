@@ -8,12 +8,14 @@
 
 html {
   background: #020511;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 18% 12%, rgba(0, 216, 255, 0.13), transparent 30%),
     radial-gradient(circle at 85% 8%, rgba(217, 0, 255, 0.12), transparent 32%),
@@ -25,6 +27,28 @@ body {
 
 button, input, select, textarea {
   font: inherit;
+}
+
+#root,
+main,
+section,
+form,
+.grid,
+.flex,
+.nxt5-panel {
+  min-width: 0;
+}
+
+.grid > *,
+.flex > * {
+  min-width: 0;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
 }
 
 ::selection {

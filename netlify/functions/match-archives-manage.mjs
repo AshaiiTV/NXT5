@@ -47,7 +47,7 @@ export default async function handler(request, context) {
     `;
     const member = membership[0];
     if (!member) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
-    const isCaptain = member.owner_id === user.id || ['captain'].includes(String(member.role || '').toLowerCase());
+    const isCaptain = member.owner_id === user.id || ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(String(member.role || '').toLowerCase());
 
     if (action === 'delete') {
       if (!archiveId) throw Object.assign(new Error('Archive requise.'), { status: 400 });
