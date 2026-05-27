@@ -613,36 +613,50 @@ const LEGAL_PAGES = {
   "/mentions-legales": {
     eyebrow: "Cadre légal",
     title: "Mentions légales",
-    intro: "NXT5 est un outil indépendant de gestion et d’analyse League of Legends pour équipes, coachs et capitaines.",
+    intro: "NXT5 est une plateforme indépendante destinée aux équipes League of Legends souhaitant organiser leurs profils, matchs, compositions, données d’import et rapports de review.",
     sections: [
-      ["Éditeur", "NXT5 est édité par AshaiiTV dans le cadre d’un projet web privé destiné aux équipes League of Legends. Pour toute demande liée au projet, utilise le contact indiqué sur le produit Riot Developer ou le dépôt GitHub du projet."],
-      ["Hébergement", "Le site est hébergé sur Netlify. Les données applicatives sont stockées dans une base PostgreSQL Neon. Les clés Riot et les secrets applicatifs sont conservés uniquement côté serveur via les variables d’environnement Netlify."],
-      ["Riot Games", "NXT5 n’est pas approuvé, sponsorisé ou affilié à Riot Games. League of Legends et Riot Games sont des marques ou marques déposées de Riot Games, Inc. Les données Riot sont utilisées conformément aux règles du Riot Developer Portal."],
-      ["Responsabilité", "NXT5 fournit des outils de lecture et d’organisation. Les décisions sportives, analyses de coach, choix de draft et interprétations restent sous la responsabilité des utilisateurs."],
+      ["Éditeur du service", "Le service NXT5 est édité et maintenu par l’exploitant du projet NXT5. Les demandes relatives au service peuvent être adressées via les moyens de contact mis à disposition dans l’application ou sur les canaux officiels du projet."],
+      ["Objet du site", "NXT5 propose des outils de gestion d’équipe, d’import de matchs, de consultation statistique, de préparation de compositions, de champion pool, de planning et de rédaction de rapports. Le service est réservé à un usage d’organisation, d’analyse et de suivi sportif par les utilisateurs autorisés."],
+      ["Hébergement", "Le site est hébergé par Netlify, Inc., 44 Montgomery Street, Suite 300, San Francisco, California 94104, États-Unis. Certains services techniques nécessaires au fonctionnement de l’application peuvent être opérés par des prestataires tiers spécialisés dans l’hébergement, la base de données, l’envoi d’e-mails transactionnels ou l’accès aux API utilisées par le service."],
+      ["Propriété intellectuelle", "L’interface, l’identité NXT5, les textes, structures de pages et éléments propres au service sont protégés par les règles applicables à la propriété intellectuelle. Toute reproduction, extraction ou réutilisation substantielle sans autorisation préalable est interdite, sauf usage strictement personnel dans le cadre normal du service."],
+      ["Riot Games", "NXT5 n’est pas approuvé, sponsorisé, validé ni affilié à Riot Games. League of Legends, Riot Games et les éléments associés appartiennent à Riot Games, Inc. Les données issues de l’écosystème Riot sont utilisées dans le respect des conditions applicables aux développeurs et uniquement pour les fonctionnalités proposées aux équipes."],
+      ["Responsabilité", "NXT5 met à disposition des outils de consultation et d’organisation. Les décisions sportives, choix de draft, interprétations de données, rapports, contenus et usages effectués par les équipes relèvent de la responsabilité exclusive des utilisateurs concernés."],
+      ["Mise à jour", "Les présentes mentions peuvent être modifiées afin de tenir compte de l’évolution du service, de ses fonctionnalités ou du cadre réglementaire applicable. Dernière mise à jour : 27 mai 2026."],
     ],
   },
   "/confidentialite": {
     eyebrow: "Données",
     title: "Politique de confidentialité",
-    intro: "Cette page explique quelles données NXT5 traite et pourquoi. L’objectif est de garder l’outil utile sans exposer inutilement les comptes ou les clés API.",
+    intro: "Cette politique explique comment NXT5 traite les données nécessaires au fonctionnement du service. Elle vise à fournir une information claire, accessible et proportionnée aux usages réels de la plateforme.",
     sections: [
-      ["Données de compte", "NXT5 stocke un e-mail de récupération, un pseudo, un mot de passe haché, les sessions de connexion et les informations nécessaires au fonctionnement du compte."],
-      ["Données d’équipe", "L’application peut stocker les équipes, rôles, profils joueurs, Riot IDs, liens OP.GG, champion pools, compositions types, rapports de review, codes tournoi et matchs importés."],
-      ["Données Riot", "Les appels Riot sont effectués côté serveur. La clé API Riot n’est jamais envoyée au navigateur. Les données de match importées servent uniquement à afficher des statistiques et à lier des reviews."],
-      ["Cookies et session", "NXT5 utilise un cookie HttpOnly pour maintenir la session de connexion. Ce cookie sert à l’authentification et n’est pas destiné au suivi publicitaire."],
-      ["Conservation", "Les données restent conservées tant que l’équipe ou le compte les utilise. Les profils joueurs, rapports et codes tournoi peuvent être supprimés depuis l’interface quand les droits le permettent."],
+      ["Responsable du traitement", "Le responsable du traitement est l’exploitant du service NXT5. Les demandes relatives aux données personnelles peuvent être adressées via les moyens de contact disponibles dans l’application ou sur les canaux officiels du projet."],
+      ["Données traitées", "NXT5 peut traiter les informations de compte, les adresses e-mail, les pseudonymes, les rôles, les équipes, les profils joueurs, les Riot IDs, les liens de profil, les disponibilités, les compositions, les champion pools, les rapports, les codes tournoi, les matchs importés et les statistiques associées."],
+      ["Finalités", "Ces données sont utilisées pour créer et sécuriser les comptes, gérer les équipes, permettre la collaboration entre membres, importer et consulter des matchs, produire des tableaux statistiques, préparer des compositions, organiser les disponibilités et conserver un historique utile aux reviews."],
+      ["Base juridique", "Les traitements reposent principalement sur l’exécution du service demandé par l’utilisateur, l’intérêt légitime à maintenir un outil fiable et sécurisé, ainsi que le consentement lorsque l’utilisateur fournit volontairement certaines informations ou active certaines fonctionnalités."],
+      ["Données de jeu", "Les données liées à League of Legends peuvent provenir d’informations saisies par les utilisateurs, de fichiers importés, de profils publics, d’OP.GG ou des API Riot lorsque l’accès est disponible. Elles sont utilisées pour alimenter les fonctionnalités NXT5 et ne constituent pas une notation officielle des joueurs."],
+      ["Destinataires", "Les données sont accessibles aux membres autorisés d’une équipe selon leur rôle. Elles peuvent également être traitées par les prestataires techniques nécessaires au fonctionnement du service, dans la limite de leurs missions respectives."],
+      ["Sécurité", "NXT5 applique des mesures techniques et organisationnelles raisonnables afin de limiter les accès non autorisés, les pertes de données et les usages détournés. Aucune page publique ne détaille les mécanismes internes afin de ne pas affaiblir la protection du service."],
+      ["Cookies et sessions", "NXT5 utilise des cookies strictement nécessaires à la connexion, au maintien de session et au fonctionnement normal de l’application. Ces cookies ne sont pas destinés au suivi publicitaire."],
+      ["Conservation", "Les données sont conservées tant qu’elles sont utiles au fonctionnement de l’équipe ou du compte concerné. Les utilisateurs autorisés peuvent supprimer certains contenus depuis l’interface. Des journaux techniques limités peuvent être conservés pour assurer la stabilité, la sécurité et la traçabilité du service."],
+      ["Droits des personnes", "Conformément au RGPD, les utilisateurs peuvent demander l’accès, la rectification, l’effacement ou la limitation du traitement de leurs données lorsque ces droits sont applicables. Une demande peut être formulée via les moyens de contact disponibles pour le service."],
+      ["Réclamation", "Si un utilisateur estime que ses droits ne sont pas respectés, il peut contacter l’exploitant du service. Il peut également saisir l’autorité de contrôle compétente en matière de protection des données personnelles."],
     ],
   },
   "/conditions": {
     eyebrow: "Utilisation",
     title: "Conditions d’utilisation",
-    intro: "NXT5 est conçu pour aider les équipes à préparer, relire et organiser leurs matchs de manière propre et sécurisée.",
+    intro: "Les présentes conditions encadrent l’utilisation de NXT5. En accédant au service, l’utilisateur accepte de l’utiliser de manière loyale, raisonnable et conforme à sa finalité esportive.",
     sections: [
-      ["Usage autorisé", "L’outil doit être utilisé pour des équipes, scrims, reviews, champion pools, compositions types et rapports liés à League of Legends."],
-      ["Codes tournoi", "La génération ou l’ajout de codes tournoi est réservée aux membres autorisés de l’équipe, notamment owner, capitaine ou coach. Les codes doivent être créés uniquement pour des matchs réels et raisonnables."],
-      ["Sécurité", "Il est interdit de partager des clés Riot, de contourner les droits d’équipe, d’extraire massivement des données ou d’utiliser NXT5 pour harceler, surveiller ou cibler des joueurs."],
-      ["Contenu utilisateur", "Les contenus de review sont écrits par les utilisateurs. Chaque équipe reste responsable du contenu qu’elle crée, modifie ou supprime."],
-      ["Disponibilité", "NXT5 dépend de services externes comme Riot API, Netlify et Neon. Certaines fonctionnalités peuvent être indisponibles si ces services changent, expirent ou refusent une requête."],
+      ["Accès au service", "NXT5 est accessible aux utilisateurs disposant d’un compte et, pour certaines fonctionnalités, d’une équipe active. Les droits d’accès varient selon le rôle attribué au sein de l’équipe : joueur, capitaine, coach, manager, analyste ou autre rôle autorisé."],
+      ["Usage autorisé", "Le service doit être utilisé pour organiser une équipe, importer des matchs, consulter des statistiques, préparer des champion pools, construire des compositions, gérer les disponibilités et rédiger des rapports de review liés à League of Legends."],
+      ["Comptes et responsabilités", "Chaque utilisateur est responsable de l’exactitude des informations qu’il renseigne, de la confidentialité de ses identifiants et des actions réalisées depuis son compte. Les administrateurs d’équipe doivent attribuer les accès avec prudence."],
+      ["Contenus d’équipe", "Les rapports, notes, noms de groupes, compositions, profils et autres contenus ajoutés dans NXT5 sont créés par les utilisateurs. L’équipe reste responsable de leur exactitude, de leur pertinence et de leur conformité aux règles applicables."],
+      ["Codes tournoi et imports", "Les codes tournoi, Game IDs, fichiers JSON et imports de matchs doivent correspondre à des parties réelles ou légitimement accessibles par l’équipe. L’utilisateur s’engage à ne pas importer de données dans le but de nuire, d’usurper, de surveiller abusivement ou de détourner le service."],
+      ["Comportements interdits", "Il est interdit de tenter de contourner les droits d’accès, de perturber le service, d’extraire massivement des données, de publier des contenus illicites, injurieux ou discriminatoires, ou d’utiliser NXT5 pour harceler, cibler ou porter atteinte à d’autres joueurs."],
+      ["Données et API tierces", "Certaines fonctionnalités dépendent de données ou services tiers, notamment l’écosystème Riot, des profils publics ou des outils d’import. NXT5 ne garantit pas l’exhaustivité, la disponibilité permanente ou l’absence d’erreur de ces sources externes."],
+      ["Disponibilité", "Le service est fourni en l’état et peut évoluer, être interrompu, limité ou modifié pour des raisons techniques, de maintenance, de sécurité, de conformité ou de dépendance à des prestataires externes."],
+      ["Limitation de responsabilité", "NXT5 est un outil d’aide à la lecture et à l’organisation. Il ne remplace pas le jugement d’un coach, d’un capitaine ou d’un joueur. Les choix sportifs, décisions d’équipe et interprétations des données restent sous la responsabilité des utilisateurs."],
+      ["Évolution des conditions", "Les présentes conditions peuvent être mises à jour afin de suivre l’évolution du service. Dernière mise à jour : 27 mai 2026."],
     ],
   },
 };
@@ -971,6 +985,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
   const status = profileStatusLabel(currentMember);
   const navItems = NAV.filter((item) => item.id !== "settings" && !item.hidden);
   const settingsItem = NAV.find((item) => item.id === "settings");
+  const profileRole = linkedPlayer?.role || currentMember?.role || "";
   const go = (pageId) => {
     setActive(pageId);
     setOpen(false);
@@ -987,7 +1002,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl py-3 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3.5", selected ?"bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-lg shadow-cyan-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
-        <div className="mt-auto space-y-3"><Surface className={cx(collapsed ?"p-3" : "p-4")} delay={0}><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-200"><Users className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-500">{linkedPlayer ? `${linkedPlayer.role} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></Surface>{settingsItem && <Button variant="ghost" icon={Settings} onClick={() => go("settings")} className={cx("w-full", active === "settings" && "border-cyan-300/35 bg-cyan-400/[0.075]", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>{settingsItem.label}</span></Button>}<Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
+        <div className="mt-auto space-y-3"><Surface className={cx(collapsed ?"p-3" : "p-4")} delay={0}><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-6 w-6" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-500">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></Surface>{settingsItem && <Button variant="ghost" icon={Settings} onClick={() => go("settings")} className={cx("w-full", active === "settings" && "border-cyan-300/35 bg-cyan-400/[0.075]", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>{settingsItem.label}</span></Button>}<Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
       </aside>
     </>
   );
@@ -1001,7 +1016,23 @@ function TeamAvatar({ team, className = "h-12 w-12" }) {
 }
 
 function RoleIcon({ role, className = "h-7 w-7" }) {
-  const key = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" }[String(role || "").toUpperCase()];
+  const roleKey = String(role || "").toUpperCase();
+  const staffIcon = {
+    COACH: ShieldCheck,
+    ASSISTANT: Users,
+    ANALYST: BarChart3,
+    MANAGER: Settings,
+    BOARD: Crown,
+    OWNER: Crown,
+    CAPTAIN: ShieldCheck,
+    STAFF: ShieldCheck,
+    SUB: UserPlus,
+  }[roleKey];
+  if (staffIcon) {
+    const Icon = staffIcon;
+    return <Icon className={cx("text-cyan-100", className)} />;
+  }
+  const key = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" }[roleKey];
   if (!key) return <Users className={cx("text-slate-500", className)} />;
   return <img src={`https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/svg/position-${key}.svg`} alt={role} className={cx("object-contain opacity-90 invert", className)} />;
 }
@@ -1273,6 +1304,9 @@ function roleLabel(role) {
     ANALYST: "Analyste",
     MANAGER: "Manager",
     BOARD: "Board",
+    OWNER: "Owner",
+    CAPTAIN: "Capitaine",
+    STAFF: "Staff",
   }[String(role || "").toUpperCase()] || String(role || "Profil");
 }
 

@@ -92,9 +92,16 @@ create table if not exists team_members (
 );
 
 insert into team_members (team_id, user_id, role)
-select id, owner_id, 'owner'
+select id, owner_id, 'captain'
 from teams
 on conflict (team_id, user_id) do nothing;
+
+update team_members
+set role = 'captain'
+from teams
+where team_members.team_id = teams.id
+  and team_members.user_id = teams.owner_id
+  and team_members.role = 'owner';
 
 alter table team_members drop constraint if exists team_members_role_check;
 alter table team_members add constraint team_members_role_check check (role in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member'));

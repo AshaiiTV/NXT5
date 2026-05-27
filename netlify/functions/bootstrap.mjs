@@ -112,6 +112,14 @@ async function ensureRoleConstraints() {
     alter table team_members add constraint team_members_role_check
     check (role in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member'))
   `;
+  await sql`
+    update team_members
+    set role = 'captain'
+    from teams
+    where team_members.team_id = teams.id
+      and team_members.user_id = teams.owner_id
+      and team_members.role = 'owner'
+  `;
 }
 
 export default async function handler(request, context) {

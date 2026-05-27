@@ -23,7 +23,7 @@ export default async function handler(request, context) {
 
     await sql`
       insert into team_members (team_id, user_id, role)
-      values (${team.id}, ${user.id}, 'owner')
+      values (${team.id}, ${user.id}, 'captain')
       on conflict (team_id, user_id) do nothing
     `;
 
