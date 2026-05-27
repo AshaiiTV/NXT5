@@ -254,8 +254,6 @@ ipcMain.handle('generate-import', async (_event, form) => {
   const extractedInput = extractGameInput(form?.gameId);
   const gameId = normalizeGameId(extractedInput, form?.platform);
   const numericOnly = isNumericGameId(extractedInput);
-  const label = String(form?.label || '').trim().slice(0, 120);
-  const opponent = String(form?.opponent || '').trim().slice(0, 120);
   const platform = gameId.split('_')[0];
   const params = new URLSearchParams({ gameId, platform, fallback: numericOnly ? '1' : '0' });
   const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?${params.toString()}`;
@@ -293,8 +291,6 @@ ipcMain.handle('generate-import', async (_event, form) => {
     version: 4,
     gameId,
     platform,
-    label,
-    opponent,
     exportedAt: new Date().toISOString(),
     importerSource: exported.source || 'riot-match-v5',
     match: exported.match

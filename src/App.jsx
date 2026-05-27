@@ -2141,6 +2141,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [allyTeamSide, setAllyTeamSide] = useState("");
+  const [importDetails, setImportDetails] = useState({ label: "", opponent: "" });
   const [importPreview, setImportPreview] = useState(null);
   const [previewPayload, setPreviewPayload] = useState(null);
   const [importing, setImporting] = useState(false);
@@ -2207,6 +2208,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     setImportPreview(null);
     setPreviewPayload(null);
     setAllyTeamSide("");
+    setImportDetails({ label: "", opponent: "" });
     setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   }
@@ -2246,7 +2248,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   }
   async function confirmImport(event) {
     event.preventDefault();
-    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, playerAssignments, allyTeamSide };
+    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, opponent: importDetails.opponent };
     setImporting(true);
     try {
       await apiFetch("matches-import-file", { method: "POST", body: JSON.stringify(payload) });
@@ -2269,6 +2271,10 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       resetImportDraft();
       setPreviewPayload(payload);
       setImportPreview(result.match);
+      setImportDetails({
+        label: payload?.label || payload?.metadata?.label || "",
+        opponent: payload?.opponent || payload?.metadata?.opponent || ""
+      });
       pushToast({ type: "green", title: "JSON chargé", text: "Choisis ton side, les champions et les profils avant de confirmer." });
     } catch (err) {
       if (err instanceof SyntaxError) pushToast({ type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Importer." });
@@ -2280,7 +2286,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
 
   const teamMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const laneAssignmentsReady = COMP_ROLES.every((role) => String(laneAssignments[role] || "").trim() && String(playerAssignments[role] || "").trim());
-  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady);
+  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && importDetails.label.trim());
   const previewTeams = importPreview?.teams || [];
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   return (
@@ -2317,6 +2323,10 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                 <Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge>
               </div>
               {importPreview ? <div className="mt-4 space-y-4">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <TextInput label="Nom de l’import" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1, Scrim vs..." required icon={FileText} />
+                  <TextInput label="Adversaire" value={importDetails.opponent} onChange={(opponent) => setImportDetails((current) => ({ ...current, opponent }))} placeholder="Nom de l’équipe adverse" icon={Swords} />
+                </div>
                 <div className="grid gap-3 lg:grid-cols-2">
                   {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} className={cx("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
                     <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Blue Side" : "Red Side"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div>
