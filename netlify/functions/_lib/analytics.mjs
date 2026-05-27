@@ -228,58 +228,46 @@ async function rebuildChampionPool(teamId) {
     else if (r.games >= 5 && winrate <= 40) verdict = 'Volume élevé, WR faible';
     else if (r.games >= 3) verdict = 'Situationnel';
 
-    await sql`
-      insert into champion_pool (
-        team_id,
-        player_id,
-        player_name,
-        champion,
-        games,
-        wins,
-        losses,
-        winrate,
-        kda,
-        cs_per_min,
-        impact_grade,
-        verdict,
-        role,
-        status,
-        source,
-        updated_at
-      )
-      values (
-        ${teamId},
-        ${r.player_id},
-        ${r.player_name},
-        ${r.champion},
-        ${r.games},
-        ${r.wins},
-        ${r.losses},
-        ${winrate},
-        ${Number(r.kda || 0).toFixed(2)},
-        ${Number(r.cs_per_min || 0).toFixed(1)},
-        null,
-        ${verdict},
-        ${r.role},
-        'work',
-        'riot',
-        now()
-      )
-      on conflict (team_id, player_id, champion) do update
-      set player_name = excluded.player_name,
-          games = excluded.games,
-          wins = excluded.wins,
-          losses = excluded.losses,
-          winrate = excluded.winrate,
-          kda = excluded.kda,
-          cs_per_min = excluded.cs_per_min,
-          impact_grade = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.impact_grade else excluded.impact_grade end,
-          verdict = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.verdict else excluded.verdict end,
-          status = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.status else excluded.status end,
-          notes = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.notes else champion_pool.notes end,
-          source = case when champion_pool.source in ('manual', 'riot_manual') then 'riot_manual' else excluded.source end,
-          updated_at = now()
+    const existing = await sql`
+      select *
+      from champion_pool
+      where team_id = ${teamId}
+        and player_id is not distinct from ${r.player_id}
+        and champion = ${r.champion}
+      limit 1
     `;
+
+    if (existing[0]) {
+      await sql`
+        update champion_pool
+        set player_name = ${r.player_name},
+            games = ${r.games},
+            wins = ${r.wins},
+            losses = ${r.losses},
+            winrate = ${winrate},
+            kda = ${Number(r.kda || 0).toFixed(2)},
+            cs_per_min = ${Number(r.cs_per_min || 0).toFixed(1)},
+            impact_grade = case when source in ('manual', 'riot_manual') then impact_grade else '—' end,
+            verdict = case when source in ('manual', 'riot_manual') then verdict else ${verdict} end,
+            status = case when source in ('manual', 'riot_manual') then status else 'work' end,
+            notes = notes,
+            source = case when source in ('manual', 'riot_manual') then 'riot_manual' else 'riot' end,
+            updated_at = now()
+        where id = ${existing[0].id}
+      `;
+    } else {
+      await sql`
+        insert into champion_pool (
+          team_id, player_id, player_name, champion, games, wins, losses,
+          winrate, kda, cs_per_min, impact_grade, verdict, role, status, source, updated_at
+        )
+        values (
+          ${teamId}, ${r.player_id}, ${r.player_name}, ${r.champion}, ${r.games}, ${r.wins}, ${r.losses},
+          ${winrate}, ${Number(r.kda || 0).toFixed(2)}, ${Number(r.cs_per_min || 0).toFixed(1)},
+          '—', ${verdict}, ${r.role}, 'work', 'riot', now()
+        )
+      `;
+    }
   }
 }
 
@@ -301,23 +289,59 @@ async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'impor
     )
   `;
   await sql`
+    delete from match_raw_archives
+    where team_id = ${teamId}
+      and game_id = ${gameId}
+  `;
+  await sql`
     insert into match_raw_archives (team_id, match_id, game_id, source, payload)
     values (${teamId}, ${matchId}, ${gameId}, ${source}, ${JSON.stringify(match)}::jsonb)
-    on conflict (team_id, game_id)
-    do update set
-      match_id = excluded.match_id,
-      source = excluded.source,
-      payload = excluded.payload
   `;
 }
 
 async function ensureMatchImporterColumn() {
+  await sql`alter table matches add column if not exists region text not null default 'EUROPE'`;
+  await sql`alter table matches add column if not exists opponent text`;
+  await sql`alter table matches add column if not exists result text`;
+  await sql`alter table matches add column if not exists side text`;
+  await sql`alter table matches add column if not exists duration_seconds integer`;
+  await sql`alter table matches add column if not exists duration text`;
+  await sql`alter table matches add column if not exists patch text`;
+  await sql`alter table matches add column if not exists objective_score text`;
+  await sql`alter table matches add column if not exists vision_score text`;
+  await sql`alter table matches add column if not exists impact_score text`;
+  await sql`alter table matches add column if not exists primary_focus text`;
+  await sql`alter table matches add column if not exists main_issue text`;
   await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
   await sql`alter table matches add column if not exists raw jsonb not null default '{}'::jsonb`;
+  await sql`alter table match_participants add column if not exists player_id uuid references players(id) on delete set null`;
+  await sql`alter table match_participants add column if not exists team_key text`;
+  await sql`alter table match_participants add column if not exists summoner_name text`;
+  await sql`alter table match_participants add column if not exists riot_id text`;
+  await sql`alter table match_participants add column if not exists champion text`;
+  await sql`alter table match_participants add column if not exists role text`;
+  await sql`alter table match_participants add column if not exists kills integer not null default 0`;
+  await sql`alter table match_participants add column if not exists deaths integer not null default 0`;
+  await sql`alter table match_participants add column if not exists assists integer not null default 0`;
+  await sql`alter table match_participants add column if not exists cs integer not null default 0`;
+  await sql`alter table match_participants add column if not exists gold integer not null default 0`;
+  await sql`alter table match_participants add column if not exists damage integer not null default 0`;
+  await sql`alter table match_participants add column if not exists vision integer not null default 0`;
+  await sql`alter table match_participants add column if not exists kp numeric`;
+  await sql`alter table match_participants add column if not exists kda text`;
+  await sql`alter table match_participants add column if not exists cs_per_min numeric`;
+  await sql`alter table match_participants add column if not exists gold_per_min numeric`;
+  await sql`alter table match_participants add column if not exists kill_participation text`;
+  await sql`alter table match_participants add column if not exists grade text`;
   await sql`alter table match_participants add column if not exists raw jsonb not null default '{}'::jsonb`;
+  await sql`alter table reports add column if not exists match_id uuid references matches(id) on delete set null`;
   await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
   await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
   await sql`alter table reports add column if not exists updated_at timestamptz not null default now()`;
+  await sql`alter table champion_pool add column if not exists role text`;
+  await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
+  await sql`alter table champion_pool add column if not exists notes text`;
+  await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
 }
 
@@ -343,7 +367,31 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   }
   const summary = buildMatchSummary(match, allyTeamId, participants);
 
-  const inserted = await sql`
+  const existingMatches = await sql`
+    select *
+    from matches
+    where team_id = ${team.id}
+      and game_id = ${gameId}
+    limit 1
+  `;
+  const inserted = existingMatches[0] ? await sql`
+    update matches
+    set opponent = ${summary.opponent},
+        result = ${summary.result},
+        side = ${summary.side},
+        duration_seconds = ${summary.duration_seconds},
+        duration = ${summary.duration},
+        patch = ${summary.patch},
+        objective_score = ${summary.objective_score},
+        vision_score = ${summary.vision_score},
+        impact_score = ${summary.impact_score},
+        primary_focus = ${summary.primary_focus},
+        main_issue = ${summary.main_issue},
+        created_by = coalesce(created_by, ${userId}),
+        raw = ${JSON.stringify(match)}::jsonb
+    where id = ${existingMatches[0].id}
+    returning *
+  ` : await sql`
     insert into matches (
       team_id, game_id, region, opponent, result, side,
       duration_seconds, duration, patch, objective_score, vision_score,
@@ -354,21 +402,6 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       ${summary.duration_seconds}, ${summary.duration}, ${summary.patch}, ${summary.objective_score}, ${summary.vision_score},
       ${summary.impact_score}, ${summary.primary_focus}, ${summary.main_issue}, ${userId}, ${JSON.stringify(match)}::jsonb
     )
-    on conflict (team_id, game_id)
-    do update set
-      opponent = excluded.opponent,
-      result = excluded.result,
-      side = excluded.side,
-      duration_seconds = excluded.duration_seconds,
-      duration = excluded.duration,
-      patch = excluded.patch,
-      objective_score = excluded.objective_score,
-      vision_score = excluded.vision_score,
-      impact_score = excluded.impact_score,
-      primary_focus = excluded.primary_focus,
-      main_issue = excluded.main_issue,
-      created_by = coalesce(matches.created_by, excluded.created_by),
-      raw = excluded.raw
     returning *
   `;
 
