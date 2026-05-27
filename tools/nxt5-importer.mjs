@@ -53,7 +53,7 @@ function html(error = '') {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NXT5 Importer</title>
+  <title>NXT5 Match Exporter</title>
   <style>
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at top, #12204d, #050814 58%, #02030a); color: #f8fafc; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
     main { width: min(92vw, 680px); border: 1px solid rgba(34,211,238,.22); border-radius: 28px; padding: 30px; background: rgba(5,9,20,.86); box-shadow: 0 0 80px rgba(34,211,238,.18); }
@@ -69,7 +69,7 @@ function html(error = '') {
 </head>
 <body>
   <main>
-    <h1>NXT5 Importer</h1>
+    <h1>NXT5 Match Exporter</h1>
     <p>Colle un Game ID Riot, ajoute une clé Riot valide, et l'outil génère un fichier JSON à importer dans NXT5. La clé reste sur cette appli locale et n'est pas stockée.</p>
     <form method="post" action="/export">
       <label>Game ID</label>
@@ -136,5 +136,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`NXT5 Importer local: http://127.0.0.1:${PORT}`);
+  console.log(`NXT5 Match Exporter local: http://127.0.0.1:${PORT}`);
 });

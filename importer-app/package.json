@@ -1,8 +1,8 @@
 {
-  "name": "nxt5-importer",
-  "version": "0.1.2",
+  "name": "nxt5-match-exporter",
+  "version": "0.2.0",
   "private": true,
-  "description": "NXT5 local match importer",
+  "description": "NXT5 local League of Legends match exporter",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -16,8 +16,8 @@
   },
   "type": "module",
   "build": {
-    "appId": "app.nxt5.importer",
-    "productName": "NXT5 Importer",
+    "appId": "app.nxt5.match-exporter",
+    "productName": "NXT5 Match Exporter",
     "directories": {
       "output": "release"
     },
@@ -39,7 +39,7 @@
           ]
         }
       ],
-      "artifactName": "NXT5-Importer-Windows-${version}.${ext}"
+      "artifactName": "NXT5-Match-Exporter-Windows-${version}.${ext}"
     },
     "mac": {
       "icon": "assets/icon.icns",
@@ -53,7 +53,7 @@
           ]
         }
       ],
-      "artifactName": "NXT5-Importer-Mac-${arch}-${version}.${ext}",
+      "artifactName": "NXT5-Match-Exporter-Mac-${arch}-${version}.${ext}",
       "identity": "-",
       "hardenedRuntime": false
     }

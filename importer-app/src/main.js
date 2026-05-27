@@ -7,6 +7,9 @@ import https from 'node:https';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NXT5_SITE_URL = String(process.env.NXT5_SITE_URL || 'https://nxt5.netlify.app').replace(/\/+$/, '');
+const APP_NAME = 'NXT5 Match Exporter';
+const REMOTE_TIMEOUT_MS = 12000;
+const LOCAL_TIMEOUT_MS = 8000;
 const championNameCache = new Map();
 
 function normalizeGameId(value, platform = 'EUW1') {
@@ -84,9 +87,34 @@ async function lcuGet(endpoint) {
         else reject(new Error(`Client LoL: ${response.statusCode} sur ${endpoint}`));
       });
     });
+    request.setTimeout(LOCAL_TIMEOUT_MS, () => {
+      request.destroy(new Error(`Client LoL trop lent sur ${endpoint}. Ouvre l'historique de match dans le client, puis reessaie.`));
+    });
     request.on('error', reject);
     request.end();
   });
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs = REMOTE_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+    return { response, payload };
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`NXT5 ne repond pas apres ${Math.round(timeoutMs / 1000)} secondes. Verifie ta connexion, puis reessaie.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function championNameById(championId) {
@@ -208,12 +236,13 @@ function createWindow() {
     height: 760,
     minWidth: 880,
     minHeight: 660,
-    title: 'NXT5 Importer',
+    title: APP_NAME,
     backgroundColor: '#030713',
     icon: path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.icns'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
+      sandbox: false,
       nodeIntegration: false
     }
   });
@@ -233,12 +262,8 @@ ipcMain.handle('generate-import', async (_event, form) => {
   let exported = null;
   let riotError = null;
   try {
-    const response = await fetch(exportUrl);
-    try {
-      exported = await response.json();
-    } catch {
-      exported = null;
-    }
+    const { response, payload } = await fetchJsonWithTimeout(exportUrl);
+    exported = payload;
 
     if (!response.ok) {
       const rawMessage = exported?.error || exported?.detail || exported?.message || '';
@@ -264,8 +289,8 @@ ipcMain.handle('generate-import', async (_event, form) => {
   }
 
   const payload = {
-    source: 'nxt5-importer-app',
-    version: 3,
+    source: 'nxt5-match-exporter',
+    version: 4,
     gameId,
     platform,
     label,
@@ -286,7 +311,7 @@ ipcMain.handle('generate-import', async (_event, form) => {
   return { canceled: false, filePath, gameId };
 });
 
-app.setName('NXT5 Importer');
+app.setName(APP_NAME);
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

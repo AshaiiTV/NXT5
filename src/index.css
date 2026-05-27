@@ -39,9 +39,45 @@ form,
   min-width: 0;
 }
 
+#root {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: clip;
+}
+
 .grid > *,
 .flex > * {
   min-width: 0;
+}
+
+button,
+a,
+label,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+.nxt5-panel > .relative.z-10 {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.nxt5-panel :where(.grid, .flex, form, label, button, a, p, span, h1, h2, h3, h4, h5, h6, li) {
+  min-width: 0;
+}
+
+.nxt5-panel :where(p, h1, h2, h3, h4, h5, h6, li, .font-mono) {
+  overflow-wrap: anywhere;
+}
+
+.nxt5-panel :where(.truncate) {
+  overflow-wrap: normal;
+}
+
+.nxt5-panel :where(button, a) {
+  white-space: normal;
 }
 
 img,
