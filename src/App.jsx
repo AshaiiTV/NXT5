@@ -1779,11 +1779,12 @@ function GuidePage() {
   ];
   const analysisSteps = [
     ["Statistiques", "Sélectionne une game ou un groupe de games. Les statistiques affichent les joueurs, champions, KDA, dégâts, vision, items et sorts d’invocateur."],
-    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Clique une deuxième fois sur une game ou un groupe pour le retirer de la sélection."],
-    ["Rapports", "Crée un rapport lié à une ou plusieurs games. Utilise les commandes du lexique pour injecter des données, puis écris l’analyse humaine autour."],
-    ["Champion Pool", "Le Champion Pool sert à organiser la maîtrise des champions par joueur. Le capitaine et le joueur concerné peuvent le maintenir."],
-    ["Compos Types", "Crée des compositions à cinq joueurs à partir des pools existants. Les couleurs indiquent rapidement le niveau de maîtrise disponible."],
+    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Clique une deuxième fois sur une game ou un groupe pour le retirer de la sélection. Le panneau peut être replié avec la flèche pour libérer la page."],
+    ["Rapports", "Crée un rapport lié à une ou plusieurs games. Utilise les commandes du lexique pour injecter des données, puis écris les notes staff autour."],
+    ["Champion Pool", "Le Champion Pool sert à organiser la maîtrise des champions par joueur. Le capitaine et le joueur concerné peuvent le maintenir. Ces pools alimentent directement les Compos Types."],
+    ["Compos Types", "Construis une compo à cinq postes depuis une banque visuelle d’icônes champions. Les champions proposés dépendent du Champion Pool du joueur actuellement placé sur chaque poste."],
     ["Planning", "Chaque joueur renseigne ses disponibilités par semaine. La vue générale montre les créneaux communs de la team."],
+    ["Mon profil", "Clique sur ton bloc profil en bas à gauche. La page affiche les stats personnelles, forces, faiblesses, bangers, flops, champion pool, matchups et historique importé. Le staff et le capitaine peuvent choisir le joueur à observer."],
   ];
   const troubleshooting = [
     ["Import introuvable", "Vérifie la région du Game ID, attends quelques minutes après la fin de la game, puis réessaie. Pour une game officielle, le fichier local reste la méthode la plus fiable."],
@@ -1842,7 +1843,7 @@ function GuidePage() {
       <Surface className="p-5 md:p-6">
         <Badge tone="green">Routine recommandée</Badge>
         <div className="mt-4 grid gap-3">
-          {["Avant scrim: vérifier roster, planning et compos types.", "Après chaque game: exporter le JSON, importer la game, assigner side et profils.", "Après le bloc: créer un groupe de games, ouvrir les stats, puis rédiger un rapport lié.", "Avant la prochaine session: mettre à jour Champion Pool et compos selon les décisions du staff."].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
+          {["Avant scrim: vérifier roster, planning, champion pools et compos types.", "Après chaque game: exporter le JSON, importer la game, assigner side et profils.", "Après le bloc: créer un groupe de games, ouvrir les stats, puis lire Mon profil pour les forces/faiblesses individuelles.", "Avant la prochaine session: mettre à jour Champion Pool et compos selon les décisions du staff."].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
         </div>
       </Surface>
       <Surface className="p-5 md:p-6">
@@ -2130,6 +2131,17 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
   }, new Map()).values()).map((item) => ({ ...item, winrate: Math.round((item.wins / Math.max(1, item.games)) * 100), kda: ((item.kills + item.assists) / Math.max(1, item.deaths)).toFixed(2) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate);
   const bestMatchups = matchups.filter((item) => item.games >= 1).slice().sort((a, b) => b.winrate - a.winrate || b.games - a.games).slice(0, 5);
   const worstMatchups = matchups.filter((item) => item.games >= 1).slice().sort((a, b) => a.winrate - b.winrate || b.games - a.games).slice(0, 5);
+  const bangers = championStats.filter((stat) => stat.games >= 1).slice().sort((a, b) => (b.winrate * 2 + Number(b.kda) * 12 + b.games * 3) - (a.winrate * 2 + Number(a.kda) * 12 + a.games * 3)).slice(0, 3);
+  const flops = championStats.filter((stat) => stat.games >= 1).slice().sort((a, b) => (a.winrate * 2 + Number(a.kda) * 12 - a.games * 2) - (b.winrate * 2 + Number(b.kda) * 12 - b.games * 2)).slice(0, 3);
+  const avgDeaths = Number(avg("deaths"));
+  const avgVision = Number(avg("vision"));
+  const avgDamage = sum("damage") / Math.max(1, games);
+  const profileSignals = [
+    { title: wins >= losses ? "Force principale" : "Point d'alerte", value: wins >= losses ? "Conversion" : "Résultats", detail: `${wins}W - ${losses}L sur les games importées`, toneName: wins >= losses ? "green" : "red", icon: Trophy },
+    { title: Number(kda) >= 3 ? "Force combat" : "Risque combat", value: `KDA ${kda}`, detail: `${avg("kills")}/${avg("deaths")}/${avg("assists")} en moyenne`, toneName: Number(kda) >= 3 ? "cyan" : "orange", icon: Swords },
+    { title: avgDeaths <= 4 ? "Faible mortalité" : "Morts à surveiller", value: `${avgDeaths.toFixed(1)} morts`, detail: "Moyenne par game importée", toneName: avgDeaths <= 4 ? "green" : "red", icon: Shield },
+    { title: avgVision >= 20 ? "Impact vision" : "Vision discrète", value: `${Math.round(avgVision)} vision`, detail: `${formatPoints(avgDamage)} dégâts moyens`, toneName: avgVision >= 20 ? "yellow" : "purple", icon: Eye },
+  ];
   if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
   return <div className="min-w-0 overflow-hidden">
     <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle="Toutes les données utiles du profil sélectionné : champions, games importées, matchups et tendances brutes.">
@@ -2142,6 +2154,10 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
         <div className="grid w-full gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
       </div>
     </Surface>
+    <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+      <Surface glow><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><Badge tone="cyan">Vue instantanée</Badge><h3 className="mt-3 text-2xl font-black text-white">Forces & faiblesses</h3></div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{games} game{games > 1 ? "s" : ""} analysée{games > 1 ? "s" : ""}</p></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{profileSignals.map((signal) => <ProfileSignalCard key={signal.title} signal={signal} />)}</div></Surface>
+      <Surface glow><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><Badge tone="purple">Champion read</Badge><h3 className="mt-3 text-2xl font-black text-white">Bangers & flops</h3></div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</p></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><ChampionSpotlight title="Bangers" items={bangers} toneName="green" empty="Aucun banger détectable pour l’instant." /><ChampionSpotlight title="Flops" items={flops} toneName="red" empty="Aucun flop détectable pour l’instant." /></div></Surface>
+    </div>
     <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
       <Surface glow><h3 className="text-2xl font-black text-white">Champions joués</h3><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => <div key={stat.champion} className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div></div></div>) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></Surface>
       <Surface><h3 className="text-2xl font-black text-white">Champion Pool</h3><div className="mt-4 grid gap-2">{championPool.length ? championPool.map((row) => <div key={row.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{championPoolStatusLabel(championPoolStatus(row))}</p></div><Badge tone={championPoolStatusTone(championPoolStatus(row))}>{roleLabel(row.role || selectedPlayer.role)}</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion déclaré dans son pool.</p>}</div></Surface>
@@ -2153,6 +2169,15 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
 
 function MatchupPanel({ title, items, toneName }) {
   return <Surface><div className="flex items-center justify-between gap-3"><h3 className="text-2xl font-black text-white">{title}</h3><Badge tone={toneName}>{items.length}</Badge></div><div className="mt-4 grid gap-2">{items.length ? items.map((item) => <div key={item.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait champion={item.champion} alt={item.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(item.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{item.games} game{item.games > 1 ? "s" : ""} · {item.winrate}% WR · KDA {item.kda}</p></div><Badge tone={item.winrate >= 50 ? "green" : "red"}>{item.wins}W</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de games pour afficher ce bloc.</p>}</div></Surface>;
+}
+
+function ProfileSignalCard({ signal }) {
+  const Icon = signal.icon || Activity;
+  return <div className={cx("relative overflow-hidden rounded-2xl border p-4", tone(signal.toneName))}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[0.66rem] font-black uppercase tracking-[0.16em] opacity-80">{signal.title}</p><p className="mt-2 truncate text-2xl font-black text-white">{signal.value}</p><p className="mt-1 text-xs font-bold leading-5 text-slate-100/90">{signal.detail}</p></div><Icon className="h-6 w-6 shrink-0" /></div></div>;
+}
+
+function ChampionSpotlight({ title, items, toneName, empty }) {
+  return <div className="rounded-2xl border border-white/10 bg-black/24 p-3"><div className="mb-3 flex items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-white">{title}</p><Badge tone={toneName}>{items.length}</Badge></div><div className="space-y-2">{items.length ? items.map((item) => <div key={item.champion} className="relative min-h-[86px] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionBackdrop champion={item.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={item.champion} alt={item.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-lg font-black text-white">{championDisplayName(item.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{item.games} game{item.games > 1 ? "s" : ""} · {item.winrate}% WR · KDA {item.kda}</p></div></div></div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold leading-5 text-slate-300">{empty}</p>}</div></div>;
 }
 
 function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserId = "", canManage = false, saving = false, syncingPlayerId = "", riotCooldownSeconds = 0, onCopyOpgg, onSyncPlayer, onEditPlayer, onDeletePlayer }) {
