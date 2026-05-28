@@ -2600,6 +2600,24 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
   const selectedChampionStats = championStats.find((item) => item.champion === selectedChampion);
   const selectedRows = selectedChampionStats?.rows || [];
   const bestDamageRow = selectedRows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
+  const selectedMatchups = Array.from(selectedRows.reduce((map, row) => {
+    const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || stat.role || "").toUpperCase());
+    const champion = enemy?.champion || "Adversaire inconnu";
+    const current = map.get(champion) || { champion, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, gold: 0, vision: 0, rows: [] };
+    current.games += 1;
+    current.wins += row.match?.result === "Victoire" ? 1 : 0;
+    current.kills += Number(row.kills || 0);
+    current.deaths += Number(row.deaths || 0);
+    current.assists += Number(row.assists || 0);
+    current.damage += Number(row.damage || 0);
+    current.gold += Number(row.gold || 0);
+    current.vision += Number(row.vision || 0);
+    current.rows.push({ row, enemy });
+    map.set(champion, current);
+    return map;
+  }, new Map()).values()).map((item) => ({ ...item, losses: Math.max(0, item.games - item.wins), winrate: Math.round((item.wins / Math.max(1, item.games)) * 100), kda: ((item.kills + item.assists) / Math.max(1, item.deaths)).toFixed(2), avgDamage: item.damage / Math.max(1, item.games), avgGold: item.gold / Math.max(1, item.games), avgVision: item.vision / Math.max(1, item.games) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
+  const strongestMatchup = selectedMatchups.slice().sort((a, b) => b.winrate - a.winrate || Number(b.kda) - Number(a.kda))[0];
+  const hardestMatchup = selectedMatchups.slice().sort((a, b) => a.winrate - b.winrate || Number(a.kda) - Number(b.kda))[0];
 
   return <Surface glow className="p-5">
     <div className="flex flex-col gap-4">
@@ -2687,6 +2705,16 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
               <ProfileHudMetric label="KP" value={selectedChampionStats.avgKp.toFixed(0) + "%"} detail="Moyenne" tone="purple" />
               <ProfileHudMetric label="CS/min" value={selectedChampionStats.avgCsPerMin.toFixed(1)} detail="Moyenne" tone="orange" />
             </div>
+            <div className="mt-3 grid gap-2 lg:grid-cols-2">
+              <div className="rounded-2xl border border-emerald-300/16 bg-emerald-400/[0.065] p-3">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-emerald-100/80">Matchup favorable</p>
+                {strongestMatchup ? <div className="mt-3 flex items-center gap-3"><ChampionPortrait champion={strongestMatchup.champion} alt={strongestMatchup.champion} className="h-11 w-11 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">vs {championDisplayName(strongestMatchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-100">{strongestMatchup.winrate}% WR · {strongestMatchup.games} game{strongestMatchup.games > 1 ? "s" : ""} · KDA {strongestMatchup.kda}</p></div></div> : <p className="mt-2 text-sm font-semibold text-slate-200">Aucun matchup identifié.</p>}
+              </div>
+              <div className="rounded-2xl border border-rose-300/16 bg-rose-500/[0.06] p-3">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-rose-100/80">Matchup compliqué</p>
+                {hardestMatchup ? <div className="mt-3 flex items-center gap-3"><ChampionPortrait champion={hardestMatchup.champion} alt={hardestMatchup.champion} className="h-11 w-11 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">vs {championDisplayName(hardestMatchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-100">{hardestMatchup.winrate}% WR · {hardestMatchup.games} game{hardestMatchup.games > 1 ? "s" : ""} · KDA {hardestMatchup.kda}</p></div></div> : <p className="mt-2 text-sm font-semibold text-slate-200">Aucun matchup identifié.</p>}
+              </div>
+            </div>
             {bestDamageRow && <p className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-3 py-2 text-xs font-bold text-cyan-50">Meilleure game dégâts : {formatPoints(bestDamageRow.damage)} contre {bestDamageRow.match?.opponent || "adversaire inconnu"} · {bestDamageRow.match?.game_id || "game inconnue"}</p>}
           </div> : <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/18 p-5 text-center">
             <Crown className="h-10 w-10 text-cyan-100" />
@@ -2703,19 +2731,35 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
           <div><Badge tone="purple">Games du champion</Badge><h4 className="mt-3 text-xl font-black text-white">{championDisplayName(selectedChampionStats.champion)}</h4></div>
           <Badge tone="slate">{selectedRows.length} ligne{selectedRows.length > 1 ? "s" : ""}</Badge>
         </div>
+        <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.05] p-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Matchups rencontrés</p><p className="mt-1 text-sm font-semibold text-slate-200">{selectedMatchups.length} champion{selectedMatchups.length > 1 ? "s" : ""} adverse{selectedMatchups.length > 1 ? "s" : ""} sur ce pick.</p></div>
+            <Badge tone="cyan">Historique par perso</Badge>
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {selectedMatchups.length ? selectedMatchups.map((matchup) => <div key={matchup.champion} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+              <div className="flex items-center gap-3"><ChampionPortrait champion={matchup.champion} alt={matchup.champion} className="h-11 w-11 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">vs {championDisplayName(matchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-200">{matchup.games} game{matchup.games > 1 ? "s" : ""} · {matchup.wins}W - {matchup.losses}L</p></div></div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center"><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.55rem] font-black uppercase tracking-[0.12em] text-slate-300">WR</p><p className="mt-1 text-sm font-black text-white">{matchup.winrate}%</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.55rem] font-black uppercase tracking-[0.12em] text-slate-300">KDA</p><p className="mt-1 text-sm font-black text-white">{matchup.kda}</p></div><div className="rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.55rem] font-black uppercase tracking-[0.12em] text-slate-300">DMG</p><p className="mt-1 text-sm font-black text-white">{formatPoints(matchup.avgDamage)}</p></div></div>
+            </div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-200">Aucun adversaire direct reconnu sur ce champion.</p>}
+          </div>
+        </div>
         <div className="mt-4 max-h-72 space-y-2 overflow-auto pr-1">
-          {selectedRows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || ""))).map((row, index) => <div key={(row.id || row.match?.id || row.match?.game_id || "game") + "-" + index} className="grid gap-3 rounded-2xl border border-white/10 bg-black/28 p-3 xl:grid-cols-[minmax(0,1.35fr)_repeat(5,minmax(70px,.55fr))] xl:items-center">
+          {selectedRows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || ""))).map((row, index) => {
+            const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || stat.role || "").toUpperCase());
+            return <div key={(row.id || row.match?.id || row.match?.game_id || "game") + "-" + index} className="grid gap-3 rounded-2xl border border-white/10 bg-black/28 p-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(120px,.7fr)_repeat(5,minmax(70px,.5fr))] xl:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || row.role || "Side ?"}</Badge></div>
               <p className="mt-2 truncate text-sm font-black text-white">{row.match?.opponent || "Adversaire inconnu"}</p>
               <p className="truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID inconnu"} · {row.match?.duration || "--:--"}</p>
             </div>
+            <div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Matchup</p><div className="mt-1 flex min-w-0 items-center gap-2">{enemy?.champion && <ChampionPortrait champion={enemy.champion} alt={enemy.champion} className="h-7 w-7 shrink-0 rounded-lg border border-white/10 object-cover" />}<p className="truncate font-black text-white">{enemy?.champion ? `vs ${championDisplayName(enemy.champion)}` : "Non reconnu"}</p></div></div>
             <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KDA</p><p className="font-black text-white">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</p></div>
             <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KP</p><p className="font-black text-white">{Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</p></div>
             <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Dégâts</p><p className="font-black text-white">{formatPoints(row.damage)}</p></div>
             <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Gold</p><p className="font-black text-white">{formatPoints(row.gold)}</p></div>
             <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Vision</p><p className="font-black text-white">{row.vision || 0}</p></div>
-          </div>)}
+          </div>;
+          })}
         </div>
       </div>
     </motion.div>}</AnimatePresence>
