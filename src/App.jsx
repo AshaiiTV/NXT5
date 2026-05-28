@@ -2183,13 +2183,23 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
   const bangers = championStats.filter((stat) => stat.games >= 1).slice().sort((a, b) => (b.winrate * 2 + Number(b.kda) * 12 + b.games * 3) - (a.winrate * 2 + Number(a.kda) * 12 + a.games * 3)).slice(0, 3);
   const flops = championStats.filter((stat) => stat.games >= 1).slice().sort((a, b) => (a.winrate * 2 + Number(a.kda) * 12 - a.games * 2) - (b.winrate * 2 + Number(b.kda) * 12 - b.games * 2)).slice(0, 3);
   const avgDeaths = Number(avg("deaths"));
-  const avgVision = Number(avg("vision"));
-  const avgDamage = sum("damage") / Math.max(1, games);
+  const avgKills = Number(avg("kills"));
+  const avgAssists = Number(avg("assists"));
+  const avgKp = rows.reduce((total, row) => total + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, games);
+  const avgDamageShare = rows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "damage"), 0) / Math.max(1, games);
+  const avgGoldShare = rows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "gold"), 0) / Math.max(1, games);
+  const avgVisionShare = rows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "vision"), 0) / Math.max(1, games);
+  const avgDeathShare = rows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "deaths"), 0) / Math.max(1, games);
+  const damageResourceDelta = avgDamageShare - avgGoldShare;
+  const topChampion = championStats[0];
+  const topChampionShare = topChampion ? Math.round((topChampion.games / Math.max(1, games)) * 100) : 0;
   const profileSignals = [
-    { title: wins >= losses ? "Force principale" : "Point d'alerte", value: wins >= losses ? "Conversion" : "Résultats", detail: `${wins}W - ${losses}L sur les games importées`, toneName: wins >= losses ? "green" : "red", icon: Trophy },
-    { title: Number(kda) >= 3 ? "Force combat" : "Risque combat", value: `KDA ${kda}`, detail: `${avg("kills")}/${avg("deaths")}/${avg("assists")} en moyenne`, toneName: Number(kda) >= 3 ? "cyan" : "orange", icon: Swords },
-    { title: avgDeaths <= 4 ? "Faible mortalité" : "Morts à surveiller", value: `${avgDeaths.toFixed(1)} morts`, detail: "Moyenne par game importée", toneName: avgDeaths <= 4 ? "green" : "red", icon: Shield },
-    { title: avgVision >= 20 ? "Impact vision" : "Vision discrète", value: `${Math.round(avgVision)} vision`, detail: `${formatPoints(avgDamage)} dégâts moyens`, toneName: avgVision >= 20 ? "yellow" : "purple", icon: Eye },
+    { title: "Impact dégâts", value: `${avgDamageShare.toFixed(1)}%`, detail: `${formatPoints(sum("damage") / Math.max(1, games))} dégâts moyens · ${avgGoldShare.toFixed(1)}% gold équipe`, toneName: avgDamageShare >= avgGoldShare ? "purple" : "orange", icon: Flame },
+    { title: "Rendement ressources", value: `${damageResourceDelta >= 0 ? "+" : ""}${damageResourceDelta.toFixed(1)} pts`, detail: "Écart entre part de dégâts et part de gold reçue.", toneName: damageResourceDelta >= 0 ? "green" : "red", icon: Gauge },
+    { title: "Participation combats", value: `${Math.round(avgKp)}% KP`, detail: `${avgKills.toFixed(1)} kills · ${avgAssists.toFixed(1)} assists moyens`, toneName: avgKp >= 60 ? "cyan" : "yellow", icon: Swords },
+    { title: "Exposition", value: `${avgDeathShare.toFixed(1)}%`, detail: `${avgDeaths.toFixed(1)} morts moyennes · part des morts équipe`, toneName: avgDeathShare <= 20 ? "green" : "red", icon: Shield },
+    { title: "Présence vision", value: `${avgVisionShare.toFixed(1)}%`, detail: `${avg("vision")} vision moyenne · part vision équipe`, toneName: avgVisionShare >= 20 ? "cyan" : "purple", icon: Eye },
+    { title: "Pool joué", value: `${championStats.length} champions`, detail: topChampion ? `${championDisplayName(topChampion.champion)} représente ${topChampionShare}% des games` : "Aucune game importée.", toneName: topChampionShare >= 60 ? "orange" : "green", icon: Crown },
   ];
   if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
   return <div className="min-w-0 overflow-hidden">
@@ -2204,7 +2214,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
       </div>
     </Surface>
     <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
-      <Surface glow><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><Badge tone="cyan">Vue instantanée</Badge><h3 className="mt-3 text-2xl font-black text-white">Forces & faiblesses</h3></div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{games} game{games > 1 ? "s" : ""} analysée{games > 1 ? "s" : ""}</p></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{profileSignals.map((signal) => <ProfileSignalCard key={signal.title} signal={signal} />)}</div></Surface>
+      <Surface glow><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><Badge tone="cyan">Lecture coach</Badge><h3 className="mt-3 text-2xl font-black text-white">Signaux exploitables</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Des ratios bruts pour situer l’impact du joueur dans les games importées : contribution, ressources, exposition, vision et largeur du pool.</p></div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{games} game{games > 1 ? "s" : ""} analysée{games > 1 ? "s" : ""}</p></div><div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{profileSignals.map((signal) => <ProfileSignalCard key={signal.title} signal={signal} />)}</div></Surface>
       <Surface glow><div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"><div><Badge tone="purple">Champion read</Badge><h3 className="mt-3 text-2xl font-black text-white">Bangers & flops</h3></div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</p></div><div className="mt-4 grid gap-4 lg:grid-cols-2"><ChampionSpotlight title="Bangers" items={bangers} toneName="green" empty="Aucun banger détectable pour l’instant." /><ChampionSpotlight title="Flops" items={flops} toneName="red" empty="Aucun flop détectable pour l’instant." /></div></Surface>
     </div>
     <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)]">
