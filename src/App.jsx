@@ -4204,14 +4204,17 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                       {weekDays.map(([day]) => {
                         const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
                         const ratio = availablePlayers.length / totalPlayers;
-                        const cellTone = availablePlayers.length === players.length ? "border-emerald-200/35 bg-emerald-400/14 text-emerald-50" : ratio >= 0.6 ? "border-cyan-200/35 bg-cyan-400/12 text-cyan-50" : availablePlayers.length ? "border-violet-200/25 bg-violet-400/10 text-violet-50" : "border-white/10 bg-white/[0.025] text-slate-600";
+                        const fullTeam = availablePlayers.length >= Math.min(5, players.length);
+                        const cellTone = fullTeam ? "border-emerald-200/70 bg-emerald-300/22 text-emerald-50 shadow-[0_0_34px_rgba(52,211,153,.24)] ring-1 ring-emerald-200/30" : ratio >= 0.8 ? "border-cyan-200/55 bg-cyan-300/18 text-cyan-50 shadow-[0_0_26px_rgba(34,211,238,.18)]" : ratio >= 0.6 ? "border-cyan-200/35 bg-cyan-400/12 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,.10)]" : ratio >= 0.35 ? "border-violet-200/25 bg-violet-400/9 text-violet-100" : availablePlayers.length ? "border-white/12 bg-white/[0.035] text-slate-300" : "border-white/8 bg-white/[0.018] text-slate-700";
                         return (
-                          <div key={`${day}-${time}`} className={cx("min-h-[4.4rem] rounded-xl border p-2", cellTone)}>
+                          <div key={`${day}-${time}`} className={cx("relative min-h-[4.4rem] overflow-hidden rounded-xl border p-2 transition", cellTone)}>
+                            {fullTeam && <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,.22),transparent_55%)]" />}
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-sm font-black">{availablePlayers.length}/{players.length}</span>
+                              <span className={cx("relative z-10 font-black", fullTeam ? "text-xl" : "text-sm")}>{availablePlayers.length}/{players.length}</span>
                               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/30"><span className="block h-full rounded-full bg-current" style={{ width: `${Math.round(ratio * 100)}%` }} /></span>
                             </div>
-                            <div className="mt-2 flex flex-wrap gap-1">
+                            {fullTeam && <p className="relative z-10 mt-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-emerald-50">Team complète</p>}
+                            <div className="relative z-10 mt-2 flex flex-wrap gap-1">
                               {availablePlayers.map((player) => <span key={player.id} title={player.name} className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-black/25"><RoleIcon role={player.role} className="h-4 w-4" /></span>)}
                             </div>
                           </div>
