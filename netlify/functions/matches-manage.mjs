@@ -97,6 +97,26 @@ export default async function handler(request, context) {
       return json({ ok: true });
     }
 
+    if (action === 'roles') {
+      const roles = body.roles && typeof body.roles === 'object' ? body.roles : {};
+      const allowedRoles = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP']);
+      for (const [participantId, roleRaw] of Object.entries(roles)) {
+        const role = cleanText(roleRaw, 12).toUpperCase();
+        if (!allowedRoles.has(role)) continue;
+        await sql`
+          update match_participants
+          set role = ${role}
+          where id = ${participantId}
+            and match_id = ${matchId}
+        `;
+      }
+      await sql`
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        values (${user.id}, 'matches.roles', 'match', ${matchId}, ${JSON.stringify({ teamId, roles })}::jsonb)
+      `;
+      return json({ ok: true });
+    }
+
     if (!label && !opponent) throw Object.assign(new Error('Nom ou adversaire requis.'), { status: 400 });
     const displayName = opponent || label || match.opponent || match.game_id;
     const rows = await sql`

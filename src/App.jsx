@@ -1403,7 +1403,7 @@ function ChampionBackdrop({ champion, focus = "default" }) {
   if (!url) return null;
   const focused = focus === "face";
   const position = championSplashFocus(champion, focus);
-  return <div className={cx("absolute inset-0", focused ? "opacity-58" : "opacity-42")}><img src={url} alt="" className="h-full w-full object-cover saturate-[1.18]" style={{ objectPosition: position, transform: focused ? "scale(2.25)" : "scale(1.08)", transformOrigin: position }} /><div className={cx("absolute inset-0", focused ? "bg-gradient-to-r from-[#050711]/78 via-[#050711]/54 to-[#050711]/24" : "bg-gradient-to-r from-[#070b16]/88 via-[#070b16]/66 to-[#070b16]/20")} /></div>;
+  return <div className={cx("absolute inset-0", focused ? "opacity-58" : "opacity-42")}><img src={url} alt="" className="h-full w-full object-cover saturate-[1.18] blur-[1.5px]" style={{ objectPosition: position, transform: focused ? "scale(2.25)" : "scale(1.08)", transformOrigin: position }} /><div className={cx("absolute inset-0", focused ? "bg-gradient-to-r from-[#050711]/82 via-[#050711]/60 to-[#050711]/28" : "bg-gradient-to-r from-[#070b16]/90 via-[#070b16]/70 to-[#070b16]/25")} /></div>;
 }
 
 function StatBar({ value, max, tone: t = "cyan" }) {
@@ -2130,7 +2130,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         {roster.map((player) => {
           const linkedMember = player.user_id ? memberByUser.get(player.user_id) : null;
           const staff = isStaffRole(player.role);
-          return <div key={player.id} className={cx("grid gap-3 rounded-2xl border p-3 lg:grid-cols-[minmax(210px,.9fr)_minmax(220px,1fr)_minmax(170px,.65fr)_auto] lg:items-center", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
+          return <div key={player.id} className={cx("grid gap-3 rounded-2xl border p-3 lg:grid-cols-[minmax(180px,.78fr)_minmax(210px,1fr)_minmax(150px,.58fr)_minmax(0,.95fr)] lg:items-center", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2"><Badge tone={staff ? "purple" : "blue"}>{roleLabel(player.role)}</Badge><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge></div>
               <p className="mt-2 truncate text-lg font-black text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
@@ -2138,10 +2138,10 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             </div>
             <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
             <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-            <div className="flex flex-wrap justify-end gap-2 lg:flex-nowrap">
-              {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}>Renvoyer</Button>}
-              <Button type="button" variant="ghost" icon={Pencil} onClick={() => onEditPlayer(player)} disabled={saving || !canManage}>Modifier</Button>
-              <Button type="button" variant="danger" icon={Trash2} onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}>Supprimer</Button>
+            <div className={cx("grid min-w-0 gap-2", linkedMember ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+              {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} className="min-w-0 px-3" onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}><span className="min-w-0 truncate">Renvoyer</span></Button>}
+              <Button type="button" variant="ghost" icon={Pencil} className="min-w-0 px-3" onClick={() => onEditPlayer(player)} disabled={saving || !canManage}><span className="min-w-0 truncate">Modifier</span></Button>
+              <Button type="button" variant="danger" icon={Trash2} className="min-w-0 px-3" onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}><span className="min-w-0 truncate">Supprimer</span></Button>
             </div>
           </div>;
         })}
@@ -2477,9 +2477,10 @@ function matchImportTitle(match) {
   return match?.raw?.nxt5Label || match?.opponent || match?.game_id || "Import";
 }
 
-function ImportHistoryCard({ match, editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange }) {
+function ImportHistoryCard({ match, editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onSaveRoles }) {
   const importer = match.created_by_name || match.created_by_account || "";
-  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-3 md:grid-cols-2"><TextInput label="Nom de l’import" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Scrim, review, BO..." icon={FileText} /><TextInput label="Adversaire" value={editForm.opponent} onChange={(opponent) => onChange({ ...editForm, opponent })} placeholder="Enemy Team" icon={Swords} /></div> : <><div className="flex flex-wrap items-center gap-2"><p className="font-black text-white">{matchImportTitle(match)}</p><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.side || "Side ?"}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p><div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="purple">{match.patch || "Patch ?"}</Badge></div></>}</div><div className="flex shrink-0 flex-wrap justify-end gap-2">{editing ? <><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button></> : <><Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button></>}</div></div></div>;
+  const participants = match.participants || [];
+  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-3 md:grid-cols-2"><TextInput label="Nom de l’import" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Scrim, review, BO..." icon={FileText} /><TextInput label="Adversaire" value={editForm.opponent} onChange={(opponent) => onChange({ ...editForm, opponent })} placeholder="Enemy Team" icon={Swords} /></div> : <><div className="flex flex-wrap items-center gap-2"><p className="font-black text-white">{matchImportTitle(match)}</p><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.side || "Side ?"}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p><div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="purple">{match.patch || "Patch ?"}</Badge></div></>}</div><div className="flex shrink-0 flex-wrap justify-end gap-2">{editing ? <><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button></> : <><Button type="button" variant="ghost" icon={Settings} onClick={onToggleRoles} disabled={saving}>Postes</Button><Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button></>}</div></div>{roleEditorOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-white">Réassigner les postes</p><p className="mt-1 text-xs font-semibold text-slate-300">Corrige les lanes après import si Riot ou le JSON a mal placé un champion.</p></div><Button type="button" icon={saving ? Loader2 : Check} onClick={onSaveRoles} disabled={saving}>Enregistrer les postes</Button></div><div className="mt-3 grid gap-3 lg:grid-cols-2">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey} className={cx("rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/14 bg-cyan-400/[0.045]" : "border-rose-300/14 bg-rose-500/[0.045]")}><div className="mb-3 flex items-center justify-between gap-2"><Badge tone={teamKey === "ALLY" ? "cyan" : "red"}>{teamKey === "ALLY" ? "Alliés" : "Adversaires"}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{participants.filter((row) => row.team_key === teamKey).map((row) => <label key={row.id} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/22 p-2"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-white">{championDisplayName(row.champion)}</span><span className="block truncate text-[0.62rem] font-semibold text-slate-300">{row.summoner_name || row.riot_id || "Joueur"}</span></span><select value={roleForm[row.id] || row.role || ""} onChange={(event) => onRoleChange(row.id, event.target.value)} className="w-20 rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-[0.68rem] font-black text-white outline-none">{COMP_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select></label>)}</div></div>)}</div></div>}</div>;
 }
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, user }) {
@@ -2495,6 +2496,8 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const [editingMatchId, setEditingMatchId] = useState("");
   const [matchEditForm, setMatchEditForm] = useState({ label: "", opponent: "" });
   const [managingMatchId, setManagingMatchId] = useState("");
+  const [roleEditorMatchId, setRoleEditorMatchId] = useState("");
+  const [roleEditForm, setRoleEditForm] = useState({});
   const [selectedId, setSelectedId] = useState(null);
   const selected = data.matches.find((match) => match.id === selectedId) || data.matches[0];
   const rows = selected?.participants || [];
@@ -2571,6 +2574,28 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   function cancelEditMatch() {
     setEditingMatchId("");
     setMatchEditForm({ label: "", opponent: "" });
+  }
+  function toggleRoleEditor(match) {
+    const open = roleEditorMatchId === match.id;
+    setRoleEditorMatchId(open ? "" : match.id);
+    setRoleEditForm(open ? {} : Object.fromEntries((match.participants || []).map((row) => [row.id, row.role || ""])));
+  }
+  function updateRoleEdit(participantId, role) {
+    setRoleEditForm((current) => ({ ...current, [participantId]: role }));
+  }
+  async function saveMatchRoles(match) {
+    setManagingMatchId(match.id);
+    try {
+      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "roles", teamId: selectedTeamId, matchId: match.id, roles: roleEditForm }) });
+      setRoleEditorMatchId("");
+      setRoleEditForm({});
+      await refreshAll();
+      pushToast({ type: "green", title: "Postes corrigés", text: "Les statistiques et la lecture 5v5 utilisent les nouveaux postes." });
+    } catch (err) {
+      pushToast({ type: "red", title: "Correction impossible", text: err.message });
+    } finally {
+      setManagingMatchId("");
+    }
   }
   async function saveMatchHistory(match) {
     setManagingMatchId(match.id);
@@ -2727,7 +2752,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
 
       <Surface className="mt-5 p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-300">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""}. Renommer ou supprimer ici met à jour les autres pages.</p></div><Badge tone="cyan">Stats synchronisées</Badge></div>
-        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
+        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onSaveRoles={() => saveMatchRoles(match)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
       </Surface>
     </div>
   );
@@ -3089,6 +3114,15 @@ function objectiveEventTone(event) {
   return "cyan";
 }
 
+function objectiveEventType(event) {
+  const label = objectiveEventLabel(event).toLowerCase();
+  if (label.includes("nashor")) return "baron";
+  if (label.includes("herald")) return "herald";
+  if (label.includes("grub")) return "grub";
+  if (label.includes("tower") || label.includes("tour")) return "tower";
+  return "dragon";
+}
+
 function objectiveEventIcon(event) {
   const label = objectiveEventLabel(event).toLowerCase();
   if (label.includes("nashor")) return "N";
@@ -3134,15 +3168,37 @@ function objectiveCounts(match) {
   };
 }
 
-function ObjectivePictogram({ type, className = "" }) {
-  const common = "fill-none stroke-current stroke-[2.2] stroke-linecap-round stroke-linejoin-round";
-  const paths = {
-    dragon: <><path className={common} d="M7 17c2.8-6.4 7.2-9.8 13.6-10.6-1.6 1.8-2 3.6-1.2 5.5 1.3 3.1-.4 6.3-3.7 7.2-2.9.8-5.8-.1-8.7-2.1Z" /><path className={common} d="M9.5 15.8 4 20l2.5-6.7M13.8 8.4 10.9 4l5.6 2M16 13.2l3.5.7M12.1 14.6h.1" /></>,
-    baron: <><path className={common} d="M12 4c4.2 1.8 6.8 5.2 7.8 10.2-2.1 3.1-4.7 4.8-7.8 4.8s-5.7-1.7-7.8-4.8C5.2 9.2 7.8 5.8 12 4Z" /><path className={common} d="M8 10.2 4.8 6M16 10.2 19.2 6M9.4 15.8 6.8 21M14.6 15.8l2.6 5.2M9.7 11.7h.1M14.2 11.7h.1" /></>,
-    grub: <><path className={common} d="M5 14c1-4 3.5-6 7.1-6s6 2 6.9 6c-.9 3.6-3.2 5.4-7 5.4S6 17.6 5 14Z" /><path className={common} d="M8.1 9.3 5.8 6.8M15.9 9.3l2.3-2.5M8.4 18.2 6.2 21M15.6 18.2l2.2 2.8M9.3 13.5h.1M14.6 13.5h.1" /></>,
-    tower: <><path className={common} d="M8 21h8l-1-10H9L8 21Z" /><path className={common} d="M7 11h10l-1.3-5H8.3L7 11Z" /><path className={common} d="M10 6V3M14 6V3M11 15h2" /></>,
-  };
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className={cx("h-5 w-5", className)}>{paths[type] || paths.dragon}</svg>;
+const OBJECTIVE_ICON_SOURCES = {
+  dragon: [
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon/hud/dragon_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon.png",
+  ],
+  baron: [
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_baron/hud/baron_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/baron.png",
+  ],
+  grub: [
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_horde/hud/sru_voidgrub_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_voidgrub/hud/sru_voidgrub_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/voidgrub.png",
+  ],
+  herald: [
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/riftherald_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/riftherald.png",
+  ],
+  tower: [
+    "https://raw.communitydragon.org/latest/game/assets/characters/turret/hud/turret_blue_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/turret.png",
+  ],
+};
+
+function ObjectivePictogram({ type, className = "", fallback = "O" }) {
+  const sources = OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon;
+  const [sourceIndex, setSourceIndex] = useState(0);
+  useEffect(() => setSourceIndex(0), [type]);
+  const source = sources[sourceIndex];
+  if (!source) return <span className={cx("text-[0.62rem] font-black text-white", className)}>{fallback}</span>;
+  return <img src={source} alt="" className={cx("object-contain drop-shadow-[0_0_10px_rgba(255,255,255,.2)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
 function ObjectiveHud({ match }) {
@@ -3160,11 +3216,11 @@ function ObjectiveHud({ match }) {
   return <div className="mt-4 rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.06] via-black/20 to-fuchsia-400/[0.05] p-3">
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
       <div className="flex shrink-0 items-center gap-2"><Badge tone="cyan">Objectifs</Badge><Badge tone={events.length ? "green" : "yellow"}>{events.length ? `${events.length} events` : "Sans timeline"}</Badge></div>
-      <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">{summary.map(([label, value, icon, t]) => <div key={label} className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2"><span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(t))}><ObjectivePictogram type={icon} /></span><div className="min-w-0"><p className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p><p className="truncate text-lg font-black text-white">{value}</p></div></div>)}</div>
+      <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">{summary.map(([label, value, icon, t]) => <div key={label} className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2"><span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-7 w-7" /></span><div className="min-w-0"><p className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p><p className="truncate text-lg font-black text-white">{value}</p></div></div>)}</div>
     </div>
     {events.length ? <>
       <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl border px-2.5 py-2", event.teamKey === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.07]" : "border-rose-300/18 bg-rose-500/[0.07]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-[0.58rem] font-black", tone(objectiveEventTone(event)))}>{objectiveEventIcon(event)}</span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.teamKey === "ALLY" ? "Nous" : "Eux"}</p></div></div>)}
+        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl border px-2.5 py-2", event.teamKey === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.07]" : "border-rose-300/18 bg-rose-500/[0.07]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border", tone(objectiveEventTone(event)))}><ObjectivePictogram type={objectiveEventType(event)} fallback={objectiveEventIcon(event)} className="h-5 w-5" /></span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.teamKey === "ALLY" ? "Nous" : "Eux"}</p></div></div>)}
       </div>
     </> : null}
   </div>;
@@ -3198,7 +3254,7 @@ function GameMetricSignals({ match }) {
   ];
   return <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 p-3">
     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-    <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/[0.07] p-3 lg:flex-row lg:items-center lg:justify-between"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Comparatif équipe</p><div className="grid min-w-0 flex-1 gap-2 text-sm font-bold text-white sm:grid-cols-3 lg:max-w-4xl"><div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"><span className="truncate text-slate-200">CS diff</span><Badge tone={diffTone(csDiff)}>{(csDiff >= 0 ? "+" : "") + formatPoints(csDiff)}</Badge></div><div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"><span className="truncate text-slate-200">Morts</span><Badge tone={deaths <= enemyDeaths ? "green" : "red"}>{deaths} / {enemyDeaths}</Badge></div><div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"><span className="truncate text-slate-200">Game</span><Badge tone="cyan">{match?.game_id || "N/A"}</Badge></div></div></div>
+    <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/[0.07] p-3 lg:flex-row lg:items-center lg:justify-between"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Comparatif équipe</p><div className="grid min-w-0 flex-1 gap-2 text-sm font-bold text-white sm:grid-cols-2 lg:max-w-2xl"><div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"><span className="truncate text-slate-200">CS diff</span><Badge tone={diffTone(csDiff)}>{(csDiff >= 0 ? "+" : "") + formatPoints(csDiff)}</Badge></div><div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"><span className="truncate text-slate-200">Morts</span><Badge tone={deaths <= enemyDeaths ? "green" : "red"}>{deaths} / {enemyDeaths}</Badge></div></div></div>
   </div>;
 }
 
@@ -3224,7 +3280,7 @@ function PlayerDetailRow({ row, maxDamage, maxGold }) {
   return <div className="grid min-w-0 gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(0,1fr)_minmax(13rem,16rem)]"><div className="min-w-0 space-y-3"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-300">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KDA</p><p className="mt-1 truncate font-black text-white">{kda}</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={`${formatPoints(row.damage)} · ${formatPoints(statPerMinute(row, "totalDamageDealtToChampions") || statPerMinute(row, "damage"))}/min`} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={`${formatPoints(row.gold)} · ${formatPoints(row.gold_per_min || statPerMinute(row, "goldEarned") || statPerMinute(row, "gold"))}/min`} tone="orange" /></div></div><div className="min-w-0 self-start rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.045] p-2.5"><div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2"><p className="truncate text-[0.6rem] font-black uppercase tracking-[0.16em] text-cyan-100/80">HUD items</p><div className="flex shrink-0 gap-1">{spells.map((spell) => <HudIcon key={`${row.id}-spell-${spell}`} src={summonerSpellIconUrl(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-7 w-7 rounded-lg" />)}</div></div><div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 xl:grid-cols-4">{items.map((item, index) => <HudIcon key={`${row.id}-item-slot-${index}`} src={itemIconUrl(item)} label={item ? `Item ${item}` : "Slot vide"} fallback={item} emptyText="VIDE" className="h-9 w-9" />)}<HudIcon src={itemIconUrl(trinket)} label={trinket ? `Trinket ${trinket}` : "Trinket vide"} fallback={trinket} emptyText="TRI" toneName="pink" className="h-9 w-9" /></div></div></div>;
 }
 
-function VersusPlayerMini({ row, side, opponent }) {
+function VersusPlayerMini({ row, side, opponent, align = "left" }) {
   const score = row ? roleScore(row) : 0;
   const opponentScore = opponent ? roleScore(opponent) : 0;
   const ahead = row && opponent ? score >= opponentScore : false;
@@ -3233,14 +3289,14 @@ function VersusPlayerMini({ row, side, opponent }) {
   return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]", ahead && "shadow-[0_0_24px_rgba(34,211,238,.10)]")}>
     {row && <ChampionBackdrop champion={row.champion} focus="face" />}
     <div className="absolute inset-0 bg-gradient-to-r from-[#050711]/94 via-[#050711]/78 to-[#050711]/48" />
-    <div className={cx("relative z-10 flex min-w-0 items-center gap-2.5", side === "ENEMY" && "flex-row-reverse text-right")}>
+    <div className={cx("relative z-10 flex min-w-0 items-center gap-2.5", align === "right" && "flex-row-reverse text-right")}>
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35 md:h-14 md:w-14">
         {row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} /> : <Crown className="m-3 h-6 w-6 text-slate-600" />}
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
         <p className="truncate text-xs font-semibold text-slate-200">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
-        <div className={cx("mt-2 flex flex-wrap gap-1.5", side === "ENEMY" && "justify-end")}>
+        <div className={cx("mt-2 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-white">{kda}</span>
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200">{kp}% KP</span>
           <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} DMG</span>
@@ -3254,26 +3310,31 @@ function MatchVersusOverview({ match }) {
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const byRole = (rows, role) => rows.find((row) => String(row.role || "").toUpperCase() === role) || null;
+  const allyIsBlue = String(match?.side || "").toLowerCase().includes("blue");
+  const blueRows = allyIsBlue ? ally : enemy;
+  const redRows = allyIsBlue ? enemy : ally;
+  const blueKey = allyIsBlue ? "ALLY" : "ENEMY";
+  const redKey = allyIsBlue ? "ENEMY" : "ALLY";
   return <div className="mt-5 rounded-[1.5rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.07] via-black/25 to-rose-500/[0.055] p-3 sm:p-4">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Lecture instantanée de la game</h4></div>
-      <div className="flex flex-wrap gap-2"><Badge tone="cyan">Alliés</Badge><Badge tone="red">Adversaires</Badge></div>
+      <div className="flex flex-wrap gap-2"><Badge tone="blue">Blue Side {blueKey === "ALLY" ? "· Nous" : "· Eux"}</Badge><Badge tone="red">Red Side {redKey === "ALLY" ? "· Nous" : "· Eux"}</Badge></div>
     </div>
     <div className="grid gap-2">
       {COMP_ROLES.map((role) => {
-        const allyRow = byRole(ally, role);
-        const enemyRow = byRole(enemy, role);
-        const allyScore = allyRow ? roleScore(allyRow) : 0;
-        const enemyScore = enemyRow ? roleScore(enemyRow) : 0;
-        const diff = allyScore - enemyScore;
+        const blueRow = byRole(blueRows, role);
+        const redRow = byRole(redRows, role);
+        const blueScore = blueRow ? roleScore(blueRow) : 0;
+        const redScore = redRow ? roleScore(redRow) : 0;
+        const diff = (blueKey === "ALLY" ? blueScore - redScore : redScore - blueScore);
         return <div key={role} className="grid min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-stretch gap-2">
-          <VersusPlayerMini row={allyRow} side="ALLY" opponent={enemyRow} />
+          <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
           <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/35 px-1.5 py-2 text-center">
             <RoleIcon role={role} className="h-5 w-5" />
             <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
             <span className={cx("mt-1 rounded-lg px-1.5 py-0.5 text-[0.54rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{diff >= 0 ? "+" : ""}{Math.round(diff)}</span>
           </div>
-          <VersusPlayerMini row={enemyRow} side="ENEMY" opponent={allyRow} />
+          <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
         </div>;
       })}
     </div>
@@ -4693,9 +4754,9 @@ function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
         <motion.div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200 to-fuchsia-300" animate={{ opacity: [0.25, 1, 0.25], x: [-24, 24, -24] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }} />
         <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] border border-cyan-200/18 bg-cyan-400/8 shadow-[0_0_46px_rgba(34,211,238,0.24)]">
           <motion.div className="absolute inset-[-18px] rounded-[2.4rem] bg-cyan-300/10 blur-2xl" animate={{ opacity: [0.25, 0.75, 0.25], scale: [0.92, 1.12, 0.92] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
-          <img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="relative z-10 h-24 w-24 object-contain drop-shadow-[0_0_30px_rgba(34,211,238,.55)]" />
-          <motion.img src="/assets/nxt5-mark.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-80 mix-blend-screen" style={{ filter: "brightness(1.65) saturate(1.6) drop-shadow(0 0 8px rgba(34,211,238,.8))", clipPath: "polygon(-20% 0, 6% 0, 38% 100%, 12% 100%)" }} animate={{ x: [-34, 38], opacity: [0, 0.95, 0] }} transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }} />
-          <motion.img src="/assets/nxt5-mark.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-70 mix-blend-screen" style={{ filter: "brightness(1.55) saturate(1.7) drop-shadow(0 0 9px rgba(217,70,239,.72))", clipPath: "polygon(62% 0, 88% 0, 120% 100%, 94% 100%)" }} animate={{ x: [34, -38], opacity: [0, 0.82, 0] }} transition={{ duration: 1.95, repeat: Infinity, ease: "easeInOut" }} />
+          <img src="/favicon-512x512.png?v=8" alt="NXT5" className="relative z-10 h-24 w-24 object-contain drop-shadow-[0_0_30px_rgba(34,211,238,.55)]" />
+          <motion.img src="/favicon-512x512.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-80 mix-blend-screen" style={{ filter: "brightness(1.65) saturate(1.6) drop-shadow(0 0 8px rgba(34,211,238,.8))", clipPath: "polygon(-20% 0, 6% 0, 38% 100%, 12% 100%)" }} animate={{ x: [-34, 38], opacity: [0, 0.95, 0] }} transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }} />
+          <motion.img src="/favicon-512x512.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-70 mix-blend-screen" style={{ filter: "brightness(1.55) saturate(1.7) drop-shadow(0 0 9px rgba(217,70,239,.72))", clipPath: "polygon(62% 0, 88% 0, 120% 100%, 94% 100%)" }} animate={{ x: [34, -38], opacity: [0, 0.82, 0] }} transition={{ duration: 1.95, repeat: Infinity, ease: "easeInOut" }} />
           <motion.div className="pointer-events-none absolute inset-0 rounded-[2rem] border border-fuchsia-300/0" animate={{ borderColor: ["rgba(217,70,239,0.05)", "rgba(34,211,238,.42)", "rgba(217,70,239,0.05)"], boxShadow: ["0 0 18px rgba(34,211,238,.14)", "0 0 46px rgba(217,70,239,.28)", "0 0 18px rgba(34,211,238,.14)"] }} transition={{ duration: 1.55, repeat: Infinity, ease: "easeInOut" }} />
         </div>
         <Nxt5Wordmark className="mx-auto mt-5 h-14 w-full max-w-[18rem] object-center" />
