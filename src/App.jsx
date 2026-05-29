@@ -81,6 +81,35 @@ const PLANNING_DAYS = [
   ["SAT", "Sam"],
   ["SUN", "Dim"],
 ];
+
+function cleanOpponentName(value) {
+  const text = String(value || "").trim();
+  return /^(enemy team|adversaire inconnu)$/i.test(text) ? "" : text;
+}
+
+function opponentLabelFromParticipants(match) {
+  const names = (match?.participants || [])
+    .filter((row) => row.team_key === "ENEMY")
+    .map((row) => row.summoner_name || row.riot_id)
+    .map((name) => String(name || "").split("#")[0].trim())
+    .filter(Boolean);
+  if (!names.length) return "";
+  if (names.length <= 2) return names.join(" / ");
+  return `${names.slice(0, 2).join(" / ")} +${names.length - 2}`;
+}
+
+function matchDisplayName(match, fallback = "Game") {
+  return cleanOpponentName(match?.raw?.nxt5Label) || cleanOpponentName(match?.opponent) || opponentLabelFromParticipants(match) || match?.game_id || fallback;
+}
+
+function opponentRoleRow(match, role, participantId = 0) {
+  const enemies = (match?.participants || []).filter((row) => row.team_key === "ENEMY");
+  const wantedRole = String(role || "").toUpperCase();
+  const order = ["TOP", "JGL", "MID", "ADC", "SUP"];
+  return enemies.find((item) => String(item.role || "").toUpperCase() === wantedRole)
+    || enemies.find((item) => Number(item.raw?.participantId || item.participantId || 0) === Number(participantId || 0) + 5)
+    || enemies[Math.max(0, order.indexOf(wantedRole))] || null;
+}
 const PLANNING_TIMES = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00"];
 
 function normalizePath(pathname = "/") {
@@ -1025,7 +1054,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
         <div className={cx("mb-5 flex items-center", collapsed ?"justify-center" : "justify-between")}>
-          <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.22em] text-cyan-100/60">Draft Tools</p></div></div>
+          <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><img src="/apple-touch-icon.png?v=6" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.22em] text-cyan-100/60">Draft Tools</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-lg shadow-cyan-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
@@ -1081,14 +1110,15 @@ function WinConditionPanel({ championPool, players, onOpenDraft }) {
   const stable = pool.filter((row) => Number(row.games || 0) >= 3 && Number(row.winrate || 0) >= 50).slice(0, 5);
   const weak = pool.filter((row) => Number(row.games || 0) >= 3 && Number(row.winrate || 0) < 45).slice(0, 3);
   const missingRoles = ["TOP", "JGL", "MID", "ADC", "SUP"].filter((role) => !players.some((player) => player.role === role));
-  return <Surface glow><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Champion Pool</Badge><h3 className="mt-4 text-2xl font-black text-white">Données du pool</h3><p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">Une vue des champions présents dans les données : volume, winrate et KDA.</p></div><Button variant="ghost" icon={Shield} onClick={onOpenDraft}>Ouvrir draft</Button></div>{best ? <div className="mt-6 grid gap-4 xl:grid-cols-[.9fr_1.1fr]"><div className="relative min-h-[260px] overflow-hidden rounded-[1.45rem] border border-cyan-300/20 bg-cyan-400/10 p-5"><ChampionBackdrop champion={best.champion} /><div className="relative z-10"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Pick le plus présent</p><h4 className="mt-3 text-4xl font-black text-white">{championDisplayName(best.champion)}</h4><p className="mt-2 text-sm font-bold text-slate-300">{best.player_name || "Roster"}</p><div className="mt-5 grid grid-cols-3 gap-2"><div className="rounded-2xl border border-white/10 bg-black/30 p-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">WR</p><p className="mt-1 text-xl font-black text-white">{best.winrate || 0}%</p></div><div className="rounded-2xl border border-white/10 bg-black/30 p-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">KDA</p><p className="mt-1 text-xl font-black text-white">{Number(best.kda || 0).toFixed(1)}</p></div><div className="rounded-2xl border border-white/10 bg-black/30 p-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Games</p><p className="mt-1 text-xl font-black text-white">{best.games || 0}</p></div></div></div></div><div className="grid gap-3"><div className="rounded-2xl border border-white/10 bg-black/25 p-4"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Picks stables</p><div className="mt-3 flex flex-wrap gap-2">{stable.length ? stable.map((pick) => <div key={pick.id} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><img src={championSquareUrl(pick)} alt={pick.champion} className="h-8 w-8 rounded-full object-cover" /><span className="text-xs font-black text-white">{championDisplayName(pick.champion)}</span></div>) : <span className="text-sm font-semibold text-slate-500">Pas encore assez de volume.</span>}</div></div><div className="rounded-2xl border border-white/10 bg-black/25 p-4"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Picks sous 45% WR</p><div className="mt-3 flex flex-wrap gap-2">{weak.length ? weak.map((pick) => <Badge key={pick.id} tone="red">{championDisplayName(pick.champion)} · {pick.winrate || 0}%</Badge>) : <Badge tone="green">Aucun pick sous 45% WR</Badge>}{missingRoles.length > 0 && <Badge tone="yellow">Slots manquants : {missingRoles.join(", ")}</Badge>}</div></div></div></div> : <EmptyState icon={Crown} title="Données en attente" text="Importe des games pour alimenter les champions et les volumes." />}</Surface>;
+  return <Surface glow><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Champion Pool</Badge><h3 className="mt-4 text-2xl font-black text-white">Données du pool</h3><p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">Une vue des champions présents dans les données : volume, winrate et KDA.</p></div><Button variant="ghost" icon={Shield} onClick={onOpenDraft}>Ouvrir draft</Button></div>{best ? <div className="mt-6 grid gap-4 xl:grid-cols-[.9fr_1.1fr]"><div className="relative min-h-[260px] overflow-hidden rounded-[1.45rem] border border-cyan-300/20 bg-cyan-400/10 p-5"><ChampionBackdrop champion={best.champion} /><div className="relative z-10"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Pick le plus présent</p><h4 className="mt-3 text-4xl font-black text-white">{championDisplayName(best.champion)}</h4><p className="mt-2 text-sm font-bold text-slate-300">{best.player_name || "Roster"}</p><div className="mt-5 grid grid-cols-3 gap-2"><div className="rounded-2xl border border-white/10 bg-black/30 p-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">WR</p><p className="mt-1 text-xl font-black text-white">{best.winrate || 0}%</p></div><div className="rounded-2xl border border-white/10 bg-black/30 p-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">KDA</p><p className="mt-1 text-xl font-black text-white">{Number(best.kda || 0).toFixed(1)}</p></div><div className="rounded-2xl border border-white/10 bg-black/30 p-3"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Games</p><p className="mt-1 text-xl font-black text-white">{best.games || 0}</p></div></div></div></div><div className="grid gap-3"><div className="rounded-2xl border border-white/10 bg-black/25 p-4"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Picks stables</p><div className="mt-3 flex flex-wrap gap-2">{stable.length ? stable.map((pick) => <div key={pick.id} className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait row={pick} alt={pick.champion} className="h-8 w-8 rounded-full object-cover" /><span className="text-xs font-black text-white">{championDisplayName(pick.champion)}</span></div>) : <span className="text-sm font-semibold text-slate-500">Pas encore assez de volume.</span>}</div></div><div className="rounded-2xl border border-white/10 bg-black/25 p-4"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Picks sous 45% WR</p><div className="mt-3 flex flex-wrap gap-2">{weak.length ? weak.map((pick) => <Badge key={pick.id} tone="red">{championDisplayName(pick.champion)} · {pick.winrate || 0}%</Badge>) : <Badge tone="green">Aucun pick sous 45% WR</Badge>}{missingRoles.length > 0 && <Badge tone="yellow">Slots manquants : {missingRoles.join(", ")}</Badge>}</div></div></div></div> : <EmptyState icon={Crown} title="Données en attente" text="Importe des games pour alimenter les champions et les volumes." />}</Surface>;
 }
 
 function ChampionMiniCard({ title, item, icon: Icon, tone: t }) {
   return <div className="relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-white/[0.035] p-4"><ChampionBackdrop champion={item?.champion} /><div className="relative z-10 flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{title}</p><p className="mt-2 text-xl font-black text-white">{championDisplayName(item?.champion) || "?"}</p><p className="mt-1 text-sm font-semibold text-slate-400">{item?.player_name || "Données insuffisantes"}</p></div><div className={cx("rounded-2xl border p-3", tone(t))}><Icon className="h-5 w-5" /></div></div><div className="relative z-10 mt-4 flex flex-wrap gap-2"><Badge tone="slate">{item?.games ?? 0} games</Badge><Badge tone={Number(item?.winrate || 0) >= 55 ?"green" : "yellow"}>{item?.winrate ?? "?"}% WR</Badge></div></div>;
 }
 
-const DDRAGON_VERSION = "16.11.1";
+const DDRAGON_VERSION = "16.9.1";
+const DDRAGON_FALLBACK_VERSIONS = ["16.9.1", "15.10.1"];
 
 const CHAMPION_STYLE_TAGS = {
   Aatrox: ["bruiser", "teamfight"], Ahri: ["pick", "tempo"], Akali: ["assassin", "side"], Alistar: ["engage", "peel"], Amumu: ["engage", "teamfight"], Anivia: ["control", "scaling"], Annie: ["burst", "engage"], Aphelios: ["scaling", "front-to-back"], Ashe: ["utility", "pick"], AurelionSol: ["scaling", "control"], Azir: ["scaling", "front-to-back"],
@@ -1310,10 +1340,24 @@ function championIconUrl(row) {
   return championSquareUrl(row);
 }
 
+function championPortraitSources(rowOrChampion, explicitChampion = "") {
+  const championId = rowOrChampion?.raw?.championId || rowOrChampion?.championId;
+  const champion = explicitChampion || (typeof rowOrChampion === "string" ? rowOrChampion : rowOrChampion?.champion);
+  const id = championAssetId(champion);
+  return [...new Set([
+    championId ? "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png" : "",
+    ...DDRAGON_FALLBACK_VERSIONS.map((version) => id ? "https://ddragon.leagueoflegends.com/cdn/" + version + "/img/champion/" + id + ".png" : ""),
+    id ? "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + id + "_0.jpg" : "",
+  ].filter(Boolean))];
+}
+
 function ChampionPortrait({ champion, row, alt, className = "h-full w-full object-cover" }) {
-  const source = championSquareUrl(row) || championSquareUrl(champion) || championLoadingUrl(champion || row?.champion);
-  if (!source) return <div className={cx("flex items-center justify-center bg-black/35 text-[0.6rem] font-black text-slate-500", className)}>?</div>;
-  return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" />;
+  const sources = useMemo(() => championPortraitSources(row || champion, champion || row?.champion), [row, champion]);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  useEffect(() => setSourceIndex(0), [sources.join("|")]);
+  const source = sources[sourceIndex];
+  if (!source) return <div className={cx("flex items-center justify-center bg-black/35 text-[0.6rem] font-black text-slate-300", className)}>?</div>;
+  return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
 function championSplashFocus(champion, focus = "default") {
@@ -1327,11 +1371,15 @@ function championSplashFocus(champion, focus = "default") {
     Bard: "50% 20%",
     Blitzcrank: "48% 22%",
     Chogath: "48% 18%",
+    Darius: "25% 23%",
     Galio: "50% 18%",
     Hecarim: "50% 22%",
+    JarvanIV: "64% 25%",
     Jhin: "48% 24%",
+    Karma: "64% 26%",
     Khazix: "48% 20%",
     KogMaw: "50% 24%",
+    Lissandra: "46% 24%",
     Malphite: "50% 20%",
     Nautilus: "50% 20%",
     Nocturne: "50% 22%",
@@ -1344,15 +1392,18 @@ function championSplashFocus(champion, focus = "default") {
     Thresh: "50% 22%",
     Velkoz: "50% 20%",
     Warwick: "50% 22%",
+    Yunara: "58% 26%",
     Zac: "50% 22%",
   };
-  return overrides[id] || "50% 24%";
+  return overrides[id] || "50% 22%";
 }
 
 function ChampionBackdrop({ champion, focus = "default" }) {
   const url = championSplashUrl(champion);
   if (!url) return null;
-  return <div className="absolute inset-0 opacity-30"><img src={url} alt="" className="h-full w-full object-cover" style={{ objectPosition: championSplashFocus(champion, focus) }} /><div className="absolute inset-0 bg-gradient-to-r from-[#070b16] via-[#070b16]/78 to-[#070b16]/30" /></div>;
+  const focused = focus === "face";
+  const position = championSplashFocus(champion, focus);
+  return <div className={cx("absolute inset-0", focused ? "opacity-58" : "opacity-42")}><img src={url} alt="" className="h-full w-full object-cover saturate-[1.18]" style={{ objectPosition: position, transform: focused ? "scale(2.25)" : "scale(1.08)", transformOrigin: position }} /><div className={cx("absolute inset-0", focused ? "bg-gradient-to-r from-[#050711]/78 via-[#050711]/54 to-[#050711]/24" : "bg-gradient-to-r from-[#070b16]/88 via-[#070b16]/66 to-[#070b16]/20")} /></div>;
 }
 
 function StatBar({ value, max, tone: t = "cyan" }) {
@@ -2236,8 +2287,8 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
   const selectedProfileChampionStats = championStats.find((stat) => stat.champion === selectedProfileChampion) || null;
   const selectedProfileChampionRows = selectedProfileChampionStats?.rows || [];
   const selectedProfileChampionMatchups = Array.from(selectedProfileChampionRows.reduce((map, row) => {
-    const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || selectedPlayer?.role || "").toUpperCase());
-    const champion = enemy?.champion || "Adversaire inconnu";
+    const enemy = opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId);
+    const champion = enemy?.champion || "Adversaire";
     const current = map.get(champion) || { champion, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0 };
     current.games += 1;
     current.wins += row.match?.result === "Victoire" ? 1 : 0;
@@ -2250,7 +2301,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
     return map;
   }, new Map()).values()).map((item) => ({ ...item, losses: Math.max(0, item.games - item.wins), winrate: Math.round((item.wins / Math.max(1, item.games)) * 100), kda: ((item.kills + item.assists) / Math.max(1, item.deaths)).toFixed(2), avgDamage: item.damage / Math.max(1, item.games), avgVision: item.vision / Math.max(1, item.games) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate);
   const matchups = Array.from(rows.reduce((map, row) => {
-    const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || selectedPlayer?.role || "").toUpperCase());
+    const enemy = opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId);
     if (!enemy?.champion) return map;
     const key = enemy.champion;
     const current = map.get(key) || { champion: key, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0 };
@@ -3451,7 +3502,7 @@ function ManualChampionPoolPanel({ players, rows, selectedTeamId, canManage, ref
     }
   }
 
-  return <Surface glow className="mb-5"><div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="purple">Configuration</Badge><h3 className="mt-4 text-2xl font-black text-white">Champion Pool déclaré</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">Ajoute les champions que chaque joueur sait jouer. Ils apparaissent dans les filtres, la draft et l’identité de Compo.</p></div><Badge tone={canManage ? "green" : "yellow"}>{canManage ? "Modifiable" : "Lecture seule"}</Badge></div>{playablePlayers.length ? <form onSubmit={saveManualPick} className="mt-6 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(150px,.65fr)_auto]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Joueur</span><select value={form.playerId} onChange={(event) => setForm({ ...form, playerId: event.target.value })} disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-black text-white outline-none">{playablePlayers.map((player) => <option key={player.id} value={player.id}>{player.role} · {player.name}</option>)}</select></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Champion</span><input list="champion-options" value={form.champion} onChange={(event) => setForm({ ...form, champion: event.target.value })} placeholder="Kai'Sa, Orianna..." required disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-slate-650" /><datalist id="champion-options">{championOptions().map((champion) => <option key={champion} value={championDisplayName(champion)} />)}</datalist></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Statut</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-black text-white outline-none"><option value="lock">À Pick</option><option value="pocket">Pocket</option><option value="work">Moyens</option><option value="danger">À apprendre</option></select></label><div className="flex items-end"><Button type="submit" disabled={!canManage || saving || !form.playerId || !form.champion.trim()} icon={saving ? Loader2 : Plus} className="w-full">Ajouter</Button></div></form> : <EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de configurer le Champion Pool." />}{manualRows.length > 0 && <div className="mt-6"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Picks déclarés</p><div className="mt-3 flex gap-3 overflow-x-auto pb-2">{manualRows.map((row) => <div key={row.id} className="w-[260px] shrink-0 rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex items-center gap-3"><img src={championSquareUrl(row)} alt={row.champion} className="h-12 w-12 rounded-full object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{row.role || "ROLE"} · {row.player_name}</p></div></div><div className="mt-3 flex flex-wrap gap-2"><Badge tone={row.status === "lock" ? "green" : row.status === "danger" ? "red" : row.status === "pocket" ? "yellow" : "slate"}>{championPoolStatusLabel(row.status)}</Badge>{championStyleTags(row.champion).slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div>{canManage && <button type="button" onClick={() => deleteManualPick(row.id)} disabled={saving} className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-rose-200 hover:text-white">Retirer</button>}</div>)}</div></div>}</Surface>;
+  return <Surface glow className="mb-5"><div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="purple">Configuration</Badge><h3 className="mt-4 text-2xl font-black text-white">Champion Pool déclaré</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">Ajoute les champions que chaque joueur sait jouer. Ils apparaissent dans les filtres, la draft et l’identité de Compo.</p></div><Badge tone={canManage ? "green" : "yellow"}>{canManage ? "Modifiable" : "Lecture seule"}</Badge></div>{playablePlayers.length ? <form onSubmit={saveManualPick} className="mt-6 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(150px,.65fr)_auto]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Joueur</span><select value={form.playerId} onChange={(event) => setForm({ ...form, playerId: event.target.value })} disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-black text-white outline-none">{playablePlayers.map((player) => <option key={player.id} value={player.id}>{player.role} · {player.name}</option>)}</select></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Champion</span><input list="champion-options" value={form.champion} onChange={(event) => setForm({ ...form, champion: event.target.value })} placeholder="Kai'Sa, Orianna..." required disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold text-white outline-none placeholder:text-slate-650" /><datalist id="champion-options">{championOptions().map((champion) => <option key={champion} value={championDisplayName(champion)} />)}</datalist></label><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Statut</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} disabled={!canManage || saving} className="w-full rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-black text-white outline-none"><option value="lock">À Pick</option><option value="pocket">Pocket</option><option value="work">Moyens</option><option value="danger">À apprendre</option></select></label><div className="flex items-end"><Button type="submit" disabled={!canManage || saving || !form.playerId || !form.champion.trim()} icon={saving ? Loader2 : Plus} className="w-full">Ajouter</Button></div></form> : <EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de configurer le Champion Pool." />}{manualRows.length > 0 && <div className="mt-6"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Picks déclarés</p><div className="mt-3 flex gap-3 overflow-x-auto pb-2">{manualRows.map((row) => <div key={row.id} className="w-[260px] shrink-0 rounded-2xl border border-white/10 bg-black/25 p-3"><div className="flex items-center gap-3"><ChampionPortrait row={row} alt={row.champion} className="h-12 w-12 rounded-full object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{row.role || "ROLE"} · {row.player_name}</p></div></div><div className="mt-3 flex flex-wrap gap-2"><Badge tone={row.status === "lock" ? "green" : row.status === "danger" ? "red" : row.status === "pocket" ? "yellow" : "slate"}>{championPoolStatusLabel(row.status)}</Badge>{championStyleTags(row.champion).slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div>{canManage && <button type="button" onClick={() => deleteManualPick(row.id)} disabled={saving} className="mt-3 text-xs font-black uppercase tracking-[0.14em] text-rose-200 hover:text-white">Retirer</button>}</div>)}</div></div>}</Surface>;
 }
 
 function ChampionPoolRecommendationPanel({ rows }) {
@@ -3463,7 +3514,7 @@ function ChampionPoolRecommendationPanel({ rows }) {
     [AlertTriangle, "Picks à revoir", danger, "red"],
     [Flame, "Pocket Picks", pockets, "yellow"],
   ];
-  return <div className="mb-5 grid gap-3 xl:grid-cols-3">{groups.map(([Icon, title, items, t]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><p className="text-sm font-black text-white">{title}</p><div className={cx("rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><div className="mt-3 space-y-2">{items.length ? items.map((row) => <div key={row.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2"><img src={championSquareUrl(row)} alt={row.champion} className="h-9 w-9 rounded-full object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{row.player_name || "Roster"} · {row.winrate || 0}% WR · {row.games || 0} games</p></div></div>) : <p className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm font-semibold text-slate-500">Pas assez de données.</p>}</div></div>)}</div>;
+  return <div className="mb-5 grid gap-3 xl:grid-cols-3">{groups.map(([Icon, title, items, t]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><p className="text-sm font-black text-white">{title}</p><div className={cx("rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><div className="mt-3 space-y-2">{items.length ? items.map((row) => <div key={row.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2"><ChampionPortrait row={row} alt={row.champion} className="h-9 w-9 rounded-full object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-500">{row.player_name || "Roster"} · {row.winrate || 0}% WR · {row.games || 0} games</p></div></div>) : <p className="rounded-xl border border-white/10 bg-white/[0.025] p-3 text-sm font-semibold text-slate-500">Pas assez de données.</p>}</div></div>)}</div>;
 }
 
 const CHAMPION_TIERS = [
@@ -3527,14 +3578,14 @@ function championMatchesLane(champion, lane) {
 
 function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
   const detail = championPoolStatusLabel(championPoolStatus(row));
-  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, row)} className={cx("group flex min-h-[52px] items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2 transition", canManage ?"cursor-grab active:cursor-grabbing hover:border-cyan-300/25 hover:bg-white/[0.05]" : "")}><img src={championSquareUrl(row)} alt={row.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-[0.68rem] font-semibold text-slate-500">{detail}</p></div>{canManage && <button type="button" onClick={() => onDelete(row)} disabled={saving} className="rounded-lg p-1.5 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>}</div>;
+  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, row)} className={cx("group flex min-h-[52px] items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2 transition", canManage ?"cursor-grab active:cursor-grabbing hover:border-cyan-300/25 hover:bg-white/[0.05]" : "")}><ChampionPortrait row={row} alt={row.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-[0.68rem] font-semibold text-slate-500">{detail}</p></div>{canManage && <button type="button" onClick={() => onDelete(row)} disabled={saving} className="rounded-lg p-1.5 text-slate-600 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>}</div>;
 }
 
 function ChampionSearchTile({ champion, active, existingRow, canManage, onDragStart, onQuickPick }) {
   const source = existingRow && ["manual", "riot_manual"].includes(String(existingRow.source || "")) ? existingRow : { champion };
   return <div draggable={canManage} onDragStart={(event) => onDragStart(event, source)} className={cx("group min-w-0 rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}>
     <div className="flex min-w-0 items-center gap-2">
-      <img src={championSquareUrl(champion)} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
+      <ChampionPortrait champion={champion} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
       <span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>
       {active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}
     </div>
@@ -3723,23 +3774,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
           </Surface>
 
           {selectedPlayer && (
-            <>
-              <Surface className="mb-5">
-                <div className="mb-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-                  {CHAMPION_TIERS.map((tier) => (
-                    <div key={tier.id} className={cx("rounded-2xl border p-3 text-left", championTierFrame(tier))}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <ChampionTierMark tier={tier} />
-                          <p className="truncate text-sm font-black text-white">{tier.title}</p>
-                        </div>
-                        <Badge tone={tier.tone}>{selectedTierCounts[tier.id]}</Badge>
-                      </div>
-                      <p className="mt-1 truncate text-xs font-semibold text-slate-500">{tier.hint}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid gap-5 2xl:grid-cols-[minmax(320px,420px)_1fr] xl:items-start">
+            <div className="grid gap-4 2xl:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] 2xl:items-start">
+              <Surface className="p-4 2xl:sticky 2xl:top-24">
+                <div className="grid gap-4">
                   <div>
                     <TextInput label="Ajouter un champion" value={query} onChange={setQuery} placeholder="Cherche Ahri, Renekton, Kai'Sa..." icon={Search} />
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -3757,7 +3794,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                       </div>
                       <Badge tone="orange">{selectedPlayer.role}</Badge>
                     </div>
-                    <div className="grid max-h-[260px] gap-2 overflow-auto pr-1 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-10">
+                    <div className="grid max-h-[min(58vh,560px)] gap-2 overflow-auto pr-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-3">
                       {visibleChampions.map((champion) => {
                         const championKeyValue = championAssetId(champion) || championKey(champion);
                         const active = pickedChampionKeys.has(championKeyValue);
@@ -3768,12 +3805,12 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                 </div>
               </Surface>
 
-              <div className="grid gap-3 2xl:grid-cols-4">
+              <div className="grid gap-3 xl:grid-cols-2">
                 {CHAMPION_TIERS.map((tier) => {
                   const items = rowsForTier(tier.id);
                   return (
                     <Surface key={tier.id} className="p-3" delay={0}>
-                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className={cx("flex min-h-[280px] flex-col rounded-[1.1rem] border p-3", championTierFrame(tier))}>
+                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className={cx("flex min-h-[230px] flex-col rounded-[1.1rem] border p-3", championTierFrame(tier))}>
                         <div className="mb-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-3">
@@ -3784,7 +3821,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                           </div>
                           <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-500">{tier.hint}</p>
                         </div>
-                        <div className="grid max-h-[300px] flex-1 content-start gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-1">
+                        <div className="grid max-h-[210px] flex-1 content-start gap-2 overflow-auto pr-1 sm:grid-cols-2">
                           {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[150px] items-center justify-center rounded-xl border border-dashed border-white/10 p-4 text-center text-xs font-semibold leading-5 text-slate-600">{canManageSelectedPool ? "Glisse un champion ici." : "Lecture seule."}</div>}
                         </div>
                       </div>
@@ -3792,7 +3829,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                   );
                 })}
               </div>
-            </>
+            </div>
           )}
         </>
       ) : (

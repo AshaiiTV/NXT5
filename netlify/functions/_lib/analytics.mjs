@@ -92,6 +92,16 @@ function teamKills(match, teamId) {
     .reduce((sum, p) => sum + Number(p.kills || 0), 0);
 }
 
+function opponentLabel(enemyParticipants) {
+  const names = (enemyParticipants || [])
+    .map((p) => p.summoner_name || p.riot_id || p.summonerName || participantRiotId(p))
+    .map((name) => String(name || '').split('#')[0].trim())
+    .filter(Boolean);
+  if (!names.length) return 'Adversaires';
+  if (names.length <= 2) return names.join(' / ');
+  return `${names.slice(0, 2).join(' / ')} +${names.length - 2}`;
+}
+
 function detectAllyTeam(match, roster, allyTeamSide = '') {
   const sideTeamId = teamIdFromSide(allyTeamSide);
   if (sideTeamId) return sideTeamId;
@@ -188,7 +198,7 @@ function buildMatchSummary(match, allyTeamId, participants) {
     impact_score: null,
     primary_focus: null,
     main_issue: null,
-    opponent: 'Enemy Team'
+    opponent: opponentLabel(enemy)
   };
 }
 
