@@ -3588,16 +3588,16 @@ const CHAMPION_TIERS = [
 function championTierFrame(tier, active = false) {
   const t = tier?.tone || "cyan";
   const base = {
-    green: "border-emerald-300/24 bg-emerald-400/[0.075] shadow-[0_0_28px_rgba(52,211,153,.08)]",
-    yellow: "border-amber-300/24 bg-amber-300/[0.075] shadow-[0_0_28px_rgba(251,191,36,.08)]",
-    cyan: "border-cyan-300/24 bg-cyan-400/[0.075] shadow-[0_0_28px_rgba(34,211,238,.08)]",
-    red: "border-rose-300/24 bg-rose-500/[0.075] shadow-[0_0_28px_rgba(244,63,94,.08)]",
+    green: "border-emerald-300/24 bg-emerald-400/[0.075] text-emerald-200 shadow-[0_0_28px_rgba(52,211,153,.08)]",
+    yellow: "border-amber-300/24 bg-amber-300/[0.075] text-amber-200 shadow-[0_0_28px_rgba(251,191,36,.08)]",
+    cyan: "border-cyan-300/24 bg-cyan-400/[0.075] text-cyan-200 shadow-[0_0_28px_rgba(34,211,238,.08)]",
+    red: "border-rose-300/24 bg-rose-500/[0.075] text-rose-200 shadow-[0_0_28px_rgba(244,63,94,.08)]",
   }[t] || "border-cyan-300/24 bg-cyan-400/[0.075]";
   const strong = {
-    green: "border-emerald-200/55 bg-emerald-300/18 shadow-[0_0_22px_rgba(52,211,153,.20)]",
-    yellow: "border-amber-200/55 bg-amber-300/18 shadow-[0_0_22px_rgba(251,191,36,.18)]",
-    cyan: "border-cyan-200/55 bg-cyan-300/18 shadow-[0_0_22px_rgba(34,211,238,.20)]",
-    red: "border-rose-200/55 bg-rose-400/18 shadow-[0_0_22px_rgba(244,63,94,.18)]",
+    green: "border-emerald-200/55 bg-emerald-300/18 text-emerald-100 shadow-[0_0_22px_rgba(52,211,153,.20)]",
+    yellow: "border-amber-200/55 bg-amber-300/18 text-amber-100 shadow-[0_0_22px_rgba(251,191,36,.18)]",
+    cyan: "border-cyan-200/55 bg-cyan-300/18 text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,.20)]",
+    red: "border-rose-200/55 bg-rose-400/18 text-rose-100 shadow-[0_0_22px_rgba(244,63,94,.18)]",
   }[t] || base;
   return active ? strong : base;
 }
@@ -3606,7 +3606,7 @@ function ChampionTierMark({ tier, active = false, className = "" }) {
   const Icon = tier?.id === "lock" ? ShieldCheck : tier?.id === "pocket" ? Flame : tier?.id === "danger" ? AlertTriangle : Gauge;
   return <span className={cx("relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition", championTierFrame(tier, active), className)}>
     <Icon className="relative z-10 h-5 w-5 drop-shadow-[0_0_10px_rgba(255,255,255,.20)]" />
-    <span className="pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full bg-current opacity-50 shadow-[0_0_10px_currentColor]" />
+    <span className="pointer-events-none absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-current opacity-95 shadow-[0_0_14px_currentColor]" />
     <span className="pointer-events-none absolute inset-x-1 bottom-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
   </span>;
 }
