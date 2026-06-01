@@ -3700,7 +3700,6 @@ function ChampionTierMark({ tier, active = false, className = "" }) {
   const Icon = tier?.id === "lock" ? ShieldCheck : tier?.id === "pocket" ? Flame : tier?.id === "danger" ? AlertTriangle : Gauge;
   return <span className={cx("relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition", championTierFrame(tier, active), className)}>
     <Icon className="relative z-10 h-5 w-5 drop-shadow-[0_0_10px_rgba(255,255,255,.20)]" />
-    <span className="pointer-events-none absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-current opacity-95 shadow-[0_0_14px_currentColor]" />
     <span className="pointer-events-none absolute inset-x-1 bottom-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent" />
   </span>;
 }
@@ -4182,7 +4181,7 @@ function CompositionTagLexicon({ open }) {
 function ChampionPoolColorSummary() {
   return <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 shadow-[0_0_18px_rgba(34,211,238,.05)]">
     <span className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Couleurs pool</span>
-    {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[0.62rem] font-black uppercase tracking-[0.08em] text-slate-100"><span className={cx("h-2.5 w-2.5 rounded-full shadow-[0_0_12px_currentColor]", tier.tone === "green" ? "bg-emerald-300 text-emerald-300" : tier.tone === "yellow" ? "bg-yellow-300 text-yellow-300" : tier.tone === "red" ? "bg-rose-300 text-rose-300" : "bg-cyan-300 text-cyan-300")} />{tier.title}</span>)}
+    {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] py-1 pl-1 pr-2.5 text-[0.62rem] font-black uppercase tracking-[0.08em] text-slate-100"><ChampionTierMark tier={tier} className="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />{tier.title}</span>)}
   </div>;
 }
 
