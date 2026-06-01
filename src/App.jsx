@@ -3273,20 +3273,16 @@ function HudIcon({ src, label, fallback, emptyText = "VIDE", toneName = "cyan", 
   </div>;
 }
 
-function PlayerDetailRow({ row, maxDamage, maxGold }) {
-  const items = itemSlots(row);
-  const trinket = trinketItemId(row);
-  const spells = summonerSpellIds(row);
-  const kda = `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`;
-  const kp = parsePercent(row.kill_participation || row.kp);
-  return <div className="grid min-w-0 gap-3 overflow-hidden rounded-2xl border border-white/10 bg-black/25 p-3 xl:grid-cols-[minmax(0,1fr)_minmax(13rem,16rem)]"><div className="min-w-0 space-y-3"><div className="flex min-w-0 items-center gap-3"><div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/40"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ? "cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate font-black text-white">{row.summoner_name || row.riot_id}</p><p className="truncate text-xs font-semibold text-slate-300">{championDisplayName(row.champion)}</p></div></div><div className="grid grid-cols-3 gap-2 text-center"><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KDA</p><p className="mt-1 truncate font-black text-white">{kda}</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KP</p><p className="mt-1 font-black text-white">{Math.round(kp)}%</p></div><div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">CS/min</p><p className="mt-1 font-black text-white">{Number(row.cs_per_min || 0).toFixed(1)}</p></div></div><div className="grid gap-2"><StatMeter label="Dégâts" value={row.damage} max={maxDamage} detail={`${formatPoints(row.damage)} · ${formatPoints(statPerMinute(row, "totalDamageDealtToChampions") || statPerMinute(row, "damage"))}/min`} tone="purple" /><StatMeter label="Gold" value={row.gold} max={maxGold} detail={`${formatPoints(row.gold)} · ${formatPoints(row.gold_per_min || statPerMinute(row, "goldEarned") || statPerMinute(row, "gold"))}/min`} tone="orange" /></div></div><div className="min-w-0 self-start rounded-2xl border border-cyan-300/12 bg-cyan-400/[0.045] p-2.5"><div className="mb-2 flex min-w-0 flex-wrap items-center justify-between gap-2"><p className="truncate text-[0.6rem] font-black uppercase tracking-[0.16em] text-cyan-100/80">HUD items</p><div className="flex shrink-0 gap-1">{spells.map((spell) => <HudIcon key={`${row.id}-spell-${spell}`} src={summonerSpellIconUrl(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-7 w-7 rounded-lg" />)}</div></div><div className="grid grid-cols-4 gap-1.5 sm:grid-cols-7 xl:grid-cols-4">{items.map((item, index) => <HudIcon key={`${row.id}-item-slot-${index}`} src={itemIconUrl(item)} label={item ? `Item ${item}` : "Slot vide"} fallback={item} emptyText="VIDE" className="h-9 w-9" />)}<HudIcon src={itemIconUrl(trinket)} label={trinket ? `Trinket ${trinket}` : "Trinket vide"} fallback={trinket} emptyText="TRI" toneName="pink" className="h-9 w-9" /></div></div></div>;
-}
-
 function VersusPlayerMini({ row, side, opponent, align = "left" }) {
   const ahead = row && opponent ? statValue(row, "gold") >= statValue(opponent, "gold") : false;
   const kda = row ? `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}` : "-/-/-";
   const kp = row ? Math.round(parsePercent(row.kill_participation || row.kp)) : 0;
-  const items = row ? itemSlots(row).filter(Boolean) : [];
+  const spells = row ? summonerSpellIds(row) : [];
+  const trinket = row ? trinketItemId(row) : 0;
+  const items = row ? [
+    ...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })),
+    ...(trinket ? [{ id: trinket, type: "trinket" }] : []),
+  ] : [];
   return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]", ahead && "shadow-[0_0_24px_rgba(34,211,238,.10)]")}>
     {row && <ChampionBackdrop champion={row.champion} focus="face" />}
     <div className="absolute inset-0 bg-gradient-to-r from-[#050711]/94 via-[#050711]/78 to-[#050711]/48" />
@@ -3302,7 +3298,10 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200">{kp}% KP</span>
           <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} DMG</span>
         </div>
-        {items.length > 0 && <div className={cx("mt-2 grid max-w-[10rem] grid-cols-6 gap-1", align === "right" && "ml-auto")}>{items.map((item, index) => <HudIcon key={`${row.id || row.riot_id}-instant-item-${index}`} src={itemIconUrl(item)} label={`Item ${item}`} fallback={item} emptyText="-" className="h-6 w-6 rounded-lg" />)}</div>}
+        {(spells.length > 0 || items.length > 0) && <div className={cx("mt-2 flex flex-wrap gap-1", align === "right" && "justify-end")}>
+          {spells.map((spell, index) => <HudIcon key={`${row.id || row.riot_id}-instant-spell-${index}-${spell}`} src={summonerSpellIconUrl(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-6 w-6 rounded-lg" />)}
+          {items.map((item, index) => <HudIcon key={`${row.id || row.riot_id}-instant-item-${index}-${item.id}`} src={itemIconUrl(item.id)} label={item.type === "trinket" ? `Trinket ${item.id}` : `Item ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-6 w-6 rounded-lg" />)}
+        </div>}
       </div>
     </div>
   </div>;
@@ -3360,13 +3359,9 @@ function MatchVersusOverview({ match }) {
 }
 
 function MatchDataPanel({ match }) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
-  const allRows = [...ally, ...enemy];
-  const maxDamage = Math.max(1, ...allRows.map((row) => Number(row.damage || 0)));
-  const maxGold = Math.max(1, ...allRows.map((row) => Number(row.gold || 0)));
   const allyKills = sumRows(ally, "kills");
   const allyDeaths = sumRows(ally, "deaths");
   const allyAssists = sumRows(ally, "assists");
@@ -3374,7 +3369,7 @@ function MatchDataPanel({ match }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameMetricSignals match={match} /><button type="button" onClick={() => setDetailsOpen((open) => !open)} className="mt-5 flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div><p className="text-sm font-black text-white">Détails joueurs, items et sorts</p><p className="mt-1 text-xs font-semibold text-slate-300">{detailsOpen ? "Masquer les 10 fiches joueurs" : "Afficher les 10 fiches joueurs uniquement si nécessaire"}</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !detailsOpen && "-rotate-90")} /></button>{detailsOpen && <div className="mt-5 grid gap-4"><div><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone="cyan">Alliés</Badge><p className="text-sm font-black text-white">Détails joueurs, items et sorts</p></div><div className="space-y-2">{ally.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div><div><div className="mb-3 flex flex-wrap items-center gap-2"><Badge tone="red">Adversaires</Badge><p className="text-sm font-black text-white">Détails joueurs, items et sorts</p></div><div className="space-y-2">{enemy.map((row) => <PlayerDetailRow key={row.id || `${row.riot_id}-${row.champion}`} row={row} maxDamage={maxDamage} maxGold={maxGold} />)}</div></div></div>}</Surface>;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={(goldDiff >= 0 ? "+" : "") + formatPoints(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameMetricSignals match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
