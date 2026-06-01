@@ -3160,18 +3160,42 @@ function objectiveEvents(match) {
   })).sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
 }
 
-function objectiveCounts(match) {
+function objectiveTeamId(match, teamKey) {
+  return Number(teamRows(match, teamKey)[0]?.raw?.teamId || 0);
+}
+
+function objectiveTeamValue(match, name, teamKey) {
+  const teamId = objectiveTeamId(match, teamKey);
+  const rawTeam = match?.raw?.info?.teams?.find((team) => Number(team.teamId) === teamId);
+  return Number(rawTeam?.objectives?.[name]?.kills || 0);
+}
+
+function objectiveDragonElement(event) {
+  const label = objectiveEventLabel(event).replace(/\s*Dragon$/i, "").trim();
+  return label && label.toLowerCase() !== "dragon" ? label : "Dragon";
+}
+
+function objectiveTeamSummary(match, teamKey) {
   const events = objectiveEvents(match);
-  const count = (teamKey, matcher) => events.filter((event) => event.teamKey === teamKey && matcher(event)).length;
+  const teamEvents = events.filter((event) => event.teamKey === teamKey);
+  const dragons = teamEvents.filter((event) => objectiveEventType(event) === "dragon");
+  if (events.length) {
+    return {
+      dragons,
+      dragonCount: dragons.length,
+      grubs: teamEvents.filter((event) => objectiveEventType(event) === "grub").length,
+      heralds: teamEvents.filter((event) => objectiveEventType(event) === "herald").length,
+      barons: teamEvents.filter((event) => objectiveEventType(event) === "baron").length,
+      towers: objectiveTeamValue(match, "tower", teamKey),
+    };
+  }
   return {
-    allyDragons: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("dragon")),
-    enemyDragons: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("dragon")),
-    allyGrubs: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("grub")),
-    enemyGrubs: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("grub")),
-    allyBarons: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("nashor")),
-    enemyBarons: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("nashor")),
-    allyHeralds: count("ALLY", (event) => objectiveEventLabel(event).toLowerCase().includes("herald")),
-    enemyHeralds: count("ENEMY", (event) => objectiveEventLabel(event).toLowerCase().includes("herald")),
+    dragons: [],
+    dragonCount: objectiveTeamValue(match, "dragon", teamKey),
+    grubs: objectiveTeamValue(match, "horde", teamKey) || objectiveTeamValue(match, "riftHerald", teamKey),
+    heralds: objectiveTeamValue(match, "riftHerald", teamKey),
+    barons: objectiveTeamValue(match, "baron", teamKey),
+    towers: objectiveTeamValue(match, "tower", teamKey),
   };
 }
 
@@ -3212,22 +3236,50 @@ function ObjectivePictogram({ type, className = "", fallback = "O" }) {
   return <img src={source} alt="" className={cx("object-contain drop-shadow-[0_0_10px_rgba(255,255,255,.2)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
+function ObjectiveTeamCard({ match, teamKey, title, toneName }) {
+  const data = objectiveTeamSummary(match, teamKey);
+  const stats = [
+    ["Dragons", data.dragonCount, "dragon", "cyan"],
+    ["Grubs", data.grubs, "grub", "green"],
+    ["Herald", data.heralds, "herald", "pink"],
+    ["Nashor", data.barons, "baron", "purple"],
+    ["Tours", data.towers, "tower", "blue"],
+  ];
+  return <div className={cx("min-w-0 rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]")}>
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <Badge tone={toneName}>{title}</Badge>
+      <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{data.dragonCount} drake{data.dragonCount > 1 ? "s" : ""}</span>
+    </div>
+    <div className="grid grid-cols-5 gap-1.5">
+      {stats.map(([label, value, icon, t]) => <div key={label} className="min-w-0 rounded-xl border border-white/10 bg-black/25 px-1.5 py-2 text-center">
+        <span className={cx("mx-auto flex h-8 w-8 items-center justify-center rounded-lg border", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-6 w-6" /></span>
+        <p className="mt-1 text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-300">{label}</p>
+        <p className="text-sm font-black text-white">{value}</p>
+      </div>)}
+    </div>
+    <div className="mt-3 rounded-xl border border-white/10 bg-black/22 p-2">
+      <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Éléments dragons</p>
+      {data.dragons.length ? <div className="mt-2 flex flex-wrap gap-1.5">
+        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
+          <ObjectivePictogram type="dragon" fallback={objectiveEventIcon(event)} className="h-4 w-4" />
+          {objectiveDragonElement(event)}
+          <span className="text-white/65">{event.time}</span>
+        </span>)}
+      </div> : <p className="mt-2 text-xs font-semibold text-slate-400">{data.dragonCount ? `${data.dragonCount} dragon${data.dragonCount > 1 ? "s" : ""}, éléments non disponibles sans timeline.` : "Aucun dragon."}</p>}
+    </div>
+  </div>;
+}
+
 function ObjectiveHud({ match, compact = false }) {
   const events = objectiveEvents(match);
-  const counts = objectiveCounts(match);
-  const fallback = [
-    ["Dragons", objectiveValue(match, "dragon"), "dragon", "cyan"],
-    ["Nashor", objectiveValue(match, "baron"), "baron", "purple"],
-    ["Grubs", objectiveValue(match, "riftHerald"), "grub", "green"],
-    ["Tours", objectiveValue(match, "tower"), "tower", "blue"],
-  ];
-  const summary = events.length
-    ? [["Dragons", `${counts.allyDragons}-${counts.enemyDragons}`, "dragon", "cyan"], ["Grubs", `${counts.allyGrubs}-${counts.enemyGrubs}`, "grub", "green"], ["Nashor", `${counts.allyBarons}-${counts.enemyBarons}`, "baron", "purple"], ["Tours", objectiveValue(match, "tower"), "tower", "blue"]]
-    : fallback;
   return <div className={cx("rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.06] via-black/20 to-fuchsia-400/[0.05] p-3", compact ? "mb-3" : "mt-4")}>
-    <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
-      <div className="flex shrink-0 items-center gap-2"><Badge tone="cyan">Objectifs</Badge>{events.length > 0 && <Badge tone="green">{events.length} events</Badge>}</div>
-      <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">{summary.map(([label, value, icon, t]) => <div key={label} className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2"><span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-7 w-7" /></span><div className="min-w-0"><p className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p><p className="truncate text-lg font-black text-white">{value}</p></div></div>)}</div>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-2"><Badge tone="cyan">Objectifs</Badge>{events.length > 0 && <Badge tone="green">{events.length} events</Badge>}</div>
+      <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Dragons détaillés par élément</span>
+    </div>
+    <div className="grid gap-2 xl:grid-cols-2">
+      <ObjectiveTeamCard match={match} teamKey="ALLY" title="Nous" toneName="cyan" />
+      <ObjectiveTeamCard match={match} teamKey="ENEMY" title="Eux" toneName="red" />
     </div>
     {events.length ? <>
       <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
