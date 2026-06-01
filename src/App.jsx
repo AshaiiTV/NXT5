@@ -3620,6 +3620,26 @@ function championTierFrame(tier, active = false) {
   return active ? strong : base;
 }
 
+function championTierColumnFrame(tier) {
+  const t = tier?.tone || "cyan";
+  return {
+    green: "border-emerald-200/32 bg-[linear-gradient(135deg,rgba(6,95,70,.30),rgba(2,6,23,.58)_46%,rgba(16,185,129,.12))] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_0_34px_rgba(52,211,153,.12)]",
+    yellow: "border-amber-200/32 bg-[linear-gradient(135deg,rgba(146,64,14,.28),rgba(2,6,23,.58)_46%,rgba(251,191,36,.12))] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_0_34px_rgba(251,191,36,.10)]",
+    cyan: "border-cyan-200/32 bg-[linear-gradient(135deg,rgba(8,145,178,.28),rgba(2,6,23,.58)_46%,rgba(34,211,238,.12))] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_0_34px_rgba(34,211,238,.12)]",
+    red: "border-rose-200/32 bg-[linear-gradient(135deg,rgba(159,18,57,.28),rgba(2,6,23,.58)_46%,rgba(244,63,94,.12))] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_0_34px_rgba(244,63,94,.12)]",
+  }[t] || "border-cyan-200/32 bg-cyan-400/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,.10),0_0_34px_rgba(34,211,238,.12)]";
+}
+
+function championTierColumnGlow(tier) {
+  const t = tier?.tone || "cyan";
+  return {
+    green: "from-emerald-300/13 via-transparent to-emerald-400/8",
+    yellow: "from-amber-300/13 via-transparent to-amber-400/8",
+    cyan: "from-cyan-300/13 via-transparent to-cyan-400/8",
+    red: "from-rose-300/13 via-transparent to-rose-400/8",
+  }[t] || "from-cyan-300/13 via-transparent to-cyan-400/8";
+}
+
 function ChampionTierMark({ tier, active = false, className = "" }) {
   const Icon = tier?.id === "lock" ? ShieldCheck : tier?.id === "pocket" ? Flame : tier?.id === "danger" ? AlertTriangle : Gauge;
   return <span className={cx("relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition", championTierFrame(tier, active), className)}>
@@ -3711,7 +3731,6 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     .filter((champion) => championDisplayName(champion).toLowerCase().includes(query.toLowerCase()))
     .filter((champion) => championMatchesLane(champion, laneFilter))
     .slice(0, 72);
-  const selectedTierCounts = Object.fromEntries(CHAMPION_TIERS.map((tier) => [tier.id, rowsForTier(tier.id).length]));
 
   useEffect(() => {
     const fallbackPlayerId = !canManageTeamPool && linkedPlayer?.id ? linkedPlayer.id : players[0]?.id || "";
@@ -3830,6 +3849,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                 <h3 className="text-xl font-black text-white">Joueur actif</h3>
                 <p className="mt-1 text-sm font-semibold text-slate-500">Le choix du joueur reste en haut pour laisser toute la largeur aux tableaux.</p>
               </div>
+              <ChampionPoolColorSummary />
             </div>
             <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
               {players.map((player) => {
@@ -3889,8 +3909,10 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                   const items = rowsForTier(tier.id);
                   return (
                     <Surface key={tier.id} className="p-3" delay={0}>
-                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className={cx("flex min-h-[230px] flex-col rounded-[1.1rem] border p-3", championTierFrame(tier))}>
-                        <div className="mb-3">
+                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className={cx("relative flex min-h-[230px] flex-col overflow-hidden rounded-[1.1rem] border p-3 backdrop-blur-2xl", championTierColumnFrame(tier))}>
+                        <div className={cx("pointer-events-none absolute inset-0 bg-gradient-to-br opacity-90", championTierColumnGlow(tier))} />
+                        <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+                        <div className="relative z-10 mb-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex min-w-0 items-center gap-3">
                               <ChampionTierMark tier={tier} />
@@ -3900,7 +3922,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                           </div>
                           <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-500">{tier.hint}</p>
                         </div>
-                        <div className="grid max-h-[210px] flex-1 content-start gap-2 overflow-auto pr-1 sm:grid-cols-2">
+                        <div className="relative z-10 grid max-h-[210px] flex-1 content-start gap-2 overflow-auto pr-1 sm:grid-cols-2">
                           {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[150px] items-center justify-center rounded-xl border border-dashed border-white/10 p-4 text-center text-xs font-semibold leading-5 text-slate-600">{canManageSelectedPool ? "Glisse un champion ici." : "Lecture seule."}</div>}
                         </div>
                       </div>
