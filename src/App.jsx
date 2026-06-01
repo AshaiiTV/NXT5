@@ -3172,23 +3172,27 @@ function objectiveCounts(match) {
 
 const OBJECTIVE_ICON_SOURCES = {
   dragon: [
+    "/assets/objectives/dragon.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon/hud/dragon_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon.png",
   ],
   baron: [
+    "/assets/objectives/baron.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_baron/hud/baron_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/baron.png",
   ],
   grub: [
+    "/assets/objectives/grub.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_horde/hud/sru_voidgrub_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_voidgrub/hud/sru_voidgrub_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/voidgrub.png",
   ],
   herald: [
-    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/riftherald_circle.png",
+    "/assets/objectives/herald.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/riftherald.png",
   ],
   tower: [
+    "/assets/objectives/tower.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/turret/hud/turret_blue_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/turret.png",
   ],
