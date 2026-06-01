@@ -4530,7 +4530,7 @@ function renderReportContent(content, rows) {
   const blockedSections = [/points?\s+forts?/i, /points?\s+à?\s*corriger/i, /focus/i, /objectif\s+principal/i, /axes?\s+de\s+travail/i];
   return String(content || "").split("\n").filter((line) => !blockedSections.some((pattern) => pattern.test(line))).map((line, index) => {
     const result = commandResult(line, rows);
-    return result ? <div key={index} className="my-2 rounded-xl border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 font-black text-cyan-50">{result}</div> : <p key={index} className="min-h-[1.5rem] whitespace-pre-wrap">{line}</p>;
+    return result ? <p key={index} className="min-h-[1.5rem] whitespace-pre-wrap font-mono text-[0.82rem] font-bold text-cyan-50">{result}</p> : <p key={index} className="min-h-[1.5rem] whitespace-pre-wrap">{line}</p>;
   });
 }
 
@@ -4544,7 +4544,7 @@ function ReportObjectivePanel({ matches, matchIds }) {
 }
 
 function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
-  return <div className="rounded-2xl border border-white/10 bg-black/[0.26] p-4 text-sm leading-7 text-slate-100 shadow-inner shadow-black/35"><ReportObjectivePanel matches={matches} matchIds={matchIds} />{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-600">L’aperçu apparaîtra ici.</p>}</div>;
+  return <div className="rounded-2xl border border-white/10 bg-black/[0.26] p-4 text-sm leading-7 text-slate-100 shadow-inner shadow-black/35">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-600">L’aperçu apparaîtra ici.</p>}</div>;
 }
 
 const REPORT_REWRITE_MARKER = "[NXT5_REPORT_V2]";
@@ -4553,31 +4553,53 @@ function stripGeneratedReportContent(content) {
   const text = String(content || "").trim();
   if (!text) return "";
   const preserved = text.split(REPORT_REWRITE_MARKER).pop().trim();
-  return preserved.replace(/^Notes précédentes\s*:?\s*/i, "").trim();
+  return preserved.replace(/^Notes (précédentes|conservées)\s*:?\s*/i, "").trim();
+}
+
+function reportRawGameLine(match) {
+  const rows = (match.participants || []).filter((row) => row.team_key === "ALLY");
+  const sum = (field) => rows.reduce((total, row) => total + Number(row[field] || 0), 0);
+  const kills = sum("kills");
+  const deaths = sum("deaths");
+  const assists = sum("assists");
+  const damage = sum("damage");
+  const gold = sum("gold");
+  const vision = sum("vision");
+  const objectives = match.objective_score ? ` · Objectifs: ${match.objective_score}` : "";
+  const core = `${matchDisplayName(match, "Adversaire inconnu")} · ${match.game_id || "Game ID"} · ${match.result || "Résultat ?"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`;
+  if (!rows.length) return `${core} · Données joueurs absentes`;
+  return `${core} · KDA ${kills}/${deaths}/${assists} · DMG ${formatPoints(damage)} · Gold ${formatPoints(gold)} · Vision ${vision}${objectives}`;
+}
+
+function reportRawSummaryLines(matches) {
+  if (!matches.length) return ["Aucune game liée."];
+  const rows = matches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY"));
+  if (!rows.length) return ["Games liées, mais données joueurs absentes."];
+  const sum = (field) => rows.reduce((total, row) => total + Number(row[field] || 0), 0);
+  const wins = matches.filter((match) => match.result === "Victoire").length;
+  const games = matches.length;
+  return [
+    `Games: ${games} · ${wins}W - ${games - wins}L · WR ${Math.round((wins / Math.max(1, games)) * 100)}%`,
+    `KDA équipe: ${sum("kills")}/${sum("deaths")}/${sum("assists")}`,
+    `Moyennes joueur/game: ${formatPoints(sum("damage") / Math.max(1, rows.length))} DMG · ${formatPoints(sum("gold") / Math.max(1, rows.length))} Gold · ${Math.round(sum("vision") / Math.max(1, rows.length))} Vision`,
+  ];
 }
 
 function buildReportRewriteContent(report, matches) {
   const ids = reportMatchIds(report);
   const linked = matches.filter((match) => ids.includes(match.id));
   const previousNotes = stripGeneratedReportContent(report.content);
-  const gameLines = linked.length ? linked.map((match, index) => `${index + 1}. ${matchDisplayName(match, "Adversaire inconnu")} · ${match.game_id || "Game ID"} · ${match.result || "Résultat ?"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`).join("\n") : "Aucune game liée.";
+  const gameLines = linked.length ? linked.map((match, index) => `${index + 1}. ${reportRawGameLine(match)}`).join("\n") : "Aucune game liée.";
   const body = [
-    "Lecture data",
+    "Rapport brut",
     "",
-    "Games liées",
+    "Résumé",
+    ...reportRawSummaryLines(linked),
+    "",
+    "Games",
     gameLines,
-    "",
-    "Commandes équipe",
-    "/TEAM KDA",
-    "/TEAM DAMAGE",
-    "/TEAM VISION",
-    "/TEAM GOLD",
-    "/TEAM KP",
-    "",
-    "Commandes par rôle",
-    ...COMP_ROLES.flatMap((role) => [`/KDA "${role}"`, `/DAMAGE "${role}"`, `/VISION "${role}"`, `/GOLD "${role}"`, `/KP "${role}"`]),
   ];
-  if (previousNotes) body.push("", REPORT_REWRITE_MARKER, "Notes précédentes", previousNotes);
+  if (previousNotes) body.push("", REPORT_REWRITE_MARKER, "Notes conservées", previousNotes);
   return body.join("\n");
 }
 
