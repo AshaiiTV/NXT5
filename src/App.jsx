@@ -2391,6 +2391,7 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
   const avg = (value, decimals = 1) => (Number(value || 0) / safeGames).toFixed(decimals);
   const sortedRows = rows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || "")));
   const bestDamageRow = rows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
+  const csMilestones = csMilestoneSummary(rows);
   return <div className="space-y-4">
     <div className="relative overflow-hidden rounded-2xl border border-cyan-200/16 bg-cyan-400/[0.055] p-4">
       <ChampionBackdrop champion={stat.champion} />
@@ -2401,6 +2402,7 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
       <ProfileHudMetric label="KDA" value={stat.kda} detail={`${stat.kills}/${stat.deaths}/${stat.assists} total`} tone="cyan" />
       <ProfileHudMetric label="KP" value={`${avg(stat.kp, 0)}%`} detail="Moyenne" tone="purple" />
       <ProfileHudMetric label="CS/min" value={avg(stat.csPerMin)} detail="Moyenne" tone="orange" />
+      <ProfileHudMetric label="CS 10/20" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? `${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}` : "Timeline absente"} tone="green" />
       <ProfileHudMetric label="Dégâts" value={formatPoints(stat.damage / safeGames)} detail="Moyenne/game" tone="purple" />
       <ProfileHudMetric label="Vision" value={avg(stat.vision)} detail="Moyenne/game" tone="cyan" />
     </div>
@@ -2848,26 +2850,29 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
   const selectedChampionStats = championStats.find((item) => item.champion === selectedChampion);
   const selectedRows = selectedChampionStats?.rows || [];
   const bestDamageRow = selectedRows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
+  const csMilestones = csMilestoneSummary(allRows);
+  const selectedCsMilestones = csMilestoneSummary(selectedRows);
 
-  return <Surface glow className="p-5">
-    <div className="flex flex-col gap-4">
+  return <Surface glow className="p-4">
+    <div className="flex flex-col gap-3">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="cyan">{roleLabel(stat.role || "ROLE")}</Badge>
           <Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge>
         </div>
-        <h3 className="mt-3 truncate text-2xl font-black text-white sm:text-3xl">{stat.name}</h3>
+        <h3 className="mt-2 truncate text-2xl font-black text-white">{stat.name}</h3>
         <p className="mt-1 text-sm font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} importée{stat.games > 1 ? "s" : ""} · {championStats.length} champion{championStats.length > 1 ? "s" : ""} joué{championStats.length > 1 ? "s" : ""}</p>
       </div>
-      <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
         <ProfileHudMetric icon={Trophy} label="WR" value={winrate + "%"} detail="Games importées" tone={winrate >= 50 ? "green" : "orange"} />
         <ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={avg(stat.kills) + "/" + avg(stat.deaths) + "/" + avg(stat.assists) + " moy."} tone="cyan" />
         <ProfileHudMetric icon={Target} label="KP" value={avg(stat.kp) + "%"} detail="Participation kills" tone="purple" />
         <ProfileHudMetric icon={Gauge} label="CS/min" value={avg(stat.csPerMin)} detail="Farm moyen" tone="orange" />
+        <ProfileHudMetric icon={Activity} label="CS 10/20" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? "Moyenne timeline" : "Timeline absente"} tone="green" />
       </div>
     </div>
 
-    <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(13rem,18rem)]">
+    <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(13rem,18rem)]">
       <div className="grid gap-3">
         <StatMeter label="Dégâts moyens" value={stat.damage / safeGames} max={maxDamage} detail={formatPoints(stat.damage / safeGames)} tone="purple" />
         <StatMeter label="Gold moyen" value={stat.gold / safeGames} max={maxGold} detail={formatPoints(stat.gold / safeGames)} tone="orange" />
@@ -2880,7 +2885,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
       </div>
     </div>
 
-    <div className="mt-6 overflow-hidden rounded-[1.6rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.075] via-black/24 to-fuchsia-400/[0.055] p-4">
+    <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.075] via-black/24 to-fuchsia-400/[0.055] p-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Badge tone="cyan">Champion read</Badge>
@@ -2929,11 +2934,12 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
                 </div>
               </div>
             </div>
-            <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
               <ProfileHudMetric label="WR" value={selectedChampionStats.winrate + "%"} detail="Champion" tone={selectedChampionStats.winrate >= 50 ? "green" : "orange"} />
               <ProfileHudMetric label="KDA" value={selectedChampionStats.kda} detail={`${selectedChampionStats.totals.kills}/${selectedChampionStats.totals.deaths}/${selectedChampionStats.totals.assists}`} tone="cyan" />
               <ProfileHudMetric label="KP" value={selectedChampionStats.avgKp.toFixed(0) + "%"} detail="Moyenne" tone="purple" />
               <ProfileHudMetric label="CS/min" value={selectedChampionStats.avgCsPerMin.toFixed(1)} detail="Moyenne" tone="orange" />
+              <ProfileHudMetric label="CS 10/20" value={`${selectedCsMilestones.at10 ?? "-"} / ${selectedCsMilestones.at20 ?? "-"}`} detail={selectedCsMilestones.samples ? "Timeline" : "Absente"} tone="green" />
             </div>
             {bestDamageRow && <p className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-3 py-2 text-xs font-bold text-cyan-50">Meilleure game dégâts : {formatPoints(bestDamageRow.damage)} sur {matchDisplayName(bestDamageRow.match, "game inconnue")} · {bestDamageRow.match?.game_id || "game inconnue"}</p>}
           </div> : <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/18 p-5 text-center">
@@ -3091,6 +3097,29 @@ function sumRows(rows, key) {
 
 function shareOfTeam(row, rows, key) {
   return (statValue(row, key) / Math.max(1, sumRows(rows, key))) * 100;
+}
+
+function rowParticipantId(row) {
+  return Number(row?.raw?.participantId || row?.participantId || 0);
+}
+
+function csAtMinute(row, minute) {
+  const participantId = rowParticipantId(row);
+  const frames = row?.match?.raw?.timeline?.info?.frames || row?.match?.raw?.metadata?.timeline?.info?.frames || row?.match?.raw?.timeline?.frames || [];
+  const target = Number(minute || 0) * 60 * 1000;
+  if (!participantId || !frames.length) return null;
+  const frame = frames.find((item) => Number(item.timestamp || 0) >= target) || frames[frames.length - 1];
+  const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
+  if (!participantFrame) return null;
+  return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
+}
+
+function csMilestoneSummary(rows = []) {
+  const valuesAt = (minute) => rows.map((row) => csAtMinute(row, minute)).filter((value) => Number.isFinite(value));
+  const average = (values) => values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null;
+  const at10 = valuesAt(10);
+  const at20 = valuesAt(20);
+  return { at10: average(at10), at20: average(at20), samples: Math.max(at10.length, at20.length) };
 }
 
 function objectiveValue(match, name) {
@@ -3309,6 +3338,52 @@ function ObjectiveHud({ match, compact = false }) {
   </div>;
 }
 
+function visionWardEvents(match) {
+  const frames = match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || [];
+  const participants = match?.raw?.info?.participants || [];
+  const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
+  const allyTeamId = Number(teamRows(match, "ALLY")[0]?.raw?.teamId || 0);
+  return frames.flatMap((frame) => (frame.events || [])
+    .filter((event) => event.type === "WARD_PLACED" && event.position)
+    .map((event) => {
+      const creatorTeamId = Number(participantTeam.get(Number(event.creatorId)) || 0);
+      return {
+        ...event,
+        teamKey: creatorTeamId && allyTeamId && creatorTeamId === allyTeamId ? "ALLY" : "ENEMY",
+        x: Math.max(0, Math.min(1, Number(event.position.x || 0) / 15000)),
+        y: Math.max(0, Math.min(1, Number(event.position.y || 0) / 15000)),
+      };
+    }));
+}
+
+function VisionHeatmap({ match }) {
+  const events = visionWardEvents(match).filter((event) => event.teamKey === "ALLY");
+  const wardTypes = events.reduce((map, event) => {
+    const key = String(event.wardType || "WARD").replace(/_/g, " ");
+    map.set(key, (map.get(key) || 0) + 1);
+    return map;
+  }, new Map());
+  return <div className="mt-3 rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045] p-3">
+    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-2"><Badge tone="cyan">Heatmap vision</Badge><Badge tone={events.length ? "green" : "slate"}>{events.length} wards</Badge></div>
+      <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Wards alliées importées</span>
+    </div>
+    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(160px,.32fr)]">
+      <div className="relative aspect-[1.45/1] min-h-[220px] overflow-hidden rounded-2xl border border-white/10 bg-[#07131f]">
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),transparent_28%,rgba(217,70,239,.10)_72%,transparent),repeating-linear-gradient(0deg,rgba(255,255,255,.045)_0_1px,transparent_1px_28px),repeating-linear-gradient(90deg,rgba(255,255,255,.035)_0_1px,transparent_1px_28px)]" />
+        <div className="absolute left-[8%] top-[9%] h-[28%] w-[28%] rounded-full border border-cyan-200/10" />
+        <div className="absolute bottom-[9%] right-[8%] h-[28%] w-[28%] rounded-full border border-fuchsia-200/10" />
+        {events.length ? events.map((event, index) => <span key={`${event.timestamp}-${event.creatorId}-${index}`} className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300/22 blur-[2px] shadow-[0_0_22px_rgba(34,211,238,.44)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%` }} />) : <div className="absolute inset-0 flex items-center justify-center text-center text-sm font-semibold text-slate-300">Aucune position de ward dans ce JSON.</div>}
+        {events.map((event, index) => <span key={`dot-${event.timestamp}-${index}`} className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/70 bg-cyan-200 shadow-[0_0_12px_rgba(34,211,238,.8)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%` }} />)}
+      </div>
+      <div className="rounded-2xl border border-white/10 bg-black/22 p-3">
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Types de wards</p>
+        <div className="mt-3 space-y-2">{wardTypes.size ? Array.from(wardTypes.entries()).map(([type, count]) => <div key={type} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><span className="truncate text-xs font-black text-white">{type}</span><Badge tone="cyan">{count}</Badge></div>) : <p className="text-xs font-semibold leading-5 text-slate-300">La timeline doit contenir les events de wards.</p>}</div>
+      </div>
+    </div>
+  </div>;
+}
+
 function roleScore(row) {
   const kda = (statValue(row, "kills") + statValue(row, "assists")) / Math.max(1, statValue(row, "deaths"));
   const kp = parsePercent(row.kill_participation || row.kp);
@@ -3454,7 +3529,7 @@ function MatchDataPanel({ match }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameMetricSignals match={match} /></Surface>;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div></div><MatchVersusOverview match={match} /><VisionHeatmap match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameMetricSignals match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -3505,23 +3580,14 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const rosterByName = new Map(roster.map((player) => [normalizeProfileKey(player.name), player]).filter(([key]) => key));
   const rows = scopedMatches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
   const resolveRowPlayer = (row) => rosterById.get(row.player_id) || rosterByRiot.get(normalizeProfileKey(row.riot_id)) || rosterByName.get(normalizeProfileKey(row.summoner_name));
-  const rowBaseKey = (row) => resolveRowPlayer(row)?.id || row.player_id || row.riot_id || row.summoner_name || `${row.role}-${row.champion}`;
-  const roleCollisionKeys = rows.reduce((map, row) => {
-    const matchKey = `${row.match?.id || row.match?.game_id || "match"}::${rowBaseKey(row)}`;
-    if (!map.has(matchKey)) map.set(matchKey, new Set());
-    map.get(matchKey).add(String(row.role || "ROLE").toUpperCase());
-    return map;
-  }, new Map());
-  const collidedBaseKeys = new Set(Array.from(roleCollisionKeys.entries()).filter(([, roles]) => roles.size > 1).map(([key]) => key.split("::").slice(1).join("::")));
   const stats = Array.from(rows.reduce((map, row) => {
     const player = resolveRowPlayer(row);
-    const baseKey = rowBaseKey(row);
     const role = String(row.role || player?.role || "ROLE").toUpperCase();
-    const roleCollision = collidedBaseKeys.has(baseKey);
-    const key = roleCollision ? `${baseKey}::${role}` : baseKey;
-    const rowDisplayName = roleCollision ? (row.summoner_name || row.riot_id || player?.name || "Profil") : (player?.name || row.summoner_name || row.riot_id || "Profil");
-    const current = map.get(key) || { key, name: rowDisplayName, role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map() };
-    current.name = rowDisplayName || current.name;
+    const key = ROSTER_ROLE_ORDER.includes(role) ? role : `OTHER::${row.riot_id || row.summoner_name || row.champion || role}`;
+    const rowDisplayName = row.summoner_name || row.riot_id || player?.name || roleLabel(role);
+    const current = map.get(key) || { key, name: rowDisplayName, role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map(), nameCounts: new Map() };
+    current.nameCounts.set(rowDisplayName, (current.nameCounts.get(rowDisplayName) || 0) + 1);
+    current.name = Array.from(current.nameCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || rowDisplayName;
     current.role = role;
     current.games += 1;
     current.kills += Number(row.kills || 0);
