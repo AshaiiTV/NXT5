@@ -3743,7 +3743,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
   const [archivesCollapsed, setArchivesCollapsed] = useState(true);
-  const [profilesCollapsed, setProfilesCollapsed] = useState(false);
+  const [profilesCollapsed, setProfilesCollapsed] = useState(true);
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const scopedMatchIds = scopedMatches.map((match) => match.id).join("|");
@@ -3762,13 +3762,16 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const rosterById = new Map(roster.map((player) => [player.id, player]));
   const rosterByRiot = new Map(roster.map((player) => [normalizeProfileKey(player.riot_id), player]).filter(([key]) => key));
   const rosterByName = new Map(roster.map((player) => [normalizeProfileKey(player.name), player]).filter(([key]) => key));
+  const rosterByRole = new Map(roster.map((player) => [normalizeProfileRole(player.role), player]).filter(([role]) => ROSTER_ROLE_ORDER.includes(role)));
   const rows = scopedMatches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
   const resolveRowPlayer = (row) => rosterById.get(row.player_id) || rosterByRiot.get(normalizeProfileKey(row.riot_id)) || rosterByName.get(normalizeProfileKey(row.summoner_name));
   const stats = Array.from(rows.reduce((map, row) => {
     const player = resolveRowPlayer(row);
-    const role = String(row.role || player?.role || "ROLE").toUpperCase();
+    const role = normalizeProfileRole(row.role || player?.role || "ROLE");
     const key = ROSTER_ROLE_ORDER.includes(role) ? role : `OTHER::${row.riot_id || row.summoner_name || row.champion || role}`;
-    const rowDisplayName = row.summoner_name || row.riot_id || player?.name || roleLabel(role);
+    const rolePlayer = ROSTER_ROLE_ORDER.includes(role) ? rosterByRole.get(role) : null;
+    const displayPlayer = normalizeProfileRole(player?.role) === role ? player : rolePlayer || player;
+    const rowDisplayName = displayPlayer?.name || row.summoner_name || row.riot_id || roleLabel(role);
     const current = map.get(key) || { key, name: rowDisplayName, role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map(), nameCounts: new Map() };
     current.nameCounts.set(rowDisplayName, (current.nameCounts.get(rowDisplayName) || 0) + 1);
     current.name = Array.from(current.nameCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || rowDisplayName;
