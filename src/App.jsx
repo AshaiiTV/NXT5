@@ -1498,6 +1498,10 @@ const TEAM_ACCESS_ROLES = [
 ];
 const STAFF_ACCESS_ROLE_IDS = TEAM_ACCESS_ROLES.map(([id]) => id).filter((id) => id !== "player");
 
+function canStaffManage(role) {
+  return ["owner", ...STAFF_ACCESS_ROLE_IDS].includes(String(role || "").toLowerCase());
+}
+
 function isGameplayRole(role) {
   return [...COMP_ROLES, "SUB"].includes(String(role || "").toUpperCase());
 }
@@ -1626,7 +1630,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const inviteCodes = selectedTeam ?(data.inviteCodes || []).filter((code) => code.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
   const hasTeams = data.teams.length > 0;
-  const canManageTeam = ["owner", ...STAFF_ACCESS_ROLE_IDS].includes(String(currentMember?.role || "").toLowerCase());
+  const canManageTeam = canStaffManage(currentMember?.role);
   const canDeleteTeam = ["owner", "captain"].includes(String(currentMember?.role || "").toLowerCase());
   const riotCooldownSeconds = Math.max(0, Math.ceil((riotCooldownUntil - nowTick) / 1000));
 
@@ -2314,7 +2318,7 @@ function PlayerProfileStatsPanel({ player, matches = [] }) {
 function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refreshAll, pushToast }) {
   const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role) && player.role !== "SUB");
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
-  const canObserveAll = ["owner", "captain", "coach", "assistant", "analyst", "manager", "board"].includes(String(currentMember?.role || "").toLowerCase());
+  const canObserveAll = canStaffManage(currentMember?.role);
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [profileView, setProfileView] = useState("overview");
@@ -2567,7 +2571,7 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
       <ProfileHudMetric label="KDA" value={stat.kda} detail={`${stat.kills}/${stat.deaths}/${stat.assists} total`} tone="cyan" />
       <ProfileHudMetric label="KP" value={`${avg(stat.kp, 0)}%`} detail="Moyenne" tone="purple" />
       <ProfileHudMetric label="CS/min" value={avg(stat.csPerMin)} detail="Moyenne" tone="orange" />
-      <ProfileHudMetric label="CS 10/20" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? `${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}` : "Timeline absente"} tone="green" />
+      <ProfileHudMetric label="CS 10 mins / 20 mins" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? `${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}` : "Timeline absente"} tone="green" />
       <ProfileHudMetric label="Dégâts" value={formatPoints(stat.damage / safeGames)} detail="Moyenne/game" tone="purple" />
       <ProfileHudMetric label="Vision" value={avg(stat.vision)} detail="Moyenne/game" tone="cyan" />
     </div>
@@ -3033,7 +3037,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
         <ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={avg(stat.kills) + "/" + avg(stat.deaths) + "/" + avg(stat.assists) + " moy."} tone="cyan" />
         <ProfileHudMetric icon={Target} label="KP" value={avg(stat.kp) + "%"} detail="Participation kills" tone="purple" />
         <ProfileHudMetric icon={Gauge} label="CS/min" value={avg(stat.csPerMin)} detail="Farm moyen" tone="orange" />
-        <ProfileHudMetric icon={Activity} label="CS 10/20" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? "Moyenne timeline" : "Timeline absente"} tone="green" />
+        <ProfileHudMetric icon={Activity} label="CS 10 mins / 20 mins" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? "Moyenne timeline" : "Timeline absente"} tone="green" />
       </div>
     </div>
 
@@ -3104,7 +3108,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
               <ProfileHudMetric label="KDA" value={selectedChampionStats.kda} detail={`${selectedChampionStats.totals.kills}/${selectedChampionStats.totals.deaths}/${selectedChampionStats.totals.assists}`} tone="cyan" />
               <ProfileHudMetric label="KP" value={selectedChampionStats.avgKp.toFixed(0) + "%"} detail="Moyenne" tone="purple" />
               <ProfileHudMetric label="CS/min" value={selectedChampionStats.avgCsPerMin.toFixed(1)} detail="Moyenne" tone="orange" />
-              <ProfileHudMetric label="CS 10/20" value={`${selectedCsMilestones.at10 ?? "-"} / ${selectedCsMilestones.at20 ?? "-"}`} detail={selectedCsMilestones.samples ? "Timeline" : "Absente"} tone="green" />
+              <ProfileHudMetric label="CS 10 mins / 20 mins" value={`${selectedCsMilestones.at10 ?? "-"} / ${selectedCsMilestones.at20 ?? "-"}`} detail={selectedCsMilestones.samples ? "Timeline" : "Absente"} tone="green" />
             </div>
             {bestDamageRow && <p className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-3 py-2 text-xs font-bold text-cyan-50">Meilleure game dégâts : {formatPoints(bestDamageRow.damage)} sur {matchDisplayName(bestDamageRow.match, "game inconnue")} · {bestDamageRow.match?.game_id || "game inconnue"}</p>}
           </div> : <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/18 p-5 text-center">
@@ -4026,7 +4030,7 @@ function ChampionSearchTile({ champion, active, existingRow, canManage, onDragSt
 
 function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const activeTeamId = selectedTeamId || data.teams[0]?.id || null;
-  const canManageTeamPool = String(currentMember?.role || "").toLowerCase() === "captain";
+  const canManageTeamPool = canStaffManage(currentMember?.role);
   const players = (data.players || []).filter((player) => String(player.team_id || "") === String(activeTeamId || "") && isGameplayRole(player.role));
   const linkedPlayer = players.find((player) => String(player.user_id || "") === String(user?.id || ""));
   const laneOptions = ["ALL", "TOP", "JGL", "MID", "ADC", "SUP"];
@@ -4138,6 +4142,10 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
   async function deletePick(row, options = {}) {
     if (!canManageSelectedPool || !row?.id) return;
     if (options.confirm !== false && !window.confirm("Retirer ce champion du Champion Pool ?")) return;
+    if (String(row.id).startsWith("optimistic-")) {
+      setLocalPool((current) => current.filter((item) => item.id !== row.id));
+      return;
+    }
     const previousPool = localPool;
     setLocalPool((current) => current.filter((item) => item.id !== row.id));
     setSaving(true);
@@ -4535,7 +4543,7 @@ function ChampionPoolColorSummary() {
 }
 
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
-  const isStaff = ["owner", ...STAFF_ACCESS_ROLE_IDS].includes(String(currentMember?.role || "").toLowerCase());
+  const isStaff = canStaffManage(currentMember?.role);
   const canCreate = Boolean(currentMember);
   const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && COMP_ROLES.includes(player.role));
   const rows = (data.championPool || []).filter((row) => row.team_id === selectedTeamId && ["manual", "riot_manual"].includes(String(row.source || "")));
@@ -5013,7 +5021,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
   const urlReportId = new URLSearchParams(window.location.search).get("report") || "";
   const urlMatchId = new URLSearchParams(window.location.search).get("match") || "";
-  const canCaptainDelete = ["owner", "captain", "coach", "assistant", "analyst", "manager", "board"].includes(String(currentMember?.role || "").toLowerCase());
+  const canCaptainDelete = canStaffManage(currentMember?.role);
   const [form, setForm] = useState({ id: null, title: "", content: "", matchIds: [] });
   const [selectedArchiveId, setSelectedArchiveId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState(urlReportId || null);

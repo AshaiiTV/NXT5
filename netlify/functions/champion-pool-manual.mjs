@@ -4,6 +4,7 @@ import { requireAuth } from './_lib/auth.mjs';
 
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
 const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
+const MANAGE_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
 
 async function ensureChampionPoolSchema() {
   await sql`alter table champion_pool add column if not exists role text`;
@@ -15,6 +16,10 @@ async function ensureChampionPoolSchema() {
 
 function cleanText(value, max = 120) {
   return String(value || '').trim().slice(0, max);
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 }
 
 function championKey(value) {
@@ -69,17 +74,18 @@ export default async function handler(request, context) {
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 
     const member = await sql`
-      select team_members.role
+      select teams.owner_id, team_members.role
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and team_members.user_id = ${user.id}
+        and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
       limit 1
     `;
-    const isCaptain = String(member[0]?.role || '').toLowerCase() === 'captain';
+    const canManageTeamPool = member[0]?.owner_id === user.id || MANAGE_ROLES.includes(String(member[0]?.role || '').toLowerCase());
 
     if (action === 'delete') {
       if (!poolId) throw Object.assign(new Error('Pick requis.'), { status: 400 });
+      if (!isUuid(poolId)) throw Object.assign(new Error('Pick temporaire non synchronisé. Recharge la page puis réessaie.'), { status: 400 });
       const target = await sql`
         select champion_pool.*, players.user_id as player_user_id
         from champion_pool
@@ -89,8 +95,8 @@ export default async function handler(request, context) {
         limit 1
       `;
       if (!target[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
-      if (!isCaptain && String(target[0].player_user_id || '') !== String(user.id)) {
-        throw Object.assign(new Error('Seul le capitaine ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
+      if (!canManageTeamPool && String(target[0].player_user_id || '') !== String(user.id)) {
+        throw Object.assign(new Error('Seul le staff autorisé ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
       }
       const deleted = await sql`
         delete from champion_pool
@@ -122,8 +128,8 @@ export default async function handler(request, context) {
     if (!GAMEPLAY_ROLES.has(String(player.role || '').toUpperCase())) {
       throw Object.assign(new Error('Ce profil staff ne peut pas avoir de Champion Pool.'), { status: 400 });
     }
-    if (!isCaptain && String(player.user_id || '') !== String(user.id)) {
-      throw Object.assign(new Error('Seul le capitaine ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
+    if (!canManageTeamPool && String(player.user_id || '') !== String(user.id)) {
+      throw Object.assign(new Error('Seul le staff autorisé ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
     }
 
     const verdict = status === 'lock'
@@ -135,7 +141,7 @@ export default async function handler(request, context) {
           : 'Pick à valider.';
 
     if (poolId) {
-      if (!isCaptain) {
+      if (!canManageTeamPool) {
         const existing = await sql`
           select player_id
           from champion_pool
