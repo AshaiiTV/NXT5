@@ -3756,16 +3756,16 @@ function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
 
 function ChampionSearchTile({ champion, active, existingRow, canManage, onDragStart, onQuickPick }) {
   const source = existingRow && ["manual", "riot_manual"].includes(String(existingRow.source || "")) ? existingRow : { champion };
-  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, source)} className={cx("group min-w-0 rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}>
+  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, source)} className={cx("group min-w-[150px] rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}>
     <div className="flex min-w-0 items-center gap-2">
       <ChampionPortrait champion={champion} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
       <span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>
       {active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}
     </div>
-    {canManage && <div className="mt-2 grid grid-cols-4 gap-1.5 opacity-80 transition group-hover:opacity-100">
+    {canManage && <div className="mt-2 grid grid-cols-4 justify-items-center gap-1.5 opacity-80 transition group-hover:opacity-100">
       {CHAMPION_TIERS.map((tier) => {
         const selected = active && championPoolStatus(existingRow) === tier.id;
-        return <button key={tier.id} type="button" onClick={(event) => { event.stopPropagation(); onQuickPick(champion, tier.id, source.id || null); }} className="flex justify-center rounded-xl p-0.5 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-cyan-200/35" title={`Mettre en ${tier.title}`} aria-label={`Mettre ${championDisplayName(champion)} en ${tier.title}`}><ChampionTierMark tier={tier} active={selected} className="h-8 w-8" /></button>;
+        return <button key={tier.id} type="button" onClick={(event) => { event.stopPropagation(); onQuickPick(champion, tier.id, source.id || null); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl p-0.5 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-cyan-200/35" title={`Mettre en ${tier.title}`} aria-label={`Mettre ${championDisplayName(champion)} en ${tier.title}`}><ChampionTierMark tier={tier} active={selected} className="h-8 w-8" /></button>;
       })}
     </div>}
   </div>;
@@ -3947,7 +3947,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
           </Surface>
 
           {selectedPlayer && (
-            <div className="grid gap-4 2xl:grid-cols-[minmax(300px,420px)_minmax(0,1fr)] 2xl:items-start">
+            <div className="grid gap-4 2xl:grid-cols-[minmax(360px,480px)_minmax(0,1fr)] 2xl:items-start">
               <Surface className="p-4 2xl:sticky 2xl:top-24">
                 <div className="grid gap-4">
                   <div>
@@ -3967,7 +3967,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                       </div>
                       <Badge tone="orange">{selectedPlayer.role}</Badge>
                     </div>
-                    <div className="grid max-h-[min(58vh,560px)] gap-2 overflow-auto pr-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-3">
+                    <div className="grid max-h-[min(58vh,560px)] grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2 overflow-auto pr-1">
                       {visibleChampions.map((champion) => {
                         const championKeyValue = championAssetId(champion) || championKey(champion);
                         const active = pickedChampionKeys.has(championKeyValue);
