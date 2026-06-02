@@ -1311,6 +1311,60 @@ const CHAMPION_TAG_DEFINITIONS = [
   ["standard", "Profil équilibré sans identité dominante détectée."],
 ];
 
+const COUNTER_TAG_RULES = {
+  engage: [["disengage", 20, "casse l'engage"], ["peel", 14, "protège le carry"], ["control", 10, "contrôle la zone"]],
+  dive: [["peel", 22, "punit le dive"], ["disengage", 18, "stoppe l'entrée"], ["lockdown", 12, "bloque l'assassin"]],
+  poke: [["engage", 18, "force avant le poke"], ["sustain", 16, "absorbe le poke"], ["dive", 10, "rentre sur la backline"]],
+  siege: [["engage", 16, "force sous pression"], ["waveclear", 10, "ralentit le siège"], ["dive", 10, "casse la formation"]],
+  scaling: [["early", 18, "punit le scaling"], ["snowball", 14, "accélère la game"], ["pick", 10, "isole avant les pics"]],
+  "front-to-back": [["dive", 16, "menace les carries"], ["flank", 14, "attaque l'angle"], ["assassin", 12, "pression backline"]],
+  side: [["engage", 14, "force en mid"], ["duel", 12, "répond en side"], ["pick", 10, "punit les rotations"]],
+  pick: [["frontline", 12, "absorbe le pick"], ["disengage", 12, "annule l'ouverture"], ["safe", 10, "limite les catches"]],
+  assassin: [["peel", 18, "protège la cible"], ["lockdown", 14, "contrôle l'assassin"], ["frontline", 10, "réduit l'accès"]],
+  early: [["safe", 12, "stabilise l'early"], ["scaling", 8, "survit puis dépasse"], ["waveclear", 8, "limite le tempo"]],
+};
+
+const DIRECT_COUNTERS = {
+  Aatrox: ["Fiora", "Irelia", "Malphite", "Poppy"],
+  Ahri: ["Galio", "Lissandra", "Naafiri", "Vex"],
+  Akali: ["Galio", "Lissandra", "Malzahar", "Vex"],
+  Aphelios: ["Caitlyn", "Draven", "Nautilus", "Varus"],
+  Ashe: ["Blitzcrank", "Draven", "Nautilus", "Samira"],
+  Caitlyn: ["Jhin", "Sivir", "Varus", "Ziggs"],
+  Darius: ["Gnar", "Jayce", "Quinn", "Vayne"],
+  Draven: ["Ashe", "Caitlyn", "Nautilus", "Varus"],
+  Ezreal: ["Caitlyn", "Draven", "Kalista", "Varus"],
+  Fiora: ["Malphite", "Poppy", "Quinn", "Renekton"],
+  Galio: ["Azir", "Cassiopeia", "Tristana", "Vladimir"],
+  Gwen: ["Fiora", "Jax", "Renekton", "Tryndamere"],
+  Hwei: ["Fizz", "Naafiri", "Talon", "Zed"],
+  Jax: ["Gragas", "Kennen", "Malphite", "Poppy"],
+  Jinx: ["Draven", "Nautilus", "Twitch", "Varus"],
+  Kaisa: ["Caitlyn", "Draven", "Varus", "Xayah"],
+  Kalista: ["Ashe", "Caitlyn", "Varus", "Vayne"],
+  Karma: ["Blitzcrank", "Nautilus", "Pyke", "Rakan"],
+  Leblanc: ["Galio", "Lissandra", "Malzahar", "Vex"],
+  LeeSin: ["Ivern", "Poppy", "Rammus", "Sejuani"],
+  Lissandra: ["Anivia", "Cassiopeia", "Orianna", "Viktor"],
+  Lucian: ["Caitlyn", "Draven", "Varus", "Vayne"],
+  Lux: ["Blitzcrank", "Nautilus", "Pyke", "Zyra"],
+  Malphite: ["Gwen", "Mordekaiser", "Sylas", "Vladimir"],
+  Milio: ["Blitzcrank", "Nautilus", "Pyke", "Rakan"],
+  Nautilus: ["Janna", "Morgana", "Rakan", "Taric"],
+  Nocturne: ["Ivern", "Lulu", "Poppy", "Rammus"],
+  Orianna: ["Fizz", "Syndra", "Talon", "Zed"],
+  Rakan: ["Janna", "Morgana", "Poppy", "Thresh"],
+  Renekton: ["Gnar", "Kennen", "Quinn", "Vayne"],
+  Sejuani: ["Ivern", "Lillia", "Olaf", "Trundle"],
+  Seraphine: ["Blitzcrank", "Nautilus", "Pyke", "Zyra"],
+  Tristana: ["Caitlyn", "Draven", "Syndra", "Varus"],
+  Varus: ["Draven", "Nautilus", "Samira", "Sivir"],
+  Viego: ["Ivern", "Poppy", "Rammus", "Sejuani"],
+  Xayah: ["Caitlyn", "Jinx", "Seraphine", "Sivir"],
+  Yunara: ["Caitlyn", "Draven", "Nautilus", "Varus"],
+  Zeri: ["Caitlyn", "Draven", "Nautilus", "Varus"],
+};
+
 const COMPOSITION_TAG_DEFINITIONS = [
   ["blue side", "Tag de lecture pour les compos pensées côté bleu."],
   ["red side", "Tag de lecture pour les compos pensées côté rouge."],
@@ -4183,6 +4237,56 @@ function compositionMastery(slots, rows) {
   return score >= 82 ? { label: "Très maîtrisée", tone: "green", score } : score >= 65 ? { label: "Jouable", tone: "yellow", score } : score >= 42 ? { label: "À valider", tone: "cyan", score } : { label: "Trop fragile", tone: "red", score };
 }
 
+function compositionPickList(slots, rows) {
+  return COMP_ROLES.map((role) => {
+    const pick = rows.find((row) => row.id === compositionSlots(slots)[role]?.poolId);
+    return pick ? { ...pick, role } : null;
+  }).filter(Boolean);
+}
+
+function directCounterReasons(candidate, picks) {
+  const candidateId = championAssetId(candidate);
+  return picks.flatMap((pick) => {
+    const direct = DIRECT_COUNTERS[championAssetId(pick.champion)] || [];
+    return direct.map(championAssetId).includes(candidateId) ? [`Counter direct de ${championDisplayName(pick.champion)}`] : [];
+  });
+}
+
+function tagCounterReasons(candidate, picks) {
+  const candidateTags = championStyleTags(candidate);
+  const reasons = [];
+  for (const pick of picks) {
+    for (const tag of championStyleTags(pick.champion)) {
+      for (const [counterTag, points, reason] of COUNTER_TAG_RULES[tag] || []) {
+        if (candidateTags.includes(counterTag)) reasons.push({ points, reason });
+      }
+    }
+  }
+  return reasons;
+}
+
+function compositionCounterRecommendations(slots, rows, limitPerRole = 3) {
+  const picks = compositionPickList(slots, rows);
+  const pickedIds = new Set(picks.map((pick) => championAssetId(pick.champion)));
+  if (!picks.length) return [];
+  return COMP_ROLES.map((role) => {
+    const candidates = championOptions()
+      .filter((champion) => championMatchesLane(champion, role))
+      .filter((champion) => !pickedIds.has(championAssetId(champion)))
+      .map((champion) => {
+        const directReasons = directCounterReasons(champion, picks);
+        const tagReasons = tagCounterReasons(champion, picks);
+        const score = directReasons.length * 38 + tagReasons.reduce((sum, item) => sum + item.points, 0);
+        const reasons = [...directReasons, ...tagReasons.sort((a, b) => b.points - a.points).map((item) => item.reason)];
+        return { role, champion, score, reasons: [...new Set(reasons)].slice(0, 3) };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)))
+      .slice(0, limitPerRole);
+    return { role, counters: candidates };
+  });
+}
+
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
   const tier = championTierByStatus(status);
@@ -4257,6 +4361,31 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
   </div>;
 }
 
+function CompositionCounterPanel({ slots, rows, compact = false }) {
+  const groups = compositionCounterRecommendations(slots, rows, compact ? 1 : 3).filter((group) => group.counters.length);
+  if (!groups.length) return <div className="mt-4 rounded-[1.25rem] border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Ajoute des champions dans la compo pour afficher les counters probables par rôle.</div>;
+  const allCounters = groups.flatMap((group) => group.counters.map((counter) => ({ ...counter, role: group.role }))).sort((a, b) => b.score - a.score);
+  if (compact) return <div className="mt-4 rounded-2xl border border-rose-300/14 bg-rose-500/[0.055] p-3">
+    <div className="mb-3 flex items-center justify-between gap-2"><Badge tone="red">Counters à prévoir</Badge><span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Score caché NXT5</span></div>
+    <div className="flex flex-wrap gap-2">{allCounters.slice(0, 5).map((counter) => <div key={`${counter.role}-${counter.champion}`} className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/24 py-1.5 pl-1.5 pr-3"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-8 w-8 rounded-lg object-cover" /><span className="text-xs font-black text-white">{counter.role} · {championDisplayName(counter.champion)}</span></div>)}</div>
+  </div>;
+  return <div className="mt-5 rounded-[1.35rem] border border-rose-300/14 bg-gradient-to-br from-rose-500/[0.075] via-black/22 to-cyan-400/[0.045] p-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div><Badge tone="red">Counter system</Badge><h3 className="mt-3 text-xl font-black text-white">Counters probables à anticiper</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Lecture inspirée matchup/tag : les picks ci-dessous sont ceux qui peuvent rendre cette compo pénible à jouer.</p></div>
+      <Badge tone="slate">Calcul caché</Badge>
+    </div>
+    <div className="mt-4 grid gap-3 xl:grid-cols-5">
+      {groups.map((group) => <div key={group.role} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
+        <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={group.role} className="h-5 w-5" />{group.role}</span><Badge tone="red">{group.counters.length}</Badge></div>
+        <div className="space-y-2">{group.counters.map((counter) => <div key={counter.champion} className="rounded-xl border border-white/10 bg-white/[0.035] p-2">
+          <div className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-10 w-10 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(counter.champion)}</p><p className="truncate text-[0.62rem] font-bold text-rose-100">Menace {Math.min(99, counter.score)}</p></div></div>
+          <div className="mt-2 flex flex-wrap gap-1.5">{counter.reasons.map((reason) => <span key={reason} className="rounded-lg border border-rose-200/12 bg-rose-500/10 px-2 py-1 text-[0.58rem] font-bold text-rose-50">{reason}</span>)}</div>
+        </div>)}</div>
+      </div>)}
+    </div>
+  </div>;
+}
+
 function CompositionCard({ composition, rows, canManage, saving, onEdit, onDuplicate, onDelete }) {
   const slots = compositionSlots(composition.slots);
   const tags = jsonList(composition.tags);
@@ -4273,6 +4402,7 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
       </div>
       <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{COMP_ROLES.map((role) => { const pick = rows.find((row) => row.id === slots[role]?.poolId); return <div key={role} className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", pick ? "border-cyan-200/18 bg-black/35" : "border-white/10 bg-black/25 text-slate-400")}><div className="flex items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-[0.66rem] font-black uppercase tracking-[0.12em]"><RoleIcon role={role} className="h-4 w-4" />{role}</span>{pick && <span className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-cyan-100">{championPoolStatusLabel(championPoolStatus(pick))}</span>}</div>{pick ? <div className="mt-3 flex items-center gap-2"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-12 w-12 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(pick.champion)}</p><p className="truncate text-[0.66rem] font-semibold text-slate-200">{pick.player_name}</p></div></div> : <p className="mt-3 text-xs font-semibold">Vide</p>}</div>; })}</div>
       {picks.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div>}
+      <CompositionCounterPanel slots={slots} rows={rows} compact />
     </div>
   </Surface>;
 }
@@ -4370,7 +4500,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
     { id: "blue side", label: "Blue Side" },
     { id: "red side", label: "Red Side" },
   ];
-  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate de la maîtrise poste par poste." /><div className="mb-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center"><button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-black text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,.08)] transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/16"><BookOpen className="h-4 w-4" />Sommaire des tags<ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} /></button><ChampionPoolColorSummary /></div><AnimatePresence initial={false}><CompositionTagLexicon open={showTagLexicon} /></AnimatePresence></div>{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Builder 5 lanes</Badge><h3 className="mt-3 text-3xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la maîtrise se met à jour instantanément.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}</div></div><label className="mt-4 block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Résumé</span><textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft, infos importantes pour cette compo..." rows={4} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/35" /></label><div className="mt-5 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="text-sm font-black uppercase tracking-[0.28em] text-slate-300">Compos enregistrées</h3><p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p></div><div className="flex w-full rounded-2xl border border-white/10 bg-black/20 p-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] md:w-auto">{sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.34)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}</div></div><div className="mt-3 grid gap-3">{filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
+  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate de la maîtrise poste par poste." /><div className="mb-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center"><button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-black text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,.08)] transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/16"><BookOpen className="h-4 w-4" />Sommaire des tags<ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} /></button><ChampionPoolColorSummary /></div><AnimatePresence initial={false}><CompositionTagLexicon open={showTagLexicon} /></AnimatePresence></div>{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Builder 5 lanes</Badge><h3 className="mt-3 text-3xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la maîtrise se met à jour instantanément.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}</div></div><label className="mt-4 block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Résumé</span><textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft, infos importantes pour cette compo..." rows={4} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/35" /></label><div className="mt-5 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><CompositionCounterPanel slots={form.slots} rows={rows} /><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="text-sm font-black uppercase tracking-[0.28em] text-slate-300">Compos enregistrées</h3><p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p></div><div className="flex w-full rounded-2xl border border-white/10 bg-black/20 p-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] md:w-auto">{sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.34)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}</div></div><div className="mt-3 grid gap-3">{filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
 }
 
 function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
