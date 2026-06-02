@@ -3484,12 +3484,23 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const rosterByRiot = new Map(roster.map((player) => [normalizeProfileKey(player.riot_id), player]).filter(([key]) => key));
   const rosterByName = new Map(roster.map((player) => [normalizeProfileKey(player.name), player]).filter(([key]) => key));
   const rows = scopedMatches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
+  const resolveRowPlayer = (row) => rosterById.get(row.player_id) || rosterByRiot.get(normalizeProfileKey(row.riot_id)) || rosterByName.get(normalizeProfileKey(row.summoner_name));
+  const rowBaseKey = (row) => resolveRowPlayer(row)?.id || row.player_id || row.riot_id || row.summoner_name || `${row.role}-${row.champion}`;
+  const roleCollisionKeys = rows.reduce((map, row) => {
+    const matchKey = `${row.match?.id || row.match?.game_id || "match"}::${rowBaseKey(row)}`;
+    if (!map.has(matchKey)) map.set(matchKey, new Set());
+    map.get(matchKey).add(String(row.role || "ROLE").toUpperCase());
+    return map;
+  }, new Map());
+  const collidedBaseKeys = new Set(Array.from(roleCollisionKeys.entries()).filter(([, roles]) => roles.size > 1).map(([key]) => key.split("::").slice(1).join("::")));
   const stats = Array.from(rows.reduce((map, row) => {
-    const player = rosterById.get(row.player_id) || rosterByRiot.get(normalizeProfileKey(row.riot_id)) || rosterByName.get(normalizeProfileKey(row.summoner_name));
-    const key = player?.id || row.player_id || row.riot_id || row.summoner_name || `${row.role}-${row.champion}`;
-    const current = map.get(key) || { key, name: player?.name || row.summoner_name || row.riot_id || "Profil", role: player?.role || row.role || "ROLE", games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map() };
-    current.name = player?.name || current.name;
-    current.role = player?.role || current.role;
+    const player = resolveRowPlayer(row);
+    const baseKey = rowBaseKey(row);
+    const role = String(row.role || player?.role || "ROLE").toUpperCase();
+    const key = collidedBaseKeys.has(baseKey) ? `${baseKey}::${role}` : baseKey;
+    const current = map.get(key) || { key, name: player?.name || row.summoner_name || row.riot_id || "Profil", role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map() };
+    current.name = player?.name || row.summoner_name || current.name;
+    current.role = role;
     current.games += 1;
     current.kills += Number(row.kills || 0);
     current.deaths += Number(row.deaths || 0);
