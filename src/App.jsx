@@ -172,6 +172,7 @@ const DEFAULT_DATA = {
   reports: [],
   matchArchives: [],
   inviteCodes: [],
+  profileCoachingNotes: [],
 };
 
 async function apiFetch(path, options = {}) {
@@ -2015,7 +2016,7 @@ function GuidePage() {
     ["Champion Pool", "Le Champion Pool sert à organiser la maîtrise des champions par joueur. Le capitaine et le joueur concerné peuvent le maintenir. Ces pools alimentent directement les Compos Types."],
     ["Compos Types", "Construis une compo à cinq postes depuis une banque visuelle d’icônes champions. Les champions proposés dépendent du Champion Pool du joueur actuellement placé sur chaque poste."],
     ["Planning", "Chaque joueur renseigne ses disponibilités par semaine. La vue générale montre les créneaux communs de la team."],
-    ["Mon profil", "Clique sur ton bloc profil en bas à gauche. La page affiche les stats personnelles, forces, faiblesses, bangers, flops, champion pool, matchups et historique importé. Le staff et le capitaine peuvent choisir le joueur à observer."],
+    ["Mon profil", "Clique sur ton bloc profil en bas à gauche. La page affiche les stats personnelles, champions, matchups et historique importé. Tu peux exporter un résumé PNG, et le staff/capitaine peut tenir un bilan coaching global par joueur."],
   ];
   const troubleshooting = [
     ["Import introuvable", "Vérifie la région du Game ID, attends quelques minutes après la fin de la game, puis réessaie. Pour une game officielle, le fichier local reste la méthode la plus fiable."],
@@ -2310,7 +2311,7 @@ function PlayerProfileStatsPanel({ player, matches = [] }) {
   return <div className="rounded-2xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4"><div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5"><MetricCard icon={Swords} label="Games" value={games} hint="Games intégrées" tone="cyan" /><MetricCard icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""}`} tone="green" /><MetricCard icon={Gauge} label="KDA" value={kda} hint="Moyenne globale" tone="purple" /><MetricCard icon={Flame} label="Dégâts" value={formatPoints(avg("damage"))} hint="Moyenne/game" tone="orange" /><MetricCard icon={Eye} label="Vision" value={Math.round(avg("vision"))} hint="Moyenne/game" tone="yellow" /></div><div className="mt-4 grid gap-2 xl:grid-cols-2">{championStats.map((stat) => { const champKda = ((stat.kills + stat.assists) / Math.max(1, stat.deaths)).toFixed(2); return <div key={stat.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><Badge tone={Math.round((stat.wins / Math.max(1, stat.games)) * 100) >= 50 ? "green" : "red"}>{Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} · KDA {champKda} · {formatPoints(stat.damage / Math.max(1, stat.games))} dégâts moy.</p></div></div>; })}</div></div>;
 }
 
-function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
+function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refreshAll, pushToast }) {
   const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role) && player.role !== "SUB");
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const canObserveAll = ["owner", "captain", "coach", "assistant", "analyst", "manager", "board"].includes(String(currentMember?.role || "").toLowerCase());
@@ -2318,6 +2319,8 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [profileView, setProfileView] = useState("overview");
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
+  const [coachingContent, setCoachingContent] = useState("");
+  const [savingCoaching, setSavingCoaching] = useState(false);
   useEffect(() => {
     const fallback = canObserveAll ? players[0]?.id : linkedPlayer?.id || players[0]?.id;
     if (!selectedPlayerId || !players.some((player) => player.id === selectedPlayerId)) setSelectedPlayerId(fallback || "");
@@ -2326,6 +2329,11 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
     setSelectedProfileChampion("");
   }, [selectedPlayerId]);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || linkedPlayer || players[0];
+  const coachingNote = (data.profileCoachingNotes || []).find((note) => note.team_id === selectedTeamId && note.player_id === selectedPlayer?.id);
+  const canEditCoaching = canObserveAll;
+  useEffect(() => {
+    setCoachingContent(coachingNote?.content || "");
+  }, [selectedPlayerId, coachingNote?.content]);
   const rows = selectedPlayer ? playerIntegratedRows(selectedPlayer, matches) : [];
   const games = rows.length;
   const wins = rows.filter((row) => row.match?.result === "Victoire").length;
@@ -2404,16 +2412,118 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
     { title: "Présence vision", value: `${avgVisionShare.toFixed(1)}%`, detail: `${avg("vision")} vision moyenne · part vision équipe`, toneName: avgVisionShare >= 20 ? "cyan" : "purple", icon: Eye },
     { title: "Pool joué", value: `${championStats.length} champions`, detail: topChampion ? `${championDisplayName(topChampion.champion)} représente ${topChampionShare}% des games` : "Aucune game importée.", toneName: topChampionShare >= 60 ? "orange" : "green", icon: Crown },
   ];
+  async function saveCoachingNote() {
+    if (!selectedPlayer || !selectedTeamId || !canEditCoaching) return;
+    setSavingCoaching(true);
+    try {
+      await apiFetch("player-coaching-notes-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, content: coachingContent }) });
+      await refreshAll?.();
+      pushToast?.({ type: "green", title: "Bilan coaching enregistré", text: "La note globale du profil est à jour." });
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Bilan impossible", text: err.message });
+    } finally {
+      setSavingCoaching(false);
+    }
+  }
+  function exportProfilePng() {
+    if (!selectedPlayer) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = 1600;
+    canvas.height = 980;
+    const ctx = canvas.getContext("2d");
+    const gradient = ctx.createLinearGradient(0, 0, 1600, 980);
+    gradient.addColorStop(0, "#061828");
+    gradient.addColorStop(0.48, "#050711");
+    gradient.addColorStop(1, "#26103a");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "rgba(34,211,238,.10)";
+    ctx.beginPath(); ctx.arc(180, 150, 260, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(217,70,239,.11)";
+    ctx.beginPath(); ctx.arc(1370, 150, 310, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(125,211,252,.38)";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(46, 46, 1508, 888);
+    ctx.fillStyle = "#f8fbff";
+    ctx.font = "900 76px Inter, Arial, sans-serif";
+    ctx.fillText(selectedPlayer.name || "Profil NXT5", 92, 150);
+    ctx.font = "800 28px Inter, Arial, sans-serif";
+    ctx.fillStyle = "#bdefff";
+    ctx.fillText(`${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non lié"}`, 96, 198);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 44px Inter, Arial, sans-serif";
+    ctx.fillText("NXT5 PROFILE EXPORT", 1504, 136);
+    ctx.font = "700 24px Inter, Arial, sans-serif";
+    ctx.fillStyle = "#d6ecff";
+    ctx.fillText(new Date().toLocaleDateString("fr-FR"), 1504, 178);
+    ctx.textAlign = "left";
+    const metrics = [
+      ["Games", String(games), `${wins}W - ${losses}L`],
+      ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Résumé importé"],
+      ["KDA", kda, `${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`],
+      ["Dégâts", formatPoints(sum("damage") / Math.max(1, games)), "Moyenne/game"],
+      ["Vision", String(Math.round(sum("vision") / Math.max(1, games))), "Moyenne/game"],
+    ];
+    metrics.forEach(([label, value, detail], index) => {
+      const x = 92 + index * 292;
+      ctx.fillStyle = "rgba(255,255,255,.055)";
+      ctx.strokeStyle = index % 2 ? "rgba(217,70,239,.32)" : "rgba(34,211,238,.32)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(x, 260, 250, 150, 28); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#c8f7ff";
+      ctx.font = "900 24px Inter, Arial, sans-serif";
+      ctx.fillText(label.toUpperCase(), x + 24, 310);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 46px Inter, Arial, sans-serif";
+      ctx.fillText(value, x + 24, 363);
+      ctx.fillStyle = "#d7e5f5";
+      ctx.font = "700 20px Inter, Arial, sans-serif";
+      ctx.fillText(detail, x + 24, 392);
+    });
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 34px Inter, Arial, sans-serif";
+    ctx.fillText("Champions les plus joués", 96, 500);
+    championStats.slice(0, 6).forEach((stat, index) => {
+      const x = 96 + (index % 3) * 492;
+      const y = 540 + Math.floor(index / 3) * 122;
+      ctx.fillStyle = "rgba(5,10,24,.72)";
+      ctx.strokeStyle = "rgba(255,255,255,.14)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.roundRect(x, y, 444, 88, 22); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 28px Inter, Arial, sans-serif";
+      ctx.fillText(championDisplayName(stat.champion), x + 24, y + 36);
+      ctx.fillStyle = "#d7e5f5";
+      ctx.font = "800 20px Inter, Arial, sans-serif";
+      ctx.fillText(`${stat.games} game${stat.games > 1 ? "s" : ""} · ${stat.winrate}% WR · KDA ${stat.kda}`, x + 24, y + 66);
+    });
+    ctx.fillStyle = "rgba(34,211,238,.10)";
+    ctx.strokeStyle = "rgba(34,211,238,.28)";
+    ctx.beginPath(); ctx.roundRect(96, 810, 1408, 80, 24); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#dffaff";
+    ctx.font = "800 24px Inter, Arial, sans-serif";
+    ctx.fillText(`Bilan coaching: ${coachingContent.trim() ? coachingContent.trim().slice(0, 160) : "Aucun bilan global renseigné."}`, 124, 860);
+    const link = document.createElement("a");
+    link.download = `nxt5-profil-${String(selectedPlayer.name || "joueur").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    pushToast?.({ type: "cyan", title: "PNG exporté", text: "Le résumé du profil a été téléchargé." });
+  }
   const profileViews = [
     ["overview", "Synthèse", Activity, `${games}G`],
     ["champions", "Champions", Crown, championStats.length],
     ["matchups", "Matchups", Swords, matchups.length],
     ["history", "Historique", FileText, rows.length],
+    ["coaching", "Coaching", Clipboard, coachingContent.trim() ? "OK" : "—"],
   ];
   if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
   return <div className="min-w-0 overflow-hidden">
     <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle="Toutes les données utiles du profil sélectionné : champions, games importées, matchups et tendances brutes.">
-      {canObserveAll && <div className="w-full min-w-[220px] sm:w-80"><SelectInput label="Profil observé" value={selectedPlayer.id} onChange={setSelectedPlayerId}>{players.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput></div>}
+      <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[220px]">
+        {canObserveAll && <div className="w-full sm:w-80"><SelectInput label="Profil observé" value={selectedPlayer.id} onChange={setSelectedPlayerId}>{players.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput></div>}
+        <Button type="button" variant="ghost" icon={Download} onClick={exportProfilePng} className="w-full justify-center">Exporter le résumé PNG</Button>
+      </div>
     </PageHeader>
     <Surface glow className="relative overflow-hidden p-5">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(34,211,238,.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(217,70,239,.13),transparent_34%)]" />
@@ -2423,7 +2533,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
       </div>
     </Surface>
     <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
-      <div className="grid gap-2 md:grid-cols-4">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => setProfileView(active ? "overview" : id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
+      <div className="grid gap-2 md:grid-cols-5">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => setProfileView(active ? "overview" : id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
     </div>
     <AnimatePresence mode="wait">
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
@@ -2431,6 +2541,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user }) {
         {profileView === "champions" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]"><ProfileFold title="Champions joués" badge="Games importées" icon={Crown} toneName="cyan"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => { const active = selectedProfileChampion === stat.champion; return <button key={stat.champion} type="button" onClick={() => setSelectedProfileChampion(active ? "" : stat.champion)} className={cx("relative overflow-hidden rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-black/25")}><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div><ChevronDown className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "rotate-180")} /></div></button>; }) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></ProfileFold><div className="grid gap-5"><ProfileFold title={selectedProfileChampionStats ? championDisplayName(selectedProfileChampionStats.champion) : "Détail champion"} badge="Fiche perso" icon={Activity} toneName="purple">{selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion à gauche pour afficher ses ratios globaux, ses matchups et son historique game par game.</div>}</ProfileFold><ProfileFold title="Champion Pool" badge="Déclaré" icon={Shield} toneName="green"><div className="grid gap-2">{championPool.length ? championPool.map((row) => <div key={row.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{championPoolStatusLabel(championPoolStatus(row))}</p></div><Badge tone={championPoolStatusTone(championPoolStatus(row))}>{roleLabel(row.role || selectedPlayer.role)}</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion déclaré dans son pool.</p>}</div></ProfileFold></div></div>}
         {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
         {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-2 lg:grid-cols-2">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></ProfileFold>}
+        {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des rapports liés aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
     </AnimatePresence>
   </div>;
@@ -5174,7 +5285,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
-    if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
+    if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} />;
     if (active === "guide") return <GuidePage />;
     if (active === "settings") return <SettingsPage user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;

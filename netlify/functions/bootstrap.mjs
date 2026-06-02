@@ -51,6 +51,33 @@ async function loadAvailability(teamIds) {
   }
 }
 
+async function loadProfileCoachingNotes(teamIds) {
+  try {
+    await sql`
+      create table if not exists player_coaching_notes (
+        id uuid primary key default gen_random_uuid(),
+        team_id uuid not null references teams(id) on delete cascade,
+        player_id uuid not null references players(id) on delete cascade,
+        content text not null default '',
+        updated_by uuid references users(id) on delete set null,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        unique(team_id, player_id)
+      )
+    `;
+    return await sql`
+      select player_coaching_notes.*, users.name as updated_by_name
+      from player_coaching_notes
+      left join users on users.id = player_coaching_notes.updated_by
+      where player_coaching_notes.team_id = any(${teamIds})
+      order by player_coaching_notes.updated_at desc
+    `;
+  } catch (err) {
+    if (err?.code === '42P01') return [];
+    throw err;
+  }
+}
+
 async function loadInviteCodes(teamIds) {
   try {
     await sql`delete from team_invite_codes where expires_at <= now()`;
@@ -143,7 +170,7 @@ export default async function handler(request, context) {
     const teamIds = teams.map((t) => t.id);
 
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], tournamentCodes: [], inviteCodes: [], availability: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], tournamentCodes: [], inviteCodes: [], availability: [], profileCoachingNotes: [] });
     }
     await ensureMatchImporterColumn();
     await ensureChampionPoolSchema();
@@ -160,7 +187,8 @@ export default async function handler(request, context) {
       matchArchives,
       tournamentCodes,
       inviteCodes,
-      availability
+      availability,
+      profileCoachingNotes
     ] = await Promise.all([
       sql`select * from players where team_id = any(${teamIds}) order by created_at asc`,
       sql`
@@ -202,7 +230,8 @@ export default async function handler(request, context) {
       loadMatchArchives(teamIds),
       loadTournamentCodes(teamIds),
       loadInviteCodes(teamIds),
-      loadAvailability(teamIds)
+      loadAvailability(teamIds),
+      loadProfileCoachingNotes(teamIds)
     ]);
     const matchIds = matches.map((m) => m.id);
     const participants = matchIds.length ? await sql`select * from match_participants where match_id = any(${matchIds}) order by team_key asc, role asc` : [];
@@ -215,7 +244,7 @@ export default async function handler(request, context) {
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, tournamentCodes, inviteCodes, availability });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, tournamentCodes, inviteCodes, availability, profileCoachingNotes });
   } catch (err) {
     return handleError(err);
   }
