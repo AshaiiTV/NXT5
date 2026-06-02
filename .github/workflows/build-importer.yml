@@ -39,16 +39,6 @@ jobs:
           name: NXT5-Importer-Windows
           path: importer-app/release/*.exe
 
-      - name: Publish latest exporter release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: nxt5-match-exporter-latest
-          name: NXT5 Importer latest
-          body: "Dernière version de NXT5 Importer."
-          make_latest: true
-          overwrite_files: true
-          files: importer-app/release/*.exe
-
   build-mac:
     name: macOS app
     runs-on: macos-latest
@@ -108,7 +98,17 @@ jobs:
           name: NXT5-Importer-macOS
           path: importer-app/release/*.zip
 
-      - name: Publish latest exporter release
+  publish-release:
+    name: Publish latest importer release
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-mac]
+    steps:
+      - name: Download built apps
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Publish latest importer release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nxt5-match-exporter-latest
@@ -116,4 +116,4 @@ jobs:
           body: "Dernière version de NXT5 Importer."
           make_latest: true
           overwrite_files: true
-          files: importer-app/release/*.zip
+          files: release-artifacts/**/*
