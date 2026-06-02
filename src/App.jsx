@@ -1447,6 +1447,12 @@ function isGameplayRole(role) {
   return [...COMP_ROLES, "SUB"].includes(String(role || "").toUpperCase());
 }
 
+function rosterRoleIndex(role) {
+  const normalized = String(role || "").toUpperCase();
+  const index = [...COMP_ROLES, "SUB"].indexOf(normalized);
+  return index === -1 ? 99 : index;
+}
+
 function isStaffRole(role) {
   return STAFF_ROLES.includes(String(role || "").toUpperCase());
 }
@@ -2431,7 +2437,7 @@ function ChampionSpotlight({ title, items, toneName, empty }) {
 function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserId = "", canManage = false, saving = false, syncingPlayerId = "", riotCooldownSeconds = 0, onCopyOpgg, onSyncPlayer, onEditPlayer, onDeletePlayer }) {
   const [openPlayerId, setOpenPlayerId] = useState("");
   if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun profil" text="Ajoute tes joueurs et ton staff pour préparer les reviews." /></div>;
-  const playerRoster = roster.filter((item) => !isStaffRole(item.role));
+  const playerRoster = roster.filter((item) => !isStaffRole(item.role)).sort((a, b) => rosterRoleIndex(a.role) - rosterRoleIndex(b.role) || String(a.name || "").localeCompare(String(b.name || "")));
   const staffRoster = roster.filter((item) => isStaffRole(item.role));
   const showActions = Boolean(onCopyOpgg || onSyncPlayer || onEditPlayer || onDeletePlayer);
   const renderSection = (items, title, subtitle, Icon, emptyText) => (
