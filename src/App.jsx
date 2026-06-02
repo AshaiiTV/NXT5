@@ -3257,16 +3257,16 @@ function ObjectiveTeamCard({ match, teamKey, title, toneName }) {
         <p className="text-sm font-black text-white">{value}</p>
       </div>)}
     </div>
-    <div className="mt-3 rounded-xl border border-white/10 bg-black/22 p-2">
+    {data.dragons.length > 0 && <div className="mt-3 rounded-xl border border-white/10 bg-black/22 p-2">
       <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Éléments dragons</p>
-      {data.dragons.length ? <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
           <ObjectivePictogram type="dragon" fallback={objectiveEventIcon(event)} className="h-4 w-4" />
           {objectiveDragonElement(event)}
           <span className="text-white/65">{event.time}</span>
         </span>)}
-      </div> : <p className="mt-2 text-xs font-semibold text-slate-400">{data.dragonCount ? `${data.dragonCount} dragon${data.dragonCount > 1 ? "s" : ""}, éléments non disponibles sans timeline.` : "Aucun dragon."}</p>}
-    </div>
+      </div>
+    </div>}
   </div>;
 }
 
