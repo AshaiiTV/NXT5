@@ -3643,17 +3643,21 @@ function GameMetricSignals({ match }) {
   const csDiff = sumRows(ally, "cs") - sumRows(enemy, "cs");
   const deaths = sumRows(ally, "deaths");
   const enemyDeaths = sumRows(enemy, "deaths");
-  const cards = [
-    [Crown, "Score data", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda}` : "Aucune donnée", "cyan"],
-    [AlertTriangle, "Morts", exposed, exposed ? `${exposed.deaths || 0} morts · ${championDisplayName(exposed.champion)}` : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
-    [Flame, "Dégâts", damageLead, damageLead ? formatPoints(damageLead.damage) + " dégâts" : "Aucune donnée", "purple"],
-    [Eye, "Vision", visionLead, visionLead ? `${visionLead.vision || 0} vision score` : "Aucune donnée", "green"],
-  ];
-  return <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 p-3">
-    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-    <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/[0.07] p-3 lg:flex-row lg:items-center lg:justify-between"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Comparatif équipe</p><div className="grid min-w-0 flex-1 gap-2 text-sm font-bold text-white sm:grid-cols-2 lg:max-w-2xl"><div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"><span className="truncate text-slate-200">CS diff</span><Badge tone={diffTone(csDiff)}>{(csDiff >= 0 ? "+" : "") + formatPoints(csDiff)}</Badge></div><div className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2"><span className="truncate text-slate-200">Morts</span><Badge tone={deaths <= enemyDeaths ? "green" : "red"}>{deaths} / {enemyDeaths}</Badge></div></div></div>
-  </div>;
-}
+	  const cards = [
+	    [Crown, "Score data", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda}` : "Aucune donnée", "cyan"],
+	    [AlertTriangle, "Morts", exposed, exposed ? `${exposed.deaths || 0} morts · ${championDisplayName(exposed.champion)}` : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
+	    [Flame, "Dégâts", damageLead, damageLead ? formatPoints(damageLead.damage) + " dégâts" : "Aucune donnée", "purple"],
+	    [Eye, "Vision", visionLead, visionLead ? `${visionLead.vision || 0} vision score` : "Aucune donnée", "green"],
+	  ];
+	  const comparisonCards = [
+	    [Gauge, "CS diff", (csDiff >= 0 ? "+" : "") + formatPoints(csDiff), "Alliés vs adversaires", diffTone(csDiff)],
+	    [Swords, "Morts équipe", `${deaths} / ${enemyDeaths}`, "Alliés vs adversaires", deaths <= enemyDeaths ? "green" : "red"],
+	  ];
+	  return <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 p-3">
+	    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	    <div className="mt-2 grid gap-2 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	  </div>;
+	}
 
 function HudIcon({ src, label, fallback, emptyText = "VIDE", toneName = "cyan", className = "" }) {
   const active = Boolean(src);
