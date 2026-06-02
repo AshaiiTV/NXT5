@@ -3497,9 +3497,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
     const player = resolveRowPlayer(row);
     const baseKey = rowBaseKey(row);
     const role = String(row.role || player?.role || "ROLE").toUpperCase();
-    const key = collidedBaseKeys.has(baseKey) ? `${baseKey}::${role}` : baseKey;
-    const current = map.get(key) || { key, name: player?.name || row.summoner_name || row.riot_id || "Profil", role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map() };
-    current.name = player?.name || row.summoner_name || current.name;
+    const roleCollision = collidedBaseKeys.has(baseKey);
+    const key = roleCollision ? `${baseKey}::${role}` : baseKey;
+    const rowDisplayName = roleCollision ? (row.summoner_name || row.riot_id || player?.name || "Profil") : (player?.name || row.summoner_name || row.riot_id || "Profil");
+    const current = map.get(key) || { key, name: rowDisplayName, role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map() };
+    current.name = rowDisplayName || current.name;
     current.role = role;
     current.games += 1;
     current.kills += Number(row.kills || 0);
