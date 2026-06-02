@@ -248,7 +248,7 @@ function preciseErrorText(err, context = "generic") {
   if (/Game ID requis/i.test(message)) return "Colle un Game ID Riot avant d’importer.";
   if (/Team ID requis|Team introuvable/i.test(message)) return "Aucune équipe active n’est reliée à cet import. Sélectionne ou crée une équipe, puis réessaie.";
   if (/roster avant d.importer/i.test(message)) return "Ajoute au moins un profil joueur dans la page Équipe avant d’importer une game.";
-  if (/Aucun joueur du roster/i.test(message)) return "La game a été trouvée, mais aucun participant ne correspond au roster. Corrige les Riot IDs des profils dans Équipe, puis relance l’import.";
+  if (/Aucun joueur du roster/i.test(message)) return "La game a été trouvée, mais aucun participant ne correspond au roster. Choisis le side de ton équipe puis associe chaque champion au bon profil NXT5 avant l’import.";
 
   if (context === "match-import" && status === 404) return "Riot ne trouve pas cette game. Vérifie le Game ID, la région du préfixe (EUW1, NA1, KR...) ou attends quelques minutes après la fin de la partie.";
   if (context === "match-import" && status === 403) return "Ton compte n’a pas accès à cette équipe pour importer une game. Vérifie que tu es bien membre de la team.";
@@ -2331,7 +2331,7 @@ function PlayerProfileStatsPanel({ player, matches = [] }) {
 }
 
 function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refreshAll, pushToast }) {
-  const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role) && player.role !== "SUB");
+  const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const canObserveAll = canStaffManage(currentMember?.role);
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
@@ -2892,12 +2892,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">1. Exporter</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ouvre NXT5 Importer sur le PC où le client LoL contient cette game dans l’historique, colle le Game ID et génère le fichier.</p></div>
               <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">2. Importer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Clique sur “Importer un JSON” et sélectionne le fichier créé par l’app.</p></div>
-              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">3. Confirmer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis ton side, associe les champions aux postes et valide.</p></div>
+              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">3. Confirmer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis ton side, associe chaque champion à son poste et au profil NXT5 correspondant, même si le joueur utilise un autre compte LoL.</p></div>
             </div>
 
             <div className="rounded-3xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4">
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div><h4 className="text-xl font-black text-white">Assignation de la game</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Choisis ton side : NXT5 préremplit les profils et champions par poste, puis tu corriges si nécessaire avant validation.</p></div>
+                <div><h4 className="text-xl font-black text-white">Assignation de la game</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Choisis ton side : NXT5 préremplit les champions par poste, puis tu confirmes le profil correspondant pour chaque joueur.</p></div>
                 <Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge>
               </div>
               {importPreview ? <div className="mt-4 space-y-4">
@@ -2922,6 +2922,10 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                           <select value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
                             <option value="">Champion joué</option>
                             {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
+                          </select>
+                          <select value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="mt-2 w-full rounded-xl border border-cyan-300/14 bg-cyan-400/[0.07] px-3 py-2 text-xs font-black text-white outline-none">
+                            <option value="">Profil NXT5 lié</option>
+                            {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}{player.riot_id ? ` · ${player.riot_id}` : ""}</option>)}
                           </select>
                         </div>;
                       })}
@@ -3291,7 +3295,13 @@ function csAtMinute(row, minute) {
   const participantId = rowParticipantId(row);
   const frames = row?.match?.raw?.timeline?.info?.frames || row?.match?.raw?.metadata?.timeline?.info?.frames || row?.match?.raw?.timeline?.frames || [];
   const target = Number(minute || 0) * 60 * 1000;
-  if (!participantId || !frames.length) return null;
+  if (!participantId) return null;
+  if (!frames.length) {
+    const summary = row?.match?.raw?.nxt5?.timelineSummary?.csMilestones?.[String(participantId)];
+    const key = `cs${minute}`;
+    const value = summary?.[key];
+    return Number.isFinite(Number(value)) ? Number(value) : null;
+  }
   const frame = frames.find((item) => Number(item.timestamp || 0) >= target) || frames[frames.length - 1];
   const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
   if (!participantFrame) return null;
@@ -3527,6 +3537,14 @@ function visionWardEvents(match) {
   const participants = match?.raw?.info?.participants || [];
   const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
   const allyTeamId = Number(teamRows(match, "ALLY")[0]?.raw?.teamId || 0);
+  if (!frames.length && Array.isArray(match?.raw?.nxt5?.timelineSummary?.wards)) {
+    return match.raw.nxt5.timelineSummary.wards.map((event) => ({
+      ...event,
+      teamKey: Number(event.teamId || 0) && allyTeamId && Number(event.teamId) === allyTeamId ? "ALLY" : "ENEMY",
+      x: Number.isFinite(Number(event.normalizedX)) ? Number(event.normalizedX) : Math.max(0, Math.min(1, Number(event.x || 0) / 15000)),
+      y: Number.isFinite(Number(event.normalizedY)) ? Number(event.normalizedY) : Math.max(0, Math.min(1, Number(event.y || 0) / 15000)),
+    }));
+  }
   return frames.flatMap((frame) => (frame.events || [])
     .filter((event) => event.type === "WARD_PLACED" && event.position)
     .map((event) => {
@@ -3542,6 +3560,24 @@ function visionWardEvents(match) {
 
 function VisionHeatmap({ match }) {
   const events = visionWardEvents(match).filter((event) => event.teamKey === "ALLY");
+  const heatCells = Array.from(events.reduce((map, event) => {
+    const cellSize = 0.085;
+    const x = Math.round(event.x / cellSize) * cellSize;
+    const y = Math.round(event.y / cellSize) * cellSize;
+    const key = `${x.toFixed(3)}:${y.toFixed(3)}`;
+    const current = map.get(key) || { x, y, count: 0 };
+    current.count += 1;
+    map.set(key, current);
+    return map;
+  }, new Map()).values());
+  const maxCell = Math.max(1, ...heatCells.map((cell) => cell.count));
+  const heatColor = (count) => {
+    const ratio = count / maxCell;
+    if (ratio >= 0.82) return "rgba(239,68,68,.72)";
+    if (ratio >= 0.58) return "rgba(249,115,22,.62)";
+    if (ratio >= 0.34) return "rgba(250,204,21,.55)";
+    return "rgba(34,211,238,.42)";
+  };
   const wardTypes = events.reduce((map, event) => {
     const key = String(event.wardType || "WARD").replace(/_/g, " ");
     map.set(key, (map.get(key) || 0) + 1);
@@ -3553,12 +3589,18 @@ function VisionHeatmap({ match }) {
       <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Wards alliées importées</span>
     </div>
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(160px,.32fr)]">
-      <div className="relative aspect-[1.45/1] min-h-[220px] overflow-hidden rounded-2xl border border-white/10 bg-[#07131f]">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),transparent_28%,rgba(217,70,239,.10)_72%,transparent),repeating-linear-gradient(0deg,rgba(255,255,255,.045)_0_1px,transparent_1px_28px),repeating-linear-gradient(90deg,rgba(255,255,255,.035)_0_1px,transparent_1px_28px)]" />
-        <div className="absolute left-[8%] top-[9%] h-[28%] w-[28%] rounded-full border border-cyan-200/10" />
-        <div className="absolute bottom-[9%] right-[8%] h-[28%] w-[28%] rounded-full border border-fuchsia-200/10" />
-        {events.length ? events.map((event, index) => <span key={`${event.timestamp}-${event.creatorId}-${index}`} className="absolute h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-300/22 blur-[2px] shadow-[0_0_22px_rgba(34,211,238,.44)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%` }} />) : <div className="absolute inset-0 flex items-center justify-center text-center text-sm font-semibold text-slate-300">Aucune position de ward dans ce JSON.</div>}
-        {events.map((event, index) => <span key={`dot-${event.timestamp}-${index}`} className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/70 bg-cyan-200 shadow-[0_0_12px_rgba(34,211,238,.8)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%` }} />)}
+      <div className="relative aspect-square min-h-[260px] overflow-hidden rounded-2xl border border-white/10 bg-[#07131f]">
+        <div className="absolute inset-0 bg-cover bg-center opacity-72 saturate-125" style={{ backgroundImage: "url(https://ddragon.leagueoflegends.com/cdn/15.11.1/img/map/map11.png)" }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#030713]/16 via-[#030713]/18 to-[#030713]/28" />
+        <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.035)_0_1px,transparent_1px_12.5%),repeating-linear-gradient(90deg,rgba(255,255,255,.03)_0_1px,transparent_1px_12.5%)]" />
+        {events.length ? heatCells.map((cell) => <span key={`${cell.x}-${cell.y}`} className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-[2px] mix-blend-screen" style={{ left: `${cell.x * 100}%`, top: `${(1 - cell.y) * 100}%`, width: `${34 + (cell.count / maxCell) * 62}px`, height: `${34 + (cell.count / maxCell) * 62}px`, backgroundColor: heatColor(cell.count), boxShadow: `0 0 ${18 + cell.count * 4}px ${heatColor(cell.count)}` }} />) : <div className="absolute inset-0 flex items-center justify-center bg-black/34 text-center text-sm font-semibold text-slate-200">Aucune position de ward dans ce JSON.</div>}
+        {events.map((event, index) => <span key={`dot-${event.timestamp}-${index}`} className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/70 bg-white shadow-[0_0_12px_rgba(255,255,255,.72)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%` }} />)}
+        <div className="absolute bottom-3 left-3 right-3 rounded-2xl border border-white/12 bg-black/55 p-3 backdrop-blur-xl">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-white">Intensité vision</span>
+            <div className="flex min-w-[14rem] flex-1 items-center gap-2 sm:max-w-xs"><span className="text-[0.58rem] font-black text-slate-300">Aucune</span><span className="h-2 flex-1 rounded-full bg-gradient-to-r from-transparent via-cyan-300 via-yellow-300 via-orange-400 to-red-500" /><span className="text-[0.58rem] font-black text-red-100">Max</span></div>
+          </div>
+        </div>
       </div>
       <div className="rounded-2xl border border-white/10 bg-black/22 p-3">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Types de wards</p>
@@ -3768,9 +3810,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const stats = Array.from(rows.reduce((map, row) => {
     const player = resolveRowPlayer(row);
     const role = normalizeProfileRole(row.role || player?.role || "ROLE");
-    const key = ROSTER_ROLE_ORDER.includes(role) ? role : `OTHER::${row.riot_id || row.summoner_name || row.champion || role}`;
     const rolePlayer = ROSTER_ROLE_ORDER.includes(role) ? rosterByRole.get(role) : null;
-    const displayPlayer = normalizeProfileRole(player?.role) === role ? player : rolePlayer || player;
+    const displayPlayer = player || rolePlayer;
+    const key = displayPlayer?.id ? `PLAYER::${displayPlayer.id}` : ROSTER_ROLE_ORDER.includes(role) ? role : `OTHER::${row.riot_id || row.summoner_name || row.champion || role}`;
     const rowDisplayName = displayPlayer?.name || row.summoner_name || row.riot_id || roleLabel(role);
     const current = map.get(key) || { key, name: rowDisplayName, role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map(), nameCounts: new Map() };
     current.nameCounts.set(rowDisplayName, (current.nameCounts.get(rowDisplayName) || 0) + 1);

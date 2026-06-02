@@ -230,6 +230,90 @@ async function fetchLocalClientMatch(numericGameId, fullGameId) {
   throw new Error(`Impossible de lire cette partie dans le client LoL local. Ouvre l’historique de match dans le client, puis réessaie. Détails: ${errors.join(' | ')}`);
 }
 
+function normalizeTimelinePayload(value) {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value.frames)) return { info: { frames: value.frames } };
+  if (Array.isArray(value.info?.frames)) return value;
+  if (Array.isArray(value.timeline?.frames)) return { info: { frames: value.timeline.frames } };
+  if (Array.isArray(value.timeline?.info?.frames)) return value.timeline;
+  if (Array.isArray(value.gameTimeline?.frames)) return { info: { frames: value.gameTimeline.frames } };
+  return null;
+}
+
+async function fetchLocalClientTimeline(numericGameId) {
+  const endpoints = [
+    `/lol-match-history/v1/game-timelines/${encodeURIComponent(numericGameId)}`,
+    `/lol-match-history/v1/games/${encodeURIComponent(numericGameId)}/timeline`,
+    `/lol-match-history/v1/game/${encodeURIComponent(numericGameId)}/timeline`
+  ];
+  for (const endpoint of endpoints) {
+    try {
+      const payload = await lcuGet(endpoint);
+      const timeline = normalizeTimelinePayload(payload);
+      if (timeline?.info?.frames?.length) return timeline;
+    } catch {
+      // The client exposes timeline differently depending on patch/platform.
+    }
+  }
+  return null;
+}
+
+function timelineFrames(timeline) {
+  return timeline?.info?.frames || timeline?.frames || [];
+}
+
+function csAtMinuteFromTimeline(timeline, participantId, minute) {
+  const frames = timelineFrames(timeline);
+  const target = Number(minute || 0) * 60 * 1000;
+  if (!participantId || !frames.length) return null;
+  const frame = frames.find((item) => Number(item.timestamp || 0) >= target) || frames[frames.length - 1];
+  const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
+  if (!participantFrame) return null;
+  return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
+}
+
+function wardEventsFromTimeline(match, timeline) {
+  const participants = match?.info?.participants || [];
+  const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
+  return timelineFrames(timeline).flatMap((frame) => (frame.events || [])
+    .filter((event) => event.type === 'WARD_PLACED' && event.position)
+    .map((event) => ({
+      timestamp: Number(event.timestamp || 0),
+      minute: Number((Number(event.timestamp || 0) / 60000).toFixed(1)),
+      creatorId: Number(event.creatorId || 0),
+      teamId: Number(participantTeam.get(Number(event.creatorId)) || 0),
+      wardType: String(event.wardType || 'WARD'),
+      x: Number(event.position.x || 0),
+      y: Number(event.position.y || 0),
+      normalizedX: Number(Math.max(0, Math.min(1, Number(event.position.x || 0) / 15000)).toFixed(4)),
+      normalizedY: Number(Math.max(0, Math.min(1, Number(event.position.y || 0) / 15000)).toFixed(4))
+    })));
+}
+
+function buildTimelineSummary(match, timeline) {
+  if (!timeline?.info?.frames?.length && !timeline?.frames?.length) {
+    return { available: false, csMilestones: {}, wards: [], wardCount: 0 };
+  }
+  const csMilestones = {};
+  for (const participant of match?.info?.participants || []) {
+    csMilestones[String(participant.participantId)] = {
+      participantId: Number(participant.participantId || 0),
+      champion: participant.championName || '',
+      summonerName: participant.summonerName || participant.riotIdGameName || '',
+      cs10: csAtMinuteFromTimeline(timeline, participant.participantId, 10),
+      cs20: csAtMinuteFromTimeline(timeline, participant.participantId, 20)
+    };
+  }
+  const wards = wardEventsFromTimeline(match, timeline);
+  return {
+    available: true,
+    frameCount: timelineFrames(timeline).length,
+    csMilestones,
+    wards,
+    wardCount: wards.length
+  };
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1040,
@@ -279,22 +363,31 @@ ipcMain.handle('generate-import', async (_event, form) => {
       throw riotError || new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
     }
     const localMatch = await fetchLocalClientMatch(extractedInput, gameId);
-    exported = { match: localMatch, source: 'nxt5-lcu-importer' };
+    const localTimeline = await fetchLocalClientTimeline(extractedInput);
+    exported = { match: localMatch, timeline: localTimeline, source: 'nxt5-lcu-importer' };
   }
 
   if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
     throw new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
   }
 
+  const timeline = normalizeTimelinePayload(exported.timeline);
+  if (timeline) exported.match.timeline = timeline;
+  const timelineSummary = buildTimelineSummary(exported.match, timeline);
+
   const payload = {
     source: 'nxt5-match-exporter',
-    version: 4,
+    version: 5,
     gameId,
     platform,
     exportedAt: new Date().toISOString(),
     importerSource: exported.source || 'riot-match-v5',
     match: exported.match,
-    timeline: exported.timeline || null
+    timeline,
+    nxt5: {
+      importer: APP_NAME,
+      timelineSummary
+    }
   };
 
   const { canceled, filePath } = await dialog.showSaveDialog({

@@ -42,6 +42,8 @@ export default async function handler(request, context) {
     }
     if (!match) match = await fetchRiotMatch(resolvedGameId);
     if (timeline) match.timeline = timeline;
+    const payloadMeta = body?.payload?.nxt5 || body?.file?.nxt5 || body?.nxt5 || null;
+    if (payloadMeta) match.nxt5 = payloadMeta;
     assertRiotMatchShape(match);
     if (body.previewOnly) {
       return json({
