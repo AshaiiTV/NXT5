@@ -3600,8 +3600,8 @@ function VisionHeatmap({ match }) {
         </div>
       </div>;
   return <div className="mt-3 rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045] p-3">
-    <button type="button" onClick={() => setCollapsed((value) => !value)} className="flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-3 py-3 text-left transition hover:border-cyan-300/28 hover:bg-cyan-400/10">
-      <div className="flex items-center gap-2"><Badge tone="cyan">Heatmap vision</Badge><Badge tone={events.length ? "green" : "slate"}>{events.length} wards</Badge></div>
+    <button type="button" onClick={() => setCollapsed((value) => !value)} aria-expanded={!collapsed} className="group flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-3 py-3 text-left transition hover:border-cyan-300/28 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/55">
+      <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Heatmap vision</Badge><Badge tone={events.length ? "green" : "slate"}>{events.length} wards</Badge><span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-200 transition group-hover:border-cyan-200/22 group-hover:text-cyan-100">{collapsed ? "Afficher" : "Masquer"}</span></div>
       <span className="flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Wards alliées importées<ChevronDown className={cx("h-4 w-4 text-cyan-100 transition", collapsed && "-rotate-90")} /></span>
     </button>
     {!collapsed && <div className="mt-3 grid gap-3 lg:grid-cols-[auto_minmax(160px,.32fr)]">
