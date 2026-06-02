@@ -3167,7 +3167,16 @@ function objectiveTeamId(match, teamKey) {
 function objectiveTeamValue(match, name, teamKey) {
   const teamId = objectiveTeamId(match, teamKey);
   const rawTeam = match?.raw?.info?.teams?.find((team) => Number(team.teamId) === teamId);
-  return Number(rawTeam?.objectives?.[name]?.kills || 0);
+  const objectives = rawTeam?.objectives || {};
+  const direct = objectives?.[name]?.kills;
+  if (direct !== undefined && direct !== null) return Number(direct || 0);
+  const normalized = String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const found = Object.entries(objectives).find(([key]) => String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "") === normalized);
+  return Number(found?.[1]?.kills || 0);
+}
+
+function objectiveTeamAnyValue(match, teamKey, names) {
+  return Math.max(0, ...names.map((name) => objectiveTeamValue(match, name, teamKey)));
 }
 
 function objectiveDragonElement(event) {
@@ -3179,23 +3188,28 @@ function objectiveTeamSummary(match, teamKey) {
   const events = objectiveEvents(match);
   const teamEvents = events.filter((event) => event.teamKey === teamKey);
   const dragons = teamEvents.filter((event) => objectiveEventType(event) === "dragon");
+  const rawDragons = objectiveTeamAnyValue(match, teamKey, ["dragon"]);
+  const rawGrubs = objectiveTeamAnyValue(match, teamKey, ["horde", "voidgrub", "voidGrubs", "grub", "grubs"]);
+  const rawHeralds = objectiveTeamAnyValue(match, teamKey, ["riftHerald", "riftHeralds", "herald"]);
+  const rawBarons = objectiveTeamAnyValue(match, teamKey, ["baron", "baronNashor"]);
+  const rawTowers = objectiveTeamAnyValue(match, teamKey, ["tower", "towers"]);
   if (events.length) {
     return {
       dragons,
-      dragonCount: dragons.length,
-      grubs: teamEvents.filter((event) => objectiveEventType(event) === "grub").length,
-      heralds: teamEvents.filter((event) => objectiveEventType(event) === "herald").length,
-      barons: teamEvents.filter((event) => objectiveEventType(event) === "baron").length,
-      towers: objectiveTeamValue(match, "tower", teamKey),
+      dragonCount: Math.max(dragons.length, rawDragons),
+      grubs: Math.max(teamEvents.filter((event) => objectiveEventType(event) === "grub").length, rawGrubs),
+      heralds: Math.max(teamEvents.filter((event) => objectiveEventType(event) === "herald").length, rawHeralds),
+      barons: Math.max(teamEvents.filter((event) => objectiveEventType(event) === "baron").length, rawBarons),
+      towers: rawTowers,
     };
   }
   return {
     dragons: [],
-    dragonCount: objectiveTeamValue(match, "dragon", teamKey),
-    grubs: objectiveTeamValue(match, "horde", teamKey) || objectiveTeamValue(match, "riftHerald", teamKey),
-    heralds: objectiveTeamValue(match, "riftHerald", teamKey),
-    barons: objectiveTeamValue(match, "baron", teamKey),
-    towers: objectiveTeamValue(match, "tower", teamKey),
+    dragonCount: rawDragons,
+    grubs: rawGrubs,
+    heralds: rawHeralds,
+    barons: rawBarons,
+    towers: rawTowers,
   };
 }
 
@@ -4177,9 +4191,9 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
   const mastery = compositionMastery(slots, rows);
   const picks = COMP_ROLES.map((role) => rows.find((row) => row.id === slots[role]?.poolId)).filter(Boolean);
   const identity = compositionIdentity(picks);
-  const hero = picks[0];
   return <Surface className="group relative overflow-hidden p-4 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/28 hover:shadow-[0_0_42px_rgba(34,211,238,.10)]">
-    {hero && <><ChampionBackdrop champion={hero.champion} /><div className="absolute inset-0 bg-gradient-to-r from-[#050711] via-[#050711]/88 to-[#050711]/54" /></>}
+    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(34,211,238,.12),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(217,70,239,.10),transparent_32%),linear-gradient(135deg,rgba(8,145,178,.08),rgba(2,6,23,.62)_48%,rgba(88,28,135,.10))]" />
+    <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/55 to-fuchsia-200/45" />
     <div className="relative z-10">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge>{tags.map((tag) => <Badge key={tag} tone="purple">{tagLabel(tag)}</Badge>)}</div><h3 className="mt-3 truncate text-2xl font-black text-white">{composition.title}</h3><p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100/80">Créée par {composition.created_by_name || "un membre"}</p>{composition.notes && <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}</div>
