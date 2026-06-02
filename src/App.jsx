@@ -2137,7 +2137,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         {roster.map((player) => {
           const linkedMember = player.user_id ? memberByUser.get(player.user_id) : null;
           const staff = isStaffRole(player.role);
-          return <div key={player.id} className={cx("grid gap-3 rounded-2xl border p-3 lg:grid-cols-[minmax(180px,.78fr)_minmax(210px,1fr)_minmax(150px,.58fr)_minmax(0,.95fr)] lg:items-center", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
+          return <div key={player.id} className={cx("grid gap-3 rounded-2xl border p-3 xl:grid-cols-[minmax(180px,.78fr)_minmax(210px,1fr)_minmax(150px,.58fr)_minmax(0,.95fr)] xl:items-center", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2"><Badge tone={staff ? "purple" : "blue"}>{roleLabel(player.role)}</Badge><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge></div>
               <p className="mt-2 truncate text-lg font-black text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
@@ -3393,28 +3393,32 @@ function MatchVersusOverview({ match }) {
       <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Lecture instantanée de la game</h4></div>
     </div>
     <ObjectiveHud match={match} compact />
-    <div className="mb-2 grid min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-center gap-2">
-      <SideColumnHeader side="blue" />
-      <div />
-      <SideColumnHeader side="red" align="right" />
-    </div>
-    <div className="grid gap-2">
-      {COMP_ROLES.map((role) => {
-        const blueRow = byRole(blueRows, role);
-        const redRow = byRole(redRows, role);
-        const blueGold = blueRow ? statValue(blueRow, "gold") : 0;
-        const redGold = redRow ? statValue(redRow, "gold") : 0;
-        const diff = (blueKey === "ALLY" ? blueGold - redGold : redGold - blueGold);
-        return <div key={role} className="grid min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-stretch gap-2">
-          <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/35 px-1.5 py-2 text-center">
-            <RoleIcon role={role} className="h-5 w-5" />
-            <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
-            <span className={cx("mt-1 rounded-lg px-1.5 py-0.5 text-[0.54rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{formatGoldDiff(diff)}</span>
-          </div>
-          <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
-        </div>;
-      })}
+    <div className="nxt5-responsive-scroll">
+      <div className="min-w-[760px] lg:min-w-0">
+        <div className="mb-2 grid min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-center gap-2">
+          <SideColumnHeader side="blue" />
+          <div />
+          <SideColumnHeader side="red" align="right" />
+        </div>
+        <div className="grid gap-2">
+          {COMP_ROLES.map((role) => {
+            const blueRow = byRole(blueRows, role);
+            const redRow = byRole(redRows, role);
+            const blueGold = blueRow ? statValue(blueRow, "gold") : 0;
+            const redGold = redRow ? statValue(redRow, "gold") : 0;
+            const diff = (blueKey === "ALLY" ? blueGold - redGold : redGold - blueGold);
+            return <div key={role} className="grid min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-stretch gap-2">
+              <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/35 px-1.5 py-2 text-center">
+                <RoleIcon role={role} className="h-5 w-5" />
+                <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
+                <span className={cx("mt-1 rounded-lg px-1.5 py-0.5 text-[0.54rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{formatGoldDiff(diff)}</span>
+              </div>
+              <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
+            </div>;
+          })}
+        </div>
+      </div>
     </div>
   </div>;
 }
@@ -3593,6 +3597,10 @@ function championPoolStatusLabel(status) {
 
 function championPoolStatusTone(status) {
   return status === "lock" ? "green" : status === "danger" ? "red" : status === "pocket" ? "yellow" : "cyan";
+}
+
+function championTierByStatus(status) {
+  return CHAMPION_TIERS.find((tier) => tier.id === status) || CHAMPION_TIERS.find((tier) => tier.id === "work") || CHAMPION_TIERS[0];
 }
 
 function ManualChampionPoolPanel({ players, rows, selectedTeamId, canManage, refreshAll, pushToast }) {
@@ -4077,10 +4085,11 @@ function compositionMastery(slots, rows) {
 
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
+  const tier = championTierByStatus(status);
   return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200 hover:-translate-y-0.5", active ? "border-cyan-200/70 bg-cyan-400/14 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/35 hover:bg-cyan-400/10")}>
     <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full object-cover transition duration-300 group-hover:scale-110" />
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-    <div className={cx("absolute right-1.5 top-1.5 h-3 w-3 rounded-full border border-white/40", status === "lock" ? "bg-emerald-300" : status === "pocket" ? "bg-yellow-300" : status === "danger" ? "bg-rose-300" : "bg-cyan-300")} />
+    <ChampionTierMark tier={tier} active={active} className="absolute right-1.5 top-1.5 h-6 w-6 rounded-lg border-white/25 bg-black/35 backdrop-blur-md [&_svg]:h-3.5 [&_svg]:w-3.5" />
     <p className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[0.62rem] font-black text-white drop-shadow">{championDisplayName(row.champion)}</p>
   </button>;
 }
@@ -4128,7 +4137,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
       <div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/80">Banque de champions</p><p className="mt-1 text-sm font-semibold text-slate-300">Glisse une icône vers le cadre de compo correspondant.</p></div>
       <div className="flex flex-wrap gap-2"><Badge tone="green">Maîtrisé</Badge><Badge tone="yellow">Confort</Badge><Badge tone="cyan">Moyens</Badge><Badge tone="red">À apprendre</Badge></div>
     </div>
-    <div className="mt-4 grid gap-3 lg:grid-cols-2 2xl:grid-cols-5">
+    <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">
       {COMP_ROLES.map((role) => {
         const slot = slots[role] || {};
         const player = players.find((item) => item.id === slot.playerId) || players.find((item) => item.role === role);
@@ -4141,7 +4150,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
           });
         return <div key={role} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
           <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
-          <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 lg:grid-cols-5">{pool.length ? pool.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />) : <div className="col-span-full rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}</div>
+          <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-4 sm:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5">{pool.length ? pool.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />) : <div className="col-span-full rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}</div>
         </div>;
       })}
     </div>
@@ -4261,7 +4270,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
     { id: "blue side", label: "Blue Side" },
     { id: "red side", label: "Red Side" },
   ];
-  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate de la maîtrise poste par poste." /><div className="mb-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center"><button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-black text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,.08)] transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/16"><BookOpen className="h-4 w-4" />Sommaire des tags<ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} /></button><ChampionPoolColorSummary /></div><AnimatePresence initial={false}><CompositionTagLexicon open={showTagLexicon} /></AnimatePresence></div>{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Builder 5 lanes</Badge><h3 className="mt-3 text-3xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la maîtrise se met à jour instantanément.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}</div></div><label className="mt-4 block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Résumé</span><textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft, infos importantes pour cette compo..." rows={4} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/35" /></label><div className="mt-5 grid gap-3 lg:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="text-sm font-black uppercase tracking-[0.28em] text-slate-300">Compos enregistrées</h3><p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p></div><div className="flex w-full rounded-2xl border border-white/10 bg-black/20 p-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] md:w-auto">{sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.34)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}</div></div><div className="mt-3 grid gap-3">{filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
+  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate de la maîtrise poste par poste." /><div className="mb-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center"><button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-black text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,.08)] transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/16"><BookOpen className="h-4 w-4" />Sommaire des tags<ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} /></button><ChampionPoolColorSummary /></div><AnimatePresence initial={false}><CompositionTagLexicon open={showTagLexicon} /></AnimatePresence></div>{players.length ? <form onSubmit={saveComposition}><Surface glow className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Builder 5 lanes</Badge><h3 className="mt-3 text-3xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la maîtrise se met à jour instantanément.</p></div><Badge tone={mastery.tone}>{mastery.label} · {mastery.score}%</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}</div></div><label className="mt-4 block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Résumé</span><textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft, infos importantes pour cette compo..." rows={4} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/35" /></label><div className="mt-5 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="text-sm font-black uppercase tracking-[0.28em] text-slate-300">Compos enregistrées</h3><p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p></div><div className="flex w-full rounded-2xl border border-white/10 bg-black/20 p-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] md:w-auto">{sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.34)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}</div></div><div className="mt-3 grid gap-3">{filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
 }
 
 function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {

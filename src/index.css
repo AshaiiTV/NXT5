@@ -80,6 +80,19 @@ textarea {
   white-space: normal;
 }
 
+.nxt5-responsive-scroll {
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.35rem;
+  scrollbar-gutter: stable;
+}
+
+.nxt5-responsive-scroll > * {
+  min-width: 0;
+}
+
 img,
 video,
 canvas,
@@ -196,6 +209,13 @@ svg {
   select,
   textarea {
     font-size: 16px;
+  }
+
+  .nxt5-responsive-scroll {
+    margin-left: -0.25rem;
+    margin-right: -0.25rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
   }
 
   .nxt5-hud-lines::before {
