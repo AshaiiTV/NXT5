@@ -1,4 +1,5 @@
 const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest';
+const PREFERRED_VERSION = '0.2.2';
 
 function redirect(url) {
   return new Response(null, {
@@ -35,7 +36,7 @@ function scoreAsset(asset, platform) {
   if (name.includes('nxt5-importer')) score += 100;
   if (name.includes('nxt5-match-exporter')) score += 50;
   if (platform === 'mac' && name.includes('arm64')) score += 20;
-  if (name.includes('0.2.1')) score += 10;
+  if (name.includes(PREFERRED_VERSION)) score += 30;
   return score;
 }
 
