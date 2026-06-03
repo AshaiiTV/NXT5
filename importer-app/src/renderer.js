@@ -1,6 +1,9 @@
 const form = document.querySelector('#form');
 const submit = document.querySelector('#submit');
 const statusBox = document.querySelector('#status');
+const updateBox = document.querySelector('#update');
+const updateText = document.querySelector('#updateText');
+const updateLink = document.querySelector('#updateLink');
 let generating = false;
 
 function setStatus(type, text) {
@@ -19,6 +22,22 @@ if (!window.nxt5?.generateImport) {
   submit.disabled = true;
   setStatus('error', "Le moteur local de l'application ne s'est pas charge. Ferme l'app, supprime l'ancienne version, puis ouvre la derniere version de NXT5 Importer.");
 }
+
+async function checkForUpdate() {
+  if (!window.nxt5?.checkUpdate || !updateBox || !updateText || !updateLink) return;
+  try {
+    const info = await window.nxt5.checkUpdate();
+    if (!info?.updateAvailable) return;
+    updateText.textContent = `Ta version : ${info.currentVersion}. Derniere version : ${info.latestVersion}. Mets a jour pour profiter des derniers imports, timeline, wards et stats.`;
+    updateLink.href = info.downloadUrl;
+    updateLink.textContent = info.platform === 'mac' ? 'Telecharger Mac' : 'Telecharger Windows';
+    updateBox.hidden = false;
+  } catch {
+    // Offline or GitHub temporarily unavailable: importing must remain possible.
+  }
+}
+
+checkForUpdate();
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();

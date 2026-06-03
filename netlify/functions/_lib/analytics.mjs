@@ -76,6 +76,59 @@ function participantRawSnapshot(p) {
   };
 }
 
+function timelineFrames(timeline) {
+  return timeline?.info?.frames || timeline?.frames || timeline?.timeline?.info?.frames || timeline?.timeline?.frames || [];
+}
+
+function buildNxt5TimelineSummary(match) {
+  const timeline = match?.timeline || match?.metadata?.timeline || match?.nxt5?.timeline || null;
+  const frames = timelineFrames(timeline);
+  const participants = match?.info?.participants || [];
+  const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
+  if (!frames.length) return match?.nxt5?.timelineSummary || { available: false, csMilestones: {}, wards: [], wardCount: 0 };
+
+  const csMilestones = {};
+  for (const participant of participants) {
+    const participantId = Number(participant.participantId || 0);
+    const csAt = (minute) => {
+      const target = Number(minute || 0) * 60 * 1000;
+      const frame = frames.find((item) => Number(item.timestamp || 0) >= target) || frames[frames.length - 1];
+      const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
+      if (!participantFrame) return null;
+      return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
+    };
+    csMilestones[String(participantId)] = {
+      participantId,
+      champion: participant.championName || '',
+      summonerName: participant.summonerName || participant.riotIdGameName || '',
+      cs10: csAt(10),
+      cs20: csAt(20)
+    };
+  }
+
+  const wards = frames.flatMap((frame) => (frame.events || [])
+    .filter((event) => /WARD/i.test(String(event.type || '')) && (event.position || event.x || event.y))
+    .map((event) => {
+      const creatorId = Number(event.creatorId || event.participantId || event.killerId || 0);
+      const position = event.position || event;
+      const x = Number(position.x || position.positionX || 0);
+      const y = Number(position.y || position.positionY || 0);
+      return {
+        timestamp: Number(event.timestamp || frame.timestamp || 0),
+        minute: Number((Number(event.timestamp || frame.timestamp || 0) / 60000).toFixed(1)),
+        creatorId,
+        teamId: Number(event.teamId || participantTeam.get(creatorId) || 0),
+        wardType: String(event.wardType || event.type || 'WARD'),
+        x,
+        y,
+        normalizedX: Number(Math.max(0, Math.min(1, x / 15000)).toFixed(4)),
+        normalizedY: Number(Math.max(0, Math.min(1, y / 15000)).toFixed(4))
+      };
+    }));
+
+  return { available: true, frameCount: frames.length, csMilestones, wards, wardCount: wards.length };
+}
+
 function manualRoleForParticipant(p, laneAssignments) {
   const champion = normalizeLoose(p.championName);
   const summoner = normalizeLoose(p.summonerName);
@@ -360,6 +413,10 @@ async function ensureMatchImporterColumn() {
 
 export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '' }) {
   await ensureMatchImporterColumn();
+  match.nxt5 = {
+    ...(match.nxt5 || {}),
+    timelineSummary: buildNxt5TimelineSummary(match)
+  };
   const allyTeamId = detectAllyTeam(match, roster, allyTeamSide);
   const normalizedLaneAssignments = normalizeLaneAssignments(laneAssignments);
   const normalizedEnemyLaneAssignments = normalizeLaneAssignments(enemyLaneAssignments);

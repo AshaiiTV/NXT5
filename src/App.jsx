@@ -3574,27 +3574,33 @@ function ObjectiveHud({ match, compact = false }) {
 }
 
 function visionWardEvents(match) {
-  const frames = match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || [];
+  const timelineSummary = match?.raw?.nxt5?.timelineSummary || match?.raw?.metadata?.nxt5?.timelineSummary || match?.raw?.metadata?.timelineSummary || null;
+  const summaryWards = Array.isArray(timelineSummary?.wards) ? timelineSummary.wards : [];
+  const frames = match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || match?.raw?.timeline?.timeline?.info?.frames || match?.raw?.timeline?.timeline?.frames || [];
   const participants = match?.raw?.info?.participants || [];
   const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
   const allyTeamId = Number(teamRows(match, "ALLY")[0]?.raw?.teamId || 0);
-  if (!frames.length && Array.isArray(match?.raw?.nxt5?.timelineSummary?.wards)) {
-    return match.raw.nxt5.timelineSummary.wards.map((event) => ({
+  if (summaryWards.length) {
+    return summaryWards.map((event) => ({
       ...event,
-      teamKey: Number(event.teamId || 0) && allyTeamId && Number(event.teamId) === allyTeamId ? "ALLY" : "ENEMY",
+      teamKey: Number(event.teamId || 0) && allyTeamId ? (Number(event.teamId) === allyTeamId ? "ALLY" : "ENEMY") : "ALLY",
       x: Number.isFinite(Number(event.normalizedX)) ? Number(event.normalizedX) : Math.max(0, Math.min(1, Number(event.x || 0) / 15000)),
       y: Number.isFinite(Number(event.normalizedY)) ? Number(event.normalizedY) : Math.max(0, Math.min(1, Number(event.y || 0) / 15000)),
     }));
   }
   return frames.flatMap((frame) => (frame.events || [])
-    .filter((event) => event.type === "WARD_PLACED" && event.position)
+    .filter((event) => /WARD/i.test(String(event.type || "")) && (event.position || event.x || event.y))
     .map((event) => {
-      const creatorTeamId = Number(participantTeam.get(Number(event.creatorId)) || 0);
+      const creatorId = Number(event.creatorId || event.participantId || event.killerId || 0);
+      const creatorTeamId = Number(event.teamId || participantTeam.get(creatorId) || 0);
+      const position = event.position || event;
+      const x = Number(position.x || position.positionX || 0);
+      const y = Number(position.y || position.positionY || 0);
       return {
         ...event,
-        teamKey: creatorTeamId && allyTeamId && creatorTeamId === allyTeamId ? "ALLY" : "ENEMY",
-        x: Math.max(0, Math.min(1, Number(event.position.x || 0) / 15000)),
-        y: Math.max(0, Math.min(1, Number(event.position.y || 0) / 15000)),
+        teamKey: creatorTeamId && allyTeamId ? (creatorTeamId === allyTeamId ? "ALLY" : "ENEMY") : "ALLY",
+        x: Math.max(0, Math.min(1, x / 15000)),
+        y: Math.max(0, Math.min(1, y / 15000)),
       };
     }));
 }

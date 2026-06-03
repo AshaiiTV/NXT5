@@ -2,15 +2,63 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import os from 'node:os';
 import https from 'node:https';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NXT5_SITE_URL = String(process.env.NXT5_SITE_URL || 'https://nxt5.netlify.app').replace(/\/+$/, '');
 const APP_NAME = 'NXT5 Importer';
+const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest';
+const PACKAGE_META = JSON.parse(fsSync.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+const CURRENT_VERSION = String(PACKAGE_META.version || '0.0.0');
 const REMOTE_TIMEOUT_MS = 12000;
 const LOCAL_TIMEOUT_MS = 8000;
 const championNameCache = new Map();
+
+function compareVersions(a, b) {
+  const left = String(a || '0').split('.').map((part) => Number(part) || 0);
+  const right = String(b || '0').split('.').map((part) => Number(part) || 0);
+  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
+    const diff = (left[i] || 0) - (right[i] || 0);
+    if (diff) return diff;
+  }
+  return 0;
+}
+
+function parseAssetVersion(name) {
+  const match = String(name || '').match(/-(\d+\.\d+\.\d+)\.(?:exe|zip)$/i);
+  return match?.[1] || '';
+}
+
+function importerPlatform() {
+  return process.platform === 'darwin' ? 'mac' : 'windows';
+}
+
+async function checkImporterUpdate() {
+  const platform = importerPlatform();
+  const { response, payload } = await fetchJsonWithTimeout(RELEASE_API, 8000);
+  if (!response.ok) throw new Error(`Release NXT5 introuvable (${response.status}).`);
+  const candidates = (payload?.assets || [])
+    .filter((asset) => {
+      const name = String(asset?.name || '').toLowerCase();
+      if (!name.includes('nxt5-importer')) return false;
+      if (platform === 'windows') return name.includes('windows') && name.endsWith('.exe');
+      return name.includes('mac') && name.endsWith('.zip');
+    })
+    .map((asset) => ({ asset, version: parseAssetVersion(asset.name) }))
+    .filter((item) => item.version)
+    .sort((a, b) => compareVersions(b.version, a.version));
+  const latest = candidates[0];
+  const latestVersion = latest?.version || CURRENT_VERSION;
+  return {
+    currentVersion: CURRENT_VERSION,
+    latestVersion,
+    updateAvailable: compareVersions(latestVersion, CURRENT_VERSION) > 0,
+    downloadUrl: `${NXT5_SITE_URL}/.netlify/functions/importer-download?platform=${platform}`,
+    platform
+  };
+}
 
 function normalizeGameId(value, platform = 'EUW1') {
   const raw = String(value || '').trim().toUpperCase();
@@ -276,18 +324,24 @@ function wardEventsFromTimeline(match, timeline) {
   const participants = match?.info?.participants || [];
   const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
   return timelineFrames(timeline).flatMap((frame) => (frame.events || [])
-    .filter((event) => event.type === 'WARD_PLACED' && event.position)
-    .map((event) => ({
-      timestamp: Number(event.timestamp || 0),
-      minute: Number((Number(event.timestamp || 0) / 60000).toFixed(1)),
-      creatorId: Number(event.creatorId || 0),
-      teamId: Number(participantTeam.get(Number(event.creatorId)) || 0),
-      wardType: String(event.wardType || 'WARD'),
-      x: Number(event.position.x || 0),
-      y: Number(event.position.y || 0),
-      normalizedX: Number(Math.max(0, Math.min(1, Number(event.position.x || 0) / 15000)).toFixed(4)),
-      normalizedY: Number(Math.max(0, Math.min(1, Number(event.position.y || 0) / 15000)).toFixed(4))
-    })));
+    .filter((event) => /WARD/i.test(String(event.type || '')) && (event.position || event.x || event.y))
+    .map((event) => {
+      const creatorId = Number(event.creatorId || event.participantId || event.killerId || 0);
+      const position = event.position || event;
+      const x = Number(position.x || position.positionX || 0);
+      const y = Number(position.y || position.positionY || 0);
+      return {
+        timestamp: Number(event.timestamp || frame.timestamp || 0),
+        minute: Number((Number(event.timestamp || frame.timestamp || 0) / 60000).toFixed(1)),
+        creatorId,
+        teamId: Number(event.teamId || participantTeam.get(creatorId) || 0),
+        wardType: String(event.wardType || event.type || 'WARD'),
+        x,
+        y,
+        normalizedX: Number(Math.max(0, Math.min(1, x / 15000)).toFixed(4)),
+        normalizedY: Number(Math.max(0, Math.min(1, y / 15000)).toFixed(4))
+      };
+    }));
 }
 
 function buildTimelineSummary(match, timeline) {
@@ -400,6 +454,8 @@ ipcMain.handle('generate-import', async (_event, form) => {
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
   return { canceled: false, filePath, gameId };
 });
+
+ipcMain.handle('check-update', async () => checkImporterUpdate());
 
 app.setName(APP_NAME);
 app.whenReady().then(createWindow);
