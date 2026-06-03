@@ -1,6 +1,6 @@
 {
   "name": "nxt5-importer",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "author": "NXT5",
   "description": "NXT5 local League of Legends match importer",

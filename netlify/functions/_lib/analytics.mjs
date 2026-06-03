@@ -106,25 +106,40 @@ function buildNxt5TimelineSummary(match) {
     };
   }
 
+  const wardPositionFromEvent = (frame, event, creatorId) => {
+    const direct = event.position || event;
+    const directX = Number(direct.x || direct.positionX || 0);
+    const directY = Number(direct.y || direct.positionY || 0);
+    if (directX && directY) return { x: directX, y: directY, source: 'event' };
+    const participantFrame = frame?.participantFrames?.[String(creatorId)] || frame?.participantFrames?.[creatorId];
+    const framePosition = participantFrame?.position || {};
+    const frameX = Number(framePosition.x || 0);
+    const frameY = Number(framePosition.y || 0);
+    if (frameX && frameY) return { x: frameX, y: frameY, source: 'participant_frame' };
+    return null;
+  };
+
   const wards = frames.flatMap((frame) => (frame.events || [])
-    .filter((event) => /WARD/i.test(String(event.type || '')) && (event.position || event.x || event.y))
+    .filter((event) => String(event.type || '') === 'WARD_PLACED')
     .map((event) => {
       const creatorId = Number(event.creatorId || event.participantId || event.killerId || 0);
-      const position = event.position || event;
-      const x = Number(position.x || position.positionX || 0);
-      const y = Number(position.y || position.positionY || 0);
+      const position = wardPositionFromEvent(frame, event, creatorId);
+      if (!position) return null;
+      const { x, y } = position;
       return {
         timestamp: Number(event.timestamp || frame.timestamp || 0),
         minute: Number((Number(event.timestamp || frame.timestamp || 0) / 60000).toFixed(1)),
         creatorId,
         teamId: Number(event.teamId || participantTeam.get(creatorId) || 0),
         wardType: String(event.wardType || event.type || 'WARD'),
+        positionSource: position.source,
         x,
         y,
         normalizedX: Number(Math.max(0, Math.min(1, x / 15000)).toFixed(4)),
         normalizedY: Number(Math.max(0, Math.min(1, y / 15000)).toFixed(4))
       };
-    }));
+    })
+    .filter(Boolean));
 
   return { available: true, frameCount: frames.length, csMilestones, wards, wardCount: wards.length };
 }

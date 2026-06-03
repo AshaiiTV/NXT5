@@ -3589,20 +3589,54 @@ function visionWardEvents(match) {
     }));
   }
   return frames.flatMap((frame) => (frame.events || [])
-    .filter((event) => /WARD/i.test(String(event.type || "")) && (event.position || event.x || event.y))
+    .filter((event) => String(event.type || "") === "WARD_PLACED")
     .map((event) => {
       const creatorId = Number(event.creatorId || event.participantId || event.killerId || 0);
       const creatorTeamId = Number(event.teamId || participantTeam.get(creatorId) || 0);
-      const position = event.position || event;
-      const x = Number(position.x || position.positionX || 0);
-      const y = Number(position.y || position.positionY || 0);
+      const direct = event.position || event;
+      let x = Number(direct.x || direct.positionX || 0);
+      let y = Number(direct.y || direct.positionY || 0);
+      let positionSource = "event";
+      if (!x || !y) {
+        const participantFrame = frame?.participantFrames?.[String(creatorId)] || frame?.participantFrames?.[creatorId];
+        const framePosition = participantFrame?.position || {};
+        x = Number(framePosition.x || 0);
+        y = Number(framePosition.y || 0);
+        positionSource = "participant_frame";
+      }
+      if (!x || !y) return null;
       return {
         ...event,
         teamKey: creatorTeamId && allyTeamId ? (creatorTeamId === allyTeamId ? "ALLY" : "ENEMY") : "ALLY",
+        positionSource,
         x: Math.max(0, Math.min(1, x / 15000)),
         y: Math.max(0, Math.min(1, y / 15000)),
       };
-    }));
+    })
+    .filter(Boolean));
+}
+
+function wardTypeKey(event) {
+  const type = String(event?.wardType || event?.type || "WARD").toUpperCase();
+  if (type.includes("CONTROL") || type.includes("VISION") || type.includes("PINK")) return "pink";
+  if (type.includes("YELLOW") || type.includes("TRINKET")) return "trinket";
+  if (type.includes("BLUE")) return "blue";
+  if (type.includes("SIGHT")) return "sight";
+  return "other";
+}
+
+function wardTypeLabel(key) {
+  return { pink: "Pink / Control", trinket: "Trinket", blue: "Blue trinket", sight: "Sight ward", other: "Autres wards" }[key] || key;
+}
+
+function wardTypeColor(key, alpha = 0.78) {
+  return {
+    pink: `rgba(244,114,182,${alpha})`,
+    trinket: `rgba(250,204,21,${alpha})`,
+    blue: `rgba(96,165,250,${alpha})`,
+    sight: `rgba(52,211,153,${alpha})`,
+    other: `rgba(34,211,238,${alpha})`,
+  }[key] || `rgba(34,211,238,${alpha})`;
 }
 
 function VisionHeatmap({ match }) {
@@ -3628,16 +3662,18 @@ function VisionHeatmap({ match }) {
     return "rgba(34,211,238,.42)";
   };
   const wardTypes = events.reduce((map, event) => {
-    const key = String(event.wardType || "WARD").replace(/_/g, " ");
+    const key = wardTypeKey(event);
     map.set(key, (map.get(key) || 0) + 1);
     return map;
   }, new Map());
+  const pinkCount = wardTypes.get("pink") || 0;
+  const trinketCount = wardTypes.get("trinket") || 0;
 	  const mapPanel = (large = false) => <div className={cx("relative overflow-hidden rounded-2xl border border-white/10 bg-[#07131f]", large ? "aspect-square h-[min(82vh,820px)] w-[min(82vh,820px)] max-w-full" : "h-72 w-full max-w-full")}>
         <div className="absolute inset-0 bg-cover bg-center opacity-72 saturate-125" style={{ backgroundImage: `url(${SUMMONERS_RIFT_MAP_URL})` }} />
         <div className="absolute inset-0 bg-gradient-to-br from-[#030713]/16 via-[#030713]/18 to-[#030713]/28" />
         <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.035)_0_1px,transparent_1px_12.5%),repeating-linear-gradient(90deg,rgba(255,255,255,.03)_0_1px,transparent_1px_12.5%)]" />
         {events.length ? heatCells.map((cell) => <span key={`${cell.x}-${cell.y}`} className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-[2px] mix-blend-screen" style={{ left: `${cell.x * 100}%`, top: `${(1 - cell.y) * 100}%`, width: `${34 + (cell.count / maxCell) * 62}px`, height: `${34 + (cell.count / maxCell) * 62}px`, backgroundColor: heatColor(cell.count), boxShadow: `0 0 ${18 + cell.count * 4}px ${heatColor(cell.count)}` }} />) : <div className="absolute inset-0 flex items-center justify-center bg-black/34 text-center text-sm font-semibold text-slate-200">Aucune position de ward dans ce JSON.</div>}
-        {events.map((event, index) => <span key={`dot-${event.timestamp}-${index}`} className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/70 bg-white shadow-[0_0_12px_rgba(255,255,255,.72)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%` }} />)}
+        {events.map((event, index) => <span key={`dot-${event.timestamp}-${index}`} title={`${wardTypeLabel(wardTypeKey(event))} · ${Number(event.minute || 0).toFixed(1)} min`} className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 shadow-[0_0_12px_rgba(255,255,255,.62)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%`, backgroundColor: wardTypeColor(wardTypeKey(event), 0.95), boxShadow: `0 0 14px ${wardTypeColor(wardTypeKey(event), 0.72)}` }} />)}
         <div className="absolute bottom-3 left-3 right-3 rounded-2xl border border-white/12 bg-black/55 p-3 backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-white">Intensité vision</span>
@@ -3647,7 +3683,7 @@ function VisionHeatmap({ match }) {
       </div>;
   return <div className="mt-3 rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045] p-3">
     <button type="button" onClick={() => setCollapsed((value) => !value)} aria-expanded={!collapsed} className="group flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-3 py-3 text-left transition hover:border-cyan-300/28 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/55">
-      <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Heatmap vision</Badge><Badge tone={events.length ? "green" : "slate"}>{events.length} wards</Badge><span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-200 transition group-hover:border-cyan-200/22 group-hover:text-cyan-100">{collapsed ? "Afficher" : "Masquer"}</span></div>
+      <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Heatmap vision</Badge><Badge tone={events.length ? "green" : "slate"}>{events.length} wards</Badge><Badge tone="red">{pinkCount} pink</Badge><Badge tone="yellow">{trinketCount} trinket</Badge><span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-200 transition group-hover:border-cyan-200/22 group-hover:text-cyan-100">{collapsed ? "Afficher" : "Masquer"}</span></div>
       <span className="flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Wards alliées importées<ChevronDown className={cx("h-4 w-4 text-cyan-100 transition", collapsed && "-rotate-90")} /></span>
     </button>
 	    {!collapsed && <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(160px,.28fr)]">
@@ -3657,7 +3693,7 @@ function VisionHeatmap({ match }) {
       </button>
       <div className="rounded-2xl border border-white/10 bg-black/22 p-3">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Types de wards</p>
-        <div className="mt-3 space-y-2">{wardTypes.size ? Array.from(wardTypes.entries()).map(([type, count]) => <div key={type} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><span className="truncate text-xs font-black text-white">{type}</span><Badge tone="cyan">{count}</Badge></div>) : <p className="text-xs font-semibold leading-5 text-slate-300">La timeline doit contenir les events de wards.</p>}</div>
+        <div className="mt-3 space-y-2">{wardTypes.size ? Array.from(wardTypes.entries()).map(([type, count]) => <div key={type} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><span className="flex min-w-0 items-center gap-2 truncate text-xs font-black text-white"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: wardTypeColor(type) }} />{wardTypeLabel(type)}</span><Badge tone={type === "pink" ? "red" : type === "trinket" ? "yellow" : "cyan"}>{count}</Badge></div>) : <p className="text-xs font-semibold leading-5 text-slate-300">La timeline doit contenir les events de wards.</p>}</div>
       </div>
     </div>}
     {zoomed && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#030713]/88 p-4 backdrop-blur-2xl" role="dialog" aria-modal="true">
@@ -4536,7 +4572,7 @@ function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200", active ? "border-cyan-200/70 bg-cyan-400/14 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:shadow-[0_0_22px_rgba(34,211,238,.12)]")}>
     <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full object-cover" />
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-    <ChampionTierMark tier={tier} active={active} className="absolute right-1.5 top-1.5 h-6 w-6 rounded-lg border-white/25 bg-black/35 backdrop-blur-md [&_svg]:h-3.5 [&_svg]:w-3.5" />
+    <ChampionTierMark tier={tier} active className="absolute right-1.5 top-1.5 h-7 w-7 rounded-xl border-white/28 bg-black/55 shadow-[0_0_16px_rgba(255,255,255,.10)] backdrop-blur-md transition group-hover:scale-105 [&_svg]:h-4 [&_svg]:w-4" />
     <p className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[0.62rem] font-black text-white drop-shadow">{championDisplayName(row.champion)}</p>
   </button>;
 }
