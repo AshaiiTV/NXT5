@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
@@ -385,6 +385,10 @@ function createWindow() {
     }
   });
   win.removeMenu();
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
   win.loadFile(path.join(__dirname, 'renderer.html'));
 }
 
@@ -456,6 +460,12 @@ ipcMain.handle('generate-import', async (_event, form) => {
 });
 
 ipcMain.handle('check-update', async () => checkImporterUpdate());
+ipcMain.handle('open-external', async (_event, url) => {
+  const target = String(url || '');
+  if (!/^https?:\/\//i.test(target)) return false;
+  await shell.openExternal(target);
+  return true;
+});
 
 app.setName(APP_NAME);
 app.whenReady().then(createWindow);

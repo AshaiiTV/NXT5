@@ -76,6 +76,7 @@ h1 { margin: 0; max-width: 760px; font-size: clamp(36px, 5.5vw, 64px); line-heig
   box-shadow: 0 0 44px rgba(250,204,21,.12), 0 18px 70px rgba(0,0,0,.34);
   clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
 }
+.update-card[hidden] { display: none; }
 .update-card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(250,204,21,.16), transparent); transform: translateX(-72%); animation: scan 2.8s ease-in-out infinite; }
 .update-card > * { position: relative; z-index: 1; }
 .update-kicker { margin: 0 0 5px; color: #fde68a; font-size: 10px; font-weight: 1000; letter-spacing: .24em; text-transform: uppercase; }
@@ -101,5 +102,5 @@ button:disabled { cursor: wait; opacity: .62; }
 .status.info { border: 1px solid rgba(34,211,238,.24); background: rgba(34,211,238,.1); color: #cffafe; }
 .status.success { border: 1px solid rgba(52,211,153,.28); background: rgba(16,185,129,.12); color: #d1fae5; }
 .status.error { border: 1px solid rgba(251,113,133,.34); background: rgba(244,63,94,.14); color: #ffe4e6; }
-@media (max-width: 820px) { body { overflow: auto; } .shell { align-content: start; padding: 18px 0; } .hero, .grid, .game-grid, .update-card { display: block; } .brand-card { min-height: 140px; margin-bottom: 16px; } .brand-card img { width: 160px; } .wordmark { height: 76px; } .update-card a { width: 100%; margin-top: 12px; } }
+@media (max-width: 820px) { body { overflow: auto; } .shell { align-content: start; padding: 18px 0; } .hero, .grid, .game-grid { display: block; } .update-card:not([hidden]) { display: block; } .brand-card { min-height: 140px; margin-bottom: 16px; } .brand-card img { width: 160px; } .wordmark { height: 76px; } .update-card a { width: 100%; margin-top: 12px; } }
 @media (max-height: 720px) and (min-width: 821px) { .brand-card { min-height: 135px; } .brand-card img { width: 160px; } .wordmark { height: 72px; } h1 { font-size: 44px; } .lead { font-size: 13px; } .panel { padding: 16px; } input, select { padding: 10px 12px; } button { padding: 12px; } }

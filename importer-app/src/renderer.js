@@ -5,6 +5,7 @@ const updateBox = document.querySelector('#update');
 const updateText = document.querySelector('#updateText');
 const updateLink = document.querySelector('#updateLink');
 let generating = false;
+let updateDownloadUrl = '';
 
 function setStatus(type, text) {
   statusBox.hidden = false;
@@ -29,6 +30,7 @@ async function checkForUpdate() {
     const info = await window.nxt5.checkUpdate();
     if (!info?.updateAvailable) return;
     updateText.textContent = `Ta version : ${info.currentVersion}. Derniere version : ${info.latestVersion}. Mets a jour pour profiter des derniers imports, timeline, wards et stats.`;
+    updateDownloadUrl = info.downloadUrl;
     updateLink.href = info.downloadUrl;
     updateLink.textContent = info.platform === 'mac' ? 'Telecharger Mac' : 'Telecharger Windows';
     updateBox.hidden = false;
@@ -38,6 +40,12 @@ async function checkForUpdate() {
 }
 
 checkForUpdate();
+
+updateLink?.addEventListener('click', async (event) => {
+  if (!updateDownloadUrl || !window.nxt5?.openExternal) return;
+  event.preventDefault();
+  await window.nxt5.openExternal(updateDownloadUrl);
+});
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();

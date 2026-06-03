@@ -1,5 +1,5 @@
 const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest';
-const PREFERRED_VERSION = '0.2.4';
+const PREFERRED_VERSION = '0.2.5';
 
 function redirect(url) {
   return new Response(null, {
