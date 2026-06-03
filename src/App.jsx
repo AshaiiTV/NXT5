@@ -1234,9 +1234,9 @@ function championStyleTags(champion) {
 
 function championStyleTone(tag) {
   if (["engage", "dive", "early", "snowball", "assassin", "burst", "pick"].includes(tag)) return "red";
-  if (["scaling", "front-to-back", "peel", "sustain", "utility", "control"].includes(tag)) return "cyan";
-  if (["side", "duel", "split", "siege", "poke"].includes(tag)) return "yellow";
-  if (["frontline", "teamfight", "objective", "tempo"].includes(tag)) return "green";
+  if (["scaling", "front-to-back", "peel", "sustain", "utility", "control", "waveclear", "safe", "vision"].includes(tag)) return "cyan";
+  if (["side", "duel", "split", "siege", "poke", "farm", "lane"].includes(tag)) return "yellow";
+  if (["frontline", "teamfight", "objective", "tempo", "roam", "skirmish", "reset", "disengage", "lockdown"].includes(tag)) return "green";
   return "slate";
 }
 
@@ -1266,6 +1266,20 @@ function tagLabel(tag) {
     frontline: "Frontline",
     objective: "Objective",
     tempo: "Tempo",
+    waveclear: "Waveclear",
+    safe: "Safe",
+    vision: "Vision",
+    farm: "Farm",
+    lane: "Lane",
+    roam: "Roam",
+    skirmish: "Skirmish",
+    reset: "Reset",
+    disengage: "Disengage",
+    lockdown: "Lockdown",
+    flank: "Flank",
+    dps: "DPS",
+    invade: "Invade",
+    exhaust: "Exhaust",
     standard: "Standard",
     scrim: "Scrim",
   }[String(tag || "")] || String(tag || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -1314,16 +1328,33 @@ const CHAMPION_TAG_DEFINITIONS = [
 ];
 
 const COUNTER_TAG_RULES = {
-  engage: [["disengage", 20, "casse l'engage"], ["peel", 14, "protège le carry"], ["control", 10, "contrôle la zone"]],
-  dive: [["peel", 22, "punit le dive"], ["disengage", 18, "stoppe l'entrée"], ["lockdown", 12, "bloque l'assassin"]],
-  poke: [["engage", 18, "force avant le poke"], ["sustain", 16, "absorbe le poke"], ["dive", 10, "rentre sur la backline"]],
-  siege: [["engage", 16, "force sous pression"], ["waveclear", 10, "ralentit le siège"], ["dive", 10, "casse la formation"]],
-  scaling: [["early", 18, "punit le scaling"], ["snowball", 14, "accélère la game"], ["pick", 10, "isole avant les pics"]],
-  "front-to-back": [["dive", 16, "menace les carries"], ["flank", 14, "attaque l'angle"], ["assassin", 12, "pression backline"]],
-  side: [["engage", 14, "force en mid"], ["duel", 12, "répond en side"], ["pick", 10, "punit les rotations"]],
-  pick: [["frontline", 12, "absorbe le pick"], ["disengage", 12, "annule l'ouverture"], ["safe", 10, "limite les catches"]],
-  assassin: [["peel", 18, "protège la cible"], ["lockdown", 14, "contrôle l'assassin"], ["frontline", 10, "réduit l'accès"]],
-  early: [["safe", 12, "stabilise l'early"], ["scaling", 8, "survit puis dépasse"], ["waveclear", 8, "limite le tempo"]],
+  engage: [["disengage", 20, "Disengage"], ["peel", 14, "Peel carry"], ["control", 10, "Contrôle zone"], ["poke", 8, "Punition avant go"]],
+  dive: [["peel", 22, "Anti-dive"], ["disengage", 18, "Stop entrée"], ["lockdown", 12, "Lockdown cible"], ["frontline", 8, "Frontline solide"]],
+  poke: [["engage", 18, "Engage rapide"], ["sustain", 16, "Sustain poke"], ["dive", 10, "Dive backline"], ["safe", 8, "Tenue longue distance"]],
+  siege: [["engage", 16, "Force sous pression"], ["waveclear", 14, "Waveclear"], ["dive", 10, "Casse siège"], ["flank", 8, "Angle de flank"]],
+  scaling: [["early", 18, "Punition early"], ["snowball", 14, "Snowball"], ["pick", 10, "Catch avant spikes"], ["objective", 8, "Objectifs rapides"]],
+  "front-to-back": [["dive", 16, "Menace carry"], ["flank", 14, "Angle latéral"], ["assassin", 12, "Pression backline"], ["poke", 8, "Désorganise frontline"]],
+  side: [["engage", 14, "Force mid"], ["duel", 12, "Réponse side"], ["pick", 10, "Punition rotation"], ["waveclear", 8, "Stabilise mid"]],
+  pick: [["frontline", 12, "Absorbe pick"], ["disengage", 12, "Annule ouverture"], ["safe", 10, "Réduit catches"], ["vision", 8, "Contrôle vision"]],
+  assassin: [["peel", 18, "Protège cible"], ["lockdown", 14, "Contrôle assassin"], ["frontline", 10, "Réduit accès"], ["exhaust", 8, "Réponse burst"]],
+  early: [["safe", 12, "Stabilise early"], ["scaling", 8, "Survit puis dépasse"], ["waveclear", 8, "Limite tempo"], ["vision", 8, "Sécurise lanes"]],
+  teamfight: [["split", 14, "Étire map"], ["poke", 12, "Affaiblit fight"], ["disengage", 10, "Refuse 5v5"], ["flank", 8, "Casse formation"]],
+  control: [["dive", 14, "Traverse zone"], ["poke", 10, "Conteste distance"], ["flank", 10, "Hors angle"], ["tempo", 8, "Setup avant zone"]],
+  frontline: [["poke", 12, "Use frontline"], ["scaling", 10, "Outscale tanks"], ["duel", 8, "Pression side"], ["dps", 8, "DPS continu"]],
+  peel: [["poke", 12, "Force backline"], ["side", 10, "Évite front-to-back"], ["engage", 8, "Multi angles"], ["objective", 8, "Force déplacement"]],
+  utility: [["pick", 12, "Punition rotations"], ["burst", 10, "Supprime value"], ["assassin", 8, "Menace enchanteur"], ["dive", 8, "Accès backline"]],
+  objective: [["tempo", 14, "Setup avant"], ["pick", 12, "Isoler setup"], ["control", 8, "Bloque rivière"], ["poke", 8, "Conteste objectif"]],
+  tempo: [["waveclear", 10, "Ralentit tempo"], ["scaling", 8, "Absorbe puis dépasse"], ["safe", 8, "Limite ouvertures"], ["control", 8, "Casse rotations"]],
+  burst: [["frontline", 12, "Absorbe burst"], ["sustain", 10, "Récupère trade"], ["peel", 8, "Protège cible"], ["safe", 8, "Évite fenêtre"]],
+  snowball: [["safe", 12, "Coupe accélération"], ["control", 10, "Stabilise zones"], ["scaling", 8, "Joue temps"], ["waveclear", 8, "Freine push"]],
+  sustain: [["burst", 12, "Tue avant sustain"], ["pick", 10, "Cible isolée"], ["objective", 8, "Convertit fenêtres"], ["poke", 6, "Force ressources"]],
+  roam: [["vision", 12, "Track roam"], ["waveclear", 10, "Punition wave"], ["tempo", 8, "Match rotations"]],
+  skirmish: [["frontline", 10, "Stabilise skirmish"], ["control", 10, "Zone fight court"], ["scaling", 8, "Refuse trade tôt"]],
+  reset: [["lockdown", 12, "Stop reset"], ["peel", 10, "Protège exécution"], ["burst", 8, "Tue avant reset"]],
+  disengage: [["poke", 10, "Force reculs"], ["siege", 8, "Pression structures"], ["side", 8, "Déplace fight"]],
+  lockdown: [["poke", 8, "Joue hors portée"], ["frontline", 8, "Absorbe CC"], ["utility", 6, "Nettoie fenêtre"]],
+  lane: [["safe", 10, "Stabilise lane"], ["roam", 8, "Évite duel lane"], ["waveclear", 8, "Casse prio"]],
+  farm: [["early", 10, "Punition PvE"], ["invade", 8, "Pression jungle"], ["tempo", 8, "Accélère carte"]],
 };
 
 const DIRECT_COUNTERS = {
@@ -1485,6 +1516,11 @@ function LatestMatchPanel({ match, onOpen }) {
 }
 
 const COMP_ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
+const ROLE_ORDER = Object.fromEntries(COMP_ROLES.map((role, index) => [role, index]));
+
+function sortPlayersByRole(players = []) {
+  return [...players].sort((a, b) => (ROLE_ORDER[String(a.role || "").toUpperCase()] ?? 99) - (ROLE_ORDER[String(b.role || "").toUpperCase()] ?? 99) || String(a.name || "").localeCompare(String(b.name || "")));
+}
 const STAFF_ROLES = ["COACH", "ASSISTANT", "ANALYST", "MANAGER", "BOARD"];
 const PROFILE_ROLES = [...COMP_ROLES, "SUB", ...STAFF_ROLES];
 const ROSTER_ROLE_ORDER = COMP_ROLES;
@@ -2332,7 +2368,7 @@ function PlayerProfileStatsPanel({ player, matches = [] }) {
 }
 
 function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refreshAll, pushToast }) {
-  const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
+  const players = sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)));
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const canObserveAll = canStaffManage(currentMember?.role);
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
@@ -2541,7 +2577,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   return <div className="min-w-0 overflow-hidden">
     <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle="Toutes les données utiles du profil sélectionné : champions, games importées, matchups et tendances brutes.">
       <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[220px]">
-        {canObserveAll && <div className="w-full sm:w-80"><SelectInput label="Profil observé" value={selectedPlayer.id} onChange={setSelectedPlayerId}>{players.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput></div>}
+	        {canObserveAll && <div className="w-full sm:w-80"><SelectInput label="Profil observé" value={selectedPlayer.id} onChange={setSelectedPlayerId}>{sortPlayersByRole(players).map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput></div>}
         <Button type="button" variant="ghost" icon={Download} onClick={exportProfilePng} className="w-full justify-center">Exporter le résumé PNG</Button>
       </div>
     </PageHeader>
@@ -2553,7 +2589,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       </div>
     </Surface>
     <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
-      <div className="grid gap-2 md:grid-cols-5">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => setProfileView(active ? "overview" : id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
+      <div className="grid gap-2 md:grid-cols-3 2xl:grid-cols-5">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => setProfileView(active ? "overview" : id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
     </div>
     <AnimatePresence mode="wait">
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
@@ -2970,7 +3006,11 @@ function StatMeter({ label, value, max, tone = "cyan", detail }) {
     green: "from-emerald-300 to-cyan-400",
     orange: "from-orange-300 to-fuchsia-400",
   };
-  return <div><div className="mb-2 flex items-center justify-between gap-3"><span className="truncate text-xs font-black uppercase tracking-[0.16em] text-slate-500">{label}</span><span className="text-xs font-black text-white">{detail || value}</span></div><div className="h-2 overflow-hidden rounded-full bg-white/8"><div className={cx("h-full rounded-full bg-gradient-to-r", colors[tone] || colors.cyan)} style={{ width: `${pct}%` }} /></div></div>;
+  return <div className="grid min-w-0 grid-cols-[minmax(88px,.9fr)_minmax(92px,1fr)_auto] items-center gap-2 rounded-xl border border-white/8 bg-black/18 px-3 py-2">
+    <span className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span>
+    <div className="h-1.5 min-w-0 overflow-hidden rounded-full bg-white/8"><div className={cx("h-full rounded-full bg-gradient-to-r", colors[tone] || colors.cyan)} style={{ width: `${pct}%` }} /></div>
+    <span className="text-xs font-black text-white">{detail || value}</span>
+  </div>;
 }
 
 function ProfileHudMetric({ icon: Icon, label, value, detail, tone: t = "cyan" }) {
@@ -2988,6 +3028,7 @@ function ProfileHudMetric({ icon: Icon, label, value, detail, tone: t = "cyan" }
 
 function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
   const [selectedChampion, setSelectedChampion] = useState("");
+  const [championsCollapsed, setChampionsCollapsed] = useState(true);
   const safeGames = Math.max(1, Number(stat.games || 0));
   const allRows = Array.from(stat.championRows?.values?.() || []).flat();
   const wins = allRows.filter((row) => row.match?.result === "Victoire").length;
@@ -3075,15 +3116,14 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
     </div>
 
     <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.075] via-black/24 to-fuchsia-400/[0.055] p-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Badge tone="cyan">Champion read</Badge>
-          <h4 className="mt-3 text-xl font-black text-white">Champions joués</h4>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Une lecture rapide du pool réellement joué dans les games importées. Clique un champion pour ouvrir ses games.</p>
+      <button type="button" onClick={() => setChampionsCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-3 py-3 text-left transition hover:border-cyan-300/28 hover:bg-cyan-400/10">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champion read</Badge><Badge tone="slate">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</Badge></div>
+          <h4 className="mt-2 truncate text-xl font-black text-white">Champions joués</h4>
         </div>
-        <Badge tone="slate">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</Badge>
-      </div>
-      {championStats.length ? <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+        <ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", championsCollapsed && "-rotate-90")} />
+      </button>
+      {!championsCollapsed && (championStats.length ? <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
         <div className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-200">Pool du profil</p>
@@ -3137,10 +3177,10 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
             <p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-200">Le détail s’ouvre ici avec ses games, ses moyennes et ses tags de style.</p>
           </div>}
         </div>
-      </div> : <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Pas encore de champion sur les games importées.</div>}
+      </div> : <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Pas encore de champion sur les games importées.</div>)}
     </div>
 
-    <AnimatePresence initial={false}>{selectedChampionStats && <motion.div key={selectedChampionStats.champion} initial={{ height: 0, opacity: 0, y: -8 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: "easeOut" }} className="overflow-hidden">
+    <AnimatePresence initial={false}>{!championsCollapsed && selectedChampionStats && <motion.div key={selectedChampionStats.champion} initial={{ height: 0, opacity: 0, y: -8 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: "easeOut" }} className="overflow-hidden">
       <div className="mt-4 rounded-3xl border border-fuchsia-300/16 bg-fuchsia-400/[0.045] p-4 shadow-[0_0_35px_rgba(217,70,239,.06)]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div><Badge tone="purple">Games du champion</Badge><h4 className="mt-3 text-xl font-black text-white">{championDisplayName(selectedChampionStats.champion)}</h4></div>
@@ -3586,7 +3626,7 @@ function VisionHeatmap({ match }) {
     map.set(key, (map.get(key) || 0) + 1);
     return map;
   }, new Map());
-  const mapPanel = (large = false) => <div className={cx("relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-[#07131f]", large ? "h-[min(82vh,820px)] w-[min(82vh,820px)] max-w-full" : "h-56 w-56 max-w-full")}>
+	  const mapPanel = (large = false) => <div className={cx("relative overflow-hidden rounded-2xl border border-white/10 bg-[#07131f]", large ? "aspect-square h-[min(82vh,820px)] w-[min(82vh,820px)] max-w-full" : "h-72 w-full max-w-full")}>
         <div className="absolute inset-0 bg-cover bg-center opacity-72 saturate-125" style={{ backgroundImage: `url(${SUMMONERS_RIFT_MAP_URL})` }} />
         <div className="absolute inset-0 bg-gradient-to-br from-[#030713]/16 via-[#030713]/18 to-[#030713]/28" />
         <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.035)_0_1px,transparent_1px_12.5%),repeating-linear-gradient(90deg,rgba(255,255,255,.03)_0_1px,transparent_1px_12.5%)]" />
@@ -3604,8 +3644,8 @@ function VisionHeatmap({ match }) {
       <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Heatmap vision</Badge><Badge tone={events.length ? "green" : "slate"}>{events.length} wards</Badge><span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-200 transition group-hover:border-cyan-200/22 group-hover:text-cyan-100">{collapsed ? "Afficher" : "Masquer"}</span></div>
       <span className="flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Wards alliées importées<ChevronDown className={cx("h-4 w-4 text-cyan-100 transition", collapsed && "-rotate-90")} /></span>
     </button>
-    {!collapsed && <div className="mt-3 grid gap-3 lg:grid-cols-[auto_minmax(160px,.32fr)]">
-      <button type="button" onClick={() => setZoomed(true)} className="group relative w-fit max-w-full rounded-2xl text-left transition hover:-translate-y-0.5" title="Zoomer la heatmap">
+	    {!collapsed && <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(160px,.28fr)]">
+	      <button type="button" onClick={() => setZoomed(true)} className="group relative w-full max-w-full rounded-2xl text-left transition hover:-translate-y-0.5" title="Zoomer la heatmap">
         {mapPanel(false)}
         <span className="absolute right-3 top-3 rounded-xl border border-white/12 bg-black/60 px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-white opacity-0 backdrop-blur-xl transition group-hover:opacity-100">Zoom</span>
       </button>
@@ -3644,7 +3684,7 @@ function GameMetricSignals({ match }) {
   const deaths = sumRows(ally, "deaths");
   const enemyDeaths = sumRows(enemy, "deaths");
 	  const cards = [
-	    [Crown, "Score data", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda}` : "Aucune donnée", "cyan"],
+	    [Crown, "Meilleur KDA", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda}` : "Aucune donnée", "cyan"],
 	    [AlertTriangle, "Morts", exposed, exposed ? `${exposed.deaths || 0} morts · ${championDisplayName(exposed.champion)}` : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
 	    [Flame, "Dégâts", damageLead, damageLead ? formatPoints(damageLead.damage) + " dégâts" : "Aucune donnée", "purple"],
 	    [Eye, "Vision", visionLead, visionLead ? `${visionLead.vision || 0} vision score` : "Aucune donnée", "green"],
@@ -4139,8 +4179,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
   const pickedChampionKeys = new Set(selectedRows.map((row) => championAssetId(row.champion) || championKey(row.champion)));
   const visibleChampions = championOptions()
     .filter((champion) => championDisplayName(champion).toLowerCase().includes(query.toLowerCase()))
-    .filter((champion) => championMatchesLane(champion, laneFilter))
-    .slice(0, 72);
+    .filter((champion) => championMatchesLane(champion, laneFilter));
 
   useEffect(() => {
     const fallbackPlayerId = !canManageTeamPool && linkedPlayer?.id ? linkedPlayer.id : players[0]?.id || "";
@@ -4488,8 +4527,8 @@ function compositionCounterRecommendations(slots, rows, limitPerRole = 3) {
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
   const tier = championTierByStatus(status);
-  return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200 hover:-translate-y-0.5", active ? "border-cyan-200/70 bg-cyan-400/14 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/35 hover:bg-cyan-400/10")}>
-    <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full object-cover transition duration-300 group-hover:scale-110" />
+  return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200", active ? "border-cyan-200/70 bg-cyan-400/14 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:shadow-[0_0_22px_rgba(34,211,238,.12)]")}>
+    <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full object-cover" />
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
     <ChampionTierMark tier={tier} active={active} className="absolute right-1.5 top-1.5 h-6 w-6 rounded-lg border-white/25 bg-black/35 backdrop-blur-md [&_svg]:h-3.5 [&_svg]:w-3.5" />
     <p className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[0.62rem] font-black text-white drop-shadow">{championDisplayName(row.champion)}</p>
@@ -4537,7 +4576,12 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
   return <div className="mt-5 rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/80">Banque de champions</p><p className="mt-1 text-sm font-semibold text-slate-300">Glisse une icône vers le cadre de compo correspondant.</p></div>
-      <div className="flex flex-wrap gap-2"><Badge tone="green">Maîtrisé</Badge><Badge tone="yellow">Confort</Badge><Badge tone="cyan">Moyens</Badge><Badge tone="red">À apprendre</Badge></div>
+      <div className="flex flex-wrap gap-2">
+        {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/24 px-3 py-2 text-[0.66rem] font-black uppercase tracking-[0.14em] text-white">
+          <ChampionTierMark tier={tier} active className="h-7 w-7 rounded-xl border-white/18 bg-black/20 [&_svg]:h-4 [&_svg]:w-4" />
+          {tier.title}
+        </span>)}
+      </div>
     </div>
     <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">
       {COMP_ROLES.map((role) => {
@@ -4576,7 +4620,7 @@ function CompositionCounterPanel({ slots, rows, compact = false }) {
         <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={group.role} className="h-5 w-5" />{group.role}</span><Badge tone="red">{group.counters.length}</Badge></div>
         <div className="space-y-2">{group.counters.map((counter) => <div key={counter.champion} className="rounded-xl border border-white/10 bg-white/[0.035] p-2">
           <div className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-10 w-10 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(counter.champion)}</p><p className="truncate text-[0.62rem] font-bold text-rose-100">Menace {Math.min(99, counter.score)}</p></div></div>
-          <div className="mt-2 flex flex-wrap gap-1.5">{counter.reasons.map((reason) => <span key={reason} className="rounded-lg border border-rose-200/12 bg-rose-500/10 px-2 py-1 text-[0.58rem] font-bold text-rose-50">{reason}</span>)}</div>
+          <div className="mt-2 flex flex-wrap gap-1.5">{counter.reasons.map((reason) => <span key={reason} className="rounded-lg border border-rose-200/12 bg-rose-500/10 px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-rose-50">{String(reason).toUpperCase()}</span>)}</div>
         </div>)}</div>
       </div>)}
     </div>

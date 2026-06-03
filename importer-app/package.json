@@ -1,12 +1,13 @@
 {
   "name": "nxt5-importer",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
+  "author": "NXT5",
   "description": "NXT5 local League of Legends match importer",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win nsis --x64",
+    "dist:win": "electron-builder --win portable --x64",
     "dist:mac": "electron-builder --mac zip --x64",
     "dist:mac:arm": "electron-builder --mac zip --arm64"
   },
@@ -19,7 +20,6 @@
     "appId": "app.nxt5.importer",
     "productName": "NXT5 Importer",
     "copyright": "Copyright © 2026 NXT5",
-    "publisherName": "NXT5",
     "directories": {
       "output": "release"
     },
