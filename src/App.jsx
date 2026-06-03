@@ -2375,6 +2375,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [profileView, setProfileView] = useState("overview");
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
+  const [selectedBuildChampion, setSelectedBuildChampion] = useState("");
   const [coachingContent, setCoachingContent] = useState("");
   const [savingCoaching, setSavingCoaching] = useState(false);
   useEffect(() => {
@@ -2383,6 +2384,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }, [canObserveAll, linkedPlayer?.id, players.map((player) => player.id).join("|"), selectedPlayerId]);
   useEffect(() => {
     setSelectedProfileChampion("");
+    setSelectedBuildChampion("");
   }, [selectedPlayerId]);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || linkedPlayer || players[0];
   const coachingNote = (data.profileCoachingNotes || []).find((note) => note.team_id === selectedTeamId && note.player_id === selectedPlayer?.id);
@@ -2569,6 +2571,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const profileViews = [
     ["overview", "Synthèse", Activity, `${games}G`],
     ["champions", "Champions", Crown, championStats.length],
+    ["builds", "Build", Gauge, rows.filter((row) => itemSlots(row).some(Boolean)).length],
     ["matchups", "Matchups", Swords, matchups.length],
     ["history", "Historique", FileText, rows.length],
     ["coaching", "Coaching", Clipboard, coachingContent.trim() ? "OK" : "—"],
@@ -2595,6 +2598,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
         {profileView === "overview" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]"><ProfileFold title="Signaux exploitables" badge="Lecture coach" icon={Activity} toneName="cyan"><p className="max-w-3xl text-sm font-semibold leading-6 text-slate-200">Des ratios bruts pour situer l’impact du joueur dans les games importées : contribution, ressources, exposition, vision et largeur du pool.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{profileSignals.map((signal) => <ProfileSignalCard key={signal.title} signal={signal} />)}</div></ProfileFold><ProfileFold title="Bangers & flops" badge="Champion read" icon={Crown} toneName="purple"><div className="grid gap-4 lg:grid-cols-2"><ChampionSpotlight title="Bangers" items={bangers} toneName="green" empty="Aucun banger détectable pour l’instant." /><ChampionSpotlight title="Flops" items={flops} toneName="red" empty="Aucun flop détectable pour l’instant." /></div></ProfileFold></div>}
         {profileView === "champions" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]"><ProfileFold title="Champions joués" badge="Games importées" icon={Crown} toneName="cyan"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => { const active = selectedProfileChampion === stat.champion; return <button key={stat.champion} type="button" onClick={() => setSelectedProfileChampion(active ? "" : stat.champion)} className={cx("relative overflow-hidden rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-black/25")}><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div><ChevronDown className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "rotate-180")} /></div></button>; }) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></ProfileFold><div className="grid gap-5"><ProfileFold title={selectedProfileChampionStats ? championDisplayName(selectedProfileChampionStats.champion) : "Détail champion"} badge="Fiche perso" icon={Activity} toneName="purple">{selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion à gauche pour afficher ses ratios globaux, ses matchups et son historique game par game.</div>}</ProfileFold><ProfileFold title="Champion Pool" badge="Déclaré" icon={Shield} toneName="green"><div className="grid gap-2">{championPool.length ? championPool.map((row) => <div key={row.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{championPoolStatusLabel(championPoolStatus(row))}</p></div><Badge tone={championPoolStatusTone(championPoolStatus(row))}>{roleLabel(row.role || selectedPlayer.role)}</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion déclaré dans son pool.</p>}</div></ProfileFold></div></div>}
+        {profileView === "builds" && <ProfileBuildView championStats={championStats} selectedChampion={selectedBuildChampion} onSelectChampion={setSelectedBuildChampion} />}
         {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
         {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-2 lg:grid-cols-2">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></ProfileFold>}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des rapports liés aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
@@ -2635,6 +2639,82 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
     <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
       <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Historique par game</p>
       <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">{sortedRows.length ? sortedRows.map((row, index) => { const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase()); return <div key={(row.id || row.match?.id || index) + "-profile-champ"} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3 xl:grid-cols-[minmax(0,1fr)_minmax(110px,.7fr)_repeat(3,minmax(64px,.45fr))] xl:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || "Side ?"}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(row.match)}</p><p className="truncate text-xs font-semibold text-slate-300">{row.match?.duration || "--:--"}</p></div><div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Matchup</p><p className="mt-1 truncate font-black text-white">{enemy?.champion ? `vs ${championDisplayName(enemy.champion)}` : "Non reconnu"}</p></div><div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KDA</p><p className="font-black text-white">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</p></div><div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KP</p><p className="font-black text-white">{Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</p></div><div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">DMG</p><p className="font-black text-white">{formatPoints(row.damage)}</p></div></div>; }) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Aucune game sur ce champion.</p>}</div>
+    </div>
+  </div>;
+}
+
+function ProfileBuildView({ championStats, selectedChampion, onSelectChampion }) {
+  const activeChampion = championStats.some((stat) => stat.champion === selectedChampion) ? selectedChampion : championStats[0]?.champion || "";
+  const activeStats = championStats.find((stat) => stat.champion === activeChampion) || null;
+  const rows = activeStats?.rows?.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || ""))) || [];
+  return <div className="grid gap-5 2xl:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)]">
+    <ProfileFold title="Champions buildés" badge="Sélection" icon={Gauge} toneName="cyan">
+      <div className="grid max-h-[34rem] gap-2 overflow-auto pr-1 sm:grid-cols-2 2xl:grid-cols-1">
+        {championStats.length ? championStats.map((stat) => {
+          const active = stat.champion === activeChampion;
+          const buildRows = stat.rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
+          return <button key={stat.champion} type="button" onClick={() => onSelectChampion(stat.champion)} className={cx("group relative min-w-0 overflow-hidden rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035]")}>
+            <ChampionBackdrop champion={stat.champion} focus="face" />
+            <div className="relative z-10 flex min-w-0 items-center gap-3">
+              <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 shrink-0 rounded-xl border border-white/10 object-cover" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p>
+                <p className="mt-1 truncate text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {buildRows.length} build{buildRows.length > 1 ? "s" : ""}</p>
+              </div>
+              <ChevronRight className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "rotate-90")} />
+            </div>
+          </button>;
+        }) : <EmptyState icon={Gauge} title="Aucun build" text="Importe des games avec l’importer récent pour alimenter les builds." />}
+      </div>
+    </ProfileFold>
+    <ProfileFold title={activeStats ? `Builds ${championDisplayName(activeStats.champion)}` : "Builds"} badge="Timeline items" icon={Activity} toneName="purple">
+      {activeStats ? <div className="space-y-3">
+        <div className="relative overflow-hidden rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
+          <ChampionBackdrop champion={activeStats.champion} focus="face" />
+          <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <ChampionPortrait champion={activeStats.champion} alt={activeStats.champion} className="h-16 w-16 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" />
+              <div className="min-w-0"><h4 className="truncate text-2xl font-black text-white">{championDisplayName(activeStats.champion)}</h4><p className="mt-1 text-sm font-semibold text-slate-100">{rows.length} game{rows.length > 1 ? "s" : ""} analysée{rows.length > 1 ? "s" : ""} · {activeStats.wins}W - {Math.max(0, activeStats.games - activeStats.wins)}L</p></div>
+            </div>
+            <Badge tone="cyan">Ordre d’achat</Badge>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {rows.length ? rows.map((row, index) => <ProfileBuildGameCard key={(row.id || row.match?.id || row.match?.game_id || "build") + "-" + index} row={row} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game sur ce champion.</p>}
+        </div>
+      </div> : <EmptyState icon={Gauge} title="Aucun champion sélectionné" text="Choisis un champion pour voir ses builds game par game." />}
+    </ProfileFold>
+  </div>;
+}
+
+function ProfileBuildGameCard({ row }) {
+  const timeline = itemBuildTimeline(row);
+  const finalItems = finalBuildItems(row);
+  const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase());
+  return <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/24 p-3">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge>
+          <Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || "Side ?"}</Badge>
+          {enemy?.champion && <Badge tone="slate">vs {championDisplayName(enemy.champion)}</Badge>}
+        </div>
+        <p className="mt-2 truncate text-base font-black text-white">{matchDisplayName(row.match, "Game")}</p>
+        <p className="truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID inconnu"} · {row.match?.duration || "--:--"} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</p>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-1.5">
+        {finalItems.length ? finalItems.map((item, index) => <HudIcon key={`profile-final-${row.id || row.match?.id}-${index}-${item.id}`} src={itemIconUrl(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />) : <span className="rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-2 text-xs font-black text-slate-300">Build final absent</span>}
+      </div>
+    </div>
+    <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+      <div className="mb-3 flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Timeline build</p><Badge tone={timeline.length ? "cyan" : "slate"}>{timeline.length || "fallback"}</Badge></div>
+      {timeline.length ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {timeline.map((event, index) => <div key={`${row.id || row.match?.id}-item-event-${index}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
+          <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
+          <HudIcon src={itemIconUrl(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
+          <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` → ${event.secondaryId}` : ""}</p></div>
+        </div>)}
+      </div> : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Timeline d’achats absente dans ce JSON. Le build final reste visible au-dessus.</p>}
     </div>
   </div>;
 }
@@ -2754,38 +2834,115 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       return next;
     }, {});
   }
-  function previewRole(participant, index) {
-    const raw = String(participant?.teamPosition || participant?.individualPosition || participant?.lane || "").toUpperCase();
+  function normalizePreviewRole(value) {
+    const raw = String(value || "").toUpperCase();
     if (raw === "JUNGLE") return "JGL";
     if (raw === "MIDDLE") return "MID";
     if (raw === "BOTTOM") return "ADC";
     if (raw === "UTILITY" || raw === "SUPPORT") return "SUP";
     if (COMP_ROLES.includes(raw)) return raw;
+    return "";
+  }
+  function previewRiotRole(participant) {
+    return normalizePreviewRole(participant?.teamPosition || participant?.individualPosition || participant?.lane);
+  }
+  function previewFallbackRole(participant, index) {
+    const participantId = Number(participant?.participantId || 0);
+    if (participantId) return COMP_ROLES[(participantId - 1) % 5] || "";
     return COMP_ROLES[index] || "";
+  }
+  function previewRole(participant, index) {
+    return previewRiotRole(participant) || previewFallbackRole(participant, index);
   }
   function previewAssignmentValue(participant) {
     return participant?.riotId || participant?.summonerName || participant?.champion || "";
   }
-  function laneAssignmentsForSide(side) {
+  function previewIdentityKeys(participant) {
+    const riotId = String(participant?.riotId || "").trim();
+    const summonerName = String(participant?.summonerName || "").trim();
+    const values = [riotId, summonerName];
+    if (riotId.includes("#")) values.push(riotId.split("#")[0]);
+    return [...new Set(values.map(normalizeProfileKey).filter(Boolean))];
+  }
+  function rosterIdentityLookup() {
+    const lookup = new Map();
+    gameplayRoster.forEach((player) => {
+      [player.riot_id, player.name].forEach((value) => {
+        const key = normalizeProfileKey(value);
+        if (key && !lookup.has(key)) lookup.set(key, player);
+      });
+      const riotName = String(player.riot_id || "").split("#")[0];
+      const riotNameKey = normalizeProfileKey(riotName);
+      if (riotNameKey && !lookup.has(riotNameKey)) lookup.set(riotNameKey, player);
+    });
+    return lookup;
+  }
+  function matchedRosterPlayer(participant, lookup) {
+    return previewIdentityKeys(participant).map((key) => lookup.get(key)).find(Boolean) || null;
+  }
+  function previewRoleScore(participant, role, index, matchedPlayer) {
+    const riotRole = previewRiotRole(participant);
+    const fallbackRole = previewFallbackRole(participant, index);
+    const champion = participant?.champion;
+    let score = 0;
+    if (matchedPlayer?.role === role) score += 140;
+    if (matchedPlayer && matchedPlayer.role !== role) score -= 70;
+    if (riotRole === role) score += 110;
+    if (riotRole && riotRole !== role) score -= 55;
+    if (champion && championMatchesLane(champion, role)) score += 28;
+    if (fallbackRole === role) score += 10;
+    return score;
+  }
+  function roleParticipantMapForSide(side) {
     const team = previewTeams.find((item) => item.side === side);
-    return (team?.participants || []).reduce((next, participant, index) => {
-      const role = previewRole(participant, index);
-      const value = previewAssignmentValue(participant);
-      if (role && value && !next[role]) next[role] = value;
+    const participants = [...(team?.participants || [])].sort((a, b) => Number(a.participantId || 0) - Number(b.participantId || 0));
+    const lookup = rosterIdentityLookup();
+    const candidates = [];
+    participants.forEach((participant, index) => {
+      const matched = matchedRosterPlayer(participant, lookup);
+      COMP_ROLES.forEach((role) => {
+        candidates.push({ role, participant, matched, score: previewRoleScore(participant, role, index, matched) });
+      });
+    });
+    candidates.sort((a, b) => b.score - a.score);
+    const byRole = new Map();
+    const usedParticipants = new Set();
+    candidates.forEach((candidate) => {
+      const key = candidate.participant?.participantId || previewAssignmentValue(candidate.participant);
+      if (!key || candidate.score <= -40 || byRole.has(candidate.role) || usedParticipants.has(key)) return;
+      byRole.set(candidate.role, candidate);
+      usedParticipants.add(key);
+    });
+    COMP_ROLES.forEach((role) => {
+      if (byRole.has(role)) return;
+      const fallback = participants.find((participant, index) => {
+        const key = participant?.participantId || previewAssignmentValue(participant);
+        return !usedParticipants.has(key) && previewFallbackRole(participant, index) === role;
+      }) || participants.find((participant) => {
+        const key = participant?.participantId || previewAssignmentValue(participant);
+        return !usedParticipants.has(key);
+      });
+      if (!fallback) return;
+      const key = fallback?.participantId || previewAssignmentValue(fallback);
+      byRole.set(role, { role, participant: fallback, matched: matchedRosterPlayer(fallback, lookup), score: 0 });
+      usedParticipants.add(key);
+    });
+    return byRole;
+  }
+  function laneAssignmentsForSide(side) {
+    const byRole = roleParticipantMapForSide(side);
+    return COMP_ROLES.reduce((next, role) => {
+      next[role] = previewAssignmentValue(byRole.get(role)?.participant);
       return next;
     }, {});
   }
   function playerAssignmentsForSide(side) {
-    const byRole = rosterAssignmentsByRole();
-    const team = previewTeams.find((item) => item.side === side);
-    const byRiot = new Map(gameplayRoster.map((player) => [normalizeProfileKey(player.riot_id), player.id]).filter(([key]) => key));
-    const byName = new Map(gameplayRoster.map((player) => [normalizeProfileKey(player.name), player.id]).filter(([key]) => key));
-    return (team?.participants || []).reduce((next, participant, index) => {
-      const role = previewRole(participant, index);
-      const matched = byRiot.get(normalizeProfileKey(participant.riotId)) || byName.get(normalizeProfileKey(participant.summonerName));
-      if (role && matched) next[role] = matched;
+    const defaults = rosterAssignmentsByRole();
+    const byRole = roleParticipantMapForSide(side);
+    return COMP_ROLES.reduce((next, role) => {
+      next[role] = byRole.get(role)?.matched?.id || defaults[role] || "";
       return next;
-    }, byRole);
+    }, {});
   }
   function selectImportSide(side) {
     const enemySide = side === "BLUE" ? "RED" : "BLUE";
@@ -3288,6 +3445,55 @@ function trinketItemId(row) {
   return participantNumber(row, "item6", "item6Id", "trinket", "trinketItemId");
 }
 
+function finalBuildItems(row) {
+  const trinket = trinketItemId(row);
+  return [
+    ...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })),
+    ...(trinket ? [{ id: trinket, type: "trinket" }] : []),
+  ];
+}
+
+function matchTimelineFrames(match) {
+  return match?.raw?.timeline?.info?.frames
+    || match?.raw?.metadata?.timeline?.info?.frames
+    || match?.raw?.timeline?.frames
+    || match?.raw?.timeline?.timeline?.info?.frames
+    || match?.raw?.timeline?.timeline?.frames
+    || [];
+}
+
+function itemEventMeta(type) {
+  const normalized = String(type || "").toUpperCase();
+  if (normalized === "ITEM_PURCHASED") return { label: "Achat", toneName: "cyan" };
+  if (normalized === "ITEM_SOLD") return { label: "Vente", toneName: "orange" };
+  if (normalized === "ITEM_DESTROYED") return { label: "Consommé", toneName: "purple" };
+  if (normalized === "ITEM_UNDO") return { label: "Annulé", toneName: "pink" };
+  return { label: "Item", toneName: "cyan" };
+}
+
+function itemBuildTimeline(row) {
+  const participantId = rowParticipantId(row);
+  if (!participantId) return [];
+  return matchTimelineFrames(row?.match).flatMap((frame) => (frame.events || [])
+    .filter((event) => ["ITEM_PURCHASED", "ITEM_SOLD", "ITEM_DESTROYED", "ITEM_UNDO"].includes(String(event.type || "").toUpperCase()))
+    .filter((event) => Number(event.participantId || event.creatorId || 0) === participantId)
+    .map((event) => {
+      const meta = itemEventMeta(event.type);
+      const itemId = Number(event.itemId || event.beforeId || event.afterId || 0);
+      if (!itemId) return null;
+      const timestamp = Number(event.timestamp || frame.timestamp || 0);
+      const secondaryId = Number(event.type === "ITEM_UNDO" ? event.afterId || 0 : 0);
+      return {
+        ...meta,
+        itemId,
+        secondaryId: secondaryId && secondaryId !== itemId ? secondaryId : 0,
+        timestamp,
+        time: formatCountdown(Math.floor(timestamp / 1000)),
+      };
+    })
+    .filter(Boolean)).sort((a, b) => a.timestamp - b.timestamp);
+}
+
 function summonerSpellIds(row) {
   const sources = participantSources(row);
   const spellFromList = (index) => {
@@ -3424,6 +3630,7 @@ function objectiveEvents(match) {
     return {
       ...event,
       teamKey: killerTeamId && allyTeamId && killerTeamId === allyTeamId ? "ALLY" : "ENEMY",
+      side: killerTeamId === 100 ? "BLUE" : killerTeamId === 200 ? "RED" : "",
       time: formatCountdown(Math.floor(Number(event.timestamp || 0) / 1000)),
       label: objectiveEventLabel(event),
     };
@@ -3447,6 +3654,15 @@ function objectiveTeamValue(match, name, teamKey) {
 
 function objectiveTeamAnyValue(match, teamKey, names) {
   return Math.max(0, ...names.map((name) => objectiveTeamValue(match, name, teamKey)));
+}
+
+function objectiveTeamKeyForSide(match, side) {
+  const targetTeamId = side === "BLUE" ? 100 : 200;
+  const exact = ["ALLY", "ENEMY"].find((teamKey) => objectiveTeamId(match, teamKey) === targetTeamId);
+  if (exact) return exact;
+  const allySide = String(match?.side || "").toUpperCase().startsWith("BLUE") ? "BLUE" : String(match?.side || "").toUpperCase().startsWith("RED") ? "RED" : "";
+  if (allySide) return side === allySide ? "ALLY" : "ENEMY";
+  return side === "BLUE" ? "ALLY" : "ENEMY";
 }
 
 function objectiveDragonElement(event) {
@@ -3520,7 +3736,7 @@ function ObjectivePictogram({ type, className = "", fallback = "O" }) {
   return <img src={source} alt="" className={cx("object-contain drop-shadow-[0_0_10px_rgba(255,255,255,.2)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
-function ObjectiveTeamCard({ match, teamKey, title, toneName }) {
+function ObjectiveTeamCard({ match, teamKey, side, title, toneName }) {
   const data = objectiveTeamSummary(match, teamKey);
   const stats = [
     ["Dragons", data.dragonCount, "dragon", "cyan"],
@@ -3529,7 +3745,7 @@ function ObjectiveTeamCard({ match, teamKey, title, toneName }) {
     ["Nashor", data.barons, "baron", "purple"],
     ["Tours", data.towers, "tower", "blue"],
   ];
-  return <div className={cx("min-w-0 rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]")}>
+  return <div className={cx("min-w-0 rounded-2xl border p-3", side === "BLUE" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]")}>
     <div className="mb-3 flex items-center justify-between gap-3">
       <Badge tone={toneName}>{title}</Badge>
       <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{data.dragonCount} drake{data.dragonCount > 1 ? "s" : ""}</span>
@@ -3556,18 +3772,20 @@ function ObjectiveTeamCard({ match, teamKey, title, toneName }) {
 
 function ObjectiveHud({ match, compact = false }) {
   const events = objectiveEvents(match);
+  const blueTeamKey = objectiveTeamKeyForSide(match, "BLUE");
+  const redTeamKey = objectiveTeamKeyForSide(match, "RED");
   return <div className={cx("rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.06] via-black/20 to-fuchsia-400/[0.05] p-3", compact ? "mb-3" : "mt-4")}>
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-2"><Badge tone="cyan">Objectifs</Badge>{events.length > 0 && <Badge tone="green">{events.length} events</Badge>}</div>
       <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Dragons détaillés par élément</span>
     </div>
     <div className="grid gap-2 xl:grid-cols-2">
-      <ObjectiveTeamCard match={match} teamKey="ALLY" title="Nous" toneName="cyan" />
-      <ObjectiveTeamCard match={match} teamKey="ENEMY" title="Eux" toneName="red" />
+      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Blue Side" toneName="cyan" />
+      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Red Side" toneName="red" />
     </div>
     {events.length ? <>
       <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl border px-2.5 py-2", event.teamKey === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.07]" : "border-rose-300/18 bg-rose-500/[0.07]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border", tone(objectiveEventTone(event)))}><ObjectivePictogram type={objectiveEventType(event)} fallback={objectiveEventIcon(event)} className="h-5 w-5" /></span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.teamKey === "ALLY" ? "Nous" : "Eux"}</p></div></div>)}
+        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl border px-2.5 py-2", event.side === "RED" ? "border-rose-300/18 bg-rose-500/[0.07]" : "border-cyan-300/18 bg-cyan-400/[0.07]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border", tone(objectiveEventTone(event)))}><ObjectivePictogram type={objectiveEventType(event)} fallback={objectiveEventIcon(event)} className="h-5 w-5" /></span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.side === "RED" ? "Red Side" : "Blue Side"}</p></div></div>)}
       </div>
     </> : null}
   </div>;
