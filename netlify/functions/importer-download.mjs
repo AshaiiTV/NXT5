@@ -1,5 +1,5 @@
 const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest';
-const PREFERRED_VERSION = '0.2.6';
+const PREFERRED_VERSION = '0.2.7';
 
 function redirect(url) {
   return new Response(null, {
@@ -24,7 +24,7 @@ function jsonError(message, status = 404) {
   });
 }
 
-function scoreAsset(asset, platform) {
+function scoreAsset(asset, platform, requestedVersion = PREFERRED_VERSION) {
   const name = String(asset?.name || '').toLowerCase();
   if (!asset?.browser_download_url) return -1;
   if (platform === 'windows' && !name.endsWith('.exe')) return -1;
@@ -36,6 +36,7 @@ function scoreAsset(asset, platform) {
   if (name.includes('nxt5-importer')) score += 100;
   if (name.includes('nxt5-match-exporter')) score += 50;
   if (platform === 'mac' && name.includes('arm64')) score += 20;
+  if (requestedVersion && name.includes(String(requestedVersion).toLowerCase())) score += 70;
   if (name.includes(PREFERRED_VERSION)) score += 30;
   return score;
 }
@@ -44,6 +45,7 @@ export default async function handler(request) {
   try {
     const url = new URL(request.url);
     const platform = url.searchParams.get('platform') === 'mac' ? 'mac' : 'windows';
+    const requestedVersion = String(url.searchParams.get('version') || PREFERRED_VERSION).trim();
     const response = await fetch(RELEASE_API, {
       headers: {
         Accept: 'application/vnd.github+json',
@@ -54,7 +56,7 @@ export default async function handler(request) {
 
     const release = await response.json();
     const asset = (release.assets || [])
-      .map((item) => ({ item, score: scoreAsset(item, platform) }))
+      .map((item) => ({ item, score: scoreAsset(item, platform, requestedVersion) }))
       .filter(({ score }) => score >= 0)
       .sort((a, b) => b.score - a.score)[0]?.item;
 
