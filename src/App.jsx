@@ -45,9 +45,10 @@ import {
 } from "lucide-react";
 
 const API_BASE = "/.netlify/functions";
-const NXT5_IMPORTER_VERSION = "0.2.7";
-const NXT5_IMPORTER_WINDOWS_URL = `${API_BASE}/importer-download?platform=windows&version=${NXT5_IMPORTER_VERSION}`;
-const NXT5_IMPORTER_MAC_URL = `${API_BASE}/importer-download?platform=mac&version=${NXT5_IMPORTER_VERSION}`;
+const NXT5_IMPORTER_VERSION = "0.2.8";
+const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
+const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Windows-${NXT5_IMPORTER_VERSION}.exe`;
+const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-arm64-${NXT5_IMPORTER_VERSION}.zip`;
 
 const NAV = [
   { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
@@ -2628,7 +2629,7 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
       <ProfileHudMetric label="KDA" value={stat.kda} detail={`${stat.kills}/${stat.deaths}/${stat.assists} total`} tone="cyan" />
       <ProfileHudMetric label="KP" value={`${avg(stat.kp, 0)}%`} detail="Moyenne" tone="purple" />
       <ProfileHudMetric label="CS/min" value={avg(stat.csPerMin)} detail="Moyenne" tone="orange" />
-      <ProfileHudMetric label="CS 10 mins / 20 mins" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? `${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}` : "Timeline absente"} tone="green" />
+      {csMilestones.samples > 0 && <ProfileHudMetric label="CS 10 mins / 20 mins" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={`${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}`} tone="green" />}
       <ProfileHudMetric label="Dégâts" value={formatPoints(stat.damage / safeGames)} detail="Moyenne/game" tone="purple" />
       <ProfileHudMetric label="Vision" value={avg(stat.vision)} detail="Moyenne/game" tone="cyan" />
     </div>
@@ -2707,16 +2708,15 @@ function ProfileBuildGameCard({ row }) {
         {finalItems.length ? finalItems.map((item, index) => <HudIcon key={`profile-final-${row.id || row.match?.id}-${index}-${item.id}`} src={itemIconUrl(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />) : <span className="rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-2 text-xs font-black text-slate-300">Build final absent</span>}
       </div>
     </div>
-    <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-      <div className="mb-3 flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Timeline build</p><Badge tone={timeline.length ? "cyan" : "slate"}>{timeline.length || "fallback"}</Badge></div>
-      {timeline.length ? <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+    {timeline.length > 0 && <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+      <div className="mb-3 flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Timeline build</p><Badge tone="cyan">{timeline.length}</Badge></div><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {timeline.map((event, index) => <div key={`${row.id || row.match?.id}-item-event-${index}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
           <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
           <HudIcon src={itemIconUrl(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
           <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` → ${event.secondaryId}` : ""}</p></div>
         </div>)}
-      </div> : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Timeline d’achats absente dans ce JSON. Le build final reste visible au-dessus.</p>}
-    </div>
+      </div>
+    </div>}
   </div>;
 }
 
@@ -3326,7 +3326,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
               <ProfileHudMetric label="KDA" value={selectedChampionStats.kda} detail={`${selectedChampionStats.totals.kills}/${selectedChampionStats.totals.deaths}/${selectedChampionStats.totals.assists}`} tone="cyan" />
               <ProfileHudMetric label="KP" value={selectedChampionStats.avgKp.toFixed(0) + "%"} detail="Moyenne" tone="purple" />
               <ProfileHudMetric label="CS/min" value={selectedChampionStats.avgCsPerMin.toFixed(1)} detail="Moyenne" tone="orange" />
-              <ProfileHudMetric label="CS 10 mins / 20 mins" value={`${selectedCsMilestones.at10 ?? "-"} / ${selectedCsMilestones.at20 ?? "-"}`} detail={selectedCsMilestones.samples ? "Timeline" : "Absente"} tone="green" />
+              {selectedCsMilestones.samples > 0 && <ProfileHudMetric label="CS 10 mins / 20 mins" value={`${selectedCsMilestones.at10 ?? "-"} / ${selectedCsMilestones.at20 ?? "-"}`} detail="Timeline" tone="green" />}
             </div>
             {bestDamageRow && <p className="mt-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-3 py-2 text-xs font-bold text-cyan-50">Meilleure game dégâts : {formatPoints(bestDamageRow.damage)} sur {matchDisplayName(bestDamageRow.match, "game inconnue")} · {bestDamageRow.match?.game_id || "game inconnue"}</p>}
           </div> : <div className="flex min-h-[22rem] flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/18 p-5 text-center">
@@ -3862,6 +3862,7 @@ function VisionHeatmap({ match }) {
   const [collapsed, setCollapsed] = useState(true);
   const [zoomed, setZoomed] = useState(false);
   const events = visionWardEvents(match).filter((event) => event.teamKey === "ALLY");
+  if (!events.length) return null;
   const heatCells = Array.from(events.reduce((map, event) => {
     const cellSize = 0.085;
     const x = Math.round(event.x / cellSize) * cellSize;

@@ -4,11 +4,15 @@ const statusBox = document.querySelector('#status');
 const updateBox = document.querySelector('#update');
 const updateText = document.querySelector('#updateText');
 const updateLink = document.querySelector('#updateLink');
-const upgradeDrop = document.querySelector('#upgradeDrop');
-const upgradeButton = document.querySelector('#upgradeButton');
+const exportTab = document.querySelector('#exportTab');
+const settingsTab = document.querySelector('#settingsTab');
+const settingsPanel = document.querySelector('#settingsPanel');
+const manualUpdateButton = document.querySelector('#manualUpdateButton');
+const currentVersion = document.querySelector('#currentVersion');
+const latestVersion = document.querySelector('#latestVersion');
 let generating = false;
-let upgrading = false;
 let updateDownloadUrl = '';
+let lastUpdateInfo = null;
 
 function setStatus(type, text) {
   statusBox.hidden = false;
@@ -22,13 +26,30 @@ function resetSubmit() {
   submit.textContent = 'Generer le fichier';
 }
 
-function resetUpgrade() {
-  upgrading = false;
-  if (upgradeButton) {
-    upgradeButton.disabled = false;
-    upgradeButton.textContent = 'Mettre a jour un JSON';
+function setActiveTab(tab) {
+  const settings = tab === 'settings';
+  exportTab?.classList.toggle('active', !settings);
+  settingsTab?.classList.toggle('active', settings);
+  form.hidden = settings;
+  form.classList.toggle('active', !settings);
+  settingsPanel.hidden = !settings;
+  settingsPanel.classList.toggle('active', settings);
+  if (settings) renderUpdateInfo(lastUpdateInfo);
+}
+
+function renderUpdateInfo(info) {
+  if (!currentVersion || !latestVersion || !manualUpdateButton) return;
+  if (!info) {
+    currentVersion.textContent = 'Verification...';
+    latestVersion.textContent = 'Derniere version : verification...';
+    manualUpdateButton.textContent = 'Verifier les mises a jour';
+    manualUpdateButton.disabled = false;
+    return;
   }
-  upgradeDrop?.classList.remove('dragging');
+  currentVersion.textContent = info.currentVersion || 'Inconnue';
+  latestVersion.textContent = `Derniere version : ${info.latestVersion || 'inconnue'}`;
+  manualUpdateButton.disabled = false;
+  manualUpdateButton.textContent = info.updateAvailable ? 'Telecharger la mise a jour' : 'Application a jour';
 }
 
 if (!window.nxt5?.generateImport) {
@@ -36,27 +57,51 @@ if (!window.nxt5?.generateImport) {
   setStatus('error', "Le moteur local de l'application ne s'est pas charge. Ferme l'app, supprime l'ancienne version, puis ouvre la derniere version de NXT5 Importer.");
 }
 
-async function checkForUpdate() {
-  if (!window.nxt5?.checkUpdate || !updateBox || !updateText || !updateLink) return;
+async function checkForUpdate({ showStatus = false } = {}) {
+  if (!window.nxt5?.checkUpdate) return null;
   try {
+    if (manualUpdateButton) {
+      manualUpdateButton.disabled = true;
+      manualUpdateButton.textContent = 'Verification...';
+    }
     const info = await window.nxt5.checkUpdate();
-    if (!info?.updateAvailable) return;
-    updateText.textContent = `Ta version : ${info.currentVersion}. Derniere version : ${info.latestVersion}. Mets a jour pour profiter des derniers imports, timeline, wards et stats.`;
-    updateDownloadUrl = info.downloadUrl;
-    updateLink.href = info.downloadUrl;
-    updateLink.textContent = info.platform === 'mac' ? 'Telecharger Mac' : 'Telecharger Windows';
-    updateBox.hidden = false;
-  } catch {
-    // Offline or GitHub temporarily unavailable: importing must remain possible.
+    lastUpdateInfo = info;
+    renderUpdateInfo(info);
+    if (info?.updateAvailable) {
+      updateText.textContent = `Ta version : ${info.currentVersion}. Derniere version : ${info.latestVersion}.`;
+      updateDownloadUrl = info.downloadUrl;
+      updateLink.href = info.downloadUrl;
+      updateLink.textContent = info.platform === 'mac' ? 'Telecharger Mac' : 'Telecharger Windows';
+      updateBox.hidden = false;
+      if (showStatus) setStatus('info', 'Une mise a jour de NXT5 Importer est disponible.');
+    } else {
+      updateBox.hidden = true;
+      if (showStatus) setStatus('success', 'NXT5 Importer est deja a jour.');
+    }
+    return info;
+  } catch (err) {
+    renderUpdateInfo({ currentVersion: lastUpdateInfo?.currentVersion || 'Inconnue', latestVersion: 'indisponible', updateAvailable: false });
+    if (showStatus) setStatus('error', err.message || 'Verification de mise a jour impossible.');
+    return null;
   }
 }
 
 checkForUpdate();
 
+exportTab?.addEventListener('click', () => setActiveTab('export'));
+settingsTab?.addEventListener('click', () => setActiveTab('settings'));
+
 updateLink?.addEventListener('click', async (event) => {
   if (!updateDownloadUrl || !window.nxt5?.openExternal) return;
   event.preventDefault();
   await window.nxt5.openExternal(updateDownloadUrl);
+});
+
+manualUpdateButton?.addEventListener('click', async () => {
+  const info = await checkForUpdate({ showStatus: true });
+  if (info?.updateAvailable && info.downloadUrl && window.nxt5?.openExternal) {
+    await window.nxt5.openExternal(info.downloadUrl);
+  }
 });
 
 form.addEventListener('submit', async (event) => {
@@ -84,55 +129,4 @@ form.addEventListener('submit', async (event) => {
   } finally {
     resetSubmit();
   }
-});
-
-async function updateExistingJson(filePath = '') {
-  if (upgrading) return;
-  if (!window.nxt5?.updateImport) {
-    setStatus('error', "Le moteur local de mise a jour n'est pas disponible. Telecharge la derniere version de NXT5 Importer.");
-    return;
-  }
-  upgrading = true;
-  if (upgradeButton) {
-    upgradeButton.disabled = true;
-    upgradeButton.textContent = 'Mise a jour...';
-  }
-  setStatus('info', 'Lecture du JSON et recuperation de la timeline dans le client LoL...');
-  try {
-    const result = await window.nxt5.updateImport({ filePath });
-    if (result.canceled) setStatus('info', 'Mise a jour annulee. Aucun fichier cree.');
-    else setStatus('success', `JSON mis a jour : ${result.filePath} (${result.frames} frames timeline, ${result.wards} wards).`);
-  } catch (err) {
-    setStatus('error', err.message || 'Erreur inconnue pendant la mise a jour du JSON.');
-  } finally {
-    resetUpgrade();
-  }
-}
-
-upgradeButton?.addEventListener('click', () => updateExistingJson());
-
-upgradeDrop?.addEventListener('dragover', (event) => {
-  event.preventDefault();
-  upgradeDrop.classList.add('dragging');
-});
-
-upgradeDrop?.addEventListener('dragleave', () => {
-  upgradeDrop.classList.remove('dragging');
-});
-
-upgradeDrop?.addEventListener('drop', (event) => {
-  event.preventDefault();
-  const file = event.dataTransfer?.files?.[0];
-  const filePath = file?.path || '';
-  if (!filePath) {
-    resetUpgrade();
-    setStatus('error', 'Impossible de lire le chemin du fichier. Utilise le bouton "Mettre a jour un JSON".');
-    return;
-  }
-  if (!String(filePath).toLowerCase().endsWith('.json')) {
-    resetUpgrade();
-    setStatus('error', 'Le fichier doit etre un JSON NXT5.');
-    return;
-  }
-  updateExistingJson(filePath);
 });

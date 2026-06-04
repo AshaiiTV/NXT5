@@ -29,7 +29,12 @@
       <a id="updateLink" href="#" target="_blank" rel="noreferrer">Telecharger</a>
     </section>
 
-    <form id="form" class="panel">
+    <nav class="tabs" aria-label="Navigation importer">
+      <button id="exportTab" type="button" class="tab active">Export</button>
+      <button id="settingsTab" type="button" class="tab">Parametres</button>
+    </nav>
+
+    <form id="form" class="panel tab-panel active" data-panel="export">
       <div class="game-grid">
         <label>
           <span>Game ID</span>
@@ -50,13 +55,20 @@
       <p class="hint">Ensuite : NXT5 -> Integration -> Importer un fichier NXT5 local.</p>
     </form>
 
-    <section id="upgradeDrop" class="panel upgrade-panel">
-      <div>
-        <p class="eyebrow">Mise a jour JSON</p>
-        <h2>Enrichir un ancien export</h2>
-        <p class="lead small">Glisse un ancien JSON NXT5 ici, ou choisis-le manuellement. L'importer ajoute la timeline locale pour retrouver les chronos items, CS 10/20 et vision.</p>
+    <section id="settingsPanel" class="panel tab-panel settings-panel" data-panel="settings" hidden>
+      <div class="settings-grid">
+        <div>
+          <p class="eyebrow">Application</p>
+          <h2>Parametres</h2>
+          <p class="lead small">Controle ta version de NXT5 Importer et telecharge la derniere version quand une mise a jour est disponible.</p>
+        </div>
+        <div class="version-card">
+          <span>Version installee</span>
+          <strong id="currentVersion">Verification...</strong>
+          <small id="latestVersion">Derniere version : verification...</small>
+        </div>
       </div>
-      <button id="upgradeButton" type="button">Mettre a jour un JSON</button>
+      <button id="manualUpdateButton" type="button">Verifier les mises a jour</button>
     </section>
 
     <div id="status" class="status" hidden></div>

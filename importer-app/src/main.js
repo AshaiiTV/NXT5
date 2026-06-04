@@ -288,25 +288,6 @@ function normalizeTimelinePayload(value) {
   return null;
 }
 
-function gameIdFromImportPayload(payload) {
-  const values = [
-    payload?.gameId,
-    payload?.match?.metadata?.matchId,
-    payload?.match?.info?.gameId,
-    payload?.match?.gameId
-  ].filter(Boolean);
-  const value = values.map((item) => String(item || '').trim().toUpperCase()).find(Boolean);
-  if (!value) throw new Error('Game ID introuvable dans ce JSON.');
-  const full = value.match(/\b([A-Z0-9]{2,5})[_-](\d{6,})\b/);
-  if (full) return { gameId: `${full[1]}_${full[2]}`, numericGameId: full[2], platform: full[1] };
-  const numeric = value.match(/\b(\d{6,})\b/);
-  if (numeric) {
-    const platform = String(payload?.platform || 'EUW1').toUpperCase();
-    return { gameId: `${platform}_${numeric[1]}`, numericGameId: numeric[1], platform };
-  }
-  throw new Error('Game ID invalide dans ce JSON.');
-}
-
 async function fetchLocalClientTimeline(numericGameId) {
   const endpoints = [
     `/lol-match-history/v1/game-timelines/${encodeURIComponent(numericGameId)}`,
@@ -491,60 +472,6 @@ ipcMain.handle('generate-import', async (_event, form) => {
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
   return { canceled: false, filePath, gameId };
-});
-
-ipcMain.handle('update-import', async (_event, input) => {
-  let sourcePath = String(input?.filePath || '').trim();
-  if (!sourcePath) {
-    const picked = await dialog.showOpenDialog({
-      title: 'Choisir un ancien JSON NXT5',
-      properties: ['openFile'],
-      filters: [{ name: 'NXT5 JSON', extensions: ['json'] }]
-    });
-    if (picked.canceled || !picked.filePaths?.[0]) return { canceled: true };
-    sourcePath = picked.filePaths[0];
-  }
-
-  const content = await fs.readFile(sourcePath, 'utf8');
-  let payload = null;
-  try {
-    payload = JSON.parse(content);
-  } catch {
-    throw new Error('Ce fichier n’est pas un JSON valide.');
-  }
-  if (!payload?.match?.info?.participants?.length) {
-    throw new Error('Ce JSON ne ressemble pas a un export NXT5/Riot valide.');
-  }
-
-  const { gameId, numericGameId, platform } = gameIdFromImportPayload(payload);
-  const timeline = await fetchLocalClientTimeline(numericGameId);
-  if (!timeline?.info?.frames?.length && !timeline?.frames?.length) {
-    throw new Error('Timeline introuvable dans le client LoL local. Ouvre le client, va dans ton historique de match, affiche cette game, puis reessaie.');
-  }
-
-  payload.gameId = payload.gameId || gameId;
-  payload.platform = payload.platform || platform;
-  payload.version = Math.max(Number(payload.version || 0), 6);
-  payload.updatedAt = new Date().toISOString();
-  payload.match.timeline = timeline;
-  payload.timeline = timeline;
-  payload.nxt5 = {
-    ...(payload.nxt5 || {}),
-    importer: APP_NAME,
-    updatedByImporter: true,
-    timelineSummary: buildTimelineSummary(payload.match, timeline)
-  };
-
-  const parsed = path.parse(sourcePath);
-  const defaultPath = path.join(parsed.dir, `${parsed.name}-updated.json`);
-  const { canceled, filePath } = await dialog.showSaveDialog({
-    title: 'Enregistrer le JSON mis a jour',
-    defaultPath,
-    filters: [{ name: 'NXT5 JSON', extensions: ['json'] }]
-  });
-  if (canceled || !filePath) return { canceled: true };
-  await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
-  return { canceled: false, filePath, gameId, frames: timelineFrames(timeline).length, wards: payload.nxt5.timelineSummary.wardCount || 0 };
 });
 
 ipcMain.handle('check-update', async () => checkImporterUpdate());

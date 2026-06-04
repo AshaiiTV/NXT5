@@ -1,5 +1,5 @@
 const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest';
-const PREFERRED_VERSION = '0.2.7';
+const PREFERRED_VERSION = '0.2.8';
 
 function redirect(url) {
   return new Response(null, {
@@ -55,12 +55,15 @@ export default async function handler(request) {
     if (!response.ok) return jsonError('Release NXT5 Importer introuvable.', response.status);
 
     const release = await response.json();
-    const asset = (release.assets || [])
+    const assets = requestedVersion
+      ? (release.assets || []).filter((item) => String(item?.name || '').toLowerCase().includes(requestedVersion.toLowerCase()))
+      : (release.assets || []);
+    const asset = assets
       .map((item) => ({ item, score: scoreAsset(item, platform, requestedVersion) }))
       .filter(({ score }) => score >= 0)
       .sort((a, b) => b.score - a.score)[0]?.item;
 
-    if (!asset) return jsonError(`Aucun installateur ${platform === 'mac' ? 'Mac' : 'Windows'} disponible pour le moment.`);
+    if (!asset) return jsonError(`Aucun installateur ${platform === 'mac' ? 'Mac' : 'Windows'} disponible pour la version ${requestedVersion}.`);
     return redirect(asset.browser_download_url);
   } catch (err) {
     console.error(err);
