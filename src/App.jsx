@@ -2570,10 +2570,14 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     link.click();
     pushToast?.({ type: "cyan", title: "PNG exporté", text: "Le résumé du profil a été téléchargé." });
   }
+  const buildRowsCount = rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length).length;
+  useEffect(() => {
+    if (profileView === "builds" && buildRowsCount === 0) setProfileView("overview");
+  }, [profileView, buildRowsCount]);
   const profileViews = [
     ["overview", "Synthèse", Activity, `${games}G`],
     ["champions", "Champions", Crown, championStats.length],
-    ["builds", "Build", Gauge, rows.filter((row) => itemSlots(row).some(Boolean)).length],
+    ...(buildRowsCount > 0 ? [["builds", "Build", Gauge, buildRowsCount]] : []),
     ["matchups", "Matchups", Swords, matchups.length],
     ["history", "Historique", FileText, rows.length],
     ["coaching", "Coaching", Clipboard, coachingContent.trim() ? "OK" : "—"],
@@ -2704,9 +2708,9 @@ function ProfileBuildGameCard({ row }) {
         <p className="mt-2 truncate text-base font-black text-white">{matchDisplayName(row.match, "Game")}</p>
         <p className="truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID inconnu"} · {row.match?.duration || "--:--"} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</p>
       </div>
-      <div className="flex shrink-0 flex-wrap gap-1.5">
-        {finalItems.length ? finalItems.map((item, index) => <HudIcon key={`profile-final-${row.id || row.match?.id}-${index}-${item.id}`} src={itemIconUrl(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />) : <span className="rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-2 text-xs font-black text-slate-300">Build final absent</span>}
-      </div>
+      {finalItems.length > 0 && <div className="flex shrink-0 flex-wrap gap-1.5">
+        {finalItems.map((item, index) => <HudIcon key={`profile-final-${row.id || row.match?.id}-${index}-${item.id}`} src={itemIconUrl(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />)}
+      </div>}
     </div>
     {timeline.length > 0 && <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
       <div className="mb-3 flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Timeline build</p><Badge tone="cyan">{timeline.length}</Badge></div><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
@@ -3256,7 +3260,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
         <ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={avg(stat.kills) + "/" + avg(stat.deaths) + "/" + avg(stat.assists) + " moy."} tone="cyan" />
         <ProfileHudMetric icon={Target} label="KP" value={avg(stat.kp) + "%"} detail="Participation kills" tone="purple" />
         <ProfileHudMetric icon={Gauge} label="CS/min" value={avg(stat.csPerMin)} detail="Farm moyen" tone="orange" />
-        <ProfileHudMetric icon={Activity} label="CS 10 mins / 20 mins" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={csMilestones.samples ? "Moyenne timeline" : "Timeline absente"} tone="green" />
+        {csMilestones.samples > 0 && <ProfileHudMetric icon={Activity} label="CS 10 mins / 20 mins" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail="Moyenne timeline" tone="green" />}
       </div>
     </div>
 
@@ -3737,8 +3741,12 @@ function ObjectivePictogram({ type, className = "", fallback = "O" }) {
   return <img src={source} alt="" className={cx("object-contain drop-shadow-[0_0_10px_rgba(255,255,255,.2)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
-function ObjectiveTeamCard({ match, teamKey, side, title, toneName }) {
-  const data = objectiveTeamSummary(match, teamKey);
+function objectiveSummaryHasData(data) {
+  return Boolean(data && (data.dragonCount || data.grubs || data.heralds || data.barons || data.towers || data.dragons?.length));
+}
+
+function ObjectiveTeamCard({ match, teamKey, side, title, toneName, data: providedData }) {
+  const data = providedData || objectiveTeamSummary(match, teamKey);
   const stats = [
     ["Dragons", data.dragonCount, "dragon", "cyan"],
     ["Grubs", data.grubs, "grub", "green"],
@@ -3746,19 +3754,19 @@ function ObjectiveTeamCard({ match, teamKey, side, title, toneName }) {
     ["Nashor", data.barons, "baron", "purple"],
     ["Tours", data.towers, "tower", "blue"],
   ];
-  return <div className={cx("min-w-0 rounded-2xl border p-3", side === "BLUE" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]")}>
+  return <div className={cx("min-w-0 rounded-2xl p-3", side === "BLUE" ? "bg-cyan-400/[0.055]" : "bg-rose-500/[0.055]")}>
     <div className="mb-3 flex items-center justify-between gap-3">
       <Badge tone={toneName}>{title}</Badge>
       <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{data.dragonCount} drake{data.dragonCount > 1 ? "s" : ""}</span>
     </div>
     <div className="grid grid-cols-5 gap-1.5">
-      {stats.map(([label, value, icon, t]) => <div key={label} className="min-w-0 rounded-xl border border-white/10 bg-black/25 px-1.5 py-2 text-center">
-        <span className={cx("mx-auto flex h-8 w-8 items-center justify-center rounded-lg border", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-6 w-6" /></span>
+      {stats.map(([label, value, icon, t]) => <div key={label} className="min-w-0 rounded-xl bg-black/18 px-1.5 py-2 text-center ring-1 ring-white/[0.045]">
+        <span className={cx("mx-auto flex h-8 w-8 items-center justify-center rounded-lg", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-6 w-6" /></span>
         <p className="mt-1 text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-300">{label}</p>
         <p className="text-sm font-black text-white">{value}</p>
       </div>)}
     </div>
-    {data.dragons.length > 0 && <div className="mt-3 rounded-xl border border-white/10 bg-black/22 p-2">
+    {data.dragons.length > 0 && <div className="mt-3 rounded-xl bg-black/18 p-2 ring-1 ring-white/[0.045]">
       <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Éléments dragons</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
@@ -3775,18 +3783,21 @@ function ObjectiveHud({ match, compact = false }) {
   const events = objectiveEvents(match);
   const blueTeamKey = objectiveTeamKeyForSide(match, "BLUE");
   const redTeamKey = objectiveTeamKeyForSide(match, "RED");
-  return <div className={cx("rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.06] via-black/20 to-fuchsia-400/[0.05] p-3", compact ? "mb-3" : "mt-4")}>
+  const blueData = objectiveTeamSummary(match, blueTeamKey);
+  const redData = objectiveTeamSummary(match, redTeamKey);
+  if (!events.length && !objectiveSummaryHasData(blueData) && !objectiveSummaryHasData(redData)) return null;
+  return <div className={cx("rounded-[1.25rem] bg-gradient-to-br from-cyan-400/[0.045] via-black/12 to-fuchsia-400/[0.04] p-3 ring-1 ring-cyan-200/[0.06]", compact ? "mb-3" : "mt-4")}>
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
       <div className="flex items-center gap-2"><Badge tone="cyan">Objectifs</Badge>{events.length > 0 && <Badge tone="green">{events.length} events</Badge>}</div>
-      <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Dragons détaillés par élément</span>
+      {events.length > 0 && <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Dragons détaillés par élément</span>}
     </div>
     <div className="grid gap-2 xl:grid-cols-2">
-      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Blue Side" toneName="cyan" />
-      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Red Side" toneName="red" />
+      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Blue Side" toneName="cyan" data={blueData} />
+      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Red Side" toneName="red" data={redData} />
     </div>
     {events.length ? <>
       <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl border px-2.5 py-2", event.side === "RED" ? "border-rose-300/18 bg-rose-500/[0.07]" : "border-cyan-300/18 bg-cyan-400/[0.07]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border", tone(objectiveEventTone(event)))}><ObjectivePictogram type={objectiveEventType(event)} fallback={objectiveEventIcon(event)} className="h-5 w-5" /></span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.side === "RED" ? "Red Side" : "Blue Side"}</p></div></div>)}
+        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl px-2.5 py-2 ring-1 ring-white/[0.045]", event.side === "RED" ? "bg-rose-500/[0.065]" : "bg-cyan-400/[0.065]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", tone(objectiveEventTone(event)))}><ObjectivePictogram type={objectiveEventType(event)} fallback={objectiveEventIcon(event)} className="h-5 w-5" /></span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.side === "RED" ? "Red Side" : "Blue Side"}</p></div></div>)}
       </div>
     </> : null}
   </div>;
@@ -3892,7 +3903,7 @@ function VisionHeatmap({ match }) {
         <div className="absolute inset-0 bg-cover bg-center opacity-72 saturate-125" style={{ backgroundImage: `url(${SUMMONERS_RIFT_MAP_URL})` }} />
         <div className="absolute inset-0 bg-gradient-to-br from-[#030713]/16 via-[#030713]/18 to-[#030713]/28" />
         <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.035)_0_1px,transparent_1px_12.5%),repeating-linear-gradient(90deg,rgba(255,255,255,.03)_0_1px,transparent_1px_12.5%)]" />
-        {events.length ? heatCells.map((cell) => <span key={`${cell.x}-${cell.y}`} className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-[2px] mix-blend-screen" style={{ left: `${cell.x * 100}%`, top: `${(1 - cell.y) * 100}%`, width: `${34 + (cell.count / maxCell) * 62}px`, height: `${34 + (cell.count / maxCell) * 62}px`, backgroundColor: heatColor(cell.count), boxShadow: `0 0 ${18 + cell.count * 4}px ${heatColor(cell.count)}` }} />) : <div className="absolute inset-0 flex items-center justify-center bg-black/34 text-center text-sm font-semibold text-slate-200">Aucune position de ward dans ce JSON.</div>}
+        {heatCells.map((cell) => <span key={`${cell.x}-${cell.y}`} className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-[2px] mix-blend-screen" style={{ left: `${cell.x * 100}%`, top: `${(1 - cell.y) * 100}%`, width: `${34 + (cell.count / maxCell) * 62}px`, height: `${34 + (cell.count / maxCell) * 62}px`, backgroundColor: heatColor(cell.count), boxShadow: `0 0 ${18 + cell.count * 4}px ${heatColor(cell.count)}` }} />)}
         {events.map((event, index) => <span key={`dot-${event.timestamp}-${index}`} title={`${wardTypeLabel(wardTypeKey(event))} · ${Number(event.minute || 0).toFixed(1)} min`} className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 shadow-[0_0_12px_rgba(255,255,255,.62)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%`, backgroundColor: wardTypeColor(wardTypeKey(event), 0.95), boxShadow: `0 0 14px ${wardTypeColor(wardTypeKey(event), 0.72)}` }} />)}
         <div className="absolute bottom-3 left-3 right-3 rounded-2xl border border-white/12 bg-black/55 p-3 backdrop-blur-xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -3913,7 +3924,7 @@ function VisionHeatmap({ match }) {
       </button>
       <div className="rounded-2xl border border-white/10 bg-black/22 p-3">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Types de wards</p>
-        <div className="mt-3 space-y-2">{wardTypes.size ? Array.from(wardTypes.entries()).map(([type, count]) => <div key={type} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><span className="flex min-w-0 items-center gap-2 truncate text-xs font-black text-white"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: wardTypeColor(type) }} />{wardTypeLabel(type)}</span><Badge tone={type === "pink" ? "red" : type === "trinket" ? "yellow" : "cyan"}>{count}</Badge></div>) : <p className="text-xs font-semibold leading-5 text-slate-300">La timeline doit contenir les events de wards.</p>}</div>
+        <div className="mt-3 space-y-2">{Array.from(wardTypes.entries()).map(([type, count]) => <div key={type} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><span className="flex min-w-0 items-center gap-2 truncate text-xs font-black text-white"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: wardTypeColor(type) }} />{wardTypeLabel(type)}</span><Badge tone={type === "pink" ? "red" : type === "trinket" ? "yellow" : "cyan"}>{count}</Badge></div>)}</div>
       </div>
     </div>}
     {zoomed && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#030713]/88 p-4 backdrop-blur-2xl" role="dialog" aria-modal="true">
@@ -3955,9 +3966,9 @@ function GameMetricSignals({ match }) {
 	    [Gauge, "CS diff", (csDiff >= 0 ? "+" : "") + formatPoints(csDiff), "Alliés vs adversaires", diffTone(csDiff)],
 	    [Swords, "Morts équipe", `${deaths} / ${enemyDeaths}`, "Alliés vs adversaires", deaths <= enemyDeaths ? "green" : "red"],
 	  ];
-	  return <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-black/20 p-3">
-	    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-	    <div className="mt-2 grid gap-2 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]">
+	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
 	  </div>;
 	}
 
@@ -5299,7 +5310,7 @@ function reportObjectiveLines(matches, matchIds) {
   const selected = matches.filter((match) => matchIds.includes(match.id));
   return selected.flatMap((match) => {
     const events = objectiveEvents(match);
-    if (!events.length) return [`${matchDisplayName(match)}: timeline objectifs absente du JSON. Compteurs disponibles: ${match.objective_score || "non renseignés"}.`];
+    if (!events.length) return [];
     return events.map((event) => `${matchDisplayName(match)} · ${event.time} · ${event.teamKey === "ALLY" ? "NXT5" : "Adversaire"} prend ${event.label}`);
   });
 }
