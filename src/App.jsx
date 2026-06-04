@@ -3625,6 +3625,30 @@ function objectiveEventIcon(event) {
   return "D";
 }
 
+function objectiveDragonElementKey(event) {
+  const subtype = String(event?.monsterSubType || event?.dragonType || event?.element || "").toUpperCase();
+  const label = objectiveEventLabel(event).toLowerCase();
+  const source = `${subtype} ${label}`;
+  if (source.includes("ELDER")) return "elder";
+  if (source.includes("FIRE") || source.includes("INFERNAL")) return "fire";
+  if (source.includes("WATER") || source.includes("OCEAN")) return "water";
+  if (source.includes("EARTH") || source.includes("MOUNTAIN")) return "earth";
+  if (source.includes("AIR") || source.includes("CLOUD")) return "air";
+  if (source.includes("CHEMTECH")) return "chemtech";
+  if (source.includes("HEXTECH")) return "hextech";
+  return "";
+}
+
+function objectiveDragonIconType(event) {
+  const key = objectiveDragonElementKey(event);
+  return key ? `dragon-${key}` : "dragon";
+}
+
+function objectivePictogramType(event) {
+  const type = objectiveEventType(event);
+  return type === "dragon" ? objectiveDragonIconType(event) : type;
+}
+
 function objectiveEvents(match) {
   const frames = match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || [];
   const participants = match?.raw?.info?.participants || [];
@@ -3671,6 +3695,17 @@ function objectiveTeamKeyForSide(match, side) {
 }
 
 function objectiveDragonElement(event) {
+  const labels = {
+    fire: "Infernal",
+    water: "Océan",
+    earth: "Montagne",
+    air: "Nuage",
+    chemtech: "Chemtech",
+    hextech: "Hextech",
+    elder: "Ancestral",
+  };
+  const key = objectiveDragonElementKey(event);
+  if (labels[key]) return labels[key];
   const label = objectiveEventLabel(event).replace(/\s*Dragon$/i, "").trim();
   return label && label.toLowerCase() !== "dragon" ? label : "Dragon";
 }
@@ -3709,6 +3744,38 @@ const OBJECTIVE_ICON_SOURCES = {
     "/assets/objectives/dragon.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon/hud/dragon_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon.png",
+  ],
+  "dragon-fire": [
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_fire/hud/dragon_circle_fire.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_fire/hud/dragon_circle_fire.png",
+    "/assets/objectives/dragon.png",
+  ],
+  "dragon-water": [
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_water/hud/dragon_circle_water.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_water/hud/dragon_circle_water.png",
+    "/assets/objectives/dragon.png",
+  ],
+  "dragon-earth": [
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_earth/hud/dragon_circle_earth.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_earth/hud/dragon_circle_earth.png",
+    "/assets/objectives/dragon.png",
+  ],
+  "dragon-air": [
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
+    "/assets/objectives/dragon.png",
+  ],
+  "dragon-chemtech": [
+    "https://raw.communitydragon.org/11.23/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
+    "/assets/objectives/dragon.png",
+  ],
+  "dragon-hextech": [
+    "https://raw.communitydragon.org/12.21/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
+    "/assets/objectives/dragon.png",
+  ],
+  "dragon-elder": [
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_elder/hud/dragon_circle_elder.png",
+    "/assets/objectives/dragon.png",
   ],
   baron: [
     "/assets/objectives/baron.png",
@@ -3770,7 +3837,7 @@ function ObjectiveTeamCard({ match, teamKey, side, title, toneName, data: provid
       <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Éléments dragons</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
-          <ObjectivePictogram type="dragon" fallback={objectiveEventIcon(event)} className="h-4 w-4" />
+          <ObjectivePictogram type={objectiveDragonIconType(event)} fallback={objectiveEventIcon(event)} className="h-4 w-4" />
           {objectiveDragonElement(event)}
           <span className="text-white/65">{event.time}</span>
         </span>)}
@@ -3797,7 +3864,7 @@ function ObjectiveHud({ match, compact = false }) {
     </div>
     {events.length ? <>
       <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl px-2.5 py-2 ring-1 ring-white/[0.045]", event.side === "RED" ? "bg-rose-500/[0.065]" : "bg-cyan-400/[0.065]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", tone(objectiveEventTone(event)))}><ObjectivePictogram type={objectiveEventType(event)} fallback={objectiveEventIcon(event)} className="h-5 w-5" /></span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.side === "RED" ? "Red Side" : "Blue Side"}</p></div></div>)}
+        {events.map((event, index) => <div key={`${event.timestamp}-${index}`} className={cx("flex min-w-[8.5rem] items-center gap-2 rounded-xl px-2.5 py-2 ring-1 ring-white/[0.045]", event.side === "RED" ? "bg-rose-500/[0.065]" : "bg-cyan-400/[0.065]")}><span className={cx("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", tone(objectiveEventTone(event)))}><ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-5 w-5" /></span><div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="text-[0.62rem] font-semibold text-slate-300">{event.time} · {event.side === "RED" ? "Red Side" : "Blue Side"}</p></div></div>)}
       </div>
     </> : null}
   </div>;
