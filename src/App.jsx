@@ -1091,9 +1091,16 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
     const Icon = staffIcon;
     return <Icon className={cx("text-cyan-100", className)} />;
   }
-  const key = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" }[roleKey];
-  if (!key) return <Users className={cx("text-slate-500", className)} />;
-  return <img src={`https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/svg/position-${key}.svg`} alt={role} className={cx("object-contain opacity-90 invert", className)} />;
+  const laneIcon = {
+    TOP: Shield,
+    JGL: Target,
+    MID: Sparkles,
+    ADC: Swords,
+    SUP: ShieldCheck,
+  }[roleKey];
+  if (!laneIcon) return <Users className={cx("text-slate-500", className)} />;
+  const Icon = laneIcon;
+  return <Icon className={cx("text-blue-200 drop-shadow-[0_0_10px_rgba(96,165,250,.28)]", className)} />;
 }
 
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
@@ -2025,6 +2032,111 @@ function formatPoints(value) {
 function formatGoldDiff(value) {
   const number = Math.round(Number(value || 0));
   return `${number >= 0 ? "+" : "-"}${Math.abs(number)}`;
+}
+
+function exportStatsPng({ title, subtitle, matches, filename }) {
+  const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
+  const rows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
+  const enemyRows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ENEMY"));
+  const sum = (items, key) => items.reduce((total, row) => total + Number(row[key] || 0), 0);
+  const wins = scoped.filter((match) => match.result === "Victoire").length;
+  const games = scoped.length;
+  const kills = sum(rows, "kills");
+  const deaths = sum(rows, "deaths");
+  const assists = sum(rows, "assists");
+  const damageDiff = sum(rows, "damage") - sum(enemyRows, "damage");
+  const goldDiff = sum(rows, "gold") - sum(enemyRows, "gold");
+  const visionDiff = sum(rows, "vision") - sum(enemyRows, "vision");
+  const topDamage = rows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
+  const topVision = rows.slice().sort((a, b) => Number(b.vision || 0) - Number(a.vision || 0))[0];
+  const topKda = rows.slice().sort((a, b) => ((Number(b.kills || 0) + Number(b.assists || 0)) / Math.max(1, Number(b.deaths || 0))) - ((Number(a.kills || 0) + Number(a.assists || 0)) / Math.max(1, Number(a.deaths || 0))))[0];
+  const championCounts = Array.from(rows.reduce((map, row) => map.set(row.champion, (map.get(row.champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const canvas = document.createElement("canvas");
+  canvas.width = 1600;
+  canvas.height = 980;
+  const ctx = canvas.getContext("2d");
+  const rounded = (x, y, w, h, r = 28) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
+  ctx.fillStyle = "#020511";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const bg = ctx.createRadialGradient(280, 120, 80, 280, 120, 760);
+  bg.addColorStop(0, "rgba(34,211,238,.28)");
+  bg.addColorStop(0.48, "rgba(30,64,175,.10)");
+  bg.addColorStop(1, "rgba(2,5,17,0)");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const bg2 = ctx.createRadialGradient(1320, 120, 80, 1320, 120, 700);
+  bg2.addColorStop(0, "rgba(217,70,239,.24)");
+  bg2.addColorStop(1, "rgba(2,5,17,0)");
+  ctx.fillStyle = bg2;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 64px Inter, Arial, sans-serif";
+  ctx.fillText(title || "Export NXT5", 80, 110);
+  ctx.fillStyle = "#c8f7ff";
+  ctx.font = "800 24px Inter, Arial, sans-serif";
+  ctx.fillText(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 84, 150);
+  ctx.fillStyle = "#f8fbff";
+  ctx.font = "900 34px Arial Black, Impact, Arial, sans-serif";
+  ctx.fillText("NXT5", 1360, 112);
+  const cards = [
+    ["Games", String(games), `${wins}W - ${games - wins}L`],
+    ["WR", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Résultat"],
+    ["KDA équipe", `${kills}/${deaths}/${assists}`, "Alliés"],
+    ["Gold diff", formatGoldDiff(goldDiff), "vs adversaires"],
+  ];
+  cards.forEach(([label, value, detail], index) => {
+    const x = 80 + index * 370;
+    ctx.fillStyle = "rgba(255,255,255,.055)";
+    ctx.strokeStyle = "rgba(255,255,255,.14)";
+    ctx.lineWidth = 2;
+    rounded(x, 210, 330, 150, 28);
+    ctx.fillStyle = "#dffaff";
+    ctx.font = "900 22px Inter, Arial, sans-serif";
+    ctx.fillText(label, x + 28, 258);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 48px Inter, Arial, sans-serif";
+    ctx.fillText(value, x + 28, 312);
+    ctx.fillStyle = "#b8c7d9";
+    ctx.font = "800 20px Inter, Arial, sans-serif";
+    ctx.fillText(detail, x + 28, 338);
+  });
+  const signalCards = [
+    ["Meilleur KDA", topKda ? `${topKda.summoner_name || topKda.riot_id || "Joueur"} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
+    ["Dégâts diff", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)} dégâts`],
+    ["Vision diff", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)} vision`],
+    ["Damage lead", topDamage ? `${topDamage.summoner_name || topDamage.riot_id || "Joueur"} · ${formatPoints(topDamage.damage)}` : "N/A"],
+    ["Vision lead", topVision ? `${topVision.summoner_name || topVision.riot_id || "Joueur"} · ${topVision.vision || 0}` : "N/A"],
+  ];
+  signalCards.forEach(([label, value], index) => {
+    const x = 80 + (index % 2) * 740;
+    const y = 420 + Math.floor(index / 2) * 118;
+    ctx.fillStyle = "rgba(0,0,0,.32)";
+    ctx.strokeStyle = "rgba(34,211,238,.16)";
+    rounded(x, y, 690, 88, 22);
+    ctx.fillStyle = "#99f6ff";
+    ctx.font = "900 18px Inter, Arial, sans-serif";
+    ctx.fillText(label.toUpperCase(), x + 24, y + 34);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 28px Inter, Arial, sans-serif";
+    ctx.fillText(String(value).slice(0, 52), x + 24, y + 66);
+  });
+  ctx.fillStyle = "rgba(217,70,239,.12)";
+  ctx.strokeStyle = "rgba(217,70,239,.22)";
+  rounded(80, 760, 1440, 130, 28);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 26px Inter, Arial, sans-serif";
+  ctx.fillText("Champions les plus joués", 110, 812);
+  ctx.font = "800 22px Inter, Arial, sans-serif";
+  ctx.fillStyle = "#dffaff";
+  const championText = championCounts.length ? championCounts.map(([champion, count]) => `${championDisplayName(champion)} x${count}`).join("   ·   ") : "Aucun champion reconnu";
+  ctx.fillText(championText.slice(0, 122), 110, 852);
+  ctx.fillStyle = "#b8c7d9";
+  ctx.font = "700 18px Inter, Arial, sans-serif";
+  ctx.fillText(scoped.slice(0, 4).map((match) => `${matchDisplayName(match)} (${match.result || "?"})`).join("   ·   ").slice(0, 135), 110, 878);
+  const link = document.createElement("a");
+  link.download = filename || "nxt5-stats-export.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
 }
 
 function formatCountdown(seconds) {
@@ -3222,6 +3334,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
       const championWins = rows.filter((row) => row.match?.result === "Victoire").length;
       const championLosses = Math.max(0, rows.length - championWins);
       const championGames = Math.max(1, rows.length);
+      const csMilestones = csMilestoneSummary(rows);
       return {
         champion,
         count,
@@ -3235,6 +3348,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
         avgVision: totals.vision / championGames,
         avgKp: totals.kp / championGames,
         avgCsPerMin: totals.csPerMin / championGames,
+        csMilestones,
         totals,
       };
     })
@@ -3280,12 +3394,12 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
     <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.075] via-black/24 to-fuchsia-400/[0.055] p-3">
       <button type="button" onClick={() => setChampionsCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-3 py-3 text-left transition hover:border-cyan-300/28 hover:bg-cyan-400/10">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champion read</Badge><Badge tone="slate">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</Badge></div>
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="slate">{championStats.length} champion{championStats.length > 1 ? "s" : ""}</Badge></div>
           <h4 className="mt-2 truncate text-xl font-black text-white">Champions joués</h4>
         </div>
         <ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", championsCollapsed && "-rotate-90")} />
       </button>
-      {!championsCollapsed && (championStats.length ? <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+      {!championsCollapsed && (championStats.length ? <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
         <div className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-200">Pool du profil</p>
@@ -3302,7 +3416,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
                     <p className="truncate text-sm font-black text-white">{championDisplayName(item.champion)}</p>
                     {topPick && <Badge tone="purple">Top pick</Badge>}
                   </div>
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-200">{item.count} game{item.count > 1 ? "s" : ""} · {item.wins}W - {item.losses}L · KDA {item.kda}</p>
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-200">{item.count} game{item.count > 1 ? "s" : ""} · {item.wins}W - {item.losses}L · KDA {item.kda}{item.csMilestones?.samples > 0 ? ` · CS10/20 ${item.csMilestones.at10 ?? "-"}/${item.csMilestones.at20 ?? "-"}` : ""}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className={cx("text-lg font-black", item.winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{item.winrate}%</p>
@@ -3325,7 +3439,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
                 </div>
               </div>
             </div>
-            <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+            <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 lg:grid-cols-3 2xl:grid-cols-5">
               <ProfileHudMetric label="WR" value={selectedChampionStats.winrate + "%"} detail="Champion" tone={selectedChampionStats.winrate >= 50 ? "green" : "orange"} />
               <ProfileHudMetric label="KDA" value={selectedChampionStats.kda} detail={`${selectedChampionStats.totals.kills}/${selectedChampionStats.totals.deaths}/${selectedChampionStats.totals.assists}`} tone="cyan" />
               <ProfileHudMetric label="KP" value={selectedChampionStats.avgKp.toFixed(0) + "%"} detail="Moyenne" tone="purple" />
@@ -3351,7 +3465,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
         <div className="mt-4 max-h-72 space-y-2 overflow-auto pr-1">
           {selectedRows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || ""))).map((row, index) => {
             const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || stat.role || "").toUpperCase());
-            return <div key={(row.id || row.match?.id || row.match?.game_id || "game") + "-" + index} className="grid gap-3 rounded-2xl border border-white/10 bg-black/28 p-3 xl:grid-cols-[minmax(0,1.3fr)_minmax(120px,.7fr)_repeat(5,minmax(70px,.5fr))] xl:items-center">
+            return <div key={(row.id || row.match?.id || row.match?.game_id || "game") + "-" + index} className="grid gap-3 rounded-2xl border border-white/10 bg-black/28 p-3 lg:grid-cols-2 2xl:grid-cols-[minmax(0,1.3fr)_minmax(120px,.7fr)_repeat(5,minmax(70px,.5fr))] 2xl:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || row.role || "Side ?"}</Badge></div>
               <p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(row.match, "Game")}</p>
@@ -3761,16 +3875,18 @@ const OBJECTIVE_ICON_SOURCES = {
     "/assets/objectives/dragon.png",
   ],
   "dragon-air": [
-    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-chemtech": [
-    "https://raw.communitydragon.org/11.23/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-hextech": [
-    "https://raw.communitydragon.org/12.21/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-elder": [
@@ -3789,6 +3905,8 @@ const OBJECTIVE_ICON_SOURCES = {
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/voidgrub.png",
   ],
   herald: [
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.srt_2024_strategy_differentiation_preseason.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.png",
     "/assets/objectives/herald.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/riftherald.png",
   ],
@@ -4220,6 +4338,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   }, [urlMatchId, matches.map((match) => match.id).join("|")]);
   const selectedMatch = scopedMatches.find((match) => match.id === selectedMatchId) || null;
   const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && reportMatchIds(report).includes(selectedMatch?.id));
+  const selectedArchiveReport = selectedArchive ? (data.reports || []).find((report) => {
+    const reportIds = reportMatchIds(report);
+    const archiveIds = archiveMatchIds(selectedArchive);
+    return report.team_id === selectedTeamId && archiveIds.length && archiveIds.every((id) => reportIds.includes(id)) && reportIds.every((id) => archiveIds.includes(id));
+  }) : null;
   const roster = (data.players || []).filter((player) => player.team_id === selectedTeamId);
   const rosterById = new Map(roster.map((player) => [player.id, player]));
   const rosterByRiot = new Map(roster.map((player) => [normalizeProfileKey(player.riot_id), player]).filter(([key]) => key));
@@ -4267,7 +4390,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
     event.preventDefault();
     setSavingArchive(true);
     try {
+      const creating = !archiveForm.id;
       await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: archiveForm.id ? "update" : "create", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
+      if (creating) {
+        const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
+        await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
+      }
       pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe de games est prêt dans les statistiques." });
       resetArchiveForm();
       await refreshAll?.();
@@ -4291,7 +4419,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
       setSavingArchive(false);
     }
   }
-  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Lis les performances profil par profil à partir des games importées dans NXT5." />{matches.length ? <><div className="grid gap-3 md:grid-cols-2"><MetricCard icon={Swords} label="Games analysées" value={scopedMatches.length} hint={selectedArchive ? "Groupe actif" : ""} tone="cyan" /><MetricCard icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""} · ${scopedMatches.length - wins} défaite${scopedMatches.length - wins > 1 ? "s" : ""}`} tone="green" /></div><Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-500">Sélectionne une game, puis lance son analyse sans créer de groupe.</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => selectedReport ? openAppPath(`/rapports?report=${selectedReport.id}&match=${selectedMatch?.id}`) : openAppPath(`/rapports?match=${selectedMatch?.id}`)} disabled={!selectedMatch}>Aller vers rapport</Button></div><div className="mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = selectedMatchId === match.id; return <div key={match.id} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("rounded-2xl border p-3 text-left transition", activeGame ? "border-cyan-300/35 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{match.game_id}</p></div>; })}</div></Surface><Surface glow className="mt-5"><button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Crée une archive de scrim et analyse uniquement les games choisies.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></button>{!archivesCollapsed && <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]"><div className="min-w-0"><div className="max-h-72 space-y-2 overflow-auto pr-1">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const count = ids.length; const archiveMatches = matches.filter((match) => ids.includes(match.id)); const archiveWins = archiveMatches.filter((match) => match.result === "Victoire").length; const selected = selectedArchiveId === archive.id; return <div key={archive.id} className={cx("rounded-2xl border p-3 transition", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}><button type="button" onClick={() => setSelectedArchiveId(selectedArchiveId === archive.id ? "" : archive.id)} className="w-full text-left"><div className="flex flex-wrap items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">{archive.description || `Créée par ${archive.created_by_name || "NXT5"}`}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</p></button><div className="mt-3 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-500">Aucun groupe. Crée ton premier bloc de scrim à droite.</p>}</div></div><form onSubmit={saveArchive} className="min-w-0 space-y-3"><div className="grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Games à inclure</p><div className="grid max-h-64 gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => <button key={match.id} type="button" onClick={() => toggleArchiveMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", archiveForm.matchIds.includes(match.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{matchDisplayName(match)}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p></button>)}</div></div><div className="flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div></form></div>}</Surface>{selectedArchive && <ScrimArchiveSummary matches={scopedMatches} />}{selectedMatch && <MatchDataPanel match={selectedMatch} />}<Surface className="mt-6"><button type="button" onClick={() => setProfilesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Profils</Badge><h3 className="text-2xl font-black text-white">Stats par joueurs</h3></div><p className="mt-1 text-sm font-semibold text-slate-300">Lecture individuelle des performances sur les games actuellement sélectionnées.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", profilesCollapsed && "-rotate-90")} /></button>{!profilesCollapsed && <div className="mt-4 grid gap-5">{stats.map((stat) => <PlayerStatCard key={stat.key} stat={stat} maxDamage={maxDamage} maxVision={maxVision} maxGold={maxGold} />)}</div>}</Surface></> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
+  return <div className="min-w-0 overflow-hidden"><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Lis les performances profil par profil à partir des games importées dans NXT5." />{matches.length ? <><div className="grid gap-3 md:grid-cols-2"><MetricCard icon={Swords} label="Games analysées" value={scopedMatches.length} hint={selectedArchive ? "Groupe actif" : ""} tone="cyan" /><MetricCard icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""} · ${scopedMatches.length - wins} défaite${scopedMatches.length - wins > 1 ? "s" : ""}`} tone="green" /></div><Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-500">Sélectionne une game, puis exporte ou ouvre le rapport lié.</p></div><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: `nxt5-game-${selectedMatch?.game_id || "export"}.png` })} disabled={!selectedMatch}>Exporter la game</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: `${scopedMatches.length} games · ${wins}W - ${scopedMatches.length - wins}L`, matches: scopedMatches, filename: `nxt5-groupe-${String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png` })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => selectedReport ? openAppPath(`/rapports?report=${selectedReport.id}&match=${selectedMatch?.id}`) : openAppPath(`/rapports?match=${selectedMatch?.id}`)} disabled={!selectedMatch}>Aller vers rapport</Button></div></div><div className="mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = selectedMatchId === match.id; return <div key={match.id} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("rounded-2xl border p-3 text-left transition", activeGame ? "border-cyan-300/35 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{match.game_id}</p></div>; })}</div></Surface><Surface glow className="mt-5"><button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Crée une archive de scrim. Un rapport brut est généré automatiquement à la création.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></button>{!archivesCollapsed && <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]"><div className="min-w-0"><div className="max-h-72 space-y-2 overflow-auto pr-1">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const count = ids.length; const archiveMatches = matches.filter((match) => ids.includes(match.id)); const archiveWins = archiveMatches.filter((match) => match.result === "Victoire").length; const selected = selectedArchiveId === archive.id; const archiveReport = (data.reports || []).find((report) => { const reportIds = reportMatchIds(report); return report.team_id === selectedTeamId && ids.length && ids.every((id) => reportIds.includes(id)) && reportIds.every((id) => ids.includes(id)); }); return <div key={archive.id} className={cx("rounded-2xl border p-3 transition", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}><button type="button" onClick={() => setSelectedArchiveId(selectedArchiveId === archive.id ? "" : archive.id)} className="w-full text-left"><div className="flex flex-wrap items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-500">{archive.description || `Créée par ${archive.created_by_name || "NXT5"}`}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</p></button><div className="mt-3 flex flex-wrap justify-end gap-2">{archiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${archiveReport.id}`)} disabled={savingArchive}>Voir rapport</Button>}<Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-500">Aucun groupe. Crée ton premier bloc de scrim à droite.</p>}</div>{selectedArchive && selectedArchiveReport && <Button type="button" className="mt-3 w-full" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${selectedArchiveReport.id}`)}>Aller voir le rapport du groupe</Button>}</div><form onSubmit={saveArchive} className="min-w-0 space-y-3"><div className="grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-500">Games à inclure</p><div className="grid max-h-64 gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => <button key={match.id} type="button" onClick={() => toggleArchiveMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", archiveForm.matchIds.includes(match.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{matchDisplayName(match)}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-600">{match.game_id} · {match.duration || "--:--"}</p></button>)}</div></div><div className="flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div></form></div>}</Surface>{selectedArchive && <ScrimArchiveSummary matches={scopedMatches} />}{selectedMatch && <MatchDataPanel match={selectedMatch} />}<Surface className="mt-6"><button type="button" onClick={() => setProfilesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Profils</Badge><h3 className="text-2xl font-black text-white">Stats par joueurs</h3></div><p className="mt-1 text-sm font-semibold text-slate-300">Lecture individuelle des performances sur les games actuellement sélectionnées.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", profilesCollapsed && "-rotate-90")} /></button>{!profilesCollapsed && <div className="mt-4 grid gap-5">{stats.map((stat) => <PlayerStatCard key={stat.key} stat={stat} maxDamage={maxDamage} maxVision={maxVision} maxGold={maxGold} />)}</div>}</Surface></> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
 }
 
 function ReviewSignalPanel({ match, rows }) {
@@ -5494,6 +5622,26 @@ function reportRawSummaryLines(matches) {
     `KDA équipe: ${sum("kills")}/${sum("deaths")}/${sum("assists")}`,
     `Moyennes joueur/game: ${formatPoints(sum("damage") / Math.max(1, rows.length))} DMG · ${formatPoints(sum("gold") / Math.max(1, rows.length))} Gold · ${Math.round(sum("vision") / Math.max(1, rows.length))} Vision`,
   ];
+}
+
+function buildArchiveReportContent(name, matches) {
+  const linked = Array.isArray(matches) ? matches.filter(Boolean) : [];
+  const gameLines = linked.length ? linked.map((match, index) => `${index + 1}. ${reportRawGameLine(match)}`).join("\n") : "Aucune game liée.";
+  return [
+    "Rapport de groupe",
+    "",
+    `Groupe: ${name || "Groupe"}`,
+    "",
+    "Résumé",
+    ...reportRawSummaryLines(linked),
+    "",
+    "Games",
+    gameLines,
+    "",
+    REPORT_REWRITE_MARKER,
+    "Notes staff",
+    "",
+  ].join("\n");
 }
 
 function buildReportRewriteContent(report, matches) {
