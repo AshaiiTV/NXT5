@@ -1076,6 +1076,8 @@ function TeamAvatar({ team, className = "h-12 w-12" }) {
 
 function RoleIcon({ role, className = "h-7 w-7" }) {
   const roleKey = String(role || "").toUpperCase();
+  const [sourceIndex, setSourceIndex] = useState(0);
+  useEffect(() => setSourceIndex(0), [roleKey]);
   const staffIcon = {
     COACH: ShieldCheck,
     ASSISTANT: Users,
@@ -1091,16 +1093,16 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
     const Icon = staffIcon;
     return <Icon className={cx("text-cyan-100", className)} />;
   }
-  const laneIcon = {
-    TOP: Shield,
-    JGL: Target,
-    MID: Sparkles,
-    ADC: Swords,
-    SUP: ShieldCheck,
-  }[roleKey];
-  if (!laneIcon) return <Users className={cx("text-slate-500", className)} />;
-  const Icon = laneIcon;
-  return <Icon className={cx("text-blue-200 drop-shadow-[0_0_10px_rgba(96,165,250,.28)]", className)} />;
+  const key = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" }[roleKey];
+  if (!key) return <Users className={cx("text-slate-500", className)} />;
+  const sources = [
+    `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-champ-select/global/default/svg/position-${key}.svg`,
+    `https://raw.communitydragon.org/12.23/plugins/rcp-fe-lol-champ-select/global/default/svg/position-${key}.svg`,
+    `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/svg/position-${key}.svg`,
+  ];
+  const source = sources[sourceIndex];
+  if (!source) return <span className={cx("inline-flex items-center justify-center text-[0.62rem] font-black text-cyan-100", className)}>{roleKey}</span>;
+  return <img src={source} alt={roleKey} className={cx("object-contain opacity-95 invert drop-shadow-[0_0_10px_rgba(96,165,250,.28)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
@@ -2039,6 +2041,16 @@ function exportStatsPng({ title, subtitle, matches, filename }) {
   const rows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
   const enemyRows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ENEMY"));
   const sum = (items, key) => items.reduce((total, row) => total + Number(row[key] || 0), 0);
+  const roleOrder = ["TOP", "JGL", "MID", "ADC", "SUP"];
+  const rowName = (row) => row?.summoner_name || row?.riot_id || row?.player_name || "Inconnu";
+  const short = (value, max = 28) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}…` : String(value || "");
+  const kdaRatio = (row) => ((Number(row?.kills || 0) + Number(row?.assists || 0)) / Math.max(1, Number(row?.deaths || 0)));
+  const sideName = (match, teamKey) => {
+    const teamId = objectiveTeamId(match, teamKey);
+    if (teamId === 100) return "Blue Side";
+    if (teamId === 200) return "Red Side";
+    return teamKey === "ALLY" ? "Alliés" : "Adversaires";
+  };
   const wins = scoped.filter((match) => match.result === "Victoire").length;
   const games = scoped.length;
   const kills = sum(rows, "kills");
@@ -2049,15 +2061,82 @@ function exportStatsPng({ title, subtitle, matches, filename }) {
   const visionDiff = sum(rows, "vision") - sum(enemyRows, "vision");
   const topDamage = rows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
   const topVision = rows.slice().sort((a, b) => Number(b.vision || 0) - Number(a.vision || 0))[0];
-  const topKda = rows.slice().sort((a, b) => ((Number(b.kills || 0) + Number(b.assists || 0)) / Math.max(1, Number(b.deaths || 0))) - ((Number(a.kills || 0) + Number(a.assists || 0)) / Math.max(1, Number(a.deaths || 0))))[0];
+  const topKda = rows.slice().sort((a, b) => kdaRatio(b) - kdaRatio(a))[0];
   const championCounts = Array.from(rows.reduce((map, row) => map.set(row.champion, (map.get(row.champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const firstMatch = scoped[0];
+  const singleGame = scoped.length === 1;
+  const allyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ALLY") : null;
+  const enemyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ENEMY") : null;
   const canvas = document.createElement("canvas");
   canvas.width = 1600;
-  canvas.height = 980;
+  canvas.height = singleGame ? 1180 : 1080;
   const ctx = canvas.getContext("2d");
   const rounded = (x, y, w, h, r = 28) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
+  const drawPill = (text, x, y, fill = "rgba(34,211,238,.10)", stroke = "rgba(34,211,238,.22)", color = "#e8fbff") => {
+    ctx.font = "900 18px Inter, Arial, sans-serif";
+    const width = Math.min(300, Math.max(82, ctx.measureText(text).width + 30));
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    rounded(x, y, width, 34, 17);
+    ctx.fillStyle = color;
+    ctx.fillText(text, x + 15, y + 23);
+    return width;
+  };
+  const drawCard = (x, y, w, h, accent = "cyan") => {
+    const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
+    gradient.addColorStop(0, accent === "pink" ? "rgba(217,70,239,.16)" : "rgba(34,211,238,.15)");
+    gradient.addColorStop(0.42, "rgba(2,6,23,.70)");
+    gradient.addColorStop(1, "rgba(255,255,255,.045)");
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.24)" : "rgba(103,232,249,.24)";
+    ctx.lineWidth = 2;
+    rounded(x, y, w, h, 26);
+  };
+  const drawMetric = (label, value, detail, x, y, w, accent = "cyan") => {
+    drawCard(x, y, w, 128, accent);
+    ctx.fillStyle = accent === "pink" ? "#f9c6ff" : "#bffaff";
+    ctx.font = "900 18px Inter, Arial, sans-serif";
+    ctx.fillText(label.toUpperCase(), x + 24, y + 34);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 44px Inter, Arial, sans-serif";
+    ctx.fillText(short(value, 12), x + 24, y + 82);
+    ctx.fillStyle = "#c7d4e5";
+    ctx.font = "800 17px Inter, Arial, sans-serif";
+    ctx.fillText(short(detail, 28), x + 24, y + 108);
+  };
+  const drawPlayerRow = (row, x, y, w, align = "left") => {
+    const right = align === "right";
+    const kda = `${row?.kills || 0}/${row?.deaths || 0}/${row?.assists || 0}`;
+    ctx.fillStyle = "rgba(0,0,0,.30)";
+    ctx.strokeStyle = "rgba(255,255,255,.10)";
+    ctx.lineWidth = 1.5;
+    rounded(x, y, w, 66, 18);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 22px Inter, Arial, sans-serif";
+    ctx.textAlign = right ? "right" : "left";
+    ctx.fillText(short(rowName(row), 22), right ? x + w - 24 : x + 24, y + 28);
+    ctx.fillStyle = "#bffaff";
+    ctx.font = "800 18px Inter, Arial, sans-serif";
+    ctx.fillText(short(championDisplayName(row?.champion || "Champion ?"), 18), right ? x + w - 24 : x + 24, y + 52);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 19px Inter, Arial, sans-serif";
+    ctx.fillText(kda, x + w / 2, y + 28);
+    ctx.fillStyle = "#d9e7f7";
+    ctx.font = "800 15px Inter, Arial, sans-serif";
+    ctx.fillText(`${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 52);
+    ctx.textAlign = "left";
+  };
   ctx.fillStyle = "#020511";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let x = 0; x < canvas.width; x += 48) {
+    ctx.strokeStyle = "rgba(103,232,249,.035)";
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
   const bg = ctx.createRadialGradient(280, 120, 80, 280, 120, 760);
   bg.addColorStop(0, "rgba(34,211,238,.28)");
   bg.addColorStop(0.48, "rgba(30,64,175,.10)");
@@ -2069,70 +2148,90 @@ function exportStatsPng({ title, subtitle, matches, filename }) {
   bg2.addColorStop(1, "rgba(2,5,17,0)");
   ctx.fillStyle = bg2;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "rgba(103,232,249,.55)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(80, 176);
+  ctx.lineTo(1520, 176);
+  ctx.stroke();
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 64px Inter, Arial, sans-serif";
-  ctx.fillText(title || "Export NXT5", 80, 110);
+  ctx.font = "900 58px Inter, Arial, sans-serif";
+  ctx.fillText(short(title || "Export NXT5", 32), 80, 104);
   ctx.fillStyle = "#c8f7ff";
-  ctx.font = "800 24px Inter, Arial, sans-serif";
-  ctx.fillText(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 84, 150);
-  ctx.fillStyle = "#f8fbff";
-  ctx.font = "900 34px Arial Black, Impact, Arial, sans-serif";
-  ctx.fillText("NXT5", 1360, 112);
-  const cards = [
-    ["Games", String(games), `${wins}W - ${games - wins}L`],
-    ["WR", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Résultat"],
-    ["KDA équipe", `${kills}/${deaths}/${assists}`, "Alliés"],
-    ["Gold diff", formatGoldDiff(goldDiff), "vs adversaires"],
+  ctx.font = "800 22px Inter, Arial, sans-serif";
+  ctx.fillText(short(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 72), 84, 142);
+  drawPill("NXT5 DATA EXPORT", 1245, 82, "rgba(217,70,239,.16)", "rgba(217,70,239,.35)", "#fff");
+  const metrics = [
+    ["Games", String(games), `${wins}W - ${games - wins}L`, "cyan"],
+    ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Sélection", wins >= games - wins ? "cyan" : "pink"],
+    ["KDA équipe", `${kills}/${deaths}/${assists}`, "Alliés", "cyan"],
+    ["Gold diff", formatGoldDiff(goldDiff), "Économie", goldDiff >= 0 ? "cyan" : "pink"],
+    ["DMG diff", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "Dégâts", damageDiff >= 0 ? "cyan" : "pink"],
+    ["Vision diff", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "Vision", visionDiff >= 0 ? "cyan" : "pink"],
   ];
-  cards.forEach(([label, value, detail], index) => {
-    const x = 80 + index * 370;
-    ctx.fillStyle = "rgba(255,255,255,.055)";
-    ctx.strokeStyle = "rgba(255,255,255,.14)";
-    ctx.lineWidth = 2;
-    rounded(x, 210, 330, 150, 28);
-    ctx.fillStyle = "#dffaff";
-    ctx.font = "900 22px Inter, Arial, sans-serif";
-    ctx.fillText(label, x + 28, 258);
+  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 80 + (index % 3) * 500, 220 + Math.floor(index / 3) * 148, 450, accent));
+
+  if (singleGame && firstMatch) {
+    const allyByRole = roleOrder.map((role) => rows.find((row) => String(row.role || "").toUpperCase() === role)).filter(Boolean);
+    const enemyByRole = roleOrder.map((role) => enemyRows.find((row) => String(row.role || "").toUpperCase() === role)).filter(Boolean);
+    drawCard(80, 540, 700, 425, "cyan");
+    drawCard(820, 540, 700, 425, "pink");
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 48px Inter, Arial, sans-serif";
-    ctx.fillText(value, x + 28, 312);
+    ctx.font = "900 30px Inter, Arial, sans-serif";
+    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 110, 590);
+    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 850, 590);
+    allyByRole.forEach((row, index) => drawPlayerRow(row, 110, 620 + index * 72, 640, "left"));
+    enemyByRole.forEach((row, index) => drawPlayerRow(row, 850, 620 + index * 72, 640, "right"));
+    const objText = (data) => data ? `${data.dragonCount} drakes · ${data.grubs} grubs · ${data.heralds} herald · ${data.barons} nash · ${data.towers} tours` : "Objectifs indisponibles";
+    drawCard(80, 1000, 700, 86, "cyan");
+    drawCard(820, 1000, 700, 86, "pink");
+    ctx.fillStyle = "#bffaff";
+    ctx.font = "900 17px Inter, Arial, sans-serif";
+    ctx.fillText("OBJECTIFS ALLIÉS", 110, 1032);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 23px Inter, Arial, sans-serif";
+    ctx.fillText(short(objText(allyObjectives), 48), 110, 1064);
+    ctx.fillStyle = "#f9c6ff";
+    ctx.font = "900 17px Inter, Arial, sans-serif";
+    ctx.fillText("OBJECTIFS ADVERSAIRES", 850, 1032);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 23px Inter, Arial, sans-serif";
+    ctx.fillText(short(objText(enemyObjectives), 48), 850, 1064);
+  } else {
+    const leaderCards = [
+      ["Meilleur KDA", topKda ? `${rowName(topKda)} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
+      ["Dégâts lead", topDamage ? `${rowName(topDamage)} · ${championDisplayName(topDamage.champion)} · ${formatPoints(topDamage.damage)}` : "N/A"],
+      ["Vision lead", topVision ? `${rowName(topVision)} · ${championDisplayName(topVision.champion)} · ${topVision.vision || 0} VS` : "N/A"],
+    ];
+    leaderCards.forEach(([label, value], index) => {
+      drawCard(80 + index * 500, 540, 450, 116, index === 2 ? "pink" : "cyan");
+      ctx.fillStyle = "#bffaff";
+      ctx.font = "900 18px Inter, Arial, sans-serif";
+      ctx.fillText(label.toUpperCase(), 108 + index * 500, 580);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 25px Inter, Arial, sans-serif";
+      ctx.fillText(short(value, 34), 108 + index * 500, 622);
+    });
+    drawCard(80, 700, 1440, 190, "pink");
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 30px Inter, Arial, sans-serif";
+    ctx.fillText("Champions les plus joués", 110, 750);
+    ctx.font = "900 26px Inter, Arial, sans-serif";
+    ctx.fillStyle = "#dffaff";
+    const championText = championCounts.length ? championCounts.map(([champion, count]) => `${championDisplayName(champion)} x${count}`).join("   ·   ") : "Aucun champion reconnu";
+    ctx.fillText(short(championText, 112), 110, 802);
     ctx.fillStyle = "#b8c7d9";
     ctx.font = "800 20px Inter, Arial, sans-serif";
-    ctx.fillText(detail, x + 28, 338);
-  });
-  const signalCards = [
-    ["Meilleur KDA", topKda ? `${topKda.summoner_name || topKda.riot_id || "Joueur"} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
-    ["Dégâts diff", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)} dégâts`],
-    ["Vision diff", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)} vision`],
-    ["Damage lead", topDamage ? `${topDamage.summoner_name || topDamage.riot_id || "Joueur"} · ${formatPoints(topDamage.damage)}` : "N/A"],
-    ["Vision lead", topVision ? `${topVision.summoner_name || topVision.riot_id || "Joueur"} · ${topVision.vision || 0}` : "N/A"],
-  ];
-  signalCards.forEach(([label, value], index) => {
-    const x = 80 + (index % 2) * 740;
-    const y = 420 + Math.floor(index / 2) * 118;
-    ctx.fillStyle = "rgba(0,0,0,.32)";
-    ctx.strokeStyle = "rgba(34,211,238,.16)";
-    rounded(x, y, 690, 88, 22);
-    ctx.fillStyle = "#99f6ff";
-    ctx.font = "900 18px Inter, Arial, sans-serif";
-    ctx.fillText(label.toUpperCase(), x + 24, y + 34);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 28px Inter, Arial, sans-serif";
-    ctx.fillText(String(value).slice(0, 52), x + 24, y + 66);
-  });
-  ctx.fillStyle = "rgba(217,70,239,.12)";
-  ctx.strokeStyle = "rgba(217,70,239,.22)";
-  rounded(80, 760, 1440, 130, 28);
+    ctx.fillText(short(scoped.slice(0, 5).map((match) => `${matchDisplayName(match)} (${match.result || "?"})`).join("   ·   "), 122), 110, 850);
+  }
+  ctx.fillStyle = "#6ee7f6";
+  ctx.font = "800 17px Inter, Arial, sans-serif";
+  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 80, canvas.height - 42);
+  ctx.textAlign = "right";
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 26px Inter, Arial, sans-serif";
-  ctx.fillText("Champions les plus joués", 110, 812);
-  ctx.font = "800 22px Inter, Arial, sans-serif";
-  ctx.fillStyle = "#dffaff";
-  const championText = championCounts.length ? championCounts.map(([champion, count]) => `${championDisplayName(champion)} x${count}`).join("   ·   ") : "Aucun champion reconnu";
-  ctx.fillText(championText.slice(0, 122), 110, 852);
-  ctx.fillStyle = "#b8c7d9";
-  ctx.font = "700 18px Inter, Arial, sans-serif";
-  ctx.fillText(scoped.slice(0, 4).map((match) => `${matchDisplayName(match)} (${match.result || "?"})`).join("   ·   ").slice(0, 135), 110, 878);
+  ctx.font = "900 24px Arial Black, Impact, Arial, sans-serif";
+  ctx.fillText("DRAFT · STRATEGIZE · WIN", 1520, canvas.height - 42);
+  ctx.textAlign = "left";
   const link = document.createElement("a");
   link.download = filename || "nxt5-stats-export.png";
   link.href = canvas.toDataURL("image/png");
@@ -3855,58 +3954,67 @@ function objectiveTeamSummary(match, teamKey) {
 
 const OBJECTIVE_ICON_SOURCES = {
   dragon: [
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle.png",
     "/assets/objectives/dragon.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon/hud/dragon_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/dragon.png",
   ],
   "dragon-fire": [
-    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_fire/hud/dragon_circle_fire.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_fire.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_fire/hud/dragon_circle_fire.png",
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_fire/hud/dragon_circle_fire.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-water": [
-    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_water/hud/dragon_circle_water.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_water.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_water/hud/dragon_circle_water.png",
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_water/hud/dragon_circle_water.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-earth": [
-    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_earth/hud/dragon_circle_earth.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_earth.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_earth/hud/dragon_circle_earth.png",
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_earth/hud/dragon_circle_earth.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-air": [
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_air.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-chemtech": [
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_chemtech.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-hextech": [
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_hextech.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
     "/assets/objectives/dragon.png",
   ],
   "dragon-elder": [
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_elder.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_elder/hud/dragon_circle_elder.png",
     "/assets/objectives/dragon.png",
   ],
   baron: [
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/baron_circle.png",
     "/assets/objectives/baron.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_baron/hud/baron_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/baron.png",
   ],
   grub: [
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/sru_voidgrub_circle.png",
     "/assets/objectives/grub.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_horde/hud/sru_voidgrub_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_voidgrub/hud/sru_voidgrub_circle.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/voidgrub.png",
   ],
   herald: [
-    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.srt_2024_strategy_differentiation_preseason.png",
-    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.png",
+    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/sruriftherald_circle.png",
     "/assets/objectives/herald.png",
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/riftherald.png",
   ],
