@@ -303,8 +303,31 @@ svg {
 }
 
 @media (max-width: 640px) {
+  body {
+    background:
+      radial-gradient(circle at 12% 8%, rgba(0, 216, 255, 0.14), transparent 34%),
+      radial-gradient(circle at 92% 0%, rgba(217, 0, 255, 0.12), transparent 34%),
+      #020511;
+  }
+
   .nxt5-panel {
     clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  .nxt5-premium-panel {
+    box-shadow:
+      0 16px 42px rgba(0, 0, 0, 0.36),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .nxt5-premium-panel:hover::after,
+  .nxt5-cyber-button:hover::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .nxt5-cyber-button {
+    min-height: 42px;
   }
 
   .nxt5-wordmark {
@@ -328,10 +351,76 @@ svg {
     padding-right: 0.25rem;
   }
 
+  .nxt5-panel :where(.text-4xl, .text-5xl, .text-6xl, .text-7xl) {
+    line-height: 1.08;
+  }
+
+  .nxt5-panel :where(.rounded-3xl) {
+    border-radius: 1.25rem;
+  }
+
   .nxt5-hud-lines::before {
     opacity: 0.28;
     background:
       linear-gradient(90deg, transparent 0 7%, rgba(0, 216, 255, 0.12) 7.2%, transparent 7.7% 92%, rgba(217, 0, 255, 0.11) 92.2%, transparent 92.7%),
       repeating-linear-gradient(90deg, transparent 0 48px, rgba(255,255,255,0.03) 49px, transparent 50px);
+  }
+}
+
+@media (max-width: 767px) {
+  main {
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  section,
+  form,
+  .nxt5-panel {
+    max-width: 100%;
+  }
+
+  .nxt5-panel {
+    padding-left: min(1rem, 4vw);
+    padding-right: min(1rem, 4vw);
+  }
+
+  .nxt5-panel :where(.grid) {
+    max-width: 100%;
+  }
+
+  .nxt5-panel :where([class*="max-h-"], [class*="overflow-auto"]) {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nxt5-panel :where(table, [role="table"]) {
+    min-width: 680px;
+  }
+
+  .nxt5-panel :where(.xl\:grid-cols-\[1\.05fr_\.95fr\], .xl\:grid-cols-\[\.9fr_1\.1fr\], .xl\:grid-cols-\[1fr_\.72fr\], .xl\:grid-cols-\[\.82fr_1\.18fr\]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .nxt5-panel :where(.text-3xl) {
+    font-size: clamp(1.55rem, 8vw, 1.875rem);
+  }
+
+  .nxt5-panel :where(.text-2xl) {
+    font-size: clamp(1.25rem, 6.4vw, 1.5rem);
+  }
+
+  .nxt5-panel :where(.text-xl) {
+    font-size: clamp(1.05rem, 5.2vw, 1.25rem);
+  }
+
+  .nxt5-panel :where(button, a) {
+    min-height: 40px;
+  }
+
+  .nxt5-panel :where(.gap-5) {
+    gap: 0.9rem;
+  }
+
+  .nxt5-panel :where(.p-6, .p-7, .p-8, .p-9) {
+    padding: 1rem;
   }
 }

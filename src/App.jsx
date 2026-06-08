@@ -74,6 +74,10 @@ const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
 const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";
+
+function assetProxyUrl(url) {
+  return url ? `/.netlify/functions/asset-proxy?url=${encodeURIComponent(url)}` : "";
+}
 const PLANNING_DAYS = [
   ["MON", "Lun"],
   ["TUE", "Mar"],
@@ -758,7 +762,7 @@ function HomeScreen({ navigate }) {
         <LinkButton href="/creer-un-compte" navigate={navigate} className="px-3 py-2.5 sm:px-4">Créer un compte</LinkButton>
       </SiteHeader>
 
-      <main className="relative z-10 mx-auto max-w-7xl px-5 pb-16">
+      <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
         <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.82fr_1.18fr] lg:py-10">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
             <img src="/assets/nxt5-logo.png" alt="NXT5" className="mb-6 h-auto w-full max-w-[520px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)]" />
@@ -833,7 +837,7 @@ function NotFoundPage({ navigate }) {
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
         <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
       </SiteHeader>
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] max-w-4xl items-center justify-center px-5 pb-16 text-center">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] w-full max-w-4xl items-center justify-center px-3 pb-12 text-center sm:px-5 sm:pb-16">
         <Surface glow className="w-full">
           <Badge tone="red">404</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">Page introuvable</h1>
@@ -1016,7 +1020,7 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
         </LinkButton>
       </SiteHeader>
 
-      <main className="relative z-10 mx-auto grid min-h-[calc(100vh-108px)] max-w-7xl items-center gap-8 px-5 pb-16 lg:grid-cols-[.85fr_1.15fr]">
+      <main className="relative z-10 mx-auto grid min-h-[calc(100vh-108px)] w-full max-w-7xl items-center gap-8 px-3 pb-12 sm:px-5 sm:pb-16 lg:grid-cols-[.85fr_1.15fr]">
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .45 }}>
           <Badge tone={isRegister ?"purple" : "cyan"} pulse>{isRegister ?"Création de compte" : "Connexion"}</Badge>
           <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.055em] md:text-7xl">
@@ -1440,20 +1444,20 @@ const COMPOSITION_TAG_DEFINITIONS = [
 
 function championSplashUrl(champion) {
   const id = championAssetId(champion);
-  return id ? "https://ddragon.leagueoflegends.com/cdn/img/champion/splash/" + id + "_0.jpg" : "";
+  return id ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/img/champion/splash/" + id + "_0.jpg") : "";
 }
 
 function championLoadingUrl(champion) {
   const id = championAssetId(champion);
-  return id ? "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + id + "_0.jpg" : "";
+  return id ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + id + "_0.jpg") : "";
 }
 
 function championSquareUrl(rowOrChampion) {
   const champion = typeof rowOrChampion === "string" ? rowOrChampion : rowOrChampion?.champion;
   const id = championAssetId(champion);
-  if (id) return "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/champion/" + id + ".png";
+  if (id) return assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/champion/" + id + ".png");
   const championId = rowOrChampion?.raw?.championId || rowOrChampion?.championId;
-  return championId ? "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png" : "";
+  return championId ? assetProxyUrl("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png") : "";
 }
 
 function championIconUrl(row) {
@@ -1465,9 +1469,9 @@ function championPortraitSources(rowOrChampion, explicitChampion = "") {
   const champion = explicitChampion || (typeof rowOrChampion === "string" ? rowOrChampion : rowOrChampion?.champion);
   const id = championAssetId(champion);
   return [...new Set([
-    ...DDRAGON_FALLBACK_VERSIONS.map((version) => id ? "https://ddragon.leagueoflegends.com/cdn/" + version + "/img/champion/" + id + ".png" : ""),
-    championId ? "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png" : "",
-    id ? "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + id + "_0.jpg" : "",
+    championId ? assetProxyUrl("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png") : "",
+    ...DDRAGON_FALLBACK_VERSIONS.map((version) => id ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/" + version + "/img/champion/" + id + ".png") : ""),
+    id ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + id + "_0.jpg") : "",
   ].filter(Boolean))];
 }
 
@@ -1476,7 +1480,7 @@ function ChampionPortrait({ champion, row, alt, className = "h-full w-full objec
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [sources.join("|")]);
   const source = sources[sourceIndex];
-  if (!source) return <div className={cx("flex items-center justify-center bg-black/35 text-[0.6rem] font-black text-slate-300", className)}>?</div>;
+  if (!source) return <div className={cx("flex items-center justify-center bg-gradient-to-br from-cyan-400/18 via-blue-500/10 to-fuchsia-500/18 text-[0.6rem] font-black text-cyan-100", className)}>{String(alt || champion || row?.champion || "?").slice(0, 2).toUpperCase()}</div>;
   return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
@@ -2091,7 +2095,7 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   const enemyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ENEMY") : null;
   const canvas = document.createElement("canvas");
   canvas.width = 1600;
-  canvas.height = singleGame ? 1180 : 1080;
+  canvas.height = singleGame ? 1240 : 1120;
   const ctx = canvas.getContext("2d");
   const rounded = (x, y, w, h, r = 28) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
   const imageCache = new Map();
@@ -2145,25 +2149,31 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   };
   const drawCard = (x, y, w, h, accent = "cyan") => {
     const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-    gradient.addColorStop(0, accent === "pink" ? "rgba(217,70,239,.16)" : "rgba(34,211,238,.15)");
-    gradient.addColorStop(0.42, "rgba(2,6,23,.70)");
-    gradient.addColorStop(1, "rgba(255,255,255,.045)");
+    gradient.addColorStop(0, accent === "pink" ? "rgba(217,70,239,.14)" : "rgba(34,211,238,.14)");
+    gradient.addColorStop(0.45, "rgba(4,8,22,.76)");
+    gradient.addColorStop(1, "rgba(255,255,255,.035)");
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.24)" : "rgba(103,232,249,.24)";
-    ctx.lineWidth = 2;
-    rounded(x, y, w, h, 26);
+    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.30)" : "rgba(103,232,249,.30)";
+    ctx.lineWidth = 1.6;
+    rounded(x, y, w, h, 22);
+    ctx.strokeStyle = "rgba(255,255,255,.10)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + 26, y + 1);
+    ctx.lineTo(x + Math.min(w - 32, 230), y + 1);
+    ctx.stroke();
   };
   const drawMetric = (label, value, detail, x, y, w, accent = "cyan") => {
-    drawCard(x, y, w, 128, accent);
+    drawCard(x, y, w, 108, accent);
     ctx.fillStyle = accent === "pink" ? "#f9c6ff" : "#bffaff";
-    ctx.font = "900 18px Inter, Arial, sans-serif";
-    ctx.fillText(label.toUpperCase(), x + 24, y + 34);
+    ctx.font = "900 16px Inter, Arial, sans-serif";
+    ctx.fillText(label.toUpperCase(), x + 22, y + 31);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 44px Inter, Arial, sans-serif";
-    ctx.fillText(short(value, 12), x + 24, y + 82);
+    ctx.font = "900 38px Inter, Arial, sans-serif";
+    ctx.fillText(short(value, 12), x + 22, y + 73);
     ctx.fillStyle = "#c7d4e5";
-    ctx.font = "800 17px Inter, Arial, sans-serif";
-    ctx.fillText(short(detail, 28), x + 24, y + 108);
+    ctx.font = "800 15px Inter, Arial, sans-serif";
+    ctx.fillText(short(detail, 28), x + 22, y + 94);
   };
   const drawPlayerRow = (row, x, y, w, align = "left") => {
     const right = align === "right";
@@ -2174,32 +2184,32 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ctx.fillStyle = "rgba(0,0,0,.30)";
     ctx.strokeStyle = "rgba(255,255,255,.10)";
     ctx.lineWidth = 1.5;
-    rounded(x, y, w, 82, 20);
+    rounded(x, y, w, 72, 18);
     const portraitX = right ? x + w - 74 : x + 14;
-    drawCachedImage(portraitSources, portraitX, y + 10, 56, 56, 16);
+    drawCachedImage(portraitSources, portraitX, y + 9, 54, 54, 15);
     ctx.strokeStyle = "rgba(103,232,249,.26)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(portraitX, y + 10, 56, 56, 16);
+    ctx.roundRect(portraitX, y + 9, 54, 54, 15);
     ctx.stroke();
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 21px Inter, Arial, sans-serif";
+    ctx.font = "900 19px Inter, Arial, sans-serif";
     ctx.textAlign = right ? "right" : "left";
-    ctx.fillText(short(rowName(row), 20), right ? x + w - 88 : x + 88, y + 26);
+    ctx.fillText(short(rowName(row), 19), right ? x + w - 88 : x + 88, y + 25);
     ctx.fillStyle = "#bffaff";
-    ctx.font = "800 17px Inter, Arial, sans-serif";
-    ctx.fillText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 22), right ? x + w - 88 : x + 88, y + 50);
+    ctx.font = "800 15px Inter, Arial, sans-serif";
+    ctx.fillText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 24), right ? x + w - 88 : x + 88, y + 48);
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 18px Inter, Arial, sans-serif";
-    ctx.fillText(kda, x + w / 2, y + 24);
+    ctx.font = "900 17px Inter, Arial, sans-serif";
+    ctx.fillText(kda, x + w / 2, y + 23);
     ctx.fillStyle = "#d9e7f7";
-    ctx.font = "800 14px Inter, Arial, sans-serif";
-    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 48);
-    const iconY = y + 54;
-    const iconStart = right ? x + 88 : x + w - 292;
-    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 26, iconY, 22, 22, 6));
-    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 60 + index * 26, iconY, 22, 22, 6));
+    ctx.font = "800 13px Inter, Arial, sans-serif";
+    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 45);
+    const iconY = y + 49;
+    const iconStart = right ? x + 88 : x + w - 286;
+    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 25, iconY, 21, 21, 6));
+    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 58 + index * 25, iconY, 21, 21, 6));
     ctx.textAlign = "left";
   };
   const imageUrls = new Set();
@@ -2231,6 +2241,16 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   bg2.addColorStop(1, "rgba(2,5,17,0)");
   ctx.fillStyle = bg2;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "rgba(103,232,249,.28)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(38, 34, canvas.width - 76, canvas.height - 76, 34);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(217,70,239,.22)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.roundRect(54, 50, canvas.width - 108, canvas.height - 108, 24);
+  ctx.stroke();
   ctx.strokeStyle = "rgba(103,232,249,.55)";
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -2252,34 +2272,40 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ["DMG diff", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "Dégâts", damageDiff >= 0 ? "cyan" : "pink"],
     ["Vision diff", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "Vision", visionDiff >= 0 ? "cyan" : "pink"],
   ];
-  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 80 + (index % 3) * 500, 220 + Math.floor(index / 3) * 148, 450, accent));
+  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 80 + (index % 3) * 500, 220 + Math.floor(index / 3) * 126, 450, accent));
 
   if (singleGame && firstMatch) {
     const allyByRole = roleOrder.map((role) => rows.find((row) => String(row.role || "").toUpperCase() === role)).filter(Boolean);
     const enemyByRole = roleOrder.map((role) => enemyRows.find((row) => String(row.role || "").toUpperCase() === role)).filter(Boolean);
-    drawCard(80, 540, 700, 425, "cyan");
-    drawCard(820, 540, 700, 425, "pink");
+    drawCard(80, 500, 700, 418, "cyan");
+    drawCard(820, 500, 700, 418, "pink");
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 30px Inter, Arial, sans-serif";
-    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 110, 590);
-    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 850, 590);
-    allyByRole.forEach((row, index) => drawPlayerRow(row, 110, 620 + index * 72, 640, "left"));
-    enemyByRole.forEach((row, index) => drawPlayerRow(row, 850, 620 + index * 72, 640, "right"));
+    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 110, 550);
+    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 850, 550);
+    allyByRole.forEach((row, index) => drawPlayerRow(row, 110, 575 + index * 75, 640, "left"));
+    enemyByRole.forEach((row, index) => drawPlayerRow(row, 850, 575 + index * 75, 640, "right"));
     const objText = (data) => data ? `${data.dragonCount} drakes · ${data.grubs} grubs · ${data.heralds} herald · ${data.barons} nash · ${data.towers} tours` : "Objectifs indisponibles";
-    drawCard(80, 1000, 700, 86, "cyan");
-    drawCard(820, 1000, 700, 86, "pink");
+    drawCard(80, 950, 700, 104, "cyan");
+    drawCard(820, 950, 700, 104, "pink");
     ctx.fillStyle = "#bffaff";
     ctx.font = "900 17px Inter, Arial, sans-serif";
-    ctx.fillText("OBJECTIFS ALLIÉS", 110, 1032);
+    ctx.fillText("OBJECTIFS ALLIÉS", 110, 988);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 23px Inter, Arial, sans-serif";
-    ctx.fillText(short(objText(allyObjectives), 48), 110, 1064);
+    ctx.font = "900 24px Inter, Arial, sans-serif";
+    ctx.fillText(short(objText(allyObjectives), 48), 110, 1026);
+    ctx.fillStyle = "#c7d4e5";
+    ctx.font = "800 16px Inter, Arial, sans-serif";
+    ctx.fillText(short((allyObjectives?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean).join(" · ") || "Éléments dragons non disponibles", 58), 110, 1052);
     ctx.fillStyle = "#f9c6ff";
     ctx.font = "900 17px Inter, Arial, sans-serif";
-    ctx.fillText("OBJECTIFS ADVERSAIRES", 850, 1032);
+    ctx.fillText("OBJECTIFS ADVERSAIRES", 850, 988);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 23px Inter, Arial, sans-serif";
-    ctx.fillText(short(objText(enemyObjectives), 48), 850, 1064);
+    ctx.font = "900 24px Inter, Arial, sans-serif";
+    ctx.fillText(short(objText(enemyObjectives), 48), 850, 1026);
+    ctx.fillStyle = "#c7d4e5";
+    ctx.font = "800 16px Inter, Arial, sans-serif";
+    ctx.fillText(short((enemyObjectives?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean).join(" · ") || "Éléments dragons non disponibles", 58), 850, 1052);
   } else {
     const leaderCards = [
       ["Meilleur KDA", topKda ? `${rowName(topKda)} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
@@ -3697,9 +3723,9 @@ function itemIconSources(itemId) {
   const id = Number(itemId || 0);
   if (!id) return [];
   return [...new Set([
-    ...DDRAGON_FALLBACK_VERSIONS.map((version) => `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${id}.png`),
-    `https://raw.communitydragon.org/latest/game/assets/items/icons2d/${id}.png`,
-    `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/${id}.png`,
+    ...DDRAGON_FALLBACK_VERSIONS.map((version) => assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${id}.png`)),
+    assetProxyUrl(`https://raw.communitydragon.org/latest/game/assets/items/icons2d/${id}.png`),
+    assetProxyUrl(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/${id}.png`),
   ])];
 }
 
@@ -3733,8 +3759,8 @@ function summonerSpellIconSources(spellId) {
   const name = SUMMONER_SPELLS[Number(spellId || 0)];
   if (!name) return [];
   return [...new Set([
-    ...DDRAGON_FALLBACK_VERSIONS.map((version) => `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${name}.png`),
-    `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/${name.toLowerCase()}.png`,
+    ...DDRAGON_FALLBACK_VERSIONS.map((version) => assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${name}.png`)),
+    assetProxyUrl(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/${name.toLowerCase()}.png`),
   ])];
 }
 
