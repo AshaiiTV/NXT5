@@ -4042,42 +4042,35 @@ const OBJECTIVE_ICON_SOURCES = {
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_fire.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_fire/hud/dragon_circle_fire.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_fire/hud/dragon_circle_fire.png",
-    "/assets/objectives/dragon.png",
   ],
   "dragon-water": [
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_water.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_water/hud/dragon_circle_water.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_water/hud/dragon_circle_water.png",
-    "/assets/objectives/dragon.png",
   ],
   "dragon-earth": [
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_earth.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_earth/hud/dragon_circle_earth.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_earth/hud/dragon_circle_earth.png",
-    "/assets/objectives/dragon.png",
   ],
   "dragon-air": [
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_air.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_air/hud/dragon_air_circle.png",
-    "/assets/objectives/dragon.png",
   ],
   "dragon-chemtech": [
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_chemtech.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_chemtech/hud/icons2d/dragon_circle_chemtech.png",
-    "/assets/objectives/dragon.png",
   ],
   "dragon-hextech": [
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_hextech.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_dragon_hextech/hud/icons2d/dragon_circle_hextech.png",
-    "/assets/objectives/dragon.png",
   ],
   "dragon-elder": [
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/dragon_circle_elder.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_dragon_elder/hud/dragon_circle_elder.png",
-    "/assets/objectives/dragon.png",
   ],
   baron: [
     "https://raw.communitydragon.org/latest/game/assets/ux/announcements/baron_circle.png",
@@ -4109,8 +4102,22 @@ function ObjectivePictogram({ type, className = "", fallback = "O" }) {
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [type]);
   const source = sources[sourceIndex];
-  if (!source) return <span className={cx("text-[0.62rem] font-black text-white", className)}>{fallback}</span>;
+  if (!source) return <ObjectiveFallbackIcon type={type} fallback={fallback} className={className} />;
   return <img src={source} alt="" className={cx("object-contain drop-shadow-[0_0_10px_rgba(255,255,255,.2)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
+}
+
+function ObjectiveFallbackIcon({ type, fallback = "O", className = "" }) {
+  const config = {
+    "dragon-fire": ["#fb923c", "#ef4444", "F"],
+    "dragon-water": ["#67e8f9", "#2563eb", "O"],
+    "dragon-earth": ["#d6d3d1", "#78716c", "M"],
+    "dragon-air": ["#bfdbfe", "#38bdf8", "A"],
+    "dragon-chemtech": ["#86efac", "#16a34a", "C"],
+    "dragon-hextech": ["#c084fc", "#2563eb", "H"],
+    "dragon-elder": ["#f0abfc", "#7c3aed", "E"],
+  }[type] || ["#dffaff", "#0891b2", fallback];
+  const [start, end, text] = config;
+  return <span className={cx("inline-flex items-center justify-center rounded-full border border-white/20 text-[0.58rem] font-black text-white shadow-[0_0_16px_rgba(255,255,255,.16)]", className)} style={{ background: `radial-gradient(circle at 35% 25%, ${start}, ${end} 70%)` }}>{text}</span>;
 }
 
 function objectiveSummaryHasData(data) {
