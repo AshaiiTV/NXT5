@@ -1129,9 +1129,9 @@ function ChampionMiniCard({ title, item, icon: Icon, tone: t }) {
   return <div className="relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-white/[0.035] p-4"><ChampionBackdrop champion={item?.champion} /><div className="relative z-10 flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{title}</p><p className="mt-2 text-xl font-black text-white">{championDisplayName(item?.champion) || "?"}</p><p className="mt-1 text-sm font-semibold text-slate-400">{item?.player_name || "Données insuffisantes"}</p></div><div className={cx("rounded-2xl border p-3", tone(t))}><Icon className="h-5 w-5" /></div></div><div className="relative z-10 mt-4 flex flex-wrap gap-2"><Badge tone="slate">{item?.games ?? 0} games</Badge><Badge tone="purple">{item?.kda ? Number(item.kda).toFixed(1) : "?"} KDA</Badge></div></div>;
 }
 
-const DDRAGON_VERSION = "16.9.1";
+const DDRAGON_VERSION = "16.11.1";
 const SUMMONERS_RIFT_MAP_URL = `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/map/map11.png`;
-const DDRAGON_FALLBACK_VERSIONS = ["16.9.1", "15.10.1"];
+const DDRAGON_FALLBACK_VERSIONS = ["16.11.1", "16.10.1", "16.9.1", "15.24.1", "15.10.1"];
 
 const CHAMPION_STYLE_TAGS = {
   Aatrox: ["bruiser", "teamfight"], Ahri: ["pick", "tempo"], Akali: ["assassin", "side"], Alistar: ["engage", "peel"], Amumu: ["engage", "teamfight"], Anivia: ["control", "scaling"], Annie: ["burst", "engage"], Aphelios: ["scaling", "front-to-back"], Ashe: ["utility", "pick"], AurelionSol: ["scaling", "control"], Azir: ["scaling", "front-to-back"],
@@ -1427,11 +1427,11 @@ function championLoadingUrl(champion) {
 }
 
 function championSquareUrl(rowOrChampion) {
-  const championId = rowOrChampion?.raw?.championId || rowOrChampion?.championId;
-  if (championId) return "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png";
   const champion = typeof rowOrChampion === "string" ? rowOrChampion : rowOrChampion?.champion;
   const id = championAssetId(champion);
-  return id ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/champion/" + id + ".png" : "";
+  if (id) return "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/champion/" + id + ".png";
+  const championId = rowOrChampion?.raw?.championId || rowOrChampion?.championId;
+  return championId ? "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png" : "";
 }
 
 function championIconUrl(row) {
@@ -1443,8 +1443,8 @@ function championPortraitSources(rowOrChampion, explicitChampion = "") {
   const champion = explicitChampion || (typeof rowOrChampion === "string" ? rowOrChampion : rowOrChampion?.champion);
   const id = championAssetId(champion);
   return [...new Set([
-    championId ? "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png" : "",
     ...DDRAGON_FALLBACK_VERSIONS.map((version) => id ? "https://ddragon.leagueoflegends.com/cdn/" + version + "/img/champion/" + id + ".png" : ""),
+    championId ? "https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png" : "",
     id ? "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + id + "_0.jpg" : "",
   ].filter(Boolean))];
 }
@@ -2036,7 +2036,7 @@ function formatGoldDiff(value) {
   return `${number >= 0 ? "+" : "-"}${Math.abs(number)}`;
 }
 
-function exportStatsPng({ title, subtitle, matches, filename }) {
+async function exportStatsPng({ title, subtitle, matches, filename }) {
   const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
   const rows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
   const enemyRows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ENEMY"));
@@ -2072,6 +2072,44 @@ function exportStatsPng({ title, subtitle, matches, filename }) {
   canvas.height = singleGame ? 1180 : 1080;
   const ctx = canvas.getContext("2d");
   const rounded = (x, y, w, h, r = 28) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
+  const imageCache = new Map();
+  const loadCanvasImage = (url) => new Promise((resolve) => {
+    if (!url) return resolve(null);
+    if (imageCache.has(url)) return resolve(imageCache.get(url));
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      imageCache.set(url, img);
+      resolve(img);
+    };
+    img.onerror = () => {
+      imageCache.set(url, null);
+      resolve(null);
+    };
+    img.src = url;
+  });
+  const drawImageCover = (img, x, y, w, h, radius = 18) => {
+    if (!img) return false;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, radius);
+    ctx.clip();
+    const ratio = Math.max(w / img.width, h / img.height);
+    const dw = img.width * ratio;
+    const dh = img.height * ratio;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    ctx.restore();
+    return true;
+  };
+  const drawCachedImage = (sourceOrSources, x, y, w, h, radius = 14) => {
+    const sources = Array.isArray(sourceOrSources) ? sourceOrSources : [sourceOrSources];
+    const img = sources.map((url) => imageCache.get(url)).find(Boolean);
+    if (drawImageCover(img, x, y, w, h, radius)) return;
+    ctx.fillStyle = "rgba(255,255,255,.06)";
+    ctx.strokeStyle = "rgba(255,255,255,.14)";
+    ctx.lineWidth = 1;
+    rounded(x, y, w, h, radius);
+  };
   const drawPill = (text, x, y, fill = "rgba(34,211,238,.10)", stroke = "rgba(34,211,238,.22)", color = "#e8fbff") => {
     ctx.font = "900 18px Inter, Arial, sans-serif";
     const width = Math.min(300, Math.max(82, ctx.measureText(text).width + 30));
@@ -2108,26 +2146,49 @@ function exportStatsPng({ title, subtitle, matches, filename }) {
   const drawPlayerRow = (row, x, y, w, align = "left") => {
     const right = align === "right";
     const kda = `${row?.kills || 0}/${row?.deaths || 0}/${row?.assists || 0}`;
+    const spells = row ? summonerSpellIds(row).filter(Boolean) : [];
+    const build = row ? finalBuildItems(row).slice(0, 7) : [];
+    const portraitSources = championPortraitSources(row, row?.champion);
     ctx.fillStyle = "rgba(0,0,0,.30)";
     ctx.strokeStyle = "rgba(255,255,255,.10)";
     ctx.lineWidth = 1.5;
-    rounded(x, y, w, 66, 18);
+    rounded(x, y, w, 82, 20);
+    const portraitX = right ? x + w - 74 : x + 14;
+    drawCachedImage(portraitSources, portraitX, y + 10, 56, 56, 16);
+    ctx.strokeStyle = "rgba(103,232,249,.26)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(portraitX, y + 10, 56, 56, 16);
+    ctx.stroke();
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 22px Inter, Arial, sans-serif";
+    ctx.font = "900 21px Inter, Arial, sans-serif";
     ctx.textAlign = right ? "right" : "left";
-    ctx.fillText(short(rowName(row), 22), right ? x + w - 24 : x + 24, y + 28);
+    ctx.fillText(short(rowName(row), 20), right ? x + w - 88 : x + 88, y + 26);
     ctx.fillStyle = "#bffaff";
-    ctx.font = "800 18px Inter, Arial, sans-serif";
-    ctx.fillText(short(championDisplayName(row?.champion || "Champion ?"), 18), right ? x + w - 24 : x + 24, y + 52);
+    ctx.font = "800 17px Inter, Arial, sans-serif";
+    ctx.fillText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 22), right ? x + w - 88 : x + 88, y + 50);
     ctx.textAlign = "center";
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 19px Inter, Arial, sans-serif";
-    ctx.fillText(kda, x + w / 2, y + 28);
+    ctx.font = "900 18px Inter, Arial, sans-serif";
+    ctx.fillText(kda, x + w / 2, y + 24);
     ctx.fillStyle = "#d9e7f7";
-    ctx.font = "800 15px Inter, Arial, sans-serif";
-    ctx.fillText(`${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 52);
+    ctx.font = "800 14px Inter, Arial, sans-serif";
+    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 48);
+    const iconY = y + 54;
+    const iconStart = right ? x + 88 : x + w - 292;
+    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 26, iconY, 22, 22, 6));
+    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 60 + index * 26, iconY, 22, 22, 6));
     ctx.textAlign = "left";
   };
+  const imageUrls = new Set();
+  const exportRows = singleGame ? [...rows, ...enemyRows] : rows;
+  exportRows.forEach((row) => {
+    championPortraitSources(row, row?.champion).forEach((url) => imageUrls.add(url));
+    summonerSpellIds(row).forEach((spell) => summonerSpellIconSources(spell).forEach((url) => imageUrls.add(url)));
+    finalBuildItems(row).forEach((item) => itemIconSources(item.id).forEach((url) => imageUrls.add(url)));
+  });
+  championCounts.forEach(([champion]) => championPortraitSources(champion, champion).forEach((url) => imageUrls.add(url)));
+  await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
   ctx.fillStyle = "#020511";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   for (let x = 0; x < canvas.width; x += 48) {
@@ -2920,14 +2981,14 @@ function ProfileBuildGameCard({ row }) {
         <p className="truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID inconnu"} · {row.match?.duration || "--:--"} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</p>
       </div>
       {finalItems.length > 0 && <div className="flex shrink-0 flex-wrap gap-1.5">
-        {finalItems.map((item, index) => <HudIcon key={`profile-final-${row.id || row.match?.id}-${index}-${item.id}`} src={itemIconUrl(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />)}
+        {finalItems.map((item, index) => <HudIcon key={`profile-final-${row.id || row.match?.id}-${index}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />)}
       </div>}
     </div>
     {timeline.length > 0 && <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
       <div className="mb-3 flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Timeline build</p><Badge tone="cyan">{timeline.length}</Badge></div><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {timeline.map((event, index) => <div key={`${row.id || row.match?.id}-item-event-${index}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
           <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
-          <HudIcon src={itemIconUrl(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
+          <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
           <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` → ${event.secondaryId}` : ""}</p></div>
         </div>)}
       </div>
@@ -3584,8 +3645,18 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
   </Surface>;
 }
 
+function itemIconSources(itemId) {
+  const id = Number(itemId || 0);
+  if (!id) return [];
+  return [...new Set([
+    ...DDRAGON_FALLBACK_VERSIONS.map((version) => `https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${id}.png`),
+    `https://raw.communitydragon.org/latest/game/assets/items/icons2d/${id}.png`,
+    `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/${id}.png`,
+  ])];
+}
+
 function itemIconUrl(itemId) {
-  return itemId ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/item/" + itemId + ".png" : "";
+  return itemIconSources(itemId)[0] || "";
 }
 
 function safeJsonParse(value, fallback) {
@@ -3610,9 +3681,17 @@ const SUMMONER_SPELLS = {
   32: "SummonerSnowball",
 };
 
-function summonerSpellIconUrl(spellId) {
+function summonerSpellIconSources(spellId) {
   const name = SUMMONER_SPELLS[Number(spellId || 0)];
-  return name ? "https://ddragon.leagueoflegends.com/cdn/" + DDRAGON_VERSION + "/img/spell/" + name + ".png" : "";
+  if (!name) return [];
+  return [...new Set([
+    ...DDRAGON_FALLBACK_VERSIONS.map((version) => `https://ddragon.leagueoflegends.com/cdn/${version}/img/spell/${name}.png`),
+    `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/data/spells/icons2d/${name.toLowerCase()}.png`,
+  ])];
+}
+
+function summonerSpellIconUrl(spellId) {
+  return summonerSpellIconSources(spellId)[0] || "";
 }
 
 function participantStoredRaw(row) {
@@ -3632,7 +3711,7 @@ function itemIndexFromKey(key) {
 
 function participantSources(row) {
   const raw = participantStoredRaw(row);
-  return [row, raw, raw?.participant, raw?.stats, participantRaw(row)].filter((source, index, list) => source && list.indexOf(source) === index);
+  return [row, raw, raw?.participant, raw?.stats, raw?.participant?.stats, raw?.challenges, raw?.participant?.challenges, participantRaw(row)].filter((source, index, list) => source && list.indexOf(source) === index);
 }
 
 function participantNumber(row, ...keys) {
@@ -3647,7 +3726,7 @@ function participantNumber(row, ...keys) {
     const itemIndex = itemIndexFromKey(key);
     if (itemIndex !== null) {
       for (const source of sources) {
-        const value = Number(source?.items?.[itemIndex] ?? source?.itemIds?.[itemIndex] ?? source?.stats?.items?.[itemIndex] ?? source?.stats?.itemIds?.[itemIndex] ?? 0);
+        const value = Number(source?.items?.[itemIndex] ?? source?.itemIds?.[itemIndex] ?? source?.stats?.items?.[itemIndex] ?? source?.stats?.itemIds?.[itemIndex] ?? source?.participant?.items?.[itemIndex] ?? source?.participant?.itemIds?.[itemIndex] ?? source?.participant?.stats?.items?.[itemIndex] ?? source?.participant?.stats?.itemIds?.[itemIndex] ?? 0);
         if (value) return value;
       }
     }
@@ -4286,14 +4365,15 @@ function GameMetricSignals({ match }) {
 	  </div>;
 	}
 
-function HudIcon({ src, label, fallback, emptyText = "VIDE", toneName = "cyan", className = "" }) {
-  const active = Boolean(src);
+function HudIcon({ src, sources, label, fallback, emptyText = "VIDE", toneName = "cyan", className = "" }) {
+  const sourceList = useMemo(() => [...new Set([...(Array.isArray(sources) ? sources : []), src].filter(Boolean))], [src, sources]);
+  const [sourceIndex, setSourceIndex] = useState(0);
+  useEffect(() => setSourceIndex(0), [sourceList.join("|")]);
+  const source = sourceList[sourceIndex];
+  const active = Boolean(source);
   return <div title={label} className={cx("relative aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", active ? toneName === "pink" ? "border-fuchsia-200/25 shadow-[0_0_14px_rgba(217,70,239,.10)]" : "border-cyan-200/20 shadow-[0_0_14px_rgba(34,211,238,.10)]" : "border-white/8 opacity-45", className)}>
     {active ? <>
-      <img src={src} alt={label} className="h-full w-full object-cover" onError={(event) => {
-        event.currentTarget.style.display = "none";
-        event.currentTarget.nextElementSibling?.classList.remove("hidden");
-      }} />
+      <img src={source} alt={label} className="h-full w-full object-cover" onError={() => setSourceIndex((index) => index + 1)} />
       <span className="hidden h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-300">{fallback}</span>
     </> : <span className="flex h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-500">{emptyText}</span>}
   </div>;
@@ -4327,8 +4407,8 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
           <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-[0.62rem] font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
         </div>
         {(spells.length > 0 || items.length > 0) && <div className={cx("mt-2 flex flex-wrap gap-1", align === "right" && "justify-end")}>
-          {spells.map((spell, index) => <HudIcon key={`${row.id || row.riot_id}-instant-spell-${index}-${spell}`} src={summonerSpellIconUrl(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-6 w-6 rounded-lg" />)}
-          {items.map((item, index) => <HudIcon key={`${row.id || row.riot_id}-instant-item-${index}-${item.id}`} src={itemIconUrl(item.id)} label={item.type === "trinket" ? `Trinket ${item.id}` : `Item ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-6 w-6 rounded-lg" />)}
+          {spells.map((spell, index) => <HudIcon key={`${row.id || row.riot_id}-instant-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-6 w-6 rounded-lg" />)}
+          {items.map((item, index) => <HudIcon key={`${row.id || row.riot_id}-instant-item-${index}-${item.id}`} sources={itemIconSources(item.id)} label={item.type === "trinket" ? `Trinket ${item.id}` : `Item ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-6 w-6 rounded-lg" />)}
         </div>}
       </div>
     </div>
