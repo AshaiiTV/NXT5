@@ -10,6 +10,7 @@ const settingsPanel = document.querySelector('#settingsPanel');
 const manualUpdateButton = document.querySelector('#manualUpdateButton');
 const currentVersion = document.querySelector('#currentVersion');
 const latestVersion = document.querySelector('#latestVersion');
+const railVersion = document.querySelector('#railVersion');
 let generating = false;
 let updateDownloadUrl = '';
 let lastUpdateInfo = null;
@@ -23,7 +24,7 @@ function setStatus(type, text) {
 function resetSubmit() {
   generating = false;
   submit.disabled = false;
-  submit.textContent = 'Generer le fichier';
+  submit.textContent = 'Generer le fichier NXT5';
 }
 
 function setActiveTab(tab) {
@@ -47,6 +48,7 @@ function renderUpdateInfo(info) {
     return;
   }
   currentVersion.textContent = info.currentVersion || 'Inconnue';
+  if (railVersion) railVersion.textContent = `v${info.currentVersion || '...'}`;
   latestVersion.textContent = `Derniere version : ${info.latestVersion || 'inconnue'}`;
   manualUpdateButton.disabled = false;
   manualUpdateButton.textContent = info.updateAvailable ? 'Telecharger la mise a jour' : 'Application a jour';
@@ -113,8 +115,9 @@ form.addEventListener('submit', async (event) => {
   }
   if (!form.reportValidity()) return;
   generating = true;
+  document.body.classList.add('is-generating');
   submit.disabled = true;
-  submit.textContent = 'Generation...';
+  submit.textContent = 'Generation NXT5...';
   setStatus('info', 'Recherche de la game et preparation du fichier...');
 
   const formData = new FormData(form);
@@ -127,6 +130,7 @@ form.addEventListener('submit', async (event) => {
   } catch (err) {
     setStatus('error', err.message || 'Erreur inconnue pendant la generation.');
   } finally {
+    document.body.classList.remove('is-generating');
     resetSubmit();
   }
 });

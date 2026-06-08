@@ -8,15 +8,32 @@
 </head>
 <body>
   <main class="shell">
+    <header class="top-rail">
+      <div class="rail-brand">
+        <img src="../assets/nxt5-mark.png" alt="" />
+        <span>NXT5 Importer</span>
+      </div>
+      <div class="rail-status">
+        <span id="railVersion">v...</span>
+        <span>Local Match Export</span>
+      </div>
+    </header>
+
     <section class="hero">
       <div class="brand-card">
-        <img src="../assets/nxt5-logo.png" alt="NXT5" />
+        <img src="../assets/nxt5-mark.png" alt="NXT5" />
       </div>
       <div class="hero-copy">
         <img class="wordmark" src="../assets/nxt5-wordmark.png" alt="NXT5" />
-        <p class="eyebrow">Importer</p>
+        <p class="eyebrow">Match data extractor</p>
         <h1>Exporter une game LoL</h1>
-        <p class="lead">Colle l'ID donne par League of Legends, choisis la region, puis genere le fichier a importer dans NXT5.</p>
+        <p class="lead">Genere un fichier NXT5 propre depuis le client League of Legends: joueurs, champions, builds, sorts, objectifs, vision et timeline.</p>
+        <div class="hero-chips" aria-label="Donnees exportees">
+          <span>Builds</span>
+          <span>Summoners</span>
+          <span>Objectifs</span>
+          <span>Vision</span>
+        </div>
       </div>
     </section>
 
@@ -34,11 +51,24 @@
       <button id="settingsTab" type="button" class="tab">Parametres</button>
     </nav>
 
-    <form id="form" class="panel tab-panel active" data-panel="export">
+    <form id="form" class="panel tab-panel active export-panel" data-panel="export">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Export local</p>
+          <h2>Capture de game</h2>
+          <p class="lead small">Le client LoL doit etre installe sur ce PC et la partie doit etre visible dans l'historique.</p>
+        </div>
+        <div class="signal-card">
+          <span>Mode</span>
+          <strong>JSON NXT5</strong>
+          <small>pret pour Integration</small>
+        </div>
+      </div>
+
       <div class="game-grid">
-        <label>
+        <label class="field-large">
           <span>Game ID</span>
-          <input id="gameId" name="gameId" placeholder="7861632138, EUW1_7861632138 ou code copié du client LoL" autocomplete="off" required />
+          <input id="gameId" name="gameId" placeholder="7861632138 ou EUW1_7861632138" autocomplete="off" required />
         </label>
         <label>
           <span>Region</span>
@@ -51,8 +81,14 @@
         </label>
       </div>
 
-      <button id="submit" type="submit">Generer le fichier</button>
-      <p class="hint">Ensuite : NXT5 -> Integration -> Importer un fichier NXT5 local.</p>
+      <div class="protocol">
+        <div><b>1</b><span>Copie le Game ID dans le client LoL</span></div>
+        <div><b>2</b><span>Genere le fichier local NXT5</span></div>
+        <div><b>3</b><span>Importe le JSON dans Integration</span></div>
+      </div>
+
+      <button id="submit" type="submit">Generer le fichier NXT5</button>
+      <p class="hint">Le fichier sera ensuite assigne dans NXT5: side, lanes, profils allies et adversaires.</p>
     </form>
 
     <section id="settingsPanel" class="panel tab-panel settings-panel" data-panel="settings" hidden>

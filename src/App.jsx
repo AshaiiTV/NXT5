@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 
 const API_BASE = "/.netlify/functions";
-const NXT5_IMPORTER_VERSION = "0.2.8";
+const NXT5_IMPORTER_VERSION = "0.2.9";
 const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
 const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Windows-${NXT5_IMPORTER_VERSION}.exe`;
 const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-arm64-${NXT5_IMPORTER_VERSION}.zip`;
@@ -6092,24 +6092,35 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
 
 function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden text-white">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] text-white">
       <AmbientBackground />
-      <motion.div initial={{ opacity: 0, y: 14, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative z-10 w-[min(92vw,460px)] overflow-hidden rounded-[1.6rem] border border-cyan-200/16 bg-[#050914]/86 p-7 text-center shadow-[0_0_90px_rgba(34,211,238,0.22)] backdrop-blur-2xl">
-        <motion.div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200 to-fuchsia-300" animate={{ opacity: [0.25, 1, 0.25], x: [-24, 24, -24] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }} />
-        <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-[2rem] border border-cyan-200/18 bg-cyan-400/8 shadow-[0_0_46px_rgba(34,211,238,0.24)]">
-          <motion.div className="absolute inset-[-18px] rounded-[2.4rem] bg-cyan-300/10 blur-2xl" animate={{ opacity: [0.25, 0.75, 0.25], scale: [0.92, 1.12, 0.92] }} transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }} />
-          <img src="/favicon-512x512.png?v=8" alt="NXT5" className="relative z-10 h-24 w-24 object-contain drop-shadow-[0_0_30px_rgba(34,211,238,.55)]" />
-          <motion.img src="/favicon-512x512.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-80 mix-blend-screen" style={{ filter: "brightness(1.65) saturate(1.6) drop-shadow(0 0 8px rgba(34,211,238,.8))", clipPath: "polygon(-20% 0, 6% 0, 38% 100%, 12% 100%)" }} animate={{ x: [-34, 38], opacity: [0, 0.95, 0] }} transition={{ duration: 1.7, repeat: Infinity, ease: "easeInOut" }} />
-          <motion.img src="/favicon-512x512.png?v=8" alt="" aria-hidden="true" className="pointer-events-none absolute inset-2 z-20 h-24 w-24 object-contain opacity-70 mix-blend-screen" style={{ filter: "brightness(1.55) saturate(1.7) drop-shadow(0 0 9px rgba(217,70,239,.72))", clipPath: "polygon(62% 0, 88% 0, 120% 100%, 94% 100%)" }} animate={{ x: [34, -38], opacity: [0, 0.82, 0] }} transition={{ duration: 1.95, repeat: Infinity, ease: "easeInOut" }} />
-          <motion.div className="pointer-events-none absolute inset-0 rounded-[2rem] border border-fuchsia-300/0" animate={{ borderColor: ["rgba(217,70,239,0.05)", "rgba(34,211,238,.42)", "rgba(217,70,239,0.05)"], boxShadow: ["0 0 18px rgba(34,211,238,.14)", "0 0 46px rgba(217,70,239,.28)", "0 0 18px rgba(34,211,238,.14)"] }} transition={{ duration: 1.55, repeat: Infinity, ease: "easeInOut" }} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,.08),transparent_38%),linear-gradient(90deg,transparent_0_10%,rgba(34,211,238,.10)_10.2%,transparent_10.5%_89%,rgba(217,70,239,.10)_89.2%,transparent_89.5%)]" />
+      <motion.div className="pointer-events-none absolute left-1/2 top-1/2 h-[min(76vw,620px)] w-[min(76vw,620px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/10" animate={{ rotate: 360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}>
+        <span className="absolute left-1/2 top-0 h-3 w-14 -translate-x-1/2 rounded-full bg-cyan-300/60 blur-[2px]" />
+        <span className="absolute bottom-0 right-[18%] h-3 w-20 rounded-full bg-fuchsia-400/45 blur-[2px]" />
+      </motion.div>
+      <motion.div initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative z-10 w-[min(92vw,760px)] text-center">
+        <div className="relative mx-auto flex h-44 w-44 items-center justify-center sm:h-52 sm:w-52">
+          <motion.div className="absolute inset-0 rounded-full border border-cyan-200/22" animate={{ rotate: -360, boxShadow: ["0 0 28px rgba(34,211,238,.12)", "0 0 70px rgba(217,70,239,.20)", "0 0 28px rgba(34,211,238,.12)"] }} transition={{ rotate: { duration: 12, repeat: Infinity, ease: "linear" }, boxShadow: { duration: 2.2, repeat: Infinity, ease: "easeInOut" } }} />
+          <motion.div className="absolute inset-5 rounded-full border border-fuchsia-300/18 border-dashed" animate={{ rotate: 360 }} transition={{ duration: 9, repeat: Infinity, ease: "linear" }} />
+          <motion.div className="absolute inset-10 rounded-[2rem] bg-cyan-300/10 blur-2xl" animate={{ opacity: [0.25, 0.78, 0.25], scale: [0.92, 1.16, 0.92] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }} />
+          <div className="relative flex h-32 w-32 items-center justify-center rounded-[2rem] border border-cyan-200/22 bg-[#050914]/82 shadow-[0_0_70px_rgba(34,211,238,.25)] backdrop-blur-2xl sm:h-36 sm:w-36">
+            <img src="/favicon-512x512.png?v=8" alt="NXT5" className="relative z-10 h-28 w-28 object-contain drop-shadow-[0_0_34px_rgba(34,211,238,.58)] sm:h-32 sm:w-32" />
+            <motion.span className="pointer-events-none absolute left-4 right-4 top-4 h-px origin-left bg-gradient-to-r from-transparent via-cyan-100 to-transparent shadow-[0_0_18px_rgba(34,211,238,.95)]" animate={{ rotate: [0, 360], opacity: [0.25, 1, 0.25] }} transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }} />
+            <motion.span className="pointer-events-none absolute bottom-4 left-5 right-5 h-px origin-right bg-gradient-to-r from-transparent via-fuchsia-200 to-transparent shadow-[0_0_18px_rgba(217,70,239,.85)]" animate={{ rotate: [360, 0], opacity: [0.15, 0.85, 0.15] }} transition={{ duration: 2.9, repeat: Infinity, ease: "linear" }} />
+          </div>
         </div>
-        <Nxt5Wordmark className="mx-auto mt-5 h-14 w-full max-w-[18rem] object-center" />
-        <div className="mx-auto mt-5 flex w-fit items-center gap-3 rounded-2xl border border-white/10 bg-black/24 px-4 py-3">
-          <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
-          <span className="text-sm font-black text-slate-200">{label}</span>
+        <Nxt5Wordmark className="mx-auto mt-2 h-16 w-full max-w-[22rem] object-center" />
+        <div className="mx-auto mt-4 grid max-w-xl gap-2 rounded-[1.35rem] border border-cyan-200/16 bg-[#050914]/72 p-4 shadow-[0_0_70px_rgba(34,211,238,.12)] backdrop-blur-2xl sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+          <div className="hidden h-px bg-gradient-to-r from-transparent via-cyan-200/60 to-cyan-200/10 sm:block" />
+          <div className="flex items-center justify-center gap-3 px-3">
+            <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
+            <span className="text-sm font-black text-slate-100">{label}</span>
+          </div>
+          <div className="hidden h-px bg-gradient-to-r from-fuchsia-200/10 via-fuchsia-200/60 to-transparent sm:block" />
         </div>
-        <div className="mt-6 h-1 overflow-hidden rounded-full bg-white/8">
-          <motion.div className="h-full w-1/2 rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" animate={{ x: ["-110%", "220%"] }} transition={{ duration: 1.35, repeat: Infinity, ease: "easeInOut" }} />
+        <div className="mx-auto mt-5 grid max-w-xl grid-cols-3 gap-2">
+          {["TEAM", "DATA", "DRAFT"].map((item, index) => <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/80">{item}<motion.span className="mt-2 block h-1 rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400" animate={{ opacity: [0.22, 1, 0.22], scaleX: [0.3, 1, 0.3] }} transition={{ duration: 1.2 + index * 0.25, repeat: Infinity, ease: "easeInOut" }} /></div>)}
         </div>
       </motion.div>
     </div>
