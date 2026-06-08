@@ -2313,31 +2313,43 @@ function InviteCodesPanel({ inviteCodes = [], nowTick }) {
 
 function GuidePage() {
   const starterSteps = [
-    ["Créer ou rejoindre une team", "Au premier lancement, crée ta team ou colle le code temporaire donné par le capitaine. Une fois dans une team, les onglets NXT5 deviennent accessibles."],
-    ["Configurer le roster", "Va dans Gestion équipe, ajoute les cinq joueurs, leur poste et leur Riot ID. Le Riot ID sert à relier les imports aux bons profils."],
-    ["Inviter le staff", "Génère un code d’invitation d’une heure dans Gestion équipe. Les coachs, managers et analystes peuvent ensuite rejoindre la structure."],
-    ["Relier les comptes", "Dans Gestion équipe, associe les comptes NXT5 aux profils joueurs. Cela permet de savoir qui modifie, importe ou crée du contenu."],
+    ["Créer ou rejoindre une team", "Au premier lancement, crée ta team ou colle le code temporaire donné par le capitaine. Sans team, NXT5 limite volontairement les accès."],
+    ["Construire le roster", "Dans Gestion équipe, ajoute les joueurs, remplaçants et staff. Mets les postes dans l’ordre LoL: TOP, JGL, MID, ADC, SUP."],
+    ["Relier comptes et profils", "Associe chaque compte NXT5 à son profil joueur. Un joueur peut avoir plusieurs comptes LoL, mais l’import doit toujours être lié au bon profil NXT5."],
+    ["Gérer les permissions", "Le créateur est capitaine. Le staff peut consulter et enrichir les données, les managers gèrent la structure, mais le planning personnel reste protégé."],
   ];
   const importSteps = [
-    ["Installer l’importer", "Dans Intégration, télécharge NXT5 Importer sur le PC où le client League of Legends a la game dans son historique. L’application sert à générer un fichier de match local."],
-    ["Exporter une game", "Ouvre l’importer sur ce même PC, colle le Game ID depuis le client League of Legends, choisis la région et génère le fichier NXT5."],
-    ["Importer le fichier", "Dans Intégration, utilise Importer une game et glisse le JSON généré. Donne un nom clair à l’import, par exemple Scrim 1 vs Team X."],
-    ["Assigner la team", "Sélectionne si ton équipe est blue side ou red side, puis associe les champions aux profils. NXT5 ne devine pas les lanes à ta place."],
+    ["Télécharger NXT5 Importer", "Dans Intégration, télécharge l’importer Windows ou Mac sur le PC où le client League of Legends possède la game dans son historique."],
+    ["Générer le JSON", "Dans l’importer, colle le Game ID du client LoL, choisis la région, puis génère le fichier. Les timelines, builds, summoners, wards et objectifs sont conservés si le client les fournit."],
+    ["Importer dans NXT5", "Dans Intégration, clique sur Importer un JSON. Donne un nom clair à la game au moment de l’assignation pour qu’il se retrouve partout: stats, profil et rapports."],
+    ["Assigner proprement", "Choisis ton side, puis vérifie les champions, lanes, profils alliés et adversaires. NXT5 préremplit, mais l’intégrateur confirme pour éviter les erreurs ADC/SUP ou comptes multiples."],
   ];
   const analysisSteps = [
-    ["Statistiques", "Sélectionne une game ou un groupe de games. Les statistiques affichent les joueurs, champions, KDA, dégâts, vision, items et sorts d’invocateur."],
-    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Clique une deuxième fois sur une game ou un groupe pour le retirer de la sélection. Le panneau peut être replié avec la flèche pour libérer la page."],
-    ["Rapports", "Crée un rapport lié à une ou plusieurs games. Utilise les commandes du lexique pour injecter des données, puis écris les notes staff autour."],
-    ["Champion Pool", "Le Champion Pool sert à organiser la maîtrise des champions par joueur. Le capitaine et le joueur concerné peuvent le maintenir. Ces pools alimentent directement les Compos Types."],
-    ["Compos Types", "Construis une compo à cinq postes depuis une banque visuelle d’icônes champions. Les champions proposés dépendent du Champion Pool du joueur actuellement placé sur chaque poste."],
-    ["Planning", "Chaque joueur renseigne ses disponibilités par semaine. La vue générale montre les créneaux communs de la team."],
-    ["Mon profil", "Clique sur ton bloc profil en bas à gauche. La page affiche les stats personnelles, champions, matchups et historique importé. Tu peux exporter un résumé PNG, et le staff/capitaine peut tenir un bilan coaching global par joueur."],
+    ["Lecture instantanée", "Sélectionne une game pour lire immédiatement les deux sides, les 10 joueurs, champions, KDA, KP, dégâts, gold, vision, summoners, builds et diff de gold par poste."],
+    ["Objectifs neutres", "Les dragons, grubs, Herald, Nashor et tours sont affichés par side. Si la timeline existe, la frise montre l’ordre, le timing et le side de chaque objectif."],
+    ["Heatmap vision", "Ouvre la heatmap pour visualiser les zones wardées. Les couleurs montent en intensité selon la densité, avec distinction pink/trinket quand la donnée existe."],
+    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Reclique sur un groupe ou une game pour le retirer de la sélection. Le rapport de groupe est généré automatiquement."],
+    ["Exports PNG", "Utilise Exporter la game ou Exporter le groupe dans Statistiques pour produire une fiche visuelle NXT5 avec les données clés, les joueurs, les champions et les objectifs."],
+    ["Stats par joueurs", "Le bloc profils est fermé par défaut. Ouvre-le pour voir champions joués, CS 10/20, builds, historiques par champion et tendances individuelles."],
+    ["Rapports", "Les rapports reprennent les noms des games et groupes. Ils servent de bloc-notes brut autour des datas, sans imposer d’analyse automatique."],
+    ["Mon profil", "La page Mon profil centralise les données individuelles: champions, matchups, builds, bilans coaching, bangers, flops et historique game par game."],
+    ["Champion Pool", "Le Champion Pool est indépendant des imports. Le joueur concerné et le capitaine peuvent organiser les champions par maîtrise avec les pictos de tiers."],
+    ["Compos Types", "Glisse les champions issus des pools des joueurs dans une compo. Les tags, maîtrises, résumé et counters donnent une lecture draft sans quitter la page."],
+    ["Planning", "Chaque profil renseigne ses dispos de 10h à 00h. La vue générale met en évidence les créneaux où la team est complète."],
   ];
   const troubleshooting = [
-    ["Import introuvable", "Vérifie la région du Game ID, attends quelques minutes après la fin de la game, puis réessaie. Pour une game officielle, le fichier local reste la méthode la plus fiable."],
-    ["Aucun joueur reconnu", "Corrige les Riot IDs dans Gestion équipe. Le format attendu est Pseudo#TAG, exactement comme sur Riot."],
-    ["Permissions bloquées", "Le créateur est capitaine. Les managers peuvent gérer la team, mais ne modifient pas les plannings personnels des joueurs."],
-    ["Données incohérentes", "Réimporte la game avec l’assignation manuelle correcte: side de ton équipe, champions et profils associés."],
+    ["Images manquantes", "Recharge la page après un deploy. Les champions, items, summoners et objectifs utilisent DDragon/CommunityDragon avec fallbacks, mais le cache navigateur peut garder une vieille version."],
+    ["Items ou summoners absents", "Le JSON doit venir d’un importer récent. Si l’ancien fichier ne contient pas ces données, NXT5 masque ou vide les zones concernées au lieu d’inventer."],
+    ["Import introuvable", "Vérifie la région du Game ID, attends quelques minutes après la fin de la game, puis réessaie sur le PC où le client LoL possède la game dans son historique."],
+    ["Mauvais joueur au mauvais poste", "Va dans Intégration, ouvre la molette de la game importée et corrige les lanes/profils. Les pages Stats, Profil et Rapports se mettent ensuite à jour."],
+    ["Permissions bloquées", "Vérifie le rôle dans Gestion équipe. Capitaine, coach et manager ont des droits étendus, mais certaines actions personnelles restent réservées au profil concerné."],
+  ];
+  const quickLinks = [
+    ["Intégration", "/integration", Download, "Importer JSON, renommer/supprimer les games, corriger lanes et profils."],
+    ["Statistiques", "/statistiques", BarChart3, "Analyser une game, un groupe, exporter en PNG et lire la heatmap."],
+    ["Mon profil", "/mon-profil", Activity, "Lire le profil joueur, builds, champions, matchups et bilan coaching."],
+    ["Compos Types", "/compositions-types", Sparkles, "Créer une compo depuis les champion pools et lire les counters."],
+    ["Gestion", "/gestion-equipe", Settings, "Roster, invitations temporaires, liaisons, permissions et staff."],
   ];
 
   const StepList = ({ items }) => <div className="grid gap-3">{items.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-cyan-300/10 text-sm font-black text-cyan-100">{index + 1}</span><div><h4 className="text-base font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div></div>)}</div>;
@@ -2347,6 +2359,20 @@ function GuidePage() {
       <Button icon={Swords} onClick={() => openAppPath("/integration")}>Importer une game</Button>
       <Button variant="ghost" icon={Settings} onClick={() => openAppPath("/gestion-equipe")}>Gestion équipe</Button>
     </PageHeader>
+
+    <Surface glow className="mb-5 p-5 md:p-6">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <Badge tone="cyan">Navigation rapide</Badge>
+          <h3 className="mt-3 text-2xl font-black text-white">Commence par l’action dont tu as besoin</h3>
+          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Le guide suit le workflow complet, mais ces raccourcis ouvrent directement les pages importantes.</p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">{quickLinks.map(([title, path, Icon, text]) => <button key={title} type="button" onClick={() => openAppPath(path)} className="group rounded-2xl border border-white/10 bg-black/24 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-cyan-400/[0.07]">
+        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></span><h4 className="font-black text-white">{title}</h4></div>
+        <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p>
+      </button>)}</div>
+    </Surface>
 
     <div className="grid gap-5 xl:grid-cols-[.9fr_1.1fr]">
       <Surface glow className="p-5 md:p-6">
@@ -2383,14 +2409,14 @@ function GuidePage() {
         </div>
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Ouvrir les stats</Button>
       </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{analysisSteps.map(([title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><h4 className="font-black text-white">{title}</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{analysisSteps.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex items-center gap-2"><Badge tone={index < 5 ? "cyan" : index < 8 ? "purple" : "green"}>{String(index + 1).padStart(2, "0")}</Badge><h4 className="font-black text-white">{title}</h4></div><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div>
     </Surface>
 
     <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_.95fr]">
       <Surface className="p-5 md:p-6">
         <Badge tone="green">Routine recommandée</Badge>
         <div className="mt-4 grid gap-3">
-          {["Avant scrim: vérifier roster, planning, champion pools et compos types.", "Après chaque game: exporter le JSON, importer la game, assigner side et profils.", "Après le bloc: créer un groupe de games, ouvrir les stats, puis lire Mon profil pour les forces/faiblesses individuelles.", "Avant la prochaine session: mettre à jour Champion Pool et compos selon les décisions du staff."].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
+          {["Avant scrim: vérifier roster, planning, champion pools, compos types et tags de maîtrise.", "Après chaque game: générer le JSON, importer la game, confirmer side, lanes, profils alliés et adversaires.", "Après le bloc: créer un groupe de games, ouvrir les stats, exporter le PNG si besoin, puis écrire le rapport de groupe.", "Avant la prochaine session: mettre à jour Champion Pool, compos types, bilans coaching et éventuelles corrections de profil."].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
         </div>
       </Surface>
       <Surface className="p-5 md:p-6">
@@ -4086,9 +4112,9 @@ const OBJECTIVE_ICON_SOURCES = {
     "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/voidgrub.png",
   ],
   herald: [
-    "https://raw.communitydragon.org/latest/game/assets/ux/announcements/sruriftherald_circle.png",
-    "/assets/objectives/herald.png",
-    "https://raw.communitydragon.org/latest/game/assets/ux/minimap/icons/riftherald.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.srt_2024_strategy_differentiation_preseason.png",
+    "https://raw.communitydragon.org/pbe/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.srt_2024_strategy_differentiation_preseason.png",
+    "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.png",
   ],
   tower: [
     "/assets/objectives/tower.png",
