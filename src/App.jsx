@@ -331,11 +331,13 @@ function Badge({ children, tone: t = "slate", pulse = false }) {
 function AmbientBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[#020511]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(0,216,255,.22),transparent_30%),radial-gradient(circle_at_82%_10%,rgba(217,0,255,.18),transparent_31%),linear-gradient(118deg,rgba(16,76,190,.20)_0%,transparent_24%,transparent_66%,rgba(0,238,255,.14)_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.045)_1px,transparent_1px)] bg-[size:58px_58px] opacity-[0.20]" />
-      <div className="absolute inset-0 bg-[repeating-linear-gradient(123deg,transparent_0,transparent_142px,rgba(0,216,255,.13)_143px,transparent_146px),repeating-linear-gradient(123deg,transparent_0,transparent_226px,rgba(217,0,255,.12)_227px,transparent_230px)]" />
-      <div className="absolute left-[8%] top-[14%] h-[42rem] w-[42rem] rounded-full border border-cyan-300/10 shadow-[0_0_90px_rgba(0,216,255,.12)]" />
-      <div className="absolute right-[10%] top-[12%] h-[31rem] w-[31rem] rounded-full border border-fuchsia-300/10 shadow-[0_0_90px_rgba(217,0,255,.10)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_10%,rgba(0,216,255,.24),transparent_28%),radial-gradient(circle_at_84%_8%,rgba(217,0,255,.19),transparent_30%),linear-gradient(118deg,rgba(16,76,190,.22)_0%,transparent_24%,transparent_66%,rgba(0,238,255,.14)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.048)_1px,transparent_1px)] bg-[size:54px_54px] opacity-[0.22]" />
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(123deg,transparent_0,transparent_132px,rgba(0,216,255,.15)_133px,transparent_136px),repeating-linear-gradient(123deg,transparent_0,transparent_214px,rgba(217,0,255,.13)_215px,transparent_218px)]" />
+      <div className="absolute left-[7%] top-[12%] h-[42rem] w-[42rem] rounded-full border border-cyan-300/10 shadow-[0_0_110px_rgba(0,216,255,.14)]" />
+      <div className="absolute right-[9%] top-[10%] h-[31rem] w-[31rem] rounded-full border border-fuchsia-300/10 shadow-[0_0_110px_rgba(217,0,255,.12)]" />
+      <div className="absolute left-[-12%] top-[30%] h-px w-[130%] rotate-[-13deg] bg-gradient-to-r from-transparent via-cyan-200/18 to-transparent" />
+      <div className="absolute left-[-12%] top-[72%] h-px w-[130%] rotate-[-13deg] bg-gradient-to-r from-transparent via-fuchsia-200/16 to-transparent" />
       <motion.div animate={{ x: ["-14%", "118%"] }} transition={{ duration: 7.2, repeat: Infinity, repeatDelay: 2.8, ease: "easeInOut" }} className="absolute top-[17%] h-px w-[42vw] rotate-[-13deg] bg-gradient-to-r from-transparent via-cyan-100 to-transparent shadow-[0_0_34px_rgba(34,211,238,.82)]" />
       <motion.div animate={{ x: ["118%", "-18%"] }} transition={{ duration: 8.6, repeat: Infinity, repeatDelay: 3.6, ease: "easeInOut" }} className="absolute top-[61%] h-px w-[48vw] rotate-[-13deg] bg-gradient-to-r from-transparent via-fuchsia-100 to-transparent shadow-[0_0_34px_rgba(217,70,239,.76)]" />
       <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(2,5,17,.08)_42%,rgba(2,5,17,.94)_100%)]" />
@@ -351,23 +353,24 @@ function Surface({ children, className = "", delay = 0, glow = false }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.34, delay, ease: "easeOut" }}
       className={cx(
-        "nxt5-panel nxt5-hud-lines group relative max-w-full overflow-hidden border border-cyan-200/16 bg-[#060a18]/84 p-4 shadow-2xl shadow-black/40 backdrop-blur-2xl sm:p-5",
-        "before:pointer-events-none before:absolute before:inset-0 before:bg-[linear-gradient(135deg,rgba(255,255,255,.10),transparent_31%,transparent_72%,rgba(0,216,255,.09))] before:opacity-90",
-        glow && "after:pointer-events-none after:absolute after:-inset-px after:bg-gradient-to-r after:from-cyan-200/36 after:via-fuchsia-300/22 after:to-blue-300/28 after:opacity-0 after:blur-xl after:transition after:duration-500 group-hover:after:opacity-100",
+        "nxt5-panel nxt5-premium-panel group relative max-w-full overflow-hidden border border-cyan-200/20 p-4 backdrop-blur-2xl transition duration-300 sm:p-5",
+        glow && "border-cyan-200/28 shadow-[0_0_42px_rgba(34,211,238,.10),0_26px_80px_rgba(0,0,0,.46)] hover:border-cyan-200/42",
         className
       )}
     >
+      <div className="pointer-events-none absolute inset-x-5 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-cyan-100/70 to-fuchsia-100/45" />
+      <div className="pointer-events-none absolute bottom-0 left-5 z-[1] h-px w-20 bg-gradient-to-r from-cyan-300/55 to-transparent" />
       <div className="relative z-10">{children}</div>
     </motion.div>
   );
 }
 
 function Button({ children, icon: Icon, variant = "primary", className = "", disabled = false, ...props }) {
-  const base = "inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal rounded-xl px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
+  const base = "nxt5-cyber-button inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
-    primary: "border border-cyan-100/30 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.30)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_42px_rgba(217,70,239,.25)]",
-    ghost: "border border-cyan-100/14 bg-white/[0.045] text-slate-100 hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.10] hover:text-white",
-    danger: "border border-rose-300/25 bg-rose-500/10 text-rose-100 hover:-translate-y-0.5 hover:bg-rose-500/15",
+    primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
+    ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11] hover:text-white hover:shadow-[0_0_28px_rgba(34,211,238,.14)]",
+    danger: "border border-rose-300/28 bg-rose-500/12 text-rose-100 hover:-translate-y-0.5 hover:bg-rose-500/18 hover:shadow-[0_0_28px_rgba(244,63,94,.14)]",
   };
   return (
     <button disabled={disabled} className={cx(base, variants[variant], className)} {...props}>
@@ -386,7 +389,7 @@ function TextInput({ label, value, onChange, placeholder, type = "text", require
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
         {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-200/75" />}
-        <input type={inputType} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("w-full rounded-xl border border-cyan-100/12 bg-black/[0.26] px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/60 focus:bg-black/[0.32] focus:ring-4 focus:ring-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10", isPassword && "pr-12")} />
+        <input type={inputType} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("nxt5-input-shell w-full rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:bg-[#050914]/88 focus:ring-4 focus:ring-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10", isPassword && "pr-12")} />
         {isPassword && <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} disabled={disabled} aria-label={passwordVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute right-2.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-slate-300 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>}
       </div>
     </label>
@@ -399,7 +402,7 @@ function TextAreaInput({ label, value, onChange, placeholder, icon: Icon, rows =
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
         {Icon && <Icon className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-cyan-200/75" />}
-        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("w-full resize-none rounded-xl border border-cyan-100/12 bg-black/[0.26] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/60 focus:bg-black/[0.32] focus:ring-4 focus:ring-cyan-300/10", Icon && "pl-10")} />
+        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("nxt5-input-shell w-full resize-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:bg-[#050914]/88 focus:ring-4 focus:ring-cyan-300/12", Icon && "pl-10")} />
       </div>
     </label>
   );
@@ -410,7 +413,7 @@ function SelectInput({ label, value, onChange, children }) {
     <label className="block">
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
-        <select value={value} onChange={(event) => onChange(event.target.value)} className="w-full appearance-none rounded-xl border border-cyan-100/12 bg-black/[0.26] px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/60 focus:ring-4 focus:ring-cyan-300/10">
+        <select value={value} onChange={(event) => onChange(event.target.value)} className="nxt5-input-shell w-full appearance-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12">
           {children}
         </select>
         <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />
@@ -435,7 +438,7 @@ function PremiumToggle({ checked, onChange, title, text }) {
 
 function PageHeader({ eyebrow, title, subtitle, children }) {
   return (
-    <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="nxt5-page-header mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div className="min-w-0">
         <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">{eyebrow}</p></div>
         <h2 className="nxt5-metal-text max-w-4xl py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl md:text-5xl">{title}</h2>
@@ -513,68 +516,66 @@ function Nxt5Wordmark({ className = "" }) {
 
 function MarketingPreview() {
   const metrics = [
-    ["Winrate", "—", "Calculé après import"],
-    ["KDA moyen", "—", "Calculé après import"],
-    ["CS / min", "—", "Calculé après import"],
-    ["Objectifs", "—", "Calculé après import"],
+    [Upload, "Intégration", "Importer les games"],
+    [BarChart3, "Statistiques", "Lire le 5v5"],
+    [Crown, "Compos", "Préparer le draft"],
+    [FileText, "Rapports", "Structurer la review"],
   ];
-  const pool = ["Pick principal", "Pick secondaire", "Pick situationnel", "Pick à tester", "Pick à revoir"];
-  const axes = ["Vision", "Gestion des objectifs", "Début de partie", "Teamfights mid/late"];
+  const lanes = [["TOP", "Pool"], ["JGL", "Tempo"], ["MID", "Setup"], ["ADC", "DPS"], ["SUP", "Vision"]];
+  const axes = ["Vision", "Objectifs neutres", "Gold diff", "Builds"];
 
   return (
     <motion.div initial={{ opacity: 0, x: 28, rotateY: -9 }} animate={{ opacity: 1, x: 0, rotateY: 0 }} transition={{ duration: 0.75, delay: 0.1 }} className="relative hidden lg:block">
       <div className="absolute -inset-6 rounded-[1.6rem] bg-gradient-to-r from-cyan-400/34 via-blue-500/18 to-fuchsia-500/30 blur-2xl" />
-      <div className="nxt5-panel relative overflow-hidden border border-cyan-200/25 bg-[#060a18]/92 p-5 shadow-2xl shadow-cyan-950/20 backdrop-blur-2xl">
-        <div className="absolute inset-0 bg-[linear-gradient(124deg,rgba(0,216,255,.16),transparent_28%,transparent_67%,rgba(217,0,255,.14)),repeating-linear-gradient(124deg,transparent_0,transparent_88px,rgba(255,255,255,.05)_89px,transparent_91px)]" />
+      <div className="nxt5-panel nxt5-premium-panel relative overflow-hidden border border-cyan-200/25 p-5 shadow-2xl shadow-cyan-950/20 backdrop-blur-2xl">
         <div className="relative z-10 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
           <BrandLogo compact />
-          <p className="text-sm font-black text-white">Aperçu du tableau de bord</p>
-          <div className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-bold text-slate-400">Données à importer</div>
+          <div className="text-right">
+            <p className="text-sm font-black text-white">Command center</p>
+            <p className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-cyan-100/75">Draft · Review · Stats</p>
+          </div>
         </div>
         <div className="relative z-10 mt-4 grid grid-cols-4 gap-3">
-          {metrics.map((m) => (
-            <div key={m[0]} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs font-bold text-slate-500">{m[0]}</p>
-              <p className="mt-3 text-2xl font-black text-white">{m[1]}</p>
-              <p className="mt-1 text-xs font-black text-cyan-100/75">{m[2]}</p>
+          {metrics.map(([Icon, label, text]) => (
+            <div key={label} className="nxt5-panel relative overflow-hidden border border-white/10 bg-white/[0.045] p-4">
+              <Icon className="h-5 w-5 text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" />
+              <p className="mt-3 text-sm font-black text-white">{label}</p>
+              <p className="mt-1 text-[0.68rem] font-black uppercase tracking-[0.13em] text-slate-300">{text}</p>
             </div>
           ))}
         </div>
-        <div className="relative z-10 mt-4 grid grid-cols-[.95fr_1.05fr] gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="font-black text-white">Champion Pool</p>
-            <p className="text-xs text-slate-500">Classement réel après plusieurs imports</p>
-            <div className="mt-4 space-y-3">
-              {pool.map((label, i) => (
-                <div key={label} className="grid grid-cols-[42px_1fr_84px] items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/25 bg-gradient-to-br from-cyan-400/35 to-fuchsia-500/25 text-xs font-black text-white">{i + 1}</div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                    <motion.div animate={{ opacity: [0.45, 0.9, 0.45] }} transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.12 }} className="h-full rounded-full bg-gradient-to-r from-cyan-300/60 via-blue-300/45 to-fuchsia-300/45" style={{ width: `${76 - i * 9}%` }} />
-                  </div>
-                  <p className="text-xs font-black text-slate-500">{label}</p>
+        <div className="relative z-10 mt-4 grid grid-cols-[.86fr_1.14fr] gap-4">
+          <div className="nxt5-panel border border-white/10 bg-black/[0.20] p-4">
+            <p className="font-black text-white">Lecture 5v5</p>
+            <p className="text-xs font-semibold text-slate-300">Blue side à gauche, red side à droite.</p>
+            <div className="mt-4 space-y-2">
+              {lanes.map(([role, focus], i) => (
+                <div key={role} className="grid grid-cols-[44px_1fr_auto] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                  <RoleIcon role={role} className="h-6 w-6" />
+                  <span className="text-sm font-black text-white">{role}</span>
+                  <Badge tone={i % 2 ? "purple" : "cyan"}>{focus}</Badge>
                 </div>
               ))}
             </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="font-black text-white">Axes de travail</p>
-            <p className="text-xs text-slate-500">Données issues uniquement des games importées</p>
-            <div className="mt-4 space-y-3">
-              {axes.map((a) => <div key={a} className="flex items-center justify-between gap-3 rounded-2xl bg-black/[0.18] px-3 py-2"><span className="min-w-0 text-sm font-bold text-slate-300">{a}</span><Badge tone="slate">À calculer</Badge></div>)}
+          <div className="nxt5-panel border border-white/10 bg-white/[0.04] p-4">
+            <p className="font-black text-white">Données prêtes à lire</p>
+            <p className="text-xs font-semibold text-slate-300">Le site expose les infos. Le coach garde l’interprétation.</p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {axes.map((a, i) => <div key={a} className="rounded-2xl border border-cyan-100/12 bg-black/[0.18] p-3"><div className={cx("mb-3 inline-flex rounded-xl border p-2", tone(i === 0 ? "cyan" : i === 1 ? "purple" : i === 2 ? "green" : "yellow"))}>{i === 0 ? <Eye className="h-4 w-4" /> : i === 1 ? <Target className="h-4 w-4" /> : i === 2 ? <Gauge className="h-4 w-4" /> : <Swords className="h-4 w-4" />}</div><p className="text-sm font-black text-white">{a}</p></div>)}
             </div>
           </div>
         </div>
-        <div className="relative z-10 mt-4 grid grid-cols-[.82fr_1.18fr] gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="font-black text-white">Dernière review</p>
-            <p className="mt-3 text-sm text-slate-400">Aucune review pour l’instant</p>
-            <p className="text-xs text-slate-500">Elle apparaîtra ici après import</p>
-            <button className="mt-4 cursor-not-allowed rounded-xl border border-white/10 px-3 py-2 text-xs font-black text-slate-500">En attente de données</button>
+        <div className="relative z-10 mt-4 overflow-hidden rounded-2xl border border-cyan-200/16 bg-[#020511]/50 p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="font-black text-white">Workflow NXT5</p>
+              <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-cyan-100/75">Importer → assigner → analyser → rapporter</p>
+            </div>
+            <Badge tone="pink">Next five</Badge>
           </div>
-          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="font-black text-white">Performance d’équipe</p>
-            <p className="mt-1 text-xs font-black text-cyan-100/75">Données réelles uniquement</p>
-            <svg viewBox="0 0 320 120" className="mt-5 h-28 w-full"><defs><linearGradient id="line" x1="0" x2="1"><stop stopColor="#22d3ee"/><stop offset=".52" stopColor="#60a5fa"/><stop offset="1" stopColor="#e879f9"/></linearGradient></defs><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25" fill="none" stroke="url(#line)" strokeWidth="6" strokeLinecap="round" opacity=".4"/><path d="M0 90 C35 35 55 86 92 55 S145 46 176 38 S235 68 260 42 S292 58 320 25 L320 120 L0 120Z" fill="url(#line)" opacity=".1"/></svg>
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            {["JSON", "ROSTER", "STATS", "REPORT"].map((step, i) => <div key={step} className="relative rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center text-[0.66rem] font-black tracking-[0.16em] text-white"><span className="block text-cyan-100/75">0{i + 1}</span>{step}</div>)}
           </div>
         </div>
       </div>
@@ -591,17 +592,17 @@ function StatStrip() {
     [Flame, "Progression", "Game après game", "yellow"],
   ];
   return (
-    <div className="grid gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-4 md:grid-cols-5">
-      {stats.map(([Icon, value, label, t]) => <div key={value} className="flex items-center gap-3 border-white/10 p-3 md:[&:not(:last-child)]:border-r"><div className={cx("rounded-2xl border p-3", tone(t))}><Icon className="h-5 w-5" /></div><div className="min-w-0"><p className="text-sm font-black text-white">{value}</p><p className="text-xs font-bold text-slate-500">{label}</p></div></div>)}
+    <div className="nxt5-panel grid gap-3 border border-cyan-200/14 bg-[#050914]/72 p-4 shadow-[0_0_42px_rgba(34,211,238,.08)] backdrop-blur-2xl md:grid-cols-5">
+      {stats.map(([Icon, value, label, t]) => <div key={value} className="flex items-center gap-3 border-white/10 p-3 transition hover:bg-white/[0.035] md:[&:not(:last-child)]:border-r"><div className={cx("rounded-2xl border p-3 shadow-[0_0_22px_rgba(34,211,238,.08)]", tone(t))}><Icon className="h-5 w-5" /></div><div className="min-w-0"><p className="text-sm font-black text-white">{value}</p><p className="text-xs font-bold text-slate-300">{label}</p></div></div>)}
     </div>
   );
 }
 
 function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
-  const base = "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0";
+  const base = "nxt5-cyber-button inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0";
   const variants = {
-    primary: "border border-cyan-100/30 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.30)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_42px_rgba(217,70,239,.25)]",
-    ghost: "border border-white/14 bg-white/[0.055] text-slate-100 hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-300/[0.10]",
+    primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
+    ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11]",
   };
 
   function go(event) {
@@ -621,9 +622,9 @@ function SiteHeader({ children, navigate }) {
   }
 
   return (
-    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-6">
+    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5">
       <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="transition hover:opacity-90"><BrandLogo /></a>
-      {children && <div className="flex shrink-0 items-center gap-3">{children}</div>}
+      {children && <div className="nxt5-panel relative flex shrink-0 items-center gap-3 border border-cyan-200/12 bg-[#050914]/62 p-1.5 shadow-[0_0_32px_rgba(34,211,238,.08)] backdrop-blur-2xl">{children}</div>}
     </header>
   );
 }
@@ -635,7 +636,7 @@ function LegalLinks({ navigate }) {
     ["/conditions", "Conditions"],
     ["/contact", "Contact"],
   ];
-  return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-500">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="rounded-xl border-transparent bg-transparent px-0 py-0 text-xs text-slate-400 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-600">NXT5 n’est pas affilié à Riot Games.</span></footer>;
+  return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-500">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="border-transparent bg-transparent px-0 py-0 text-xs text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-500">NXT5 n’est pas affilié à Riot Games.</span></footer>;
 }
 
 const LEGAL_PAGES = {
@@ -758,33 +759,46 @@ function HomeScreen({ navigate }) {
       </SiteHeader>
 
       <main className="relative z-10 mx-auto max-w-7xl px-5 pb-16">
-        <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.88fr_1.12fr] lg:py-10">
+        <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.82fr_1.18fr] lg:py-10">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
             <img src="/assets/nxt5-logo.png" alt="NXT5" className="mb-6 h-auto w-full max-w-[520px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)]" />
             <Badge tone="cyan" pulse>Team tools for the next five</Badge>
             <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
               Passe ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">cinq</span> au <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">niveau suivant</span>.
             </h1>
-            <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">NXT5 centralise reviews, Champion Pools, Compos Types et rapports pour que ta team prépare mieux le prochain scrim.</p>
+            <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-200 md:text-lg">Une plateforme cyber esport pour importer tes games, lire le 5v5, préparer tes compos et garder des rapports propres sans transformer la review en tableur.</p>
+            <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-3">
+              {["Draft à 5", "Stats lisibles", "Review staff"].map((label, index) => <div key={label} className="nxt5-panel border border-cyan-200/14 bg-white/[0.035] px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">0{index + 1}</p><p className="mt-1 text-sm font-black text-white">{label}</p></div>)}
+            </div>
             <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
               <LinkButton href="/creer-un-compte" navigate={navigate} icon={ChevronRight} className="px-6 py-4 sm:px-7">Créer un compte</LinkButton>
+              <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="px-6 py-4 sm:px-7">Se connecter</LinkButton>
             </div>
           </motion.div>
           <MarketingPreview />
         </section>
 
-        <section id="features" className="grid gap-5 md:grid-cols-3">
+        <section id="features" className="mt-4">
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <Badge tone="purple">Modules NXT5</Badge>
+              <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Le cockpit de ta team</h2>
+            </div>
+            <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-300">Tout est pensé pour consulter vite, comparer proprement, puis laisser le coach et les joueurs faire la vraie lecture.</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-3">
           {[
             { icon: Crown, title: "Champion Pool lisible", text: "Repère les picks fiables, les picks de confort et les champions à remettre au travail sans transformer le pool en tableau de stats.", t: "cyan" },
             { icon: Swords, title: "Apprendre après chaque game", text: "Lis chaque match avec champions, KDA, dégâts, gold, vision, objectifs et erreurs à comprendre.", t: "purple" },
             { icon: Target, title: "Préparation compétition", text: "Prépare scrims, tournois et matchs officiels avec des données de vision, morts, dragons, Nashor et side lanes.", t: "green" },
           ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
+          </div>
         </section>
 
-        <section id="analytics" className="mt-14 rounded-[1.35rem] border border-white/14 bg-[#060a18]/70 p-6 shadow-2xl shadow-black/25 md:p-9">
+        <section id="analytics" className="nxt5-panel nxt5-premium-panel relative mt-14 overflow-hidden border border-cyan-200/18 p-6 shadow-2xl shadow-black/25 md:p-9">
           <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">Du match à la review</h2><p className="mt-3 text-base font-semibold text-slate-300">NXT5 met les données au clair pour que joueurs, coachs et capitaines fassent leur propre lecture.</p></div>
           <div className="grid gap-5 md:grid-cols-4">
-            {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review reste un support de lecture pour le coach et les joueurs."]].map(([n, Icon, title, text]) => <div key={n} className="nxt5-panel relative border border-cyan-100/12 bg-black/[0.22] p-6"><Badge tone={n === "1" ?"cyan" : "purple"}>{n}</Badge><div className="mt-5 flex h-16 w-16 items-center justify-center rounded-full border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Icon className="h-7 w-7" /></div><h3 className="mt-5 text-xl font-black text-white">{title}</h3><p className="mt-2 text-base font-medium leading-7 text-slate-300">{text}</p></div>)}
+            {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review reste un support de lecture pour le coach et les joueurs."]].map(([n, Icon, title, text]) => <div key={n} className="nxt5-panel relative border border-cyan-100/14 bg-black/[0.24] p-5 transition hover:-translate-y-1 hover:border-cyan-200/28"><Badge tone={n === "1" ?"cyan" : "purple"}>{n}</Badge><div className="mt-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Icon className="h-6 w-6" /></div><h3 className="mt-5 text-lg font-black text-white">{title}</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}
           </div>
           <div className="mt-8 flex justify-center"><LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight} className="px-7 py-4">Créer l’espace équipe</LinkButton></div>
         </section>
@@ -792,10 +806,16 @@ function HomeScreen({ navigate }) {
         <section className="mt-10"><StatStrip /></section>
 
         <section className="mt-14">
-          <Surface>
-            <h2 className="text-3xl font-black text-white">Pensé pour les reviews qui changent quelque chose</h2>
+          <Surface glow>
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <Badge tone="cyan">Review ready</Badge>
+                <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Pensé pour les reviews qui changent quelque chose</h2>
+              </div>
+              <Nxt5Wordmark className="h-12 w-48 object-right opacity-90" />
+            </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {["Comparer les champions joués et leur volume.", "Lire rapidement les écarts de stats d’équipe.", "Générer un rapport exploitable par le staff.", "Préparer la prochaine session avec les données visibles."].map((item) => <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Check className="h-5 w-5 text-emerald-300" /><span className="font-bold text-slate-300">{item}</span></div>)}
+              {["Comparer les champions joués et leur volume.", "Lire rapidement les écarts de stats d’équipe.", "Générer un rapport exploitable par le staff.", "Préparer la prochaine session avec les données visibles."].map((item, index) => <div key={item} className="nxt5-panel flex items-center gap-3 border border-white/10 bg-white/[0.035] p-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-400/10 text-xs font-black text-cyan-100">0{index + 1}</span><Check className="h-5 w-5 shrink-0 text-emerald-300" /><span className="font-bold text-slate-200">{item}</span></div>)}
             </div>
           </Surface>
         </section>
@@ -1052,16 +1072,18 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
   return (
     <>
       <AnimatePresence>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-30 bg-black/65 backdrop-blur-sm lg:hidden" />}</AnimatePresence>
-      <aside className={cx("fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-cyan-200/14 bg-[#050917]/88 p-3 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-all duration-300 lg:translate-x-0", collapsed ?"lg:w-24" : "lg:w-[19rem]", open ?"translate-x-0 w-[19rem] max-w-[calc(100vw-1rem)]" : "-translate-x-full w-[19rem] max-w-[calc(100vw-1rem)]")}>
+      <aside className={cx("fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-cyan-200/18 bg-[#050917]/90 p-3 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-all duration-300 lg:translate-x-0", collapsed ?"lg:w-24" : "lg:w-[19rem]", open ?"translate-x-0 w-[19rem] max-w-[calc(100vw-1rem)]" : "-translate-x-full w-[19rem] max-w-[calc(100vw-1rem)]")}>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(150deg,rgba(34,211,238,.12),transparent_28%,rgba(217,70,239,.10)_72%,transparent),repeating-linear-gradient(90deg,transparent_0_46px,rgba(255,255,255,.025)_47px,transparent_48px)]" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-cyan-200/65 to-fuchsia-200/30" />
         <button type="button" onClick={() => setCollapsed(!collapsed)} className="absolute -right-4 top-6 hidden h-9 w-9 items-center justify-center rounded-xl border border-cyan-200/18 bg-[#070d1d] text-cyan-100 shadow-xl shadow-black/40 transition hover:border-cyan-300/45 hover:bg-cyan-400/10 lg:flex" title={collapsed ?"Afficher le menu" : "Cacher le menu"}>
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
-        <div className={cx("mb-5 flex items-center", collapsed ?"justify-center" : "justify-between")}>
+        <div className={cx("relative z-10 mb-5 flex items-center", collapsed ?"justify-center" : "justify-between")}>
           <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><img src="/apple-touch-icon.png?v=6" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.22em] text-cyan-100/60">Draft Tools</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-500 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
-        <nav className="space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-lg shadow-cyan-950/18" : "text-slate-500 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-600 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
-        <div className="mt-auto space-y-3">{guideItem && (() => { const Icon = guideItem.icon; const selected = active === guideItem.id; return <button type="button" onClick={() => go(guideItem.id)} title={guideItem.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-400 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-500 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{guideItem.label}</span></button>; })()}<button type="button" onClick={() => go("profile")} title="Mon profil" className={cx("nxt5-panel nxt5-hud-lines group relative w-full max-w-full overflow-hidden border border-cyan-200/16 bg-[#060a18]/84 text-left shadow-2xl shadow-black/40 backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-300/35 hover:bg-cyan-400/[0.075]", collapsed ?"p-2.5" : "p-3")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></button>{settingsItem && <Button variant="ghost" icon={Settings} onClick={() => go("settings")} className={cx("w-full", active === "settings" && "border-cyan-300/35 bg-cyan-400/[0.075]", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>{settingsItem.label}</span></Button>}<Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
+        <nav className="relative z-10 space-y-1.5">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-500 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
+        <div className="relative z-10 mt-auto space-y-3">{guideItem && (() => { const Icon = guideItem.icon; const selected = active === guideItem.id; return <button type="button" onClick={() => go(guideItem.id)} title={guideItem.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{guideItem.label}</span></button>; })()}<button type="button" onClick={() => go("profile")} title="Mon profil" className={cx("nxt5-panel nxt5-premium-panel group relative w-full max-w-full overflow-hidden border border-cyan-200/16 text-left backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-300/35", collapsed ?"p-2.5" : "p-3")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></button>{settingsItem && <Button variant="ghost" icon={Settings} onClick={() => go("settings")} className={cx("w-full", active === "settings" && "border-cyan-300/35 bg-cyan-400/[0.075]", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>{settingsItem.label}</span></Button>}<Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
       </aside>
     </>
   );
@@ -1108,7 +1130,7 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  return <header className="sticky top-0 z-20 border-b border-cyan-200/12 bg-[#030714]/78 px-3 py-3 text-white backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-cyan-200/14 bg-[#080d19]/95 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition", currentTeam?.id === team.id ?"bg-cyan-400/10 text-white" : "text-slate-400 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-500">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/14 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:bg-cyan-400/10"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
+  return <header className="sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden border border-cyan-200/18 bg-[#080d19]/96 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition", currentTeam?.id === team.id ?"bg-cyan-400/10 text-white" : "text-slate-300 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-400">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/14 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:bg-cyan-400/10"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
 }
 
 function ApiBanner({ error }) {
