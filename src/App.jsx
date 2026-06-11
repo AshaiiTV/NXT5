@@ -2233,7 +2233,7 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ctx.fillText(kda, x + w / 2, y + 23);
     ctx.fillStyle = "#d9e7f7";
     ctx.font = "800 13px Inter, Arial, sans-serif";
-    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${row?.cs || 0} CS · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 45);
+    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${creepScore(row)} CS · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 45);
     const iconY = y + 49;
     const iconStart = right ? x + 88 : x + w - 286;
     spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 25, iconY, 21, 21, 6));
@@ -3951,6 +3951,12 @@ function statValue(row, key, fallback = 0) {
   return Number(row?.[key] ?? row?.raw?.[key] ?? fallback) || 0;
 }
 
+function creepScore(row) {
+  const raw = participantRaw(row);
+  const combined = Number(raw?.totalMinionsKilled || 0) + Number(raw?.neutralMinionsKilled || 0);
+  return Number(row?.cs ?? row?.creep_score ?? row?.total_cs ?? (combined || raw?.totalMinionsKilled || raw?.neutralMinionsKilled || 0)) || 0;
+}
+
 function statPerMinute(row, key) {
   const duration = Number(row?.matchDuration || row?.raw?.timePlayed || row?.raw?.gameDuration || 0) / 60;
   return duration > 0 ? statValue(row, key) / duration : 0;
@@ -4546,7 +4552,7 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
         <div className={cx("mt-2 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-white">{kda}</span>
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200">{kp}% KP</span>
-          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-[0.62rem] font-black text-emerald-50">{row?.cs || 0} CS</span>
+          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-[0.62rem] font-black text-emerald-50">{creepScore(row)} CS</span>
           <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} DMG</span>
           <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-[0.62rem] font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)} GOLD</span>
           <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-[0.62rem] font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
