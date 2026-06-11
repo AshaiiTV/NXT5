@@ -54,6 +54,7 @@ const NAV = [
   { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Intégration", icon: Swords, shortcut: "I", path: "/integration" },
   { id: "stats", label: "Statistiques", icon: BarChart3, shortcut: "S", path: "/statistiques" },
+  { id: "trends", label: "Tendances", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
   { id: "planning", label: "Planning", icon: CalendarDays, shortcut: "L", path: "/planning" },
   { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
@@ -2442,6 +2443,7 @@ function GuidePage() {
     ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Reclique sur un groupe ou une game pour le retirer de la sélection. Le rapport de groupe est généré automatiquement."],
     ["Exports PNG", "Utilise Exporter la game ou Exporter le groupe dans Statistiques pour produire une fiche visuelle NXT5 avec les données clés, les joueurs, les champions et les objectifs."],
     ["Stats par joueurs", "Le bloc profils est fermé par défaut. Ouvre-le pour voir champions joués, CS 10/20, builds, historiques par champion et tendances individuelles."],
+    ["Tendances", "Lis le portrait stratégique global de la team: identité, forces récurrentes, risques, timings, patterns de victoire/défaite et priorités draft."],
     ["Rapports", "Les rapports reprennent les noms des games et groupes. Ils servent de bloc-notes brut autour des datas, sans imposer d’analyse automatique."],
     ["Mon profil", "La page Mon profil centralise les données individuelles: champions, matchups, builds, bilans coaching, bangers, flops et historique game par game."],
     ["Champion Pool", "Le Champion Pool est indépendant des imports. Le joueur concerné et le capitaine peuvent organiser les champions par maîtrise avec les pictos de tiers."],
@@ -2458,6 +2460,7 @@ function GuidePage() {
   const quickLinks = [
     ["Intégration", "/integration", Download, "Importer JSON, renommer/supprimer les games, corriger lanes et profils."],
     ["Statistiques", "/statistiques", BarChart3, "Analyser une game, un groupe, exporter en PNG et lire la heatmap."],
+    ["Tendances", "/tendances", Activity, "Lire l’identité globale, les forces, les risques et les priorités draft."],
     ["Mon profil", "/mon-profil", Activity, "Lire le profil joueur, builds, champions, matchups et bilan coaching."],
     ["Compos Types", "/compositions-types", Sparkles, "Créer une compo depuis les champion pools et lire les counters."],
     ["Gestion", "/gestion-equipe", Settings, "Roster, invitations temporaires, liaisons, permissions et staff."],
@@ -4653,6 +4656,114 @@ function ScrimArchiveSummary({ matches }) {
   return <Surface glow className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Analyse de groupe</Badge><Badge tone="slate">{matches.length} game{matches.length > 1 ? "s" : ""}</Badge></div><h3 className="mt-3 text-2xl font-black text-white">Lecture scrim complète</h3><p className="mt-1 text-sm font-semibold text-slate-500">Agrégation des games sélectionnées : série, volume, écarts et signaux communs.</p></div><Badge tone={wins >= matches.length / 2 ? "green" : "red"}>{wins}W / {matches.length - wins}L</Badge></div><div className="mt-5 grid gap-3 lg:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} /><MetricCard icon={Gauge} label="Gold diff" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} /><MetricCard icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} /></div><div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => <div key={match.id} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge></div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-500">{match.game_id || ""}</p></div>)}</div></Surface>;
 }
 
+function TrendsPage({ data, selectedTeamId }) {
+  const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
+  const ally = rows.filter((row) => row.team_key === "ALLY");
+  const enemy = rows.filter((row) => row.team_key === "ENEMY");
+  const wins = matches.filter((match) => match.result === "Victoire").length;
+  const losses = matches.length - wins;
+  const winrate = Math.round((wins / Math.max(1, matches.length)) * 100);
+  if (!matches.length) return <div><PageHeader eyebrow="Tendances" title="Portrait stratégique" subtitle="Identité, patterns et signaux collectifs de la team." /><Surface glow><EmptyState icon={Activity} title="Aucune tendance disponible" text="Importe plusieurs games pour faire émerger les tendances globales." /></Surface></div>;
+
+  const avg = (value) => value / Math.max(1, matches.length);
+  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
+  const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
+  const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
+  const deathsDiff = sumRows(ally, "deaths") - sumRows(enemy, "deaths");
+  const identity = compositionIdentity(ally);
+  const objectiveTotals = matches.reduce((total, match) => {
+    const summary = objectiveTeamSummary(match, "ALLY");
+    total.dragons += summary.dragonCount || 0;
+    total.grubs += summary.grubs || 0;
+    total.heralds += summary.heralds || 0;
+    total.barons += summary.barons || 0;
+    total.towers += summary.towers || 0;
+    return total;
+  }, { dragons: 0, grubs: 0, heralds: 0, barons: 0, towers: 0 });
+  const championCounts = Array.from(ally.reduce((map, row) => {
+    const key = championAssetId(row.champion);
+    const current = map.get(key) || { champion: row.champion, games: 0, wins: 0, tags: championStyleTags(row.champion) };
+    current.games += 1;
+    current.wins += row.match?.result === "Victoire" ? 1 : 0;
+    map.set(key, current);
+    return map;
+  }, new Map()).values()).sort((a, b) => b.games - a.games || b.wins - a.wins).slice(0, 8);
+  const roleFocus = ROSTER_ROLE_ORDER.map((role) => {
+    const roleRows = ally.filter((row) => normalizeProfileRole(row.role) === role);
+    const games = roleRows.length;
+    return { role, games, gold: sumRows(roleRows, "gold"), damage: sumRows(roleRows, "damage"), kills: sumRows(roleRows, "kills"), deaths: sumRows(roleRows, "deaths") };
+  }).filter((stat) => stat.games).sort((a, b) => (b.gold + b.damage / 3) - (a.gold + a.damage / 3));
+  const focusRole = roleFocus[0];
+  const commonTags = (sourceRows) => Array.from(sourceRows.reduce((map, row) => {
+    championStyleTags(row.champion).forEach((tag) => map.set(tag, (map.get(tag) || 0) + 1));
+    return map;
+  }, new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const winRows = ally.filter((row) => row.match?.result === "Victoire");
+  const lossRows = ally.filter((row) => row.match?.result === "Défaite");
+  const winTags = commonTags(winRows);
+  const lossTags = commonTags(lossRows);
+  const sideStats = ["Blue", "Red"].map((side) => {
+    const sideMatches = matches.filter((match) => String(match.side || "").toLowerCase().includes(side.toLowerCase()));
+    const sideWins = sideMatches.filter((match) => match.result === "Victoire").length;
+    return { side, games: sideMatches.length, wins: sideWins, wr: Math.round((sideWins / Math.max(1, sideMatches.length)) * 100) };
+  });
+  const hasTag = (tag) => identity.tags.some(([key]) => key === tag);
+  const forceItems = [
+    winrate >= 55 && `Conversion positive: ${wins} victoires pour ${losses} défaites.`,
+    goldDiff > 0 && `Économie moyenne favorable: ${formatGoldDiff(avg(goldDiff))} par game.`,
+    damageDiff > 0 && `Présence fight correcte: ${formatPoints(avg(damageDiff))} dégâts diff par game.`,
+    visionDiff > 0 && `Vision globalement au-dessus: +${formatPoints(avg(visionDiff))} par game.`,
+    objectiveTotals.dragons / Math.max(1, matches.length) >= 2 && "Plan drakes régulier, bon indicateur de contrôle map.",
+    focusRole && `Ressources surtout orientées ${roleLabel(focusRole.role)}.`
+  ].filter(Boolean).slice(0, 5);
+  const riskItems = [
+    winrate < 50 && `Bloc négatif: ${wins}W - ${losses}L, attention à la conversion.`,
+    goldDiff < 0 && `Retard économie moyen: ${formatGoldDiff(avg(goldDiff))} par game.`,
+    visionDiff < 0 && `Vision sous pression: ${formatPoints(avg(visionDiff))} de retard par game.`,
+    deathsDiff > 0 && `Trop de morts concédées: +${formatPoints(avg(deathsDiff))} morts par game.`,
+    objectiveTotals.barons < Math.max(1, Math.floor(matches.length / 2)) && "Peu de Nashors sécurisés sur le volume importé.",
+    !hasTag("engage") && "Drafts parfois pauvres en engage claire.",
+    !hasTag("frontline") && "Frontline peu présente dans les picks récurrents."
+  ].filter(Boolean).slice(0, 5);
+  const timingItems = [
+    objectiveTotals.grubs ? `Early map: ${objectiveTotals.grubs} grubs récupérés, à relier au tempo top/jungle.` : "Early map: peu de grubs enregistrés.",
+    objectiveTotals.heralds ? `Ouverture map: ${objectiveTotals.heralds} Herald pris.` : "Ouverture map: Herald peu visible dans les imports.",
+    objectiveTotals.barons ? `20+ minutes: ${objectiveTotals.barons} Nashor sécurisé(s).` : "20+ minutes: Nashor rarement converti dans les données.",
+    `Tours: ${objectiveTotals.towers} prises sur ${matches.length} game(s), signal de conversion map.`
+  ];
+  const draftNeeds = [
+    !hasTag("engage") && "Engage fiable",
+    !hasTag("frontline") && "Frontline stable",
+    !hasTag("waveclear") && "Waveclear",
+    winTags[0] && `Conserver ${tagLabel(winTags[0][0])}`,
+    focusRole && `Priorité confort ${roleLabel(focusRole.role)}`
+  ].filter(Boolean).slice(0, 5);
+  const recommendations = [
+    visionDiff < 0 && "Préparer la vision objectif 45 secondes avant spawn.",
+    goldDiff < 0 && "Stabiliser les lanes avant 14 minutes avant de forcer les fights.",
+    deathsDiff > 0 && "Refuser les fights sans setup complet quand les timers objectifs approchent.",
+    !hasTag("engage") && "Ajouter au moins un outil d’engage évident en draft.",
+    !hasTag("frontline") && "Sécuriser une frontline quand la compo joue DPS/backline.",
+    objectiveTotals.dragons / Math.max(1, matches.length) < 2 && "Formaliser un plan drake 1/2 avec reset clair.",
+    "Documenter les deux patterns de victoire à reproduire en scrim."
+  ].filter(Boolean).slice(0, 5);
+  const SignalList = ({ title, icon: Icon, items, tone = "cyan" }) => <Surface className="p-5"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045]"><Icon className="h-5 w-5 text-cyan-100" /></span><h3 className="text-xl font-black text-white">{title}</h3></div><div className="mt-4 space-y-2">{items.length ? items.map((item) => <p key={item} className="rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2 text-sm font-semibold leading-6 text-slate-200">{item}</p>) : <Badge tone={tone}>Pas assez de volume</Badge>}</div></Surface>;
+
+  return <div className="min-w-0 overflow-hidden">
+    <PageHeader eyebrow="Tendances" title="Portrait stratégique" subtitle="Style, forces, risques, timings et besoins draft à partir des games importées." />
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Trophy} label="Winrate global" value={`${winrate}%`} hint={`${wins}W - ${losses}L`} tone={winrate >= 50 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={formatGoldDiff(avg(goldDiff))} hint="Moyenne par game" tone={diffTone(goldDiff)} /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(avg(damageDiff))} hint="Moyenne par game" tone={diffTone(damageDiff)} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(avg(visionDiff))} hint="Moyenne par game" tone={diffTone(visionDiff)} /></div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,.92fr)]">
+      <Surface glow className="p-5 md:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-3 text-3xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-5 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><RoleIcon role={focusRole.role} className="h-8 w-8" /><div><p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-100">Focus ressources</p><p className="font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avg(focusRole.gold))} gold moyen · {formatPoints(avg(focusRole.damage))} dégâts moyens</p></div></div>}</Surface>
+      <Surface className="p-5"><h3 className="text-xl font-black text-white">Objectifs et sides</h3><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5 xl:grid-cols-2 2xl:grid-cols-5">{[["Drakes", objectiveTotals.dragons, "dragon"], ["Grubs", objectiveTotals.grubs, "grub"], ["Herald", objectiveTotals.heralds, "herald"], ["Nashor", objectiveTotals.barons, "baron"], ["Tours", objectiveTotals.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/18 p-3 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-8 w-8" /><p className="mt-2 text-xl font-black text-white">{value}</p><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p></div>)}</div><div className="mt-4 grid gap-2 sm:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex items-center justify-between gap-3"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="font-black text-white">{stat.wr}% WR</span></div><p className="mt-1 text-xs font-semibold text-slate-300">{stat.wins}W - {stat.games - stat.wins}L · {stat.games} games</p></div>)}</div></Surface>
+    </div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-2"><SignalList title="Forces récurrentes" icon={ShieldCheck} items={forceItems} tone="green" /><SignalList title="Faiblesses à surveiller" icon={AlertTriangle} items={riskItems} tone="red" /></div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-3"><SignalList title="Timings et spikes" icon={Gauge} items={timingItems} /><SignalList title="Patterns de victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><SignalList title="Patterns de défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /></div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-[.9fr_1.1fr]"><SignalList title="Priorités draft" icon={Target} items={draftNeeds} tone="purple" /><SignalList title="Axes de travail" icon={Clipboard} items={recommendations} tone="orange" /></div>
+    <Surface className="mt-5 p-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-xl font-black text-white">Champions récurrents</h3><p className="mt-1 text-sm font-semibold text-slate-300">Volume et WR des picks les plus vus dans les imports.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 shrink-0 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-xs font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
+  </div>;
+}
+
 function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
@@ -6288,6 +6399,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "stats") return <Statistics data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} />;
+    if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
