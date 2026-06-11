@@ -4318,23 +4318,23 @@ function ObjectiveHud({ match, compact = false }) {
       <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Red Side" toneName="red" data={redData} />
     </div>
     {events.length ? <>
-      <div className="mt-3 overflow-x-auto pb-1">
-        <div className="relative flex min-w-max items-stretch gap-0 px-1 py-2">
-          <div className="absolute left-4 right-4 top-[2.35rem] h-px bg-gradient-to-r from-cyan-200/18 via-white/18 to-rose-200/18" />
+      <div className="nxt5-objective-timeline mt-3 overflow-x-auto overflow-y-hidden pb-2">
+        <div className="relative flex w-max min-w-full items-stretch gap-0 px-4 py-2">
+          <div className="absolute left-8 right-8 top-[2.35rem] h-px bg-gradient-to-r from-cyan-200/18 via-white/18 to-rose-200/18" />
           {events.map((event, index) => {
             const isRed = event.side === "RED";
-            return <div key={`${event.timestamp}-${index}`} className="relative z-10 flex items-center">
-              <div className="w-[9.25rem]">
+            return <div key={`${event.timestamp}-${index}`} className="relative z-10 flex shrink-0 items-center">
+              <div className="w-[7.75rem] sm:w-[8.75rem] lg:w-[9.25rem]">
                 <div className="flex flex-col items-center text-center">
                   <span className={cx("mb-2 rounded-full border px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em]", isRed ? "border-rose-200/24 bg-rose-500/10 text-rose-100" : "border-cyan-200/24 bg-cyan-400/10 text-cyan-100")}>{event.time}</span>
                   <span className={cx("relative flex h-12 w-12 items-center justify-center rounded-2xl ring-2 ring-[#060a18]", tone(objectiveEventTone(event)))}>
                     <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-8 w-8" />
                   </span>
-                  <p className="mt-2 max-w-[8.5rem] truncate text-xs font-black text-white">{event.label}</p>
+                  <p className="mt-2 max-w-[7.2rem] truncate text-[0.68rem] font-black text-white sm:max-w-[8.25rem] sm:text-xs">{event.label}</p>
                   <p className={cx("mt-0.5 text-[0.58rem] font-black uppercase tracking-[0.12em]", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Red Side" : "Blue Side"}</p>
                 </div>
               </div>
-              {index < events.length - 1 && <div className="relative -mx-1 flex w-10 shrink-0 items-center justify-center">
+              {index < events.length - 1 && <div className="relative -mx-2 flex w-6 shrink-0 items-center justify-center sm:-mx-1 sm:w-10">
                 <span className="h-px flex-1 bg-gradient-to-r from-white/18 to-white/5" />
                 <ArrowRight className="h-4 w-4 shrink-0 text-slate-300/75" />
               </div>}
