@@ -1134,7 +1134,7 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  return <header className="sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden border border-cyan-200/18 bg-[#080d19]/96 p-2 shadow-2xl shadow-black/40 backdrop-blur-2xl">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-left transition", currentTeam?.id === team.id ?"bg-cyan-400/10 text-white" : "text-slate-300 hover:bg-white/[0.06] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-400">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/14 bg-white/[0.04] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:bg-cyan-400/10"><Plus className="h-4 w-4" />Créer une nouvelle team</button></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
+  return <header className="sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden border border-cyan-200/30 bg-[#050814] p-2 shadow-[0_30px_80px_rgba(0,0,0,.72),0_0_36px_rgba(34,211,238,.16)] ring-1 ring-white/10"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),rgba(5,8,20,.96)_42%,rgba(217,70,239,.10))]" /> <div className="relative z-10">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition", currentTeam?.id === team.id ?"border-cyan-200/25 bg-cyan-400/14 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent bg-[#070d1c] text-slate-200 hover:border-cyan-200/18 hover:bg-[#0b1428] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/22 bg-[#071221] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/12"><Plus className="h-4 w-4" />Créer une nouvelle team</button></div></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -2127,6 +2127,14 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ctx.restore();
     return true;
   };
+  const drawImageContain = (img, x, y, w, h) => {
+    if (!img) return false;
+    const ratio = Math.min(w / img.width, h / img.height);
+    const dw = img.width * ratio;
+    const dh = img.height * ratio;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    return true;
+  };
   const drawCachedImage = (sourceOrSources, x, y, w, h, radius = 14) => {
     const sources = Array.isArray(sourceOrSources) ? sourceOrSources : [sourceOrSources];
     const img = sources.map((url) => imageCache.get(url)).find(Boolean);
@@ -2175,16 +2183,36 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ctx.font = "800 15px Inter, Arial, sans-serif";
     ctx.fillText(short(detail, 28), x + 22, y + 94);
   };
+  const drawBadge = (text, x, y, accent = "cyan") => {
+    const fill = accent === "pink" ? "rgba(244,114,182,.16)" : accent === "green" ? "rgba(52,211,153,.15)" : "rgba(34,211,238,.14)";
+    const stroke = accent === "pink" ? "rgba(244,114,182,.34)" : accent === "green" ? "rgba(52,211,153,.32)" : "rgba(103,232,249,.32)";
+    ctx.font = "900 15px Inter, Arial, sans-serif";
+    const width = Math.max(74, ctx.measureText(text).width + 26);
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1.5;
+    rounded(x, y, width, 30, 15);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(text, x + 13, y + 20);
+    return width;
+  };
   const drawPlayerRow = (row, x, y, w, align = "left") => {
     const right = align === "right";
     const kda = `${row?.kills || 0}/${row?.deaths || 0}/${row?.assists || 0}`;
     const spells = row ? summonerSpellIds(row).filter(Boolean) : [];
     const build = row ? finalBuildItems(row).slice(0, 7) : [];
     const portraitSources = championPortraitSources(row, row?.champion);
-    ctx.fillStyle = "rgba(0,0,0,.30)";
-    ctx.strokeStyle = "rgba(255,255,255,.10)";
+    ctx.fillStyle = right ? "rgba(46,8,31,.50)" : "rgba(3,31,42,.50)";
+    ctx.strokeStyle = right ? "rgba(244,114,182,.20)" : "rgba(103,232,249,.20)";
     ctx.lineWidth = 1.5;
     rounded(x, y, w, 72, 18);
+    const rowGlow = ctx.createLinearGradient(x, y, x + w, y);
+    rowGlow.addColorStop(0, right ? "rgba(244,114,182,.14)" : "rgba(34,211,238,.16)");
+    rowGlow.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = rowGlow;
+    ctx.beginPath();
+    ctx.roundRect(x + 2, y + 2, w - 4, 68, 16);
+    ctx.fill();
     const portraitX = right ? x + w - 74 : x + 14;
     drawCachedImage(portraitSources, portraitX, y + 9, 54, 54, 15);
     ctx.strokeStyle = "rgba(103,232,249,.26)";
@@ -2205,14 +2233,59 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ctx.fillText(kda, x + w / 2, y + 23);
     ctx.fillStyle = "#d9e7f7";
     ctx.font = "800 13px Inter, Arial, sans-serif";
-    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 45);
+    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${row?.cs || 0} CS · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 45);
     const iconY = y + 49;
     const iconStart = right ? x + 88 : x + w - 286;
     spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 25, iconY, 21, 21, 6));
     build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 58 + index * 25, iconY, 21, 21, 6));
     ctx.textAlign = "left";
   };
+  const drawObjectiveSide = (label, data, x, y, w, accent = "cyan") => {
+    drawCard(x, y, w, 148, accent);
+    ctx.fillStyle = accent === "pink" ? "#f9c6ff" : "#bffaff";
+    ctx.font = "900 16px Inter, Arial, sans-serif";
+    ctx.fillText(label.toUpperCase(), x + 22, y + 34);
+    const objectiveCells = [
+      ["Drakes", data?.dragonCount || 0, "dragon"],
+      ["Grubs", data?.grubs || 0, "grub"],
+      ["Herald", data?.heralds || 0, "herald"],
+      ["Nashor", data?.barons || 0, "baron"],
+      ["Tours", data?.towers || 0, "tower"],
+    ];
+    objectiveCells.forEach(([name, value, type], index) => {
+      const cx = x + 22 + index * ((w - 44) / 5);
+      drawCachedImage(OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon, cx, y + 50, 34, 34, 11);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 24px Inter, Arial, sans-serif";
+      ctx.fillText(String(value), cx + 43, y + 75);
+      ctx.fillStyle = "#c7d4e5";
+      ctx.font = "800 11px Inter, Arial, sans-serif";
+      ctx.fillText(name.toUpperCase(), cx, y + 105);
+    });
+    const dragons = (data?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean);
+    ctx.fillStyle = "#d8f8ff";
+    ctx.font = "800 14px Inter, Arial, sans-serif";
+    ctx.fillText(short(dragons.length ? dragons.join(" · ") : "Dragons: timeline absente", 58), x + 22, y + 132);
+  };
+  const drawChampionToken = (champion, count, x, y) => {
+    drawCachedImage(championPortraitSources(champion, champion), x, y, 62, 62, 17);
+    ctx.fillStyle = "rgba(0,0,0,.56)";
+    ctx.beginPath();
+    ctx.roundRect(x, y + 38, 62, 24, 0);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "900 11px Inter, Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(short(championDisplayName(champion), 9), x + 31, y + 54);
+    ctx.fillStyle = "#bffaff";
+    ctx.font = "900 13px Inter, Arial, sans-serif";
+    ctx.fillText(`x${count}`, x + 31, y + 78);
+    ctx.textAlign = "left";
+  };
   const imageUrls = new Set();
+  imageUrls.add("/assets/nxt5-wordmark.png");
+  imageUrls.add("/assets/nxt5-mark.png");
+  Object.values(OBJECTIVE_ICON_SOURCES).flat().forEach((url) => imageUrls.add(url));
   const exportRows = singleGame ? [...rows, ...enemyRows] : rows;
   exportRows.forEach((row) => {
     championPortraitSources(row, row?.champion).forEach((url) => imageUrls.add(url));
@@ -2251,19 +2324,29 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   ctx.beginPath();
   ctx.roundRect(54, 50, canvas.width - 108, canvas.height - 108, 24);
   ctx.stroke();
+  const headerGlow = ctx.createLinearGradient(58, 58, 1542, 164);
+  headerGlow.addColorStop(0, "rgba(34,211,238,.18)");
+  headerGlow.addColorStop(0.5, "rgba(5,8,20,.68)");
+  headerGlow.addColorStop(1, "rgba(217,70,239,.16)");
+  ctx.fillStyle = headerGlow;
+  ctx.strokeStyle = "rgba(103,232,249,.24)";
+  ctx.lineWidth = 1.8;
+  rounded(72, 62, 1456, 108, 26);
+  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 94, 76, 78, 78);
+  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 184, 78, 226, 62);
   ctx.strokeStyle = "rgba(103,232,249,.55)";
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.5;
   ctx.beginPath();
-  ctx.moveTo(80, 176);
-  ctx.lineTo(1520, 176);
+  ctx.moveTo(80, 188);
+  ctx.lineTo(1520, 188);
   ctx.stroke();
   ctx.fillStyle = "#ffffff";
-  ctx.font = "900 58px Inter, Arial, sans-serif";
-  ctx.fillText(short(title || "Export NXT5", 32), 80, 104);
+  ctx.font = "900 44px Inter, Arial, sans-serif";
+  ctx.fillText(short(title || "Export NXT5", 30), 444, 103);
   ctx.fillStyle = "#c8f7ff";
-  ctx.font = "800 22px Inter, Arial, sans-serif";
-  ctx.fillText(short(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 72), 84, 142);
-  drawPill("NXT5 DATA EXPORT", 1245, 82, "rgba(217,70,239,.16)", "rgba(217,70,239,.35)", "#fff");
+  ctx.font = "800 20px Inter, Arial, sans-serif";
+  ctx.fillText(short(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 66), 448, 137);
+  drawPill("NXT5 DATA EXPORT", 1248, 84, "rgba(217,70,239,.16)", "rgba(217,70,239,.35)", "#fff");
   const metrics = [
     ["Games", String(games), `${wins}W - ${games - wins}L`, "cyan"],
     ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Sélection", wins >= games - wins ? "cyan" : "pink"],
@@ -2272,40 +2355,23 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ["DMG diff", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "Dégâts", damageDiff >= 0 ? "cyan" : "pink"],
     ["Vision diff", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "Vision", visionDiff >= 0 ? "cyan" : "pink"],
   ];
-  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 80 + (index % 3) * 500, 220 + Math.floor(index / 3) * 126, 450, accent));
+  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 80 + (index % 3) * 500, 224 + Math.floor(index / 3) * 120, 450, accent));
 
   if (singleGame && firstMatch) {
-    const allyByRole = roleOrder.map((role) => rows.find((row) => String(row.role || "").toUpperCase() === role)).filter(Boolean);
-    const enemyByRole = roleOrder.map((role) => enemyRows.find((row) => String(row.role || "").toUpperCase() === role)).filter(Boolean);
-    drawCard(80, 500, 700, 418, "cyan");
-    drawCard(820, 500, 700, 418, "pink");
+    const allyByRole = roleOrder.map((role) => rows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ALLY" });
+    const enemyByRole = roleOrder.map((role) => enemyRows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ENEMY" });
+    drawObjectiveSide("Blue Side", objectiveTeamKeyForSide(firstMatch, "BLUE") === "ALLY" ? allyObjectives : enemyObjectives, 80, 492, 700, "cyan");
+    drawObjectiveSide("Red Side", objectiveTeamKeyForSide(firstMatch, "RED") === "ALLY" ? allyObjectives : enemyObjectives, 820, 492, 700, "pink");
+    drawCard(80, 672, 700, 418, "cyan");
+    drawCard(820, 672, 700, 418, "pink");
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 30px Inter, Arial, sans-serif";
-    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 110, 550);
-    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 850, 550);
-    allyByRole.forEach((row, index) => drawPlayerRow(row, 110, 575 + index * 75, 640, "left"));
-    enemyByRole.forEach((row, index) => drawPlayerRow(row, 850, 575 + index * 75, 640, "right"));
-    const objText = (data) => data ? `${data.dragonCount} drakes · ${data.grubs} grubs · ${data.heralds} herald · ${data.barons} nash · ${data.towers} tours` : "Objectifs indisponibles";
-    drawCard(80, 950, 700, 104, "cyan");
-    drawCard(820, 950, 700, 104, "pink");
-    ctx.fillStyle = "#bffaff";
-    ctx.font = "900 17px Inter, Arial, sans-serif";
-    ctx.fillText("OBJECTIFS ALLIÉS", 110, 988);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 24px Inter, Arial, sans-serif";
-    ctx.fillText(short(objText(allyObjectives), 48), 110, 1026);
-    ctx.fillStyle = "#c7d4e5";
-    ctx.font = "800 16px Inter, Arial, sans-serif";
-    ctx.fillText(short((allyObjectives?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean).join(" · ") || "Éléments dragons non disponibles", 58), 110, 1052);
-    ctx.fillStyle = "#f9c6ff";
-    ctx.font = "900 17px Inter, Arial, sans-serif";
-    ctx.fillText("OBJECTIFS ADVERSAIRES", 850, 988);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 24px Inter, Arial, sans-serif";
-    ctx.fillText(short(objText(enemyObjectives), 48), 850, 1026);
-    ctx.fillStyle = "#c7d4e5";
-    ctx.font = "800 16px Inter, Arial, sans-serif";
-    ctx.fillText(short((enemyObjectives?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean).join(" · ") || "Éléments dragons non disponibles", 58), 850, 1052);
+    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 110, 722);
+    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 850, 722);
+    drawBadge(firstMatch.result || "Analyse", 110, 738, firstMatch.result === "Victoire" ? "green" : "pink");
+    drawBadge(firstMatch.duration || "--:--", 240, 738, "cyan");
+    allyByRole.forEach((row, index) => drawPlayerRow(row, 110, 778 + index * 75, 640, "left"));
+    enemyByRole.forEach((row, index) => drawPlayerRow(row, 850, 778 + index * 75, 640, "right"));
   } else {
     const leaderCards = [
       ["Meilleur KDA", topKda ? `${rowName(topKda)} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
@@ -2321,17 +2387,14 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
       ctx.font = "900 25px Inter, Arial, sans-serif";
       ctx.fillText(short(value, 34), 108 + index * 500, 622);
     });
-    drawCard(80, 700, 1440, 190, "pink");
+    drawCard(80, 700, 1440, 234, "pink");
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 30px Inter, Arial, sans-serif";
     ctx.fillText("Champions les plus joués", 110, 750);
-    ctx.font = "900 26px Inter, Arial, sans-serif";
-    ctx.fillStyle = "#dffaff";
-    const championText = championCounts.length ? championCounts.map(([champion, count]) => `${championDisplayName(champion)} x${count}`).join("   ·   ") : "Aucun champion reconnu";
-    ctx.fillText(short(championText, 112), 110, 802);
+    championCounts.forEach(([champion, count], index) => drawChampionToken(champion, count, 112 + index * 88, 778));
     ctx.fillStyle = "#b8c7d9";
     ctx.font = "800 20px Inter, Arial, sans-serif";
-    ctx.fillText(short(scoped.slice(0, 5).map((match) => `${matchDisplayName(match)} (${match.result || "?"})`).join("   ·   "), 122), 110, 850);
+    ctx.fillText(short(scoped.slice(0, 5).map((match) => `${matchDisplayName(match)} (${match.result || "?"})`).join("   ·   "), 120), 110, 900);
   }
   ctx.fillStyle = "#6ee7f6";
   ctx.font = "800 17px Inter, Arial, sans-serif";
@@ -4483,6 +4546,7 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
         <div className={cx("mt-2 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-white">{kda}</span>
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200">{kp}% KP</span>
+          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-[0.62rem] font-black text-emerald-50">{row?.cs || 0} CS</span>
           <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} DMG</span>
           <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-[0.62rem] font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)} GOLD</span>
           <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-[0.62rem] font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
