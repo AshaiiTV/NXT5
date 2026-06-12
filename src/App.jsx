@@ -2097,9 +2097,11 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   const allyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ALLY") : null;
   const enemyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ENEMY") : null;
   const canvas = document.createElement("canvas");
-  canvas.width = 1600;
-  canvas.height = singleGame ? 1240 : 1120;
+  canvas.width = 1800;
+  canvas.height = singleGame ? 1380 : 1160;
   const ctx = canvas.getContext("2d");
+  const W = canvas.width;
+  const H = canvas.height;
   const rounded = (x, y, w, h, r = 28) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
   const imageCache = new Map();
   const loadCanvasImage = (url) => new Promise((resolve) => {
@@ -2160,27 +2162,33 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   };
   const drawCard = (x, y, w, h, accent = "cyan") => {
     const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-    gradient.addColorStop(0, accent === "pink" ? "rgba(217,70,239,.14)" : "rgba(34,211,238,.14)");
-    gradient.addColorStop(0.45, "rgba(4,8,22,.76)");
-    gradient.addColorStop(1, "rgba(255,255,255,.035)");
+    gradient.addColorStop(0, accent === "pink" ? "rgba(217,70,239,.20)" : "rgba(34,211,238,.20)");
+    gradient.addColorStop(0.48, "rgba(5,10,28,.82)");
+    gradient.addColorStop(1, accent === "pink" ? "rgba(244,114,182,.06)" : "rgba(103,232,249,.06)");
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.30)" : "rgba(103,232,249,.30)";
-    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.34)" : "rgba(103,232,249,.34)";
+    ctx.lineWidth = 2;
     rounded(x, y, w, h, 22);
+    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.72)" : "rgba(103,232,249,.72)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x + 28, y + 1);
+    ctx.lineTo(x + Math.min(w - 32, 260), y + 1);
+    ctx.stroke();
     ctx.strokeStyle = "rgba(255,255,255,.10)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(x + 26, y + 1);
-    ctx.lineTo(x + Math.min(w - 32, 230), y + 1);
+    ctx.moveTo(x + w - 120, y + h - 1);
+    ctx.lineTo(x + w - 26, y + h - 1);
     ctx.stroke();
   };
   const drawMetric = (label, value, detail, x, y, w, accent = "cyan") => {
-    drawCard(x, y, w, 108, accent);
+    drawCard(x, y, w, 106, accent);
     ctx.fillStyle = accent === "pink" ? "#f9c6ff" : "#bffaff";
-    ctx.font = "900 16px Inter, Arial, sans-serif";
+    ctx.font = "900 15px Inter, Arial, sans-serif";
     ctx.fillText(label.toUpperCase(), x + 22, y + 31);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 38px Inter, Arial, sans-serif";
+    ctx.font = "900 36px Inter, Arial, sans-serif";
     ctx.fillText(short(value, 12), x + 22, y + 73);
     ctx.fillStyle = "#c7d4e5";
     ctx.font = "800 15px Inter, Arial, sans-serif";
@@ -2205,42 +2213,42 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     const spells = row ? summonerSpellIds(row).filter(Boolean) : [];
     const build = row ? finalBuildItems(row).slice(0, 7) : [];
     const portraitSources = championPortraitSources(row, row?.champion);
-    ctx.fillStyle = right ? "rgba(46,8,31,.50)" : "rgba(3,31,42,.50)";
-    ctx.strokeStyle = right ? "rgba(244,114,182,.20)" : "rgba(103,232,249,.20)";
-    ctx.lineWidth = 1.5;
-    rounded(x, y, w, 72, 18);
+    ctx.fillStyle = right ? "rgba(50,10,38,.62)" : "rgba(3,34,47,.62)";
+    ctx.strokeStyle = right ? "rgba(244,114,182,.28)" : "rgba(103,232,249,.28)";
+    ctx.lineWidth = 2;
+    rounded(x, y, w, 84, 18);
     const rowGlow = ctx.createLinearGradient(x, y, x + w, y);
     rowGlow.addColorStop(0, right ? "rgba(244,114,182,.14)" : "rgba(34,211,238,.16)");
     rowGlow.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = rowGlow;
     ctx.beginPath();
-    ctx.roundRect(x + 2, y + 2, w - 4, 68, 16);
+    ctx.roundRect(x + 2, y + 2, w - 4, 80, 16);
     ctx.fill();
-    const portraitX = right ? x + w - 74 : x + 14;
-    drawCachedImage(portraitSources, portraitX, y + 9, 54, 54, 15);
+    const portraitX = x + 14;
+    drawCachedImage(portraitSources, portraitX, y + 11, 62, 62, 16);
     ctx.strokeStyle = "rgba(103,232,249,.26)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(portraitX, y + 9, 54, 54, 15);
+    ctx.roundRect(portraitX, y + 11, 62, 62, 16);
     ctx.stroke();
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 19px Inter, Arial, sans-serif";
-    ctx.textAlign = right ? "right" : "left";
-    ctx.fillText(short(rowName(row), 19), right ? x + w - 88 : x + 88, y + 25);
+    ctx.font = "900 20px Inter, Arial, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(short(rowName(row), 20), x + 92, y + 29);
     ctx.fillStyle = "#bffaff";
     ctx.font = "800 15px Inter, Arial, sans-serif";
-    ctx.fillText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 24), right ? x + w - 88 : x + 88, y + 48);
-    ctx.textAlign = "center";
+    ctx.fillText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 28), x + 92, y + 54);
+    ctx.textAlign = "left";
     ctx.fillStyle = "#ffffff";
-    ctx.font = "900 17px Inter, Arial, sans-serif";
-    ctx.fillText(kda, x + w / 2, y + 23);
-    ctx.fillStyle = "#d9e7f7";
+    ctx.font = "900 16px Inter, Arial, sans-serif";
+    ctx.fillText(`${kda} · ${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${creepScore(row)} CS`, x + 300, y + 30);
+    ctx.fillStyle = "#c7d4e5";
     ctx.font = "800 13px Inter, Arial, sans-serif";
-    ctx.fillText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${creepScore(row)} CS · ${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} DMG · ${row?.vision || 0} VS`, x + w / 2, y + 45);
-    const iconY = y + 49;
-    const iconStart = right ? x + 88 : x + w - 286;
-    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 25, iconY, 21, 21, 6));
-    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 58 + index * 25, iconY, 21, 21, 6));
+    ctx.fillText(`${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} D · ${row?.vision || 0} VS`, x + 300, y + 54);
+    const iconY = y + 53;
+    const iconStart = x + w - 258;
+    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 27, iconY, 23, 23, 6));
+    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 62 + index * 27, iconY, 23, 23, 6));
     ctx.textAlign = "left";
   };
   const drawObjectiveSide = (label, data, x, y, w, accent = "cyan") => {
@@ -2298,12 +2306,12 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   championCounts.forEach(([champion]) => championPortraitSources(champion, champion).forEach((url) => imageUrls.add(url)));
   await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
   ctx.fillStyle = "#020511";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  for (let x = 0; x < canvas.width; x += 48) {
+  ctx.fillRect(0, 0, W, H);
+  for (let x = 0; x < W; x += 48) {
     ctx.strokeStyle = "rgba(103,232,249,.035)";
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
+    ctx.lineTo(x, H);
     ctx.stroke();
   }
   const bg = ctx.createRadialGradient(280, 120, 80, 280, 120, 760);
@@ -2311,37 +2319,37 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   bg.addColorStop(0.48, "rgba(30,64,175,.10)");
   bg.addColorStop(1, "rgba(2,5,17,0)");
   ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const bg2 = ctx.createRadialGradient(1320, 120, 80, 1320, 120, 700);
+  ctx.fillRect(0, 0, W, H);
+  const bg2 = ctx.createRadialGradient(W - 280, 120, 80, W - 280, 120, 740);
   bg2.addColorStop(0, "rgba(217,70,239,.24)");
   bg2.addColorStop(1, "rgba(2,5,17,0)");
   ctx.fillStyle = bg2;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = "rgba(103,232,249,.28)";
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.roundRect(38, 34, canvas.width - 76, canvas.height - 76, 34);
+  ctx.roundRect(38, 34, W - 76, H - 76, 34);
   ctx.stroke();
   ctx.strokeStyle = "rgba(217,70,239,.22)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(54, 50, canvas.width - 108, canvas.height - 108, 24);
+  ctx.roundRect(54, 50, W - 108, H - 108, 24);
   ctx.stroke();
-  const headerGlow = ctx.createLinearGradient(58, 58, 1542, 164);
+  const headerGlow = ctx.createLinearGradient(72, 62, W - 72, 180);
   headerGlow.addColorStop(0, "rgba(34,211,238,.18)");
   headerGlow.addColorStop(0.5, "rgba(5,8,20,.68)");
   headerGlow.addColorStop(1, "rgba(217,70,239,.16)");
   ctx.fillStyle = headerGlow;
   ctx.strokeStyle = "rgba(103,232,249,.24)";
   ctx.lineWidth = 1.8;
-  rounded(72, 62, 1456, 108, 26);
-  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 94, 76, 78, 78);
-  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 184, 78, 226, 62);
+  rounded(72, 62, W - 144, 116, 26);
+  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 96, 78, 84, 84);
+  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 194, 80, 244, 66);
   ctx.strokeStyle = "rgba(103,232,249,.55)";
   ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.moveTo(80, 188);
-  ctx.lineTo(1520, 188);
+  ctx.lineTo(W - 80, 188);
   ctx.stroke();
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 44px Inter, Arial, sans-serif";
@@ -2349,7 +2357,7 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   ctx.fillStyle = "#c8f7ff";
   ctx.font = "800 20px Inter, Arial, sans-serif";
   ctx.fillText(short(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 66), 448, 137);
-  drawPill("NXT5 DATA EXPORT", 1248, 84, "rgba(217,70,239,.16)", "rgba(217,70,239,.35)", "#fff");
+  drawPill("NXT5 DATA EXPORT", W - 332, 86, "rgba(217,70,239,.16)", "rgba(217,70,239,.35)", "#fff");
   const metrics = [
     ["Games", String(games), `${wins}W - ${games - wins}L`, "cyan"],
     ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Sélection", wins >= games - wins ? "cyan" : "pink"],
@@ -2358,23 +2366,37 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ["DMG diff", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "Dégâts", damageDiff >= 0 ? "cyan" : "pink"],
     ["Vision diff", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "Vision", visionDiff >= 0 ? "cyan" : "pink"],
   ];
-  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 80 + (index % 3) * 500, 224 + Math.floor(index / 3) * 120, 450, accent));
+  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 90 + (index % 3) * 560, 226 + Math.floor(index / 3) * 118, 510, accent));
 
   if (singleGame && firstMatch) {
     const allyByRole = roleOrder.map((role) => rows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ALLY" });
     const enemyByRole = roleOrder.map((role) => enemyRows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ENEMY" });
-    drawObjectiveSide("Blue Side", objectiveTeamKeyForSide(firstMatch, "BLUE") === "ALLY" ? allyObjectives : enemyObjectives, 80, 492, 700, "cyan");
-    drawObjectiveSide("Red Side", objectiveTeamKeyForSide(firstMatch, "RED") === "ALLY" ? allyObjectives : enemyObjectives, 820, 492, 700, "pink");
-    drawCard(80, 672, 700, 418, "cyan");
-    drawCard(820, 672, 700, 418, "pink");
+    drawObjectiveSide("Blue Side", objectiveTeamKeyForSide(firstMatch, "BLUE") === "ALLY" ? allyObjectives : enemyObjectives, 90, 486, 780, "cyan");
+    drawObjectiveSide("Red Side", objectiveTeamKeyForSide(firstMatch, "RED") === "ALLY" ? allyObjectives : enemyObjectives, 930, 486, 780, "pink");
+    drawCard(90, 662, 780, 518, "cyan");
+    drawCard(930, 662, 780, 518, "pink");
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 30px Inter, Arial, sans-serif";
-    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 110, 722);
-    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 850, 722);
-    drawBadge(firstMatch.result || "Analyse", 110, 738, firstMatch.result === "Victoire" ? "green" : "pink");
-    drawBadge(firstMatch.duration || "--:--", 240, 738, "cyan");
-    allyByRole.forEach((row, index) => drawPlayerRow(row, 110, 778 + index * 75, 640, "left"));
-    enemyByRole.forEach((row, index) => drawPlayerRow(row, 850, 778 + index * 75, 640, "right"));
+    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 124, 720);
+    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 964, 720);
+    drawBadge(firstMatch.result || "Analyse", 124, 736, firstMatch.result === "Victoire" ? "green" : "pink");
+    drawBadge(firstMatch.duration || "--:--", 254, 736, "cyan");
+    drawBadge(firstMatch.patch || "Patch ?", 356, 736, "cyan");
+    const roleColumnX = 875;
+    roleOrder.forEach((role, index) => {
+      const y = 780 + index * 92;
+      ctx.fillStyle = "rgba(5,10,24,.72)";
+      ctx.strokeStyle = "rgba(255,255,255,.13)";
+      ctx.lineWidth = 1.5;
+      rounded(roleColumnX, y, 50, 84, 16);
+      ctx.fillStyle = "#dff8ff";
+      ctx.font = "900 13px Inter, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(role, roleColumnX + 25, y + 48);
+      ctx.textAlign = "left";
+    });
+    allyByRole.forEach((row, index) => drawPlayerRow(row, 124, 780 + index * 92, 720, "left"));
+    enemyByRole.forEach((row, index) => drawPlayerRow(row, 956, 780 + index * 92, 720, "right"));
   } else {
     const leaderCards = [
       ["Meilleur KDA", topKda ? `${rowName(topKda)} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
@@ -2401,11 +2423,11 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   }
   ctx.fillStyle = "#6ee7f6";
   ctx.font = "800 17px Inter, Arial, sans-serif";
-  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 80, canvas.height - 42);
+  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 80, H - 42);
   ctx.textAlign = "right";
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 24px Arial Black, Impact, Arial, sans-serif";
-  ctx.fillText("DRAFT · STRATEGIZE · WIN", 1520, canvas.height - 42);
+  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 80, H - 42);
   ctx.textAlign = "left";
   const link = document.createElement("a");
   link.download = filename || "nxt5-stats-export.png";
@@ -4669,6 +4691,8 @@ function TrendsPage({ data, selectedTeamId }) {
   if (!matches.length) return <div><PageHeader eyebrow="Tendances" title="Portrait stratégique" subtitle="Identité, patterns et signaux collectifs de la team." /><Surface glow><EmptyState icon={Activity} title="Aucune tendance disponible" text="Importe plusieurs games pour faire émerger les tendances globales." /></Surface></div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
+  const avgInt = (value) => Math.round(avg(value));
+  const signedAvg = (value) => `${value >= 0 ? "+" : ""}${formatPoints(avgInt(value))}`;
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
@@ -4713,17 +4737,17 @@ function TrendsPage({ data, selectedTeamId }) {
   const hasTag = (tag) => identity.tags.some(([key]) => key === tag);
   const forceItems = [
     winrate >= 55 && `Conversion positive: ${wins} victoires pour ${losses} défaites.`,
-    goldDiff > 0 && `Économie moyenne favorable: ${formatGoldDiff(avg(goldDiff))} par game.`,
-    damageDiff > 0 && `Présence fight correcte: ${formatPoints(avg(damageDiff))} dégâts diff par game.`,
-    visionDiff > 0 && `Vision globalement au-dessus: +${formatPoints(avg(visionDiff))} par game.`,
+    goldDiff > 0 && `Économie moyenne favorable: ${formatGoldDiff(avgInt(goldDiff))} par game.`,
+    damageDiff > 0 && `Présence fight favorable: ${signedAvg(damageDiff)} dégâts par game.`,
+    visionDiff > 0 && `Vision au-dessus: ${signedAvg(visionDiff)} score vision par game.`,
     objectiveTotals.dragons / Math.max(1, matches.length) >= 2 && "Plan drakes régulier, bon indicateur de contrôle map.",
     focusRole && `Ressources surtout orientées ${roleLabel(focusRole.role)}.`
   ].filter(Boolean).slice(0, 5);
   const riskItems = [
     winrate < 50 && `Bloc négatif: ${wins}W - ${losses}L, attention à la conversion.`,
-    goldDiff < 0 && `Retard économie moyen: ${formatGoldDiff(avg(goldDiff))} par game.`,
-    visionDiff < 0 && `Vision sous pression: ${formatPoints(avg(visionDiff))} de retard par game.`,
-    deathsDiff > 0 && `Trop de morts concédées: +${formatPoints(avg(deathsDiff))} morts par game.`,
+    goldDiff < 0 && `Retard économie moyen: ${formatGoldDiff(avgInt(goldDiff))} par game.`,
+    visionDiff < 0 && `Vision sous pression: ${signedAvg(visionDiff)} score vision par game.`,
+    deathsDiff > 0 && `Exposition élevée: ${signedAvg(deathsDiff)} morts par game.`,
     objectiveTotals.barons < Math.max(1, Math.floor(matches.length / 2)) && "Peu de Nashors sécurisés sur le volume importé.",
     !hasTag("engage") && "Drafts parfois pauvres en engage claire.",
     !hasTag("frontline") && "Frontline peu présente dans les picks récurrents."
@@ -4750,18 +4774,25 @@ function TrendsPage({ data, selectedTeamId }) {
     objectiveTotals.dragons / Math.max(1, matches.length) < 2 && "Formaliser un plan drake 1/2 avec reset clair.",
     "Documenter les deux patterns de victoire à reproduire en scrim."
   ].filter(Boolean).slice(0, 5);
-  const SignalList = ({ title, icon: Icon, items, tone = "cyan" }) => <Surface className="p-5"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045]"><Icon className="h-5 w-5 text-cyan-100" /></span><h3 className="text-xl font-black text-white">{title}</h3></div><div className="mt-4 space-y-2">{items.length ? items.map((item) => <p key={item} className="rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2 text-sm font-semibold leading-6 text-slate-200">{item}</p>) : <Badge tone={tone}>Pas assez de volume</Badge>}</div></Surface>;
+  const trendToneClass = {
+    cyan: "from-cyan-400/14 via-white/[0.035] to-transparent text-cyan-100",
+    green: "from-emerald-400/14 via-white/[0.035] to-transparent text-emerald-100",
+    red: "from-rose-400/14 via-white/[0.035] to-transparent text-rose-100",
+    purple: "from-fuchsia-400/14 via-white/[0.035] to-transparent text-fuchsia-100",
+    orange: "from-amber-400/14 via-white/[0.035] to-transparent text-amber-100",
+  };
+  const TrendPanel = ({ title, icon: Icon, items, tone = "cyan" }) => <section className="rounded-[1.35rem] border border-white/10 bg-white/[0.028] p-5 shadow-[0_0_28px_rgba(34,211,238,.055)] backdrop-blur-xl"><div className="flex items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br", trendToneClass[tone] || trendToneClass.cyan)}><Icon className="h-5 w-5" /></span><h3 className="text-xl font-black text-white">{title}</h3></div><div className="mt-4 divide-y divide-white/8">{items.length ? items.map((item, index) => <div key={item} className="flex gap-3 py-3 first:pt-0 last:pb-0"><span className={cx("mt-2 h-2 w-2 shrink-0 rounded-full shadow-[0_0_12px_currentColor]", tone === "red" ? "bg-rose-300 text-rose-300" : tone === "green" ? "bg-emerald-300 text-emerald-300" : tone === "purple" ? "bg-fuchsia-300 text-fuchsia-300" : tone === "orange" ? "bg-amber-300 text-amber-300" : "bg-cyan-300 text-cyan-300")} /><p className="min-w-0 text-sm font-semibold leading-6 text-slate-200">{index === 0 ? <span className="font-black text-white">{item}</span> : item}</p></div>) : <p className="py-2 text-sm font-semibold text-slate-300">Pas assez de volume.</p>}</div></section>;
 
   return <div className="min-w-0 overflow-hidden">
     <PageHeader eyebrow="Tendances" title="Portrait stratégique" subtitle="Style, forces, risques, timings et besoins draft à partir des games importées." />
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Trophy} label="Winrate global" value={`${winrate}%`} hint={`${wins}W - ${losses}L`} tone={winrate >= 50 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={formatGoldDiff(avg(goldDiff))} hint="Moyenne par game" tone={diffTone(goldDiff)} /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(avg(damageDiff))} hint="Moyenne par game" tone={diffTone(damageDiff)} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(avg(visionDiff))} hint="Moyenne par game" tone={diffTone(visionDiff)} /></div>
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Trophy} label="Winrate global" value={`${winrate}%`} hint={`${wins}W - ${losses}L`} tone={winrate >= 50 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={formatGoldDiff(avgInt(goldDiff))} hint="Moyenne par game" tone={diffTone(goldDiff)} /><MetricCard compact icon={Flame} label="Dégâts diff" value={signedAvg(damageDiff)} hint="Moyenne par game" tone={diffTone(damageDiff)} /><MetricCard compact icon={Eye} label="Vision diff" value={signedAvg(visionDiff)} hint="Moyenne par game" tone={diffTone(visionDiff)} /></div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,.92fr)]">
-      <Surface glow className="p-5 md:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-3 text-3xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-5 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><RoleIcon role={focusRole.role} className="h-8 w-8" /><div><p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-100">Focus ressources</p><p className="font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avg(focusRole.gold))} gold moyen · {formatPoints(avg(focusRole.damage))} dégâts moyens</p></div></div>}</Surface>
-      <Surface className="p-5"><h3 className="text-xl font-black text-white">Objectifs et sides</h3><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5 xl:grid-cols-2 2xl:grid-cols-5">{[["Drakes", objectiveTotals.dragons, "dragon"], ["Grubs", objectiveTotals.grubs, "grub"], ["Herald", objectiveTotals.heralds, "herald"], ["Nashor", objectiveTotals.barons, "baron"], ["Tours", objectiveTotals.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="rounded-2xl border border-white/10 bg-black/18 p-3 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-8 w-8" /><p className="mt-2 text-xl font-black text-white">{value}</p><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p></div>)}</div><div className="mt-4 grid gap-2 sm:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex items-center justify-between gap-3"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="font-black text-white">{stat.wr}% WR</span></div><p className="mt-1 text-xs font-semibold text-slate-300">{stat.wins}W - {stat.games - stat.wins}L · {stat.games} games</p></div>)}</div></Surface>
+      <Surface glow className="p-5 md:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-3 text-3xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-5 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4"><RoleIcon role={focusRole.role} className="h-8 w-8" /><div><p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-100">Focus ressources</p><p className="font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} gold moyen · {formatPoints(avgInt(focusRole.damage))} dégâts moyens</p></div></div>}</Surface>
+      <Surface className="p-5"><h3 className="text-xl font-black text-white">Objectifs et sides</h3><div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5 xl:grid-cols-2 2xl:grid-cols-5">{[["Drakes", objectiveTotals.dragons, "dragon"], ["Grubs", objectiveTotals.grubs, "grub"], ["Herald", objectiveTotals.heralds, "herald"], ["Nashor", objectiveTotals.barons, "baron"], ["Tours", objectiveTotals.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="rounded-2xl bg-white/[0.035] p-3 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-8 w-8" /><p className="mt-2 text-xl font-black text-white">{value}</p><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p></div>)}</div><div className="mt-4 grid gap-2 sm:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className="rounded-2xl bg-white/[0.035] p-3"><div className="flex items-center justify-between gap-3"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="font-black text-white">{stat.wr}% WR</span></div><p className="mt-1 text-xs font-semibold text-slate-300">{stat.wins}W - {stat.games - stat.wins}L · {stat.games} games</p></div>)}</div></Surface>
     </div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-2"><SignalList title="Forces récurrentes" icon={ShieldCheck} items={forceItems} tone="green" /><SignalList title="Faiblesses à surveiller" icon={AlertTriangle} items={riskItems} tone="red" /></div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-3"><SignalList title="Timings et spikes" icon={Gauge} items={timingItems} /><SignalList title="Patterns de victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><SignalList title="Patterns de défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /></div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-[.9fr_1.1fr]"><SignalList title="Priorités draft" icon={Target} items={draftNeeds} tone="purple" /><SignalList title="Axes de travail" icon={Clipboard} items={recommendations} tone="orange" /></div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-2"><TrendPanel title="Forces récurrentes" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Faiblesses à surveiller" icon={AlertTriangle} items={riskItems} tone="red" /></div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-3"><TrendPanel title="Timings et spikes" icon={Gauge} items={timingItems} /><TrendPanel title="Patterns de victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Patterns de défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /></div>
+    <div className="mt-5 grid gap-5 xl:grid-cols-[.9fr_1.1fr]"><TrendPanel title="Priorités draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Axes de travail" icon={Clipboard} items={recommendations} tone="orange" /></div>
     <Surface className="mt-5 p-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-xl font-black text-white">Champions récurrents</h3><p className="mt-1 text-sm font-semibold text-slate-300">Volume et WR des picks les plus vus dans les imports.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 shrink-0 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-xs font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
   </div>;
 }
