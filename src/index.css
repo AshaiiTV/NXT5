@@ -147,18 +147,18 @@ svg {
 }
 
 .nxt5-panel {
-  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
 }
 
 .nxt5-premium-panel {
   background:
-    linear-gradient(135deg, rgba(10, 20, 44, 0.88), rgba(6, 10, 24, 0.78) 42%, rgba(24, 7, 38, 0.66)),
-    radial-gradient(circle at 12% 8%, rgba(0, 216, 255, 0.095), transparent 34%),
-    radial-gradient(circle at 88% 12%, rgba(217, 70, 239, 0.08), transparent 34%);
+    linear-gradient(135deg, rgba(8, 17, 36, 0.9), rgba(4, 8, 20, 0.8) 46%, rgba(20, 7, 34, 0.68)),
+    radial-gradient(circle at 12% 8%, rgba(0, 216, 255, 0.07), transparent 34%),
+    radial-gradient(circle at 88% 12%, rgba(217, 70, 239, 0.06), transparent 34%);
   box-shadow:
-    0 18px 52px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -1px 0 rgba(0, 216, 255, 0.08);
+    0 14px 42px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(0, 216, 255, 0.05);
 }
 
 .nxt5-premium-panel::before {
@@ -170,7 +170,7 @@ svg {
   background:
     linear-gradient(112deg, transparent 0 20%, rgba(0, 216, 255, 0.10) 21%, transparent 22% 68%, rgba(217, 70, 239, 0.09) 69%, transparent 70%),
     repeating-linear-gradient(90deg, transparent 0 64px, rgba(255, 255, 255, 0.028) 65px, transparent 66px);
-  opacity: 0.46;
+  opacity: 0.30;
 }
 
 .nxt5-premium-panel::after {
@@ -187,20 +187,19 @@ svg {
 }
 
 .nxt5-premium-panel:hover::after {
-  opacity: 0.5;
+  opacity: 0.32;
   animation: nxt5-panel-sweep 1.35s ease-out;
 }
 
 .nxt5-panel .nxt5-panel {
-  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  clip-path: none;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
-    rgba(2, 7, 18, 0.18);
-  border-color: rgba(148, 238, 255, 0.105) !important;
+    linear-gradient(135deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012)),
+    rgba(2, 7, 18, 0.12);
+  border-color: rgba(214, 246, 255, 0.08) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.055),
-    inset 0 -1px 0 rgba(34, 211, 238, 0.035) !important;
-  backdrop-filter: blur(10px);
+    inset 0 1px 0 rgba(255, 255, 255, 0.034) !important;
+  backdrop-filter: blur(8px);
 }
 
 .nxt5-panel .nxt5-premium-panel {
@@ -230,16 +229,63 @@ svg {
 }
 
 .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="border"]:not(.nxt5-panel):not([class*="nxt5-cyber-button"]) {
-  border-color: rgba(214, 246, 255, 0.105) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  border-color: rgba(214, 246, 255, 0.075) !important;
+  box-shadow: none !important;
 }
 
 .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="bg-white"] {
-  background-color: rgba(255, 255, 255, 0.026) !important;
+  background-color: rgba(255, 255, 255, 0.018) !important;
 }
 
 .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="bg-black"] {
-  background-color: rgba(0, 0, 0, 0.16) !important;
+  background-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+.nxt5-panel .nxt5-hud-row,
+.nxt5-hud-row {
+  border: 0 !important;
+  border-top: 1px solid rgba(214, 246, 255, 0.09) !important;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.045), rgba(255, 255, 255, 0.012), rgba(217, 70, 239, 0.035)) !important;
+  box-shadow: none !important;
+}
+
+.nxt5-panel .nxt5-flat-block,
+.nxt5-flat-block {
+  border-color: rgba(214, 246, 255, 0.055) !important;
+  background: rgba(255, 255, 255, 0.014) !important;
+  box-shadow: none !important;
+}
+
+.nxt5-data-dense .nxt5-panel {
+  padding: 0.9rem;
+}
+
+.nxt5-data-dense :where(.p-5, .p-6) {
+  padding: 0.9rem !important;
+}
+
+.nxt5-data-dense :where(.gap-5) {
+  gap: 0.85rem !important;
+}
+
+.nxt5-data-dense :where(.mt-5, .mt-6) {
+  margin-top: 0.9rem !important;
+}
+
+.nxt5-data-dense :where(.rounded-2xl, .rounded-\[1\.35rem\], .rounded-\[1\.45rem\]) {
+  border-radius: 1rem;
+}
+
+.nxt5-data-dense :where(.shadow-\[0_0_24px_rgba\(34\,211\,238\,\.10\)\], .shadow-\[0_0_26px_rgba\(34\,211\,238\,\.14\)\], .shadow-\[0_0_34px_rgba\(34\,211\,238\,\.08\)\]) {
+  box-shadow: none !important;
+}
+
+.nxt5-data-dense :where(button, .nxt5-panel, section, article) {
+  scrollbar-gutter: stable;
+}
+
+.nxt5-data-dense :where(.text-3xl, .text-4xl, .text-5xl) {
+  letter-spacing: 0;
 }
 
 .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="ring-white"] {
@@ -347,7 +393,7 @@ svg {
 
 /* NXT5 favors high-contrast secondary text: readable silver over dim grey. */
 .text-slate-300 {
-  color: #f5f9ff;
+  color: #f3f8ff;
 }
 
 .text-slate-400 {
@@ -355,13 +401,13 @@ svg {
 }
 
 .text-slate-500 {
-  color: #e3edfb;
+  color: #e8f1ff;
 }
 
 .text-slate-600,
 .text-slate-650,
 .text-slate-700 {
-  color: #d4e1f2;
+  color: #dbe8f8;
 }
 
 .text-cyan-100\/55,
@@ -394,8 +440,12 @@ svg {
 
   .nxt5-premium-panel {
     box-shadow:
-      0 16px 42px rgba(0, 0, 0, 0.36),
+      0 10px 28px rgba(0, 0, 0, 0.32),
       inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  }
+
+  .nxt5-premium-panel::before {
+    opacity: 0.18;
   }
 
   .nxt5-premium-panel:hover::after,
@@ -414,6 +464,27 @@ svg {
 
   .nxt5-page-header::before {
     left: -0.35rem;
+  }
+
+  .nxt5-page-header {
+    margin-bottom: 1.1rem;
+  }
+
+  .nxt5-page-header h2 {
+    font-size: clamp(1.75rem, 9vw, 2.55rem);
+    line-height: 1.08;
+  }
+
+  .nxt5-page-header p {
+    line-height: 1.55;
+  }
+
+  .nxt5-data-dense .nxt5-panel {
+    padding: 0.75rem;
+  }
+
+  .nxt5-data-dense :where(.grid) {
+    gap: 0.7rem;
   }
 
   input,
