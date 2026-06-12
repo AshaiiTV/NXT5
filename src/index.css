@@ -257,7 +257,15 @@ svg {
 }
 
 .nxt5-data-dense .nxt5-panel {
-  padding: 0.9rem;
+  padding: 0.85rem;
+  clip-path: none;
+  border-radius: 1.05rem;
+  background:
+    linear-gradient(135deg, rgba(7, 14, 30, 0.82), rgba(3, 7, 18, 0.74) 58%, rgba(22, 8, 35, 0.58)),
+    rgba(2, 6, 17, 0.66);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 10px 28px rgba(0, 0, 0, 0.22);
 }
 
 .nxt5-data-dense :where(.p-5, .p-6) {
@@ -273,7 +281,7 @@ svg {
 }
 
 .nxt5-data-dense :where(.rounded-2xl, .rounded-\[1\.35rem\], .rounded-\[1\.45rem\]) {
-  border-radius: 1rem;
+  border-radius: 0.9rem;
 }
 
 .nxt5-data-dense :where(.shadow-\[0_0_24px_rgba\(34\,211\,238\,\.10\)\], .shadow-\[0_0_26px_rgba\(34\,211\,238\,\.14\)\], .shadow-\[0_0_34px_rgba\(34\,211\,238\,\.08\)\]) {
@@ -286,6 +294,46 @@ svg {
 
 .nxt5-data-dense :where(.text-3xl, .text-4xl, .text-5xl) {
   letter-spacing: 0;
+}
+
+.nxt5-data-dense .nxt5-page-header {
+  margin-bottom: 1.25rem;
+}
+
+.nxt5-data-dense .nxt5-page-header::before {
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.26);
+}
+
+.nxt5-data-dense .nxt5-page-header h2 {
+  font-size: clamp(2rem, 3.25vw, 3.05rem);
+  line-height: 1.06;
+}
+
+.nxt5-data-dense .nxt5-page-header p {
+  max-width: 58rem;
+}
+
+.nxt5-data-dense .nxt5-premium-panel::before {
+  opacity: 0.16;
+}
+
+.nxt5-data-dense .nxt5-premium-panel::after {
+  display: none;
+}
+
+.nxt5-data-dense .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="border"]:not(.nxt5-panel):not([class*="nxt5-cyber-button"]) {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.01)) !important;
+  border-color: rgba(214, 246, 255, 0.07) !important;
+}
+
+.nxt5-data-dense .nxt5-panel .nxt5-flat-block,
+.nxt5-data-dense .nxt5-flat-block {
+  border-left: 2px solid rgba(103, 232, 249, 0.22) !important;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.055), rgba(255, 255, 255, 0.012), rgba(217, 70, 239, 0.034)) !important;
+}
+
+.nxt5-data-dense :where(.max-h-80, .max-h-72, .max-h-64) {
+  scrollbar-width: thin;
 }
 
 .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="ring-white"] {
