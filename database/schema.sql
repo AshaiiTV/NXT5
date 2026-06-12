@@ -150,6 +150,19 @@ create table if not exists matches (
   unique(team_id, game_id)
 );
 
+create table if not exists match_categories (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  created_by uuid references users(id) on delete set null,
+  name text not null,
+  color text not null default 'cyan',
+  is_default boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null;
+
 create table if not exists match_participants (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references matches(id) on delete cascade,
@@ -295,6 +308,9 @@ create index if not exists idx_team_members_user on team_members(user_id);
 create index if not exists idx_team_members_team on team_members(team_id);
 create index if not exists idx_players_team on players(team_id);
 create index if not exists idx_matches_team on matches(team_id, created_at desc);
+create unique index if not exists idx_match_categories_team_name on match_categories(team_id, lower(name));
+create index if not exists idx_match_categories_team on match_categories(team_id, created_at asc);
+create index if not exists idx_matches_category on matches(category_id);
 create index if not exists idx_participants_match on match_participants(match_id);
 create index if not exists idx_match_raw_archives_team on match_raw_archives(team_id, created_at desc);
 create index if not exists idx_match_archives_team on match_archives(team_id, created_at desc);
@@ -309,6 +325,7 @@ create index if not exists idx_reports_team on reports(team_id, created_at desc)
 alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb;
 alter table reports add column if not exists created_by uuid references users(id) on delete set null;
 alter table matches add column if not exists created_by uuid references users(id) on delete set null;
+alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null;
 alter table reports add column if not exists updated_at timestamptz not null default now();
 alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb;
 alter table player_availability add column if not exists week_start date not null default date_trunc('week', current_date)::date;

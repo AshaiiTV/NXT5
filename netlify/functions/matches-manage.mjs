@@ -1,6 +1,7 @@
 import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
+import { ensureMatchCategoriesSchema } from './_lib/match-categories.mjs';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().slice(0, max);
@@ -9,6 +10,7 @@ function cleanText(value, max = 240) {
 async function ensureMatchManagementColumns() {
   await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
+  await ensureMatchCategoriesSchema();
 }
 
 function removeIdFromJsonArray(value, id) {
@@ -27,6 +29,7 @@ export default async function handler(request, context) {
     const matchId = cleanText(body.matchId, 80);
     const label = cleanText(body.label, 140);
     const opponent = cleanText(body.opponent, 140);
+    const categoryId = cleanText(body.categoryId, 80);
 
     if (!teamId || !matchId) throw Object.assign(new Error('Team et game requises.'), { status: 400 });
 
@@ -117,11 +120,23 @@ export default async function handler(request, context) {
       return json({ ok: true });
     }
 
-    if (!label && !opponent) throw Object.assign(new Error('Nom ou adversaire requis.'), { status: 400 });
+    if (categoryId) {
+      const category = await sql`
+        select id
+        from match_categories
+        where id = ${categoryId}
+          and team_id = ${teamId}
+        limit 1
+      `;
+      if (!category[0]) throw Object.assign(new Error('Catégorie introuvable pour cette team.'), { status: 404 });
+    }
+
+    if (!label && !opponent && categoryId === String(match.category_id || '')) throw Object.assign(new Error('Nom, adversaire ou catégorie requis.'), { status: 400 });
     const displayName = opponent || label || match.opponent || match.game_id;
     const rows = await sql`
       update matches
       set opponent = ${displayName},
+          category_id = ${categoryId || null},
           raw = jsonb_set(coalesce(raw, '{}'::jsonb), '{nxt5Label}', to_jsonb(${label || displayName}::text), true)
       where id = ${matchId}
         and team_id = ${teamId}
@@ -129,7 +144,7 @@ export default async function handler(request, context) {
     `;
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'matches.update', 'match', ${matchId}, ${JSON.stringify({ teamId, label, opponent: displayName })}::jsonb)
+      values (${user.id}, 'matches.update', 'match', ${matchId}, ${JSON.stringify({ teamId, label, opponent: displayName, categoryId: categoryId || null })}::jsonb)
     `;
 
     return json({ match: rows[0] });

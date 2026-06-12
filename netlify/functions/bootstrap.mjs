@@ -1,6 +1,7 @@
 import { sql } from './_lib/db.mjs';
 import { json, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
+import { ensureMatchCategoriesSchema, seedDefaultMatchCategories } from './_lib/match-categories.mjs';
 
 function buildDashboard(matches, improvements) {
   const recent = matches.slice(0, 10);
@@ -170,9 +171,11 @@ export default async function handler(request, context) {
     const teamIds = teams.map((t) => t.id);
 
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], tournamentCodes: [], inviteCodes: [], availability: [], profileCoachingNotes: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], tournamentCodes: [], inviteCodes: [], availability: [], profileCoachingNotes: [] });
     }
     await ensureMatchImporterColumn();
+    await ensureMatchCategoriesSchema();
+    await seedDefaultMatchCategories(teamIds, user.id);
     await ensureChampionPoolSchema();
     await ensureRoleConstraints();
 
@@ -185,6 +188,7 @@ export default async function handler(request, context) {
       compositions,
       reports,
       matchArchives,
+      matchCategories,
       tournamentCodes,
       inviteCodes,
       availability,
@@ -228,6 +232,7 @@ export default async function handler(request, context) {
         limit 50
       `,
       loadMatchArchives(teamIds),
+      sql`select * from match_categories where team_id = any(${teamIds}) order by is_default desc, name asc`,
       loadTournamentCodes(teamIds),
       loadInviteCodes(teamIds),
       loadAvailability(teamIds),
@@ -244,7 +249,7 @@ export default async function handler(request, context) {
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, tournamentCodes, inviteCodes, availability, profileCoachingNotes });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, tournamentCodes, inviteCodes, availability, profileCoachingNotes });
   } catch (err) {
     return handleError(err);
   }

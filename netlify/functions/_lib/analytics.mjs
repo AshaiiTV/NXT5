@@ -1,4 +1,5 @@
 import { sql } from './db.mjs';
+import { ensureMatchCategoriesSchema } from './match-categories.mjs';
 
 const ROLE_ORDER = { TOP: 1, JUNGLE: 2, JGL: 2, MIDDLE: 3, MID: 3, BOTTOM: 4, ADC: 4, UTILITY: 5, SUP: 5, SUPPORT: 5 };
 
@@ -381,6 +382,7 @@ async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'impor
 }
 
 async function ensureMatchImporterColumn() {
+  await ensureMatchCategoriesSchema();
   await sql`alter table matches add column if not exists region text not null default 'EUROPE'`;
   await sql`alter table matches add column if not exists opponent text`;
   await sql`alter table matches add column if not exists result text`;
