@@ -3272,6 +3272,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const [matchEditForm, setMatchEditForm] = useState({ label: "", opponent: "" });
   const [managingMatchId, setManagingMatchId] = useState("");
   const [categoryForm, setCategoryForm] = useState({ name: "", color: "cyan" });
+  const [categoryCreatorOpen, setCategoryCreatorOpen] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
   const [roleEditorMatchId, setRoleEditorMatchId] = useState("");
   const [roleEditForm, setRoleEditForm] = useState({});
@@ -3473,6 +3474,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     try {
       await apiFetch("match-categories-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, name: categoryForm.name, color: categoryForm.color }) });
       setCategoryForm({ name: "", color: "cyan" });
+      setCategoryCreatorOpen(false);
       await refreshAll();
       pushToast({ type: "green", title: "Catégorie créée", text: "Tu peux maintenant classer tes games dedans." });
     } catch (err) {
@@ -3647,14 +3649,16 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
               <div className="flex flex-wrap gap-2">{matchCategories.length ? matchCategories.map((category) => <span key={category.id} className={cx("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em]", tone(matchCategoryTone(category)))}>{category.name}{!category.is_default && canManageCategories && <button type="button" onClick={() => deleteMatchCategory(category)} disabled={savingCategory} className="rounded-full p-0.5 opacity-70 transition hover:bg-white/10 hover:opacity-100" aria-label={`Supprimer ${category.name}`}><X className="h-3 w-3" /></button>}</span>) : <Badge tone="slate">Catégories en cours de création</Badge>}</div>
               <p className="mt-2 text-sm font-semibold text-slate-300">Les catégories servent à comparer les performances selon le contexte : scrim, tournoi, bootcamp, ligue, test draft...</p>
             </div>
-            {canManageCategories && <form onSubmit={createMatchCategory} className="grid min-w-0 gap-2 sm:grid-cols-[minmax(180px,1fr)_150px_auto]">
-              <TextInput label="Catégorie custom" value={categoryForm.name} onChange={(name) => setCategoryForm((current) => ({ ...current, name }))} placeholder="Ligue, Bootcamp..." icon={Plus} />
-              <SelectInput label="Couleur" value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>
-                {["cyan", "purple", "green", "yellow", "pink", "red", "blue", "slate"].map((color) => <option key={color} value={color}>{color}</option>)}
-              </SelectInput>
-              <div className="flex items-end"><Button type="submit" icon={savingCategory ? Loader2 : Plus} disabled={savingCategory || !categoryForm.name.trim()}>Créer</Button></div>
-            </form>}
+            {canManageCategories && <Button type="button" icon={categoryCreatorOpen ? X : Plus} variant={categoryCreatorOpen ? "ghost" : "primary"} onClick={() => { setCategoryCreatorOpen((open) => !open); if (categoryCreatorOpen) setCategoryForm({ name: "", color: "cyan" }); }}>{categoryCreatorOpen ? "Fermer" : "Ajouter une catégorie"}</Button>}
           </div>
+          {canManageCategories && categoryCreatorOpen && <form onSubmit={createMatchCategory} className="mt-4 grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-black/24 p-3 sm:grid-cols-[minmax(180px,1fr)_150px_auto_auto]">
+            <TextInput label="Catégorie custom" value={categoryForm.name} onChange={(name) => setCategoryForm((current) => ({ ...current, name }))} placeholder="Ligue, Bootcamp..." icon={Plus} />
+            <SelectInput label="Couleur" value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>
+              {["cyan", "purple", "green", "yellow", "pink", "red", "blue", "slate"].map((color) => <option key={color} value={color}>{color}</option>)}
+            </SelectInput>
+            <div className="flex items-end"><Button type="submit" icon={savingCategory ? Loader2 : Plus} disabled={savingCategory || !categoryForm.name.trim()}>Créer</Button></div>
+            <div className="flex items-end"><Button type="button" variant="ghost" icon={X} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }}>Annuler</Button></div>
+          </form>}
         </div>
         <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onSaveRoles={() => saveMatchRoles(match)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
       </Surface>
