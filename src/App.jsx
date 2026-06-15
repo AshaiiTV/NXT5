@@ -1387,6 +1387,18 @@ function tagLabel(tag) {
   }[String(tag || "")] || String(tag || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function championStyleIcon(tag) {
+  if (["engage", "dive", "gank", "flank"].includes(tag)) return Target;
+  if (["assassin", "burst", "snowball", "reset"].includes(tag)) return Flame;
+  if (["frontline", "peel", "safe", "anti-dive", "self-peel"].includes(tag)) return Shield;
+  if (["vision", "control", "utility", "cover"].includes(tag)) return Eye;
+  if (["objective", "tempo", "roam", "skirmish", "duel"].includes(tag)) return Gauge;
+  if (["scaling", "farm", "dps", "front-to-back"].includes(tag)) return Sparkles;
+  if (["side", "split", "siege", "poke", "lane", "waveclear"].includes(tag)) return Swords;
+  if (["disengage", "lockdown", "disrupt", "exhaust"].includes(tag)) return AlertTriangle;
+  return Crown;
+}
+
 const CHAMPION_TAG_DEFINITIONS = [
   ["engage", "Ouvre les combats avec une initiation claire."],
   ["dive", "Entre rapidement sur les carries ou la backline adverse."],
@@ -6080,12 +6092,25 @@ function compositionCounterRecommendations(slots, rows, limitPerRole = 3) {
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
   const tier = championTierByStatus(status);
+  const styleTags = championStyleTags(row.champion).slice(0, 3);
   return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200", active ? "border-cyan-200/70 bg-cyan-400/14 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:shadow-[0_0_22px_rgba(34,211,238,.12)]")}>
     <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full object-cover" />
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+    <ChampionStylePictos tags={styleTags} className="absolute left-1.5 top-1.5 z-20" />
     <ChampionTierMark tier={tier} active className="absolute right-1.5 top-1.5 h-7 w-7 rounded-xl border-white/28 bg-black/55 shadow-[0_0_16px_rgba(255,255,255,.10)] backdrop-blur-md transition group-hover:scale-105 [&_svg]:h-4 [&_svg]:w-4" />
     <p className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[0.62rem] font-black text-white drop-shadow">{championDisplayName(row.champion)}</p>
   </button>;
+}
+
+function ChampionStylePictos({ tags = [], className = "" }) {
+  return <span className={cx("flex max-w-[calc(100%-2.75rem)] flex-wrap gap-1", className)}>
+    {tags.map((tag) => {
+      const Icon = championStyleIcon(tag);
+      return <span key={tag} title={tagLabel(tag)} aria-label={tagLabel(tag)} className={cx("inline-flex h-6 w-6 items-center justify-center rounded-lg border shadow-[0_0_12px_rgba(0,0,0,.22)] backdrop-blur-md", tone(championStyleTone(tag)))}>
+        <Icon className="h-3.5 w-3.5" />
+      </span>;
+    })}
+  </span>;
 }
 
 function CompositionSlot({ role, slot, players, rows, onChange }) {
