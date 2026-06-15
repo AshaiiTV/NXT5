@@ -61,6 +61,18 @@ export default async function handler(request, context) {
     if (action === 'delete') {
       if (category.is_default) throw Object.assign(new Error('Scrim et Tournoi sont des catégories de base et ne peuvent pas être supprimées.'), { status: 400 });
       await sql`update matches set category_id = null where team_id = ${teamId} and category_id = ${categoryId}`;
+      const matches = await sql`select id, category_ids from matches where team_id = ${teamId}`;
+      for (const match of matches) {
+        const nextCategoryIds = (Array.isArray(match.category_ids) ? match.category_ids : []).filter((id) => String(id) !== String(categoryId));
+        if (nextCategoryIds.length !== (Array.isArray(match.category_ids) ? match.category_ids.length : 0)) {
+          await sql`
+            update matches
+            set category_ids = ${JSON.stringify(nextCategoryIds)}::jsonb,
+                category_id = ${nextCategoryIds[0] || null}
+            where id = ${match.id}
+          `;
+        }
+      }
       await sql`delete from match_categories where id = ${categoryId} and team_id = ${teamId}`;
       await sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

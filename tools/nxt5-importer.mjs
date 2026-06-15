@@ -76,10 +76,8 @@ function html(error = '') {
       <input name="gameId" placeholder="EUW1_7123456789" required />
       <label>Clé Riot API</label>
       <input name="apiKey" placeholder="RGAPI-..." required />
-      <label>Nom de l'import</label>
-      <input name="label" placeholder="Scrim, tournoi, round..." />
-      <label>Adversaire</label>
-      <input name="opponent" placeholder="Equipe adverse" />
+      <label>Nom de la game</label>
+      <input name="label" placeholder="Game 1 vs BK, finale LB..." />
       <button type="submit">Générer le JSON NXT5</button>
     </form>
     ${error ? `<div class="error">${error}</div>` : ''}
@@ -95,7 +93,6 @@ async function handleExport(req, res) {
   const gameId = String(params.get('gameId') || '').trim().toUpperCase();
   const apiKey = String(params.get('apiKey') || '').trim();
   const label = String(params.get('label') || '').trim();
-  const opponent = String(params.get('opponent') || '').trim();
   if (!/^([A-Z0-9]+)_\d+$/.test(gameId)) return send(res, 400, html('Game ID invalide. Format attendu : EUW1_7123456789.'));
   if (!apiKey.startsWith('RGAPI-')) return send(res, 400, html('Clé Riot invalide. Elle doit commencer par RGAPI-.'));
 
@@ -113,7 +110,6 @@ async function handleExport(req, res) {
     version: 1,
     gameId,
     label,
-    opponent,
     exportedAt: new Date().toISOString(),
     match
   };

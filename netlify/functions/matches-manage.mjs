@@ -18,6 +18,10 @@ function removeIdFromJsonArray(value, id) {
   return items.filter((item) => String(item) !== String(id));
 }
 
+function cleanIdList(value) {
+  return [...new Set((Array.isArray(value) ? value : [value]).map((id) => cleanText(id, 80)).filter(Boolean))];
+}
+
 export default async function handler(request, context) {
   try {
     assertMethod(request, 'POST');
@@ -28,8 +32,7 @@ export default async function handler(request, context) {
     const teamId = cleanText(body.teamId, 80);
     const matchId = cleanText(body.matchId, 80);
     const label = cleanText(body.label, 140);
-    const opponent = cleanText(body.opponent, 140);
-    const categoryId = cleanText(body.categoryId, 80);
+    const categoryIds = cleanIdList(body.categoryIds ?? body.categoryId ?? []);
 
     if (!teamId || !matchId) throw Object.assign(new Error('Team et game requises.'), { status: 400 });
 
@@ -120,31 +123,35 @@ export default async function handler(request, context) {
       return json({ ok: true });
     }
 
-    if (categoryId) {
-      const category = await sql`
+    const validCategoryIds = [];
+    if (categoryIds.length) {
+      const categories = await sql`
         select id
         from match_categories
-        where id = ${categoryId}
-          and team_id = ${teamId}
-        limit 1
+        where team_id = ${teamId}
+          and id = any(${categoryIds})
       `;
-      if (!category[0]) throw Object.assign(new Error('Catégorie introuvable pour cette team.'), { status: 404 });
+      const validSet = new Set(categories.map((category) => String(category.id)));
+      validCategoryIds.push(...categoryIds.filter((id) => validSet.has(String(id))));
+      if (validCategoryIds.length !== categoryIds.length) throw Object.assign(new Error('Catégorie introuvable pour cette team.'), { status: 404 });
     }
 
-    if (!label && !opponent && categoryId === String(match.category_id || '')) throw Object.assign(new Error('Nom, adversaire ou catégorie requis.'), { status: 400 });
-    const displayName = opponent || label || match.opponent || match.game_id;
+    const currentCategoryIds = cleanIdList(match.category_ids?.length ? match.category_ids : match.category_id ? [match.category_id] : []);
+    if (!label && JSON.stringify(validCategoryIds) === JSON.stringify(currentCategoryIds)) throw Object.assign(new Error('Nom ou catégorie requis.'), { status: 400 });
+    const displayName = label || match.opponent || match.game_id;
     const rows = await sql`
       update matches
       set opponent = ${displayName},
-          category_id = ${categoryId || null},
-          raw = jsonb_set(coalesce(raw, '{}'::jsonb), '{nxt5Label}', to_jsonb(${label || displayName}::text), true)
+          category_id = ${validCategoryIds[0] || null},
+          category_ids = ${JSON.stringify(validCategoryIds)}::jsonb,
+          raw = jsonb_set(coalesce(raw, '{}'::jsonb), '{nxt5Label}', to_jsonb(${displayName}::text), true)
       where id = ${matchId}
         and team_id = ${teamId}
       returning *
     `;
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'matches.update', 'match', ${matchId}, ${JSON.stringify({ teamId, label, opponent: displayName, categoryId: categoryId || null })}::jsonb)
+      values (${user.id}, 'matches.update', 'match', ${matchId}, ${JSON.stringify({ teamId, label: displayName, categoryIds: validCategoryIds })}::jsonb)
     `;
 
     return json({ match: rows[0] });

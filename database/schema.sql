@@ -162,6 +162,8 @@ create table if not exists match_categories (
 );
 
 alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null;
+alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb;
+update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb);
 
 create table if not exists match_participants (
   id uuid primary key default gen_random_uuid(),
@@ -326,6 +328,8 @@ alter table reports add column if not exists match_ids jsonb not null default '[
 alter table reports add column if not exists created_by uuid references users(id) on delete set null;
 alter table matches add column if not exists created_by uuid references users(id) on delete set null;
 alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null;
+alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb;
+update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb);
 alter table reports add column if not exists updated_at timestamptz not null default now();
 alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb;
 alter table player_availability add column if not exists week_start date not null default date_trunc('week', current_date)::date;

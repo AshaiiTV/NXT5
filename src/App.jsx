@@ -109,6 +109,17 @@ function matchDisplayName(match, fallback = "Game") {
   return cleanOpponentName(match?.raw?.nxt5Label) || cleanOpponentName(match?.opponent) || opponentLabelFromParticipants(match) || match?.game_id || fallback;
 }
 
+function matchCategoryIds(match) {
+  const ids = Array.isArray(match?.category_ids) ? match.category_ids : [];
+  const combined = [...ids, match?.category_id].map((id) => String(id || "").trim()).filter(Boolean);
+  return [...new Set(combined)];
+}
+
+function matchHasCategory(match, categoryId) {
+  if (!categoryId) return true;
+  return matchCategoryIds(match).some((id) => String(id) === String(categoryId));
+}
+
 function opponentRoleRow(match, role, participantId = 0) {
   const enemies = (match?.participants || []).filter((row) => row.team_key === "ENEMY");
   const wantedRole = String(role || "").toUpperCase();
@@ -3240,7 +3251,16 @@ function matchCategoryTone(category) {
 }
 
 function matchCategoryLabel(match, categories) {
-  return (categories || []).find((category) => String(category.id || "") === String(match?.category_id || ""))?.name || "Non classée";
+  const labels = matchCategoryIds(match)
+    .map((id) => (categories || []).find((category) => String(category.id || "") === String(id))?.name)
+    .filter(Boolean);
+  return labels.length ? labels.join(", ") : "Non classée";
+}
+
+function matchCategoriesForMatch(match, categories) {
+  return matchCategoryIds(match)
+    .map((id) => (categories || []).find((category) => String(category.id || "") === String(id)))
+    .filter(Boolean);
 }
 
 function CategoryFilter({ categories, selectedCategoryId, onSelect, label = "Catégories" }) {
@@ -3251,11 +3271,61 @@ function CategoryFilter({ categories, selectedCategoryId, onSelect, label = "Cat
   </div>;
 }
 
+function CategoryMultiSelect({ categories, selectedIds, onChange, label = "Catégories" }) {
+  const ids = Array.isArray(selectedIds) ? selectedIds.map(String) : [];
+  const toggle = (categoryId) => {
+    const id = String(categoryId || "");
+    onChange(ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
+  };
+  return <div>
+    <p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">{label}</p>
+    <div className="flex flex-wrap gap-2">
+      {(categories || []).map((category) => {
+        const active = ids.includes(String(category.id));
+        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? tone(matchCategoryTone(category)) : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{category.name}</button>;
+      })}
+      {!categories?.length && <Badge tone="slate">Aucune catégorie</Badge>}
+    </div>
+  </div>;
+}
+
 function ImportHistoryCard({ match, categories, editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onSaveRoles }) {
   const importer = match.created_by_name || match.created_by_account || "";
   const participants = match.participants || [];
-  const category = (categories || []).find((item) => String(item.id) === String(match.category_id || ""));
-  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div className="min-w-0 flex-1">{editing ? <div className="grid gap-3 md:grid-cols-3"><TextInput label="Nom de l’import" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Scrim, review, BO..." icon={FileText} /><TextInput label="Adversaire" value={editForm.opponent} onChange={(opponent) => onChange({ ...editForm, opponent })} placeholder="Enemy Team" icon={Swords} /><SelectInput label="Catégorie" value={editForm.categoryId || ""} onChange={(categoryId) => onChange({ ...editForm, categoryId })}><option value="">Non classée</option>{(categories || []).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectInput></div> : <><div className="flex flex-wrap items-center gap-2"><p className="font-black text-white">{matchImportTitle(match)}</p><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.side || "Side ?"}</Badge><Badge tone={matchCategoryTone(category)}>{matchCategoryLabel(match, categories)}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p><div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="purple">{match.patch || "Patch ?"}</Badge></div></>}</div><div className="flex shrink-0 flex-wrap justify-end gap-2">{editing ? <><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button></> : <><Button type="button" variant="ghost" icon={Settings} onClick={onToggleRoles} disabled={saving}>Postes</Button><Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Modifier</Button><Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button></>}</div></div>{roleEditorOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-white">Réassigner les postes</p><p className="mt-1 text-xs font-semibold text-slate-300">Corrige les lanes après import si Riot ou le JSON a mal placé un champion.</p></div><Button type="button" icon={saving ? Loader2 : Check} onClick={onSaveRoles} disabled={saving}>Enregistrer les postes</Button></div><div className="mt-3 grid gap-3 lg:grid-cols-2">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey} className={cx("rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/14 bg-cyan-400/[0.045]" : "border-rose-300/14 bg-rose-500/[0.045]")}><div className="mb-3 flex items-center justify-between gap-2"><Badge tone={teamKey === "ALLY" ? "cyan" : "red"}>{teamKey === "ALLY" ? "Alliés" : "Adversaires"}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{participants.filter((row) => row.team_key === teamKey).map((row) => <label key={row.id} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/22 p-2"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-white">{championDisplayName(row.champion)}</span><span className="block truncate text-[0.62rem] font-semibold text-slate-300">{row.summoner_name || row.riot_id || "Joueur"}</span></span><select value={roleForm[row.id] || row.role || ""} onChange={(event) => onRoleChange(row.id, event.target.value)} className="w-20 rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-[0.68rem] font-black text-white outline-none">{COMP_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select></label>)}</div></div>)}</div></div>}</div>;
+  const selectedCategories = matchCategoriesForMatch(match, categories);
+  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0 flex-1">
+        {editing ? <div className="grid gap-3">
+          <TextInput label="Nom de la game" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Game 1 vs BK, Finale LB..." icon={FileText} />
+          <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} />
+        </div> : <>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-black text-white">{matchImportTitle(match)}</p>
+            <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge>
+            <Badge tone="slate">{match.side || "Side ?"}</Badge>
+            {selectedCategories.length ? selectedCategories.map((category) => <Badge key={category.id} tone={matchCategoryTone(category)}>{category.name}</Badge>) : <Badge tone="slate">Non classée</Badge>}
+          </div>
+          <p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
+          <div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="purple">{match.patch || "Patch ?"}</Badge></div>
+        </>}
+      </div>
+      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+        {editing ? <>
+          <Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button>
+          <Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button>
+        </> : <>
+          <Button type="button" variant="ghost" icon={Settings} onClick={onToggleRoles} disabled={saving}>Postes</Button>
+          <Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Modifier</Button>
+          <Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button>
+        </>}
+      </div>
+    </div>
+    {roleEditorOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-white">Réassigner les postes</p><p className="mt-1 text-xs font-semibold text-slate-300">Corrige les lanes après import si Riot ou le JSON a mal placé un champion.</p></div><Button type="button" icon={saving ? Loader2 : Check} onClick={onSaveRoles} disabled={saving}>Enregistrer les postes</Button></div>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey} className={cx("rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/14 bg-cyan-400/[0.045]" : "border-rose-300/14 bg-rose-500/[0.045]")}><div className="mb-3 flex items-center justify-between gap-2"><Badge tone={teamKey === "ALLY" ? "cyan" : "red"}>{teamKey === "ALLY" ? "Alliés" : "Adversaires"}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{participants.filter((row) => row.team_key === teamKey).map((row) => <label key={row.id} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/22 p-2"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-white">{championDisplayName(row.champion)}</span><span className="block truncate text-[0.62rem] font-semibold text-slate-300">{row.summoner_name || row.riot_id || "Joueur"}</span></span><select value={roleForm[row.id] || row.role || ""} onChange={(event) => onRoleChange(row.id, event.target.value)} className="w-20 rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-[0.68rem] font-black text-white outline-none">{COMP_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select></label>)}</div></div>)}</div>
+    </div>}
+  </div>;
 }
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, user }) {
@@ -3263,13 +3333,13 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [allyTeamSide, setAllyTeamSide] = useState("");
-  const [importDetails, setImportDetails] = useState({ label: "", opponent: "" });
+  const [importDetails, setImportDetails] = useState({ label: "", categoryIds: [] });
   const [importPreview, setImportPreview] = useState(null);
   const [previewPayload, setPreviewPayload] = useState(null);
   const [importing, setImporting] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
   const [editingMatchId, setEditingMatchId] = useState("");
-  const [matchEditForm, setMatchEditForm] = useState({ label: "", opponent: "" });
+  const [matchEditForm, setMatchEditForm] = useState({ label: "", categoryIds: [] });
   const [managingMatchId, setManagingMatchId] = useState("");
   const [categoryForm, setCategoryForm] = useState({ name: "", color: "cyan" });
   const [categoryCreatorOpen, setCategoryCreatorOpen] = useState(false);
@@ -3419,18 +3489,18 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     setImportPreview(null);
     setPreviewPayload(null);
     setAllyTeamSide("");
-    setImportDetails({ label: "", opponent: "" });
+    setImportDetails({ label: "", categoryIds: [] });
     setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   }
   function startEditMatch(match) {
     setEditingMatchId(match.id);
-    setMatchEditForm({ label: matchImportTitle(match), opponent: match.opponent || "", categoryId: match.category_id || "" });
+    setMatchEditForm({ label: matchImportTitle(match), categoryIds: matchCategoryIds(match) });
   }
   function cancelEditMatch() {
     setEditingMatchId("");
-    setMatchEditForm({ label: "", opponent: "", categoryId: "" });
+    setMatchEditForm({ label: "", categoryIds: [] });
   }
   function toggleRoleEditor(match) {
     const open = roleEditorMatchId === match.id;
@@ -3457,7 +3527,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   async function saveMatchHistory(match) {
     setManagingMatchId(match.id);
     try {
-      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "update", teamId: selectedTeamId, matchId: match.id, label: matchEditForm.label, opponent: matchEditForm.opponent, categoryId: matchEditForm.categoryId || "" }) });
+      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "update", teamId: selectedTeamId, matchId: match.id, label: matchEditForm.label, categoryIds: matchEditForm.categoryIds || [] }) });
       cancelEditMatch();
       await refreshAll();
       pushToast({ type: "green", title: "Import renommé", text: "Les statistiques et rapports utilisent le nouvel intitulé." });
@@ -3512,7 +3582,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   }
   async function confirmImport(event) {
     event.preventDefault();
-    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, opponent: importDetails.opponent };
+    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [] };
     setImporting(true);
     try {
       await apiFetch("matches-import-file", { method: "POST", body: JSON.stringify(payload) });
@@ -3536,8 +3606,8 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       setPreviewPayload(payload);
       setImportPreview(result.match);
       setImportDetails({
-        label: payload?.label || payload?.metadata?.label || "",
-        opponent: payload?.opponent || payload?.metadata?.opponent || ""
+        label: payload?.label || payload?.metadata?.label || payload?.opponent || payload?.metadata?.opponent || "",
+        categoryIds: []
       });
       pushToast({ type: "green", title: "JSON chargé", text: "Choisis ton side, les champions et les profils avant de confirmer." });
     } catch (err) {
@@ -3589,9 +3659,9 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                 <Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge>
               </div>
               {importPreview ? <div className="mt-4 space-y-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <TextInput label="Nom de l’import" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1, Scrim vs..." required icon={FileText} />
-                  <TextInput label="Adversaire" value={importDetails.opponent} onChange={(opponent) => setImportDetails((current) => ({ ...current, opponent }))} placeholder="Nom de l’équipe adverse" icon={Swords} />
+                <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
+                  <TextInput label="Nom de la game" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1 vs BK, Finale LB..." required icon={FileText} />
+                  <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} />
                 </div>
                 <div className="grid gap-3 lg:grid-cols-2">
                   {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} className={cx("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
@@ -4754,7 +4824,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const matches = selectedCategoryId ? baseMatches.filter((match) => String(match.category_id || "") === String(selectedCategoryId)) : baseMatches;
+  const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
   const ally = rows.filter((row) => row.team_key === "ALLY");
   const enemy = rows.filter((row) => row.team_key === "ENEMY");
@@ -4781,8 +4851,8 @@ function TrendsPage({ data, selectedTeamId }) {
     return total;
   }, { dragons: 0, grubs: 0, heralds: 0, barons: 0, towers: 0 });
   const categoryBreakdown = [
-    ...matchCategories.map((category) => ({ id: category.id, name: category.name, color: matchCategoryTone(category), matches: baseMatches.filter((match) => String(match.category_id || "") === String(category.id)) })),
-    { id: "none", name: "Non classées", color: "slate", matches: baseMatches.filter((match) => !match.category_id) }
+    ...matchCategories.map((category) => ({ id: category.id, name: category.name, color: matchCategoryTone(category), matches: baseMatches.filter((match) => matchHasCategory(match, category.id)) })),
+    { id: "none", name: "Non classées", color: "slate", matches: baseMatches.filter((match) => !matchCategoryIds(match).length) }
   ].filter((entry) => entry.matches.length).map((entry) => {
     const entryRows = entry.matches.flatMap((match) => match.participants || []);
     const entryAlly = entryRows.filter((row) => row.team_key === "ALLY");
@@ -4939,7 +5009,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [savingArchive, setSavingArchive] = useState(false);
   const [archivesCollapsed, setArchivesCollapsed] = useState(true);
   const [profilesCollapsed, setProfilesCollapsed] = useState(true);
-  const matches = selectedCategoryId ? baseMatches.filter((match) => String(match.category_id || "") === String(selectedCategoryId)) : baseMatches;
+  const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const scopedMatchIds = scopedMatches.map((match) => match.id).join("|");
@@ -4947,12 +5017,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
     if (archives.length && selectedArchiveId && !archives.some((archive) => archive.id === selectedArchiveId)) setSelectedArchiveId("");
   }, [archives, selectedArchiveId]);
   useEffect(() => {
-    if (selectedMatchId && !scopedMatches.some((match) => match.id === selectedMatchId)) setSelectedMatchId("");
+    if (selectedMatchId && !scopedMatches.some((match) => String(match.id || "") === String(selectedMatchId || ""))) setSelectedMatchId("");
   }, [scopedMatchIds, selectedMatchId]);
   useEffect(() => {
     if (urlMatchId && matches.some((match) => match.id === urlMatchId)) setSelectedMatchId(urlMatchId);
   }, [urlMatchId, matches.map((match) => match.id).join("|")]);
-  const selectedMatch = scopedMatches.find((match) => match.id === selectedMatchId) || null;
+  const selectedMatch = scopedMatches.find((match) => String(match.id || "") === String(selectedMatchId || "")) || null;
   const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && reportMatchIds(report).includes(selectedMatch?.id));
   const selectedArchiveReport = selectedArchive ? (data.reports || []).find((report) => {
     const reportIds = reportMatchIds(report);
@@ -5035,7 +5105,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
       setSavingArchive(false);
     }
   }
-  return <div className="nxt5-data-dense min-w-0 overflow-hidden"><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Lis les performances profil par profil à partir des games importées dans NXT5." /><Surface className="mb-5 p-4"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(id) => { setSelectedCategoryId(id); setSelectedArchiveId(""); setSelectedMatchId(""); }} label="Type de games" /></Surface>{matches.length ? <><div className="grid gap-3 md:grid-cols-2"><MetricCard compact icon={Swords} label="Games analysées" value={scopedMatches.length} hint={selectedArchive ? "Groupe actif" : ""} tone="cyan" /><MetricCard compact icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""} · ${scopedMatches.length - wins} défaite${scopedMatches.length - wins > 1 ? "s" : ""}`} tone="green" /></div><Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre le rapport lié.</p></div><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: `nxt5-game-${selectedMatch?.game_id || "export"}.png` })} disabled={!selectedMatch}>Exporter la game</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: `${scopedMatches.length} games · ${wins}W - ${scopedMatches.length - wins}L`, matches: scopedMatches, filename: `nxt5-groupe-${String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png` })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => selectedReport ? openAppPath(`/rapports?report=${selectedReport.id}&match=${selectedMatch?.id}`) : openAppPath(`/rapports?match=${selectedMatch?.id}`)} disabled={!selectedMatch}>Aller vers rapport</Button></div></div><div className="mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = selectedMatchId === match.id; return <div key={match.id} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("rounded-2xl border p-3 text-left transition", activeGame ? "border-cyan-300/35 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id}</p></div>; })}</div></Surface><Surface className="mt-5"><button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Crée une archive de scrim. Un rapport brut est généré automatiquement à la création.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></button>{!archivesCollapsed && <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]"><div className="min-w-0"><div className="max-h-72 space-y-2 overflow-auto pr-1">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const count = ids.length; const archiveMatches = matches.filter((match) => ids.includes(match.id)); const archiveWins = archiveMatches.filter((match) => match.result === "Victoire").length; const selected = selectedArchiveId === archive.id; const archiveReport = (data.reports || []).find((report) => { const reportIds = reportMatchIds(report); return report.team_id === selectedTeamId && ids.length && ids.every((id) => reportIds.includes(id)) && reportIds.every((id) => ids.includes(id)); }); return <div key={archive.id} className={cx("rounded-2xl border p-3 transition", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}><button type="button" onClick={() => setSelectedArchiveId(selectedArchiveId === archive.id ? "" : archive.id)} className="w-full text-left"><div className="flex flex-wrap items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{archive.description || `Créée par ${archive.created_by_name || "NXT5"}`}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</p></button><div className="mt-3 flex flex-wrap justify-end gap-2">{archiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${archiveReport.id}`)} disabled={savingArchive}>Voir rapport</Button>}<Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun groupe. Crée ton premier bloc de scrim à droite.</p>}</div>{selectedArchive && selectedArchiveReport && <Button type="button" className="mt-3 w-full" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${selectedArchiveReport.id}`)}>Aller voir le rapport du groupe</Button>}</div><form onSubmit={saveArchive} className="min-w-0 space-y-3"><div className="grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games à inclure</p><div className="grid max-h-64 gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => <button key={match.id} type="button" onClick={() => toggleArchiveMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", archiveForm.matchIds.includes(match.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{matchDisplayName(match)}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></button>)}</div></div><div className="flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div></form></div>}</Surface>{selectedArchive && <ScrimArchiveSummary matches={scopedMatches} />}{selectedMatch && <MatchDataPanel match={selectedMatch} />}<Surface className="mt-6"><button type="button" onClick={() => setProfilesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Profils</Badge><h3 className="text-2xl font-black text-white">Stats par joueurs</h3></div><p className="mt-1 text-sm font-semibold text-slate-300">Lecture individuelle des performances sur les games actuellement sélectionnées.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", profilesCollapsed && "-rotate-90")} /></button>{!profilesCollapsed && <div className="mt-4 grid gap-5">{stats.map((stat) => <PlayerStatCard key={stat.key} stat={stat} maxDamage={maxDamage} maxVision={maxVision} maxGold={maxGold} />)}</div>}</Surface></> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
+  return <div className="nxt5-data-dense min-w-0 overflow-hidden"><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Lis les performances profil par profil à partir des games importées dans NXT5." /><Surface className="mb-5 p-4"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(id) => { setSelectedCategoryId(id); setSelectedArchiveId(""); setSelectedMatchId(""); }} label="Type de games" /></Surface>{matches.length ? <><div className="grid gap-3 md:grid-cols-2"><MetricCard compact icon={Swords} label="Games analysées" value={scopedMatches.length} hint={selectedArchive ? "Groupe actif" : ""} tone="cyan" /><MetricCard compact icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""} · ${scopedMatches.length - wins} défaite${scopedMatches.length - wins > 1 ? "s" : ""}`} tone="green" /></div><Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre le rapport lié.</p></div><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: `nxt5-game-${selectedMatch?.game_id || "export"}.png` })} disabled={!selectedMatch}>Exporter la game</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: `${scopedMatches.length} games · ${wins}W - ${scopedMatches.length - wins}L`, matches: scopedMatches, filename: `nxt5-groupe-${String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png` })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => selectedReport ? openAppPath(`/rapports?report=${selectedReport.id}&match=${selectedMatch?.id}`) : openAppPath(`/rapports?match=${selectedMatch?.id}`)} disabled={!selectedMatch}>Aller vers rapport</Button></div></div><div className="mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <button key={match.id} type="button" aria-pressed={activeGame} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("relative rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", activeGame ? "border-cyan-200/80 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,.32),0_0_34px_rgba(34,211,238,.22)] ring-1 ring-cyan-200/35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", activeGame ? "opacity-100" : "opacity-0")} /><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id}</p></button>; })}</div></Surface><Surface className="mt-5"><button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Crée une archive de scrim. Un rapport brut est généré automatiquement à la création.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></button>{!archivesCollapsed && <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]"><div className="min-w-0"><div className="max-h-72 space-y-2 overflow-auto pr-1">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const count = ids.length; const archiveMatches = matches.filter((match) => ids.includes(match.id)); const archiveWins = archiveMatches.filter((match) => match.result === "Victoire").length; const selected = selectedArchiveId === archive.id; const archiveReport = (data.reports || []).find((report) => { const reportIds = reportMatchIds(report); return report.team_id === selectedTeamId && ids.length && ids.every((id) => reportIds.includes(id)) && reportIds.every((id) => ids.includes(id)); }); return <div key={archive.id} className={cx("rounded-2xl border p-3 transition", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}><button type="button" onClick={() => setSelectedArchiveId(selectedArchiveId === archive.id ? "" : archive.id)} className="w-full text-left"><div className="flex flex-wrap items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{archive.description || `Créée par ${archive.created_by_name || "NXT5"}`}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</p></button><div className="mt-3 flex flex-wrap justify-end gap-2">{archiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${archiveReport.id}`)} disabled={savingArchive}>Voir rapport</Button>}<Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun groupe. Crée ton premier bloc de scrim à droite.</p>}</div>{selectedArchive && selectedArchiveReport && <Button type="button" className="mt-3 w-full" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${selectedArchiveReport.id}`)}>Aller voir le rapport du groupe</Button>}</div><form onSubmit={saveArchive} className="min-w-0 space-y-3"><div className="grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games à inclure</p><div className="grid max-h-64 gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => <button key={match.id} type="button" onClick={() => toggleArchiveMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", archiveForm.matchIds.includes(match.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{matchDisplayName(match)}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></button>)}</div></div><div className="flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div></form></div>}</Surface>{selectedArchive && <ScrimArchiveSummary matches={scopedMatches} />}{selectedMatch && <MatchDataPanel match={selectedMatch} />}<Surface className="mt-6"><button type="button" onClick={() => setProfilesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-4 py-3 text-left transition hover:border-cyan-300/30 hover:bg-cyan-400/10"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Profils</Badge><h3 className="text-2xl font-black text-white">Stats par joueurs</h3></div><p className="mt-1 text-sm font-semibold text-slate-300">Lecture individuelle des performances sur les games actuellement sélectionnées.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", profilesCollapsed && "-rotate-90")} /></button>{!profilesCollapsed && <div className="mt-4 grid gap-5">{stats.map((stat) => <PlayerStatCard key={stat.key} stat={stat} maxDamage={maxDamage} maxVision={maxVision} maxGold={maxGold} />)}</div>}</Surface></> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
 }
 
 function ReviewSignalPanel({ match, rows }) {
@@ -6486,36 +6556,130 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
 }
 
 function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
+  const lanes = [
+    ["TOP", "Prio lane", 72, 10, 14],
+    ["JGL", "Pathing", 86, 55, 27],
+    ["MID", "Setup", 64, 12, 45],
+    ["ADC", "DPS", 78, 55, 59],
+    ["SUP", "Vision", 91, 16, 66],
+  ];
+  const telemetry = [
+    ["Draft", "Pool"],
+    ["Review", "Replay"],
+    ["Stats", "Live"],
+  ];
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] text-white">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-8 text-white sm:px-6">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,.08),transparent_38%),linear-gradient(90deg,transparent_0_10%,rgba(34,211,238,.10)_10.2%,transparent_10.5%_89%,rgba(217,70,239,.10)_89.2%,transparent_89.5%)]" />
-      <motion.div className="pointer-events-none absolute left-1/2 top-1/2 h-[min(76vw,620px)] w-[min(76vw,620px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/10" animate={{ rotate: 360 }} transition={{ duration: 18, repeat: Infinity, ease: "linear" }}>
-        <span className="absolute left-1/2 top-0 h-3 w-14 -translate-x-1/2 rounded-full bg-cyan-300/60 blur-[2px]" />
-        <span className="absolute bottom-0 right-[18%] h-3 w-20 rounded-full bg-fuchsia-400/45 blur-[2px]" />
-      </motion.div>
-      <motion.div initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="relative z-10 w-[min(92vw,760px)] text-center">
-        <div className="relative mx-auto flex h-44 w-44 items-center justify-center sm:h-52 sm:w-52">
-          <motion.div className="absolute inset-0 rounded-full border border-cyan-200/22" animate={{ rotate: -360, boxShadow: ["0 0 28px rgba(34,211,238,.12)", "0 0 70px rgba(217,70,239,.20)", "0 0 28px rgba(34,211,238,.12)"] }} transition={{ rotate: { duration: 12, repeat: Infinity, ease: "linear" }, boxShadow: { duration: 2.2, repeat: Infinity, ease: "easeInOut" } }} />
-          <motion.div className="absolute inset-5 rounded-full border border-fuchsia-300/18 border-dashed" animate={{ rotate: 360 }} transition={{ duration: 9, repeat: Infinity, ease: "linear" }} />
-          <motion.div className="absolute inset-10 rounded-[2rem] bg-cyan-300/10 blur-2xl" animate={{ opacity: [0.25, 0.78, 0.25], scale: [0.92, 1.16, 0.92] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }} />
-          <div className="relative flex h-32 w-32 items-center justify-center rounded-[2rem] border border-cyan-200/22 bg-[#050914]/82 shadow-[0_0_70px_rgba(34,211,238,.25)] backdrop-blur-2xl sm:h-36 sm:w-36">
-            <img src="/favicon-512x512.png?v=8" alt="NXT5" className="relative z-10 h-28 w-28 object-contain drop-shadow-[0_0_34px_rgba(34,211,238,.58)] sm:h-32 sm:w-32" />
-            <motion.span className="pointer-events-none absolute left-4 right-4 top-4 h-px origin-left bg-gradient-to-r from-transparent via-cyan-100 to-transparent shadow-[0_0_18px_rgba(34,211,238,.95)]" animate={{ rotate: [0, 360], opacity: [0.25, 1, 0.25] }} transition={{ duration: 2.4, repeat: Infinity, ease: "linear" }} />
-            <motion.span className="pointer-events-none absolute bottom-4 left-5 right-5 h-px origin-right bg-gradient-to-r from-transparent via-fuchsia-200 to-transparent shadow-[0_0_18px_rgba(217,70,239,.85)]" animate={{ rotate: [360, 0], opacity: [0.15, 0.85, 0.15] }} transition={{ duration: 2.9, repeat: Infinity, ease: "linear" }} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,rgba(34,211,238,.10),transparent_34%),linear-gradient(90deg,rgba(2,5,17,.72),transparent_28%,transparent_72%,rgba(2,5,17,.74))]" />
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: "easeOut" }} className="relative z-10 grid w-full max-w-6xl items-center gap-7 lg:grid-cols-[0.82fr_1.18fr]">
+        <div className="text-center lg:text-left">
+          <div className="mx-auto inline-flex items-center gap-3 rounded-full border border-cyan-200/18 bg-cyan-300/[0.075] px-3 py-2 shadow-[0_0_34px_rgba(34,211,238,.10)] backdrop-blur-2xl lg:mx-0">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-60" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-200" />
+            </span>
+            <span className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-cyan-50">NXT5 command sync</span>
+          </div>
+          <Nxt5Wordmark className="mx-auto mt-7 h-16 w-full max-w-[23rem] object-center lg:mx-0 lg:object-left" />
+          <h1 className="mt-5 text-3xl font-black leading-tight text-white sm:text-5xl">Préparation du terrain</h1>
+          <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-6 text-slate-200 lg:mx-0">{label}</p>
+          <div className="mx-auto mt-6 grid max-w-xl grid-cols-3 gap-2 lg:mx-0">
+            {telemetry.map(([title, value], index) => (
+              <div key={title} className="nxt5-loader-micro rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3 text-left" style={{ "--delay": `${index * 160}ms` }}>
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">{title}</p>
+                <p className="mt-1 text-sm font-black text-white">{value}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <Nxt5Wordmark className="mx-auto mt-2 h-16 w-full max-w-[22rem] object-center" />
-        <div className="mx-auto mt-4 grid max-w-xl gap-2 rounded-[1.35rem] border border-cyan-200/16 bg-[#050914]/72 p-4 shadow-[0_0_70px_rgba(34,211,238,.12)] backdrop-blur-2xl sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-          <div className="hidden h-px bg-gradient-to-r from-transparent via-cyan-200/60 to-cyan-200/10 sm:block" />
-          <div className="flex items-center justify-center gap-3 px-3">
-            <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
-            <span className="text-sm font-black text-slate-100">{label}</span>
+
+        <div className="nxt5-loader-board relative overflow-hidden rounded-[1.45rem] border border-cyan-200/18 bg-[#030814]/82 p-4 shadow-[0_24px_90px_rgba(0,0,0,.46),0_0_70px_rgba(34,211,238,.10)] backdrop-blur-2xl sm:p-5">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(34,211,238,.13),transparent_28%,transparent_68%,rgba(217,70,239,.11)),radial-gradient(circle_at_50%_52%,rgba(103,232,249,.12),transparent_36%)]" />
+          <div className="relative z-10 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.50)]" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-black uppercase tracking-[0.18em] text-white">Session room</p>
+                <p className="mt-1 truncate text-xs font-black text-cyan-100/80">Roster, draft, review</p>
+              </div>
+            </div>
+            <Badge tone="green" pulse>Online</Badge>
           </div>
-          <div className="hidden h-px bg-gradient-to-r from-fuchsia-200/10 via-fuchsia-200/60 to-transparent sm:block" />
-        </div>
-        <div className="mx-auto mt-5 grid max-w-xl grid-cols-3 gap-2">
-          {["TEAM", "DATA", "DRAFT"].map((item, index) => <div key={item} className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/80">{item}<motion.span className="mt-2 block h-1 rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400" animate={{ opacity: [0.22, 1, 0.22], scaleX: [0.3, 1, 0.3] }} transition={{ duration: 1.2 + index * 0.25, repeat: Infinity, ease: "easeInOut" }} /></div>)}
+
+          <div className="relative z-10 mt-5 grid gap-4 lg:grid-cols-[1fr_0.82fr]">
+            <div className="nxt5-loader-map relative min-h-[300px] overflow-hidden rounded-[1.1rem] border border-cyan-200/14 bg-black/[0.22] p-4 sm:min-h-[360px]">
+              <div className="absolute inset-0 opacity-70">
+                <span className="nxt5-loader-river" />
+                <span className="nxt5-loader-lane nxt5-loader-lane-top" />
+                <span className="nxt5-loader-lane nxt5-loader-lane-mid" />
+                <span className="nxt5-loader-lane nxt5-loader-lane-bot" />
+              </div>
+              <motion.div className="absolute left-[50%] top-[48%] h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/28 bg-cyan-300/10 shadow-[0_0_48px_rgba(34,211,238,.20)]" animate={{ scale: [0.96, 1.08, 0.96], opacity: [0.72, 1, 0.72] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+                <Target className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-cyan-100" />
+              </motion.div>
+              {lanes.map(([role, focus, , left, top], index) => (
+                <motion.div key={role} className={cx("absolute flex items-center gap-2 rounded-full border bg-[#06111f]/88 px-3 py-2 shadow-[0_0_24px_rgba(34,211,238,.10)] backdrop-blur-xl", index % 2 ? "border-fuchsia-200/18 text-fuchsia-50" : "border-cyan-200/20 text-cyan-50")} style={{ left: `${left}%`, top: `${top}%` }} animate={{ y: [0, index % 2 ? -5 : 5, 0] }} transition={{ duration: 2.2 + index * 0.22, repeat: Infinity, ease: "easeInOut" }}>
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-[0.55rem] font-black text-cyan-50">{role.slice(0, 1)}</span>
+                  <span className="text-xs font-black">{role}</span>
+                  <span className="hidden text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300 sm:inline">{focus}</span>
+                </motion.div>
+              ))}
+              <div className="absolute bottom-4 left-4 right-4 grid grid-cols-5 gap-1 sm:gap-2">
+                {lanes.map(([role, , value], index) => (
+                  <div key={role} className="rounded-lg border border-white/10 bg-[#020511]/72 p-1.5 sm:rounded-xl sm:p-2">
+                    <div className="mb-1.5 text-center leading-none">
+                      <span className="block text-[0.55rem] font-black text-white sm:text-[0.6rem]">{role}</span>
+                      <span className="mt-1 block text-[0.52rem] font-black text-cyan-100 sm:text-[0.58rem]">{value}%</span>
+                    </div>
+                    <span className="block h-1.5 overflow-hidden rounded-full bg-white/10">
+                      <span className="nxt5-loader-fill block h-full rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400" style={{ "--target": `${value}%`, "--delay": `${index * 140}ms` }} />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="rounded-[1.1rem] border border-cyan-200/14 bg-white/[0.035] p-4">
+                <p className="text-[0.64rem] font-black uppercase tracking-[0.22em] text-cyan-100">Objective window</p>
+                <div className="mt-4 grid grid-cols-[auto_1fr] items-center gap-4">
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-cyan-200/18 bg-black/24">
+                    <span className="nxt5-loader-orbit" />
+                    <Trophy className="h-8 w-8 text-cyan-100" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-2xl font-black text-white">02:45</p>
+                    <p className="mt-1 text-xs font-bold text-slate-300">Herald setup locked</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-[1.1rem] border border-white/10 bg-black/[0.18] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-white">Data pipeline</p>
+                  <RefreshCw className="h-4 w-4 text-cyan-100" />
+                </div>
+                <div className="mt-4 space-y-3">
+                  {["Récupération roster", "Index des games", "Préparation dashboards"].map((item, index) => (
+                    <div key={item} className="flex items-center gap-3">
+                      <span className="nxt5-loader-check flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-cyan-200/22 text-[0.62rem] font-black text-cyan-50" style={{ "--delay": `${index * 220}ms` }}>{index + 1}</span>
+                      <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-200">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-[1.1rem] border border-fuchsia-200/14 bg-fuchsia-400/[0.055] p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-50">Sync progress</p>
+                  <span className="text-xs font-black text-white">NXT5</span>
+                </div>
+                <span className="block h-2 overflow-hidden rounded-full bg-black/35">
+                  <span className="nxt5-loader-main-progress block h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" />
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.div>
     </div>

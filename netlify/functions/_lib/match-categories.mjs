@@ -19,6 +19,8 @@ export async function ensureMatchCategoriesSchema() {
     )
   `;
   await sql`alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null`;
+  await sql`alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb`;
+  await sql`update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb)`;
   await sql`create unique index if not exists idx_match_categories_team_name on match_categories(team_id, lower(name))`;
   await sql`create index if not exists idx_match_categories_team on match_categories(team_id, created_at asc)`;
   await sql`create index if not exists idx_matches_category on matches(category_id)`;

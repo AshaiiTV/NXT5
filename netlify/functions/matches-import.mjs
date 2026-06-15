@@ -17,7 +17,8 @@ export default async function handler(request, context) {
     let gameId = String(body.gameId || '').trim().toUpperCase();
     const teamId = String(body.teamId || '').trim();
     const label = cleanText(body.label, 120);
-    const opponent = cleanText(body.opponent, 120);
+    const rawCategoryIds = body.categoryIds || [];
+    const categoryIds = [...new Set((Array.isArray(rawCategoryIds) ? rawCategoryIds : [rawCategoryIds]).map((id) => String(id || '').trim()).filter(Boolean))];
     const laneAssignments = body.laneAssignments && typeof body.laneAssignments === 'object' ? body.laneAssignments : {};
     const playerAssignments = body.playerAssignments && typeof body.playerAssignments === 'object' ? body.playerAssignments : {};
     const allyTeamSide = cleanText(body.allyTeamSide, 20);
@@ -66,10 +67,25 @@ export default async function handler(request, context) {
       });
     }
     let savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, playerAssignments, allyTeamSide });
-    if (opponent || label) {
+    const validCategoryIds = [];
+    if (categoryIds.length) {
+      const categories = await sql`
+        select id
+        from match_categories
+        where team_id = ${teamId}
+          and id = any(${categoryIds})
+      `;
+      const validSet = new Set(categories.map((category) => String(category.id)));
+      validCategoryIds.push(...categoryIds.filter((id) => validSet.has(String(id))));
+      if (validCategoryIds.length !== categoryIds.length) throw Object.assign(new Error('Une catégorie sélectionnée est introuvable pour cette team.'), { status: 404 });
+    }
+    if (label || validCategoryIds.length) {
       const named = await sql`
         update matches
-        set opponent = ${opponent || label}
+        set opponent = ${label || savedMatch.opponent || savedMatch.game_id},
+            category_id = ${validCategoryIds[0] || null},
+            category_ids = ${JSON.stringify(validCategoryIds)}::jsonb,
+            raw = jsonb_set(coalesce(raw, '{}'::jsonb), '{nxt5Label}', to_jsonb(${label || savedMatch.opponent || savedMatch.game_id}::text), true)
         where id = ${savedMatch.id}
         returning *
       `;
@@ -78,7 +94,7 @@ export default async function handler(request, context) {
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'match.import', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId, teamId })}::jsonb)
+      values (${user.id}, 'match.import', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId, teamId, label, categoryIds: validCategoryIds })}::jsonb)
     `;
 
     return json({ match: savedMatch });
