@@ -6556,129 +6556,58 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
 }
 
 function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
-  const lanes = [
-    ["TOP", "Prio lane", 72, 10, 14],
-    ["JGL", "Pathing", 86, 55, 27],
-    ["MID", "Setup", 64, 12, 45],
-    ["ADC", "DPS", 78, 55, 59],
-    ["SUP", "Vision", 91, 16, 66],
-  ];
-  const telemetry = [
-    ["Draft", "Pool"],
-    ["Review", "Replay"],
-    ["Stats", "Live"],
+  const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
+  const stages = [
+    ["Roster", Users],
+    ["Games", Swords],
+    ["Draft", Crown],
+    ["Review", FileText],
+    ["Prêt", Check],
   ];
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-8 text-white sm:px-6">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-6 text-white sm:px-6">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_46%,rgba(34,211,238,.10),transparent_34%),linear-gradient(90deg,rgba(2,5,17,.72),transparent_28%,transparent_72%,rgba(2,5,17,.74))]" />
-      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: "easeOut" }} className="relative z-10 grid w-full max-w-6xl items-center gap-7 lg:grid-cols-[0.82fr_1.18fr]">
-        <div className="text-center lg:text-left">
-          <div className="mx-auto inline-flex items-center gap-3 rounded-full border border-cyan-200/18 bg-cyan-300/[0.075] px-3 py-2 shadow-[0_0_34px_rgba(34,211,238,.10)] backdrop-blur-2xl lg:mx-0">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-60" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-200" />
-            </span>
-            <span className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-cyan-50">NXT5 command sync</span>
-          </div>
-          <Nxt5Wordmark className="mx-auto mt-7 h-16 w-full max-w-[23rem] object-center lg:mx-0 lg:object-left" />
-          <h1 className="mt-5 text-3xl font-black leading-tight text-white sm:text-5xl">Préparation du terrain</h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm font-semibold leading-6 text-slate-200 lg:mx-0">{label}</p>
-          <div className="mx-auto mt-6 grid max-w-xl grid-cols-3 gap-2 lg:mx-0">
-            {telemetry.map(([title, value], index) => (
-              <div key={title} className="nxt5-loader-micro rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3 text-left" style={{ "--delay": `${index * 160}ms` }}>
-                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">{title}</p>
-                <p className="mt-1 text-sm font-black text-white">{value}</p>
-              </div>
-            ))}
-          </div>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,rgba(103,232,249,.16),transparent_31%),radial-gradient(circle_at_78%_26%,rgba(217,70,239,.12),transparent_28%),linear-gradient(90deg,rgba(2,5,17,.76),transparent_34%,transparent_66%,rgba(2,5,17,.8))]" />
+      <motion.div initial={{ opacity: 0, y: 18, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.62, ease: "easeOut" }} className="relative z-10 flex w-full max-w-6xl flex-col items-center">
+        <div className="nxt5-loader-kicker">
+          <span />
+          <p>Synchronisation NXT5</p>
         </div>
 
-        <div className="nxt5-loader-board relative overflow-hidden rounded-[1.45rem] border border-cyan-200/18 bg-[#030814]/82 p-4 shadow-[0_24px_90px_rgba(0,0,0,.46),0_0_70px_rgba(34,211,238,.10)] backdrop-blur-2xl sm:p-5">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(34,211,238,.13),transparent_28%,transparent_68%,rgba(217,70,239,.11)),radial-gradient(circle_at_50%_52%,rgba(103,232,249,.12),transparent_36%)]" />
-          <div className="relative z-10 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.50)]" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-black uppercase tracking-[0.18em] text-white">Session room</p>
-                <p className="mt-1 truncate text-xs font-black text-cyan-100/80">Roster, draft, review</p>
-              </div>
+        <Nxt5Wordmark className="nxt5-loader-wordmark mt-6 h-16 w-full max-w-[24rem] object-center sm:h-20" />
+        <h1 className="nxt5-loader-title mt-4 text-center text-3xl font-black leading-tight text-white sm:text-5xl">Préparation du terrain</h1>
+        <p className="nxt5-loader-label mt-3 max-w-xl text-center text-sm font-semibold leading-6">{label}</p>
+
+        <div className="nxt5-loader-cinema mt-7 w-full">
+          <div className="nxt5-loader-cinema-grid" />
+          <div className="nxt5-loader-cinema-scan" />
+          <div className="nxt5-loader-arena" aria-hidden="true">
+            <span className="nxt5-loader-arena-ring nxt5-loader-arena-ring-one" />
+            <span className="nxt5-loader-arena-ring nxt5-loader-arena-ring-two" />
+            <span className="nxt5-loader-arena-ring nxt5-loader-arena-ring-three" />
+            {roles.map((role, index) => (
+              <span key={role} className={cx("nxt5-loader-role", `nxt5-loader-role-${index}`)} style={{ "--delay": `${index * 170}ms` }}>
+                {role}
+              </span>
+            ))}
+            {roles.map((role, index) => (
+              <span key={`${role}-beam`} className={cx("nxt5-loader-beam", `nxt5-loader-beam-${index}`)} style={{ "--delay": `${index * 150}ms` }} />
+            ))}
+            <div className="nxt5-loader-core">
+              <span className="nxt5-loader-core-halo" />
+              <img src="/assets/nxt5-mark.png?v=8" alt="NXT5" />
             </div>
-            <Badge tone="green" pulse>Online</Badge>
           </div>
 
-          <div className="relative z-10 mt-5 grid gap-4 lg:grid-cols-[1fr_0.82fr]">
-            <div className="nxt5-loader-map relative min-h-[300px] overflow-hidden rounded-[1.1rem] border border-cyan-200/14 bg-black/[0.22] p-4 sm:min-h-[360px]">
-              <div className="absolute inset-0 opacity-70">
-                <span className="nxt5-loader-river" />
-                <span className="nxt5-loader-lane nxt5-loader-lane-top" />
-                <span className="nxt5-loader-lane nxt5-loader-lane-mid" />
-                <span className="nxt5-loader-lane nxt5-loader-lane-bot" />
+          <div className="nxt5-loader-stages">
+            {stages.map(([stage, Icon], index) => (
+              <div key={stage} className="nxt5-loader-stage" style={{ "--delay": `${index * 170}ms` }}>
+                <Icon className="h-4 w-4" />
+                <span>{stage}</span>
               </div>
-              <motion.div className="absolute left-[50%] top-[48%] h-20 w-20 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/28 bg-cyan-300/10 shadow-[0_0_48px_rgba(34,211,238,.20)]" animate={{ scale: [0.96, 1.08, 0.96], opacity: [0.72, 1, 0.72] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
-                <Target className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-cyan-100" />
-              </motion.div>
-              {lanes.map(([role, focus, , left, top], index) => (
-                <motion.div key={role} className={cx("absolute flex items-center gap-2 rounded-full border bg-[#06111f]/88 px-3 py-2 shadow-[0_0_24px_rgba(34,211,238,.10)] backdrop-blur-xl", index % 2 ? "border-fuchsia-200/18 text-fuchsia-50" : "border-cyan-200/20 text-cyan-50")} style={{ left: `${left}%`, top: `${top}%` }} animate={{ y: [0, index % 2 ? -5 : 5, 0] }} transition={{ duration: 2.2 + index * 0.22, repeat: Infinity, ease: "easeInOut" }}>
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06] text-[0.55rem] font-black text-cyan-50">{role.slice(0, 1)}</span>
-                  <span className="text-xs font-black">{role}</span>
-                  <span className="hidden text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300 sm:inline">{focus}</span>
-                </motion.div>
-              ))}
-              <div className="absolute bottom-4 left-4 right-4 grid grid-cols-5 gap-1 sm:gap-2">
-                {lanes.map(([role, , value], index) => (
-                  <div key={role} className="rounded-lg border border-white/10 bg-[#020511]/72 p-1.5 sm:rounded-xl sm:p-2">
-                    <div className="mb-1.5 text-center leading-none">
-                      <span className="block text-[0.55rem] font-black text-white sm:text-[0.6rem]">{role}</span>
-                      <span className="mt-1 block text-[0.52rem] font-black text-cyan-100 sm:text-[0.58rem]">{value}%</span>
-                    </div>
-                    <span className="block h-1.5 overflow-hidden rounded-full bg-white/10">
-                      <span className="nxt5-loader-fill block h-full rounded-full bg-gradient-to-r from-cyan-300 to-fuchsia-400" style={{ "--target": `${value}%`, "--delay": `${index * 140}ms` }} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-3">
-              <div className="rounded-[1.1rem] border border-cyan-200/14 bg-white/[0.035] p-4">
-                <p className="text-[0.64rem] font-black uppercase tracking-[0.22em] text-cyan-100">Objective window</p>
-                <div className="mt-4 grid grid-cols-[auto_1fr] items-center gap-4">
-                  <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl border border-cyan-200/18 bg-black/24">
-                    <span className="nxt5-loader-orbit" />
-                    <Trophy className="h-8 w-8 text-cyan-100" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-2xl font-black text-white">02:45</p>
-                    <p className="mt-1 text-xs font-bold text-slate-300">Herald setup locked</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-[1.1rem] border border-white/10 bg-black/[0.18] p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-black text-white">Data pipeline</p>
-                  <RefreshCw className="h-4 w-4 text-cyan-100" />
-                </div>
-                <div className="mt-4 space-y-3">
-                  {["Récupération roster", "Index des games", "Préparation dashboards"].map((item, index) => (
-                    <div key={item} className="flex items-center gap-3">
-                      <span className="nxt5-loader-check flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-cyan-200/22 text-[0.62rem] font-black text-cyan-50" style={{ "--delay": `${index * 220}ms` }}>{index + 1}</span>
-                      <span className="min-w-0 flex-1 truncate text-xs font-bold text-slate-200">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="overflow-hidden rounded-[1.1rem] border border-fuchsia-200/14 bg-fuchsia-400/[0.055] p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-50">Sync progress</p>
-                  <span className="text-xs font-black text-white">NXT5</span>
-                </div>
-                <span className="block h-2 overflow-hidden rounded-full bg-black/35">
-                  <span className="nxt5-loader-main-progress block h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" />
-                </span>
-              </div>
-            </div>
+            ))}
+            <span className="nxt5-loader-stage-line" />
           </div>
         </div>
       </motion.div>
