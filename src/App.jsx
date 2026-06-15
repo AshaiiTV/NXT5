@@ -6597,7 +6597,7 @@ function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
             ))}
             <div className="nxt5-loader-core">
               <span className="nxt5-loader-core-halo" />
-              <img src="/assets/nxt5-mark.png?v=8" alt="NXT5" />
+              <img src="/favicon-512x512.png?v=8" alt="NXT5" />
             </div>
           </div>
 
