@@ -3250,29 +3250,78 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
   const sortedRows = rows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || "")));
   const bestDamageRow = rows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
   const csMilestones = csMilestoneSummary(rows);
-  return <div className="space-y-4">
-    <div className="relative overflow-hidden rounded-2xl border border-cyan-200/16 bg-cyan-400/[0.055] p-4">
+  const heroStats = [
+    ["WR", `${stat.winrate}%`, `${stat.wins}W - ${Math.max(0, stat.games - stat.wins)}L`, stat.winrate >= 50 ? "text-emerald-100" : "text-amber-100"],
+    ["KDA", stat.kda, `${stat.kills}/${stat.deaths}/${stat.assists} total`, "text-cyan-100"],
+    ["KP", `${avg(stat.kp, 0)}%`, "moyenne", "text-fuchsia-100"],
+    ["CS/min", avg(stat.csPerMin), csMilestones.samples > 0 ? `CS10/20 ${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}` : "moyenne", "text-amber-100"],
+  ];
+  return <div className="space-y-5">
+    <div className="relative overflow-hidden rounded-2xl bg-cyan-400/[0.045] p-4 sm:p-5">
       <ChampionBackdrop champion={stat.champion} />
-      <div className="relative z-10 flex min-w-0 items-center gap-4"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-20 w-20 shrink-0 rounded-2xl border border-cyan-200/25 object-cover" /><div className="min-w-0"><p className="truncate text-2xl font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-sm font-semibold text-slate-100">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.wins}W - {Math.max(0, stat.games - stat.wins)}L</p><div className="mt-3 flex flex-wrap gap-2">{championStyleTags(stat.champion).slice(0, 3).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>
+      <div className="relative z-10 grid gap-5 xl:grid-cols-[minmax(0,.72fr)_minmax(360px,.28fr)] xl:items-end">
+        <div className="flex min-w-0 items-end gap-4">
+          <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-24 w-24 shrink-0 rounded-2xl border border-cyan-200/25 object-cover shadow-[0_18px_38px_rgba(0,0,0,.28)] sm:h-28 sm:w-28" />
+          <div className="min-w-0 pb-1">
+            <div className="flex flex-wrap gap-2">{championStyleTags(stat.champion).slice(0, 3).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div>
+            <p className="mt-3 truncate text-3xl font-black leading-none text-white md:text-4xl">{championDisplayName(stat.champion)}</p>
+            <p className="mt-2 text-sm font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} analysée{stat.games > 1 ? "s" : ""}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-4 xl:grid-cols-2">
+          {heroStats.map(([label, value, detail, color]) => <ChampionVisualMetric key={label} label={label} value={value} detail={detail} color={color} />)}
+        </div>
+      </div>
     </div>
-    <div className="grid min-w-0 grid-cols-2 gap-2">
-      <ProfileHudMetric label="WR" value={`${stat.winrate}%`} detail="Sur ce champion" tone={stat.winrate >= 50 ? "green" : "orange"} />
-      <ProfileHudMetric label="KDA" value={stat.kda} detail={`${stat.kills}/${stat.deaths}/${stat.assists} total`} tone="cyan" />
-      <ProfileHudMetric label="KP" value={`${avg(stat.kp, 0)}%`} detail="Moyenne" tone="purple" />
-      <ProfileHudMetric label="CS/min" value={avg(stat.csPerMin)} detail="Moyenne" tone="orange" />
-      {csMilestones.samples > 0 && <ProfileHudMetric label="CS 10 mins / 20 mins" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={`${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}`} tone="green" />}
-      <ProfileHudMetric label="Dégâts" value={formatPoints(stat.damage / safeGames)} detail="Moyenne/game" tone="purple" />
-      <ProfileHudMetric label="Vision" value={avg(stat.vision)} detail="Moyenne/game" tone="cyan" />
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,.46fr)_minmax(0,.54fr)]">
+      <section className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Repères champion</p><Badge tone="cyan">{formatPoints(stat.damage / safeGames)} DMG moy.</Badge></div>
+        <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
+          <ChampionReferenceLine label="Vision" value={avg(stat.vision)} detail="moyenne/game" />
+          <ChampionReferenceLine label="Dégâts" value={formatPoints(stat.damage / safeGames)} detail="moyenne/game" />
+          {csMilestones.samples > 0 && <ChampionReferenceLine label="CS 10 / 20" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={`${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}`} />}
+          {bestDamageRow && <ChampionReferenceLine label="Peak dégâts" value={formatPoints(bestDamageRow.damage)} detail={matchDisplayName(bestDamageRow.match, "game inconnue")} />}
+        </div>
+      </section>
+      <section className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Matchups</p><Badge tone="cyan">{matchups.length}</Badge></div>
+        <div className="mt-3 divide-y divide-white/10 border-y border-white/10">{matchups.length ? matchups.map((matchup) => <div key={matchup.champion} className="flex min-w-0 items-center gap-3 py-3"><ChampionPortrait champion={matchup.champion} alt={matchup.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(matchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-400">{matchup.games} game{matchup.games > 1 ? "s" : ""} · {matchup.wins}W - {matchup.losses}L · KDA {matchup.kda}</p></div><span className={cx("text-sm font-black", matchup.winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{matchup.winrate}%</span></div>) : <p className="py-4 text-sm font-semibold text-slate-400">Aucun matchup direct reconnu.</p>}</div>
+      </section>
     </div>
-    {bestDamageRow && <p className="rounded-2xl border border-cyan-300/15 bg-cyan-400/8 px-3 py-2 text-xs font-bold text-cyan-50">Meilleure game dégâts : {formatPoints(bestDamageRow.damage)} sur {matchDisplayName(bestDamageRow.match, "game inconnue")} · {bestDamageRow.match?.game_id || "game inconnue"}</p>}
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Matchups du champion</p><Badge tone="cyan">{matchups.length}</Badge></div>
-      <div className="mt-3 grid gap-2">{matchups.length ? matchups.map((matchup) => <div key={matchup.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait champion={matchup.champion} alt={matchup.champion} className="h-11 w-11 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(matchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-200">{matchup.games} game{matchup.games > 1 ? "s" : ""} · {matchup.wins}W - {matchup.losses}L · KDA {matchup.kda}</p></div><Badge tone={matchup.winrate >= 50 ? "green" : "red"}>{matchup.winrate}%</Badge></div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Aucun matchup direct reconnu.</p>}</div>
-    </div>
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+    <section>
       <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Historique par game</p>
-      <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1">{sortedRows.length ? sortedRows.map((row, index) => { const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase()); return <div key={(row.id || row.match?.id || index) + "-profile-champ"} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3 xl:grid-cols-[minmax(0,1fr)_minmax(110px,.7fr)_repeat(3,minmax(64px,.45fr))] xl:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || "Side ?"}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(row.match)}</p><p className="truncate text-xs font-semibold text-slate-300">{row.match?.duration || "--:--"}</p></div><div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Matchup</p><p className="mt-1 truncate font-black text-white">{enemy?.champion ? `vs ${championDisplayName(enemy.champion)}` : "Non reconnu"}</p></div><div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KDA</p><p className="font-black text-white">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</p></div><div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">KP</p><p className="font-black text-white">{Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</p></div><div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">DMG</p><p className="font-black text-white">{formatPoints(row.damage)}</p></div></div>; }) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Aucune game sur ce champion.</p>}</div>
+      <div className="mt-3 max-h-80 divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{sortedRows.length ? sortedRows.map((row, index) => { const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase()); return <ChampionHistoryLine key={(row.id || row.match?.id || index) + "-profile-champ"} row={row} enemy={enemy} />; }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune game sur ce champion.</p>}</div>
+    </section>
+  </div>;
+}
+
+function ChampionVisualMetric({ label, value, detail, color }) {
+  return <div className="min-w-0">
+    <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
+    <p className={cx("mt-1 truncate text-2xl font-black leading-none", color)}>{value}</p>
+    <p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p>
+  </div>;
+}
+
+function ChampionReferenceLine({ label, value, detail }) {
+  return <div className="grid min-w-0 grid-cols-[minmax(88px,.5fr)_minmax(82px,.35fr)_minmax(0,1fr)] items-center gap-3 py-3">
+    <p className="truncate text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</p>
+    <p className="truncate text-sm font-black text-white">{value}</p>
+    <p className="truncate text-xs font-semibold text-slate-400">{detail}</p>
+  </div>;
+}
+
+function ChampionHistoryLine({ row, enemy }) {
+  return <div className="grid gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(120px,.42fr)_repeat(3,minmax(64px,.26fr))] lg:items-center">
+    <div className="min-w-0">
+      <div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || "Side ?"}</Badge></div>
+      <p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(row.match)}</p>
+      <p className="truncate text-xs font-semibold text-slate-400">{row.match?.duration || "--:--"}</p>
     </div>
+    <div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Matchup</p><p className="mt-1 truncate font-black text-white">{enemy?.champion ? `vs ${championDisplayName(enemy.champion)}` : "Non reconnu"}</p></div>
+    <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KDA</p><p className="font-black text-white">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</p></div>
+    <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KP</p><p className="font-black text-white">{Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</p></div>
+    <div><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">DMG</p><p className="font-black text-white">{formatPoints(row.damage)}</p></div>
   </div>;
 }
 
