@@ -3230,7 +3230,7 @@ function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, i
       </aside>
     </div>
     <div className="mt-6 border-t border-white/10 pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Repères utiles</p><span className="text-xs font-semibold text-slate-500">Synthèse volontairement limitée</span></div>
+      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Repères utiles</p></div>
       <div className="mt-3 grid gap-x-6 gap-y-2 lg:grid-cols-2">{referenceMetrics.map((item) => <CoachReferenceMetric key={item.label} item={item} />)}</div>
     </div>
   </Surface>;
