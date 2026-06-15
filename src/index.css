@@ -492,17 +492,12 @@ svg {
 .nxt5-loader-cinema {
   position: relative;
   min-height: 380px;
-  overflow: hidden;
-  border: 1px solid rgba(214, 246, 255, 0.18);
-  border-radius: 1.45rem;
-  background:
-    linear-gradient(135deg, rgba(6, 19, 42, 0.92), rgba(3, 9, 24, 0.84) 54%, rgba(33, 10, 55, 0.86)),
-    rgba(2, 5, 17, 0.86);
-  box-shadow:
-    0 28px 100px rgba(0, 0, 0, 0.48),
-    0 0 98px rgba(34, 211, 238, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.075);
-  backdrop-filter: blur(22px);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .nxt5-loader-cinema::before,
@@ -513,11 +508,12 @@ svg {
 }
 
 .nxt5-loader-cinema::before {
-  inset: 0;
+  inset: -18% -8% 4%;
   background:
-    radial-gradient(circle at 50% 46%, rgba(103, 232, 249, 0.26), transparent 27%),
-    radial-gradient(circle at 50% 46%, transparent 0 33%, rgba(255, 255, 255, 0.085) 33.3%, transparent 33.8% 48%, rgba(217, 70, 239, 0.12) 48.4%, transparent 49%);
-  opacity: 0.78;
+    radial-gradient(circle at 50% 46%, rgba(103, 232, 249, 0.22), transparent 27%),
+    radial-gradient(circle at 50% 46%, transparent 0 33%, rgba(255, 255, 255, 0.07) 33.3%, transparent 33.8% 48%, rgba(217, 70, 239, 0.1) 48.4%, transparent 49%),
+    linear-gradient(180deg, transparent, rgba(2, 5, 17, 0.36) 76%, transparent);
+  opacity: 0.82;
 }
 
 .nxt5-loader-cinema::after {
@@ -533,14 +529,14 @@ svg {
 
 .nxt5-loader-cinema-grid {
   position: absolute;
-  inset: 0;
+  inset: -18% -8% 0;
   pointer-events: none;
   background:
     linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(circle at center, black 0 46%, transparent 76%);
-  opacity: 0.34;
+  opacity: 0.28;
 }
 
 .nxt5-loader-cinema-scan {
@@ -676,13 +672,14 @@ svg {
 
 .nxt5-loader-stages {
   position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
+  left: 50%;
+  bottom: 0;
   z-index: 2;
   display: grid;
+  width: min(100%, 680px);
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: clamp(0.35rem, 1.4vw, 1rem);
+  transform: translateX(-50%);
 }
 
 .nxt5-loader-stage {
@@ -693,17 +690,15 @@ svg {
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  border: 1px solid rgba(214, 246, 255, 0.18);
-  border-radius: 0.9rem;
-  background: rgba(3, 10, 24, 0.8);
-  padding: 0.8rem 0.55rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.55rem 0.25rem 0;
   color: #ffffff;
   font-size: 0.7rem;
   font-weight: 900;
-  box-shadow:
-    0 0 22px rgba(34, 211, 238, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
+  box-shadow: none;
+  backdrop-filter: none;
   animation: nxt5-loader-stage 2.1s var(--delay, 0ms) ease-in-out infinite;
 }
 
@@ -714,13 +709,19 @@ svg {
 
 .nxt5-loader-stage-line {
   position: absolute;
-  left: 0.5rem;
-  right: 0.5rem;
-  top: -0.42rem;
-  height: 2px;
+  left: 5%;
+  right: 5%;
+  top: 0.1rem;
+  height: 1px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 10% 50%, rgba(103, 232, 249, 0.5), transparent 0.28rem),
+    radial-gradient(circle at 30% 50%, rgba(96, 165, 250, 0.4), transparent 0.24rem),
+    radial-gradient(circle at 50% 50%, rgba(232, 121, 249, 0.42), transparent 0.28rem),
+    radial-gradient(circle at 70% 50%, rgba(96, 165, 250, 0.4), transparent 0.24rem),
+    radial-gradient(circle at 90% 50%, rgba(103, 232, 249, 0.5), transparent 0.28rem);
+  opacity: 0.58;
 }
 
 .nxt5-loader-stage-line::after {
@@ -729,7 +730,7 @@ svg {
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #67e8f9, #60a5fa, #e879f9);
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.95), rgba(232, 121, 249, 0.78), transparent);
   transform-origin: left;
   animation: nxt5-loader-stage-line 2.65s ease-in-out infinite;
 }
@@ -781,8 +782,8 @@ svg {
 }
 
 @keyframes nxt5-loader-stage {
-  0%, 100% { border-color: rgba(214, 246, 255, 0.12); background: rgba(2, 7, 18, 0.62); }
-  50% { border-color: rgba(103, 232, 249, 0.32); background: rgba(34, 211, 238, 0.09); }
+  0%, 100% { opacity: 0.62; text-shadow: 0 0 0 rgba(34, 211, 238, 0); }
+  50% { opacity: 1; text-shadow: 0 0 18px rgba(34, 211, 238, 0.34); }
 }
 
 @keyframes nxt5-loader-stage-line {
@@ -916,7 +917,6 @@ svg {
 
   .nxt5-loader-cinema {
     min-height: 520px;
-    border-radius: 1.1rem;
   }
 
   .nxt5-loader-arena {
