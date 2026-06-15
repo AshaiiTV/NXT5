@@ -5512,7 +5512,7 @@ function ChampionMasteryPortrait({ row, champion, alt, className = "h-12 w-12 ro
   const tier = championTierByStatus(status);
   return <span className={cx("relative inline-flex shrink-0 overflow-visible", className)}>
     <ChampionPortrait row={row} champion={champion || row?.champion} alt={alt || champion || row?.champion} className="h-full w-full rounded-[inherit] object-cover" />
-    <ChampionTierMark tier={tier} active className={cx("absolute -right-1.5 -top-1.5 border-white/30 bg-black/62 shadow-[0_0_16px_rgba(255,255,255,.12)] backdrop-blur-md", markClassName)} />
+    <ChampionTierMark tier={tier} active className={cx("absolute right-1 top-1 border-white/30 bg-black/62 shadow-[0_0_16px_rgba(255,255,255,.12)] backdrop-blur-md", markClassName)} />
   </span>;
 }
 
@@ -5549,9 +5549,11 @@ function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
 
 function ChampionSearchTile({ champion, active, existingRow, canManage, onDragStart, onQuickPick }) {
   const source = existingRow && ["manual", "riot_manual"].includes(String(existingRow.source || "")) ? existingRow : { champion };
-  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, source)} className={cx("group min-w-[150px] rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}>
+  const tier = active ? championTierByStatus(championPoolStatus(existingRow)) : null;
+  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, source)} className={cx("group relative min-w-[150px] rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}>
+    {active && <ChampionTierMark tier={tier} active className="absolute right-2 top-2 z-20 h-7 w-7 rounded-lg border-white/30 bg-black/62 shadow-[0_0_16px_rgba(255,255,255,.12)] backdrop-blur-md [&_svg]:h-4 [&_svg]:w-4" />}
     <div className="flex min-w-0 items-center gap-2">
-      {active ? <ChampionMasteryPortrait row={existingRow} champion={champion} alt={champion} className="h-11 w-11 rounded-xl" markClassName="h-5 w-5 rounded-md [&_svg]:h-3 [&_svg]:w-3" /> : <ChampionPortrait champion={champion} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />}
+      <ChampionPortrait champion={champion} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
       <span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>
       {active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}
     </div>
