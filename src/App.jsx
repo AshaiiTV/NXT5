@@ -3288,6 +3288,10 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
         <div className="mt-3 divide-y divide-white/10 border-y border-white/10">{matchups.length ? matchups.map((matchup) => <div key={matchup.champion} className="flex min-w-0 items-center gap-3 py-3"><ChampionPortrait champion={matchup.champion} alt={matchup.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(matchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-400">{matchup.games} game{matchup.games > 1 ? "s" : ""} · {matchup.wins}W - {matchup.losses}L · KDA {matchup.kda}</p></div><span className={cx("text-sm font-black", matchup.winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{matchup.winrate}%</span></div>) : <p className="py-4 text-sm font-semibold text-slate-400">Aucun matchup direct reconnu.</p>}</div>
       </section>
     </div>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,.52fr)_minmax(0,.48fr)]">
+      <ChampionLanePanel rows={sortedRows} />
+      <ChampionBuildPanel rows={sortedRows} />
+    </div>
     <section>
       <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Historique par game</p>
       <div className="mt-3 max-h-80 divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{sortedRows.length ? sortedRows.map((row, index) => { const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase()); return <ChampionHistoryLine key={(row.id || row.match?.id || index) + "-profile-champ"} row={row} enemy={enemy} />; }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune game sur ce champion.</p>}</div>
@@ -3308,6 +3312,54 @@ function ChampionReferenceLine({ label, value, detail }) {
     <p className="truncate text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</p>
     <p className="truncate text-sm font-black text-white">{value}</p>
     <p className="truncate text-xs font-semibold text-slate-400">{detail}</p>
+  </div>;
+}
+
+function ChampionLanePanel({ rows }) {
+  return <section className="min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Lecture lane</p><Badge tone="cyan">{rows.length} game{rows.length > 1 ? "s" : ""}</Badge></div>
+    <div className="mt-3 divide-y divide-white/10 border-y border-white/10">{rows.length ? rows.map((row, index) => {
+      const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase());
+      const cs10 = csAtMinute(row, 10);
+      const cs20 = csAtMinute(row, 20);
+      const enemyCs10 = enemy ? csAtMinute({ ...enemy, match: row.match }, 10) : null;
+      const diff10 = Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null;
+      return <div key={`${row.match?.id || row.match?.game_id || index}-lane`} className="grid gap-3 py-3 lg:grid-cols-[minmax(0,1fr)_repeat(3,minmax(58px,.25fr))] lg:items-center">
+        <div className="flex min-w-0 items-center gap-3">
+          {enemy?.champion ? <ChampionPortrait champion={enemy.champion} alt={enemy.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /> : <div className="h-10 w-10 shrink-0 rounded-xl bg-white/[0.05]" />}
+          <div className="min-w-0"><p className="truncate text-sm font-black text-white">vs {enemy?.champion ? championDisplayName(enemy.champion) : "Matchup inconnu"}</p><p className="truncate text-xs font-semibold text-slate-400">{matchDisplayName(row.match, "Game")} · {row.match?.result || "Résultat ?"}</p></div>
+        </div>
+        <ChampionMiniStat label="CS10" value={Number.isFinite(cs10) ? cs10 : "-"} />
+        <ChampionMiniStat label="CS20" value={Number.isFinite(cs20) ? cs20 : "-"} />
+        <ChampionMiniStat label="Diff10" value={diff10 === null ? "-" : `${diff10 >= 0 ? "+" : ""}${diff10}`} toneName={diff10 === null ? "slate" : diff10 >= 0 ? "green" : "red"} />
+      </div>;
+    }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune lane exploitable sur ce champion.</p>}</div>
+  </section>;
+}
+
+function ChampionBuildPanel({ rows }) {
+  return <section className="min-w-0">
+    <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Builds joués</p><Badge tone="purple">{rows.length}</Badge></div>
+    <div className="mt-3 divide-y divide-white/10 border-y border-white/10">{rows.length ? rows.map((row, index) => {
+      const finalItems = finalBuildItems(row);
+      const timeline = itemBuildTimeline(row).filter((event) => event.label === "Achat").slice(0, 5);
+      const spells = summonerSpellIds(row).filter(Boolean);
+      return <div key={`${row.match?.id || row.match?.game_id || index}-build`} className="py-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0"><p className="truncate text-sm font-black text-white">{matchDisplayName(row.match, "Game")}</p><p className="truncate text-xs font-semibold text-slate-400">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {row.match?.duration || "--:--"}</p></div>
+          <div className="flex shrink-0 flex-wrap gap-1.5">{spells.map((spell, spellIndex) => <HudIcon key={`${row.id || row.match?.id}-spell-${spellIndex}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-8 w-8 rounded-lg" />)}</div>
+        </div>
+        {finalItems.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{finalItems.map((item, itemIndex) => <HudIcon key={`${row.id || row.match?.id}-champ-final-${itemIndex}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />)}</div>}
+        {timeline.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{timeline.map((event, eventIndex) => <span key={`${row.id || row.match?.id}-first-buy-${eventIndex}-${event.itemId}`} className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.035] px-2 py-1 text-[0.62rem] font-black text-slate-200"><span className="text-cyan-100">{event.time}</span><HudIcon sources={itemIconSources(event.itemId)} label={`Achat ${event.itemId}`} fallback={event.itemId} emptyText="?" className="h-5 w-5 rounded-md" /></span>)}</div>}
+      </div>;
+    }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucun build détecté sur ce champion.</p>}</div>
+  </section>;
+}
+
+function ChampionMiniStat({ label, value, toneName = "cyan" }) {
+  return <div className="min-w-0">
+    <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
+    <p className={cx("mt-1 truncate font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-white")}>{value}</p>
   </div>;
 }
 
