@@ -6596,8 +6596,7 @@ function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
               <span key={`${role}-beam`} className={cx("nxt5-loader-beam", `nxt5-loader-beam-${index}`)} style={{ "--delay": `${index * 150}ms` }} />
             ))}
             <div className="nxt5-loader-core">
-              <span className="nxt5-loader-core-halo" />
-              <img src="/favicon-512x512.png?v=8" alt="NXT5" />
+              <img src="/assets/nxt5-loader-favicon.png?v=1" alt="NXT5" />
             </div>
           </div>
 
