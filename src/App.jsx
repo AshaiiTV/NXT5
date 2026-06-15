@@ -1387,18 +1387,6 @@ function tagLabel(tag) {
   }[String(tag || "")] || String(tag || "").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function championStyleIcon(tag) {
-  if (["engage", "dive", "gank", "flank"].includes(tag)) return Target;
-  if (["assassin", "burst", "snowball", "reset"].includes(tag)) return Flame;
-  if (["frontline", "peel", "safe", "anti-dive", "self-peel"].includes(tag)) return Shield;
-  if (["vision", "control", "utility", "cover"].includes(tag)) return Eye;
-  if (["objective", "tempo", "roam", "skirmish", "duel"].includes(tag)) return Gauge;
-  if (["scaling", "farm", "dps", "front-to-back"].includes(tag)) return Sparkles;
-  if (["side", "split", "siege", "poke", "lane", "waveclear"].includes(tag)) return Swords;
-  if (["disengage", "lockdown", "disrupt", "exhaust"].includes(tag)) return AlertTriangle;
-  return Crown;
-}
-
 const CHAMPION_TAG_DEFINITIONS = [
   ["engage", "Ouvre les combats avec une initiation claire."],
   ["dive", "Entre rapidement sur les carries ou la backline adverse."],
@@ -2171,12 +2159,29 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   const allyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ALLY") : null;
   const enemyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ENEMY") : null;
   const canvas = document.createElement("canvas");
-  canvas.width = 1800;
-  canvas.height = singleGame ? 1380 : 1160;
+  canvas.width = 1920;
+  canvas.height = 1080;
   const ctx = canvas.getContext("2d");
   const W = canvas.width;
   const H = canvas.height;
   const rounded = (x, y, w, h, r = 28) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
+  const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 12, align = "left" } = {}) => {
+    const source = String(text || "");
+    const match = String(font || "800 20px Inter, Arial, sans-serif").match(/(\d+)px/);
+    const baseSize = match ? Number(match[1]) : 20;
+    let size = baseSize;
+    let nextFont = font || "800 20px Inter, Arial, sans-serif";
+    ctx.font = nextFont;
+    while (ctx.measureText(source).width > maxWidth && size > min) {
+      size -= 1;
+      nextFont = nextFont.replace(/\d+px/, `${size}px`);
+      ctx.font = nextFont;
+    }
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.fillText(source, x, y);
+    ctx.textAlign = "left";
+  };
   const imageCache = new Map();
   const loadCanvasImage = (url) => new Promise((resolve) => {
     if (!url) return resolve(null);
@@ -2223,113 +2228,82 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ctx.lineWidth = 1;
     rounded(x, y, w, h, radius);
   };
+  const accentColor = (accent = "cyan") => accent === "pink" ? "#f472b6" : accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : "#67e8f9";
+  const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "pink" ? `rgba(244,114,182,${alpha})` : accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : `rgba(103,232,249,${alpha})`;
+  const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  };
   const drawPill = (text, x, y, fill = "rgba(34,211,238,.10)", stroke = "rgba(34,211,238,.22)", color = "#e8fbff") => {
-    ctx.font = "900 18px Inter, Arial, sans-serif";
+    ctx.font = "900 16px Inter, Arial, sans-serif";
     const width = Math.min(300, Math.max(82, ctx.measureText(text).width + 30));
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 2;
-    rounded(x, y, width, 34, 17);
+    ctx.lineWidth = 1.5;
+    rounded(x, y, width, 32, 16);
     ctx.fillStyle = color;
-    ctx.fillText(text, x + 15, y + 23);
+    ctx.fillText(text, x + 15, y + 22);
     return width;
   };
-  const drawCard = (x, y, w, h, accent = "cyan") => {
+  const drawPanel = (x, y, w, h, accent = "cyan", alpha = 0.72) => {
     const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-    gradient.addColorStop(0, accent === "pink" ? "rgba(217,70,239,.20)" : "rgba(34,211,238,.20)");
-    gradient.addColorStop(0.48, "rgba(5,10,28,.82)");
-    gradient.addColorStop(1, accent === "pink" ? "rgba(244,114,182,.06)" : "rgba(103,232,249,.06)");
+    gradient.addColorStop(0, accentSoft(accent, 0.12));
+    gradient.addColorStop(0.38, `rgba(5,10,24,${alpha})`);
+    gradient.addColorStop(1, "rgba(5,10,24,.48)");
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.34)" : "rgba(103,232,249,.34)";
-    ctx.lineWidth = 2;
-    rounded(x, y, w, h, 22);
-    ctx.strokeStyle = accent === "pink" ? "rgba(244,114,182,.72)" : "rgba(103,232,249,.72)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x + 28, y + 1);
-    ctx.lineTo(x + Math.min(w - 32, 260), y + 1);
-    ctx.stroke();
-    ctx.strokeStyle = "rgba(255,255,255,.10)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(x + w - 120, y + h - 1);
-    ctx.lineTo(x + w - 26, y + h - 1);
-    ctx.stroke();
+    ctx.strokeStyle = accentSoft(accent, 0.34);
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = accentColor(accent);
+    ctx.fillRect(x, y, 4, h);
   };
   const drawMetric = (label, value, detail, x, y, w, accent = "cyan") => {
-    drawCard(x, y, w, 106, accent);
-    ctx.fillStyle = accent === "pink" ? "#f9c6ff" : "#bffaff";
-    ctx.font = "900 15px Inter, Arial, sans-serif";
+    ctx.fillStyle = accentColor(accent);
+    ctx.font = "900 13px Inter, Arial, sans-serif";
     ctx.fillText(label.toUpperCase(), x + 22, y + 31);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 36px Inter, Arial, sans-serif";
-    ctx.fillText(short(value, 12), x + 22, y + 73);
-    ctx.fillStyle = "#c7d4e5";
-    ctx.font = "800 15px Inter, Arial, sans-serif";
-    ctx.fillText(short(detail, 28), x + 22, y + 94);
-  };
-  const drawBadge = (text, x, y, accent = "cyan") => {
-    const fill = accent === "pink" ? "rgba(244,114,182,.16)" : accent === "green" ? "rgba(52,211,153,.15)" : "rgba(34,211,238,.14)";
-    const stroke = accent === "pink" ? "rgba(244,114,182,.34)" : accent === "green" ? "rgba(52,211,153,.32)" : "rgba(103,232,249,.32)";
-    ctx.font = "900 15px Inter, Arial, sans-serif";
-    const width = Math.max(74, ctx.measureText(text).width + 26);
-    ctx.fillStyle = fill;
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.5;
-    rounded(x, y, width, 30, 15);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(text, x + 13, y + 20);
-    return width;
+    fitText(short(value, 16), x + 22, y + 66, w - 44, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
+    fitText(short(detail, 28), x + 22, y + 84, w - 44, { font: "800 13px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
   };
   const drawPlayerRow = (row, x, y, w, align = "left") => {
     const right = align === "right";
     const kda = `${row?.kills || 0}/${row?.deaths || 0}/${row?.assists || 0}`;
     const spells = row ? summonerSpellIds(row).filter(Boolean) : [];
-    const build = row ? finalBuildItems(row).slice(0, 7) : [];
+    const build = row ? finalBuildItems(row).slice(0, 6) : [];
     const portraitSources = championPortraitSources(row, row?.champion);
-    ctx.fillStyle = right ? "rgba(50,10,38,.62)" : "rgba(3,34,47,.62)";
+    ctx.fillStyle = right ? "rgba(244,114,182,.045)" : "rgba(34,211,238,.045)";
+    ctx.fillRect(x, y, w, 62);
+    drawLine(x, y + 62, x + w, y + 62, "rgba(255,255,255,.09)", 1);
+    const portraitX = x + 14;
+    drawCachedImage(portraitSources, portraitX, y + 10, 42, 42, 8);
     ctx.strokeStyle = right ? "rgba(244,114,182,.28)" : "rgba(103,232,249,.28)";
     ctx.lineWidth = 2;
-    rounded(x, y, w, 84, 18);
-    const rowGlow = ctx.createLinearGradient(x, y, x + w, y);
-    rowGlow.addColorStop(0, right ? "rgba(244,114,182,.14)" : "rgba(34,211,238,.16)");
-    rowGlow.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = rowGlow;
     ctx.beginPath();
-    ctx.roundRect(x + 2, y + 2, w - 4, 80, 16);
-    ctx.fill();
-    const portraitX = x + 14;
-    drawCachedImage(portraitSources, portraitX, y + 11, 62, 62, 16);
-    ctx.strokeStyle = "rgba(103,232,249,.26)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(portraitX, y + 11, 62, 62, 16);
+    ctx.roundRect(portraitX, y + 10, 42, 42, 8);
     ctx.stroke();
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 20px Inter, Arial, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(short(rowName(row), 20), x + 92, y + 29);
-    ctx.fillStyle = "#bffaff";
-    ctx.font = "800 15px Inter, Arial, sans-serif";
-    ctx.fillText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 28), x + 92, y + 54);
-    ctx.textAlign = "left";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 16px Inter, Arial, sans-serif";
-    ctx.fillText(`${kda} · ${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP · ${creepScore(row)} CS`, x + 300, y + 30);
-    ctx.fillStyle = "#c7d4e5";
-    ctx.font = "800 13px Inter, Arial, sans-serif";
-    ctx.fillText(`${formatPoints(row?.gold)} G · ${formatPoints(row?.damage)} D · ${row?.vision || 0} VS`, x + 300, y + 54);
-    const iconY = y + 53;
-    const iconStart = x + w - 258;
-    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 27, iconY, 23, 23, 6));
-    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 62 + index * 27, iconY, 23, 23, 6));
+    fitText(short(rowName(row), 24), x + 70, y + 24, 192, { font: "900 16px Inter, Arial, sans-serif", color: "#ffffff", min: 12 });
+    fitText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 32), x + 70, y + 45, 230, { font: "800 12px Inter, Arial, sans-serif", color: right ? "#fbcfe8" : "#bffaff", min: 10 });
+    fitText(kda, x + 312, y + 24, 70, { font: "900 16px Inter, Arial, sans-serif", color: "#ffffff", min: 11 });
+    fitText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP`, x + 386, y + 24, 70, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    fitText(`${creepScore(row)} CS`, x + 312, y + 45, 70, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    fitText(`${formatPoints(row?.gold)} G`, x + 458, y + 24, 88, { font: "900 13px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
+    fitText(`${formatPoints(row?.damage)} D`, x + 548, y + 24, 96, { font: "900 13px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
+    fitText(`${row?.vision || 0} VS`, x + 458, y + 45, 86, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    const iconY = y + 36;
+    const iconStart = x + w - 178;
+    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 21, iconY, 18, 18, 4));
+    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 48 + index * 21, iconY, 18, 18, 4));
     ctx.textAlign = "left";
   };
   const drawObjectiveSide = (label, data, x, y, w, accent = "cyan") => {
-    drawCard(x, y, w, 148, accent);
-    ctx.fillStyle = accent === "pink" ? "#f9c6ff" : "#bffaff";
-    ctx.font = "900 16px Inter, Arial, sans-serif";
-    ctx.fillText(label.toUpperCase(), x + 22, y + 34);
+    ctx.fillStyle = accentColor(accent);
+    ctx.font = "900 14px Inter, Arial, sans-serif";
+    ctx.fillText(label.toUpperCase(), x, y + 22);
     const objectiveCells = [
       ["Drakes", data?.dragonCount || 0, "dragon"],
       ["Grubs", data?.grubs || 0, "grub"],
@@ -2338,34 +2312,59 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
       ["Tours", data?.towers || 0, "tower"],
     ];
     objectiveCells.forEach(([name, value, type], index) => {
-      const cx = x + 22 + index * ((w - 44) / 5);
-      drawCachedImage(OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon, cx, y + 50, 34, 34, 11);
+      const cx = x + index * (w / 5);
+      drawCachedImage(OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon, cx, y + 40, 28, 28, 8);
       ctx.fillStyle = "#ffffff";
-      ctx.font = "900 24px Inter, Arial, sans-serif";
-      ctx.fillText(String(value), cx + 43, y + 75);
+      ctx.font = "900 22px Inter, Arial, sans-serif";
+      ctx.fillText(String(value), cx + 36, y + 62);
       ctx.fillStyle = "#c7d4e5";
-      ctx.font = "800 11px Inter, Arial, sans-serif";
-      ctx.fillText(name.toUpperCase(), cx, y + 105);
+      ctx.font = "800 10px Inter, Arial, sans-serif";
+      ctx.fillText(name.toUpperCase(), cx, y + 88);
     });
     const dragons = (data?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean);
     ctx.fillStyle = "#d8f8ff";
-    ctx.font = "800 14px Inter, Arial, sans-serif";
-    ctx.fillText(short(dragons.length ? dragons.join(" · ") : "Dragons: timeline absente", 58), x + 22, y + 132);
+    ctx.font = "800 12px Inter, Arial, sans-serif";
+    ctx.fillText(short(dragons.length ? dragons.join(" · ") : "Dragons: timeline absente", 58), x, y + 108);
   };
-  const drawChampionToken = (champion, count, x, y) => {
-    drawCachedImage(championPortraitSources(champion, champion), x, y, 62, 62, 17);
-    ctx.fillStyle = "rgba(0,0,0,.56)";
-    ctx.beginPath();
-    ctx.roundRect(x, y + 38, 62, 24, 0);
-    ctx.fill();
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 11px Inter, Arial, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(short(championDisplayName(champion), 9), x + 31, y + 54);
-    ctx.fillStyle = "#bffaff";
+  const drawTeamTable = (label, rowsByRole, x, y, w, accent = "cyan") => {
+    drawPanel(x, y, w, 430, accent, 0.68);
+    fitText(label, x + 28, y + 48, w - 260, { font: "900 26px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
+    ctx.fillStyle = accentColor(accent);
+    ctx.font = "900 12px Inter, Arial, sans-serif";
+    ctx.fillText("JOUEUR", x + 28, y + 88);
+    ctx.fillText("KDA", x + 326, y + 88);
+    ctx.fillText("RESS.", x + 472, y + 88);
+    ctx.fillText("BUILD", x + w - 178, y + 88);
+    drawLine(x + 24, y + 104, x + w - 24, y + 104, accentSoft(accent, 0.26), 1.5);
+    rowsByRole.forEach((row, index) => drawPlayerRow(row, x + 14, y + 116 + index * 62, w - 28, accent === "pink" ? "right" : "left"));
+  };
+  const drawChampionSummaryRow = (champion, count, x, y, w, maxCount) => {
+    drawCachedImage(championPortraitSources(champion, champion), x, y, 46, 46, 10);
+    fitText(championDisplayName(champion), x + 60, y + 20, w - 138, { font: "900 16px Inter, Arial, sans-serif", color: "#ffffff", min: 11 });
+    fitText(`${count} pick${count > 1 ? "s" : ""}`, x + 60, y + 40, w - 138, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    const barW = Math.max(24, Math.round((w - 230) * (count / Math.max(1, maxCount))));
+    ctx.fillStyle = "rgba(255,255,255,.08)";
+    ctx.fillRect(x + w - 148, y + 17, 104, 7);
+    ctx.fillStyle = "#f472b6";
+    ctx.fillRect(x + w - 148, y + 17, barW, 7);
+    ctx.fillStyle = "#fbcfe8";
     ctx.font = "900 13px Inter, Arial, sans-serif";
-    ctx.fillText(`x${count}`, x + 31, y + 78);
+    ctx.textAlign = "right";
+    ctx.fillText(`x${count}`, x + w, y + 26);
     ctx.textAlign = "left";
+  };
+  const drawGroupMatchRow = (match, x, y, w, index) => {
+    const resultAccent = match?.result === "Victoire" ? "green" : match?.result === "Défaite" ? "pink" : "cyan";
+    ctx.fillStyle = index % 2 ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.018)";
+    ctx.fillRect(x, y, w, 42);
+    ctx.fillStyle = accentColor(resultAccent);
+    ctx.fillRect(x, y, 3, 42);
+    fitText(matchDisplayName(match, "Game"), x + 16, y + 18, w - 380, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
+    fitText(match?.game_id || "Game ID", x + 16, y + 35, w - 380, { font: "800 10px Inter, Arial, sans-serif", color: "#94a3b8", min: 9 });
+    fitText(match?.result || "Analyse", x + w - 338, y + 25, 90, { font: "900 12px Inter, Arial, sans-serif", color: accentColor(resultAccent), min: 9 });
+    fitText(match?.duration || "--:--", x + w - 224, y + 25, 72, { font: "800 12px Inter, Arial, sans-serif", color: "#e2e8f0", min: 9 });
+    fitText(match?.side || "Side ?", x + w - 134, y + 25, 62, { font: "800 12px Inter, Arial, sans-serif", color: "#e2e8f0", min: 9 });
+    fitText(match?.patch || "Patch ?", x + w - 60, y + 25, 54, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 9, align: "right" });
   };
   const imageUrls = new Set();
   imageUrls.add("/assets/nxt5-wordmark.png");
@@ -2379,59 +2378,35 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   });
   championCounts.forEach(([champion]) => championPortraitSources(champion, champion).forEach((url) => imageUrls.add(url)));
   await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
-  ctx.fillStyle = "#020511";
+  const pageGradient = ctx.createLinearGradient(0, 0, W, H);
+  pageGradient.addColorStop(0, "#030914");
+  pageGradient.addColorStop(0.52, "#020511");
+  pageGradient.addColorStop(1, "#090416");
+  ctx.fillStyle = pageGradient;
   ctx.fillRect(0, 0, W, H);
-  for (let x = 0; x < W; x += 48) {
-    ctx.strokeStyle = "rgba(103,232,249,.035)";
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
-  }
-  const bg = ctx.createRadialGradient(280, 120, 80, 280, 120, 760);
-  bg.addColorStop(0, "rgba(34,211,238,.28)");
-  bg.addColorStop(0.48, "rgba(30,64,175,.10)");
+  for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.026)", 1);
+  for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
+  const bg = ctx.createRadialGradient(240, 90, 80, 240, 90, 680);
+  bg.addColorStop(0, "rgba(34,211,238,.22)");
+  bg.addColorStop(0.48, "rgba(30,64,175,.08)");
   bg.addColorStop(1, "rgba(2,5,17,0)");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
-  const bg2 = ctx.createRadialGradient(W - 280, 120, 80, W - 280, 120, 740);
-  bg2.addColorStop(0, "rgba(217,70,239,.24)");
+  const bg2 = ctx.createRadialGradient(W - 220, 120, 90, W - 220, 120, 700);
+  bg2.addColorStop(0, "rgba(217,70,239,.18)");
   bg2.addColorStop(1, "rgba(2,5,17,0)");
   ctx.fillStyle = bg2;
   ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(103,232,249,.28)";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.roundRect(38, 34, W - 76, H - 76, 34);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(217,70,239,.22)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.roundRect(54, 50, W - 108, H - 108, 24);
-  ctx.stroke();
-  const headerGlow = ctx.createLinearGradient(72, 62, W - 72, 180);
-  headerGlow.addColorStop(0, "rgba(34,211,238,.18)");
-  headerGlow.addColorStop(0.5, "rgba(5,8,20,.68)");
-  headerGlow.addColorStop(1, "rgba(217,70,239,.16)");
-  ctx.fillStyle = headerGlow;
   ctx.strokeStyle = "rgba(103,232,249,.24)";
-  ctx.lineWidth = 1.8;
-  rounded(72, 62, W - 144, 116, 26);
-  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 96, 78, 84, 84);
-  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 194, 80, 244, 66);
-  ctx.strokeStyle = "rgba(103,232,249,.55)";
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.moveTo(80, 188);
-  ctx.lineTo(W - 80, 188);
-  ctx.stroke();
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 44px Inter, Arial, sans-serif";
-  ctx.fillText(short(title || "Export NXT5", 30), 444, 103);
-  ctx.fillStyle = "#c8f7ff";
-  ctx.font = "800 20px Inter, Arial, sans-serif";
-  ctx.fillText(short(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 66), 448, 137);
-  drawPill("NXT5 DATA EXPORT", W - 332, 86, "rgba(217,70,239,.16)", "rgba(217,70,239,.35)", "#fff");
+  ctx.lineWidth = 2;
+  ctx.strokeRect(48, 42, W - 96, H - 84);
+  drawLine(72, 188, W - 72, 188, "rgba(103,232,249,.55)", 2.5);
+  drawLine(72, 190, W - 72, 190, "rgba(244,114,182,.22)", 1);
+  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 82, 82);
+  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 236, 62);
+  fitText(short(title || "Export NXT5", 46), 464, 105, W - 860, { font: "900 42px Inter, Arial, sans-serif", color: "#ffffff", min: 24 });
+  fitText(short(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 90), 466, 142, W - 870, { font: "800 18px Inter, Arial, sans-serif", color: "#c8f7ff", min: 12 });
+  drawPill(singleGame ? "MATCH SNAPSHOT" : "SCRIM BLOCK EXPORT", W - 360, 86, "rgba(217,70,239,.14)", "rgba(217,70,239,.34)", "#fff");
   const metrics = [
     ["Games", String(games), `${wins}W - ${games - wins}L`, "cyan"],
     ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Sélection", wins >= games - wins ? "cyan" : "pink"],
@@ -2440,68 +2415,86 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ["DMG diff", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "Dégâts", damageDiff >= 0 ? "cyan" : "pink"],
     ["Vision diff", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "Vision", visionDiff >= 0 ? "cyan" : "pink"],
   ];
-  metrics.forEach(([label, value, detail, accent], index) => drawMetric(label, value, detail, 90 + (index % 3) * 560, 226 + Math.floor(index / 3) * 118, 510, accent));
+  drawPanel(90, 220, 1740, 96, "cyan", 0.54);
+  metrics.forEach(([label, value, detail, accent], index) => {
+    const x = 90 + index * 290;
+    if (index) drawLine(x, 236, x, 300, "rgba(255,255,255,.10)", 1);
+    drawMetric(label, value, detail, x + 2, 220, 286, accent);
+  });
 
   if (singleGame && firstMatch) {
     const allyByRole = roleOrder.map((role) => rows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ALLY" });
     const enemyByRole = roleOrder.map((role) => enemyRows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ENEMY" });
-    drawObjectiveSide("Blue Side", objectiveTeamKeyForSide(firstMatch, "BLUE") === "ALLY" ? allyObjectives : enemyObjectives, 90, 486, 780, "cyan");
-    drawObjectiveSide("Red Side", objectiveTeamKeyForSide(firstMatch, "RED") === "ALLY" ? allyObjectives : enemyObjectives, 930, 486, 780, "pink");
-    drawCard(90, 662, 780, 518, "cyan");
-    drawCard(930, 662, 780, 518, "pink");
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 30px Inter, Arial, sans-serif";
-    ctx.fillText(`Alliés · ${sideName(firstMatch, "ALLY")}`, 124, 720);
-    ctx.fillText(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, 964, 720);
-    drawBadge(firstMatch.result || "Analyse", 124, 736, firstMatch.result === "Victoire" ? "green" : "pink");
-    drawBadge(firstMatch.duration || "--:--", 254, 736, "cyan");
-    drawBadge(firstMatch.patch || "Patch ?", 356, 736, "cyan");
-    const roleColumnX = 875;
+    drawPanel(90, 346, 1740, 126, "green", 0.42);
+    drawObjectiveSide("Blue Side", objectiveTeamKeyForSide(firstMatch, "BLUE") === "ALLY" ? allyObjectives : enemyObjectives, 122, 360, 720, "cyan");
+    drawLine(960, 364, 960, 452, "rgba(255,255,255,.13)", 1.5);
+    drawObjectiveSide("Red Side", objectiveTeamKeyForSide(firstMatch, "RED") === "ALLY" ? allyObjectives : enemyObjectives, 1018, 360, 720, "pink");
+    drawTeamTable(`Alliés · ${sideName(firstMatch, "ALLY")}`, allyByRole, 90, 512, 820, "cyan");
+    drawTeamTable(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, enemyByRole, 1010, 512, 820, "pink");
+    ctx.fillStyle = "rgba(255,255,255,.07)";
+    ctx.fillRect(936, 538, 48, 376);
+    drawLine(960, 538, 960, 914, "rgba(103,232,249,.32)", 1);
+    ctx.textAlign = "center";
     roleOrder.forEach((role, index) => {
-      const y = 780 + index * 92;
-      ctx.fillStyle = "rgba(5,10,24,.72)";
-      ctx.strokeStyle = "rgba(255,255,255,.13)";
-      ctx.lineWidth = 1.5;
-      rounded(roleColumnX, y, 50, 84, 16);
-      ctx.fillStyle = "#dff8ff";
+      ctx.fillStyle = index % 2 ? "#fbcfe8" : "#bffaff";
       ctx.font = "900 13px Inter, Arial, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(role, roleColumnX + 25, y + 48);
-      ctx.textAlign = "left";
+      ctx.fillText(role, 960, 668 + index * 62);
     });
-    allyByRole.forEach((row, index) => drawPlayerRow(row, 124, 780 + index * 92, 720, "left"));
-    enemyByRole.forEach((row, index) => drawPlayerRow(row, 956, 780 + index * 92, 720, "right"));
+    ctx.textAlign = "left";
+    const statusAccent = firstMatch.result === "Victoire" ? "green" : firstMatch.result === "Défaite" ? "pink" : "cyan";
+    drawPill(firstMatch.result || "Analyse", 122, 480, accentSoft(statusAccent, 0.16), accentSoft(statusAccent, 0.38), "#fff");
+    drawPill(firstMatch.duration || "--:--", 254, 480, "rgba(103,232,249,.12)", "rgba(103,232,249,.30)", "#e8fbff");
+    drawPill(firstMatch.patch || "Patch ?", 356, 480, "rgba(103,232,249,.12)", "rgba(103,232,249,.30)", "#e8fbff");
   } else {
-    const leaderCards = [
+    const leaderRows = [
       ["Meilleur KDA", topKda ? `${rowName(topKda)} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
       ["Dégâts lead", topDamage ? `${rowName(topDamage)} · ${championDisplayName(topDamage.champion)} · ${formatPoints(topDamage.damage)}` : "N/A"],
       ["Vision lead", topVision ? `${rowName(topVision)} · ${championDisplayName(topVision.champion)} · ${topVision.vision || 0} VS` : "N/A"],
     ];
-    leaderCards.forEach(([label, value], index) => {
-      drawCard(80 + index * 500, 540, 450, 116, index === 2 ? "pink" : "cyan");
-      ctx.fillStyle = "#bffaff";
+    drawPanel(90, 356, 1740, 150, "cyan", 0.48);
+    fitText("Signaux du bloc", 126, 402, 360, { font: "900 28px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
+    leaderRows.forEach(([label, value], index) => {
+      const x = 126 + index * 560;
+      if (index) drawLine(x - 34, 392, x - 34, 478, "rgba(255,255,255,.10)", 1);
+      ctx.fillStyle = index === 2 ? "#fbcfe8" : "#bffaff";
       ctx.font = "900 18px Inter, Arial, sans-serif";
-      ctx.fillText(label.toUpperCase(), 108 + index * 500, 580);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 25px Inter, Arial, sans-serif";
-      ctx.fillText(short(value, 34), 108 + index * 500, 622);
+      ctx.fillText(label.toUpperCase(), x, 442);
+      fitText(short(value, 52), x, 474, 500, { font: "900 22px Inter, Arial, sans-serif", color: "#ffffff", min: 14 });
     });
-    drawCard(80, 700, 1440, 234, "pink");
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 30px Inter, Arial, sans-serif";
-    ctx.fillText("Champions les plus joués", 110, 750);
-    championCounts.forEach(([champion, count], index) => drawChampionToken(champion, count, 112 + index * 88, 778));
-    ctx.fillStyle = "#b8c7d9";
-    ctx.font = "800 20px Inter, Arial, sans-serif";
-    ctx.fillText(short(scoped.slice(0, 5).map((match) => `${matchDisplayName(match)} (${match.result || "?"})`).join("   ·   "), 120), 110, 900);
+    drawPanel(90, 548, 820, 330, "pink", 0.50);
+    fitText("Champions du bloc", 126, 606, 420, { font: "900 32px Inter, Arial, sans-serif", color: "#ffffff", min: 20 });
+    fitText("Volume joué sur les games sélectionnées", 126, 632, 520, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    const championMax = Math.max(1, championCounts[0]?.[1] || 1);
+    const championSummaryRows = championCounts.slice(0, 8);
+    championSummaryRows.forEach(([champion, count], index) => {
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      drawChampionSummaryRow(champion, count, 126 + col * 360, 666 + row * 52, 314, championMax);
+    });
+    if (!championSummaryRows.length) fitText("Aucun champion détecté sur ce groupe.", 126, 710, 680, { font: "800 18px Inter, Arial, sans-serif", color: "#c7d4e5", min: 12 });
+    drawPanel(1010, 548, 820, 330, "green", 0.50);
+    fitText("Games du groupe", 1046, 606, 420, { font: "900 32px Inter, Arial, sans-serif", color: "#ffffff", min: 20 });
+    fitText(`${scoped.length} game${scoped.length > 1 ? "s" : ""} · ${wins}W - ${scoped.length - wins}L`, 1046, 632, 500, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    ctx.fillStyle = "#34d399";
+    ctx.font = "900 11px Inter, Arial, sans-serif";
+    ctx.fillText("GAME", 1046, 666);
+    ctx.fillText("RESULT", 1492, 666);
+    ctx.fillText("DUR.", 1606, 666);
+    ctx.fillText("SIDE", 1696, 666);
+    ctx.textAlign = "right";
+    ctx.fillText("PATCH", 1794, 666);
+    ctx.textAlign = "left";
+    drawLine(1046, 680, 1794, 680, "rgba(52,211,153,.24)", 1.5);
+    scoped.slice(0, 5).forEach((match, index) => drawGroupMatchRow(match, 1046, 694 + index * 42, 748, index));
+    if (scoped.length > 5) fitText(`+ ${scoped.length - 5} game${scoped.length - 5 > 1 ? "s" : ""} dans le groupe`, 1046, 930, 520, { font: "800 13px Inter, Arial, sans-serif", color: "#94a3b8", min: 10 });
   }
-  ctx.fillStyle = "#6ee7f6";
+  ctx.fillStyle = "#67e8f9";
   ctx.font = "800 17px Inter, Arial, sans-serif";
-  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 80, H - 42);
+  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 42);
   ctx.textAlign = "right";
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "900 24px Arial Black, Impact, Arial, sans-serif";
-  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 80, H - 42);
+  ctx.fillStyle = "#dff8ff";
+  ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
+  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 42);
   ctx.textAlign = "left";
   const link = document.createElement("a");
   link.download = filename || "nxt5-stats-export.png";
@@ -2540,7 +2533,7 @@ function GuidePage() {
     ["Heatmap vision", "Ouvre la heatmap pour visualiser les zones wardées. Les couleurs montent en intensité selon la densité, avec distinction pink/trinket quand la donnée existe."],
     ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Reclique sur un groupe ou une game pour le retirer de la sélection. Le rapport de groupe est généré automatiquement."],
     ["Exports PNG", "Utilise Exporter la game ou Exporter le groupe dans Statistiques pour produire une fiche visuelle NXT5 avec les données clés, les joueurs, les champions et les objectifs."],
-    ["Stats par joueurs", "Le bloc profils est fermé par défaut. Ouvre-le pour voir champions joués, CS 10/20, builds, historiques par champion et tendances individuelles."],
+    ["Stats de game", "Statistiques reste centrée sur les games et groupes de games. Les lectures longues par joueur vivent dans Mon profil."],
     ["Tendances", "Lis le portrait stratégique global de la team: identité, forces récurrentes, risques, timings, patterns de victoire/défaite et priorités draft."],
     ["Rapports", "Les rapports reprennent les noms des games et groupes. Ils servent de bloc-notes brut autour des datas, sans imposer d’analyse automatique."],
     ["Mon profil", "La page Mon profil centralise les données individuelles: champions, matchups, builds, bilans coaching, bangers, flops et historique game par game."],
@@ -3058,85 +3051,209 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       setSavingCoaching(false);
     }
   }
-  function exportProfilePng() {
+  async function exportProfilePng() {
     if (!selectedPlayer) return;
     const canvas = document.createElement("canvas");
-    canvas.width = 1600;
-    canvas.height = 980;
+    canvas.width = 1920;
+    canvas.height = 1080;
     const ctx = canvas.getContext("2d");
-    const gradient = ctx.createLinearGradient(0, 0, 1600, 980);
-    gradient.addColorStop(0, "#061828");
-    gradient.addColorStop(0.48, "#050711");
-    gradient.addColorStop(1, "#26103a");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "rgba(34,211,238,.10)";
-    ctx.beginPath(); ctx.arc(180, 150, 260, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "rgba(217,70,239,.11)";
-    ctx.beginPath(); ctx.arc(1370, 150, 310, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "rgba(125,211,252,.38)";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(46, 46, 1508, 888);
-    ctx.fillStyle = "#f8fbff";
-    ctx.font = "900 76px Inter, Arial, sans-serif";
-    ctx.fillText(selectedPlayer.name || "Profil NXT5", 92, 150);
-    ctx.font = "800 28px Inter, Arial, sans-serif";
-    ctx.fillStyle = "#bdefff";
-    ctx.fillText(`${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non lié"}`, 96, 198);
-    ctx.textAlign = "right";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 44px Inter, Arial, sans-serif";
-    ctx.fillText("NXT5 PROFILE EXPORT", 1504, 136);
-    ctx.font = "700 24px Inter, Arial, sans-serif";
-    ctx.fillStyle = "#d6ecff";
-    ctx.fillText(new Date().toLocaleDateString("fr-FR"), 1504, 178);
-    ctx.textAlign = "left";
-    const metrics = [
-      ["Games", String(games), `${wins}W - ${losses}L`],
-      ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Résumé importé"],
-      ["KDA", kda, `${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`],
-      ["Dégâts", formatPoints(sum("damage") / Math.max(1, games)), "Moyenne/game"],
-      ["Vision", String(Math.round(sum("vision") / Math.max(1, games))), "Moyenne/game"],
-    ];
-    metrics.forEach(([label, value, detail], index) => {
-      const x = 92 + index * 292;
-      ctx.fillStyle = "rgba(255,255,255,.055)";
-      ctx.strokeStyle = index % 2 ? "rgba(217,70,239,.32)" : "rgba(34,211,238,.32)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(x, 260, 250, 150, 28); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "#c8f7ff";
-      ctx.font = "900 24px Inter, Arial, sans-serif";
-      ctx.fillText(label.toUpperCase(), x + 24, 310);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 46px Inter, Arial, sans-serif";
-      ctx.fillText(value, x + 24, 363);
-      ctx.fillStyle = "#d7e5f5";
-      ctx.font = "700 20px Inter, Arial, sans-serif";
-      ctx.fillText(detail, x + 24, 392);
+    const W = canvas.width;
+    const H = canvas.height;
+    const shortCanvas = (value, max = 28) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}...` : String(value || "");
+    const accentColor = (accent = "cyan") => accent === "pink" ? "#f472b6" : accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : accent === "orange" ? "#fb923c" : accent === "purple" ? "#c084fc" : "#67e8f9";
+    const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "pink" || accent === "red" ? `rgba(244,114,182,${alpha})` : accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : accent === "orange" ? `rgba(251,146,60,${alpha})` : accent === "purple" ? `rgba(192,132,252,${alpha})` : `rgba(103,232,249,${alpha})`;
+    const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 12, align = "left" } = {}) => {
+      const source = String(text || "");
+      let nextFont = font || "800 20px Inter, Arial, sans-serif";
+      const match = nextFont.match(/(\d+)px/);
+      let size = match ? Number(match[1]) : 20;
+      ctx.font = nextFont;
+      while (ctx.measureText(source).width > maxWidth && size > min) {
+        size -= 1;
+        nextFont = nextFont.replace(/\d+px/, `${size}px`);
+        ctx.font = nextFont;
+      }
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.fillText(source, x, y);
+      ctx.textAlign = "left";
+    };
+    const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    };
+    const drawPanel = (x, y, w, h, accent = "cyan", alpha = 0.58) => {
+      const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
+      gradient.addColorStop(0, accentSoft(accent, 0.12));
+      gradient.addColorStop(0.38, `rgba(5,10,24,${alpha})`);
+      gradient.addColorStop(1, "rgba(5,10,24,.48)");
+      ctx.fillStyle = gradient;
+      ctx.strokeStyle = accentSoft(accent, 0.34);
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = accentColor(accent);
+      ctx.fillRect(x, y, 4, h);
+    };
+    const imageCache = new Map();
+    const loadCanvasImage = (url) => new Promise((resolve) => {
+      if (!url) return resolve(null);
+      if (imageCache.has(url)) return resolve(imageCache.get(url));
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        imageCache.set(url, img);
+        resolve(img);
+      };
+      img.onerror = () => {
+        imageCache.set(url, null);
+        resolve(null);
+      };
+      img.src = url;
     });
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 34px Inter, Arial, sans-serif";
-    ctx.fillText("Champions les plus joués", 96, 500);
-    championStats.slice(0, 6).forEach((stat, index) => {
-      const x = 96 + (index % 3) * 492;
-      const y = 540 + Math.floor(index / 3) * 122;
-      ctx.fillStyle = "rgba(5,10,24,.72)";
+    const drawImageCover = (img, x, y, w, h, radius = 12) => {
+      if (!img) return false;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, radius);
+      ctx.clip();
+      const ratio = Math.max(w / img.width, h / img.height);
+      const dw = img.width * ratio;
+      const dh = img.height * ratio;
+      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      ctx.restore();
+      return true;
+    };
+    const drawImageContain = (img, x, y, w, h) => {
+      if (!img) return false;
+      const ratio = Math.min(w / img.width, h / img.height);
+      const dw = img.width * ratio;
+      const dh = img.height * ratio;
+      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      return true;
+    };
+    const drawCachedImage = (sources, x, y, w, h, radius = 12) => {
+      const list = Array.isArray(sources) ? sources : [sources];
+      const img = list.map((url) => imageCache.get(url)).find(Boolean);
+      if (drawImageCover(img, x, y, w, h, radius)) return;
+      ctx.fillStyle = "rgba(255,255,255,.06)";
       ctx.strokeStyle = "rgba(255,255,255,.14)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(x, y, 444, 88, 22); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 28px Inter, Arial, sans-serif";
-      ctx.fillText(championDisplayName(stat.champion), x + 24, y + 36);
-      ctx.fillStyle = "#d7e5f5";
-      ctx.font = "800 20px Inter, Arial, sans-serif";
-      ctx.fillText(`${stat.games} game${stat.games > 1 ? "s" : ""} · ${stat.winrate}% WR · KDA ${stat.kda}`, x + 24, y + 66);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, radius);
+      ctx.fill();
+      ctx.stroke();
+    };
+    const drawMetric = (label, value, detail, x, y, w, accent = "cyan") => {
+      ctx.fillStyle = accentColor(accent);
+      ctx.font = "900 13px Inter, Arial, sans-serif";
+      ctx.fillText(label.toUpperCase(), x + 22, y + 31);
+      fitText(shortCanvas(value, 16), x + 22, y + 66, w - 44, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
+      fitText(shortCanvas(detail, 30), x + 22, y + 84, w - 44, { font: "800 13px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    };
+    const imageUrls = new Set(["/assets/nxt5-wordmark.png", "/assets/nxt5-mark.png"]);
+    championStats.slice(0, 6).forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
+    await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
+
+    const gradient = ctx.createLinearGradient(0, 0, W, H);
+    gradient.addColorStop(0, "#030914");
+    gradient.addColorStop(0.52, "#020511");
+    gradient.addColorStop(1, "#090416");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, H);
+    for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.026)", 1);
+    for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
+    const bg = ctx.createRadialGradient(240, 90, 80, 240, 90, 680);
+    bg.addColorStop(0, "rgba(34,211,238,.22)");
+    bg.addColorStop(0.48, "rgba(30,64,175,.08)");
+    bg.addColorStop(1, "rgba(2,5,17,0)");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    const bg2 = ctx.createRadialGradient(W - 220, 120, 90, W - 220, 120, 700);
+    bg2.addColorStop(0, "rgba(217,70,239,.18)");
+    bg2.addColorStop(1, "rgba(2,5,17,0)");
+    ctx.fillStyle = bg2;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(103,232,249,.24)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(48, 42, W - 96, H - 84);
+    drawLine(72, 188, W - 72, 188, "rgba(103,232,249,.55)", 2.5);
+    drawLine(72, 190, W - 72, 190, "rgba(244,114,182,.22)", 1);
+    drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 82, 82);
+    drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 236, 62);
+    fitText(selectedPlayer.name || "Profil NXT5", 464, 105, W - 860, { font: "900 44px Inter, Arial, sans-serif", color: "#ffffff", min: 24 });
+    fitText(`${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non lié"}`, 466, 142, W - 870, { font: "800 18px Inter, Arial, sans-serif", color: "#c8f7ff", min: 12 });
+    ctx.font = "900 16px Inter, Arial, sans-serif";
+    const pillText = "PROFILE EXPORT";
+    const pillW = Math.max(170, ctx.measureText(pillText).width + 34);
+    ctx.fillStyle = "rgba(217,70,239,.14)";
+    ctx.strokeStyle = "rgba(217,70,239,.34)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(W - 72 - pillW, 86, pillW, 32, 16);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(pillText, W - 72 - pillW + 17, 108);
+
+    const metrics = [
+      ["Games", String(games), `${wins}W - ${losses}L`, "cyan"],
+      ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Résumé importé", wins >= losses ? "green" : "orange"],
+      ["KDA", kda, `${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`, "cyan"],
+      ["KP", `${Math.round(avgKp)}%`, "Participation fights", avgKp >= 60 ? "green" : "yellow"],
+      ["Dégâts", formatPoints(sum("damage") / Math.max(1, games)), "Moyenne/game", "purple"],
+      ["Vision", String(Math.round(sum("vision") / Math.max(1, games))), "Moyenne/game", "orange"],
+    ];
+    drawPanel(90, 220, 1740, 96, "cyan", 0.54);
+    metrics.forEach(([label, value, detail, accent], index) => {
+      const x = 90 + index * 290;
+      if (index) drawLine(x, 236, x, 300, "rgba(255,255,255,.10)", 1);
+      drawMetric(label, value, detail, x + 2, 220, 286, accent);
     });
-    ctx.fillStyle = "rgba(34,211,238,.10)";
-    ctx.strokeStyle = "rgba(34,211,238,.28)";
-    ctx.beginPath(); ctx.roundRect(96, 810, 1408, 80, 24); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "#dffaff";
-    ctx.font = "800 24px Inter, Arial, sans-serif";
-    ctx.fillText(`Bilan coaching: ${coachingContent.trim() ? coachingContent.trim().slice(0, 160) : "Aucun bilan global renseigné."}`, 124, 860);
+
+    drawPanel(90, 356, 860, 364, "pink", 0.50);
+    fitText("Champions joués", 126, 414, 420, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 22 });
+    fitText("Volume, winrate et KDA sur les imports", 126, 442, 560, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    championStats.slice(0, 6).forEach((stat, index) => {
+      const y = 478 + index * 38;
+      ctx.fillStyle = index % 2 ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.018)";
+      ctx.fillRect(126, y, 760, 38);
+      drawCachedImage(championPortraitSources(stat.champion, stat.champion), 136, y + 5, 28, 28, 7);
+      fitText(championDisplayName(stat.champion), 176, y + 24, 230, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
+      fitText(`${stat.games}G`, 430, y + 24, 58, { font: "900 13px Inter, Arial, sans-serif", color: "#fbcfe8", min: 10 });
+      fitText(`${stat.winrate}% WR`, 514, y + 24, 82, { font: "800 12px Inter, Arial, sans-serif", color: stat.winrate >= 50 ? "#bbf7d0" : "#fecdd3", min: 10 });
+      fitText(`KDA ${stat.kda}`, 626, y + 24, 110, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    });
+    if (!championStats.length) fitText("Aucun champion importé.", 126, 508, 560, { font: "800 18px Inter, Arial, sans-serif", color: "#c7d4e5", min: 12 });
+
+    drawPanel(1010, 356, 820, 364, "green", 0.50);
+    fitText("Lecture coach", 1046, 414, 420, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 22 });
+    fitText(shortCanvas(coachVerdict, 54), 1046, 454, 700, { font: "900 23px Inter, Arial, sans-serif", color: "#ffffff", min: 15 });
+    fitText(shortCanvas(coachSummary, 112), 1046, 488, 720, { font: "800 15px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+    drawLine(1046, 520, 1794, 520, "rgba(52,211,153,.24)", 1.5);
+    coachDecisions.forEach((item, index) => {
+      const y = 550 + index * 38;
+      ctx.fillStyle = accentColor(item.toneName);
+      ctx.font = "900 12px Inter, Arial, sans-serif";
+      ctx.fillText(item.label.toUpperCase(), 1046, y);
+      fitText(shortCanvas(item.text, 48), 1220, y, 560, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 11 });
+    });
+
+    drawPanel(90, 760, 1740, 134, "cyan", 0.46);
+    fitText("Bilan coaching", 126, 818, 360, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 20 });
+    fitText(shortCanvas(coachingContent.trim() || "Aucun bilan global renseigné.", 160), 126, 858, 1640, { font: "800 18px Inter, Arial, sans-serif", color: "#dff8ff", min: 12 });
+    ctx.fillStyle = "#67e8f9";
+    ctx.font = "800 17px Inter, Arial, sans-serif";
+    ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 42);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#dff8ff";
+    ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
+    ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 42);
+    ctx.textAlign = "left";
     const link = document.createElement("a");
     link.download = `nxt5-profil-${String(selectedPlayer.name || "joueur").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`;
     link.href = canvas.toDataURL("image/png");
@@ -5027,6 +5144,179 @@ function diffTone(value) {
   return Number(value || 0) >= 0 ? "green" : "red";
 }
 
+function timelineFrames(match) {
+  return match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || [];
+}
+
+function participantTeamMap(match) {
+  return new Map((match?.raw?.info?.participants || []).map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
+}
+
+function teamKeyFromTeamId(match, teamId) {
+  const allyTeamId = objectiveTeamId(match, "ALLY");
+  const enemyTeamId = objectiveTeamId(match, "ENEMY");
+  if (Number(teamId || 0) === allyTeamId) return "ALLY";
+  if (Number(teamId || 0) === enemyTeamId) return "ENEMY";
+  return "";
+}
+
+function rowByParticipantId(match, participantId) {
+  const id = Number(participantId || 0);
+  return (match?.participants || []).find((row) => rowParticipantId(row) === id) || null;
+}
+
+function championKillEvents(match) {
+  const teams = participantTeamMap(match);
+  return timelineFrames(match).flatMap((frame) => (frame.events || []).filter((event) => event.type === "CHAMPION_KILL").map((event) => {
+    const killerId = Number(event.killerId || 0);
+    const victimId = Number(event.victimId || 0);
+    const killerTeam = teamKeyFromTeamId(match, teams.get(killerId));
+    const victimTeam = teamKeyFromTeamId(match, teams.get(victimId));
+    const victim = rowByParticipantId(match, victimId);
+    const killer = rowByParticipantId(match, killerId);
+    return { ...event, killerId, victimId, killerTeam, victimTeam, victim, killer, timestamp: Number(event.timestamp || frame.timestamp || 0), time: formatCountdown(Math.floor(Number(event.timestamp || frame.timestamp || 0) / 1000)), shutdown: Number(event.shutdownBounty || event.bounty || 0) };
+  })).sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function buildingEvents(match) {
+  const teams = participantTeamMap(match);
+  return timelineFrames(match).flatMap((frame) => (frame.events || []).filter((event) => event.type === "BUILDING_KILL").map((event) => {
+    const killerId = Number(event.killerId || 0);
+    const teamKey = teamKeyFromTeamId(match, teams.get(killerId) || event.teamId);
+    return { ...event, teamKey: teamKey || (Number(event.teamId) === objectiveTeamId(match, "ALLY") ? "ENEMY" : "ALLY"), timestamp: Number(event.timestamp || frame.timestamp || 0), time: formatCountdown(Math.floor(Number(event.timestamp || frame.timestamp || 0) / 1000)), label: String(event.buildingType || "Tower").replace(/_/g, " ") };
+  })).sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function teamGoldAtMinute(match, teamKey, minute) {
+  const frame = timelineFrames(match).find((item) => Number(item.timestamp || 0) >= minute * 60 * 1000);
+  const ids = new Set(teamRows(match, teamKey).map(rowParticipantId).filter(Boolean));
+  if (!frame || !ids.size) return null;
+  return Object.entries(frame.participantFrames || {}).reduce((total, [id, data]) => ids.has(Number(id)) ? total + Number(data.totalGold || 0) : total, 0);
+}
+
+function timelineStatus(match) {
+  const frames = timelineFrames(match);
+  return frames.length ? { label: "Timeline fiable", toneName: "green", detail: `${frames.length} frames Riot` } : { label: "Timeline absente", toneName: "yellow", detail: "Lecture limitée aux stats finales" };
+}
+
+function deathContext(match) {
+  const kills = championKillEvents(match);
+  const objectives = objectiveEvents(match);
+  const allyDeaths = kills.filter((event) => event.victimTeam === "ALLY");
+  const beforeObjectives = allyDeaths.filter((death) => objectives.some((objective) => objective.timestamp > death.timestamp && objective.timestamp - death.timestamp <= 90000));
+  const shutdowns = allyDeaths.filter((death) => death.shutdown >= 300);
+  const repeated = Array.from(allyDeaths.reduce((map, death) => {
+    const key = death.victim?.summoner_name || death.victim?.riot_id || death.victim?.champion || "Joueur";
+    const current = map.get(key) || { name: key, champion: death.victim?.champion, deaths: 0 };
+    current.deaths += 1;
+    map.set(key, current);
+    return map;
+  }, new Map()).values()).sort((a, b) => b.deaths - a.deaths);
+  const isolated = allyDeaths.filter((death) => {
+    const allyTrade = kills.some((kill) => kill.killerTeam === "ALLY" && Math.abs(kill.timestamp - death.timestamp) <= 15000);
+    return !allyTrade && (death.assistingParticipantIds || []).length <= 1;
+  });
+  return { allyDeaths, beforeObjectives, shutdowns, repeated, isolated };
+}
+
+function objectiveContext(match) {
+  const kills = championKillEvents(match);
+  return objectiveEvents(match).map((objective) => {
+    const previousKill = kills.slice().reverse().find((kill) => kill.timestamp < objective.timestamp && objective.timestamp - kill.timestamp <= 45000);
+    const alliedDeathBefore = kills.slice().reverse().find((kill) => kill.victimTeam === "ALLY" && kill.timestamp < objective.timestamp && objective.timestamp - kill.timestamp <= 90000);
+    return { ...objective, previousKill, alliedDeathBefore, context: previousKill ? `${previousKill.killerTeam === objective.teamKey ? "Après kill" : "Après fight adverse"} · ${previousKill.time}` : alliedDeathBefore ? `Après mort alliée · ${alliedDeathBefore.time}` : "Setup neutre / non déduit" };
+  });
+}
+
+function roleDiffRows(match) {
+  const ally = teamRows(match, "ALLY");
+  const enemy = teamRows(match, "ENEMY");
+  return COMP_ROLES.map((role) => {
+    const a = ally.find((row) => normalizeProfileRole(row.role) === role);
+    const e = enemy.find((row) => normalizeProfileRole(row.role) === role);
+    const cs10A = a ? csAtMinute({ ...a, match }, 10) : null;
+    const cs10E = e ? csAtMinute({ ...e, match }, 10) : null;
+    return { role, ally: a, enemy: e, goldDiff: statValue(a, "gold") - statValue(e, "gold"), damageDiff: statValue(a, "damage") - statValue(e, "damage"), cs10Diff: Number.isFinite(cs10A) && Number.isFinite(cs10E) ? cs10A - cs10E : null, deathsDiff: statValue(a, "deaths") - statValue(e, "deaths") };
+  });
+}
+
+function MatchTimelineReview({ match }) {
+  const status = timelineStatus(match);
+  const objectives = objectiveContext(match);
+  const towers = buildingEvents(match).slice(0, 8);
+  const kills = championKillEvents(match);
+  const swings = [...objectives.map((event) => ({ ...event, kind: "objective", title: event.label, toneName: event.teamKey === "ALLY" ? "cyan" : "red" })), ...towers.map((event) => ({ ...event, kind: "tower", title: event.label, toneName: event.teamKey === "ALLY" ? "cyan" : "red", context: "Tour détruite" }))].sort((a, b) => a.timestamp - b.timestamp);
+  const goldMarks = [10, 15, 20].map((minute) => {
+    const allyGold = teamGoldAtMinute(match, "ALLY", minute);
+    const enemyGold = teamGoldAtMinute(match, "ENEMY", minute);
+    return { minute, diff: Number.isFinite(allyGold) && Number.isFinite(enemyGold) ? allyGold - enemyGold : null };
+  });
+  return <div className="mt-4 rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/20 to-fuchsia-400/[0.04] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap gap-2"><Badge tone={status.toneName}>{status.label}</Badge><Badge tone="slate">{status.detail}</Badge><Badge tone="purple">{kills.length} kills</Badge></div><h4 className="mt-3 text-xl font-black text-white">Timeline review</h4></div><div className="flex flex-wrap gap-2">{goldMarks.map((item) => <Badge key={item.minute} tone={item.diff === null ? "slate" : diffTone(item.diff)}>{item.minute}m {item.diff === null ? "N/A" : formatGoldDiff(item.diff)}</Badge>)}</div></div>{swings.length ? <div className="mt-4 grid gap-2 xl:grid-cols-2">{swings.slice(0, 10).map((event, index) => <div key={`${event.kind}-${event.timestamp}-${index}`} className={cx("rounded-2xl border p-3", event.toneName === "red" ? "border-rose-300/14 bg-rose-500/[0.055]" : "border-cyan-300/14 bg-cyan-400/[0.055]")}><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-2">{event.kind === "objective" ? <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-8 w-8 shrink-0" /> : <Shield className="h-5 w-5 shrink-0 text-cyan-100" />}<p className="truncate text-sm font-black text-white">{event.title}</p></div><Badge tone={event.toneName}>{event.time}</Badge></div><p className="mt-2 truncate text-xs font-semibold text-slate-300">{event.teamKey === "ALLY" ? "NXT5" : "Adversaire"} · {event.context}</p></div>)}</div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune timeline exploitable dans ce JSON pour les moments clés.</p>}</div>;
+}
+
+function RoleDiffPanel({ match }) {
+  const rows = roleDiffRows(match);
+  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]"><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{roleLabel(item.role)}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 truncate text-xs font-semibold text-slate-300">CS10 {item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`} · DMG {(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">Morts diff {item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></div>;
+}
+
+function ResourceConversionPanel({ match }) {
+  const ally = teamRows(match, "ALLY");
+  return <div className="mt-4 grid gap-2 xl:grid-cols-5">{ally.map((row) => {
+    const damageShare = shareOfTeam(row, ally, "damage");
+    const goldShare = shareOfTeam(row, ally, "gold");
+    const visionShare = shareOfTeam(row, ally, "vision");
+    const delta = damageShare - goldShare;
+    return <div key={row.id || rowParticipantId(row)} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex items-center gap-2"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{row.summoner_name || row.riot_id || roleLabel(row.role)}</p><p className="truncate text-xs font-semibold text-slate-300">{championDisplayName(row.champion)}</p></div></div><div className="mt-3 space-y-1.5 text-xs font-semibold text-slate-300"><p>DMG {damageShare.toFixed(1)}% · Gold {goldShare.toFixed(1)}%</p><p>Vision {visionShare.toFixed(1)}% · Rentabilité <span className={delta >= 0 ? "text-emerald-200" : "text-amber-200"}>{delta >= 0 ? "+" : ""}{delta.toFixed(1)}</span></p></div></div>;
+  })}</div>;
+}
+
+function DeathContextPanel({ match }) {
+  const data = deathContext(match);
+  const topRepeated = data.repeated[0];
+  const cards = [
+    [AlertTriangle, "Avant objectif", data.beforeObjectives.length, "Mort < 90s avant objectif", data.beforeObjectives.length ? "red" : "green"],
+    [Shield, "Isolées déduites", data.isolated.length, "Sans trade proche détecté", data.isolated.length ? "yellow" : "green"],
+    [Flame, "Shutdowns donnés", data.shutdowns.length, "Bounty timeline", data.shutdowns.length ? "red" : "slate"],
+    [Target, "Focus deaths", topRepeated?.deaths || 0, topRepeated ? `${topRepeated.name} · ${championDisplayName(topRepeated.champion)}` : "Aucun profil exposé", topRepeated?.deaths >= 5 ? "red" : "cyan"],
+  ];
+  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]"><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, t]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><div className={cx("rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || "Joueur"} meurt avant objectif</div>)}</div>}</div>;
+}
+
+function DraftImpactPanel({ match }) {
+  const ally = teamRows(match, "ALLY");
+  const identity = compositionIdentity(ally);
+  const physical = ally.reduce((total, row) => total + Number(row.raw?.physicalDamageDealtToChampions || 0), 0);
+  const magic = ally.reduce((total, row) => total + Number(row.raw?.magicDamageDealtToChampions || 0), 0);
+  const trueDamage = ally.reduce((total, row) => total + Number(row.raw?.trueDamageDealtToChampions || 0), 0);
+  const total = Math.max(1, physical + magic + trueDamage);
+  const apRatio = Math.round((magic / total) * 100);
+  const adRatio = Math.round((physical / total) * 100);
+  const tags = identity.tags.slice(0, 4);
+  const warnings = [
+    Math.abs(apRatio - adRatio) >= 45 && `Dégâts ${apRatio > adRatio ? "AP" : "AD"} très dominants.`,
+    !tags.some(([tag]) => ["frontline", "tank"].includes(tag)) && "Frontline peu visible dans la draft.",
+    !tags.some(([tag]) => ["engage", "pick"].includes(tag)) && "Engage/pick à confirmer.",
+  ].filter(Boolean);
+  return <div className="mt-4 rounded-[1.35rem] border border-fuchsia-300/14 bg-fuchsia-400/[0.045] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Draft impact</Badge><h4 className="mt-3 text-xl font-black text-white">{tagLabel(identity.primary)}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{identity.text}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">AP {apRatio}%</Badge><Badge tone="yellow">AD {adRatio}%</Badge><Badge tone="slate">True {Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Tags insuffisants</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
+}
+
+function GameSummaryPanel({ match }) {
+  const deaths = deathContext(match);
+  const objectives = objectiveContext(match);
+  const ally = teamRows(match, "ALLY");
+  const enemy = teamRows(match, "ENEMY");
+  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
+  const damageLeader = ally.slice().sort((a, b) => statValue(b, "damage") - statValue(a, "damage"))[0];
+  const weakRole = roleDiffRows(match).slice().sort((a, b) => a.goldDiff - b.goldDiff)[0];
+  const firstObjectiveIssue = objectives.find((event) => event.teamKey === "ENEMY" && event.alliedDeathBefore);
+  const lines = [
+    firstObjectiveIssue ? `Moment à review: ${firstObjectiveIssue.time}, ${firstObjectiveIssue.label} adverse après une mort alliée.` : `Économie finale: ${formatGoldDiff(goldDiff)} gold, ${goldDiff >= 0 ? "avantage exploitable" : "retard à expliquer"}.`,
+    damageLeader ? `Plus gros impact dégâts sur cette game: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
+    weakRole ? `Écart de game à revoir: ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} gold vs rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté team).` : "Écart de game: confirmer les rôles importés.",
+  ];
+  return <div className="mt-4 rounded-[1.35rem] border border-emerald-300/14 bg-emerald-400/[0.05] p-4"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Résumé game</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="rounded-2xl border border-white/10 bg-black/22 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-emerald-100">Point {index + 1}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
+}
+
 function GameMetricSignals({ match }) {
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -5104,6 +5394,81 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
   </div>;
 }
 
+function LaneComparisonPanel({ match, role, allyRow, enemyRow }) {
+  const ally = teamRows(match, "ALLY");
+  const enemy = teamRows(match, "ENEMY");
+  const allyCs10 = allyRow ? csAtMinute({ ...allyRow, match }, 10) : null;
+  const enemyCs10 = enemyRow ? csAtMinute({ ...enemyRow, match }, 10) : null;
+  const allyCs20 = allyRow ? csAtMinute({ ...allyRow, match }, 20) : null;
+  const enemyCs20 = enemyRow ? csAtMinute({ ...enemyRow, match }, 20) : null;
+  const metricRows = [
+    ["KDA", allyRow ? `${allyRow.kills || 0}/${allyRow.deaths || 0}/${allyRow.assists || 0}` : "-", enemyRow ? `${enemyRow.kills || 0}/${enemyRow.deaths || 0}/${enemyRow.assists || 0}` : "-", null],
+    ["KP", allyRow ? `${Math.round(parsePercent(allyRow.kill_participation || allyRow.kp))}%` : "-", enemyRow ? `${Math.round(parsePercent(enemyRow.kill_participation || enemyRow.kp))}%` : "-", parsePercent(allyRow?.kill_participation || allyRow?.kp) - parsePercent(enemyRow?.kill_participation || enemyRow?.kp)],
+    ["Gold", formatPoints(statValue(allyRow, "gold")), formatPoints(statValue(enemyRow, "gold")), statValue(allyRow, "gold") - statValue(enemyRow, "gold")],
+    ["Dégâts", formatPoints(statValue(allyRow, "damage")), formatPoints(statValue(enemyRow, "damage")), statValue(allyRow, "damage") - statValue(enemyRow, "damage")],
+    ["CS", String(creepScore(allyRow)), String(creepScore(enemyRow)), creepScore(allyRow) - creepScore(enemyRow)],
+    ["CS 10", allyCs10 ?? "N/A", enemyCs10 ?? "N/A", Number.isFinite(allyCs10) && Number.isFinite(enemyCs10) ? allyCs10 - enemyCs10 : null],
+    ["CS 20", allyCs20 ?? "N/A", enemyCs20 ?? "N/A", Number.isFinite(allyCs20) && Number.isFinite(enemyCs20) ? allyCs20 - enemyCs20 : null],
+    ["Vision", String(statValue(allyRow, "vision")), String(statValue(enemyRow, "vision")), statValue(allyRow, "vision") - statValue(enemyRow, "vision")],
+    ["Morts", String(statValue(allyRow, "deaths")), String(statValue(enemyRow, "deaths")), statValue(enemyRow, "deaths") - statValue(allyRow, "deaths")],
+  ];
+  const shareRows = [
+    ["Damage share", shareOfTeam(allyRow, ally, "damage"), shareOfTeam(enemyRow, enemy, "damage")],
+    ["Gold share", shareOfTeam(allyRow, ally, "gold"), shareOfTeam(enemyRow, enemy, "gold")],
+    ["Vision share", shareOfTeam(allyRow, ally, "vision"), shareOfTeam(enemyRow, enemy, "vision")],
+    ["Death share", shareOfTeam(allyRow, ally, "deaths"), shareOfTeam(enemyRow, enemy, "deaths")],
+  ];
+  const renderLoadout = (row, side) => {
+    const spells = row ? summonerSpellIds(row) : [];
+    const trinket = row ? trinketItemId(row) : 0;
+    const items = row ? [...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })), ...(trinket ? [{ id: trinket, type: "trinket" }] : [])] : [];
+    return <div className={cx("rounded-2xl border p-3", side === "ALLY" ? "border-cyan-300/14 bg-cyan-400/[0.055]" : "border-rose-300/14 bg-rose-500/[0.055]")}>
+      <div className="flex min-w-0 items-center gap-3">
+        <ChampionPortrait row={row} champion={row?.champion} alt={row?.champion || role} className="h-12 w-12 rounded-xl object-cover" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
+          <p className="truncate text-xs font-semibold text-slate-300">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {spells.map((spell, index) => <HudIcon key={`${side}-${role}-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-8 w-8 rounded-lg" />)}
+        {items.map((item, index) => <HudIcon key={`${side}-${role}-item-${index}-${item.id}`} sources={itemIconSources(item.id)} label={item.type === "trinket" ? `Trinket ${item.id}` : `Item ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-8 w-8 rounded-lg" />)}
+      </div>
+    </div>;
+  };
+  return <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="rounded-[1.35rem] border border-white/10 bg-black/28 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2"><Badge tone="cyan">{roleLabel(role)}</Badge><h5 className="text-base font-black text-white">Comparatif direct de la game</h5></div>
+      <Badge tone="slate">Clique la ligne pour refermer</Badge>
+    </div>
+    <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,.58fr)_minmax(0,1fr)_minmax(0,.58fr)]">
+      {renderLoadout(allyRow, "ALLY")}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+        <div className="grid grid-cols-[minmax(86px,.7fr)_minmax(0,1fr)_minmax(72px,.55fr)_minmax(0,1fr)] gap-2 text-xs">
+          <p className="font-black uppercase tracking-[0.14em] text-slate-400">Stat</p>
+          <p className="font-black uppercase tracking-[0.14em] text-cyan-100">NXT5</p>
+          <p className="text-center font-black uppercase tracking-[0.14em] text-slate-400">Diff</p>
+          <p className="text-right font-black uppercase tracking-[0.14em] text-rose-100">Adverse</p>
+          {metricRows.map(([label, left, right, diff]) => {
+            const cleanDiff = Number.isFinite(Number(diff)) ? Number(diff) : null;
+            return <React.Fragment key={label}>
+              <p className="rounded-lg bg-black/18 px-2 py-1.5 font-black text-slate-300">{label}</p>
+              <p className="truncate rounded-lg bg-cyan-400/[0.06] px-2 py-1.5 font-black text-white">{left}</p>
+              <p className={cx("rounded-lg px-2 py-1.5 text-center font-black", cleanDiff === null ? "bg-black/18 text-slate-400" : cleanDiff >= 0 ? "bg-emerald-400/10 text-emerald-100" : "bg-rose-500/10 text-rose-100")}>{cleanDiff === null ? "-" : `${cleanDiff > 0 ? "+" : ""}${Number.isInteger(cleanDiff) ? cleanDiff : cleanDiff.toFixed(1)}`}</p>
+              <p className="truncate rounded-lg bg-rose-500/[0.06] px-2 py-1.5 text-right font-black text-white">{right}</p>
+            </React.Fragment>;
+          })}
+        </div>
+      </div>
+      {renderLoadout(enemyRow, "ENEMY")}
+    </div>
+    <div className="mt-3 grid gap-2 md:grid-cols-4">{shareRows.map(([label, left, right]) => {
+      const diff = Number(left || 0) - Number(right || 0);
+      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", diff >= 0 ? "text-emerald-200" : "text-rose-200")}>{diff >= 0 ? "+" : ""}{diff.toFixed(1)} pts NXT5</p></div>;
+    })}</div>
+  </motion.div>;
+}
+
 function SideColumnHeader({ side, align = "left" }) {
   const isBlue = side === "blue";
   const Icon = isBlue ? Shield : Swords;
@@ -5116,6 +5481,7 @@ function SideColumnHeader({ side, align = "left" }) {
 }
 
 function MatchVersusOverview({ match }) {
+  const [openRole, setOpenRole] = useState("");
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const byRole = (rows, role) => rows.find((row) => String(row.role || "").toUpperCase() === role) || null;
@@ -5140,17 +5506,24 @@ function MatchVersusOverview({ match }) {
           {COMP_ROLES.map((role) => {
             const blueRow = byRole(blueRows, role);
             const redRow = byRole(redRows, role);
+            const allyRow = byRole(ally, role);
+            const enemyRow = byRole(enemy, role);
             const blueGold = blueRow ? statValue(blueRow, "gold") : 0;
             const redGold = redRow ? statValue(redRow, "gold") : 0;
             const diff = (blueKey === "ALLY" ? blueGold - redGold : redGold - blueGold);
-            return <div key={role} className="grid min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-stretch gap-2">
-              <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
-              <div className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/35 px-1.5 py-2 text-center">
-                <RoleIcon role={role} className="h-5 w-5" />
-                <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
-                <span className={cx("mt-1 rounded-lg px-1.5 py-0.5 text-[0.54rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{formatGoldDiff(diff)}</span>
-              </div>
-              <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
+            const open = openRole === role;
+            return <div key={role} className={cx("rounded-[1.35rem] transition", open && "bg-cyan-400/[0.045] p-1 ring-1 ring-cyan-200/18")}>
+              <button type="button" aria-expanded={open} onClick={() => setOpenRole(open ? "" : role)} className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
+                <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
+                <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/35")}>
+                  <RoleIcon role={role} className="h-5 w-5" />
+                  <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
+                  <span className={cx("mt-1 rounded-lg px-1.5 py-0.5 text-[0.54rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{formatGoldDiff(diff)}</span>
+                  <ChevronDown className={cx("mt-1 h-3.5 w-3.5 text-cyan-100 transition", open && "rotate-180")} />
+                </div>
+                <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
+              </button>
+              <AnimatePresence>{open && <div className="mt-2"><LaneComparisonPanel match={match} role={role} allyRow={allyRow} enemyRow={enemyRow} /></div>}</AnimatePresence>
             </div>;
           })}
         </div>
@@ -5170,7 +5543,7 @@ function MatchDataPanel({ match }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameMetricSignals match={match} /><VisionHeatmap match={match} /></Surface>;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Side ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Dégâts diff" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Gold diff" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} /><MetricCard compact icon={Eye} label="Vision diff" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /><VisionHeatmap match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -5379,7 +5752,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
   const [archivesCollapsed, setArchivesCollapsed] = useState(true);
-  const [profilesCollapsed, setProfilesCollapsed] = useState(true);
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
@@ -5442,7 +5814,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const scopeLabel = selectedMatch ? "Game sélectionnée" : selectedArchive ? "Groupe actif" : activeCategory ? "Catégorie active" : "Vue globale";
   const scopeTitle = selectedMatch ? matchDisplayName(selectedMatch) : selectedArchive ? selectedArchive.name : activeCategory ? activeCategory.name : "Toutes les games";
   const scopeHint = selectedMatch ? `${selectedMatch.game_id || "Game"} · ${selectedMatch.duration || "--:--"}` : selectedArchive ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans le groupe` : activeCategory ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans cette catégorie` : `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} importée${scopedMatches.length > 1 ? "s" : ""}`;
-  const profileScopeText = selectedMatch ? "Profils calculés uniquement sur cette game." : selectedArchive ? "Profils calculés uniquement sur ce groupe." : activeCategory ? "Profils calculés uniquement sur cette catégorie." : "Profils calculés sur toutes les games visibles.";
   const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : [...current.matchIds, matchId] }));
   const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
   const editArchive = (archive) => {
@@ -5482,7 +5853,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
       setSavingArchive(false);
     }
   }
-  return <div className="nxt5-data-dense min-w-0 overflow-hidden"><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Choisis un contexte, lis la game ou le bloc, puis ouvre les profils seulement quand tu veux descendre au joueur." /><Surface className="mb-5 p-4"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(id) => { setSelectedCategoryId(id); setSelectedArchiveId(""); setSelectedMatchId(""); }} label="Type de games" /></Surface>{matches.length ? <><Surface className="mb-5 p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="min-w-0"><Badge tone={selectedMatch ? "cyan" : selectedArchive ? "purple" : activeCategory ? matchCategoryTone(activeCategory) : "slate"}>{scopeLabel}</Badge><h3 className="mt-3 truncate text-2xl font-black text-white">{scopeTitle}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{scopeHint}</p></div><div className="flex flex-wrap gap-2"><Badge tone="green">{wins}W</Badge><Badge tone="red">{scopedMatches.length - wins}L</Badge><Badge tone="cyan">{Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}% WR</Badge></div></div></Surface><div className="grid gap-3 md:grid-cols-2"><MetricCard compact icon={Swords} label="Volume du contexte" value={scopedMatches.length} hint={scopeLabel} tone="cyan" /><MetricCard compact icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""} · ${scopedMatches.length - wins} défaite${scopedMatches.length - wins > 1 ? "s" : ""}`} tone="green" /></div><Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre le rapport lié.</p></div><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: `nxt5-game-${selectedMatch?.game_id || "export"}.png` })} disabled={!selectedMatch}>Exporter la game</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: `${scopedMatches.length} games · ${wins}W - ${scopedMatches.length - wins}L`, matches: scopedMatches, filename: `nxt5-groupe-${String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png` })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => selectedReport ? openAppPath(`/rapports?report=${selectedReport.id}&match=${selectedMatch?.id}`) : openAppPath(`/rapports?match=${selectedMatch?.id}`)} disabled={!selectedMatch}>Aller vers rapport</Button></div></div><div className="mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <button key={match.id} type="button" aria-pressed={activeGame} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("relative rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", activeGame ? "border-cyan-200/80 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,.32),0_0_34px_rgba(34,211,238,.22)] ring-1 ring-cyan-200/35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", activeGame ? "opacity-100" : "opacity-0")} /><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id}</p></button>; })}</div></Surface><Surface className="mt-5"><button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/[0.035]"><div className="min-w-0"><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Crée une archive de scrim. Un rapport brut est généré automatiquement à la création.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></button>{!archivesCollapsed && <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]"><div className="min-w-0"><div className="max-h-72 space-y-2 overflow-auto pr-1">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const count = ids.length; const archiveMatches = matches.filter((match) => ids.includes(match.id)); const archiveWins = archiveMatches.filter((match) => match.result === "Victoire").length; const selected = selectedArchiveId === archive.id; const archiveReport = (data.reports || []).find((report) => { const reportIds = reportMatchIds(report); return report.team_id === selectedTeamId && ids.length && ids.every((id) => reportIds.includes(id)) && reportIds.every((id) => ids.includes(id)); }); return <div key={archive.id} className={cx("rounded-2xl border p-3 transition", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}><button type="button" onClick={() => setSelectedArchiveId(selectedArchiveId === archive.id ? "" : archive.id)} className="w-full text-left"><div className="flex flex-wrap items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{archive.description || `Créée par ${archive.created_by_name || "NXT5"}`}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</p></button><div className="mt-3 flex flex-wrap justify-end gap-2">{archiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${archiveReport.id}`)} disabled={savingArchive}>Voir rapport</Button>}<Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun groupe. Crée ton premier bloc de scrim à droite.</p>}</div>{selectedArchive && selectedArchiveReport && <Button type="button" className="mt-3 w-full" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${selectedArchiveReport.id}`)}>Aller voir le rapport du groupe</Button>}</div><form onSubmit={saveArchive} className="min-w-0 space-y-3"><div className="grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games à inclure</p><div className="grid max-h-64 gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => <button key={match.id} type="button" onClick={() => toggleArchiveMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", archiveForm.matchIds.includes(match.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{matchDisplayName(match)}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></button>)}</div></div><div className="flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div></form></div>}</Surface>{selectedArchive && <ScrimArchiveSummary matches={scopedMatches} />}{selectedMatch && <MatchDataPanel match={selectedMatch} />}<Surface className="mt-6"><button type="button" onClick={() => setProfilesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/[0.035]"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Profils</Badge><h3 className="text-2xl font-black text-white">Stats par joueurs</h3></div><p className="mt-1 text-sm font-semibold text-slate-300">{profileScopeText}</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", profilesCollapsed && "-rotate-90")} /></button>{!profilesCollapsed && <div className="mt-4 grid gap-5">{stats.map((stat) => <PlayerStatCard key={stat.key} stat={stat} maxDamage={maxDamage} maxVision={maxVision} maxGold={maxGold} />)}</div>}</Surface></> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
+  return <div className="nxt5-data-dense min-w-0 overflow-hidden"><PageHeader eyebrow="Performance" title="Statistiques" subtitle="Choisis un contexte, lis la game ou le bloc, puis ouvre les profils seulement quand tu veux descendre au joueur." /><Surface className="mb-5 p-4"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(id) => { setSelectedCategoryId(id); setSelectedArchiveId(""); setSelectedMatchId(""); }} label="Type de games" /></Surface>{matches.length ? <><Surface className="mb-5 p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="min-w-0"><Badge tone={selectedMatch ? "cyan" : selectedArchive ? "purple" : activeCategory ? matchCategoryTone(activeCategory) : "slate"}>{scopeLabel}</Badge><h3 className="mt-3 truncate text-2xl font-black text-white">{scopeTitle}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{scopeHint}</p></div><div className="flex flex-wrap gap-2"><Badge tone="green">{wins}W</Badge><Badge tone="red">{scopedMatches.length - wins}L</Badge><Badge tone="cyan">{Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}% WR</Badge></div></div></Surface><div className="grid gap-3 md:grid-cols-2"><MetricCard compact icon={Swords} label="Volume du contexte" value={scopedMatches.length} hint={scopeLabel} tone="cyan" /><MetricCard compact icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""} · ${scopedMatches.length - wins} défaite${scopedMatches.length - wins > 1 ? "s" : ""}`} tone="green" /></div><Surface className="mt-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre le rapport lié.</p></div><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: `nxt5-game-${selectedMatch?.game_id || "export"}.png` })} disabled={!selectedMatch}>Exporter la game</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: `${scopedMatches.length} games · ${wins}W - ${scopedMatches.length - wins}L`, matches: scopedMatches, filename: `nxt5-groupe-${String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png` })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => selectedReport ? openAppPath(`/rapports?report=${selectedReport.id}&match=${selectedMatch?.id}`) : openAppPath(`/rapports?match=${selectedMatch?.id}`)} disabled={!selectedMatch}>Aller vers rapport</Button></div></div><div className="mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <button key={match.id} type="button" aria-pressed={activeGame} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("relative rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", activeGame ? "border-cyan-200/80 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,.32),0_0_34px_rgba(34,211,238,.22)] ring-1 ring-cyan-200/35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", activeGame ? "opacity-100" : "opacity-0")} /><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id}</p></button>; })}</div></Surface><Surface className="mt-5"><button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-white/[0.035]"><div className="min-w-0"><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Crée une archive de scrim. Un rapport brut est généré automatiquement à la création.</p></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></button>{!archivesCollapsed && <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]"><div className="min-w-0"><div className="max-h-72 space-y-2 overflow-auto pr-1">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const count = ids.length; const archiveMatches = matches.filter((match) => ids.includes(match.id)); const archiveWins = archiveMatches.filter((match) => match.result === "Victoire").length; const selected = selectedArchiveId === archive.id; const archiveReport = (data.reports || []).find((report) => { const reportIds = reportMatchIds(report); return report.team_id === selectedTeamId && ids.length && ids.every((id) => reportIds.includes(id)) && reportIds.every((id) => ids.includes(id)); }); return <div key={archive.id} className={cx("rounded-2xl border p-3 transition", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}><button type="button" onClick={() => setSelectedArchiveId(selectedArchiveId === archive.id ? "" : archive.id)} className="w-full text-left"><div className="flex flex-wrap items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{archive.description || `Créée par ${archive.created_by_name || "NXT5"}`}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</p></button><div className="mt-3 flex flex-wrap justify-end gap-2">{archiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${archiveReport.id}`)} disabled={savingArchive}>Voir rapport</Button>}<Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Renommer</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun groupe. Crée ton premier bloc de scrim à droite.</p>}</div>{selectedArchive && selectedArchiveReport && <Button type="button" className="mt-3 w-full" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?report=${selectedArchiveReport.id}`)}>Aller voir le rapport du groupe</Button>}</div><form onSubmit={saveArchive} className="min-w-0 space-y-3"><div className="grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games à inclure</p><div className="grid max-h-64 gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => <button key={match.id} type="button" onClick={() => toggleArchiveMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", archiveForm.matchIds.includes(match.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{matchDisplayName(match)}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></button>)}</div></div><div className="flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div></form></div>}</Surface>{selectedArchive && <ScrimArchiveSummary matches={scopedMatches} />}{selectedMatch && <MatchDataPanel match={selectedMatch} />}</> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}</div>;
 }
 
 function ReviewSignalPanel({ match, rows }) {
@@ -6092,25 +6463,12 @@ function compositionCounterRecommendations(slots, rows, limitPerRole = 3) {
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
   const tier = championTierByStatus(status);
-  const styleTags = championStyleTags(row.champion).slice(0, 3);
   return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200", active ? "border-cyan-200/70 bg-cyan-400/14 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:shadow-[0_0_22px_rgba(34,211,238,.12)]")}>
     <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full object-cover" />
     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-    <ChampionStylePictos tags={styleTags} className="absolute left-1.5 top-1.5 z-20" />
-    <ChampionTierMark tier={tier} active className="absolute right-1.5 top-1.5 h-7 w-7 rounded-xl border-white/28 bg-black/55 shadow-[0_0_16px_rgba(255,255,255,.10)] backdrop-blur-md transition group-hover:scale-105 [&_svg]:h-4 [&_svg]:w-4" />
+    <ChampionTierMark tier={tier} active className="absolute left-1.5 top-1.5 h-8 w-8 rounded-xl border-white/35 bg-black/62 shadow-[0_0_16px_rgba(255,255,255,.12)] backdrop-blur-md transition group-hover:scale-105 [&_svg]:h-4 [&_svg]:w-4" />
     <p className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[0.62rem] font-black text-white drop-shadow">{championDisplayName(row.champion)}</p>
   </button>;
-}
-
-function ChampionStylePictos({ tags = [], className = "" }) {
-  return <span className={cx("flex max-w-[calc(100%-2.75rem)] flex-wrap gap-1", className)}>
-    {tags.map((tag) => {
-      const Icon = championStyleIcon(tag);
-      return <span key={tag} title={tagLabel(tag)} aria-label={tagLabel(tag)} className={cx("inline-flex h-6 w-6 items-center justify-center rounded-lg border shadow-[0_0_12px_rgba(0,0,0,.22)] backdrop-blur-md", tone(championStyleTone(tag)))}>
-        <Icon className="h-3.5 w-3.5" />
-      </span>;
-    })}
-  </span>;
 }
 
 function CompositionSlot({ role, slot, players, rows, onChange }) {
