@@ -233,6 +233,56 @@ async function apiFetch(path, options = {}) {
   return payload;
 }
 
+function apiUploadJson(path, data, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}/${path}`);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Content-Type", "application/json");
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const percent = Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      onProgress?.({ phase: "upload", percent, loaded: event.loaded, total: event.total });
+    };
+    xhr.upload.onload = () => onProgress?.({ phase: "server", percent: 100 });
+    xhr.onerror = () => reject(new Error("Impossible de joindre NXT5 pour le moment. Réessaie dans quelques instants."));
+    xhr.onload = () => {
+      let payload = null;
+      try {
+        payload = xhr.responseText ? JSON.parse(xhr.responseText) : null;
+      } catch {
+        payload = null;
+      }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        const fallback = xhr.status === 502 || xhr.status === 503
+          ?"Service temporairement indisponible. Réessaie quand le site est prêt."
+          : `Erreur ${xhr.status}.`;
+        const error = new Error(payload?.error || fallback);
+        error.status = xhr.status;
+        error.code = payload?.code || null;
+        error.retryAfter = payload?.retryAfter || null;
+        error.riotStatus = payload?.riotStatus || null;
+        error.missing = payload?.missing || null;
+        error.details = payload?.details || null;
+        reject(error);
+        return;
+      }
+      resolve(payload);
+    };
+
+    onProgress?.({ phase: "upload", percent: 0, loaded: 0, total: 0 });
+    xhr.send(JSON.stringify(data));
+  });
+}
+
+function formatUploadSize(bytes) {
+  const value = Number(bytes || 0);
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)} Mo`;
+  if (value >= 1000) return `${Math.round(value / 1000)} Ko`;
+  return `${Math.round(value)} o`;
+}
+
 function formatRetryAfter(seconds) {
   const value = Number(seconds || 0);
   if (!Number.isFinite(value) || value <= 0) return "quelques instants";
@@ -3335,6 +3385,25 @@ function CategoryMultiSelect({ categories, selectedIds, onChange, label = "Caté
   </div>;
 }
 
+function JsonUploadProgress({ progress }) {
+  if (!progress?.active) return null;
+  const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
+  const uploaded = progress.total ? `${formatUploadSize(progress.loaded)} / ${formatUploadSize(progress.total)}` : "Calcul de l’upload...";
+  const phaseLabel = progress.phase === "server" ? "JSON envoyé, analyse NXT5 en cours" : "Upload du JSON";
+  return <div className="rounded-2xl border border-cyan-300/18 bg-cyan-400/[0.07] p-3">
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-cyan-100">{progress.label || phaseLabel}</p>
+        <p className="mt-1 text-xs font-semibold text-slate-300">{phaseLabel} · {uploaded}</p>
+      </div>
+      <span className="shrink-0 text-sm font-black text-white">{percent}%</span>
+    </div>
+    <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/35">
+      <div className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-sky-400 to-fuchsia-300 shadow-[0_0_18px_rgba(34,211,238,.35)] transition-[width] duration-150 ease-out" style={{ width: `${percent}%` }} />
+    </div>
+  </div>;
+}
+
 function ImportHistoryCard({ match, categories, editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onSaveRoles }) {
   const importer = match.created_by_name || match.created_by_account || "";
   const participants = match.participants || [];
@@ -3384,6 +3453,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const [previewPayload, setPreviewPayload] = useState(null);
   const [importing, setImporting] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
   const [editingMatchId, setEditingMatchId] = useState("");
   const [matchEditForm, setMatchEditForm] = useState({ label: "", categoryIds: [] });
   const [managingMatchId, setManagingMatchId] = useState("");
@@ -3399,6 +3469,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const canManageCategories = selectedTeam?.owner_id === user?.id || canStaffManage(currentMember?.role);
   const gameplayRoster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
+  function updateUploadProgress(next) {
+    setUploadProgress((current) => ({ ...(current || {}), ...(next || {}), active: true }));
+  }
+  function clearUploadProgressSoon() {
+    window.setTimeout(() => setUploadProgress(null), 1200);
+  }
   function updateLaneAssignment(role, value) {
     setLaneAssignments((current) => ({ ...current, [role]: value }));
   }
@@ -3630,13 +3706,16 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     event.preventDefault();
     const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [] };
     setImporting(true);
+    setUploadProgress({ active: true, label: "Import final", phase: "upload", percent: 0, loaded: 0, total: 0 });
     try {
-      await apiFetch("matches-import-file", { method: "POST", body: JSON.stringify(payload) });
+      await apiUploadJson("matches-import-file", payload, updateUploadProgress);
       resetImportDraft();
       await refreshAll();
       pushToast({ type: "green", title: "Game importée", text: "Side, profils et lanes ont été appliqués à cette game." });
+      clearUploadProgressSoon();
     } catch (err) {
       pushToast(errorToast(err, "Import impossible", "match-import"));
+      clearUploadProgressSoon();
     } finally {
       setImporting(false);
     }
@@ -3644,10 +3723,11 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   async function importLocalFile(file) {
     if (!file) return;
     setFileImporting(true);
+    setUploadProgress({ active: true, label: file.name || "Prévisualisation JSON", phase: "prepare", percent: 0, loaded: 0, total: file.size || 0 });
     try {
       const text = await file.text();
       const payload = JSON.parse(text);
-      const result = await apiFetch("matches-import-file", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, payload, previewOnly: true }) });
+      const result = await apiUploadJson("matches-import-file", { teamId: selectedTeamId, payload, previewOnly: true }, updateUploadProgress);
       resetImportDraft();
       setPreviewPayload(payload);
       setImportPreview(result.match);
@@ -3656,9 +3736,11 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
         categoryIds: []
       });
       pushToast({ type: "green", title: "JSON chargé", text: "Choisis ton side, les champions et les profils avant de confirmer." });
+      clearUploadProgressSoon();
     } catch (err) {
       if (err instanceof SyntaxError) pushToast({ type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Importer." });
       else pushToast(errorToast(err, "Import fichier impossible", "match-import"));
+      clearUploadProgressSoon();
     } finally {
       setFileImporting(false);
     }
@@ -3692,6 +3774,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                 </label>
               </div>
             </div>
+            <JsonUploadProgress progress={uploadProgress} />
 
             <div className="grid gap-3 md:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">1. Exporter</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ouvre NXT5 Importer sur le PC où le client LoL contient cette game dans l’historique, colle le Game ID et génère le fichier.</p></div>
