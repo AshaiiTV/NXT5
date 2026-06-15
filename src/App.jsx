@@ -6232,7 +6232,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                     <span className="text-sm font-black">{cell.count}/{players.length}</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {players.filter((player) => slotList(player.id, cell.day).includes(cell.time)).map((player) => <span key={player.id} title={player.name} className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.1em]"><RoleIcon role={player.role} className="h-3.5 w-3.5" />{roleLabel(player.role)}</span>)}
+                    {players.filter((player) => slotList(player.id, cell.day).includes(cell.time)).map((player) => <span key={player.id} title={`${roleLabel(player.role)} · ${player.name}`} className="inline-flex items-center rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.1em]">{roleLabel(player.role)}</span>)}
                   </div>
                 </div>
               ))}
