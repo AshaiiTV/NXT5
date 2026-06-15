@@ -609,6 +609,7 @@ svg {
     0 0 92px rgba(34, 211, 238, 0.34),
     0 0 58px rgba(217, 70, 239, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  overflow: visible;
   transform: translate(-50%, -50%) rotate(45deg);
   animation: nxt5-loader-core 2.4s ease-in-out infinite;
 }
@@ -616,8 +617,9 @@ svg {
 .nxt5-loader-core img {
   position: relative;
   z-index: 1;
-  width: 74%;
-  height: 74%;
+  width: 132%;
+  height: 132%;
+  max-width: none;
   object-fit: contain;
   filter:
     drop-shadow(0 0 18px rgba(255, 255, 255, 0.42))
