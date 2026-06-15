@@ -3163,7 +3163,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     </div>
     <AnimatePresence mode="wait">
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
-        {profileView === "overview" && <div className="space-y-5"><CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} /><div className="grid gap-5 2xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]"><ProfileFold title="Signaux exploitables" badge="Lecture coach" icon={Activity} toneName="cyan"><p className="max-w-3xl text-sm font-semibold leading-6 text-slate-200">Ratios de contexte pour justifier le diagnostic : contribution, ressources, exposition, vision et largeur du pool.</p><div className="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">{profileSignals.map((signal) => <ProfileSignalCard key={signal.title} signal={signal} />)}</div></ProfileFold><ProfileFold title="Bangers & flops" badge="Champion read" icon={Crown} toneName="purple"><div className="grid gap-4 lg:grid-cols-2"><ChampionSpotlight title="À prioriser" items={bangers} toneName="green" empty="Aucun pick prioritaire détectable pour l’instant." /><ChampionSpotlight title="À revoir" items={flops} toneName="red" empty="Aucun pick à risque détectable pour l’instant." /></div></ProfileFold></div></div>}
+        {profileView === "overview" && <CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} />}
         {profileView === "champions" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]"><ProfileFold title="Champions joués" badge="Games importées" icon={Crown} toneName="cyan"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => { const active = selectedProfileChampion === stat.champion; return <button key={stat.champion} type="button" onClick={() => setSelectedProfileChampion(active ? "" : stat.champion)} className={cx("relative overflow-hidden rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-black/25")}><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div><ChevronDown className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "rotate-180")} /></div></button>; }) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></ProfileFold><div className="grid gap-5"><ProfileFold title={selectedProfileChampionStats ? championDisplayName(selectedProfileChampionStats.champion) : "Détail champion"} badge="Fiche perso" icon={Activity} toneName="purple">{selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion à gauche pour afficher ses ratios globaux, ses matchups et son historique game par game.</div>}</ProfileFold><ProfileFold title="Champion Pool" badge="Déclaré" icon={Shield} toneName="green"><div className="grid gap-2">{championPool.length ? championPool.map((row) => <div key={row.id} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{championPoolStatusLabel(championPoolStatus(row))}</p></div><Badge tone={championPoolStatusTone(championPoolStatus(row))}>{roleLabel(row.role || selectedPlayer.role)}</Badge></div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion déclaré dans son pool.</p>}</div></ProfileFold></div></div>}
         {profileView === "builds" && <ProfileBuildView championStats={championStats} selectedChampion={selectedBuildChampion} onSelectChampion={setSelectedBuildChampion} />}
         {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
@@ -3180,35 +3180,68 @@ function MatchupPanel({ title, items, toneName }) {
 
 function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, issues, strengths, actions, pillars, comparisons, decisions, evidenceRows }) {
   const mainTone = issues.length ? issues[0].toneName : strengths[0]?.toneName || "cyan";
-  const readableItems = issues.length ? issues : strengths;
-  return <Surface glow className="p-5">
-    <div className="mb-5 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-      {decisions.map((item) => <div key={item.label} className={cx("rounded-2xl border p-3", tone(item.toneName))}><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] opacity-80">{item.label}</p><p className="mt-2 truncate text-sm font-black text-white">{item.text}</p></div>)}
-    </div>
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,.42fr)]">
+  const readableItems = (issues.length ? issues : strengths).slice(0, 3);
+  const referenceMetrics = [...pillars.slice(0, 4), ...comparisons.slice(0, 2)];
+  return <Surface className="p-5 md:p-6">
+    <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2"><Badge tone={mainTone}>Diagnostic coach</Badge><Badge tone="slate">{games} game{games > 1 ? "s" : ""}</Badge><Badge tone={wins >= losses ? "green" : "orange"}>{wins}W - {losses}L</Badge></div>
-        <h3 className="mt-4 text-3xl font-black text-white md:text-4xl">{verdict}</h3>
-        <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{summary}</p>
-        <div className="mt-5 grid gap-2 md:grid-cols-2">
-          {readableItems.length ? readableItems.map((item) => {
-            const Icon = item.icon || Activity;
-            return <div key={item.title} className={cx("rounded-2xl border p-3", tone(item.toneName))}><div className="flex items-start gap-3"><Icon className="mt-0.5 h-5 w-5 shrink-0" /><div className="min-w-0"><p className="font-black text-white">{item.title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-100/90">{item.text}</p></div></div></div>;
-          }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Importe plus de games pour produire une lecture fiable.</p>}
-        </div>
+        <h3 className="mt-4 max-w-4xl text-3xl font-black leading-tight text-white md:text-4xl">{verdict}</h3>
+        <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{summary}</p>
       </div>
-      <div className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-4">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Plan coach</p><p className="mt-1 text-sm font-semibold text-slate-300">{player?.name || "Profil"} · actions de review</p></div><Target className="h-5 w-5 text-cyan-100" /></div>
-        <div className="mt-4 space-y-2">{actions.map((action, index) => <div key={`${action}-${index}`} className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-400/10 text-[0.62rem] font-black text-cyan-50">{index + 1}</span><p className="text-sm font-semibold leading-5 text-slate-100">{action}</p></div>)}</div>
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Preuves</p><Badge tone={evidenceRows.length ? "cyan" : "slate"}>{evidenceRows.length}</Badge></div>
-          <div className="mt-3 space-y-2">{evidenceRows.length ? evidenceRows.map((row, index) => <button key={`${row.match?.id || index}-coach-proof`} type="button" onClick={() => openAppPath(`/statistiques?match=${row.match?.id || ""}`)} className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><span className="min-w-0"><span className="block truncate text-xs font-black text-white">{matchDisplayName(row.match, "Game")}</span><span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(row.champion)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · KP {Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</span></span><ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" /></button>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold leading-5 text-slate-300">Aucune game critique isolée pour ce profil.</p>}</div>
-        </div>
+      <div className="grid shrink-0 grid-cols-3 gap-4 border-y border-white/10 py-3 text-center sm:min-w-[340px] xl:border-y-0 xl:border-l xl:py-0 xl:pl-5">
+        <div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{games}</p></div>
+        <div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Winrate</p><p className="mt-1 text-xl font-black text-white">{Math.round((wins / Math.max(1, games)) * 100)}%</p></div>
+        <div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Lecture</p><p className="mt-1 truncate text-sm font-black text-white">{issues.length ? "À corriger" : "Stable"}</p></div>
       </div>
     </div>
-    <div className="mt-5 grid gap-2 md:grid-cols-2 xl:grid-cols-5">{pillars.map((pillar) => <ProfileHudMetric key={pillar.label} icon={pillar.icon} label={pillar.label} value={pillar.value} detail={pillar.detail} tone={pillar.toneName} />)}</div>
-    <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">{comparisons.map((item) => <ProfileHudMetric key={item.label} icon={item.icon} label={item.label} value={item.value} detail={item.detail} tone={item.toneName} />)}</div>
+    <div className="mt-6 grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(290px,.38fr)]">
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Lecture prioritaire</p>
+          <span className="text-xs font-bold text-slate-400">Détails dans les onglets dédiés</span>
+        </div>
+        <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
+          {readableItems.length ? readableItems.map((item) => {
+            const Icon = item.icon || Activity;
+            return <div key={item.title} className="flex gap-3 py-4">
+              <span className={cx("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(item.toneName))}><Icon className="h-4 w-4" /></span>
+              <div className="min-w-0"><p className="font-black text-white">{item.title}</p><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{item.text}</p></div>
+            </div>;
+          }) : <p className="py-4 text-sm font-semibold text-slate-300">Importe plus de games pour produire une lecture fiable.</p>}
+        </div>
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          {decisions.map((item) => <div key={item.label} className={cx("min-w-0 border-l-2 pl-3", item.toneName === "green" ? "border-emerald-300/60" : item.toneName === "red" ? "border-rose-300/60" : item.toneName === "orange" ? "border-amber-300/60" : item.toneName === "purple" ? "border-fuchsia-300/60" : "border-cyan-300/60")}>
+            <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
+            <p className="mt-1 truncate text-sm font-black text-white">{item.text}</p>
+          </div>)}
+        </div>
+      </div>
+      <aside className="min-w-0 xl:border-l xl:border-white/10 xl:pl-6">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Plan coach</p><p className="mt-1 text-sm font-semibold text-slate-400">{player?.name || "Profil"} · prochaines reviews</p></div><Target className="h-5 w-5 text-cyan-100" /></div>
+        <ol className="mt-4 space-y-3">{actions.map((action, index) => <li key={`${action}-${index}`} className="flex gap-3">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-cyan-300/25 text-[0.62rem] font-black text-cyan-50">{index + 1}</span>
+          <p className="text-sm font-semibold leading-6 text-slate-100">{action}</p>
+        </li>)}</ol>
+        <div className="mt-5 border-t border-white/10 pt-4">
+          <div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Preuves</p><Badge tone={evidenceRows.length ? "cyan" : "slate"}>{evidenceRows.length}</Badge></div>
+          <div className="mt-2 divide-y divide-white/10">{evidenceRows.length ? evidenceRows.slice(0, 4).map((row, index) => <button key={`${row.match?.id || index}-coach-proof`} type="button" onClick={() => openAppPath(`/statistiques?match=${row.match?.id || ""}`)} className="flex w-full min-w-0 items-center justify-between gap-3 py-3 text-left transition hover:text-cyan-100"><span className="min-w-0"><span className="block truncate text-xs font-black text-white">{matchDisplayName(row.match, "Game")}</span><span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{championDisplayName(row.champion)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · KP {Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</span></span><ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" /></button>) : <p className="py-3 text-xs font-semibold leading-5 text-slate-400">Aucune game critique isolée pour ce profil.</p>}</div>
+        </div>
+      </aside>
+    </div>
+    <div className="mt-6 border-t border-white/10 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Repères utiles</p><span className="text-xs font-semibold text-slate-500">Synthèse volontairement limitée</span></div>
+      <div className="mt-3 grid gap-x-6 gap-y-2 lg:grid-cols-2">{referenceMetrics.map((item) => <CoachReferenceMetric key={item.label} item={item} />)}</div>
+    </div>
   </Surface>;
+}
+
+function CoachReferenceMetric({ item }) {
+  return <div className="grid min-w-0 grid-cols-[minmax(92px,.7fr)_minmax(70px,.35fr)_minmax(0,1fr)] items-center gap-3 border-b border-white/8 py-2">
+    <p className="truncate text-xs font-black uppercase tracking-[0.12em] text-slate-400">{item.label}</p>
+    <p className="truncate text-sm font-black text-white">{item.value}</p>
+    <p className="truncate text-xs font-semibold text-slate-400">{item.detail}</p>
+  </div>;
 }
 
 function ChampionProfileDetail({ stat, rows, matchups }) {
