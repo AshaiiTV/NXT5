@@ -3019,7 +3019,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const coachPillars = [
     { label: "Laning / farm", value: globalCs.at10 ?? "-", detail: cs10Target ? `${lowCs10Count}/${cs10Values.length || 0} sous cible CS10` : `${avgCsPerMin.toFixed(1)} CS/min moyen`, toneName: cs10Target && lowCs10Count > Math.max(1, cs10Values.length * 0.35) ? "orange" : "green", icon: Target },
     { label: "Fights", value: `${Math.round(avgKp)}%`, detail: `${lowKpRows.length} game${lowKpRows.length > 1 ? "s" : ""} sous 50% KP`, toneName: avgKp >= 60 ? "cyan" : "yellow", icon: Swords },
-    { label: "Ressources", value: `${damageResourceDelta >= 0 ? "+" : ""}${damageResourceDelta.toFixed(1)}`, detail: "dégâts share - gold share", toneName: damageResourceDelta >= 0 ? "green" : "orange", icon: Gauge },
+    { label: "Ressources", value: `${damageResourceDelta >= 0 ? "+" : ""}${damageResourceDelta.toFixed(1)}`, detail: "rendement ressources", toneName: damageResourceDelta >= 0 ? "green" : "orange", icon: Gauge },
     { label: "Sécurité", value: avgDeaths.toFixed(1), detail: `${highDeathRows.length} game${highDeathRows.length > 1 ? "s" : ""} à morts hautes`, toneName: avgDeathShare <= 20 ? "green" : "red", icon: Shield },
     { label: "Pool", value: championStats.length, detail: topChampion ? `${topChampionShare}% sur ${championDisplayName(topChampion.champion)}` : "aucun champion", toneName: topChampionShare >= 60 ? "yellow" : "cyan", icon: Crown },
   ];
