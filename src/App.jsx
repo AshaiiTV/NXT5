@@ -7016,11 +7016,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   return (
     <div>
-      <PageHeader eyebrow="Organisation" title="Planning" subtitle="Chaque joueur renseigne ses dispos, puis la vue globale montre immédiatement les créneaux jouables pour l’équipe.">
+      <PageHeader eyebrow="Organisation" title="Planning" subtitle="Dispos individuelles et créneaux team lisibles en vue compacte.">
         <div className="flex flex-wrap gap-2">
           {weekOptions.map((week) => (
-            <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} className={cx("rounded-xl border px-3 py-2 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/40 bg-cyan-400/12 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.04] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
-              <span className="block text-xs font-black uppercase tracking-[0.14em]">{week.label}</span>
+            <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} className={cx("rounded-lg border px-2.5 py-1.5 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
+              <span className="block text-[0.62rem] font-black uppercase tracking-[0.14em]">{week.label}</span>
               <span className="mt-0.5 block text-xs font-semibold opacity-80">{week.range}</span>
             </button>
           ))}
@@ -7031,27 +7031,27 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         </div>
       </PageHeader>
 
-      <div className="grid gap-5 2xl:grid-cols-[0.82fr_1.55fr]">
-        <div className="space-y-5">
-          <Surface glow>
+      <div className="grid gap-4 2xl:grid-cols-[minmax(240px,.56fr)_minmax(0,1.44fr)]">
+        <div className="space-y-4">
+          <Surface glow className="p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-2xl font-black text-white">Profils</h3>
-                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">Sélectionne un profil pour consulter ou modifier ses disponibilités.</p>
+                <h3 className="text-lg font-black text-white">Profils</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Choisis le planning à éditer.</p>
               </div>
               <Badge tone={canManageAll ? "purple" : "slate"}>{canManageAll ? "Staff" : "Joueur"}</Badge>
             </div>
-            <div className="mt-5 grid gap-2">
+            <div className="mt-3 grid gap-1.5">
               {players.map((player) => {
                 const selected = player.id === selectedPlayerId;
                 const filled = weekDays.reduce((sum, [day]) => sum + slotList(player.id, day).length, 0);
                 return (
-                  <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("flex items-center justify-between gap-3 rounded-2xl border p-3 text-left transition", selected ? "border-cyan-300/35 bg-cyan-400/10 text-white shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/18 hover:bg-white/[0.06] hover:text-white")}>
-                    <span className="flex min-w-0 items-center gap-3">
-                      <RoleIcon role={player.role} className="h-6 w-6 shrink-0" />
+                  <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("flex items-center justify-between gap-2 rounded-xl border px-2.5 py-2 text-left transition", selected ? "border-cyan-300/35 bg-cyan-400/10 text-white" : "border-white/10 bg-white/[0.028] text-slate-400 hover:border-cyan-300/18 hover:bg-white/[0.055] hover:text-white")}>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <RoleIcon role={player.role} className="h-5 w-5 shrink-0" />
                       <span className="min-w-0">
                         <span className="block truncate text-sm font-black">{player.name}</span>
-                        <span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{roleLabel(player.role)}{player.user_id === user?.id ? " · Moi" : ""}</span>
+                        <span className="mt-0.5 block text-[0.6rem] font-black uppercase tracking-[0.14em] text-slate-300">{roleLabel(player.role)}{player.user_id === user?.id ? " · Moi" : ""}</span>
                       </span>
                     </span>
                     <Badge tone={filled ? "cyan" : "slate"}>{filled} slots</Badge>
@@ -7061,23 +7061,23 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
           </Surface>
 
-          <Surface>
+          <Surface className="p-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-xl font-black text-white">Créneaux forts</h3>
-                <p className="mt-1 text-xs font-bold text-slate-400">Les meilleurs points de rendez-vous de la semaine.</p>
+                <h3 className="text-lg font-black text-white">Créneaux forts</h3>
+                <p className="mt-1 text-xs font-bold text-slate-400">Top rendez-vous semaine.</p>
               </div>
               <Badge tone="cyan">Top {bestCells.length}</Badge>
             </div>
-            <div className="mt-4 grid gap-2">
+            <div className="mt-3 grid gap-1.5">
               {bestCells.map((cell) => (
-                <div key={`${cell.day}-${cell.time}`} className={cx("rounded-2xl border p-3", cell.count === players.length ? tone("green") : cell.count > 0 ? tone("cyan") : tone("slate"))}>
+                <div key={`${cell.day}-${cell.time}`} className={cx("rounded-xl border px-2.5 py-2", cell.count === players.length ? tone("green") : cell.count > 0 ? tone("cyan") : tone("slate"))}>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-black">{weekDays.find(([day]) => day === cell.day)?.[1]} · {cell.time}</span>
-                    <span className="text-sm font-black">{cell.count}/{players.length}</span>
+                    <span className="text-sm font-black">{weekDays.find(([day]) => day === cell.day)?.[1]} · {cell.time}</span>
+                    <span className="text-xs font-black">{cell.count}/{players.length}</span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {players.filter((player) => slotList(player.id, cell.day).includes(cell.time)).map((player) => <span key={player.id} title={`${roleLabel(player.role)} · ${player.name}`} className="inline-flex items-center rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-[0.62rem] font-black uppercase tracking-[0.1em]">{roleLabel(player.role)}</span>)}
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {players.filter((player) => slotList(player.id, cell.day).includes(cell.time)).map((player) => <span key={player.id} title={`${roleLabel(player.role)} · ${player.name}`} className="inline-flex items-center rounded-md border border-white/10 bg-black/20 px-1.5 py-0.5 text-[0.56rem] font-black uppercase tracking-[0.08em]">{String(player.role || "?").slice(0, 3)}</span>)}
                   </div>
                 </div>
               ))}
@@ -7086,11 +7086,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         </div>
 
         <div className="space-y-5">
-          <Surface glow className="p-5">
+          <Surface glow className="p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-2xl font-black text-white">{selectedPlayer?.name || "Profil"}</h3>
-                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">{canEditSelected ? "Clique sur les slots pour activer ou retirer une disponibilité." : "Lecture seule : seul le joueur, le capitaine ou le coach peut modifier ce profil."}</p>
+                <h3 className="text-xl font-black text-white">{selectedPlayer?.name || "Profil"}</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique les slots. En-têtes = raccourcis." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedPlayer && <Badge tone="blue">{roleLabel(selectedPlayer.role)}</Badge>}
@@ -7099,25 +7099,25 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("weekend")} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Week-end</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-xl border border-rose-300/15 bg-rose-500/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("weekend")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Week-end</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
             </div>
-            <div className="-mx-4 mt-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-              <div className="min-w-[680px] sm:min-w-[760px]">
-                <div className="grid grid-cols-[5.5rem_repeat(7,minmax(5.5rem,1fr))] gap-2">
+            <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+              <div className="min-w-[560px] sm:min-w-[640px]">
+                <div className="grid grid-cols-[4.6rem_repeat(7,minmax(4.4rem,1fr))] gap-1">
                   <div />
                   {weekDays.map(([day, label, date]) => {
                     const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected || saving} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("rounded-xl border px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] transition", dayActive ? "border-cyan-200/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-black/25 text-slate-300 hover:border-cyan-300/25 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")}><span className="block">{label}</span><span className="mt-1 block text-[0.66rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
+                    return <button key={day} type="button" disabled={!canEditSelected || saving} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("rounded-lg border px-2 py-1.5 text-center text-[0.62rem] font-black uppercase tracking-[0.12em] transition", dayActive ? "border-cyan-200/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-black/25 text-slate-300 hover:border-cyan-300/25 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")}><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
-                      <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm font-black text-white transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
+                      <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs font-black text-white transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {weekDays.map(([day]) => {
                         const activeSlot = (draftSlots[day] || []).includes(time);
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} title={activeSlot ? "Disponible" : "Indisponible"} className={cx("grid min-h-10 place-items-center rounded-xl border text-xs font-black transition", activeSlot ? "border-cyan-200/45 bg-cyan-300/18 text-cyan-50 shadow-[0_0_22px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.028] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2.5 w-2.5 rounded-full", activeSlot ? "bg-cyan-100 shadow-[0_0_14px_rgba(103,232,249,.7)]" : "bg-white/10")} /></button>;
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} title={activeSlot ? "Disponible" : "Indisponible"} className={cx("grid min-h-7 place-items-center rounded-lg border text-xs font-black transition", activeSlot ? "border-cyan-200/40 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.024] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2 w-2 rounded-full", activeSlot ? "bg-cyan-100 shadow-[0_0_10px_rgba(103,232,249,.55)]" : "bg-white/10")} /></button>;
                       })}
                     </React.Fragment>
                   ))}
@@ -7126,47 +7126,46 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="mt-5">
               <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Note planning</label>
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected || saving} rows={3} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected || saving} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
             </div>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs font-semibold text-slate-400">Les en-têtes jour/heure servent aussi de raccourcis de sélection.</p>
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-semibold text-slate-400">Jour/heure = raccourcis.</p>
               <Button type="button" icon={saving ? Loader2 : Check} disabled={!canEditSelected || saving} onClick={saveAvailability}>{saving ? "Enregistrement..." : "Enregistrer les dispos"}</Button>
             </div>
           </Surface>
 
-          <Surface>
+          <Surface className="p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-2xl font-black text-white">Planning général</h3>
-                <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">Vue team complète pour {selectedWeek.label.toLowerCase()} ({selectedWeek.range}).</p>
+                <h3 className="text-xl font-black text-white">Planning général</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{selectedWeek.label} · {selectedWeek.range}</p>
               </div>
               <Badge tone="purple">{players.length} profils</Badge>
             </div>
-            <div className="-mx-4 mt-5 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
-              <div className="min-w-[720px] sm:min-w-[860px]">
-                <div className="grid grid-cols-[5.5rem_repeat(7,minmax(6.2rem,1fr))] gap-2">
+            <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+              <div className="min-w-[620px] sm:min-w-[720px]">
+                <div className="grid grid-cols-[4.4rem_repeat(7,minmax(4.8rem,1fr))] gap-1">
                   <div />
-                  {weekDays.map(([day, label, date]) => <div key={day} className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-300"><span className="block">{label}</span><span className="mt-1 block text-[0.66rem] text-cyan-100/70">{formatPlanningDate(date)}</span></div>)}
+                  {weekDays.map(([day, label, date]) => <div key={day} className="rounded-lg border border-white/10 bg-black/25 px-2 py-1.5 text-center text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-300"><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></div>)}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
-                      <div className="flex items-center rounded-xl border border-white/10 bg-black/25 px-3 py-2 text-sm font-black text-white">{time}</div>
+                      <div className="flex items-center rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs font-black text-white">{time}</div>
                       {weekDays.map(([day]) => {
                         const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
                         const ratio = availablePlayers.length / totalPlayers;
                         const fullTeam = availablePlayers.length >= Math.min(5, players.length);
-                        const cellTone = fullTeam ? "border-emerald-200/70 bg-emerald-300/22 text-emerald-50 shadow-[0_0_34px_rgba(52,211,153,.24)] ring-1 ring-emerald-200/30" : ratio >= 0.8 ? "border-cyan-200/55 bg-cyan-300/18 text-cyan-50 shadow-[0_0_26px_rgba(34,211,238,.18)]" : ratio >= 0.6 ? "border-cyan-200/35 bg-cyan-400/12 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,.10)]" : ratio >= 0.35 ? "border-violet-200/25 bg-violet-400/9 text-violet-100" : availablePlayers.length ? "border-white/12 bg-white/[0.035] text-slate-300" : "border-white/8 bg-white/[0.018] text-slate-400";
+                        const cellTone = fullTeam ? "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" : ratio >= 0.8 ? "border-cyan-200/42 bg-cyan-300/14 text-cyan-50" : ratio >= 0.6 ? "border-cyan-200/28 bg-cyan-400/9 text-cyan-50" : ratio >= 0.35 ? "border-violet-200/20 bg-violet-400/7 text-violet-100" : availablePlayers.length ? "border-white/12 bg-white/[0.03] text-slate-300" : "border-white/8 bg-white/[0.018] text-slate-500";
                         return (
-                          <div key={`${day}-${time}`} title={availablePlayers.map((player) => player.name).join(" · ") || "Aucun joueur disponible"} className={cx("relative min-h-[4rem] overflow-hidden rounded-xl border p-2 transition", cellTone)}>
-                            {fullTeam && <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,.22),transparent_55%)]" />}
-                            <div className="flex items-center justify-between gap-2">
-                              <span className={cx("relative z-10 font-black", fullTeam ? "text-lg" : "text-sm")}>{availablePlayers.length}/{players.length}</span>
+                          <div key={`${day}-${time}`} title={availablePlayers.map((player) => player.name).join(" · ") || "Aucun joueur disponible"} className={cx("relative min-h-[2.35rem] overflow-hidden rounded-lg border px-1.5 py-1 transition", cellTone)}>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="relative z-10 text-xs font-black">{availablePlayers.length}/{players.length}</span>
                               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/30"><span className="block h-full rounded-full bg-current" style={{ width: `${Math.round(ratio * 100)}%` }} /></span>
                             </div>
-                            <div className="relative z-10 mt-2 flex items-center gap-1">
-                              {availablePlayers.slice(0, 5).map((player) => <span key={player.id} title={player.name} className="inline-flex h-6 w-6 items-center justify-center rounded-lg border border-white/10 bg-black/25"><RoleIcon role={player.role} className="h-4 w-4" /></span>)}
-                              {availablePlayers.length > 5 && <span className="text-[0.62rem] font-black">+{availablePlayers.length - 5}</span>}
+                            <div className="relative z-10 mt-0.5 truncate text-[0.52rem] font-black uppercase tracking-[0.06em] opacity-80">
+                              {availablePlayers.length ? availablePlayers.slice(0, 3).map((player) => String(player.role || "?").slice(0, 3)).join(" ") : "-"}
+                              {availablePlayers.length > 3 ? ` +${availablePlayers.length - 3}` : ""}
                             </div>
-                            {fullTeam && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-100 shadow-[0_0_14px_rgba(167,243,208,.8)]" />}
+                            {fullTeam && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-emerald-100 shadow-[0_0_10px_rgba(167,243,208,.7)]" />}
                           </div>
                         );
                       })}
