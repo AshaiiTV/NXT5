@@ -3377,7 +3377,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         </div>}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
         {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
-        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="space-y-5"><ProfileCsMilestonePanel rows={rows} /><div className="grid gap-2 lg:grid-cols-2">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></div></ProfileFold>}
+        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="space-y-3"><ProfileCsMilestonePanel rows={rows} /><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 transition hover:border-cyan-300/20 hover:bg-white/[0.055]"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></div></ProfileFold>}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des rapports liés aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
     </AnimatePresence>
@@ -3744,8 +3744,8 @@ function ProfileCsMilestonePanel({ rows = [] }) {
     return (!championFilter || row.champion === championFilter) && (!matchFilter || matchId === matchFilter);
   });
   const csSummary = csMilestoneSummary(filteredRows);
-  return <div className="space-y-4">
-    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+  return <div className="space-y-3">
+    <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
       <SelectInput label="Champion" value={championFilter} onChange={setChampionFilter}><option value="">Tous les champions</option>{championOptions.map((champion) => <option key={champion} value={champion}>{championDisplayName(champion)}</option>)}</SelectInput>
       <SelectInput label="Game" value={matchFilter} onChange={setMatchFilter}><option value="">Toutes les games</option>{matchOptions.map((item) => <option key={item.id} value={item.id}>{matchDisplayName(item.match, "Game")} · {item.match?.result || "Résultat ?"}</option>)}</SelectInput>
       <div className="flex flex-wrap gap-2">
@@ -3754,21 +3754,23 @@ function ProfileCsMilestonePanel({ rows = [] }) {
         <Badge tone="slate">{filteredRows.length} ligne{filteredRows.length > 1 ? "s" : ""}</Badge>
       </div>
     </div>
-    <div className="grid gap-2">
+    <div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">
       {filteredRows.length ? filteredRows.map((row, index) => {
         const cs10 = csAtMinute(row, 10);
         const cs20 = csAtMinute(row, 20);
-        return <div key={`${row.match?.id || row.match?.game_id || index}-${row.champion}-cs`} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3 md:grid-cols-[minmax(0,1fr)_repeat(3,minmax(74px,.28fr))] md:items-center">
-          <div className="flex min-w-0 items-center gap-3">
-            <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 shrink-0 rounded-xl border border-white/10 object-cover" />
+        return <div key={`${row.match?.id || row.match?.game_id || index}-${row.champion}-cs`} className="grid min-w-0 gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          <div className="flex min-w-0 items-center gap-2">
+            <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg border border-white/10 object-cover" />
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div>
-              <p className="mt-1 truncate text-xs font-semibold text-slate-300">{matchDisplayName(row.match, "Game")} · {row.match?.duration || "--:--"}</p>
+              <div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p></div>
+              <p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match, "Game")} · {row.match?.duration || "--:--"}</p>
             </div>
           </div>
-          <ProfileHudMetric label="CS 10" value={cs10 ?? "-"} detail="10 min" tone={Number.isFinite(cs10) ? "green" : "slate"} />
-          <ProfileHudMetric label="CS 20" value={cs20 ?? "-"} detail="20 min" tone={Number.isFinite(cs20) ? "cyan" : "slate"} />
-          <ProfileHudMetric label="CS total" value={creepScore(row) || "-"} detail="Fin de game" tone="orange" />
+          <div className="grid grid-cols-3 gap-1.5 text-center">
+            <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1"><span className="block text-[0.54rem] font-black uppercase tracking-[0.1em] text-emerald-100/80">CS10</span><span className="text-xs font-black text-white">{cs10 ?? "-"}</span></span>
+            <span className="rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1"><span className="block text-[0.54rem] font-black uppercase tracking-[0.1em] text-cyan-100/80">CS20</span><span className="text-xs font-black text-white">{cs20 ?? "-"}</span></span>
+            <span className="rounded-lg border border-amber-200/15 bg-amber-300/10 px-2 py-1"><span className="block text-[0.54rem] font-black uppercase tracking-[0.1em] text-amber-100/80">Total</span><span className="text-xs font-black text-white">{creepScore(row) || "-"}</span></span>
+          </div>
         </div>;
       }) : <EmptyState icon={BarChart3} title="Aucune ligne CS" text="Aucune game ne correspond à ce filtre." />}
     </div>
