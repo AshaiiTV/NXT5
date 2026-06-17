@@ -7535,28 +7535,6 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     }
   }
 
-  async function rewriteExistingReports() {
-    const editableReports = reports.filter((report) => canCaptainDelete || report.created_by === user?.id);
-    if (!editableReports.length) {
-      pushToast({ type: "yellow", title: "Aucun rapport modifiable", text: "Tu n’as pas les droits sur les rapports actuels." });
-      return;
-    }
-    if (!window.confirm(`Réécrire ${editableReports.length} rapport${editableReports.length > 1 ? "s" : ""} avec le nouveau format data ? Les anciennes notes seront conservées en bas.`)) return;
-    setSaving(true);
-    try {
-      for (const report of editableReports) {
-        const matchIds = reportMatchIds(report);
-        await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "update", teamId: selectedTeamId, reportId: report.id, title: reportTitleFromMatchIds(matchIds, matches, report.title || "Rapport"), content: buildReportRewriteContent(report, matches), matchIds }) });
-      }
-      await refreshAll();
-      pushToast({ type: "green", title: "Rapports réécrits", text: `${editableReports.length} rapport${editableReports.length > 1 ? "s" : ""} migré${editableReports.length > 1 ? "s" : ""} au nouveau format.` });
-    } catch (err) {
-      pushToast({ type: "red", title: "Réécriture impossible", text: err.message });
-    } finally {
-      setSaving(false);
-    }
-  }
-
   const commands = [[`/KDA "ADC"`, "KDA moyen d’un rôle."], [`/DAMAGE "MID"`, "Dégâts moyens d’un rôle."], [`/VISION "SUP"`, "Vision moyenne d’un rôle."], [`/GOLD "JGL"`, "Gold moyen d’un rôle."], [`/KP "TOP"`, "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
   return (
     <div className="nxt5-data-dense min-w-0 overflow-hidden">
@@ -7669,7 +7647,6 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                 <h3 className="text-xl font-black text-white">Bibliothèque</h3>
                 <p className="mt-1 text-sm font-semibold text-slate-400">{scopedReports.length} / {reports.length} rapport{reports.length > 1 ? "s" : ""}</p>
               </div>
-              {reports.length > 0 && <Button variant="ghost" icon={RefreshCw} onClick={rewriteExistingReports} disabled={saving}>Réécrire</Button>}
             </div>
             <div className="mt-4 max-h-[420px] space-y-2 overflow-auto pr-1">
               {scopedReports.length ? scopedReports.map((report) => {
