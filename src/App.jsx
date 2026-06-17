@@ -2880,7 +2880,6 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [profileView, setProfileView] = useState("overview");
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
-  const [selectedBuildChampion, setSelectedBuildChampion] = useState("");
   const [coachingContent, setCoachingContent] = useState("");
   const [savingCoaching, setSavingCoaching] = useState(false);
   useEffect(() => {
@@ -2889,7 +2888,6 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }, [canObserveAll, linkedPlayer?.id, players.map((player) => player.id).join("|"), selectedPlayerId]);
   useEffect(() => {
     setSelectedProfileChampion("");
-    setSelectedBuildChampion("");
   }, [selectedPlayerId]);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || linkedPlayer || players[0];
   const coachingNote = (data.profileCoachingNotes || []).find((note) => note.team_id === selectedTeamId && note.player_id === selectedPlayer?.id);
@@ -2922,7 +2920,8 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     map.set(key, current);
     return map;
   }, new Map()).values()).map((stat) => ({ ...stat, winrate: Math.round((stat.wins / Math.max(1, stat.games)) * 100), kda: ((stat.kills + stat.assists) / Math.max(1, stat.deaths)).toFixed(2) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate);
-  const selectedProfileChampionStats = championStats.find((stat) => stat.champion === selectedProfileChampion) || null;
+  const activeProfileChampion = selectedProfileChampion || championStats[0]?.champion || "";
+  const selectedProfileChampionStats = championStats.find((stat) => stat.champion === activeProfileChampion) || null;
   const selectedProfileChampionRows = selectedProfileChampionStats?.rows || [];
   const selectedProfileChampionMatchups = Array.from(selectedProfileChampionRows.reduce((map, row) => {
     const enemy = opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId);
@@ -3261,14 +3260,10 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     pushToast?.({ type: "cyan", title: "PNG exporté", text: "Le résumé du profil a été téléchargé." });
   }
   const buildRowsCount = rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length).length;
-  useEffect(() => {
-    if (profileView === "builds" && buildRowsCount === 0) setProfileView("overview");
-  }, [profileView, buildRowsCount]);
   const profileViews = [
     ["overview", "Synthèse", Activity, `${games}G`],
     ["champions", "Champions", Crown, championStats.length],
     ["pool", "Pool", Shield, championPool.length],
-    ...(buildRowsCount > 0 ? [["builds", "Build", Gauge, buildRowsCount]] : []),
     ["matchups", "Matchups", Swords, matchups.length],
     ["history", "Historique", FileText, rows.length],
     ["coaching", "Coaching", Clipboard, coachingContent.trim() ? "OK" : "—"],
@@ -3294,9 +3289,32 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <AnimatePresence mode="wait">
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
         {profileView === "overview" && <CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} />}
-        {profileView === "champions" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,.85fr)]"><ProfileFold title="Champions joués" badge="Games importées" icon={Crown} toneName="cyan"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{championStats.length ? championStats.map((stat) => { const active = selectedProfileChampion === stat.champion; return <button key={stat.champion} type="button" onClick={() => setSelectedProfileChampion(active ? "" : stat.champion)} className={cx("relative overflow-hidden rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-black/25")}><ChampionBackdrop champion={stat.champion} /><div className="relative z-10 flex items-center gap-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p></div><ChevronDown className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "rotate-180")} /></div></button>; }) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}</div></ProfileFold><ProfileFold title={selectedProfileChampionStats ? championDisplayName(selectedProfileChampionStats.champion) : "Détail champion"} badge="Fiche perso" icon={Activity} toneName="purple">{selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion à gauche pour afficher ses ratios globaux, ses matchups et son historique game par game.</div>}</ProfileFold></div>}
+        {profileView === "champions" && <div className="grid gap-5 2xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
+          <ProfileFold title="Champions joués" badge={buildRowsCount ? `${buildRowsCount} builds intégrés` : "Games importées"} icon={Crown} toneName="cyan">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-2">
+              {championStats.length ? championStats.map((stat) => {
+                const active = selectedProfileChampionStats?.champion === stat.champion;
+                const buildRows = stat.rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
+                return <button key={stat.champion} type="button" onClick={() => setSelectedProfileChampion(active && selectedProfileChampion ? "" : stat.champion)} className={cx("relative overflow-hidden rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-black/25")}>
+                  <ChampionBackdrop champion={stat.champion} />
+                  <div className="relative z-10 flex items-center gap-3">
+                    <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p>
+                      <p className="mt-1 text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {stat.winrate}% WR · KDA {stat.kda}</p>
+                      <p className="mt-1 text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100/80">{buildRows.length ? `${buildRows.length} build${buildRows.length > 1 ? "s" : ""}` : "Aucun build détecté"}</p>
+                    </div>
+                    <ChevronDown className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "rotate-180")} />
+                  </div>
+                </button>;
+              }) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}
+            </div>
+          </ProfileFold>
+          <ProfileFold title={selectedProfileChampionStats ? championDisplayName(selectedProfileChampionStats.champion) : "Détail champion"} badge="Stats + builds" icon={Activity} toneName="purple">
+            {selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion à gauche pour afficher ses ratios globaux, ses matchups, ses builds et son historique game par game.</div>}
+          </ProfileFold>
+        </div>}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
-        {profileView === "builds" && <ProfileBuildView championStats={championStats} selectedChampion={selectedBuildChampion} onSelectChampion={setSelectedBuildChampion} />}
         {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
         {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="space-y-5"><ProfileCsMilestonePanel rows={rows} /><div className="grid gap-2 lg:grid-cols-2">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate font-black text-white">{championDisplayName(row.champion)}</p></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></div></ProfileFold>}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des rapports liés aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
@@ -3606,21 +3624,10 @@ function ChampionLanePanel({ rows }) {
 }
 
 function ChampionBuildPanel({ rows }) {
+  const buildRows = rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
   return <section className="min-w-0">
-    <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Builds joués</p><Badge tone="purple">{rows.length}</Badge></div>
-    <div className="mt-3 divide-y divide-white/10 border-y border-white/10">{rows.length ? rows.map((row, index) => {
-      const finalItems = finalBuildItems(row);
-      const timeline = itemBuildTimeline(row).filter((event) => event.label === "Achat").slice(0, 5);
-      const spells = summonerSpellIds(row).filter(Boolean);
-      return <div key={`${row.match?.id || row.match?.game_id || index}-build`} className="py-3">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0"><p className="truncate text-sm font-black text-white">{matchDisplayName(row.match, "Game")}</p><p className="truncate text-xs font-semibold text-slate-400">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · {row.match?.duration || "--:--"}</p></div>
-          <div className="flex shrink-0 flex-wrap gap-1.5">{spells.map((spell, spellIndex) => <HudIcon key={`${row.id || row.match?.id}-spell-${spellIndex}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-8 w-8 rounded-lg" />)}</div>
-        </div>
-        {finalItems.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{finalItems.map((item, itemIndex) => <HudIcon key={`${row.id || row.match?.id}-champ-final-${itemIndex}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />)}</div>}
-        {timeline.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{timeline.map((event, eventIndex) => <span key={`${row.id || row.match?.id}-first-buy-${eventIndex}-${event.itemId}`} className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.035] px-2 py-1 text-[0.62rem] font-black text-slate-200"><span className="text-cyan-100">{event.time}</span><HudIcon sources={itemIconSources(event.itemId)} label={`Achat ${event.itemId}`} fallback={event.itemId} emptyText="?" className="h-5 w-5 rounded-md" /></span>)}</div>}
-      </div>;
-    }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucun build détecté sur ce champion.</p>}</div>
+    <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Builds et timelines</p><div className="flex flex-wrap gap-2"><Badge tone="purple">{rows.length} game{rows.length > 1 ? "s" : ""}</Badge><Badge tone={buildRows.length ? "cyan" : "slate"}>{buildRows.length} build{buildRows.length > 1 ? "s" : ""}</Badge></div></div>
+    <div className="mt-3 space-y-3">{rows.length ? rows.map((row, index) => <ProfileBuildGameCard key={(row.id || row.match?.id || row.match?.game_id || "build") + "-" + index} row={row} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game sur ce champion.</p>}</div>
   </section>;
 }
 
@@ -3688,50 +3695,6 @@ function ProfileCsMilestonePanel({ rows = [] }) {
         </div>;
       }) : <EmptyState icon={BarChart3} title="Aucune ligne CS" text="Aucune game ne correspond à ce filtre." />}
     </div>
-  </div>;
-}
-
-function ProfileBuildView({ championStats, selectedChampion, onSelectChampion }) {
-  const activeChampion = championStats.some((stat) => stat.champion === selectedChampion) ? selectedChampion : championStats[0]?.champion || "";
-  const activeStats = championStats.find((stat) => stat.champion === activeChampion) || null;
-  const rows = activeStats?.rows?.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || ""))) || [];
-  return <div className="grid gap-5 2xl:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)]">
-    <ProfileFold title="Champions buildés" badge="Sélection" icon={Gauge} toneName="cyan">
-      <div className="grid max-h-[34rem] gap-2 overflow-auto pr-1 sm:grid-cols-2 2xl:grid-cols-1">
-        {championStats.length ? championStats.map((stat) => {
-          const active = stat.champion === activeChampion;
-          const buildRows = stat.rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
-          return <button key={stat.champion} type="button" onClick={() => onSelectChampion(stat.champion)} className={cx("group relative min-w-0 overflow-hidden rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/40 hover:bg-cyan-400/10", active ? "border-cyan-200/55 bg-cyan-400/14 shadow-[0_0_26px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035]")}>
-            <ChampionBackdrop champion={stat.champion} focus="face" />
-            <div className="relative z-10 flex min-w-0 items-center gap-3">
-              <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 shrink-0 rounded-xl border border-white/10 object-cover" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p>
-                <p className="mt-1 truncate text-xs font-semibold text-slate-200">{stat.games} game{stat.games > 1 ? "s" : ""} · {buildRows.length} build{buildRows.length > 1 ? "s" : ""}</p>
-              </div>
-              <ChevronRight className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "rotate-90")} />
-            </div>
-          </button>;
-        }) : <EmptyState icon={Gauge} title="Aucun build" text="Importe des games avec l’importer récent pour alimenter les builds." />}
-      </div>
-    </ProfileFold>
-    <ProfileFold title={activeStats ? `Builds ${championDisplayName(activeStats.champion)}` : "Builds"} badge="Timeline items" icon={Activity} toneName="purple">
-      {activeStats ? <div className="space-y-3">
-        <div className="relative overflow-hidden rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
-          <ChampionBackdrop champion={activeStats.champion} focus="face" />
-          <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <ChampionPortrait champion={activeStats.champion} alt={activeStats.champion} className="h-16 w-16 shrink-0 rounded-2xl border border-cyan-200/20 object-cover" />
-              <div className="min-w-0"><h4 className="truncate text-2xl font-black text-white">{championDisplayName(activeStats.champion)}</h4><p className="mt-1 text-sm font-semibold text-slate-100">{rows.length} game{rows.length > 1 ? "s" : ""} analysée{rows.length > 1 ? "s" : ""} · {activeStats.wins}W - {Math.max(0, activeStats.games - activeStats.wins)}L</p></div>
-            </div>
-            <Badge tone="cyan">Ordre d’achat</Badge>
-          </div>
-        </div>
-        <div className="space-y-3">
-          {rows.length ? rows.map((row, index) => <ProfileBuildGameCard key={(row.id || row.match?.id || row.match?.game_id || "build") + "-" + index} row={row} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game sur ce champion.</p>}
-        </div>
-      </div> : <EmptyState icon={Gauge} title="Aucun champion sélectionné" text="Choisis un champion pour voir ses builds game par game." />}
-    </ProfileFold>
   </div>;
 }
 
