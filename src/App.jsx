@@ -6672,11 +6672,13 @@ function compositionCounterRecommendations(slots, rows, limitPerRole = 3) {
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
   const tier = championTierByStatus(status);
-  return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 overflow-hidden rounded-2xl border text-left transition duration-200", active ? "border-cyan-200/70 bg-cyan-400/14 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:shadow-[0_0_22px_rgba(34,211,238,.12)]")}>
-    <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full object-cover" />
-    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-    <ChampionTierMark tier={tier} active className="absolute left-2 top-2 z-30 h-10 w-10 rounded-xl border-2 border-white/65 bg-black/82 shadow-[0_0_20px_rgba(255,255,255,.22)] backdrop-blur-md transition group-hover:scale-105 [&_svg]:h-5 [&_svg]:w-5" />
-    <p className="absolute inset-x-1.5 bottom-1.5 truncate text-center text-[0.62rem] font-black text-white drop-shadow">{championDisplayName(row.champion)}</p>
+  return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 rounded-[1.15rem] border p-1 text-left transition duration-200", active ? "border-cyan-200/75 bg-cyan-400/16 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-black/28 hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:shadow-[0_0_22px_rgba(34,211,238,.12)]")}>
+    <span className="relative block h-full w-full overflow-hidden rounded-[0.88rem] bg-black/45 ring-1 ring-white/10">
+      <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full rounded-[inherit] object-cover" />
+      <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-black/10" />
+      <ChampionTierMark tier={tier} active className="absolute left-1.5 top-1.5 z-40 h-8 w-8 rounded-xl border-2 border-white/70 bg-black/86 shadow-[0_0_18px_rgba(255,255,255,.24)] backdrop-blur-md transition group-hover:scale-105 [&_svg]:h-4 [&_svg]:w-4" />
+      <span className="absolute inset-x-1.5 bottom-1.5 z-30 truncate text-center text-[0.62rem] font-black text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.9)]">{championDisplayName(row.champion)}</span>
+    </span>
   </button>;
 }
 
