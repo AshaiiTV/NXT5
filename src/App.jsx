@@ -3375,6 +3375,143 @@ function CoachReferenceMetric({ item }) {
   </div>;
 }
 
+function ProfileChampionPoolView({ championPool = [], championStats = [], selectedPlayer }) {
+  const tierOrder = Object.fromEntries(CHAMPION_TIERS.map((tier, index) => [tier.id, index]));
+  const statsByChampion = championStats.reduce((map, stat) => {
+    map.set(championAssetId(stat.champion), stat);
+    map.set(championKey(stat.champion), stat);
+    return map;
+  }, new Map());
+  const getChampionStat = (row) => statsByChampion.get(championAssetId(row.champion)) || statsByChampion.get(championKey(row.champion));
+  const orderedRows = championPool.slice().sort((a, b) => (tierOrder[championPoolStatus(a)] ?? 9) - (tierOrder[championPoolStatus(b)] ?? 9) || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
+  const rowsByTier = CHAMPION_TIERS.reduce((map, tier) => ({ ...map, [tier.id]: [] }), {});
+  orderedRows.forEach((row) => rowsByTier[championPoolStatus(row)].push(row));
+  const total = orderedRows.length;
+  const readyCount = (rowsByTier.lock.length || 0) + (rowsByTier.pocket.length || 0);
+  const workCount = (rowsByTier.work.length || 0) + (rowsByTier.danger.length || 0);
+  const importedCount = orderedRows.filter((row) => getChampionStat(row)).length;
+  const leadingTier = CHAMPION_TIERS.slice().sort((a, b) => (rowsByTier[b.id]?.length || 0) - (rowsByTier[a.id]?.length || 0))[0];
+  const spotlightRow = rowsByTier.lock[0] || rowsByTier.pocket[0] || orderedRows[0];
+  const readiness = !total ? "Pool à remplir" : readyCount >= Math.max(2, Math.ceil(total * 0.55)) ? "Pool prêt" : "Pool à consolider";
+  const readinessTone = !total ? "slate" : readyCount >= Math.max(2, Math.ceil(total * 0.55)) ? "green" : "yellow";
+  return <div className="space-y-5">
+    <Surface className="relative overflow-hidden p-5 md:p-6">
+      {spotlightRow?.champion && <ChampionBackdrop champion={spotlightRow.champion} focus="face" />}
+      <div className="relative z-10 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.44fr)] xl:items-end">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="green">Pool dédié</Badge><Badge tone={readinessTone}>{readiness}</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge></div>
+          <h3 className="mt-4 text-3xl font-black leading-tight text-white md:text-4xl">Pool de {selectedPlayer?.name || "joueur"}</h3>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Lecture séparée des champions déclarés, classés par tiers de maîtrise. L’objectif est de savoir vite ce qui est prêt pour draft, ce qui reste situationnel, et ce qui doit encore être travaillé.</p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <ProfileHudMetric icon={ShieldCheck} label="Maîtrisés" value={rowsByTier.lock.length} detail="Picks prêts" tone="green" />
+          <ProfileHudMetric icon={Flame} label="Confort" value={rowsByTier.pocket.length} detail="Options solides" tone="orange" />
+          <ProfileHudMetric icon={Gauge} label="À consolider" value={workCount} detail="Moyens + apprentissage" tone="cyan" />
+          <ProfileHudMetric icon={Activity} label="Importés" value={`${importedCount}/${total || 0}`} detail="Avec stats de games" tone="purple" />
+        </div>
+      </div>
+    </Surface>
+
+    <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+      {CHAMPION_TIERS.map((tier) => {
+        const rows = rowsByTier[tier.id] || [];
+        return <div key={tier.id} className={cx("relative overflow-hidden rounded-2xl border p-4", championTierFrame(tier, rows.length > 0))}>
+          <div className={cx("pointer-events-none absolute inset-0 bg-gradient-to-br", championTierColumnGlow(tier))} />
+          <div className="relative z-10 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] opacity-75">Tier de maîtrise</p>
+              <p className="mt-1 text-xl font-black text-white">{tier.title}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{tier.hint}</p>
+            </div>
+            <ChampionTierMark tier={tier} active={rows.length > 0} />
+          </div>
+          <div className="relative z-10 mt-4 flex items-end justify-between gap-3 border-t border-white/10 pt-3">
+            <span className="text-3xl font-black text-white">{rows.length}</span>
+            <span className="text-xs font-black uppercase tracking-[0.16em] text-slate-300">{total ? Math.round((rows.length / total) * 100) : 0}% du pool</span>
+          </div>
+        </div>;
+      })}
+    </div>
+
+    {total ? <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,.36fr)]">
+      <div className="grid gap-4 2xl:grid-cols-2">
+        {CHAMPION_TIERS.map((tier) => {
+          const tierRows = rowsByTier[tier.id] || [];
+          return <section key={tier.id} className={cx("relative min-w-0 overflow-hidden rounded-[1.35rem] border p-4", championTierColumnFrame(tier))}>
+            <div className={cx("pointer-events-none absolute inset-0 bg-gradient-to-br", championTierColumnGlow(tier))} />
+            <div className="relative z-10 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{tier.title}</p>
+                <p className="mt-1 text-sm font-semibold leading-5 text-slate-200">{tier.hint}</p>
+              </div>
+              <Badge tone={tier.tone}>{tierRows.length}</Badge>
+            </div>
+            <div className="relative z-10 mt-4 grid gap-2">
+              {tierRows.length ? tierRows.map((row, index) => <ProfilePoolChampionRow key={`${row.id || row.champion}-${index}`} row={row} stat={getChampionStat(row)} selectedPlayer={selectedPlayer} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion dans ce tier.</p>}
+            </div>
+          </section>;
+        })}
+      </div>
+      <aside className="space-y-4">
+        <div className="rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
+          <div className="flex items-center justify-between gap-3"><Badge tone={readinessTone}>{readiness}</Badge><Target className="h-5 w-5 text-cyan-100" /></div>
+          <h4 className="mt-4 text-xl font-black text-white">Lecture draft</h4>
+          <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
+            <ProfilePoolReadLine label="Prêts à sortir" value={readyCount} detail="Maîtrisés + Confort" toneName={readyCount ? "green" : "slate"} />
+            <ProfilePoolReadLine label="À travailler" value={workCount} detail="Moyens + À apprendre" toneName={workCount ? "yellow" : "green"} />
+            <ProfilePoolReadLine label="Tier dominant" value={leadingTier?.title || "-"} detail={`${rowsByTier[leadingTier?.id]?.length || 0} champion${(rowsByTier[leadingTier?.id]?.length || 0) > 1 ? "s" : ""}`} toneName={leadingTier?.tone || "slate"} />
+          </div>
+        </div>
+        <div className="rounded-[1.35rem] border border-white/10 bg-black/24 p-4">
+          <div className="flex items-center justify-between gap-3"><Badge tone="cyan">Guide tiers</Badge><BookOpen className="h-5 w-5 text-cyan-100" /></div>
+          <div className="mt-4 space-y-3">
+            {CHAMPION_TIERS.map((tier) => <div key={tier.id} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+              <ChampionTierMark tier={tier} active className="h-8 w-8 rounded-xl [&_svg]:h-4 [&_svg]:w-4" />
+              <div className="min-w-0"><p className="text-sm font-black text-white">{tier.title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{tier.hint}</p></div>
+            </div>)}
+          </div>
+        </div>
+      </aside>
+    </div> : <Surface glow className="p-6"><EmptyState icon={Shield} title="Pool non renseigné" text="Ajoute des champions dans Champion Pool pour afficher les tiers de maîtrise de ce profil." /></Surface>}
+  </div>;
+}
+
+function ProfilePoolReadLine({ label, value, detail, toneName = "cyan" }) {
+  return <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(70px,.35fr)] items-center gap-3 py-3">
+    <div className="min-w-0"><p className="truncate text-xs font-black uppercase tracking-[0.14em] text-slate-400">{label}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p></div>
+    <p className={cx("truncate text-right text-sm font-black", toneName === "green" ? "text-emerald-100" : toneName === "yellow" ? "text-amber-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
+  </div>;
+}
+
+function ProfilePoolChampionRow({ row, stat, selectedPlayer }) {
+  const status = championPoolStatus(row);
+  const tier = championTierByStatus(status);
+  const tags = championStyleTags(row.champion).slice(0, 2);
+  const note = String(row.verdict || row.notes || row.note || "").trim();
+  const sourceLabel = ["manual", "riot_manual"].includes(String(row.source || "")) ? "Déclaré" : "Pool";
+  const games = Number(stat?.games ?? row.games ?? 0);
+  const winrate = stat ? stat.winrate : games ? Math.round((Number(row.wins || 0) / Math.max(1, games)) * 100) : null;
+  const kda = stat?.kda || (games ? Number(row.kda || 0).toFixed(1) : "");
+  const statTone = !games ? "slate" : winrate >= 55 ? "green" : winrate >= 45 ? "yellow" : "red";
+  return <div className="group min-w-0 rounded-2xl border border-white/10 bg-black/26 p-3 transition hover:border-cyan-300/25 hover:bg-white/[0.045]">
+    <div className="flex min-w-0 gap-3">
+      <ChampionMasteryPortrait row={row} alt={row.champion} className="h-14 w-14 rounded-2xl" markClassName="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <p className="truncate font-black text-white">{championDisplayName(row.champion)}</p>
+          <Badge tone={championPoolStatusTone(status)}>{championPoolStatusLabel(status)}</Badge>
+        </div>
+        <p className="mt-1 truncate text-xs font-semibold text-slate-300">{roleLabel(row.role || selectedPlayer?.role)} · {sourceLabel}</p>
+      </div>
+    </div>
+    <div className="mt-3 flex flex-wrap gap-2">
+      <Badge tone={statTone}>{games ? `${games}G${winrate !== null ? ` · ${winrate}% WR` : ""}${kda ? ` · KDA ${kda}` : ""}` : "Pas encore importé"}</Badge>
+      {tags.map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}
+    </div>
+    <p className="mt-3 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{note || tier.hint}</p>
+  </div>;
+}
+
 function ChampionProfileDetail({ stat, rows, matchups }) {
   const safeGames = Math.max(1, stat.games || rows.length || 0);
   const avg = (value, decimals = 1) => (Number(value || 0) / safeGames).toFixed(decimals);
