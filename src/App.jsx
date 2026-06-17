@@ -6684,7 +6684,7 @@ function CompositionChampionTile({ row, active, onPick, onDragStart }) {
     <span className="relative block h-full w-full overflow-hidden rounded-[0.88rem] bg-black/45 ring-1 ring-white/10">
       <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full rounded-[inherit] object-cover" />
       <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-black/10" />
-      <ChampionTierMark tier={tier} active className="absolute left-1.5 top-1.5 z-40 h-8 w-8 rounded-xl border-2 border-white/70 bg-black/86 shadow-[0_0_18px_rgba(255,255,255,.24)] backdrop-blur-md transition group-hover:scale-105 [&_svg]:h-4 [&_svg]:w-4" />
+      <ChampionTierMark tier={tier} active className="absolute right-1.5 top-1.5 z-40 h-5 w-5 rounded-md border border-white/60 bg-black/82 shadow-[0_0_10px_rgba(255,255,255,.18)] backdrop-blur-sm transition group-hover:scale-105 [&_svg]:h-3 [&_svg]:w-3" />
       <span className="absolute inset-x-1.5 bottom-1.5 z-30 truncate text-center text-[0.62rem] font-black text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.9)]">{championDisplayName(row.champion)}</span>
     </span>
   </button>;
