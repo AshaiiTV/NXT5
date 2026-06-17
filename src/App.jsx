@@ -7558,7 +7558,158 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   }
 
   const commands = [[`/KDA "ADC"`, "KDA moyen d’un rôle."], [`/DAMAGE "MID"`, "Dégâts moyens d’un rôle."], [`/VISION "SUP"`, "Vision moyenne d’un rôle."], [`/GOLD "JGL"`, "Gold moyen d’un rôle."], [`/KP "TOP"`, "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
-  return <div className="nxt5-data-dense"><PageHeader eyebrow="Review staff" title="Rapports de review" subtitle="Crée des contenus liés aux games importées, avec des commandes qui injectent les datas utiles." /><Surface className="mb-5 p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between"><div><h3 className="text-xl font-black text-white">Groupes de games</h3><p className="mt-1 text-sm font-semibold text-slate-300">Même logique que Statistiques : clique un groupe pour filtrer les rapports et préremplir les games du rapport.</p></div>{selectedArchive && <Button variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")}>Retirer le groupe</Button>}</div><div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-3">{archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const archiveMatches = matches.filter((match) => ids.includes(match.id)); const wins = archiveMatches.filter((match) => match.result === "Victoire").length; const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("rounded-2xl border p-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/40 bg-cyan-400/12 shadow-[0_0_24px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/20 hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{archive.name}</p><Badge tone="purple">{ids.length} game{ids.length > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{archive.description || "Groupe de games"}</p><p className="mt-2 text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((wins / Math.max(1, ids.length)) * 100)}% · {wins}W - {ids.length - wins}L</p></button>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun groupe pour le moment. Crée-les dans Statistiques.</p>}</div></Surface><div className="grid gap-5 2xl:grid-cols-[1.05fr_.95fr]"><Surface className="p-5"><div className="flex items-center justify-between gap-3"><div><h3 className="text-2xl font-black text-white">{form.id ? "Modifier le rapport" : "Créer un rapport"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Contenu à gauche, rendu data à droite.</p></div><Button variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button></div>{lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><div className="grid gap-2 md:grid-cols-2">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/25 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-400">{text}</p></button>)}</div></div>}<form onSubmit={saveReport} className="mt-5 space-y-4"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Utilisé seulement sans game liée" icon={FileText} /><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games liées</p><div className="grid max-h-[180px] gap-2 overflow-auto pr-1 md:grid-cols-2">{scopedMatches.length ? scopedMatches.map((match) => <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", form.matchIds.includes(match.id) ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><span className="truncate text-sm font-black text-white">{matchDisplayName(match)}</span></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></button>) : <p className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Importe une game ou retire le filtre groupe.</p>}</div></div><div className="grid gap-4 xl:grid-cols-2"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Contenu</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Notes, timestamps, décisions discutées...\n/KDA "ADC"`} required rows={13} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300 focus:border-cyan-300/35" /></label><div><p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Aperçu</p><ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div><div className="flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetReportForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !formDisplayTitle.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer le rapport"}</Button></div></form></Surface><div className="space-y-5"><Surface className="p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h3 className="text-xl font-black text-white">Rapports existants</h3><p className="mt-1 text-sm font-semibold text-slate-400">{scopedReports.length} / {reports.length} rapport{reports.length > 1 ? "s" : ""} visible{scopedReports.length > 1 ? "s" : ""}</p></div>{reports.length > 0 && <Button variant="ghost" icon={RefreshCw} onClick={rewriteExistingReports} disabled={saving}>Réécrire anciens</Button>}</div><div className="mt-4 max-h-[360px] space-y-2 overflow-auto pr-1">{scopedReports.length ? scopedReports.map((report) => <button key={report.id} type="button" onClick={() => setSelectedReportId(report.id)} className={cx("w-full rounded-xl border p-3 text-left transition", selected?.id === report.id ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="flex items-center justify-between gap-3"><p className="truncate font-black text-white">{reportDisplayName(report, matches)}</p><Badge tone="slate">{reportMatchIds(report).length} game{reportMatchIds(report).length > 1 ? "s" : ""}</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p></button>) : <EmptyState icon={FileText} title="Aucun rapport" text="Crée un rapport lié aux games de ce groupe." />}</div></Surface><Surface>{selected ? <><div className="mb-4 flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-2xl font-black text-white">{reportDisplayName(selected, matches)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p></div><div className="flex shrink-0 flex-wrap justify-end gap-2"><Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport}>Aller vers stats</Button><Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>{canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}{canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}</div></div><ReportPreview content={selected.content} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} /></> : <EmptyState icon={FileText} title="Sélectionne un rapport" text="Le contenu apparaîtra ici." />}</Surface></div></div></div>;
+  return (
+    <div className="nxt5-data-dense min-w-0 overflow-hidden">
+      <PageHeader
+        eyebrow="Review staff"
+        title="Rapports de review"
+        subtitle="Rédige, retrouve et relis les rapports sans mélanger les filtres, les games et le contenu."
+      />
+
+      <Surface className="mb-5 p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={selectedArchive ? "purple" : "slate"}>{selectedArchive ? "Groupe actif" : "Tous les rapports"}</Badge>
+              <Badge tone="cyan">{scopedReports.length} rapport{scopedReports.length > 1 ? "s" : ""}</Badge>
+              <Badge tone="green">{form.matchIds.length} game{form.matchIds.length > 1 ? "s" : ""} liée{form.matchIds.length > 1 ? "s" : ""}</Badge>
+            </div>
+            <h3 className="mt-3 truncate text-2xl font-black text-white">{selectedArchive?.name || "Vue globale review"}</h3>
+            <p className="mt-1 text-sm font-semibold text-slate-300">
+              {selectedArchive ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans ce groupe. Les rapports et la sélection sont filtrés.` : "Sélectionne un groupe si tu veux travailler sur un bloc de scrim précis."}
+            </p>
+          </div>
+          {selectedArchive && <Button variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")}>Retirer le groupe</Button>}
+        </div>
+
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          {archives.length ? archives.map((archive) => {
+            const ids = archiveMatchIds(archive);
+            const archiveMatches = matches.filter((match) => ids.includes(match.id));
+            const wins = archiveMatches.filter((match) => match.result === "Victoire").length;
+            const active = selectedArchiveId === archive.id;
+            return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[220px] rounded-xl border px-3 py-2 text-left transition", active ? "border-cyan-300/40 bg-cyan-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.055]")}>
+              <div className="flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-black text-white">{archive.name}</p>
+                <Badge tone="purple">{ids.length}</Badge>
+              </div>
+              <p className="mt-1 truncate text-[0.66rem] font-black uppercase tracking-[0.12em] text-cyan-100/80">WR {Math.round((wins / Math.max(1, ids.length)) * 100)}% · {wins}W - {ids.length - wins}L</p>
+            </button>;
+          }) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-2 text-sm font-semibold text-slate-300">Aucun groupe pour le moment.</p>}
+        </div>
+      </Surface>
+
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.72fr)]">
+        <Surface className="p-5">
+          <form onSubmit={saveReport} className="space-y-5">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modification" : "Nouveau rapport"}</Badge>
+                <h3 className="mt-3 truncate text-3xl font-black text-white">{formDisplayTitle || (form.id ? "Modifier le rapport" : "Créer un rapport")}</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-300">Le titre vient automatiquement des games liées. Le champ titre sert seulement de secours.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button>
+                {form.id && <Button type="button" variant="ghost" icon={X} onClick={resetReportForm}>Annuler</Button>}
+                <Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !formDisplayTitle.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button>
+              </div>
+            </div>
+
+            {lexiconOpen && <div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-3">
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                {commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/22 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10">
+                  <p className="font-mono text-sm font-black text-cyan-100">{command}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-300">{text}</p>
+                </button>)}
+              </div>
+            </div>}
+
+            <TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} />
+
+            <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games liées</p>
+                <Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length} sélectionnée{form.matchIds.length > 1 ? "s" : ""}</Badge>
+              </div>
+              <div className="grid max-h-[210px] gap-2 overflow-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
+                {scopedMatches.length ? scopedMatches.map((match) => {
+                  const checked = form.matchIds.includes(match.id);
+                  return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/20 hover:bg-white/[0.055]")}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge>
+                      {checked && <Badge tone="cyan">Liée</Badge>}
+                    </div>
+                    <p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
+                  </button>;
+                }) : <p className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Importe une game ou retire le filtre groupe.</p>}
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,.75fr)]">
+              <label className="block">
+                <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes de review</span>
+                <textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions, timestamps, plans d'action...\n/KDA "ADC"`} required rows={16} className="min-h-[360px] w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-400 focus:border-cyan-300/35" />
+              </label>
+              <div className="min-w-0">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Aperçu data</p>
+                  <Badge tone="slate">Live</Badge>
+                </div>
+                <ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} />
+              </div>
+            </div>
+          </form>
+        </Surface>
+
+        <div className="space-y-5">
+          <Surface className="p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-xl font-black text-white">Bibliothèque</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-400">{scopedReports.length} / {reports.length} rapport{reports.length > 1 ? "s" : ""}</p>
+              </div>
+              {reports.length > 0 && <Button variant="ghost" icon={RefreshCw} onClick={rewriteExistingReports} disabled={saving}>Réécrire</Button>}
+            </div>
+            <div className="mt-4 max-h-[420px] space-y-2 overflow-auto pr-1">
+              {scopedReports.length ? scopedReports.map((report) => {
+                const active = selected?.id === report.id;
+                const ids = reportMatchIds(report);
+                return <button key={report.id} type="button" onClick={() => setSelectedReportId(report.id)} className={cx("w-full rounded-xl border p-3 text-left transition", active ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/18 hover:bg-white/[0.055]")}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate font-black text-white">{reportDisplayName(report, matches)}</p>
+                    <Badge tone={active ? "cyan" : "slate"}>{ids.length} game{ids.length > 1 ? "s" : ""}</Badge>
+                  </div>
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-300">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p>
+                </button>;
+              }) : <EmptyState icon={FileText} title="Aucun rapport" text="Crée un rapport lié aux games de ce groupe." />}
+            </div>
+          </Surface>
+
+          <Surface className="p-4">
+            {selected ? <>
+              <div className="flex flex-col gap-3">
+                <div className="min-w-0">
+                  <Badge tone="purple">Lecture</Badge>
+                  <h3 className="mt-3 truncate text-2xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
+                  <p className="mt-1 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport}>Stats</Button>
+                  <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
+                  {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
+                  {canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}
+                </div>
+              </div>
+              <div className="mt-4">
+                <ReportPreview content={selected.content} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
+              </div>
+            </> : <EmptyState icon={FileText} title="Sélectionne un rapport" text="Le contenu apparaîtra ici." />}
+          </Surface>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function MissingEmailModal({ user, onUserUpdate, pushToast }) {
