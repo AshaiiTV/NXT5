@@ -304,6 +304,13 @@ create table if not exists audit_logs (
   created_at timestamptz not null default now()
 );
 
+create table if not exists rate_limits (
+  id serial primary key,
+  ip text not null,
+  endpoint text not null,
+  created_at timestamptz default now()
+);
+
 create index if not exists idx_sessions_token_hash on sessions(token_hash);
 create index if not exists idx_teams_owner on teams(owner_id);
 create index if not exists idx_team_members_user on team_members(user_id);
@@ -324,6 +331,7 @@ alter table champion_pool add column if not exists source text not null default 
 create index if not exists idx_champion_pool_team on champion_pool(team_id);
 create index if not exists idx_improvements_team on improvements(team_id, rank asc);
 create index if not exists idx_reports_team on reports(team_id, created_at desc);
+create index if not exists idx_rate_limits_ip_endpoint on rate_limits(ip, endpoint, created_at);
 alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb;
 alter table reports add column if not exists created_by uuid references users(id) on delete set null;
 alter table matches add column if not exists created_by uuid references users(id) on delete set null;

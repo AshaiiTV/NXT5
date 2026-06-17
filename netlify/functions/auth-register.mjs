@@ -1,6 +1,7 @@
 import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { createSession, hashPassword, isValidEmail, normalizeAccountName, normalizeEmail, safeUser } from './_lib/auth.mjs';
+import { assertRateLimit } from './_lib/rate-limit.mjs';
 
 function accountNameFromEmail(email) {
   const base = normalizeAccountName(email.split('@')[0]).replace(/[^a-z0-9._-]/g, '').slice(0, 18) || 'compte';
@@ -10,6 +11,7 @@ function accountNameFromEmail(email) {
 export default async function handler(request, context) {
   try {
     assertMethod(request, 'POST');
+    await assertRateLimit(request, 'auth-register');
     const body = await readJson(request);
     const email = normalizeEmail(body.email);
     const displayName = String(body.displayName || '').trim().replace(/\s+/g, ' ');

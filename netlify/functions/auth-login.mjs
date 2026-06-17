@@ -1,10 +1,12 @@
 import { sql } from './_lib/db.mjs';
 import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { createSession, normalizeAccountName, normalizeEmail, safeUser, verifyPassword } from './_lib/auth.mjs';
+import { assertRateLimit } from './_lib/rate-limit.mjs';
 
 export default async function handler(request, context) {
   try {
     assertMethod(request, 'POST');
+    await assertRateLimit(request, 'auth-login');
     const body = await readJson(request);
     const accountName = normalizeAccountName(body.accountName);
     const identifier = accountName.includes('@') ? normalizeEmail(body.accountName) : accountName;
