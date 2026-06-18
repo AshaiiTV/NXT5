@@ -6412,35 +6412,50 @@ function TrendsPage({ data, selectedTeamId }) {
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <div className="mb-5 border-b border-cyan-100/10 pb-5">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.72fr)] xl:items-end">
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">Tendances</p></div>
-          <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl lg:text-5xl">Cockpit stratégique</h2>
-          <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Identité, contexte, side et signaux d’équipe à partir des games importées.</p>
+    <section className="relative mb-5 overflow-hidden rounded-[1.25rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(8,18,38,.9),rgba(3,7,18,.78)_52%,rgba(35,12,48,.64))] p-4 shadow-[0_18px_58px_rgba(0,0,0,.30)] md:p-5">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(34,211,238,.16),transparent_30%),radial-gradient(circle_at_88%_12%,rgba(217,70,239,.12),transparent_30%)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/75 to-fuchsia-100/55" />
+      <div className="relative z-10 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,.38fr)] xl:items-stretch">
+        <div className="flex min-w-0 flex-col justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone="cyan">Tendances</Badge>
+              <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
+            </div>
+            <h2 className="nxt5-metal-text mt-4 max-w-4xl break-words text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">Cockpit stratégique</h2>
+            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200 sm:text-base sm:leading-7">Vue d’ensemble des patterns d’équipe : contexte, ressources, dégâts, vision et identité draft sur les games importées.</p>
+          </div>
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
+                <MetricSideMarker marker={sideMarker} />
+              </div>
+              <p className="mt-3 truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p>
+              <p className="mt-1 break-words text-2xl font-black leading-tight text-white">{value}</p>
+              <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{hint}</p>
+            </div>)}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
-          <Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge>
-          <Badge tone="cyan">{matches.length} game{matches.length > 1 ? "s" : ""} lue{matches.length > 1 ? "s" : ""}</Badge>
-          <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
-        </div>
+        <aside className="min-w-0 rounded-2xl border border-white/10 bg-black/26 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Bloc actif</p>
+              <p className={cx("mt-2 text-4xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
+              <p className="mt-1 text-sm font-black text-white">{wins}W - {losses}L</p>
+            </div>
+            <span className={cx("rounded-2xl border p-3", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-5 w-5" /></span>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{matches.length}</p></div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Identité</p><p className="mt-1 truncate text-sm font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
+          </div>
+          <div className="mt-4 border-t border-white/10 pt-3">
+            <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
+          </div>
+        </aside>
       </div>
-      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,.52fr)] lg:items-start">
-        <div className="grid min-w-0 gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.026] px-3 py-3">
-            <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
-            <span className="min-w-0">
-              <span className="flex min-w-0 items-center gap-2"><span className="truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span><MetricSideMarker marker={sideMarker} /></span>
-              <span className="mt-0.5 block break-words text-lg font-black leading-tight text-white sm:text-xl">{value}</span>
-              <span className="mt-1 block truncate text-[0.68rem] font-semibold text-slate-400">{hint}</span>
-            </span>
-          </div>)}
-        </div>
-        <div className="border-y border-cyan-100/10 px-1 py-3 lg:px-3">
-          <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" />
-        </div>
-      </div>
-    </div>
+    </section>
     <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
       <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture data</Badge><h3 className="mt-3 text-2xl font-black text-white">Résumé du bloc</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale de tous les contextes importés."} Les écarts sont ramenés par game pour comparer scrim, tournoi et catégories custom sans gonfler le volume.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-5 grid gap-2 md:grid-cols-3">{[["Or moyen haut", carrySignal && `${carrySignal.name} · ${formatPoints(carrySignal.avgGold)}`, "green"], ["Vision moyenne haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game haut", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className={cx("mt-2 break-words text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
       <Surface className="p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Scrim, Tournoi et custom, avec écarts moyens par game.</p></div><Badge tone="slate">{baseMatches.length} games total</Badge></div><div className="mt-4 grid gap-2">{categoryBreakdown.length ? categoryBreakdown.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-2xl border p-3 text-left transition sm:grid-cols-2 lg:grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] lg:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0 sm:col-span-2 lg:col-span-1"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games} game{entry.games > 1 ? "s" : ""} · {entry.wins}W - {entry.games - entry.wins}L</p></div><span className="min-w-0 text-sm font-black text-white sm:text-right lg:text-left">{entry.wr}% WR</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 break-words text-sm font-black sm:text-right lg:text-left", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)} dmg</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff} vision</span></button>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
