@@ -2795,14 +2795,14 @@ async function exportTrendsPng({ title, subtitle, metrics = [], sections = [], c
     const col = index % 2;
     const row = Math.floor(index / 2);
     const x = col ? 990 : 90;
-    const y = 374 + row * 180;
+    const y = 360 + row * 172;
     const sectionTone = section.tone || "cyan";
-    drawPanel(x, y, 840, 150, sectionTone, 0.56);
+    drawPanel(x, y, 840, 142, sectionTone, 0.56);
     ctx.fillStyle = accentColor(sectionTone);
     ctx.font = "900 16px Inter, Arial, sans-serif";
     ctx.fillText(String(section.title || "").toUpperCase(), x + 26, y + 34);
     (section.items || []).slice(0, 3).forEach((item, itemIndex) => {
-      const itemY = y + 66 + itemIndex * 30;
+      const itemY = y + 62 + itemIndex * 28;
       ctx.fillStyle = accentColor(sectionTone);
       ctx.beginPath();
       ctx.arc(x + 28, itemY - 5, 4, 0, Math.PI * 2);
@@ -2811,33 +2811,33 @@ async function exportTrendsPng({ title, subtitle, metrics = [], sections = [], c
     });
   });
 
-  drawPanel(90, 914, 1740, 84, "purple", 0.48);
+  drawPanel(90, 878, 1740, 92, "purple", 0.48);
   ctx.fillStyle = accentColor("purple");
   ctx.font = "900 13px Inter, Arial, sans-serif";
-  ctx.fillText("CHAMPIONS RÉCURRENTS", 118, 946);
+  ctx.fillText("CHAMPIONS RÉCURRENTS", 118, 910);
   champions.slice(0, 6).forEach((stat, index) => {
     const x = 118 + index * 280;
     const img = championPortraitSources(stat.champion, stat.champion).map((url) => imageCache.get(url)).find(Boolean);
     if (img) {
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(x, 958, 40, 40, 10);
+      ctx.roundRect(x, 924, 40, 40, 10);
       ctx.clip();
       const ratio = Math.max(40 / img.width, 40 / img.height);
-      ctx.drawImage(img, x + (40 - img.width * ratio) / 2, 958 + (40 - img.height * ratio) / 2, img.width * ratio, img.height * ratio);
+      ctx.drawImage(img, x + (40 - img.width * ratio) / 2, 924 + (40 - img.height * ratio) / 2, img.width * ratio, img.height * ratio);
       ctx.restore();
     }
-    fitText(short(championDisplayName(stat.champion), 18), x + 50, 976, 200, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
-    fitText(`${stat.games}G · ${Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR`, x + 50, 996, 200, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 9 });
+    fitText(short(championDisplayName(stat.champion), 18), x + 50, 942, 200, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
+    fitText(`${stat.games}G · ${Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR`, x + 50, 962, 200, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 9 });
   });
 
   ctx.fillStyle = "#67e8f9";
   ctx.font = "800 17px Inter, Arial, sans-serif";
-  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 42);
+  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 58);
   ctx.textAlign = "right";
   ctx.fillStyle = "#dff8ff";
   ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
-  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 42);
+  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 58);
   ctx.textAlign = "left";
   const link = document.createElement("a");
   link.download = filename || "nxt5-tendances.png";
