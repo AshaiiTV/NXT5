@@ -1,13 +1,14 @@
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, createSession, normalizeAccountName, normalizeEmail, safeUser, verifyPassword } from './_lib/auth';
+import { assertSessionSecret, createSession, ensureEmailVerificationColumns, normalizeAccountName, normalizeEmail, safeUser, verifyPassword } from './_lib/auth';
 import { assertRateLimit } from './_lib/rate-limit';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
+    await ensureEmailVerificationColumns();
     await assertRateLimit(request, 'auth-login', { limit: 5, windowSeconds: 60 });
     const body = await readJson(request);
     const accountName = normalizeAccountName(body.accountName);

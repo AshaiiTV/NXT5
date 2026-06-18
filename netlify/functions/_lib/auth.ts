@@ -125,6 +125,8 @@ export function readSessionCookie(context: Context): string | null {
 }
 
 export async function requireAuth(request: Request, context: Context): Promise<DbUser> {
+  await ensureEmailVerificationColumns();
+
   const token = readSessionCookie(context);
   if (!token) {
     throw Object.assign(new Error('Session absente.'), { status: 401 });
