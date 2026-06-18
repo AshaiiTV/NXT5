@@ -90,7 +90,7 @@ const PLANNING_EVENT_TYPES = [
   { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200 shadow-[0_0_12px_rgba(240,171,252,.72)]", cell: "border-fuchsia-200/45 bg-fuchsia-400/14 text-fuchsia-50" },
   { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" },
   { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "border-amber-200/42 bg-amber-300/14 text-amber-50" },
-  { id: "custom", label: "Event", dot: "bg-cyan-100 shadow-[0_0_12px_rgba(103,232,249,.72)]", cell: "border-cyan-200/40 bg-cyan-300/14 text-cyan-50" },
+  { id: "custom", label: "Autre", dot: "bg-cyan-100 shadow-[0_0_12px_rgba(103,232,249,.72)]", cell: "border-cyan-200/40 bg-cyan-300/14 text-cyan-50" },
 ];
 
 function cleanOpponentName(value) {
@@ -7481,6 +7481,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [draftSlots, setDraftSlots] = useState({});
   const [slotEvents, setSlotEvents] = useState({});
+  const [eventMenu, setEventMenu] = useState(null);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -7496,8 +7497,25 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   useEffect(() => {
     setDraftSlots(availabilitySlots(selectedAvailability?.slots));
     setSlotEvents(availabilityEvents(selectedAvailability?.slots));
+    setEventMenu(null);
     setNotes(selectedAvailability?.notes || "");
   }, [selectedAvailability?.id, selectedAvailability?.updated_at, selectedPlayerId, selectedWeek.start]);
+
+  useEffect(() => {
+    if (!eventMenu) return undefined;
+    function closeMenu() {
+      setEventMenu(null);
+    }
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setEventMenu(null);
+    }
+    window.addEventListener("click", closeMenu);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("click", closeMenu);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [eventMenu]);
 
   function slotList(playerId, day) {
     const row = availability.find((item) => item.player_id === playerId);
@@ -7575,20 +7593,36 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     })));
   }
 
-  function editPlanningEvent(event, day, time) {
+  function openPlanningEventMenu(event, day, time) {
     event.preventDefault();
     if (!canEditSelected || saving) return;
+    setEventMenu({
+      day,
+      time,
+      x: Math.min(event.clientX, window.innerWidth - 220),
+      y: Math.min(event.clientY, window.innerHeight - 260),
+    });
+  }
+
+  function applyPlanningEventType(type) {
+    if (!eventMenu) return;
+    const { day, time } = eventMenu;
     const key = planningEventKey(day, time);
     const current = slotEvents[key];
-    const label = window.prompt("Ajouter un événement à ce créneau. Laisse vide pour supprimer.", current?.label || "");
-    if (label === null) return;
+    const meta = planningEventMeta(type);
+    const label = window.prompt(`Nom de l'événement ${meta.label.toLowerCase()}`, current?.label || meta.label);
+    if (label === null) {
+      setEventMenu(null);
+      return;
+    }
     const cleanLabel = label.trim();
     setSlotEvents((currentEvents) => {
       const next = { ...currentEvents };
       if (!cleanLabel) delete next[key];
-      else next[key] = { label: cleanLabel, type: planningEventTypeFromLabel(cleanLabel) };
+      else next[key] = { label: cleanLabel, type };
       return next;
     });
+    setEventMenu(null);
     if (cleanLabel) {
       setDraftSlots((currentSlots) => {
         const list = Array.isArray(currentSlots[day]) ? currentSlots[day] : [];
@@ -7596,6 +7630,17 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         return { ...currentSlots, [day]: PLANNING_TIMES.filter((item) => [...list, time].includes(item)) };
       });
     }
+  }
+
+  function removePlanningEvent() {
+    if (!eventMenu) return;
+    const key = planningEventKey(eventMenu.day, eventMenu.time);
+    setSlotEvents((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    setEventMenu(null);
   }
 
   function teamEventFor(day, time) {
@@ -7627,6 +7672,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const selectedFilledDays = weekDays.filter(([day]) => (draftSlots[day] || []).length).length;
   const selectedEventCount = Object.keys(slotEvents).length;
   const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => players.filter((player) => slotList(player.id, day).includes(time)).length)).filter((count) => count >= Math.min(5, players.length)).length;
+  const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
+  const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
   if (!players.length) return <EmptyState icon={Users} title="Aucun profil joueur" text="Ajoute des profils joueurs pour construire le planning de team." />;
@@ -7647,6 +7694,24 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
           <Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} slots team complète</Badge>
         </div>
       </PageHeader>
+      {eventMenu && <div onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="fixed z-[80] w-[210px] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050814]/98 p-2 text-white shadow-[0_24px_70px_rgba(0,0,0,.70),0_0_34px_rgba(34,211,238,.16)] ring-1 ring-white/10 backdrop-blur-xl" style={{ left: eventMenu.x, top: eventMenu.y }}>
+        <div className="px-2 pb-2 pt-1">
+          <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-cyan-100/80">Ajouter un événement</p>
+          <p className="mt-1 truncate text-xs font-bold text-slate-300">{eventMenuDay?.[1] || eventMenu.day} · {eventMenu.time}</p>
+        </div>
+        <div className="grid gap-1">
+          {PLANNING_EVENT_TYPES.map((item) => <button key={item.id} type="button" onClick={() => applyPlanningEventType(item.id)} className="flex w-full items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-left transition hover:border-cyan-200/20 hover:bg-white/[0.06]">
+            <span className={cx("h-2.5 w-2.5 rounded-full", item.dot)} />
+            <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-100">{item.label}</span>
+          </button>)}
+        </div>
+        {eventMenuCurrent && <div className="mt-2 border-t border-white/10 pt-2">
+          <button type="button" onClick={removePlanningEvent} className="flex w-full items-center gap-2 rounded-xl border border-rose-300/15 bg-rose-500/10 px-2.5 py-2 text-left text-rose-100 transition hover:border-rose-200/35 hover:bg-rose-500/16">
+            <Trash2 className="h-3.5 w-3.5" />
+            <span className="text-xs font-black uppercase tracking-[0.12em]">Supprimer</span>
+          </button>
+        </div>}
+      </div>}
 
       <div className="grid gap-4 2xl:grid-cols-[minmax(240px,.56fr)_minmax(0,1.44fr)]">
         <div className="space-y-4">
@@ -7741,7 +7806,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                         const activeSlot = (draftSlots[day] || []).includes(time);
                         const slotEvent = slotEvents[planningEventKey(day, time)];
                         const eventMeta = slotEvent ? planningEventMeta(slotEvent.type) : null;
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => editPlanningEvent(event, day, time)} title={slotEvent?.label || (activeSlot ? "Disponible" : "Indisponible")} className={cx("grid min-h-7 place-items-center rounded-lg border text-xs font-black transition", slotEvent ? eventMeta.cell : activeSlot ? "border-cyan-200/40 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.024] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2.5 w-2.5 rounded-full", slotEvent ? eventMeta.dot : activeSlot ? "bg-cyan-100 shadow-[0_0_10px_rgba(103,232,249,.55)]" : "bg-white/10")} /></button>;
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={slotEvent?.label || (activeSlot ? "Disponible" : "Indisponible")} className={cx("grid min-h-7 place-items-center rounded-lg border text-xs font-black transition", slotEvent ? eventMeta.cell : activeSlot ? "border-cyan-200/40 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.024] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2.5 w-2.5 rounded-full", slotEvent ? eventMeta.dot : activeSlot ? "bg-cyan-100 shadow-[0_0_10px_rgba(103,232,249,.55)]" : "bg-white/10")} /></button>;
                       })}
                     </React.Fragment>
                   ))}
