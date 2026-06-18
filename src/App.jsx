@@ -6350,8 +6350,8 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,.52fr)] lg:items-start">
-        <div className="grid overflow-hidden rounded-xl border border-white/8 bg-white/[0.018] md:grid-cols-4 md:divide-x md:divide-white/8">
-          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="flex min-w-0 items-center gap-3 border-b border-white/8 px-3 py-3 last:border-b-0 md:border-b-0">
+        <div className="grid border-y border-white/10 bg-white/[0.012] md:grid-cols-4 md:divide-x md:divide-white/10">
+          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="flex min-w-0 items-center gap-3 border-b border-white/10 px-3 py-3 last:border-b-0 md:border-b-0">
             <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
             <span className="min-w-0">
               <span className="flex min-w-0 items-center gap-2"><span className="truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span><MetricSideMarker marker={sideMarker} /></span>
@@ -6360,7 +6360,7 @@ function TrendsPage({ data, selectedTeamId }) {
             </span>
           </div>)}
         </div>
-        <div className="rounded-xl border-y border-cyan-100/10 bg-cyan-400/[0.025] px-1 py-3 lg:px-3">
+        <div className="border-y border-cyan-100/10 px-1 py-3 lg:px-3">
           <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" />
         </div>
       </div>
