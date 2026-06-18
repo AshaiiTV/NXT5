@@ -2281,6 +2281,43 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ctx.lineWidth = 1;
     rounded(x, y, w, h, radius);
   };
+  const drawHeraldObjectiveIcon = (x, y, size = 28) => {
+    const cx = x + size / 2;
+    const cy = y + size / 2;
+    const r = size / 2;
+    const gradient = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.32, r * 0.2, cx, cy, r);
+    gradient.addColorStop(0, "#f0abfc");
+    gradient.addColorStop(0.48, "#7c3aed");
+    gradient.addColorStop(1, "#251047");
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.34)";
+    ctx.lineWidth = Math.max(1, size * 0.055);
+    ctx.stroke();
+    ctx.fillStyle = "#67e8f9";
+    ctx.beginPath();
+    ctx.moveTo(cx, y + size * 0.2);
+    ctx.lineTo(x + size * 0.64, y + size * 0.48);
+    ctx.lineTo(cx, y + size * 0.8);
+    ctx.lineTo(x + size * 0.36, y + size * 0.48);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(2,5,17,.72)";
+    ctx.lineWidth = Math.max(1, size * 0.04);
+    ctx.stroke();
+    ctx.fillStyle = "#fdf4ff";
+    ctx.beginPath();
+    ctx.arc(cx, y + size * 0.48, size * 0.095, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  const drawObjectiveIcon = (type, x, y, size = 28, radius = 8) => {
+    if (type === "herald") return drawHeraldObjectiveIcon(x, y, size);
+    drawCachedImage(OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon, x, y, size, size, radius);
+  };
   const accentColor = (accent = "cyan") => accent === "pink" ? "#f472b6" : accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : "#67e8f9";
   const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "pink" ? `rgba(244,114,182,${alpha})` : accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : `rgba(103,232,249,${alpha})`;
   const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
@@ -2382,7 +2419,7 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
     ];
     objectiveCells.forEach(([name, value, type], index) => {
       const cx = x + index * (w / 5);
-      drawCachedImage(OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon, cx, y + 40, 28, 28, 8);
+      drawObjectiveIcon(type, cx, y + 40, 28, 8);
       ctx.fillStyle = "#ffffff";
       ctx.font = "900 22px Inter, Arial, sans-serif";
       ctx.fillText(String(value), cx + 36, y + 62);
