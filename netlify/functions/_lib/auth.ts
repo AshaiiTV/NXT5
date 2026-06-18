@@ -1,22 +1,13 @@
 import crypto from 'node:crypto';
-import { createRequire } from 'node:module';
+import bcrypt from 'bcryptjs';
 import type { Context } from '@netlify/functions';
 import { sql } from './db';
 import type { DbUser } from './types';
-
-const require = createRequire(import.meta.url);
-const argon2 = require('argon2') as typeof import('argon2');
 
 export const COOKIE_NAME = 'rb_session';
 const REMEMBER_SESSION_DAYS = 30;
 const SHORT_SESSION_HOURS = 12;
 const MIN_SESSION_SECRET_LENGTH = 64;
-const ARGON2_OPTIONS = {
-  type: argon2.argon2id,
-  memoryCost: 19456,
-  timeCost: 2,
-  parallelism: 1
-};
 
 type SessionRequest = Request | null;
 
@@ -56,12 +47,17 @@ export function assertSessionSecret(): void {
 }
 
 export async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password, ARGON2_OPTIONS);
+  return bcrypt.hash(password, 12);
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   try {
-    return await argon2.verify(hash, password);
+    if (String(hash || '').startsWith('$argon2')) {
+      const moduleName = 'argon2';
+      const argon2 = await import(moduleName).catch(() => null) as any;
+      return argon2 ? argon2.verify(hash, password) : false;
+    }
+    return bcrypt.compare(password, hash);
   } catch {
     return false;
   }
