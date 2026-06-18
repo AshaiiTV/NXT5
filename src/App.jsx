@@ -8294,6 +8294,29 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   );
 }
 
+function VerifyEmailPage() {
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search || "").get("token") || "";
+    const query = token ? `?token=${encodeURIComponent(token)}` : "";
+    window.location.replace(`${API_BASE}/verify-email${query}`);
+  }, []);
+
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-4 py-10"><Surface glow className="w-full p-6 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Loader2 className="h-6 w-6 animate-spin" /></div><h1 className="mt-5 text-3xl font-black text-white">Vérification en cours</h1><p className="mt-3 text-sm font-semibold leading-6 text-slate-300">On confirme ton adresse e-mail et on te redirige automatiquement.</p></Surface></main></div>;
+}
+
+function VerifiedPage({ navigate }) {
+  const params = new URLSearchParams(window.location.search || "");
+  const success = params.get("success") === "true";
+  const error = params.get("error");
+  const copy = success
+    ? ["Email vérifié !", "Tu peux maintenant recevoir les notifications.", "green"]
+    : error === "expired"
+      ? ["Lien expiré", "Ce lien a expiré. Renvoie un email de vérification depuis tes paramètres.", "yellow"]
+      : ["Lien invalide", "Lien invalide ou déjà utilisé.", "red"];
+  const [title, text, tone] = copy;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-4 py-10"><Surface glow className="w-full p-6 text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
+}
+
 function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
@@ -8301,6 +8324,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
+  const [resendingVerify, setResendingVerify] = useState(false);
 
   useEffect(() => {
     setProfileForm({ name: user?.name || user?.account_name || "", email: user?.email || "" });
@@ -8342,6 +8366,19 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     }
   }
 
+  async function resendVerificationEmail() {
+    setResendingVerify(true);
+    try {
+      const result = await apiFetch("resend-verify-email", { method: "POST" });
+      onUserUpdate?.(result.user);
+      pushToast?.({ type: "green", title: "E-mail envoyé", text: "Un nouveau lien de vérification vient d’être envoyé." });
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Envoi impossible", text: err.message });
+    } finally {
+      setResendingVerify(false);
+    }
+  }
+
   async function updateNotifications(next) {
     const previous = notificationForm;
     setNotificationForm(next);
@@ -8363,6 +8400,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     <div className="grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
       <Surface glow className="p-5">
         <div className="flex items-start justify-between gap-3"><div><Badge tone="cyan">Identité</Badge><h3 className="mt-3 text-2xl font-black text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
+        {user?.email && (user?.email_verified ? <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-100"><Check className="h-4 w-4" />Email vérifié</div> : <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Ton email n'est pas vérifié.</p><p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications sont désactivées jusqu'à validation de ton adresse.</p></div><Button type="button" variant="ghost" icon={resendingVerify ? Loader2 : Mail} onClick={resendVerificationEmail} disabled={resendingVerify}>{resendingVerify ? "Envoi..." : "Renvoyer l'email de vérification"}</Button></div></div>)}
         <form onSubmit={saveProfile} className="mt-5 space-y-4">
           <TextInput label="Pseudo" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Ton pseudo NXT5" required icon={UserPlus} />
           <TextInput label="E-mail" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
@@ -8410,7 +8448,7 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
     try {
       const result = await apiFetch("auth-update-profile", { method: "POST", body: JSON.stringify({ name: user?.name || user?.account_name || "Compte NXT5", email }) });
       onUserUpdate(result.user);
-      pushToast({ type: "green", title: "E-mail ajouté", text: "Ton compte peut maintenant recevoir les liens de mot de passe oublié." });
+      pushToast({ type: "green", title: "E-mail ajouté", text: "Un lien de vérification vient de t’être envoyé." });
     } catch (err) {
       setError(err.message || "Impossible d’ajouter cet e-mail.");
     } finally {
@@ -8429,6 +8467,66 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
           {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
           <Button type="submit" disabled={saving || !email.trim()} icon={saving ?Loader2 : Mail} className="w-full py-4">{saving ?"Enregistrement..." : "Enregistrer l’e-mail"}</Button>
         </form>
+      </motion.div>
+    </div>
+  );
+}
+
+function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
+  const [sending, setSending] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  async function resend() {
+    setSending(true);
+    setError("");
+    try {
+      const result = await apiFetch("resend-verify-email", { method: "POST" });
+      onUserUpdate?.(result.user);
+      setSent(true);
+      pushToast?.({ type: "green", title: "Lien envoyé", text: "Ouvre ta boîte mail puis clique sur le lien de vérification." });
+    } catch (err) {
+      setError(err.message || "Impossible d’envoyer le lien de vérification.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function refreshStatus() {
+    setChecking(true);
+    setError("");
+    try {
+      const result = await apiFetch("auth-me");
+      onUserUpdate?.(result.user);
+      if (result.user?.email_verified) {
+        pushToast?.({ type: "green", title: "Email vérifié", text: "Ton profil est validé." });
+      } else {
+        setError("Ton email n'est pas encore vérifié. Clique sur le lien reçu par mail, puis réessaie.");
+      }
+    } catch (err) {
+      setError(err.message || "Impossible de vérifier ton statut.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/78 px-4 text-white backdrop-blur-2xl">
+      <motion.div initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-xl overflow-hidden rounded-[1.65rem] border border-amber-300/28 bg-[#090d1a]/96 p-6 shadow-2xl shadow-black/55">
+        <Badge tone="orange">Vérification obligatoire</Badge>
+        <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton profil</h2>
+        <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">Ton compte utilise l'adresse <span className="font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
+        <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
+          <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Profil non vérifié</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications restent bloquées tant que l'e-mail n'est pas confirmé.</p>
+        </div>
+        {sent && <div className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.</div>}
+        {error && <div className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{error}</div>}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Button type="button" icon={sending ? Loader2 : Mail} onClick={resend} disabled={sending || checking} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
+          <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={sending || checking} className="w-full py-4">{checking ? "Vérification..." : "J'ai vérifié mon email"}</Button>
+        </div>
       </motion.div>
     </div>
   );
@@ -8548,8 +8646,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   if (!bootstrapped) return <AppLoadingScreen />;
-  if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="w-full px-3 py-5 sm:px-4 sm:py-7 lg:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
+  if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="w-full px-3 py-5 sm:px-4 sm:py-7 lg:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
 }
 
 export default function NXT5() {
@@ -8596,6 +8694,8 @@ export default function NXT5() {
       "/inscription": "Créer un compte — NXT5",
       "/mot-de-passe-oublie": "Mot de passe oublié — NXT5",
       "/reinitialiser-mot-de-passe": "Réinitialiser le mot de passe — NXT5",
+      "/verify-email": "Vérification e-mail — NXT5",
+      "/verified": "E-mail vérifié — NXT5",
       "/mentions-legales": "Mentions légales — NXT5",
       "/confidentialite": "Confidentialité — NXT5",
       "/conditions": "Conditions — NXT5",
@@ -8630,6 +8730,10 @@ export default function NXT5() {
     ?<NotFoundPage navigate={navigate} />
       : LEGAL_PAGES[route.path]
       ?<LegalPage route={route} navigate={navigate} user={user} />
+      : route.path === "/verify-email"
+        ?<VerifyEmailPage />
+      : route.path === "/verified"
+        ?<VerifiedPage navigate={navigate} />
       : user
       ?<MainApp user={user} onLogout={() => setUser(null)} onUserUpdate={setUser} pushToast={pushToast} navigate={navigate} route={route} />
       : route.path === "/mot-de-passe-oublie"
