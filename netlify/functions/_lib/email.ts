@@ -1,5 +1,9 @@
+function env(name) {
+  return (globalThis as any).Netlify?.env?.get?.(name) || process.env[name] || '';
+}
+
 export function isPasswordEmailConfigured() {
-  return Boolean(process.env.RESEND_API_KEY && process.env.RESET_EMAIL_FROM);
+  return Boolean(env('RESEND_API_KEY') && env('RESET_EMAIL_FROM'));
 }
 
 function escapeHtml(value) {
@@ -8,17 +12,21 @@ function escapeHtml(value) {
 
 async function sendResendEmail({ to, subject, text, html }) {
   if (!isPasswordEmailConfigured()) {
-    throw Object.assign(new Error('Envoi e-mail non configuré. Ajoute RESEND_API_KEY et RESET_EMAIL_FROM dans Netlify.'), { status: 500, code: 'EMAIL_NOT_CONFIGURED' });
+    throw Object.assign(new Error('Envoi e-mail non configuré. Ajoute RESEND_API_KEY et RESET_EMAIL_FROM dans Netlify.'), {
+      status: 500,
+      code: 'EMAIL_NOT_CONFIGURED',
+      publicMessage: 'Envoi e-mail non configuré côté serveur.'
+    });
   }
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      Authorization: `Bearer ${env('RESEND_API_KEY')}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      from: process.env.RESET_EMAIL_FROM,
+      from: env('RESET_EMAIL_FROM'),
       to,
       subject,
       text,
@@ -28,12 +36,17 @@ async function sendResendEmail({ to, subject, text, html }) {
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw Object.assign(new Error(`Envoi e-mail impossible.${detail ? ` ${detail}` : ''}`), { status: 502 });
+    console.error('Resend email delivery failed', { status: response.status, detail });
+    throw Object.assign(new Error(`Envoi e-mail impossible.${detail ? ` ${detail}` : ''}`), {
+      status: 502,
+      code: 'EMAIL_DELIVERY_FAILED',
+      publicMessage: 'Envoi e-mail impossible côté serveur.'
+    });
   }
 }
 
 export async function sendEmailVerificationEmail({ to, token }) {
-  const siteUrl = String(process.env.PUBLIC_SITE_URL || 'https://nxt5.org').replace(/\/+$/, '');
+  const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
   const verifyUrl = `${siteUrl}/verify-email?token=${encodeURIComponent(token)}`;
   const htmlVerifyUrl = escapeHtml(verifyUrl);
 
@@ -55,7 +68,7 @@ export async function sendEmailVerificationEmail({ to, token }) {
 export async function sendPasswordResetEmail({ to, name, resetUrl }) {
   const subject = 'Réinitialisation de ton mot de passe NXT5';
   const safeName = name || 'joueur';
-  const siteUrl = String(process.env.PUBLIC_SITE_URL || 'https://nxt5.org').replace(/\/+$/, '');
+  const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
   const supportUrl = `${siteUrl}/contact`;
   const htmlName = escapeHtml(safeName);
   const htmlResetUrl = escapeHtml(resetUrl);
