@@ -7608,7 +7608,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     if (!eventMenu) return;
     const { day, time } = eventMenu;
     const key = planningEventKey(day, time);
-    const current = slotEvents[key];
+    const current = visibleSlotEvents[key];
     const meta = planningEventMeta(type);
     const label = window.prompt(`Nom de l'événement ${meta.label.toLowerCase()}`, current?.label || meta.label);
     if (label === null) {
@@ -7645,7 +7645,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function teamEventFor(day, time) {
     const key = planningEventKey(day, time);
-    return availability.map((row) => availabilityEvents(row?.slots)[key]).find((event) => event?.label) || null;
+    return availability.map((row) => {
+      const event = availabilityEvents(row?.slots)[key];
+      return event?.label ? { ...event, playerId: row.player_id } : null;
+    }).find(Boolean) || null;
   }
 
   async function saveAvailability() {
@@ -7670,7 +7673,17 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   }))).sort((a, b) => b.count - a.count || PLANNING_TIMES.indexOf(a.time) - PLANNING_TIMES.indexOf(b.time)).slice(0, 4);
   const selectedFilledSlots = weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0);
   const selectedFilledDays = weekDays.filter(([day]) => (draftSlots[day] || []).length).length;
-  const selectedEventCount = Object.keys(slotEvents).length;
+  const teamEvents = useMemo(() => {
+    const entries = {};
+    for (const row of availability) {
+      for (const [key, event] of Object.entries(availabilityEvents(row?.slots))) {
+        if (event?.label && !entries[key]) entries[key] = { ...event, playerId: row.player_id };
+      }
+    }
+    return entries;
+  }, [availability.map((row) => `${row.id}:${row.updated_at}`).join("|")]);
+  const visibleSlotEvents = { ...teamEvents, ...slotEvents };
+  const selectedEventCount = Object.keys(visibleSlotEvents).length;
   const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => players.filter((player) => slotList(player.id, day).includes(time)).length)).filter((count) => count >= Math.min(5, players.length)).length;
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
@@ -7804,7 +7817,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                       <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs font-black text-white transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {weekDays.map(([day]) => {
                         const activeSlot = (draftSlots[day] || []).includes(time);
-                        const slotEvent = slotEvents[planningEventKey(day, time)];
+                        const slotEvent = visibleSlotEvents[planningEventKey(day, time)];
                         const eventMeta = slotEvent ? planningEventMeta(slotEvent.type) : null;
                         return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={slotEvent?.label || (activeSlot ? "Disponible" : "Indisponible")} className={cx("grid min-h-7 place-items-center rounded-lg border text-xs font-black transition", slotEvent ? eventMeta.cell : activeSlot ? "border-cyan-200/40 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.024] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2.5 w-2.5 rounded-full", slotEvent ? eventMeta.dot : activeSlot ? "bg-cyan-100 shadow-[0_0_10px_rgba(103,232,249,.55)]" : "bg-white/10")} /></button>;
                       })}
