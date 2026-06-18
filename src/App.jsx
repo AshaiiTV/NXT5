@@ -2666,6 +2666,185 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
   link.click();
 }
 
+async function exportTrendsPng({ title, subtitle, metrics = [], sections = [], champions = [], filename }) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1920;
+  canvas.height = 1080;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width;
+  const H = canvas.height;
+  const short = (value, max = 38) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}…` : String(value || "");
+  const rounded = (x, y, w, h, r = 24) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
+  const accentColor = (accent = "cyan") => accent === "red" ? "#fb7185" : accent === "green" ? "#34d399" : accent === "orange" ? "#fbbf24" : accent === "purple" ? "#e879f9" : "#67e8f9";
+  const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "red" ? `rgba(251,113,133,${alpha})` : accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "orange" ? `rgba(251,191,36,${alpha})` : accent === "purple" ? `rgba(232,121,249,${alpha})` : `rgba(103,232,249,${alpha})`;
+  const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 12, align = "left" } = {}) => {
+    const source = String(text || "");
+    let nextFont = font || "800 20px Inter, Arial, sans-serif";
+    const match = nextFont.match(/(\d+)px/);
+    let size = match ? Number(match[1]) : 20;
+    ctx.font = nextFont;
+    while (ctx.measureText(source).width > maxWidth && size > min) {
+      size -= 1;
+      nextFont = nextFont.replace(/\d+px/, `${size}px`);
+      ctx.font = nextFont;
+    }
+    ctx.fillStyle = color;
+    ctx.textAlign = align;
+    ctx.fillText(source, x, y);
+    ctx.textAlign = "left";
+  };
+  const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  };
+  const drawPanel = (x, y, w, h, accent = "cyan", alpha = 0.72) => {
+    const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
+    gradient.addColorStop(0, accentSoft(accent, 0.13));
+    gradient.addColorStop(0.42, `rgba(5,10,24,${alpha})`);
+    gradient.addColorStop(1, "rgba(5,10,24,.50)");
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = accentSoft(accent, 0.36);
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = accentColor(accent);
+    ctx.fillRect(x, y, 4, h);
+  };
+  const imageCache = new Map();
+  const loadCanvasImage = (url) => new Promise((resolve) => {
+    if (!url) return resolve(null);
+    if (imageCache.has(url)) return resolve(imageCache.get(url));
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      imageCache.set(url, img);
+      resolve(img);
+    };
+    img.onerror = () => {
+      imageCache.set(url, null);
+      resolve(null);
+    };
+    img.src = url;
+  });
+  const drawImageContain = (img, x, y, w, h) => {
+    if (!img) return false;
+    const ratio = Math.min(w / img.width, h / img.height);
+    const dw = img.width * ratio;
+    const dh = img.height * ratio;
+    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    return true;
+  };
+  const imageUrls = new Set(["/assets/nxt5-wordmark.png", "/assets/nxt5-mark.png"]);
+  champions.slice(0, 6).forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
+  await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
+
+  const pageGradient = ctx.createLinearGradient(0, 0, W, H);
+  pageGradient.addColorStop(0, "#030914");
+  pageGradient.addColorStop(0.54, "#020511");
+  pageGradient.addColorStop(1, "#10051a");
+  ctx.fillStyle = pageGradient;
+  ctx.fillRect(0, 0, W, H);
+  for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.026)", 1);
+  for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
+  const bg = ctx.createRadialGradient(250, 70, 80, 250, 70, 680);
+  bg.addColorStop(0, "rgba(34,211,238,.23)");
+  bg.addColorStop(0.48, "rgba(30,64,175,.08)");
+  bg.addColorStop(1, "rgba(2,5,17,0)");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  const bg2 = ctx.createRadialGradient(W - 230, 120, 90, W - 230, 120, 720);
+  bg2.addColorStop(0, "rgba(217,70,239,.18)");
+  bg2.addColorStop(1, "rgba(2,5,17,0)");
+  ctx.fillStyle = bg2;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "rgba(103,232,249,.24)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(48, 42, W - 96, H - 84);
+  drawLine(72, 188, W - 72, 188, "rgba(103,232,249,.55)", 2.5);
+  drawLine(72, 190, W - 72, 190, "rgba(244,114,182,.22)", 1);
+  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 82, 82);
+  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 236, 62);
+  fitText(short(title || "Tendances NXT5", 44), 464, 105, W - 860, { font: "900 42px Inter, Arial, sans-serif", color: "#ffffff", min: 24 });
+  fitText(short(subtitle || "Export stratégique", 92), 466, 142, W - 870, { font: "800 18px Inter, Arial, sans-serif", color: "#c8f7ff", min: 12 });
+  ctx.font = "900 16px Inter, Arial, sans-serif";
+  ctx.fillStyle = "rgba(217,70,239,.14)";
+  ctx.strokeStyle = "rgba(217,70,239,.34)";
+  ctx.lineWidth = 1.5;
+  rounded(W - 330, 86, 240, 32, 16);
+  ctx.fillStyle = "#fff";
+  ctx.fillText("EXPORT TENDANCES", W - 312, 108);
+
+  const metricItems = metrics.slice(0, 4);
+  drawPanel(90, 220, 1740, 118, "cyan", 0.54);
+  metricItems.forEach((metric, index) => {
+    const x = 90 + index * 435;
+    if (index) drawLine(x, 238, x, 318, "rgba(255,255,255,.10)", 1);
+    const metricTone = metric.tone === "red" ? "red" : metric.tone === "green" ? "green" : metric.tone === "orange" ? "orange" : metric.tone === "purple" ? "purple" : "cyan";
+    ctx.fillStyle = accentColor(metricTone);
+    ctx.font = "900 13px Inter, Arial, sans-serif";
+    ctx.fillText(String(metric.label || "").toUpperCase(), x + 24, 252);
+    fitText(short(metric.value, 18), x + 24, 292, 380, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
+    fitText(short(metric.hint, 34), x + 24, 315, 380, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+  });
+
+  sections.slice(0, 6).forEach((section, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    const x = col ? 990 : 90;
+    const y = 374 + row * 180;
+    const sectionTone = section.tone || "cyan";
+    drawPanel(x, y, 840, 150, sectionTone, 0.56);
+    ctx.fillStyle = accentColor(sectionTone);
+    ctx.font = "900 16px Inter, Arial, sans-serif";
+    ctx.fillText(String(section.title || "").toUpperCase(), x + 26, y + 34);
+    (section.items || []).slice(0, 3).forEach((item, itemIndex) => {
+      const itemY = y + 66 + itemIndex * 30;
+      ctx.fillStyle = accentColor(sectionTone);
+      ctx.beginPath();
+      ctx.arc(x + 28, itemY - 5, 4, 0, Math.PI * 2);
+      ctx.fill();
+      fitText(short(item, 96), x + 44, itemY, 760, { font: itemIndex === 0 ? "900 17px Inter, Arial, sans-serif" : "800 15px Inter, Arial, sans-serif", color: itemIndex === 0 ? "#ffffff" : "#dbeafe", min: 11 });
+    });
+  });
+
+  drawPanel(90, 914, 1740, 84, "purple", 0.48);
+  ctx.fillStyle = accentColor("purple");
+  ctx.font = "900 13px Inter, Arial, sans-serif";
+  ctx.fillText("CHAMPIONS RÉCURRENTS", 118, 946);
+  champions.slice(0, 6).forEach((stat, index) => {
+    const x = 118 + index * 280;
+    const img = championPortraitSources(stat.champion, stat.champion).map((url) => imageCache.get(url)).find(Boolean);
+    if (img) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(x, 958, 40, 40, 10);
+      ctx.clip();
+      const ratio = Math.max(40 / img.width, 40 / img.height);
+      ctx.drawImage(img, x + (40 - img.width * ratio) / 2, 958 + (40 - img.height * ratio) / 2, img.width * ratio, img.height * ratio);
+      ctx.restore();
+    }
+    fitText(short(championDisplayName(stat.champion), 18), x + 50, 976, 200, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
+    fitText(`${stat.games}G · ${Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR`, x + 50, 996, 200, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 9 });
+  });
+
+  ctx.fillStyle = "#67e8f9";
+  ctx.font = "800 17px Inter, Arial, sans-serif";
+  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 42);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#dff8ff";
+  ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
+  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 42);
+  ctx.textAlign = "left";
+  const link = document.createElement("a");
+  link.download = filename || "nxt5-tendances.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
 function formatCountdown(seconds) {
   const safe = Math.max(0, Math.ceil(Number(seconds || 0)));
   const minutes = Math.floor(safe / 60);
@@ -6309,6 +6488,21 @@ function TrendsPage({ data, selectedTeamId }) {
     { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff) },
     { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff) },
   ];
+  const exportTrendSections = [
+    { title: "Écarts moyens", items: forceItems, tone: "green" },
+    { title: "Pression et exposition", items: riskItems, tone: "red" },
+    { title: "Objectifs / game", items: timingItems, tone: "cyan" },
+    { title: "Identité draft", items: draftNeeds, tone: "purple" },
+    { title: "Ratios profils", items: recommendations, tone: "orange" },
+  ];
+  const exportTrends = () => exportTrendsPng({
+    title: "Cockpit stratégique",
+    subtitle: `${activeTrendCategory?.name || "Toutes les games"} · ${matches.length} game${matches.length > 1 ? "s" : ""} · ${wins}W - ${losses}L`,
+    metrics: topMetrics,
+    sections: exportTrendSections,
+    champions: championCounts,
+    filename: `nxt5-tendances-${String(activeTrendCategory?.name || "global").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`
+  });
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <section className="relative mb-5 overflow-hidden rounded-[1.25rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(8,18,38,.9),rgba(3,7,18,.78)_52%,rgba(35,12,48,.64))] p-4 shadow-[0_18px_58px_rgba(0,0,0,.30)] md:p-5">
@@ -6336,6 +6530,7 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </div>
         <aside className="min-w-0 rounded-2xl border border-white/10 bg-black/26 p-4">
+          <Button type="button" icon={ImageIcon} onClick={exportTrends} className="mb-4 w-full">Exporter les tendances</Button>
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Bloc actif</p>
