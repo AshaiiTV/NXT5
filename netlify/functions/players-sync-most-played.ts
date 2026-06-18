@@ -157,63 +157,14 @@ export default async function handler(request: Request, context: Context): Promi
           where id = ${player.id}
         `;
 
-        let poolCount = 0;
-        for (const [index, champion] of mostPlayed.entries()) {
-          const status = index === 0 ? 'lock' : index < 3 ? 'pocket' : 'work';
-          const verdict = index === 0 ? 'Champion le plus joué en SoloQ sur la saison courante.' : 'Champion récurrent en SoloQ sur la saison courante.';
-          await sql`
-            insert into champion_pool (
-              team_id,
-              player_id,
-              player_name,
-              champion,
-              games,
-              wins,
-              losses,
-              winrate,
-              kda,
-              cs_per_min,
-              impact_grade,
-              verdict,
-              role,
-              status,
-              notes,
-              source,
-              updated_at
-            )
-            values (
-              ${teamId},
-              ${player.id},
-              ${player.name},
-              ${champion.champion},
-              ${Number(champion.games || 0)},
-              ${Number(champion.wins || 0)},
-              ${Number(champion.losses || 0)},
-              ${Number(champion.winrate || 0)},
-              0,
-              0,
-              ${'SAISON'},
-              ${verdict},
-              ${player.role},
-              ${status},
-              ${`${champion.games || 0} games SoloQ saison courante`},
-              ${'match_history'},
-              now()
-            )
-            on conflict (team_id, player_id, champion) do update
-            set player_name = excluded.player_name,
-                role = excluded.role,
-                impact_grade = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.impact_grade else excluded.impact_grade end,
-                verdict = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.verdict else excluded.verdict end,
-                status = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.status else excluded.status end,
-                notes = case when champion_pool.source in ('manual', 'riot_manual') then champion_pool.notes else excluded.notes end,
-                source = case when champion_pool.source in ('manual', 'riot_manual') then 'riot_manual' else excluded.source end,
-                updated_at = now()
-          `;
-          poolCount += 1;
-        }
+        await sql`
+          delete from champion_pool
+          where team_id = ${teamId}
+            and player_id = ${player.id}
+            and source in ('match_history', 'mastery')
+        `;
 
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, poolCount, source: 'ranked_solo_history' });
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, source: 'ranked_solo_history' });
       } catch (err) {
         await sql`
           update players

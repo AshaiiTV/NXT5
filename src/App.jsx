@@ -2938,7 +2938,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
 }
 
 function LinkedPlayerSummary({ player, linkedMember, matches = [] }) {
-  const mostPlayed = playerImportedChampionStats(player, matches).slice(0, 3);
+  const mostPlayed = parseMostPlayed(player?.most_played).slice(0, 3);
   const staff = isStaffRole(player.role);
   const displayName = linkedMember?.name || linkedMember?.account_name || player.name;
   return (
@@ -2980,10 +2980,10 @@ function playerImportedChampionStats(player, matches = []) {
   }, new Map()).values()).sort((a, b) => b.games - a.games || b.wins - a.wins || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
 }
 
-function ImportedChampionBadges({ player, matches = [] }) {
-  const items = playerImportedChampionStats(player, matches).slice(0, 3);
-  if (!items.length) return <span className="text-xs font-semibold text-slate-300">Aucune game importée</span>;
-  return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={champion.champion + "-" + index} champion={champion} index={index} />)}</div>;
+function ImportedChampionBadges({ player }) {
+  const items = parseMostPlayed(player?.most_played).slice(0, 3);
+  if (!items.length) return <span className="text-xs font-semibold text-slate-300">SoloQ non synchronisée</span>;
+  return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={(champion.championId || champion.champion) + "-soloq-" + index} champion={champion} index={index} />)}</div>;
 }
 
 function normalizeProfileKey(value) {
@@ -3003,11 +3003,16 @@ function playerIntegratedRows(player, matches = []) {
   const riotKey = normalizeProfileKey(player?.riot_id);
   const nameKey = normalizeProfileKey(player?.name);
   const playerRole = normalizeProfileRole(player?.role);
+  const seen = new Set();
   return matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match }))).filter((row) => {
     const rowRole = normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane);
     const roleMatches = !playerRole || playerRole === "SUB" || rowRole === playerRole;
     const identityMatches = row.player_id === player?.id || normalizeProfileKey(row.riot_id) === riotKey || normalizeProfileKey(row.summoner_name) === nameKey;
-    return row.team_key === "ALLY" && roleMatches && identityMatches;
+    if (!(row.team_key === "ALLY" && roleMatches && identityMatches)) return false;
+    const key = [row.match?.id || row.match?.game_id, row.raw?.participantId || row.participant_id || row.role, row.player_id || row.riot_id || row.summoner_name || player?.id, row.champion].map((value) => String(value || "")).join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 }
 
