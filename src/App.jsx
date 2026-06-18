@@ -512,10 +512,10 @@ function PageHeader({ eyebrow, title, subtitle, children }) {
     <div className="nxt5-page-header mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
       <div className="min-w-0">
         <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">{eyebrow}</p></div>
-        <h2 className="nxt5-metal-text max-w-4xl py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl md:text-5xl">{title}</h2>
+        <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl lg:text-5xl">{title}</h2>
         {subtitle && <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">{subtitle}</p>}
       </div>
-      {children && <div className="flex flex-wrap gap-2">{children}</div>}
+      {children && <div className="flex w-full min-w-0 flex-wrap gap-2 xl:w-auto xl:justify-end">{children}</div>}
     </div>
   );
 }
@@ -687,7 +687,7 @@ function StatStrip() {
 }
 
 function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
-  const base = "nxt5-cyber-button inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-black transition duration-200 active:translate-y-0";
+  const base = "nxt5-cyber-button inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0";
   const variants = {
     primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
     ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11]",
@@ -699,7 +699,7 @@ function LinkButton({ href, children, icon: Icon, variant = "primary", className
     navigate(href);
   }
 
-  return <a href={href} onClick={go} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4" />}{children}</a>;
+  return <a href={href} onClick={go} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
 }
 
 function SiteHeader({ children, navigate }) {
@@ -6367,9 +6367,9 @@ function TrendsPage({ data, selectedTeamId }) {
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const topMetrics = [
     { icon: Trophy, label: "Winrate", value: `${winrate}%`, hint: `${wins}W - ${losses}L`, tone: winrate >= 50 ? "green" : "red" },
-    { icon: Gauge, label: "Or moyen", value: formatGoldDiff(avgInt(goldDiff)), hint: "Par game", tone: diffTone(goldDiff) },
-    { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff) },
-    { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff) },
+    { icon: Gauge, label: "Or moyen", value: formatGoldDiff(avgInt(goldDiff)), hint: "Par game", tone: diffTone(goldDiff), sideMarker: winningTeamForDiff(goldDiff) },
+    { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff), sideMarker: winningTeamForDiff(damageDiff) },
+    { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff), sideMarker: winningTeamForDiff(visionDiff) },
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
@@ -6388,10 +6388,10 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,.52fr)] lg:items-start">
         <div className="grid min-w-0 gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.026] px-3 py-3">
+          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.026] px-3 py-3">
             <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
             <span className="min-w-0">
-              <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span>
+              <span className="flex min-w-0 items-center gap-2"><span className="truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span><MetricSideMarker marker={sideMarker} /></span>
               <span className="mt-0.5 block break-words text-lg font-black leading-tight text-white sm:text-xl">{value}</span>
               <span className="mt-1 block truncate text-[0.68rem] font-semibold text-slate-400">{hint}</span>
             </span>

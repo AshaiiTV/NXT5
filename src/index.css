@@ -336,6 +336,10 @@ svg {
   scrollbar-width: thin;
 }
 
+.nxt5-readable-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
 .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="ring-white"] {
   --tw-ring-color: rgba(255, 255, 255, 0.055) !important;
 }
@@ -826,6 +830,34 @@ svg {
   opacity: 1;
 }
 
+@media (max-width: 1023px) {
+  .nxt5-data-dense :where(.sm\:grid-cols-3, .sm\:grid-cols-4, .md\:grid-cols-3, .md\:grid-cols-4, .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4, .xl\:grid-cols-2, .xl\:grid-cols-3, .xl\:grid-cols-4, .xl\:grid-cols-5, .\32xl\:grid-cols-3, .\32xl\:grid-cols-4, .\32xl\:grid-cols-5, .\32xl\:grid-cols-6),
+  .nxt5-data-dense .grid[class*="sm:grid-cols-3"],
+  .nxt5-data-dense .grid[class*="sm:grid-cols-4"],
+  .nxt5-data-dense .grid[class*="md:grid-cols-3"],
+  .nxt5-data-dense .grid[class*="md:grid-cols-4"],
+  .nxt5-data-dense .grid[class*="lg:grid-cols-["],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-["],
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-["] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .nxt5-data-dense .grid[class*="auto-fit"],
+  .nxt5-data-dense .grid[class*="repeat(auto-fit"] {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)) !important;
+  }
+
+  .nxt5-data-dense :where(.xl\:flex-row, .lg\:flex-row) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .nxt5-data-dense :where(.xl\:w-auto, .lg\:w-auto, .xl\:min-w-\[560px\], .xl\:min-w-\[360px\]) {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+}
+
 @media (max-width: 640px) {
   body {
     background:
@@ -885,6 +917,39 @@ svg {
 
   .nxt5-data-dense :where(.grid) {
     gap: 0.7rem;
+  }
+
+  .nxt5-data-dense :where(.sm\:grid-cols-2, .sm\:grid-cols-3, .sm\:grid-cols-4, .md\:grid-cols-2, .md\:grid-cols-3, .md\:grid-cols-4, .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4, .xl\:grid-cols-2, .xl\:grid-cols-3, .xl\:grid-cols-4, .xl\:grid-cols-5, .\32xl\:grid-cols-2, .\32xl\:grid-cols-3, .\32xl\:grid-cols-4, .\32xl\:grid-cols-5, .\32xl\:grid-cols-6),
+  .nxt5-data-dense .grid[class*="grid-cols-["],
+  .nxt5-data-dense .grid[class*="sm:grid-cols-"],
+  .nxt5-data-dense .grid[class*="md:grid-cols-"],
+  .nxt5-data-dense .grid[class*="lg:grid-cols-"],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-"],
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .nxt5-data-dense .grid[class*="grid-cols-5"],
+  .nxt5-data-dense .grid[class*="grid-cols-[repeat(auto-fit"] {
+    grid-template-columns: repeat(auto-fit, minmax(4.35rem, 1fr)) !important;
+  }
+
+  .nxt5-data-dense :where(.flex-row, .sm\:flex-row, .md\:flex-row, .lg\:flex-row, .xl\:flex-row) {
+    min-width: 0;
+  }
+
+  .nxt5-data-dense :where(.truncate) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .nxt5-data-dense :where(.text-right) {
+    text-align: left;
+  }
+
+  .nxt5-data-dense :where(.max-h-\[34rem\], .max-h-\[32rem\], .max-h-80, .max-h-72, .max-h-64) {
+    max-height: min(70vh, 32rem);
   }
 
   input,
@@ -967,6 +1032,10 @@ svg {
 
   .nxt5-panel :where(.grid) {
     max-width: 100%;
+  }
+
+  .nxt5-panel :where(.grid[class*="grid-cols-["]) {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .nxt5-panel :where([class*="max-h-"], [class*="overflow-auto"]) {
