@@ -27,7 +27,7 @@ function currentSeasonStartTimestamp() {
 }
 
 async function mapLimited(items, limit, mapper) {
-  const output = [];
+  const output: any[] = [];
   let index = 0;
   async function worker() {
     while (index < items.length) {
@@ -64,7 +64,7 @@ function normalizeMatchStats(stats, championData) {
 async function fetchCurrentSeasonSoloqMatchIds(puuid, platform) {
   const startTime = currentSeasonStartTimestamp();
   const maxMatches = profileSyncMaxMatches();
-  const matchIds = [];
+  const matchIds: string[] = [];
 
   for (let start = 0; start < maxMatches; start += MATCH_PAGE_SIZE) {
     const count = Math.min(MATCH_PAGE_SIZE, maxMatches - start);
@@ -78,11 +78,10 @@ async function fetchCurrentSeasonSoloqMatchIds(puuid, platform) {
 
 async function fetchCurrentSeasonSoloqMostPlayed(puuid, platform, championData) {
   const matchIds = await fetchCurrentSeasonSoloqMatchIds(puuid, platform);
-  const stats = new Map();
+  const stats = new Map<number, any>();
 
   await mapLimited(matchIds, MATCH_FETCH_CONCURRENCY, async (matchId) => {
     try {
-    assertSessionSecret();
       const match = await fetchRiotMatchById(matchId, platform);
       const participant = match?.info?.participants?.find((row) => row.puuid === puuid);
       if (!participant?.championId) return;
@@ -101,6 +100,7 @@ async function fetchCurrentSeasonSoloqMostPlayed(puuid, platform, championData) 
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
+    assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
     const body = await readJson(request);
@@ -127,7 +127,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     const platform = platformFromRegion(team.region);
     const championData = await getChampionDataMap();
-    const results = [];
+    const results: any[] = [];
 
     for (const player of players) {
       try {

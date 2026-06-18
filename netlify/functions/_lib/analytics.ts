@@ -151,7 +151,7 @@ function manualRoleForParticipant(p, laneAssignments) {
   const summoner = normalizeLoose(p.summonerName);
   const riot = normalizeLoose(participantRiotId(p));
   for (const [role, expected] of Object.entries(laneAssignments || {})) {
-    if (expected && [champion, summoner, riot].includes(expected)) return role;
+    if (expected && [champion, summoner, riot].includes(normalizeLoose(expected))) return role;
   }
   return null;
 }
@@ -504,7 +504,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   `;
 
   const savedMatch = inserted[0];
-  await archiveRawMatch({ teamId: team.id, matchId: savedMatch.id, gameId, match, source: match?.metadata?.source || 'import' });
+  await archiveRawMatch({ teamId: team.id, matchId: savedMatch.id, gameId, match, source: (match as any)?.metadata?.source || 'import' });
   await sql`delete from match_participants where match_id = ${savedMatch.id}`;
 
   for (const p of participants) {

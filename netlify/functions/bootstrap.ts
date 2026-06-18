@@ -26,7 +26,6 @@ function buildDashboard(matches, improvements) {
 
 async function loadTournamentCodes(teamIds) {
   try {
-    assertSessionSecret();
     return await sql`
       select tournament_codes.*, users.name as created_by_name
       from tournament_codes
@@ -163,6 +162,7 @@ async function ensureRoleConstraints() {
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
+    assertSessionSecret();
     const user = await requireAuth(request, context);
     const teams = await sql`
       select distinct teams.*

@@ -26,7 +26,7 @@ export async function ensureMatchCategoriesSchema() {
   await sql`create index if not exists idx_matches_category on matches(category_id)`;
 }
 
-export async function seedDefaultMatchCategories(teamIds, userId = null) {
+export async function seedDefaultMatchCategories(teamIds: string[], userId: string | null = null): Promise<void> {
   const ids = Array.isArray(teamIds) ? teamIds.filter(Boolean) : [];
   if (!ids.length) return;
   for (const teamId of ids) {

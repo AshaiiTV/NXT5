@@ -15,7 +15,7 @@ export default async function handler(request: Request): Promise<Response> {
     const region = String(body.region || '').trim().toUpperCase();
     const importedGameId = gameId && region ? `${region}_${gameId}` : gameId;
 
-    let metadata = {};
+    let metadata: any = {};
     try {
       metadata = typeof body.metaData === 'string' ? JSON.parse(body.metaData) : (body.metaData || {});
     } catch {

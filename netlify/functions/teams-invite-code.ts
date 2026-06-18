@@ -50,7 +50,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     await sql`delete from team_invite_codes where expires_at <= now()`;
 
-    let invite = null;
+    let invite: any = null;
     for (let i = 0; i < 6; i += 1) {
       const code = makeInviteCode();
       try {

@@ -1,6 +1,6 @@
 import { sql } from './db';
 
-let tableReadyPromise = null;
+let tableReadyPromise: Promise<void> | null = null;
 
 export function cleanTournamentText(value, max = 240) {
   return String(value || '').trim().slice(0, max);

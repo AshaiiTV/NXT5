@@ -9,9 +9,10 @@ const VALID_EVENT_TYPES = new Set(['scrim', 'match', 'review', 'custom']);
 const WEEK_START_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 function cleanEvents(value) {
-  const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  const output = {};
-  for (const [key, event] of Object.entries(input)) {
+  const input: Record<string, any> = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
+  const output: Record<string, { label: string; type: string }> = {};
+  for (const [key, rawEvent] of Object.entries(input)) {
+    const event = rawEvent as Record<string, any>;
     const [day, time] = String(key || '').split('|');
     if (!VALID_DAYS.has(day) || !VALID_TIMES.has(time)) continue;
     const label = String(event?.label || '').trim().slice(0, 80);
@@ -23,8 +24,8 @@ function cleanEvents(value) {
 }
 
 function cleanSlots(value) {
-  const input = value && typeof value === 'object' ? value : {};
-  const output = {};
+  const input: Record<string, any> = value && typeof value === 'object' ? value as Record<string, any> : {};
+  const output: Record<string, any> = {};
   for (const day of VALID_DAYS) {
     const times = Array.isArray(input[day]) ? input[day] : [];
     output[day] = [...new Set(times.filter((time) => VALID_TIMES.has(String(time))))];

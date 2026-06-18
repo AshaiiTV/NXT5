@@ -1,6 +1,12 @@
 import type { RiotMatch } from './types';
 
-const ROUTES = {
+type ChampionData = {
+  id: string;
+  name: string;
+  imageUrl: string;
+};
+
+const ROUTES: Record<string, string> = {
   EUW1: 'EUROPE',
   EUN1: 'EUROPE',
   TR1: 'EUROPE',
@@ -19,7 +25,7 @@ const ROUTES = {
   VN2: 'SEA'
 };
 
-const PLATFORM_BY_REGION = {
+const PLATFORM_BY_REGION: Record<string, string> = {
   EUW: 'EUW1',
   EUW1: 'EUW1',
   EUNE: 'EUN1',
@@ -47,8 +53,8 @@ const ACCOUNT_REGION_BY_PLATFORM = {
   ...ROUTES
 };
 
-let championNameCache = null;
-let championDataCache = null;
+let championNameCache: Map<number, string> | null = null;
+let championDataCache: Map<number, ChampionData> | null = null;
 
 export function isRiotConfigured() {
   return Boolean(process.env.RIOT_API_KEY);
@@ -78,17 +84,17 @@ function requireRiotKey() {
   }
 }
 
-export async function riotFetch(url, notFoundMessage, options = {}) {
+export async function riotFetch(url: string, notFoundMessage?: string, options: RequestInit = {}): Promise<any> {
   requireRiotKey();
   const response = await fetch(url, {
     ...options,
     headers: {
-      'X-Riot-Token': process.env.RIOT_API_KEY,
+      'X-Riot-Token': process.env.RIOT_API_KEY || '',
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...(options.headers || {})
     }
   });
-  let payload = null;
+  let payload: any = null;
   const contentType = response.headers.get('content-type') || '';
   if (!response.ok && contentType.includes('application/json')) {
     try {
@@ -140,7 +146,7 @@ export function tournamentConfigStatus() {
   };
 }
 
-export async function createTournamentProvider({ platform = 'EUW1', callbackUrl = process.env.RIOT_TOURNAMENT_CALLBACK_URL } = {}) {
+export async function createTournamentProvider({ platform = 'EUW1', callbackUrl = process.env.RIOT_TOURNAMENT_CALLBACK_URL }: any = {}) {
   if (!callbackUrl) {
     throw Object.assign(new Error('RIOT_TOURNAMENT_CALLBACK_URL manquante pour créer un provider Riot.'), {
       status: 503,
@@ -155,7 +161,7 @@ export async function createTournamentProvider({ platform = 'EUW1', callbackUrl 
   });
 }
 
-export async function createTournament({ providerId, platform = 'EUW1', name = process.env.RIOT_TOURNAMENT_NAME || 'NXT5 Scrims' } = {}) {
+export async function createTournament({ providerId, platform = 'EUW1', name = process.env.RIOT_TOURNAMENT_NAME || 'NXT5 Scrims' }: any = {}) {
   if (!providerId) throw Object.assign(new Error('Provider Riot manquant.'), { status: 400 });
   const host = platformFromRegion(platform).toLowerCase();
   const url = `https://${host}.api.riotgames.com/lol/tournament/v5/tournaments`;
@@ -209,7 +215,7 @@ export async function fetchTournamentCodeDetails(tournamentCode, platform = 'EUW
 }
 
 export async function resolveMatchIdByTournamentCode(tournamentCode, platform = 'EUW1') {
-  const attempts = [];
+  const attempts: string[] = [];
   try {
     const ids = await fetchMatchIdsByTournamentCode(tournamentCode, platform);
     const first = String(ids?.[0] || '').toUpperCase();
@@ -252,7 +258,7 @@ export async function fetchRiotMatchTimeline(gameId) {
   return riotFetch(url, 'Timeline de match introuvable côté Riot.');
 }
 
-export async function fetchMatchIdsByPuuid(puuid, platform = 'EUW1', options = {}) {
+export async function fetchMatchIdsByPuuid(puuid, platform = 'EUW1', options: any = {}) {
   const regional = accountRegionFromPlatform(platform).toLowerCase();
   const params = new URLSearchParams();
   if (options.startTime) params.set('startTime', String(options.startTime));
@@ -304,10 +310,10 @@ export async function getChampionDataMap() {
   if (!championResponse.ok) {
     throw Object.assign(new Error('Impossible de charger la liste des champions.'), { status: championResponse.status });
   }
-  const payload = await championResponse.json();
+  const payload: any = await championResponse.json();
 
   championDataCache = new Map(
-    Object.values(payload.data || {}).map((champion) => [Number(champion.key), {
+    Object.values(payload.data || {}).map((champion: any) => [Number(champion.key), {
       id: champion.id,
       name: champion.name,
       imageUrl: `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image.full}`

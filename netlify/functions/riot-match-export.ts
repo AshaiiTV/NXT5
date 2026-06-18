@@ -30,7 +30,7 @@ function candidateGameIds({ gameId, rawNumericId, wasNumericOnly }) {
 }
 
 async function fetchFirstAvailableMatch(input) {
-  const attempts = [];
+  const attempts: string[] = [];
   for (const candidate of candidateGameIds(input)) {
     try {
       const match = await fetchRiotMatch(candidate);

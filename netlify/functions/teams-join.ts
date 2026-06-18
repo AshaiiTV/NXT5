@@ -8,7 +8,6 @@ function extractInviteCode(value) {
   if (!raw) return '';
 
   try {
-    assertSessionSecret();
     const url = new URL(raw);
     const fromQuery = url.searchParams.get('invite') || url.searchParams.get('code');
     if (fromQuery) return String(fromQuery).trim().toUpperCase();
@@ -22,6 +21,7 @@ function extractInviteCode(value) {
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
+    assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
     const body = await readJson(request);

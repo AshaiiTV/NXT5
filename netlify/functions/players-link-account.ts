@@ -55,7 +55,7 @@ export default async function handler(request: Request, context: Context): Promi
     `;
     if (!player[0]) throw Object.assign(new Error('Joueur introuvable dans cette team.'), { status: 404 });
 
-    let linkedUser = null;
+    let linkedUser: any = null;
     if (userId) {
       const member = await sql`
         select team_members.user_id, users.name

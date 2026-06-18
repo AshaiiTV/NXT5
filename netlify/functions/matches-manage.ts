@@ -125,7 +125,7 @@ export default async function handler(request: Request, context: Context): Promi
       return json({ ok: true });
     }
 
-    const validCategoryIds = [];
+    const validCategoryIds: string[] = [];
     if (categoryIds.length) {
       const categories = await sql`
         select id
