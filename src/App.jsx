@@ -6482,6 +6482,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
   const [archivesCollapsed, setArchivesCollapsed] = useState(false);
+  const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
@@ -6549,6 +6550,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const editArchive = (archive) => {
     setArchiveForm({ id: archive.id, name: archive.name || "", description: archive.description || "", matchIds: archiveMatchIds(archive) });
     setSelectedArchiveId(archive.id);
+    setArchivesCollapsed(false);
+    setArchiveWorkspaceTab("create");
   };
   async function saveArchive(event) {
     event.preventDefault();
@@ -6562,6 +6565,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
       }
       pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe de games est prêt dans les statistiques." });
       resetArchiveForm();
+      setArchiveWorkspaceTab("select");
       await refreshAll?.();
     } catch (err) {
       pushToast?.({ type: "red", title: "Archive impossible", text: err.message });
@@ -6622,13 +6626,17 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
         {!selectedMatch && <Surface className="mt-5">
           <button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-4 rounded-xl px-2 py-2 text-left transition hover:bg-white/[0.035]">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Atelier groupe</Badge><Badge tone="slate">{archives.length} sauvegardé{archives.length > 1 ? "s" : ""}</Badge><Badge tone={archiveFormMatchCount ? "cyan" : "slate"}>{archiveFormMatchCount} sélectionnée{archiveFormMatchCount > 1 ? "s" : ""}</Badge></div>
+              <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Sélection groupe</Badge><Badge tone="slate">{archives.length} sauvegardé{archives.length > 1 ? "s" : ""}</Badge><Badge tone={archiveFormMatchCount ? "cyan" : "slate"}>{archiveFormMatchCount} en création</Badge></div>
               <h3 className="mt-3 text-2xl font-black text-white">Groupes de games</h3>
-              <p className="mt-1 text-sm font-semibold text-slate-300">Ouvre un groupe existant à gauche ou compose un nouveau bloc de scrim à droite.</p>
+              <p className="mt-1 text-sm font-semibold text-slate-300">Ouvre un groupe existant. La création reste rangée dans son onglet dédié.</p>
             </div>
             <div className="flex shrink-0 items-center gap-2"><Badge tone={selectedArchive ? "cyan" : "slate"}>{selectedArchive ? "Groupe actif" : "Aucun actif"}</Badge><ChevronDown className={cx("h-5 w-5 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></div>
           </button>
-          {!archivesCollapsed && <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
+          {!archivesCollapsed && <div className="mt-5 min-w-0">
+            <div className="mb-4 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-black/20 p-1.5">
+              {[["select", "Sélection groupe", archives.length + " groupe" + (archives.length > 1 ? "s" : "")], ["create", "Créer un groupe", archiveFormMatchCount ? archiveFormMatchCount + " game" + (archiveFormMatchCount > 1 ? "s" : "") : "Masqué"]].map(([id, label, meta]) => <button key={id} type="button" onClick={() => setArchiveWorkspaceTab(id)} className={cx("flex min-w-[12rem] flex-1 items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition", archiveWorkspaceTab === id ? "border-cyan-200/35 bg-cyan-400/12 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent text-slate-300 hover:border-white/10 hover:bg-white/[0.045]")}><span className="text-xs font-black uppercase tracking-[0.14em]">{label}</span><span className="text-[0.62rem] font-black uppercase tracking-[0.12em] opacity-75">{meta}</span></button>)}
+            </div>
+            {archiveWorkspaceTab === "select" ? <>
             <section className="min-w-0">
               <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-3">
                 <div><p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-slate-300">Groupes sauvegardés</p><p className="mt-1 text-sm font-semibold text-slate-400">Clique pour lire le bloc, reclique pour revenir à la vue globale.</p></div>
@@ -6642,15 +6650,17 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
                     <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="truncate font-black text-white">{archive.name}</span><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge>{selected && <Badge tone="cyan">Actif</Badge>}</span><span className={cx("mt-1 block truncate text-xs font-semibold", selected ? "text-cyan-100" : "text-slate-300")}>{archive.description || "Créée par " + (archive.created_by_name || "NXT5")}</span><span className="mt-2 block text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</span></span>
                   </button>
                   <div className="mt-3 flex flex-wrap justify-end gap-2">{archiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports?report=" + archiveReport.id)} disabled={savingArchive}>Rapport</Button>}<Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Modifier</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div>
-                </div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun groupe. Compose ton premier bloc de scrim à droite.</p>}
+                </div>; }) : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300"><p>Aucun groupe enregistré.</p><Button type="button" className="mt-3" variant="ghost" icon={Plus} onClick={() => setArchiveWorkspaceTab("create")}>Créer un groupe</Button></div>}
               </div>
             </section>
+            </> : <>
             <form onSubmit={saveArchive} className="min-w-0 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-cyan-100">Création rapide</p><h4 className="mt-1 text-xl font-black text-white">{archiveFormTitle}</h4><p className="mt-1 text-sm font-semibold text-slate-300">{archiveFormMatchCount ? archiveFormMatchCount + " game" + (archiveFormMatchCount > 1 ? "s" : "") + " dans le bloc" : "Choisis les games à inclure"}</p></div><Badge tone={archiveFormMatchCount ? "cyan" : "slate"}>{archiveFormMatchCount}/{matches.length}</Badge></div>
               <div className="mt-4 grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div>
               <div className="mt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games à inclure</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={Plus} onClick={selectAllArchiveMatches} disabled={!matches.length || archiveFormMatchCount === matches.length}>Tout prendre</Button><Button type="button" variant="ghost" icon={X} onClick={clearArchiveMatches} disabled={!archiveFormMatchCount}>Vider</Button></div></div><div className="mt-2 grid max-h-[20rem] gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => { const picked = archiveForm.matchIds.includes(match.id); return <button key={match.id} type="button" aria-pressed={picked} onClick={() => toggleArchiveMatch(match.id)} className={cx("flex min-w-0 items-start gap-3 rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", picked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-black/22 hover:border-cyan-300/20 hover:bg-white/[0.055]")}><span className={cx("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border", picked ? "border-cyan-200/45 bg-cyan-300/18 text-cyan-50" : "border-white/14 bg-white/[0.035] text-transparent")}><Check className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge></span><span className="mt-2 block truncate text-sm font-black text-white">{matchDisplayName(match)}</span><span className="mt-1 block truncate text-xs font-semibold text-slate-300">{match.game_id}</span></span></button>; })}</div></div>
               <div className="mt-4 flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div>
             </form>
+            </>}
           </div>}
         </Surface>}
         {selectedArchive && <ScrimArchiveSummary matches={scopedMatches} selectedMatchId={selectedMatchId} onSelectMatch={setSelectedMatchId} />}
