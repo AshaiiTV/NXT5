@@ -6367,9 +6367,9 @@ function TrendsPage({ data, selectedTeamId }) {
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const topMetrics = [
     { icon: Trophy, label: "Winrate", value: `${winrate}%`, hint: `${wins}W - ${losses}L`, tone: winrate >= 50 ? "green" : "red" },
-    { icon: Gauge, label: "Or moyen", value: formatGoldDiff(avgInt(goldDiff)), hint: "Par game", tone: diffTone(goldDiff), sideMarker: winningTeamForDiff(goldDiff) },
-    { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff), sideMarker: winningTeamForDiff(damageDiff) },
-    { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff), sideMarker: winningTeamForDiff(visionDiff) },
+    { icon: Gauge, label: "Or moyen", value: formatGoldDiff(avgInt(goldDiff)), hint: "Par game", tone: diffTone(goldDiff) },
+    { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff) },
+    { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff) },
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
@@ -6388,10 +6388,10 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,.52fr)] lg:items-start">
         <div className="grid min-w-0 gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.026] px-3 py-3">
+          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.026] px-3 py-3">
             <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
             <span className="min-w-0">
-              <span className="flex min-w-0 items-center gap-2"><span className="truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span><MetricSideMarker marker={sideMarker} /></span>
+              <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span>
               <span className="mt-0.5 block break-words text-lg font-black leading-tight text-white sm:text-xl">{value}</span>
               <span className="mt-1 block truncate text-[0.68rem] font-semibold text-slate-400">{hint}</span>
             </span>
