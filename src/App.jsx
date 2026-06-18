@@ -70,7 +70,7 @@ const AUTH_ROUTES = {
   "/inscription": "register",
 };
 
-const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/mentions-legales", "/confidentialite", "/conditions", "/contact"];
+const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/conditions", "/contact"];
 const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
 const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";
@@ -202,7 +202,8 @@ const DEFAULT_DATA = {
 async function apiFetch(path, options = {}) {
   let response;
   try {
-    response = await fetch(`${API_BASE}/${path}`, {
+    const url = String(path || "").startsWith("/") ? path : `${API_BASE}/${path}`;
+    response = await fetch(url, {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
@@ -8296,12 +8297,18 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
+  const [notificationForm, setNotificationForm] = useState({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false });
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   useEffect(() => {
     setProfileForm({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   }, [user?.id, user?.name, user?.email, user?.account_name]);
+
+  useEffect(() => {
+    setNotificationForm({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false });
+  }, [user?.id, user?.notif_match, user?.notif_report]);
 
   async function saveProfile(event) {
     event.preventDefault();
@@ -8335,6 +8342,22 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     }
   }
 
+  async function updateNotifications(next) {
+    const previous = notificationForm;
+    setNotificationForm(next);
+    setSavingNotifications(true);
+    try {
+      const result = await apiFetch("/api/user/notifications", { method: "PATCH", body: JSON.stringify(next) });
+      onUserUpdate?.(result.user);
+      pushToast?.({ type: "green", title: "Préférences enregistrées", text: "Tes notifications e-mail sont à jour." });
+    } catch (err) {
+      setNotificationForm(previous);
+      pushToast?.({ type: "red", title: "Préférences non enregistrées", text: err.message });
+    } finally {
+      setSavingNotifications(false);
+    }
+  }
+
   return <div className="nxt5-data-dense min-w-0">
     <PageHeader eyebrow="Compte" title="Paramètres" subtitle="Modifie ton pseudo, ton e-mail de récupération et ton mot de passe NXT5." />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
@@ -8355,6 +8378,21 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
           <TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
           <Button type="submit" icon={savingPassword ? Loader2 : ShieldCheck} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ? "Mise à jour..." : "Changer le mot de passe"}</Button>
         </form>
+      </Surface>
+
+      <Surface className="p-5 xl:col-span-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <Badge tone="purple">Notifications</Badge>
+            <h3 className="mt-3 text-2xl font-black text-white">E-mails d'équipe</h3>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis les alertes envoyées sur ton adresse vérifiée.</p>
+          </div>
+          {savingNotifications && <Badge tone="cyan">Enregistrement...</Badge>}
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          <PremiumToggle checked={notificationForm.notif_match} onChange={(checked) => updateNotifications({ ...notificationForm, notif_match: checked })} title="Recevoir un email à chaque import de match" text="Pratique pour suivre les nouvelles games ajoutées à ta team." />
+          <PremiumToggle checked={notificationForm.notif_report} onChange={(checked) => updateNotifications({ ...notificationForm, notif_report: checked })} title="Recevoir un email à chaque rapport généré" text="Tu es prévenu dès qu'un nouveau rapport d'équipe est disponible." />
+        </div>
       </Surface>
     </div>
   </div>;

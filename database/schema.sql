@@ -19,6 +19,12 @@ alter table users alter column account_name set not null;
 create unique index if not exists idx_users_account_name on users(account_name);
 alter table users add column if not exists email text;
 create unique index if not exists idx_users_email_lower on users (lower(email)) where email is not null and email <> '';
+alter table users add column if not exists email_verified boolean default false;
+alter table users add column if not exists email_verify_token text default null;
+alter table users add column if not exists email_verify_expires_at timestamptz default null;
+-- Préférences de notification par user.
+alter table users add column if not exists notif_match boolean default true;
+alter table users add column if not exists notif_report boolean default true;
 
 create table if not exists sessions (
   id uuid primary key default gen_random_uuid(),
@@ -339,6 +345,11 @@ alter table matches add column if not exists category_id uuid references match_c
 alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb;
 update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb);
 alter table reports add column if not exists updated_at timestamptz not null default now();
+alter table users add column if not exists notif_match boolean default true;
+alter table users add column if not exists notif_report boolean default true;
+alter table users add column if not exists email_verified boolean default false;
+alter table users add column if not exists email_verify_token text default null;
+alter table users add column if not exists email_verify_expires_at timestamptz default null;
 alter table composition_types add column if not exists tags jsonb not null default '[]'::jsonb;
 alter table player_availability add column if not exists week_start date not null default date_trunc('week', current_date)::date;
 alter table player_availability drop constraint if exists player_availability_team_id_player_id_key;
