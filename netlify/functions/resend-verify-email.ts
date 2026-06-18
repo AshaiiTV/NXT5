@@ -25,10 +25,10 @@ export default async function handler(request: Request, context: Context): Promi
     stage = 'config';
     assertSessionSecret();
     assertMethod(request, 'POST');
-    stage = 'auth';
-    const user = await requireAuth(request, context);
     stage = 'schema';
     await ensureEmailVerificationColumns();
+    stage = 'auth';
+    const user = await requireAuth(request, context);
     stage = 'load-user';
     const rows = await sql`
       select id, account_name, email, coalesce(email_verified, false) as email_verified, email_verify_expires_at, name, created_at
