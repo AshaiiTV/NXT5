@@ -1,16 +1,35 @@
 import type { Context } from "@netlify/functions";
 import crypto from 'node:crypto';
 import { sql } from './_lib/db';
-import { json, assertMethod, handleError } from './_lib/http';
+import { json, assertMethod } from './_lib/http';
 import { assertSessionSecret, ensureEmailVerificationColumns, requireAuth, safeUser } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
 
+function verificationErrorResponse(err: any, stage: string): Response {
+  console.error('Email verification resend failed', { stage, err });
+  const status = err?.status || 500;
+  const code = err?.code || 'EMAIL_VERIFY_FAILED';
+  const message = String(err?.publicMessage || err?.message || 'Erreur serveur.').trim();
+  const payload: Record<string, unknown> = {
+    error: status >= 500 ? `${message} Étape: ${stage}. Code: ${code}.` : message,
+    code,
+    stage
+  };
+  if (err?.retryAfter) payload.retryAfter = err.retryAfter;
+  return json(payload, status);
+}
+
 export default async function handler(request: Request, context: Context): Promise<Response> {
+  let stage = 'init';
   try {
+    stage = 'config';
     assertSessionSecret();
     assertMethod(request, 'POST');
+    stage = 'auth';
     const user = await requireAuth(request, context);
+    stage = 'schema';
     await ensureEmailVerificationColumns();
+    stage = 'load-user';
     const rows = await sql`
       select id, account_name, email, coalesce(email_verified, false) as email_verified, email_verify_expires_at, name, created_at
       from users
@@ -35,6 +54,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     const token = crypto.randomBytes(32).toString('hex');
     const nextExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    stage = 'store-token';
     const updated = await sql`
       update users
       set email_verified = false,
@@ -46,8 +66,10 @@ export default async function handler(request: Request, context: Context): Promi
     `;
 
     try {
+      stage = 'send-email';
       await sendEmailVerificationEmail({ to: current.email, token });
     } catch (emailError) {
+      stage = 'cleanup-token';
       await sql`
         update users
         set email_verify_token = null,
@@ -59,6 +81,6 @@ export default async function handler(request: Request, context: Context): Promi
     }
     return json({ user: safeUser(updated[0]), sent: true });
   } catch (err) {
-    return handleError(err);
+    return verificationErrorResponse(err, stage);
   }
 }
