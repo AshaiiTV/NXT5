@@ -6445,9 +6445,9 @@ function TrendsPage({ data, selectedTeamId }) {
             </div>
             <span className={cx("rounded-2xl border p-3", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-5 w-5" /></span>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{matches.length}</p></div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Identité</p><p className="mt-1 truncate text-sm font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
+          <div className="mt-4 grid gap-2">
+            <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="text-xl font-black text-white">{matches.length}</p></div>
+            <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Identité équipe</p><p className="mt-1 break-words text-sm font-black leading-5 text-cyan-100">{tagLabel(identity.primary)}</p><div className="mt-2 flex min-w-0 flex-wrap gap-1">{identity.tags.slice(0, 3).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div></div>
           </div>
           <div className="mt-4 border-t border-white/10 pt-3">
             <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
