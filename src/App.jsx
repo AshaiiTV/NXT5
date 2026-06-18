@@ -3038,10 +3038,12 @@ function PlayerProfileStatsPanel({ player, matches = [] }) {
 function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refreshAll, pushToast }) {
   const players = sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)));
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const canObserveAll = true;
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [profileView, setProfileView] = useState("overview");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
   const [coachingContent, setCoachingContent] = useState("");
   const [savingCoaching, setSavingCoaching] = useState(false);
@@ -3053,7 +3055,10 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }, [linkedPlayer?.id, players.map((player) => player.id).join("|"), selectedPlayerId]);
   useEffect(() => {
     setSelectedProfileChampion("");
-  }, [selectedPlayerId]);
+  }, [selectedPlayerId, selectedCategoryId]);
+  useEffect(() => {
+    setSelectedCategoryId("");
+  }, [selectedTeamId]);
   function selectProfile(playerId) {
     setSelectedPlayerId(playerId);
     const params = new URLSearchParams(window.location.search || "");
@@ -3066,7 +3071,9 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   useEffect(() => {
     setCoachingContent(coachingNote?.content || "");
   }, [selectedPlayerId, coachingNote?.content]);
-  const rows = selectedPlayer ? playerIntegratedRows(selectedPlayer, matches) : [];
+  const filteredMatches = selectedCategoryId ? matches.filter((match) => matchHasCategory(match, selectedCategoryId)) : matches;
+  const activeProfileCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
+  const rows = selectedPlayer ? playerIntegratedRows(selectedPlayer, filteredMatches) : [];
   const games = rows.length;
   const wins = rows.filter((row) => row.match?.result === "Victoire").length;
   const losses = Math.max(0, games - wins);
@@ -3143,7 +3150,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const globalCs = csMilestoneSummary(rows);
   const avgCsPerMin = Number(avgRows(rows, (row) => row.cs_per_min));
   const roleKey = normalizeProfileRole(selectedPlayer?.role);
-  const roleRowsAll = matches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY" && normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane) === roleKey).map((row) => ({ ...row, match })));
+  const roleRowsAll = filteredMatches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY" && normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane) === roleKey).map((row) => ({ ...row, match })));
   const roleReferenceRows = roleRowsAll.filter((row) => !rows.some((item) => item.id === row.id));
   const benchmarkRows = roleReferenceRows.length ? roleReferenceRows : roleRowsAll;
   const benchmarkCs = csMilestoneSummary(benchmarkRows);
@@ -3443,15 +3450,16 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle="Diagnostic coach complet, axes de travail et détails exploitables sans perdre le fil de la review.">
-      <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[220px]">
+      <div className="flex w-full flex-col gap-3 sm:w-[30rem]">
 	        <div className="w-full sm:w-80"><SelectInput label="Profil observé" value={selectedPlayer.id} onChange={selectProfile}>{sortPlayersByRole(players).map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput></div>
+        {matchCategories.length > 0 && <div className="rounded-2xl border border-cyan-300/14 bg-black/20 p-3"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(categoryId) => setSelectedCategoryId(categoryId)} label="Filtrer par" /></div>}
         <Button type="button" variant="ghost" icon={Download} onClick={exportProfilePng} className="w-full justify-center">Exporter le résumé PNG</Button>
       </div>
     </PageHeader>
     <Surface className="relative overflow-hidden p-5">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(34,211,238,.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(217,70,239,.13),transparent_34%)]" />
       <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge></div><h2 className="mt-4 truncate text-4xl font-black text-white md:text-5xl">{selectedPlayer.name}</h2><p className="mt-2 truncate text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge>{activeProfileCategory && <Badge tone={matchCategoryTone(activeProfileCategory)}>{activeProfileCategory.name}</Badge>}</div><h2 className="mt-4 truncate text-4xl font-black text-white md:text-5xl">{selectedPlayer.name}</h2><p className="mt-2 truncate text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
         <div className="grid w-full gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
       </div>
     </Surface>
@@ -3487,7 +3495,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
                     </div>
                     <ChevronRight className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "translate-x-0.5")} />
                 </button>;
-              }) : <EmptyState icon={Crown} title="Aucun champion importé" text="Importe une game pour alimenter les champions joués." />}
+              }) : <EmptyState icon={Crown} title="Aucun champion importé" text={selectedCategoryId ? "Aucune game de cette catégorie pour ce profil." : "Importe une game pour alimenter les champions joués."} />}
             </div>
           </Surface>
           <Surface className="min-w-0 overflow-hidden p-4 md:p-5">
@@ -3496,7 +3504,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         </div>}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
         {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
-        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="space-y-3"><ProfileCsMilestonePanel rows={rows} /><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 transition hover:border-cyan-300/20 hover:bg-white/[0.055]"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text="Aucune game importée n’est encore reliée à ce profil." />}</div></div></ProfileFold>}
+        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="space-y-3"><ProfileCsMilestonePanel rows={rows} /><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 transition hover:border-cyan-300/20 hover:bg-white/[0.055]"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p></div></div>) : <EmptyState icon={BarChart3} title="Aucune game" text={selectedCategoryId ? "Aucune game de cette catégorie n’est encore reliée à ce profil." : "Aucune game importée n’est encore reliée à ce profil."} />}</div></div></ProfileFold>}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des rapports liés aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
     </AnimatePresence>
