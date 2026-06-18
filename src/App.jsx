@@ -86,6 +86,12 @@ const PLANNING_DAYS = [
   ["SAT", "Sam"],
   ["SUN", "Dim"],
 ];
+const PLANNING_EVENT_TYPES = [
+  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200 shadow-[0_0_12px_rgba(240,171,252,.72)]", cell: "border-fuchsia-200/45 bg-fuchsia-400/14 text-fuchsia-50" },
+  { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" },
+  { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "border-amber-200/42 bg-amber-300/14 text-amber-50" },
+  { id: "custom", label: "Event", dot: "bg-cyan-100 shadow-[0_0_12px_rgba(103,232,249,.72)]", cell: "border-cyan-200/40 bg-cyan-300/14 text-cyan-50" },
+];
 
 function cleanOpponentName(value) {
   const text = String(value || "").trim();
@@ -6160,7 +6166,22 @@ function TrendsPage({ data, selectedTeamId }) {
   const wins = matches.filter((match) => match.result === "Victoire").length;
   const losses = matches.length - wins;
   const winrate = Math.round((wins / Math.max(1, matches.length)) * 100);
-  if (!matches.length) return <div className="nxt5-data-dense"><PageHeader eyebrow="Tendances" title="Cockpit stratégique" subtitle="Lis les patterns de la team par scrim, tournoi ou catégorie custom." /><Surface className="mb-5 p-4"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" /></Surface><Surface glow><EmptyState icon={Activity} title="Aucune tendance disponible" text="Importe des games ou change de catégorie pour faire émerger les tendances." /></Surface></div>;
+  if (!matches.length) return <div className="nxt5-data-dense min-w-0 overflow-hidden">
+    <div className="mb-5 border-b border-cyan-100/10 pb-5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">Tendances</p></div>
+          <h2 className="nxt5-metal-text max-w-4xl py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl md:text-5xl">Cockpit stratégique</h2>
+          <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Lis les patterns de la team par scrim, tournoi ou catégorie custom.</p>
+        </div>
+        <Badge tone="slate">{baseMatches.length} game{baseMatches.length > 1 ? "s" : ""} importée{baseMatches.length > 1 ? "s" : ""}</Badge>
+      </div>
+      <div className="mt-5 border-t border-white/8 pt-3">
+        <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" />
+      </div>
+    </div>
+    <Surface glow><EmptyState icon={Activity} title="Aucune tendance disponible" text="Importe des games ou change de catégorie pour faire émerger les tendances." /></Surface>
+  </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
   const avgInt = (value) => Math.round(avg(value));
@@ -6306,11 +6327,44 @@ function TrendsPage({ data, selectedTeamId }) {
     orange: "from-amber-400/14 via-white/[0.035] to-transparent text-amber-100",
   };
   const TrendPanel = ({ title, icon: Icon, items, tone = "cyan" }) => <section className="nxt5-flat-block rounded-2xl border p-4"><div className="flex items-center gap-3"><span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br", trendToneClass[tone] || trendToneClass.cyan)}><Icon className="h-4 w-4" /></span><h3 className="text-lg font-black text-white">{title}</h3></div><div className="mt-3 divide-y divide-white/8">{items.length ? items.map((item, index) => <div key={item} className="flex gap-3 py-2.5 first:pt-0 last:pb-0"><span className={cx("mt-2 h-1.5 w-1.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]", tone === "red" ? "bg-rose-300 text-rose-300" : tone === "green" ? "bg-emerald-300 text-emerald-300" : tone === "purple" ? "bg-fuchsia-300 text-fuchsia-300" : tone === "orange" ? "bg-amber-300 text-amber-300" : "bg-cyan-300 text-cyan-300")} /><p className="min-w-0 text-sm font-semibold leading-5 text-slate-200">{index === 0 ? <span className="font-black text-white">{item}</span> : item}</p></div>) : <p className="py-2 text-sm font-semibold text-slate-300">Pas assez de volume.</p>}</div></section>;
+  const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
+  const topMetrics = [
+    { icon: Trophy, label: "Winrate", value: `${winrate}%`, hint: `${wins}W - ${losses}L`, tone: winrate >= 50 ? "green" : "red" },
+    { icon: Gauge, label: "Or moyen", value: formatGoldDiff(avgInt(goldDiff)), hint: "Par game", tone: diffTone(goldDiff), sideMarker: winningTeamForDiff(goldDiff) },
+    { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff), sideMarker: winningTeamForDiff(damageDiff) },
+    { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff), sideMarker: winningTeamForDiff(visionDiff) },
+  ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <PageHeader eyebrow="Tendances" title="Cockpit stratégique" subtitle="Identité, contexte, side et signaux d’équipe à partir des games importées." />
-    <Surface className="mb-5 p-4"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" /></Surface>
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Trophy} label="Winrate global" value={`${winrate}%`} hint={`${wins}W - ${losses}L`} tone={winrate >= 50 ? "green" : "red"} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(avgInt(goldDiff))} hint="Moyenne par game" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard compact icon={Flame} label="Écart dégâts" value={signedAvg(damageDiff)} hint="Moyenne par game" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={signedAvg(visionDiff)} hint="Moyenne par game" tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
+    <div className="mb-5 border-b border-cyan-100/10 pb-5">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.72fr)] xl:items-end">
+        <div className="min-w-0">
+          <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">Tendances</p></div>
+          <h2 className="nxt5-metal-text max-w-4xl py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl md:text-5xl">Cockpit stratégique</h2>
+          <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Identité, contexte, side et signaux d’équipe à partir des games importées.</p>
+        </div>
+        <div className="flex flex-wrap items-center justify-start gap-2 xl:justify-end">
+          <Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge>
+          <Badge tone="cyan">{matches.length} game{matches.length > 1 ? "s" : ""} lue{matches.length > 1 ? "s" : ""}</Badge>
+          <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,.52fr)] lg:items-start">
+        <div className="grid overflow-hidden rounded-xl border border-white/8 bg-white/[0.018] md:grid-cols-4 md:divide-x md:divide-white/8">
+          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="flex min-w-0 items-center gap-3 border-b border-white/8 px-3 py-3 last:border-b-0 md:border-b-0">
+            <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
+            <span className="min-w-0">
+              <span className="flex min-w-0 items-center gap-2"><span className="truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</span><MetricSideMarker marker={sideMarker} /></span>
+              <span className="mt-0.5 block text-xl font-black leading-none text-white">{value}</span>
+              <span className="mt-1 block truncate text-[0.68rem] font-semibold text-slate-400">{hint}</span>
+            </span>
+          </div>)}
+        </div>
+        <div className="rounded-xl border-y border-cyan-100/10 bg-cyan-400/[0.025] px-1 py-3 lg:px-3">
+          <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" />
+        </div>
+      </div>
+    </div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
       <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture data</Badge><h3 className="mt-3 text-2xl font-black text-white">Résumé du bloc</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale de tous les contextes importés."} Les écarts sont ramenés par game pour comparer scrim, tournoi et catégories custom sans gonfler le volume.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-5 grid gap-2 sm:grid-cols-3">{[["Or moyen haut", carrySignal && `${carrySignal.name} · ${formatPoints(carrySignal.avgGold)}`, "green"], ["Vision moyenne haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game haut", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className={cx("mt-2 text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
       <Surface className="p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Scrim, Tournoi et custom, avec écarts moyens par game.</p></div><Badge tone="slate">{baseMatches.length} games total</Badge></div><div className="mt-4 grid gap-2">{categoryBreakdown.length ? categoryBreakdown.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid gap-3 rounded-2xl border p-3 text-left transition md:grid-cols-[minmax(140px,1fr)_repeat(4,auto)] md:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games} game{entry.games > 1 ? "s" : ""} · {entry.wins}W - {entry.games - entry.wins}L</p></div><span className="text-sm font-black text-white">{entry.wr}% WR</span><span className={cx("text-sm font-black", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("text-sm font-black", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)} dmg</span><span className={cx("text-sm font-black", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff} vision</span></button>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
@@ -7012,11 +7066,44 @@ function jsonList(value) {
 }
 
 function availabilitySlots(value) {
+  const input = availabilityPayload(value);
+  return Object.fromEntries(PLANNING_DAYS.map(([day]) => [day, Array.isArray(input[day]) ? input[day] : []]));
+}
+
+function availabilityPayload(value) {
   if (!value) return {};
   if (typeof value === "string") {
     try { return JSON.parse(value) || {}; } catch { return {}; }
   }
   return typeof value === "object" ? value : {};
+}
+
+function planningEventKey(day, time) {
+  return `${day}|${time}`;
+}
+
+function planningEventTypeFromLabel(label) {
+  const value = String(label || "").toLowerCase();
+  if (/\b(match|official|officiel|tournoi|ligue|cup|bo[1235])\b/.test(value)) return "match";
+  if (/\b(review|vod|debrief|débrief|analyse)\b/.test(value)) return "review";
+  if (/\b(scrim|scrims|pracc|train|training)\b/.test(value)) return "scrim";
+  return "custom";
+}
+
+function planningEventMeta(type) {
+  return PLANNING_EVENT_TYPES.find((item) => item.id === type) || PLANNING_EVENT_TYPES[PLANNING_EVENT_TYPES.length - 1];
+}
+
+function availabilityEvents(value) {
+  const input = availabilityPayload(value);
+  const events = input._events || input.events || {};
+  return events && typeof events === "object" && !Array.isArray(events) ? events : {};
+}
+
+function planningSlotsPayload(slots, events) {
+  const output = Object.fromEntries(PLANNING_DAYS.map(([day]) => [day, Array.isArray(slots?.[day]) ? PLANNING_TIMES.filter((time) => slots[day].includes(time)) : []]));
+  const cleanEvents = Object.fromEntries(Object.entries(events || {}).filter(([, event]) => String(event?.label || "").trim()).map(([key, event]) => [key, { label: String(event.label).trim(), type: event.type || planningEventTypeFromLabel(event.label) }]));
+  return Object.keys(cleanEvents).length ? { ...output, _events: cleanEvents } : output;
 }
 
 function dateKey(date) {
@@ -7356,6 +7443,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const linkedPlayer = players.find((player) => player.user_id && player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [draftSlots, setDraftSlots] = useState({});
+  const [slotEvents, setSlotEvents] = useState({});
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -7370,6 +7458,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   useEffect(() => {
     setDraftSlots(availabilitySlots(selectedAvailability?.slots));
+    setSlotEvents(availabilityEvents(selectedAvailability?.slots));
     setNotes(selectedAvailability?.notes || "");
   }, [selectedAvailability?.id, selectedAvailability?.updated_at, selectedPlayerId, selectedWeek.start]);
 
@@ -7385,23 +7474,38 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       const nextList = list.includes(time) ? list.filter((item) => item !== time) : PLANNING_TIMES.filter((item) => [...list, time].includes(item));
       return { ...current, [day]: nextList };
     });
+    if ((draftSlots[day] || []).includes(time)) {
+      setSlotEvents((current) => {
+        const next = { ...current };
+        delete next[planningEventKey(day, time)];
+        return next;
+      });
+    }
   }
 
   function setDaySlots(day, times) {
     if (!canEditSelected) return;
-    setDraftSlots((current) => ({ ...current, [day]: PLANNING_TIMES.filter((time) => times.includes(time)) }));
+    const nextTimes = PLANNING_TIMES.filter((time) => times.includes(time));
+    setDraftSlots((current) => ({ ...current, [day]: nextTimes }));
+    setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
+      const [eventDay, eventTime] = key.split("|");
+      return eventDay !== day || nextTimes.includes(eventTime);
+    })));
   }
 
   function setTimeForWeek(time) {
     if (!canEditSelected) return;
+    const allActive = weekDays.every(([day]) => (draftSlots[day] || []).includes(time));
     setDraftSlots((current) => {
-      const allActive = weekDays.every(([day]) => (current[day] || []).includes(time));
       return Object.fromEntries(weekDays.map(([day]) => {
         const list = Array.isArray(current[day]) ? current[day] : [];
         const nextList = allActive ? list.filter((item) => item !== time) : PLANNING_TIMES.filter((item) => [...list, time].includes(item));
         return [day, nextList];
       }));
     });
+    if (allActive) {
+      setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key.split("|")[1] !== time)));
+    }
   }
 
   function applyAvailabilityPreset(kind) {
@@ -7413,21 +7517,60 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     };
     if (kind === "clear") {
       setDraftSlots({});
+      setSlotEvents({});
       return;
     }
     if (kind === "weekend") {
-      setDraftSlots(Object.fromEntries(weekDays.map(([day]) => [day, ["20:00", "21:00", "22:00", "23:00"].filter(() => ["SAT", "SUN"].includes(day))])));
+      const nextSlots = Object.fromEntries(weekDays.map(([day]) => [day, ["20:00", "21:00", "22:00", "23:00"].filter(() => ["SAT", "SUN"].includes(day))]));
+      setDraftSlots(nextSlots);
+      setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
+        const [day, time] = key.split("|");
+        return (nextSlots[day] || []).includes(time);
+      })));
       return;
     }
     const times = presets[kind] || [];
-    setDraftSlots(Object.fromEntries(weekDays.map(([day]) => [day, PLANNING_TIMES.filter((time) => times.includes(time))])));
+    const nextSlots = Object.fromEntries(weekDays.map(([day]) => [day, PLANNING_TIMES.filter((time) => times.includes(time))]));
+    setDraftSlots(nextSlots);
+    setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
+      const [day, time] = key.split("|");
+      return (nextSlots[day] || []).includes(time);
+    })));
+  }
+
+  function editPlanningEvent(event, day, time) {
+    event.preventDefault();
+    if (!canEditSelected || saving) return;
+    const key = planningEventKey(day, time);
+    const current = slotEvents[key];
+    const label = window.prompt("Ajouter un événement à ce créneau. Laisse vide pour supprimer.", current?.label || "");
+    if (label === null) return;
+    const cleanLabel = label.trim();
+    setSlotEvents((currentEvents) => {
+      const next = { ...currentEvents };
+      if (!cleanLabel) delete next[key];
+      else next[key] = { label: cleanLabel, type: planningEventTypeFromLabel(cleanLabel) };
+      return next;
+    });
+    if (cleanLabel) {
+      setDraftSlots((currentSlots) => {
+        const list = Array.isArray(currentSlots[day]) ? currentSlots[day] : [];
+        if (list.includes(time)) return currentSlots;
+        return { ...currentSlots, [day]: PLANNING_TIMES.filter((item) => [...list, time].includes(item)) };
+      });
+    }
+  }
+
+  function teamEventFor(day, time) {
+    const key = planningEventKey(day, time);
+    return availability.map((row) => availabilityEvents(row?.slots)[key]).find((event) => event?.label) || null;
   }
 
   async function saveAvailability() {
     if (!selectedPlayer || !selectedTeamId || !canEditSelected) return;
     setSaving(true);
     try {
-      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, weekStart: selectedWeek.start, slots: draftSlots, notes }) });
+      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, weekStart: selectedWeek.start, slots: planningSlotsPayload(draftSlots, slotEvents), notes }) });
       await refreshAll();
       pushToast({ type: "green", title: "Planning mis à jour", text: `Les dispos du profil sont enregistrées pour ${selectedWeek.label.toLowerCase()}.` });
     } catch (err) {
@@ -7445,6 +7588,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   }))).sort((a, b) => b.count - a.count || PLANNING_TIMES.indexOf(a.time) - PLANNING_TIMES.indexOf(b.time)).slice(0, 4);
   const selectedFilledSlots = weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0);
   const selectedFilledDays = weekDays.filter(([day]) => (draftSlots[day] || []).length).length;
+  const selectedEventCount = Object.keys(slotEvents).length;
   const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => players.filter((player) => slotList(player.id, day).includes(time)).length)).filter((count) => count >= Math.min(5, players.length)).length;
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
@@ -7526,12 +7670,13 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-xl font-black text-white">{selectedPlayer?.name || "Profil"}</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique les slots. En-têtes = raccourcis." : "Lecture seule."}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique les slots. Clic droit = ajouter un événement." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedPlayer && <Badge tone="blue">{roleLabel(selectedPlayer.role)}</Badge>}
                 <Badge tone={selectedFilledSlots ? "cyan" : "slate"}>{selectedFilledSlots} slots</Badge>
                 <Badge tone={selectedFilledDays >= 4 ? "green" : selectedFilledDays ? "purple" : "slate"}>{selectedFilledDays}/7 jours</Badge>
+                <Badge tone={selectedEventCount ? "purple" : "slate"}>{selectedEventCount} event</Badge>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -7539,6 +7684,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
               <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("weekend")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Week-end</button>
               <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+              <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Diodes</span>
+              {PLANNING_EVENT_TYPES.map((item) => <span key={item.id} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-100"><span className={cx("h-2 w-2 rounded-full", item.dot)} />{item.label}</span>)}
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
               <div className="min-w-[560px] sm:min-w-[640px]">
@@ -7553,7 +7702,9 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                       <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs font-black text-white transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {weekDays.map(([day]) => {
                         const activeSlot = (draftSlots[day] || []).includes(time);
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} title={activeSlot ? "Disponible" : "Indisponible"} className={cx("grid min-h-7 place-items-center rounded-lg border text-xs font-black transition", activeSlot ? "border-cyan-200/40 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.024] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2 w-2 rounded-full", activeSlot ? "bg-cyan-100 shadow-[0_0_10px_rgba(103,232,249,.55)]" : "bg-white/10")} /></button>;
+                        const slotEvent = slotEvents[planningEventKey(day, time)];
+                        const eventMeta = slotEvent ? planningEventMeta(slotEvent.type) : null;
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => editPlanningEvent(event, day, time)} title={slotEvent?.label || (activeSlot ? "Disponible" : "Indisponible")} className={cx("grid min-h-7 place-items-center rounded-lg border text-xs font-black transition", slotEvent ? eventMeta.cell : activeSlot ? "border-cyan-200/40 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.024] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2.5 w-2.5 rounded-full", slotEvent ? eventMeta.dot : activeSlot ? "bg-cyan-100 shadow-[0_0_10px_rgba(103,232,249,.55)]" : "bg-white/10")} /></button>;
                       })}
                     </React.Fragment>
                   ))}
@@ -7565,7 +7716,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected || saving} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
             </div>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs font-semibold text-slate-400">Jour/heure = raccourcis.</p>
+              <p className="text-xs font-semibold text-slate-400">Jour/heure = raccourcis. Clic droit sur une diode = événement.</p>
               <Button type="button" icon={saving ? Loader2 : Check} disabled={!canEditSelected || saving} onClick={saveAvailability}>{saving ? "Enregistrement..." : "Enregistrer les dispos"}</Button>
             </div>
           </Surface>
@@ -7590,18 +7741,21 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                         const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
                         const ratio = availablePlayers.length / totalPlayers;
                         const fullTeam = availablePlayers.length >= Math.min(5, players.length);
-                        const cellTone = fullTeam ? "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" : ratio >= 0.8 ? "border-cyan-200/42 bg-cyan-300/14 text-cyan-50" : ratio >= 0.6 ? "border-cyan-200/28 bg-cyan-400/9 text-cyan-50" : ratio >= 0.35 ? "border-violet-200/20 bg-violet-400/7 text-violet-100" : availablePlayers.length ? "border-white/12 bg-white/[0.03] text-slate-300" : "border-white/8 bg-white/[0.018] text-slate-500";
+                        const slotEvent = teamEventFor(day, time);
+                        const eventMeta = slotEvent ? planningEventMeta(slotEvent.type) : null;
+                        const cellTone = slotEvent ? eventMeta.cell : fullTeam ? "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" : ratio >= 0.8 ? "border-cyan-200/42 bg-cyan-300/14 text-cyan-50" : ratio >= 0.6 ? "border-cyan-200/28 bg-cyan-400/9 text-cyan-50" : ratio >= 0.35 ? "border-violet-200/20 bg-violet-400/7 text-violet-100" : availablePlayers.length ? "border-white/12 bg-white/[0.03] text-slate-300" : "border-white/8 bg-white/[0.018] text-slate-500";
+                        const title = [slotEvent?.label, availablePlayers.map((player) => player.name).join(" · ") || "Aucun joueur disponible"].filter(Boolean).join(" · ");
                         return (
-                          <div key={`${day}-${time}`} title={availablePlayers.map((player) => player.name).join(" · ") || "Aucun joueur disponible"} className={cx("relative min-h-[2.35rem] overflow-hidden rounded-lg border px-1.5 py-1 transition", cellTone)}>
+                          <div key={`${day}-${time}`} title={title} className={cx("relative min-h-[2.35rem] overflow-hidden rounded-lg border px-1.5 py-1 transition", cellTone)}>
                             <div className="flex items-center justify-between gap-1">
                               <span className="relative z-10 text-xs font-black">{availablePlayers.length}/{players.length}</span>
                               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/30"><span className="block h-full rounded-full bg-current" style={{ width: `${Math.round(ratio * 100)}%` }} /></span>
                             </div>
                             <div className="relative z-10 mt-0.5 truncate text-[0.52rem] font-black uppercase tracking-[0.06em] opacity-80">
-                              {availablePlayers.length ? availablePlayers.slice(0, 3).map((player) => String(player.role || "?").slice(0, 3)).join(" ") : "-"}
-                              {availablePlayers.length > 3 ? ` +${availablePlayers.length - 3}` : ""}
+                              {slotEvent?.label || (availablePlayers.length ? availablePlayers.slice(0, 3).map((player) => String(player.role || "?").slice(0, 3)).join(" ") : "-")}
+                              {!slotEvent && availablePlayers.length > 3 ? ` +${availablePlayers.length - 3}` : ""}
                             </div>
-                            {fullTeam && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-emerald-100 shadow-[0_0_10px_rgba(167,243,208,.7)]" />}
+                            {slotEvent ? <span className={cx("absolute right-1 top-1 h-1.5 w-1.5 rounded-full", eventMeta.dot)} /> : fullTeam && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-emerald-100 shadow-[0_0_10px_rgba(167,243,208,.7)]" />}
                           </div>
                         );
                       })}

@@ -3,8 +3,23 @@ import { json, readJson, assertMethod, handleError } from './_lib/http.mjs';
 import { requireAuth } from './_lib/auth.mjs';
 
 const VALID_DAYS = new Set(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
-const VALID_TIMES = new Set(['18:00', '19:00', '20:00', '21:00', '22:00', '23:00']);
+const VALID_TIMES = new Set(['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '00:00']);
+const VALID_EVENT_TYPES = new Set(['scrim', 'match', 'review', 'custom']);
 const WEEK_START_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function cleanEvents(value) {
+  const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const output = {};
+  for (const [key, event] of Object.entries(input)) {
+    const [day, time] = String(key || '').split('|');
+    if (!VALID_DAYS.has(day) || !VALID_TIMES.has(time)) continue;
+    const label = String(event?.label || '').trim().slice(0, 80);
+    if (!label) continue;
+    const type = VALID_EVENT_TYPES.has(String(event?.type || '')) ? String(event.type) : 'custom';
+    output[`${day}|${time}`] = { label, type };
+  }
+  return output;
+}
 
 function cleanSlots(value) {
   const input = value && typeof value === 'object' ? value : {};
@@ -13,6 +28,8 @@ function cleanSlots(value) {
     const times = Array.isArray(input[day]) ? input[day] : [];
     output[day] = [...new Set(times.filter((time) => VALID_TIMES.has(String(time))))];
   }
+  const events = cleanEvents(input._events || input.events);
+  if (Object.keys(events).length) output._events = events;
   return output;
 }
 
