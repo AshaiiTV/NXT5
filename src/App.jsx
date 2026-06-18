@@ -6406,9 +6406,9 @@ function TrendsPage({ data, selectedTeamId }) {
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const topMetrics = [
     { icon: Trophy, label: "Winrate", value: `${winrate}%`, hint: `${wins}W - ${losses}L`, tone: winrate >= 50 ? "green" : "red" },
-    { icon: Gauge, label: "Or moyen", value: formatGoldDiff(avgInt(goldDiff)), hint: "Par game", tone: diffTone(goldDiff), sideMarker: winningTeamForDiff(goldDiff) },
-    { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff), sideMarker: winningTeamForDiff(damageDiff) },
-    { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff), sideMarker: winningTeamForDiff(visionDiff) },
+    { icon: Gauge, label: "Or moyen", value: formatGoldDiff(avgInt(goldDiff)), hint: "Par game", tone: diffTone(goldDiff) },
+    { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff) },
+    { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff) },
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
@@ -6426,10 +6426,9 @@ function TrendsPage({ data, selectedTeamId }) {
             <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200 sm:text-base sm:leading-7">Vue d’ensemble des patterns d’équipe : contexte, ressources, dégâts, vision et identité draft sur les games importées.</p>
           </div>
           <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone, sideMarker }) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
-              <div className="flex min-w-0 items-center justify-between gap-2">
+            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
+              <div className="flex min-w-0 items-center gap-2">
                 <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
-                <MetricSideMarker marker={sideMarker} />
               </div>
               <p className="mt-3 truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p>
               <p className="mt-1 break-words text-2xl font-black leading-tight text-white">{value}</p>
