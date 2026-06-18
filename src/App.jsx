@@ -1239,7 +1239,6 @@ function ChampionMiniCard({ title, item, icon: Icon, tone: t }) {
 }
 
 const DDRAGON_VERSION = "16.11.1";
-const SUMMONERS_RIFT_MAP_URL = `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/map/map11.png`;
 const DDRAGON_FALLBACK_VERSIONS = ["16.11.1", "16.10.1", "16.9.1", "15.24.1", "15.10.1"];
 
 const CHAMPION_STYLE_TAGS = {
@@ -2681,7 +2680,6 @@ function GuidePage() {
   const analysisSteps = [
     ["Lecture instantanée", "Sélectionne une game pour lire immédiatement les deux sides, les 10 joueurs, champions, KDA, KP, dégâts, gold, vision, summoners, builds et diff de gold par poste."],
     ["Objectifs neutres", "Les dragons, grubs, Herald, Nashor et tours sont affichés par side. Si la timeline existe, la frise montre l’ordre, le timing et le side de chaque objectif."],
-    ["Heatmap vision", "Ouvre la heatmap pour visualiser les zones wardées. Les couleurs montent en intensité selon la densité, avec distinction pink/trinket quand la donnée existe."],
     ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Reclique sur un groupe ou une game pour le retirer de la sélection. Le rapport de groupe est généré automatiquement."],
     ["Exports PNG", "Utilise Exporter la game ou Exporter le groupe dans Statistiques pour produire une fiche visuelle NXT5 avec les données clés, les joueurs, les champions et les objectifs."],
     ["Stats de game", "Statistiques reste centrée sur les games et groupes de games. Les lectures longues par joueur vivent dans Mon profil."],
@@ -2701,7 +2699,7 @@ function GuidePage() {
   ];
   const quickLinks = [
     ["Intégration", "/integration", Download, "Importer JSON, renommer/supprimer les games, corriger lanes et profils."],
-    ["Statistiques", "/statistiques", BarChart3, "Analyser une game, un groupe, exporter en PNG et lire la heatmap."],
+    ["Statistiques", "/statistiques", BarChart3, "Analyser une game, un groupe, exporter en PNG et lire les signaux vision."],
     ["Tendances", "/tendances", Activity, "Lire l’identité globale, les forces, les risques et les priorités draft."],
     ["Mon profil", "/mon-profil", Activity, "Lire le profil joueur, builds, champions, matchups et bilan coaching."],
     ["Compos Types", "/compositions-types", Sparkles, "Créer une compo depuis les champion pools et lire les counters."],
@@ -5410,139 +5408,6 @@ function ObjectiveHud({ match, compact = false }) {
   </div>;
 }
 
-function visionWardEvents(match) {
-  const timelineSummary = match?.raw?.nxt5?.timelineSummary || match?.raw?.metadata?.nxt5?.timelineSummary || match?.raw?.metadata?.timelineSummary || null;
-  const summaryWards = Array.isArray(timelineSummary?.wards) ? timelineSummary.wards : [];
-  const frames = match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || match?.raw?.timeline?.timeline?.info?.frames || match?.raw?.timeline?.timeline?.frames || [];
-  const participants = match?.raw?.info?.participants || [];
-  const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
-  const allyTeamId = Number(teamRows(match, "ALLY")[0]?.raw?.teamId || 0);
-  if (summaryWards.length) {
-    return summaryWards.map((event) => ({
-      ...event,
-      teamKey: Number(event.teamId || 0) && allyTeamId ? (Number(event.teamId) === allyTeamId ? "ALLY" : "ENEMY") : "ALLY",
-      x: Number.isFinite(Number(event.normalizedX)) ? Number(event.normalizedX) : Math.max(0, Math.min(1, Number(event.x || 0) / 15000)),
-      y: Number.isFinite(Number(event.normalizedY)) ? Number(event.normalizedY) : Math.max(0, Math.min(1, Number(event.y || 0) / 15000)),
-    }));
-  }
-  return frames.flatMap((frame) => (frame.events || [])
-    .filter((event) => String(event.type || "") === "WARD_PLACED")
-    .map((event) => {
-      const creatorId = Number(event.creatorId || event.participantId || event.killerId || 0);
-      const creatorTeamId = Number(event.teamId || participantTeam.get(creatorId) || 0);
-      const direct = event.position || event;
-      let x = Number(direct.x || direct.positionX || 0);
-      let y = Number(direct.y || direct.positionY || 0);
-      let positionSource = "event";
-      if (!x || !y) {
-        const participantFrame = frame?.participantFrames?.[String(creatorId)] || frame?.participantFrames?.[creatorId];
-        const framePosition = participantFrame?.position || {};
-        x = Number(framePosition.x || 0);
-        y = Number(framePosition.y || 0);
-        positionSource = "participant_frame";
-      }
-      if (!x || !y) return null;
-      return {
-        ...event,
-        teamKey: creatorTeamId && allyTeamId ? (creatorTeamId === allyTeamId ? "ALLY" : "ENEMY") : "ALLY",
-        positionSource,
-        x: Math.max(0, Math.min(1, x / 15000)),
-        y: Math.max(0, Math.min(1, y / 15000)),
-      };
-    })
-    .filter(Boolean));
-}
-
-function wardTypeKey(event) {
-  const type = String(event?.wardType || event?.type || "WARD").toUpperCase();
-  if (type.includes("CONTROL") || type.includes("VISION") || type.includes("PINK")) return "pink";
-  if (type.includes("YELLOW") || type.includes("TRINKET")) return "trinket";
-  if (type.includes("BLUE")) return "blue";
-  if (type.includes("SIGHT")) return "sight";
-  return "other";
-}
-
-function wardTypeLabel(key) {
-  return { pink: "Pink / contrôle", trinket: "Ward jaune", blue: "Ward bleue", sight: "Ward classique", other: "Autres wards" }[key] || key;
-}
-
-function wardTypeColor(key, alpha = 0.78) {
-  return {
-    pink: `rgba(244,114,182,${alpha})`,
-    trinket: `rgba(250,204,21,${alpha})`,
-    blue: `rgba(96,165,250,${alpha})`,
-    sight: `rgba(52,211,153,${alpha})`,
-    other: `rgba(34,211,238,${alpha})`,
-  }[key] || `rgba(34,211,238,${alpha})`;
-}
-
-function VisionHeatmap({ match }) {
-  const [collapsed, setCollapsed] = useState(true);
-  const [zoomed, setZoomed] = useState(false);
-  const events = visionWardEvents(match).filter((event) => event.teamKey === "ALLY");
-  if (!events.length) return null;
-  const heatCells = Array.from(events.reduce((map, event) => {
-    const cellSize = 0.085;
-    const x = Math.round(event.x / cellSize) * cellSize;
-    const y = Math.round(event.y / cellSize) * cellSize;
-    const key = `${x.toFixed(3)}:${y.toFixed(3)}`;
-    const current = map.get(key) || { x, y, count: 0 };
-    current.count += 1;
-    map.set(key, current);
-    return map;
-  }, new Map()).values());
-  const maxCell = Math.max(1, ...heatCells.map((cell) => cell.count));
-  const heatColor = (count) => {
-    const ratio = count / maxCell;
-    if (ratio >= 0.82) return "rgba(239,68,68,.72)";
-    if (ratio >= 0.58) return "rgba(249,115,22,.62)";
-    if (ratio >= 0.34) return "rgba(250,204,21,.55)";
-    return "rgba(34,211,238,.42)";
-  };
-  const wardTypes = events.reduce((map, event) => {
-    const key = wardTypeKey(event);
-    map.set(key, (map.get(key) || 0) + 1);
-    return map;
-  }, new Map());
-  const pinkCount = wardTypes.get("pink") || 0;
-  const trinketCount = wardTypes.get("trinket") || 0;
-	  const mapPanel = (large = false) => <div className={cx("relative overflow-hidden rounded-2xl border border-white/10 bg-[#07131f]", large ? "aspect-square h-[min(82vh,820px)] w-[min(82vh,820px)] max-w-full" : "h-72 w-full max-w-full")}>
-        <div className="absolute inset-0 bg-cover bg-center opacity-72 saturate-125" style={{ backgroundImage: `url(${SUMMONERS_RIFT_MAP_URL})` }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#030713]/16 via-[#030713]/18 to-[#030713]/28" />
-        <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,rgba(255,255,255,.035)_0_1px,transparent_1px_12.5%),repeating-linear-gradient(90deg,rgba(255,255,255,.03)_0_1px,transparent_1px_12.5%)]" />
-        {heatCells.map((cell) => <span key={`${cell.x}-${cell.y}`} className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-[2px] mix-blend-screen" style={{ left: `${cell.x * 100}%`, top: `${(1 - cell.y) * 100}%`, width: `${34 + (cell.count / maxCell) * 62}px`, height: `${34 + (cell.count / maxCell) * 62}px`, backgroundColor: heatColor(cell.count), boxShadow: `0 0 ${18 + cell.count * 4}px ${heatColor(cell.count)}` }} />)}
-        {events.map((event, index) => <span key={`dot-${event.timestamp}-${index}`} title={`${wardTypeLabel(wardTypeKey(event))} · ${Number(event.minute || 0).toFixed(1)} min`} className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/80 shadow-[0_0_12px_rgba(255,255,255,.62)]" style={{ left: `${event.x * 100}%`, top: `${(1 - event.y) * 100}%`, backgroundColor: wardTypeColor(wardTypeKey(event), 0.95), boxShadow: `0 0 14px ${wardTypeColor(wardTypeKey(event), 0.72)}` }} />)}
-        <div className="absolute bottom-3 left-3 right-3 rounded-2xl border border-white/12 bg-black/55 p-3 backdrop-blur-xl">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-white">Intensité vision</span>
-            <div className="flex min-w-[14rem] flex-1 items-center gap-2 sm:max-w-xs"><span className="text-[0.58rem] font-black text-slate-300">Aucune</span><span className="h-2 flex-1 rounded-full bg-gradient-to-r from-transparent via-cyan-300 via-yellow-300 via-orange-400 to-red-500" /><span className="text-[0.58rem] font-black text-red-100">Max</span></div>
-          </div>
-        </div>
-      </div>;
-  return <div className="mt-3 rounded-[1.25rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045] p-3">
-    <button type="button" onClick={() => setCollapsed((value) => !value)} aria-expanded={!collapsed} className="group flex w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] px-3 py-3 text-left transition hover:border-cyan-300/28 hover:bg-cyan-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/55">
-      <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Carte vision</Badge><Badge tone={events.length ? "green" : "slate"}>{events.length} wards</Badge><Badge tone="red">{pinkCount} pink</Badge><Badge tone="yellow">{trinketCount} jaunes</Badge><span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-200 transition group-hover:border-cyan-200/22 group-hover:text-cyan-100">{collapsed ? "Afficher" : "Masquer"}</span></div>
-      <span className="flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Wards alliées importées<ChevronDown className={cx("h-4 w-4 text-cyan-100 transition", collapsed && "-rotate-90")} /></span>
-    </button>
-	    {!collapsed && <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(160px,.28fr)]">
-	      <button type="button" onClick={() => setZoomed(true)} className="group relative w-full max-w-full rounded-2xl text-left transition hover:-translate-y-0.5" title="Zoomer la heatmap">
-        {mapPanel(false)}
-        <span className="absolute right-3 top-3 rounded-xl border border-white/12 bg-black/60 px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em] text-white opacity-0 backdrop-blur-xl transition group-hover:opacity-100">Zoom</span>
-      </button>
-      <div className="rounded-2xl border border-white/10 bg-black/22 p-3">
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Types de wards</p>
-        <div className="mt-3 space-y-2">{Array.from(wardTypes.entries()).map(([type, count]) => <div key={type} className="flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><span className="flex min-w-0 items-center gap-2 truncate text-xs font-black text-white"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: wardTypeColor(type) }} />{wardTypeLabel(type)}</span><Badge tone={type === "pink" ? "red" : type === "trinket" ? "yellow" : "cyan"}>{count}</Badge></div>)}</div>
-      </div>
-    </div>}
-    {zoomed && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#030713]/88 p-4 backdrop-blur-2xl" role="dialog" aria-modal="true">
-      <div className="relative max-w-full rounded-[1.4rem] border border-cyan-300/22 bg-black/45 p-3 shadow-[0_0_60px_rgba(34,211,238,.18)]">
-        <button type="button" onClick={() => setZoomed(false)} className="absolute right-3 top-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/12 bg-black/70 text-white backdrop-blur-xl transition hover:border-cyan-300/28 hover:bg-cyan-400/12"><X className="h-5 w-5" /></button>
-        {mapPanel(true)}
-      </div>
-    </div>}
-  </div>;
-}
-
 function roleScore(row) {
   const kda = (statValue(row, "kills") + statValue(row, "assists")) / Math.max(1, statValue(row, "deaths"));
   const kp = parsePercent(row.kill_participation || row.kp);
@@ -6194,7 +6059,7 @@ function MatchDataPanel({ match }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /><VisionHeatmap match={match} /></Surface>;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
