@@ -521,9 +521,10 @@ svg {
 }
 
 .nxt5-loader-cinema::after {
-  left: -20%;
-  right: -20%;
-  top: 52%;
+  position: fixed;
+  left: -18vw;
+  right: -18vw;
+  top: 58vh;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.72), rgba(244, 114, 182, 0.58), transparent);
   box-shadow: 0 0 30px rgba(103, 232, 249, 0.36);
@@ -544,11 +545,17 @@ svg {
 }
 
 .nxt5-loader-cinema-scan {
-  position: absolute;
-  inset: -36%;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: max(220vw, 220vh);
+  height: max(180vw, 180vh);
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 0 42%, rgba(255, 255, 255, 0.16) 49%, transparent 56%);
-  transform: translateX(-52%) rotate(8deg);
+  background:
+    linear-gradient(105deg, transparent 0 42%, rgba(255, 255, 255, 0.16) 49%, transparent 56%),
+    linear-gradient(105deg, transparent 0 47%, rgba(103, 232, 249, 0.1) 50%, transparent 54%);
+  transform: translate3d(-120vw, -50%, 0) rotate(8deg);
   animation: nxt5-loader-cinema-scan 3.8s ease-in-out infinite;
 }
 
@@ -750,9 +757,9 @@ svg {
 }
 
 @keyframes nxt5-loader-cinema-scan {
-  0%, 100% { transform: translateX(-54%) rotate(8deg); opacity: 0.06; }
+  0%, 100% { transform: translate3d(-120vw, -50%, 0) rotate(8deg); opacity: 0.06; }
   48% { opacity: 0.45; }
-  78% { transform: translateX(54%) rotate(8deg); opacity: 0.08; }
+  78% { transform: translate3d(120vw, -50%, 0) rotate(8deg); opacity: 0.08; }
 }
 
 @keyframes nxt5-loader-ring-one {
