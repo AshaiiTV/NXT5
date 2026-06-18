@@ -45,7 +45,7 @@ import {
 } from "lucide-react";
 
 const API_BASE = "/.netlify/functions";
-const NXT5_IMPORTER_VERSION = "0.2.9";
+const NXT5_IMPORTER_VERSION = "0.2.10";
 const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
 const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Windows-${NXT5_IMPORTER_VERSION}.exe`;
 const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-arm64-${NXT5_IMPORTER_VERSION}.zip`;

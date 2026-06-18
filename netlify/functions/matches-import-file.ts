@@ -12,7 +12,7 @@ function unwrapImportPayload(body) {
   const payload = body?.payload || body?.file || body;
   const match = payload?.match || payload?.riotMatch || (payload?.info?.participants ? payload : null);
   const timeline = payload?.timeline || payload?.matchTimeline || payload?.riotTimeline || match?.timeline || null;
-  const gameId = String(payload?.gameId || payload?.metadata?.gameId || match?.metadata?.matchId || '').trim().toUpperCase();
+  const gameId = String(payload?.gameId || payload?.metadata?.gameId || '').trim().toUpperCase();
   const label = String(body?.label || payload?.label || payload?.metadata?.label || payload?.opponent || payload?.metadata?.opponent || '').trim().slice(0, 120);
   const rawCategoryIds = body?.categoryIds || payload?.categoryIds || payload?.metadata?.categoryIds || [];
   const categoryIds = [...new Set((Array.isArray(rawCategoryIds) ? rawCategoryIds : [rawCategoryIds]).map((id) => String(id || '').trim()).filter(Boolean))];
@@ -21,6 +21,11 @@ function unwrapImportPayload(body) {
   const playerAssignments = body?.playerAssignments || payload?.playerAssignments || payload?.metadata?.playerAssignments || {};
   const allyTeamSide = String(body?.allyTeamSide || payload?.allyTeamSide || payload?.metadata?.allyTeamSide || '').trim().slice(0, 20);
   return { match, timeline, gameId, label, categoryIds, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide };
+}
+
+function matchGameId(match) {
+  const raw = match?.metadata?.matchId || match?.metadata?.gameId || '';
+  return String(raw || '').trim().toUpperCase();
 }
 
 function assertRiotMatchShape(match) {
@@ -68,11 +73,12 @@ export default async function handler(request: Request, context: Context): Promi
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
     let { match, timeline, gameId, label, categoryIds, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide } = unwrapImportPayload(body);
-    let resolvedGameId = gameId || String(match?.metadata?.matchId || '').trim().toUpperCase();
+    let resolvedGameId = matchGameId(match) || gameId;
     if (!/^([A-Z0-9]+)_\d+$/.test(resolvedGameId)) {
       throw Object.assign(new Error('Game ID absent ou invalide dans le fichier. Attendu : EUW1_7123456789.'), { status: 400, code: 'NXT5_IMPORT_FILE_INVALID' });
     }
     if (!match) match = await fetchRiotMatch(resolvedGameId);
+    resolvedGameId = matchGameId(match) || resolvedGameId;
     if (timeline) match.timeline = timeline;
     const payloadMeta = body?.payload?.nxt5 || body?.file?.nxt5 || body?.nxt5 || null;
     if (payloadMeta) match.nxt5 = payloadMeta;

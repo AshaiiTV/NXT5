@@ -70,6 +70,11 @@ function normalizeGameId(value, platform = 'EUW1') {
   return gameId;
 }
 
+function canonicalMatchId(match, fallback = '') {
+  const raw = match?.metadata?.matchId || match?.metadata?.gameId || fallback;
+  return String(raw || '').trim().toUpperCase();
+}
+
 function isNumericGameId(value) {
   return /^\d+$/.test(String(value || '').trim());
 }
@@ -448,11 +453,14 @@ ipcMain.handle('generate-import', async (_event, form) => {
   if (timeline) exported.match.timeline = timeline;
   const timelineSummary = buildTimelineSummary(exported.match, timeline);
 
+  const actualGameId = canonicalMatchId(exported.match, exported.gameId || gameId);
+  const actualPlatform = actualGameId.split('_')[0] || platform;
   const payload = {
     source: 'nxt5-match-exporter',
     version: 5,
-    gameId,
-    platform,
+    gameId: actualGameId,
+    platform: actualPlatform,
+    requestedGameId: gameId,
     exportedAt: new Date().toISOString(),
     importerSource: exported.source || 'riot-match-v5',
     match: exported.match,
@@ -465,13 +473,13 @@ ipcMain.handle('generate-import', async (_event, form) => {
 
   const { canceled, filePath } = await dialog.showSaveDialog({
     title: 'Enregistrer le JSON NXT5',
-    defaultPath: `nxt5-${gameId}.json`,
+    defaultPath: `nxt5-${actualGameId}.json`,
     filters: [{ name: 'NXT5 JSON', extensions: ['json'] }]
   });
   if (canceled || !filePath) return { canceled: true };
 
   await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
-  return { canceled: false, filePath, gameId };
+  return { canceled: false, filePath, gameId: actualGameId };
 });
 
 ipcMain.handle('check-update', async () => checkImporterUpdate());
