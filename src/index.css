@@ -488,11 +488,6 @@ svg {
     0 0 34px rgba(103, 232, 249, 0.18);
 }
 
-.nxt5-loader-label {
-  color: #f8fdff;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.72);
-}
-
 .nxt5-loader-cinema {
   position: relative;
   min-height: clamp(430px, 46vh, 540px);

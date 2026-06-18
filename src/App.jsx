@@ -8447,7 +8447,7 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
   );
 }
 
-function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
+function AppLoadingScreen() {
   const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
   const stages = [
     ["Roster", Users],
@@ -8469,7 +8469,6 @@ function AppLoadingScreen({ label = "Chargement de ton espace…" }) {
 
         <Nxt5Wordmark className="nxt5-loader-wordmark mt-6 h-16 w-full max-w-[24rem] object-center sm:h-20" />
         <h1 className="nxt5-loader-title mt-4 text-center text-3xl font-black leading-tight text-white sm:text-5xl">Préparation du terrain</h1>
-        <p className="nxt5-loader-label mt-3 max-w-xl text-center text-sm font-semibold leading-6">{label}</p>
 
         <div className="nxt5-loader-cinema mt-7 w-full">
           <div className="nxt5-loader-cinema-grid" />
@@ -8560,7 +8559,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast, user, onUserUpdate]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
-  if (!bootstrapped) return <AppLoadingScreen label="Synchronisation de ta team…" />;
+  if (!bootstrapped) return <AppLoadingScreen />;
   if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
   return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="w-full px-3 py-5 sm:px-4 sm:py-7 lg:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
 }
@@ -8633,7 +8632,7 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  if (checkingSession) return <AppLoadingScreen label="Vérification de session…" />;
+  if (checkingSession) return <AppLoadingScreen />;
 
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
