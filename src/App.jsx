@@ -4445,40 +4445,68 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const previewTeams = importPreview?.teams || [];
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
+  const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
+  const importChecks = [
+    ["JSON", Boolean(importPreview)],
+    ["Side", Boolean(allyTeamSide)],
+    ["Nom", Boolean(importDetails.label.trim())],
+    ["Profils", laneAssignmentsReady],
+    ["Adversaires", enemyAssignmentsReady],
+  ];
+  const importProgress = importChecks.filter(([, done]) => done).length;
+  const latestMatch = teamMatches[0];
   return (
     <div className="nxt5-data-dense">
-      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Télécharge NXT5 Importer sur le PC où le client League possède la game dans son historique, génère le JSON, puis importe-le ici." />
+      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Un flux court pour transformer le JSON local en game exploitable dans Stats, Profils et Rapports." />
       <div className="grid min-w-0 gap-5">
-        <Surface glow className="min-w-0 p-5 md:p-6">
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">NXT5 Importer</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "JSON chargé" : "Prêt"}</Badge></div>
-                <h3 className="mt-3 text-2xl font-black text-white">Application locale</h3>
-                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">L’app transforme une game LoL en fichier NXT5. Elle doit être lancée sur le PC où le client League of Legends possède la partie dans son historique, sinon l’export ne peut pas récupérer les données locales.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Télécharger l’importer Windows</a>
-                <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Télécharger l’importer Mac</a>
-                <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]", fileImporting ? "pointer-events-none opacity-60" : "")}>
-                  {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
-                  <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
-                </label>
+        <Surface glow className="min-w-0 p-0">
+          <div className="grid min-w-0 gap-0 xl:grid-cols-[minmax(280px,.72fr)_minmax(0,1fr)]">
+            <div className="border-b border-cyan-200/10 bg-cyan-400/[0.045] p-5 md:p-6 xl:border-b-0 xl:border-r">
+              <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">NXT5 Importer</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "JSON chargé" : "Prêt"}</Badge></div>
+              <h3 className="mt-4 text-2xl font-black text-white">Importer sans friction</h3>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Lance l’app locale sur le PC où le client League possède la partie, génère le JSON, puis finalise ici le side, les profils et les catégories.</p>
+              <div className="mt-5 grid gap-2">
+                {[
+                  [Download, "Exporter", "Génère le JSON depuis l’historique LoL."],
+                  [Upload, "Charger", "Dépose le fichier dans NXT5."],
+                  [Check, "Valider", "Confirme side, lanes et profils."],
+                ].map(([Icon, title, text], index) => <div key={title} className="flex gap-3 rounded-2xl border border-white/10 bg-black/22 p-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-400/10 text-cyan-100"><Icon className="h-4 w-4" /></span>
+                  <div className="min-w-0"><p className="text-sm font-black text-white">{index + 1}. {title}</p><p className="mt-0.5 text-xs font-semibold leading-5 text-slate-300">{text}</p></div>
+                </div>)}
               </div>
             </div>
-            <JsonUploadProgress progress={uploadProgress} />
-
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">1. Exporter</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ouvre NXT5 Importer sur le PC où le client LoL contient cette game dans l’historique, colle le Game ID et génère le fichier.</p></div>
-              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">2. Importer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Clique sur “Importer un JSON” et sélectionne le fichier créé par l’app.</p></div>
-              <div className="rounded-2xl border border-white/10 bg-black/22 p-4"><p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">3. Confirmer</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis ton side, associe chaque champion à son poste et au profil NXT5 correspondant, même si le joueur utilise un autre compte LoL.</p></div>
-            </div>
-
-            <div className="rounded-3xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div><h4 className="text-xl font-black text-white">Assignation de la game</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Choisis ton side : NXT5 préremplit les champions par poste, puis tu confirmes le profil correspondant pour chaque joueur.</p></div>
-                <Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge>
+            <div className="min-w-0 p-5 md:p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-cyan-100">Action rapide</p>
+                  <h4 className="mt-2 text-xl font-black text-white">Télécharger ou importer le JSON</h4>
+                  <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Les boutons restent au premier niveau pour que le coach puisse importer une game juste après la fin du scrim.</p>
+                </div>
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a>
+                  <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac</a>
+                  <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]", fileImporting ? "pointer-events-none opacity-60" : "")}>
+                    {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
+                    <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
+                  </label>
+                </div>
               </div>
+              <JsonUploadProgress progress={uploadProgress} />
+              <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">Imports</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length}</p></div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">Dernière game</p><p className="mt-1 truncate text-sm font-black text-white">{latestMatch ? matchImportTitle(latestMatch) : "Aucune"}</p></div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">État</p><p className="mt-1 text-sm font-black text-cyan-100">{importProgress}/{importChecks.length} étapes validées</p></div>
+              </div>
+            </div>
+          </div>
+        </Surface>
+
+        <Surface className="min-w-0 p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Charge un JSON, sélectionne le side de ton équipe, puis valide les lanes et profils. La barre ci-dessous montre ce qui manque avant confirmation.</p></div>
+            <div className="flex min-w-[180px] flex-wrap gap-1.5 md:justify-end">{importChecks.map(([label, done]) => <span key={label} className={cx("rounded-full border px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.12em]", done ? "border-emerald-200/28 bg-emerald-400/12 text-emerald-100" : "border-white/10 bg-white/[0.035] text-slate-400")}>{label}</span>)}</div>
+          </div>
               {importPreview ? <div className="mt-4 space-y-4">
                 <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
                   <TextInput label="Nom de la game" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1 vs BK, Finale LB..." required icon={FileText} />
@@ -4496,8 +4524,13 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                     <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5 xl:grid-cols-1">
                       {COMP_ROLES.map((role) => {
                         const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
-                        return <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                        const pickedChampion = selectedPreviewParticipant(allyPreviewTeam, laneAssignments[role]);
+                        return <div key={role} className={cx("rounded-2xl border p-3 transition", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
                           <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></span>{assignedPlayer && <Badge tone="slate">{assignedPlayer.name}</Badge>}</div>
+                          <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
+                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Swords className="h-4 w-4" /></span>}
+                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
+                          </div>
                           <select value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
                             <option value="">Champion joué</option>
                             {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
@@ -4513,22 +4546,26 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                   <div className="rounded-[1.35rem] border border-rose-300/14 bg-rose-500/[0.055] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side || "Side ?"}</Badge></div>
                     <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5 xl:grid-cols-1">
-                      {COMP_ROLES.map((role) => (
-                        <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+                      {COMP_ROLES.map((role) => {
+                        const pickedChampion = selectedPreviewParticipant(enemyPreviewTeam, enemyLaneAssignments[role]);
+                        return (
+                        <div key={role} className={cx("rounded-2xl border p-3 transition", enemyLaneAssignments[role] ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
                           <div className="mb-3 flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></div>
+                          <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
+                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Shield className="h-4 w-4" /></span>}
+                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion adverse"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
+                          </div>
                           <select value={enemyLaneAssignments[role] || ""} onChange={(event) => updateEnemyLaneAssignment(role, event.target.value)} disabled={!enemyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
                             <option value="">Champion adverse</option>
                             {(enemyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
                           </select>
                         </div>
-                      ))}
+                      );})}
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
               </div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold leading-6 text-slate-300">Aucun JSON chargé pour le moment.</p>}
-            </div>
-          </div>
         </Surface>
       </div>
 
