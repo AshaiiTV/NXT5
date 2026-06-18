@@ -49,18 +49,59 @@ export async function sendEmailVerificationEmail({ to, token }) {
   const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
   const verifyUrl = `${siteUrl}/verify-email?token=${encodeURIComponent(token)}`;
   const htmlVerifyUrl = escapeHtml(verifyUrl);
+  const htmlSiteUrl = escapeHtml(siteUrl);
 
   await sendResendEmail({
     to,
-    subject: '[NXT5] Confirme ton adresse email',
-    text: `Bienvenue sur NXT5 !\n\nClique sur ce lien pour vérifier ton adresse email :\n${verifyUrl}\n\nCe lien est valable 24h.\n\nSi tu n'as pas créé de compte sur NXT5, ignore cet email.`,
+    subject: 'Confirme ton adresse e-mail NXT5',
+    text: `Bienvenue sur NXT5 !\n\nConfirme ton adresse e-mail pour activer les notifications de ton espace d'équipe :\n${verifyUrl}\n\nCe lien est valable 24h.\n\nSi tu n'as pas créé de compte sur NXT5, ignore cet e-mail.`,
     html: `
-      <p>Bienvenue sur NXT5 !</p>
-      <p>Clique sur le lien ci-dessous pour vérifier ton adresse email.</p>
-      <p>Ce lien est valable 24h.</p>
-      <p><a href="${htmlVerifyUrl}">Vérifier mon email</a></p>
-      <hr>
-      <p style="font-size:12px;color:#888">Si tu n'as pas créé de compte sur NXT5, ignore cet email.</p>
+      <div style="margin:0;padding:0;background:#f4f7fb;font-family:Inter,Arial,sans-serif;color:#e5eefb">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#f4f7fb">
+          <tr>
+            <td align="center" style="padding:34px 14px">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;border-collapse:collapse;overflow:hidden;border-radius:30px;background:#050814;box-shadow:0 28px 80px rgba(5,8,20,.24)">
+                <tr>
+                  <td style="padding:0;background:linear-gradient(135deg,#07111f 0%,#050814 48%,#170b2b 100%)">
+                    <div style="height:6px;background:linear-gradient(90deg,#00d8ff 0%,#8b5cf6 55%,#ec4899 100%)"></div>
+                    <div style="padding:36px 34px 32px">
+                      <div style="display:inline-block;margin:0 0 22px;padding:7px 12px;border:1px solid rgba(103,232,249,.32);border-radius:999px;background:rgba(8,145,178,.16);color:#a5f3fc;font-size:12px;font-weight:900;letter-spacing:.09em;text-transform:uppercase">Vérification e-mail</div>
+                      <h1 style="margin:0;color:#ffffff;font-size:32px;line-height:1.08;font-weight:900">Active ton accès NXT5</h1>
+                      <p style="margin:18px 0 0;color:#dbeafe;font-size:16px;line-height:1.7">Bienvenue sur NXT5. Confirme cette adresse e-mail pour sécuriser ton compte et recevoir les notifications importantes de ton équipe.</p>
+
+                      <div style="margin:30px 0 28px">
+                        <a href="${htmlVerifyUrl}" style="display:inline-block;border-radius:18px;background:linear-gradient(135deg,#22d3ee 0%,#3b82f6 48%,#d946ef 100%);color:#ffffff;text-decoration:none;padding:16px 24px;font-size:15px;font-weight:900;box-shadow:0 18px 42px rgba(34,211,238,.24)">Confirmer mon adresse</a>
+                      </div>
+
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
+                        <tr>
+                          <td style="border:1px solid rgba(250,204,21,.24);border-radius:18px;background:rgba(113,63,18,.22);padding:17px 18px">
+                            <p style="margin:0;color:#fef3c7;font-size:14px;line-height:1.6;font-weight:900">Lien valable pendant 24h</p>
+                            <p style="margin:7px 0 0;color:#fde68a;font-size:13px;line-height:1.6">Une fois confirmé, les notifications de match, rapport et équipe pourront être envoyées normalement.</p>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <div style="margin-top:18px;border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(15,23,42,.58);padding:18px 18px 16px">
+                        <p style="margin:0;color:#f8fafc;font-size:14px;line-height:1.6;font-weight:800">Le bouton ne s'ouvre pas ?</p>
+                        <p style="margin:8px 0 0;color:#a8b3c7;font-size:13px;line-height:1.6">Copie ce lien dans ton navigateur :</p>
+                        <p style="margin:8px 0 0;color:#67e8f9;font-size:12px;line-height:1.55;word-break:break-all">${htmlVerifyUrl}</p>
+                      </div>
+
+                      <div style="margin-top:18px;border:1px solid rgba(248,113,113,.24);border-radius:18px;background:rgba(127,29,29,.18);padding:16px 18px">
+                        <p style="margin:0;color:#ffe4e6;font-size:14px;line-height:1.6;font-weight:800">Tu n'es pas à l'origine de cette demande ?</p>
+                        <p style="margin:7px 0 0;color:#fecdd3;font-size:13px;line-height:1.6">Ignore cet e-mail. Aucun accès ne sera accordé sans validation du lien.</p>
+                      </div>
+
+                      <p style="margin:24px 0 0;color:#64748b;font-size:12px;line-height:1.6">Cet e-mail a été envoyé automatiquement par NXT5 depuis ${htmlSiteUrl}. Ne transfère pas ce lien de vérification.</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
     `
   });
 }
