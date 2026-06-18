@@ -61,6 +61,7 @@ const NAV = [
   { id: "reports", label: "Rapports", icon: FileText, shortcut: "R", path: "/rapports" },
   { id: "guide", label: "Guide", icon: BookOpen, shortcut: "A", path: "/guide" },
   { id: "profile", label: "Mon profil", icon: Activity, shortcut: "M", path: "/mon-profil", hidden: true },
+  { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
 
 const AUTH_ROUTES = {
@@ -1170,7 +1171,16 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-300 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
-        <div className="relative z-10 shrink-0 space-y-3 pt-3">{guideItem && (() => { const Icon = guideItem.icon; const selected = active === guideItem.id; return <button type="button" onClick={() => go(guideItem.id)} title={guideItem.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{guideItem.label}</span></button>; })()}<button type="button" onClick={() => go("profile")} title="Mon profil" className={cx("nxt5-panel nxt5-premium-panel group relative w-full max-w-full overflow-hidden border border-cyan-200/16 text-left backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-300/35", collapsed ?"p-2.5" : "p-3")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></button><Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button></div>
+        <div className="relative z-10 shrink-0 space-y-3 pt-3">
+          {guideItem && (() => {
+            const Icon = guideItem.icon;
+            const selected = active === guideItem.id;
+            return <button type="button" onClick={() => go(guideItem.id)} title={guideItem.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{guideItem.label}</span></button>;
+          })()}
+          <button type="button" onClick={() => go("profile")} title="Mon profil" className={cx("nxt5-panel nxt5-premium-panel group relative w-full max-w-full overflow-hidden border border-cyan-200/16 text-left backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-300/35", collapsed ?"p-2.5" : "p-3")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></button>
+          <button type="button" onClick={() => go("account-settings")} title="Paramètres" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", active === "account-settings" ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Settings className={cx("h-5 w-5 shrink-0 transition", active === "account-settings" ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Paramètres</span></button>
+          <Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button>
+        </div>
       </aside>
     </>
   );
@@ -8276,6 +8286,73 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   );
 }
 
+function AccountSettings({ user, onUserUpdate, pushToast }) {
+  const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  useEffect(() => {
+    setProfileForm({ name: user?.name || user?.account_name || "", email: user?.email || "" });
+  }, [user?.id, user?.name, user?.email, user?.account_name]);
+
+  async function saveProfile(event) {
+    event.preventDefault();
+    setSavingProfile(true);
+    try {
+      const result = await apiFetch("auth-update-profile", { method: "POST", body: JSON.stringify(profileForm) });
+      onUserUpdate?.(result.user);
+      pushToast?.({ type: "green", title: "Compte mis à jour", text: "Ton pseudo et ton e-mail sont enregistrés." });
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Mise à jour impossible", text: err.message });
+    } finally {
+      setSavingProfile(false);
+    }
+  }
+
+  async function savePassword(event) {
+    event.preventDefault();
+    if (passwordForm.nextPassword !== passwordForm.confirmPassword) {
+      pushToast?.({ type: "red", title: "Confirmation incorrecte", text: "Les deux nouveaux mots de passe ne correspondent pas." });
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await apiFetch("auth-change-password", { method: "POST", body: JSON.stringify({ currentPassword: passwordForm.currentPassword, nextPassword: passwordForm.nextPassword }) });
+      setPasswordForm({ currentPassword: "", nextPassword: "", confirmPassword: "" });
+      pushToast?.({ type: "green", title: "Mot de passe changé", text: "Ton compte NXT5 est à jour." });
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Changement impossible", text: err.message });
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  return <div className="nxt5-data-dense min-w-0">
+    <PageHeader eyebrow="Compte" title="Paramètres" subtitle="Modifie ton pseudo, ton e-mail de récupération et ton mot de passe NXT5." />
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+      <Surface glow className="p-5">
+        <div className="flex items-start justify-between gap-3"><div><Badge tone="cyan">Identité</Badge><h3 className="mt-3 text-2xl font-black text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
+        <form onSubmit={saveProfile} className="mt-5 space-y-4">
+          <TextInput label="Pseudo" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Ton pseudo NXT5" required icon={UserPlus} />
+          <TextInput label="E-mail" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
+          <Button type="submit" icon={savingProfile ? Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim()}>{savingProfile ? "Enregistrement..." : "Enregistrer le compte"}</Button>
+        </form>
+      </Surface>
+
+      <Surface className="p-5">
+        <div className="flex items-start justify-between gap-3"><div><Badge tone="yellow">Sécurité</Badge><h3 className="mt-3 text-2xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis un mot de passe différent de l’actuel, avec au moins 8 caractères.</p></div><Shield className="h-5 w-5 shrink-0 text-amber-100" /></div>
+        <form onSubmit={savePassword} className="mt-5 space-y-4">
+          <TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} />
+          <TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} />
+          <TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
+          <Button type="submit" icon={savingPassword ? Loader2 : ShieldCheck} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ? "Mise à jour..." : "Changer le mot de passe"}</Button>
+        </form>
+      </Surface>
+    </div>
+  </div>;
+}
+
 function MissingEmailModal({ user, onUserUpdate, pushToast }) {
   const [email, setEmail] = useState("");
   const [saving, setSaving] = useState(false);
@@ -8419,6 +8496,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} />;
+    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     if (active === "guide") return <GuidePage />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast, user, onUserUpdate]);
