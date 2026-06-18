@@ -45,7 +45,18 @@ export default async function handler(request: Request, context: Context): Promi
       returning id, account_name, email, coalesce(email_verified, false) as email_verified, name, created_at
     `;
 
-    await sendEmailVerificationEmail({ to: current.email, token });
+    try {
+      await sendEmailVerificationEmail({ to: current.email, token });
+    } catch (emailError) {
+      await sql`
+        update users
+        set email_verify_token = null,
+            email_verify_expires_at = null,
+            updated_at = now()
+        where id = ${current.id}
+      `;
+      throw emailError;
+    }
     return json({ user: safeUser(updated[0]), sent: true });
   } catch (err) {
     return handleError(err);

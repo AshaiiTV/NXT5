@@ -318,6 +318,9 @@ function preciseErrorText(err, context = "generic") {
   if (code === "RIOT_RATE_LIMIT") return `Riot bloque temporairement les requêtes. Réessaie dans ${formatRetryAfter(err?.retryAfter)}; si ça revient souvent, attends avant de relancer toute la team.`;
   if (code === "RIOT_API_ERROR") return `Riot renvoie une erreur API${err?.riotStatus ? ` ${err.riotStatus}` : ""}. Vérifie la région, la clé et réessaie après quelques minutes. Message brut: ${message || "non fourni"}`;
   if (code === "NXT5_IMPORT_FILE_INVALID") return `${message} Génère le fichier avec l’outil NXT5 local, ou importe un JSON Match-V5 complet contenant info.participants et info.teams.`;
+  if (code === "EMAIL_NOT_CONFIGURED") return "L’envoi d’e-mail n’est pas configuré côté Netlify. Vérifie RESEND_API_KEY, RESET_EMAIL_FROM et redéploie le site.";
+  if (code === "EMAIL_DELIVERY_FAILED") return message || "Resend refuse l’envoi de l’e-mail. Vérifie la clé Resend, le domaine d’envoi et l’adresse expéditrice.";
+  if (code === "EMAIL_VERIFY_RATE_LIMIT") return `Un lien vient déjà d’être généré. Réessaie dans ${formatRetryAfter(err?.retryAfter)}.`;
 
   if (/Format Game ID invalide/i.test(message)) return "Format Game ID invalide. Mets un ID du type EUW1_7123456789, ou colle l’ID numérique avec le bon serveur sélectionné.";
   if (/Game ID requis/i.test(message)) return "Colle un Game ID Riot avant d’importer.";
@@ -8373,7 +8376,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
       onUserUpdate?.(result.user);
       pushToast?.({ type: "green", title: "E-mail envoyé", text: "Un nouveau lien de vérification vient d’être envoyé." });
     } catch (err) {
-      pushToast?.({ type: "red", title: "Envoi impossible", text: err.message });
+      pushToast?.({ type: "red", title: "Envoi impossible", text: preciseErrorText(err, "email-verification") });
     } finally {
       setResendingVerify(false);
     }
@@ -8487,7 +8490,7 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
       setSent(true);
       pushToast?.({ type: "green", title: "Lien envoyé", text: "Ouvre ta boîte mail puis clique sur le lien de vérification." });
     } catch (err) {
-      setError(err.message || "Impossible d’envoyer le lien de vérification.");
+      setError(preciseErrorText(err, "email-verification"));
     } finally {
       setSending(false);
     }

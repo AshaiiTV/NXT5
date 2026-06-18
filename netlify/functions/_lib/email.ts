@@ -40,7 +40,7 @@ async function sendResendEmail({ to, subject, text, html }) {
     throw Object.assign(new Error(`Envoi e-mail impossible.${detail ? ` ${detail}` : ''}`), {
       status: 502,
       code: 'EMAIL_DELIVERY_FAILED',
-      publicMessage: 'Envoi e-mail impossible côté serveur.'
+      publicMessage: `Resend refuse l'envoi de l'e-mail (HTTP ${response.status}). Vérifie RESEND_API_KEY, RESET_EMAIL_FROM et le domaine d'envoi.`
     });
   }
 }
