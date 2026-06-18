@@ -345,6 +345,7 @@ alter table matches add column if not exists category_id uuid references match_c
 alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb;
 update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb);
 alter table reports add column if not exists updated_at timestamptz not null default now();
+alter table users add column if not exists updated_at timestamptz not null default now();
 alter table users add column if not exists notif_match boolean default true;
 alter table users add column if not exists notif_report boolean default true;
 alter table users add column if not exists email_verified boolean default false;

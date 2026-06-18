@@ -76,6 +76,7 @@ export function isValidEmail(email: unknown): boolean {
 }
 
 export async function ensureEmailVerificationColumns(): Promise<void> {
+  await sql`alter table users add column if not exists updated_at timestamptz not null default now()`;
   await sql`alter table users add column if not exists email_verified boolean default false`;
   await sql`alter table users add column if not exists email_verify_token text default null`;
   await sql`alter table users add column if not exists email_verify_expires_at timestamptz default null`;
