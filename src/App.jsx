@@ -3716,6 +3716,7 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
   const bestDamageRow = rows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
   const csMilestones = csMilestoneSummary(rows);
   const buildRows = sortedRows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
+  const styleTags = championStyleTags(stat.champion).slice(0, 3);
   const heroStats = [
     ["WR", `${stat.winrate}%`, `${stat.wins}W - ${Math.max(0, stat.games - stat.wins)}L`, stat.winrate >= 50 ? "text-emerald-100" : "text-amber-100"],
     ["KDA", stat.kda, `${stat.kills}/${stat.deaths}/${stat.assists} total`, "text-cyan-100"],
@@ -3730,12 +3731,12 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
   return <div className="space-y-4">
     <div className="rounded-2xl border border-cyan-300/14 bg-black/24 p-4">
       <div className="grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,.58fr)_minmax(260px,.42fr)] 2xl:items-center">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[5rem_minmax(0,1fr)]">
           <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-16 w-16 shrink-0 rounded-2xl border border-cyan-200/18 object-cover sm:h-20 sm:w-20" />
           <div className="min-w-0">
-            <div className="flex flex-wrap gap-2">{championStyleTags(stat.champion).slice(0, 3).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div>
-            <p className="mt-3 truncate text-2xl font-black leading-none text-white md:text-3xl">{championDisplayName(stat.champion)}</p>
-            <p className="mt-2 text-sm font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} analysée{stat.games > 1 ? "s" : ""} · {buildRows.length} build{buildRows.length > 1 ? "s" : ""}</p>
+            <div className="flex min-w-0 flex-wrap gap-2">{styleTags.map((tag) => <ChampionStylePill key={tag} tag={tag} />)}</div>
+            <p className="mt-3 min-w-0 truncate text-2xl font-black leading-none text-white md:text-3xl">{championDisplayName(stat.champion)}</p>
+            <p className="mt-2 max-w-full text-sm font-semibold leading-5 text-slate-300 sm:truncate">{stat.games} game{stat.games > 1 ? "s" : ""} analysée{stat.games > 1 ? "s" : ""} · {buildRows.length} build{buildRows.length > 1 ? "s" : ""}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 2xl:grid-cols-2">
@@ -3775,6 +3776,12 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
       <div className="mt-3 max-h-[32rem] divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{sortedRows.length ? sortedRows.map((row, index) => { const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase()); return <ChampionHistoryLine key={(row.id || row.match?.id || index) + "-profile-champ"} row={row} enemy={enemy} />; }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune game sur ce champion.</p>}</div>
     </section>}
   </div>;
+}
+
+function ChampionStylePill({ tag }) {
+  return <span className={cx("inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[0.62rem] font-black uppercase leading-4 tracking-[0.08em] whitespace-nowrap shadow-[0_0_14px_rgba(255,255,255,.035)]", tone(championStyleTone(tag)))}>
+    {tagLabel(tag)}
+  </span>;
 }
 
 function ChampionVisualMetric({ label, value, detail, color }) {
