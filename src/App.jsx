@@ -2428,9 +2428,11 @@ async function exportStatsPng({ title, subtitle, matches, filename }) {
       ctx.fillText(name.toUpperCase(), cx, y + 88);
     });
     const dragons = (data?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean);
-    ctx.fillStyle = "#d8f8ff";
-    ctx.font = "800 12px Inter, Arial, sans-serif";
-    ctx.fillText(short(dragons.length ? dragons.join(" · ") : "Dragons: timeline absente", 58), x, y + 108);
+    if (dragons.length) {
+      ctx.fillStyle = "#d8f8ff";
+      ctx.font = "800 12px Inter, Arial, sans-serif";
+      ctx.fillText(short(dragons.join(" · "), 58), x, y + 108);
+    }
   };
   const drawTeamTable = (label, rowsByRole, x, y, w, accent = "cyan") => {
     drawPanel(x, y, w, 430, accent, 0.68);
