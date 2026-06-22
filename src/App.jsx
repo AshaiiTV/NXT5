@@ -4836,7 +4836,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                         const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
                         const pickedChampion = selectedPreviewParticipant(allyPreviewTeam, laneAssignments[role]);
                         return <div key={role} className={cx("rounded-2xl border p-3 transition", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
-                          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></span>{assignedPlayer && <Badge tone="slate">{assignedPlayer.name}</Badge>}</div>
+                          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2"><RoleIcon role={role} className="h-6 w-6" /><span className="text-sm font-black text-white">{role}</span></span>{assignedPlayer && <Badge tone="slate">{assignedPlayer.name}</Badge>}</div>
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Swords className="h-4 w-4" /></span>}
                             <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
@@ -4860,7 +4860,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                         const pickedChampion = selectedPreviewParticipant(enemyPreviewTeam, enemyLaneAssignments[role]);
                         return (
                         <div key={role} className={cx("rounded-2xl border p-3 transition", enemyLaneAssignments[role] ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
-                          <div className="mb-3 flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></div>
+                          <div className="mb-3 flex items-center gap-2"><RoleIcon role={role} className="h-6 w-6" /><span className="text-sm font-black text-white">{role}</span></div>
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Shield className="h-4 w-4" /></span>}
                             <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion adverse"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
@@ -6305,7 +6305,7 @@ function MatchVersusOverview({ match }) {
               <button type="button" aria-expanded={open} onClick={() => setOpenRole(open ? "" : role)} className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
                 <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
                 <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/35")}>
-                  <RoleIcon role={role} className="h-5 w-5" />
+                  <RoleIcon role={role} className="h-6 w-6" />
                   <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
                   <span className={cx("mt-1 rounded-lg px-1.5 py-0.5 text-[0.54rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatGoldDiff(diff)}</span>
                   <ChevronDown className={cx("mt-1 h-3.5 w-3.5 text-cyan-100 transition", open && "rotate-180")} />
@@ -6621,6 +6621,62 @@ function TrendsPage({ data, selectedTeamId }) {
     <div className="mt-5 grid gap-5 xl:grid-cols-3"><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags en victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags en défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /></div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[.9fr_1.1fr]"><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Ratios profils" icon={Clipboard} items={recommendations} tone="orange" /></div>
     <Surface className="mt-5 p-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-xl font-black text-white">Champions récurrents</h3><p className="mt-1 text-sm font-semibold text-slate-300">Volume et WR des picks les plus vus dans les imports.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 shrink-0 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-xs font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
+  </div>;
+}
+
+const GAME_WORKSPACE_TABS = [
+  { id: "import", label: "Importer", icon: Upload, hint: "Ajouter, corriger et classer les games" },
+  { id: "stats", label: "Stats", icon: BarChart3, hint: "Lire une game ou un groupe" },
+  { id: "review", label: "Review", icon: FileText, hint: "Rédiger et retrouver les rapports" },
+];
+
+function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route }) {
+  const initialSection = gameWorkspaceSectionFromPath(route?.path);
+  const [section, setSection] = useState(initialSection);
+  const teamMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const teamReports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
+  const teamArchives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
+  const wins = teamMatches.filter((match) => match.result === "Victoire").length;
+
+  useEffect(() => {
+    setSection(initialSection);
+  }, [initialSection]);
+
+  return <div className="min-w-0">
+    <PageHeader
+      eyebrow="Review room"
+      title="Games, stats et review"
+      subtitle="Un seul flux : importe une game, lis les signaux utiles, puis transforme ça en review sans changer de contexte."
+    />
+    <Surface glow className="mb-5 overflow-hidden p-3 sm:p-4">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+        <div className="grid gap-2 sm:grid-cols-3">
+          {GAME_WORKSPACE_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const active = section === tab.id;
+            return <button key={tab.id} type="button" onClick={() => setSection(tab.id)} className={cx("group flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition", active ? "border-cyan-200/45 bg-cyan-400/14 text-white shadow-[0_0_28px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-200/22 hover:bg-white/[0.06] hover:text-white")}>
+              <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-black/22 text-slate-300")}><Icon className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black uppercase tracking-[0.12em]">{tab.label}</span>
+                <span className="mt-1 block truncate text-xs font-semibold text-slate-400">{tab.hint}</span>
+              </span>
+            </button>;
+          })}
+        </div>
+        <div className="grid grid-cols-3 gap-2 xl:min-w-[20rem]">
+          <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{teamMatches.length}</p></div>
+          <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-xl font-black text-white">{Math.round((wins / Math.max(1, teamMatches.length)) * 100)}%</p></div>
+          <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Review</p><p className="mt-1 text-xl font-black text-white">{teamReports.length || teamArchives.length}</p></div>
+        </div>
+      </div>
+    </Surface>
+    <AnimatePresence mode="wait">
+      <motion.div key={section} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+        {section === "import" && <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} currentMember={currentMember} user={user} />}
+        {section === "stats" && <Statistics data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} />}
+        {section === "review" && <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+      </motion.div>
+    </AnimatePresence>
   </div>;
 }
 
@@ -7527,7 +7583,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
             return championDisplayName(a.champion).localeCompare(championDisplayName(b.champion));
           });
         return <div key={role} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
-          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
+          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-6 w-6" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
           <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-4 sm:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5">{pool.length ? pool.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />) : <div className="col-span-full rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}</div>
         </div>;
       })}
@@ -8110,8 +8166,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                             {roleSlots.map(({ role, player }) => {
                               const lit = player && availableIds.has(String(player.id));
                               const selectedRoleHere = selectedRole === role && activeSlot;
-                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("grid h-9 place-items-center transition", lit ? "text-cyan-50 drop-shadow-[0_0_10px_rgba(103,232,249,.65)]" : "text-slate-600", selectedRoleHere && "text-white drop-shadow-[0_0_14px_rgba(103,232,249,.85)]")}>
-                                <RoleIcon role={role} className="h-5 w-5" />
+                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "scale-110 text-white [filter:drop-shadow(0_0_8px_rgba(255,255,255,.95))_drop-shadow(0_0_20px_rgba(103,232,249,.9))_drop-shadow(0_0_34px_rgba(34,211,238,.62))]" : "scale-90 text-slate-800 opacity-25 grayscale", selectedRoleHere && "scale-125 text-white opacity-100 [filter:drop-shadow(0_0_10px_rgba(255,255,255,1))_drop-shadow(0_0_26px_rgba(255,255,255,.92))_drop-shadow(0_0_46px_rgba(34,211,238,.85))]")}>
+                                <RoleIcon role={role} className="h-6 w-6" />
                               </span>;
                             })}
                           </div>
@@ -8981,13 +9037,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const page = useMemo(() => {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
-    if (active === "matches") return <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} currentMember={currentMember} user={user} />;
-    if (active === "stats") return <Statistics data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} />;
+    if (active === "matches" || active === "stats" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
-    if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     if (active === "guide") return <GuidePage />;
