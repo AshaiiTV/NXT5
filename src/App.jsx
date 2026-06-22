@@ -52,7 +52,7 @@ const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-ar
 
 const NAV = [
   { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
-  { id: "matches", label: "Reviews", icon: Swords, shortcut: "I", path: "/integration" },
+  { id: "matches", label: "Games & review", icon: Swords, shortcut: "G", path: "/integration" },
   { id: "stats", label: "Statistiques", icon: BarChart3, shortcut: "S", path: "/statistiques" },
   { id: "trends", label: "Tendances", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
@@ -65,7 +65,7 @@ const NAV = [
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
 
 const PRIMARY_NAV_IDS = ["teams", "matches", "champions", "planning", "profile", "guide"];
-const MORE_NAV_IDS = ["stats", "trends", "compositions", "reports"];
+const MORE_NAV_IDS = ["trends", "compositions"];
 const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
   { id: "champions", label: "Champions", path: "champions" },
@@ -153,6 +153,7 @@ function normalizePath(pathname = "/") {
 function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path === "/reviews") return "matches";
+  if (path === "/statistiques" || path === "/rapports") return "matches";
   if (path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
   return NAV.find((item) => item.path === path)?.id || "teams";
 }
@@ -176,6 +177,13 @@ function profilePathFromView(viewId = "overview") {
 
 function profileViewLabel(viewId = "overview") {
   return PROFILE_VIEW_ROUTES.find((item) => item.id === viewId)?.label || PROFILE_VIEW_ROUTES[0].label;
+}
+
+function gameWorkspaceSectionFromPath(pathname = window.location.pathname) {
+  const path = normalizePath(pathname);
+  if (path === "/statistiques") return "stats";
+  if (path === "/rapports") return "review";
+  return "import";
 }
 
 function authModeFromPath(pathname = window.location.pathname) {
@@ -3740,7 +3748,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
           </div>
         </div>}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
-        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => { const cs10 = csAtMinute(row, 10); const cs20 = csAtMinute(row, 20); return <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 transition hover:border-cyan-300/20 hover:bg-white/[0.055]"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p><div className="mt-2 flex flex-wrap gap-1.5"><Badge tone="cyan">CS10 {Number.isFinite(cs10) ? cs10 : "-"}</Badge><Badge tone="blue">CS20 {Number.isFinite(cs20) ? cs20 : "-"}</Badge><Badge tone="yellow">Total {row.cs || 0}</Badge></div></div></div>; }) : <EmptyState icon={BarChart3} title="Aucune game" text={selectedCategoryId ? "Aucune game de cette catégorie n’est encore reliée à ce profil." : "Aucune game importée n’est encore reliée à ce profil."} />}</div></ProfileFold>}
+        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => { const cs10 = csAtMinute(row, 10); const cs20 = csAtMinute(row, 20); const targetMatchId = row.match?.id || ""; return <button key={(row.match?.id || row.match?.game_id || index) + row.champion} type="button" disabled={!targetMatchId} onClick={() => targetMatchId && navigate?.(`/statistiques?match=${encodeURIComponent(targetMatchId)}`)} className={cx("flex w-full min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 text-left transition hover:border-cyan-300/20 hover:bg-white/[0.055]", targetMatchId ? "cursor-pointer" : "cursor-default opacity-75")}><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p><div className="mt-2 flex flex-wrap gap-1.5"><Badge tone="cyan">CS10 {Number.isFinite(cs10) ? cs10 : "-"}</Badge><Badge tone="blue">CS20 {Number.isFinite(cs20) ? cs20 : "-"}</Badge><Badge tone="yellow">Total {row.cs || 0}</Badge></div></div><ArrowRight className="h-4 w-4 shrink-0 text-cyan-100 opacity-70" /></button>; }) : <EmptyState icon={BarChart3} title="Aucune game" text={selectedCategoryId ? "Aucune game de cette catégorie n’est encore reliée à ce profil." : "Aucune game importée n’est encore reliée à ce profil."} />}</div></ProfileFold>}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des rapports liés aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
     </AnimatePresence>
@@ -7977,8 +7985,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         </div>}
       </div>}
 
-      <div className="grid gap-4 2xl:grid-cols-[minmax(240px,.56fr)_minmax(0,1.44fr)]">
-        <div className="space-y-4">
+      <div className="space-y-5">
+        <div className="hidden">
           <Surface glow className="p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -8045,6 +8053,25 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                 <Badge tone={selectedEventCount ? "purple" : "slate"}>{selectedEventCount} event</Badge>
               </div>
             </div>
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-black/18 p-3">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                  <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Profil qui clique</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">Un seul planning : tu changes seulement le profil qui allume son poste.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {players.map((player) => {
+                    const selected = player.id === selectedPlayerId;
+                    const filled = weekDays.reduce((sum, [day]) => sum + slotList(player.id, day).length, 0);
+                    return <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black transition", selected ? "border-cyan-200/45 bg-cyan-300/12 text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-200/25 hover:text-white")}>
+                      <RoleIcon role={player.role} className={cx("h-4 w-4", selected && "drop-shadow-[0_0_8px_rgba(103,232,249,.7)]")} />
+                      <span>{player.name}</span>
+                      <span className="text-[0.62rem] text-slate-400">{filled}</span>
+                    </button>;
+                  })}
+                </div>
+              </div>
+            </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
               <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
@@ -8083,7 +8110,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                             {roleSlots.map(({ role, player }) => {
                               const lit = player && availableIds.has(String(player.id));
                               const selectedRoleHere = selectedRole === role && activeSlot;
-                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("grid h-9 place-items-center rounded-xl border bg-black/28 transition", lit ? "border-cyan-100/55 text-cyan-50 shadow-[0_0_14px_rgba(34,211,238,.22)]" : "border-white/8 text-slate-600", selectedRoleHere && "border-cyan-100 text-white shadow-[0_0_18px_rgba(103,232,249,.45)]")}>
+                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("grid h-9 place-items-center transition", lit ? "text-cyan-50 drop-shadow-[0_0_10px_rgba(103,232,249,.65)]" : "text-slate-600", selectedRoleHere && "text-white drop-shadow-[0_0_14px_rgba(103,232,249,.85)]")}>
                                 <RoleIcon role={role} className="h-5 w-5" />
                               </span>;
                             })}
@@ -8105,7 +8132,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
           </Surface>
 
-          <Surface className="p-4">
+          <Surface className="hidden p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-xl font-black text-white">Planning général</h3>
