@@ -4152,7 +4152,7 @@ function ChampionGameBuildLine({ row }) {
   const cs10 = csAtMinute(row, 10);
   const cs20 = csAtMinute(row, 20);
   return <details className="group overflow-hidden rounded-2xl border border-white/10 bg-black/24">
-    <summary className="grid cursor-pointer list-none gap-3 p-3 transition hover:bg-white/[0.035] xl:grid-cols-[minmax(0,.82fr)_minmax(260px,.5fr)_auto] xl:items-center [&::-webkit-details-marker]:hidden">
+    <summary className="grid cursor-pointer list-none gap-3 p-3 transition hover:bg-white/[0.035] xl:grid-cols-[minmax(0,1fr)_minmax(260px,.38fr)_auto] xl:items-center [&::-webkit-details-marker]:hidden">
       <div className="flex min-w-0 items-center gap-3">
         <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 shrink-0 rounded-xl border border-cyan-200/16 object-cover" />
         <div className="min-w-0">
@@ -4167,7 +4167,7 @@ function ChampionGameBuildLine({ row }) {
         <ProfileChampionMini label="Total CS" value={creepScore(row) || "-"} />
       </div>
       <div className="flex min-w-0 items-center justify-between gap-3 xl:justify-end">
-        {finalItems.length ? <div className="flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, index) => <HudIcon key={`champion-game-final-${row.id || row.match?.id}-${index}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />)}</div> : <Badge tone="slate">Build absent</Badge>}
+        <Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length ? "Voir build" : "Build absent"}</Badge>
         <ChevronDown className="h-4 w-4 shrink-0 text-cyan-100 transition group-open:rotate-180" />
       </div>
     </summary>
@@ -4183,7 +4183,9 @@ function ChampionGameBuildLine({ row }) {
           </div>
         </div>
         <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
-          <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone={timeline.length ? "purple" : "slate"}>{timeline.length}</Badge></div>
+          <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Build final</p><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length}</Badge></div>
+          {finalItems.length ? <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, index) => <HudIcon key={`champion-game-open-final-${row.id || row.match?.id}-${index}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-10 w-10" />)}</div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucun build final importe pour cette game.</p>}
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone={timeline.length ? "purple" : "slate"}>{timeline.length}</Badge></div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.length ? timeline.map((event, index) => <div key={`${row.id || row.match?.id}-champ-item-event-${index}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
             <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
             <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
