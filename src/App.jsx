@@ -6626,9 +6626,9 @@ function TrendsPage({ data, selectedTeamId }) {
 }
 
 const GAME_WORKSPACE_TABS = [
-  { id: "import", label: "Importer", icon: Upload, hint: "Ajouter, corriger et classer les games" },
-  { id: "stats", label: "Stats", icon: BarChart3, hint: "Lire une game ou un groupe" },
-  { id: "review", label: "Review", icon: FileText, hint: "Rédiger et retrouver les rapports" },
+  { id: "import", label: "Importer", icon: Upload, hint: "Ajouter, corriger et classer les games", path: "/integration" },
+  { id: "stats", label: "Stats", icon: BarChart3, hint: "Lire une game ou un groupe", path: "/statistiques" },
+  { id: "review", label: "Review / Rapports", icon: FileText, hint: "Rédiger et retrouver les rapports", path: "/rapports" },
 ];
 
 function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route }) {
@@ -6642,6 +6642,10 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
   useEffect(() => {
     setSection(initialSection);
   }, [initialSection]);
+  const selectSection = (tab) => {
+    setSection(tab.id);
+    window.history.replaceState({}, "", tab.path);
+  };
 
   return <div className="min-w-0">
     <PageHeader
@@ -6649,13 +6653,13 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
       title="Games, stats et review"
       subtitle="Un seul flux : importe une game, lis les signaux utiles, puis transforme ça en review sans changer de contexte."
     />
-    <Surface glow className="mb-5 overflow-hidden p-3 sm:p-4">
+    <Surface glow className="sticky top-3 z-20 mb-5 overflow-hidden p-3 sm:p-4">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
         <div className="grid gap-2 sm:grid-cols-3">
           {GAME_WORKSPACE_TABS.map((tab) => {
             const Icon = tab.icon;
             const active = section === tab.id;
-            return <button key={tab.id} type="button" onClick={() => setSection(tab.id)} className={cx("group flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition", active ? "border-cyan-200/45 bg-cyan-400/14 text-white shadow-[0_0_28px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-200/22 hover:bg-white/[0.06] hover:text-white")}>
+            return <button key={tab.id} type="button" onClick={() => selectSection(tab)} className={cx("group flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition", active ? "border-cyan-200/55 bg-cyan-400/18 text-white shadow-[0_0_28px_rgba(34,211,238,.16)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-200/22 hover:bg-white/[0.06] hover:text-white")}>
               <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-black/22 text-slate-300")}><Icon className="h-5 w-5" /></span>
               <span className="min-w-0">
                 <span className="block truncate text-sm font-black uppercase tracking-[0.12em]">{tab.label}</span>
