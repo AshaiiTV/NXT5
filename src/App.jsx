@@ -1235,7 +1235,7 @@ function TeamAvatar({ team, className = "h-12 w-12" }) {
   return <img src="/assets/nxt5-logo.png" alt="NXT5" className={cx("object-contain object-left drop-shadow-[0_0_18px_rgba(34,211,238,.35)]", className)} />;
 }
 
-function RoleIcon({ role, className = "h-7 w-7" }) {
+function RoleIcon({ role, className = "h-7 w-7", lightweight = false }) {
   const roleKey = String(role || "").toUpperCase();
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [roleKey]);
@@ -1263,7 +1263,7 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
   ];
   const source = sources[sourceIndex];
   if (!source) return <span className={cx("inline-flex items-center justify-center text-[0.62rem] font-black text-cyan-100", className)}>{roleKey}</span>;
-  return <img src={source} alt={roleKey} className={cx("object-contain opacity-95 invert drop-shadow-[0_0_10px_rgba(96,165,250,.28)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
+  return <img src={source} alt={roleKey} className={cx("object-contain opacity-95 invert", !lightweight && "drop-shadow-[0_0_10px_rgba(96,165,250,.28)]", className)} loading="lazy" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
@@ -8477,7 +8477,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
               <div className="min-w-[660px]">
-                <div className="grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] gap-px overflow-hidden rounded-lg border border-cyan-200/18 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)]">
+                <div className="grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] gap-px overflow-hidden rounded-lg border border-cyan-200/18 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)] [contain:layout_paint]">
                   <div />
                   {weekDays.map(([day, label, date]) => {
                     const dayActive = (draftSlots[day] || []).length;
@@ -8492,8 +8492,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                           {cell.slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{cell.slotEventLabel}</span>}
                           <div className="flex h-full items-center justify-center gap-2">
                             {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
-                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "text-white [filter:brightness(1.85)_drop-shadow(0_0_6px_rgba(103,232,249,.72))]" : "text-slate-700 opacity-32 grayscale", selectedRoleHere && "text-white opacity-100 [filter:brightness(2.15)_drop-shadow(0_0_8px_rgba(255,255,255,.8))]")}>
-                                <RoleIcon role={role} className="h-4 w-4" />
+                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center", lit ? "text-cyan-50 opacity-100" : "text-slate-700 opacity-35", selectedRoleHere && "text-white opacity-100")}>
+                                <RoleIcon role={role} lightweight className="h-4 w-4" />
                               </span>;
                             })}
                           </div>
