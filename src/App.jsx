@@ -98,10 +98,9 @@ const PLANNING_DAYS = [
   ["SUN", "Dim"],
 ];
 const PLANNING_EVENT_TYPES = [
-  { id: "diodes", label: "Diodes", dot: "bg-cyan-100 shadow-[0_0_12px_rgba(103,232,249,.72)]", cell: "border-cyan-200/40 bg-cyan-300/14 text-cyan-50" },
-  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200 shadow-[0_0_12px_rgba(240,171,252,.72)]", cell: "border-fuchsia-200/45 bg-fuchsia-400/14 text-fuchsia-50" },
-  { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" },
-  { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "border-amber-200/42 bg-amber-300/14 text-amber-50" },
+  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200 shadow-[0_0_12px_rgba(240,171,252,.72)]", cell: "bg-fuchsia-500/22 text-fuchsia-50" },
+  { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "bg-emerald-400/20 text-emerald-50" },
+  { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "bg-amber-400/20 text-amber-50" },
 ];
 
 function cleanOpponentName(value) {
@@ -8030,7 +8029,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       </PageHeader>
       {eventMenu && <div onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="fixed z-[80] w-[210px] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050814]/98 p-2 text-white shadow-[0_24px_70px_rgba(0,0,0,.70),0_0_34px_rgba(34,211,238,.16)] ring-1 ring-white/10 backdrop-blur-xl" style={{ left: eventMenu.x, top: eventMenu.y }}>
         <div className="px-2 pb-2 pt-1">
-          <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-cyan-100/80">Ajouter un événement</p>
+          <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-cyan-100/80">Choisir un type</p>
           <p className="mt-1 truncate text-xs font-bold text-slate-300">{eventMenuDay?.[1] || eventMenu.day} · {eventMenu.time}</p>
         </div>
         <div className="grid gap-1">
@@ -8106,7 +8105,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-xl font-black text-white">Planning team</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un créneau pour allumer ton poste. Clic droit = Diodes, Scrim, Match ou Review." : "Lecture seule."}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un créneau pour allumer ton poste. Clic droit = Scrim, Match ou Review." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedPlayer && <Badge tone="blue">{roleLabel(selectedPlayer.role)}</Badge>}
@@ -8162,9 +8161,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                         const activeSlot = (draftSlots[day] || []).includes(time);
                         if (activeSlot && selectedPlayer) availableIds.add(String(selectedPlayer.id));
                         const slotEvent = visibleSlotEvents[planningEventKey(day, time)];
-                        const title = [slotEvent?.label, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · ");
+                        const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
+                        const title = [slotEventLabel, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · ");
                         return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[5.2rem] px-3 py-2 text-left transition hover:bg-cyan-300/[0.035]", frameTone(slotEvent), !canEditSelected && "cursor-not-allowed opacity-70")} >
-                          {slotEvent && <span className="absolute left-2 top-2 text-[0.54rem] font-black uppercase tracking-[0.12em] opacity-70">{slotEvent.label}</span>}
+                          {slotEvent && <span className="absolute left-2 top-2 text-[0.54rem] font-black uppercase tracking-[0.12em] opacity-70">{slotEventLabel}</span>}
                           <div className="flex h-full items-center justify-center gap-5">
                             {roleSlots.map(({ role, player }) => {
                               const lit = player && availableIds.has(String(player.id));
