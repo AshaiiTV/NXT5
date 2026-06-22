@@ -98,9 +98,9 @@ const PLANNING_DAYS = [
   ["SUN", "Dim"],
 ];
 const PLANNING_EVENT_TYPES = [
-  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-100 shadow-[0_0_16px_rgba(240,171,252,.92)]", cell: "bg-fuchsia-500/42 text-fuchsia-50 shadow-[inset_0_0_0_1px_rgba(240,171,252,.28),inset_0_0_28px_rgba(217,70,239,.22)]" },
-  { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "bg-emerald-400/20 text-emerald-50" },
-  { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "bg-amber-400/20 text-amber-50" },
+  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-100 shadow-[0_0_16px_rgba(240,171,252,.92)]", cell: "bg-[#2a123f] text-fuchsia-50 shadow-[inset_0_0_0_1px_rgba(240,171,252,.28),inset_0_0_24px_rgba(217,70,239,.18)]" },
+  { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "bg-[#0e3329] text-emerald-50 shadow-[inset_0_0_0_1px_rgba(110,231,183,.2)]" },
+  { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "bg-[#3a2b10] text-amber-50 shadow-[inset_0_0_0_1px_rgba(253,230,138,.2)]" },
 ];
 
 function cleanOpponentName(value) {
@@ -8334,7 +8334,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
   const frameTone = (slotEvent) => {
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
-    return "bg-[#070b16]/92 text-slate-500";
+    return "bg-[#050914] text-slate-500";
   };
   const saveStatusMeta = saveStatus === "saving"
     ? { tone: "yellow", label: "Sauvegarde..." }
@@ -8476,15 +8476,15 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
               <div className="min-w-[660px]">
-                <div className="grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] gap-px overflow-hidden rounded-lg border border-cyan-200/20 bg-cyan-100/25">
+                <div className="grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] gap-px overflow-hidden rounded-lg border border-cyan-200/18 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)]">
                   <div />
                   {weekDays.map(([day, label, date]) => {
                     const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-black/45 px-1.5 py-1 text-center text-[0.54rem] font-black uppercase tracking-[0.08em] transition", dayActive ? "bg-cyan-400/10 text-cyan-50" : "text-slate-300 hover:bg-white/[0.045] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-[0.52rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
+                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-[#08111f] px-1.5 py-1 text-center text-[0.54rem] font-black uppercase tracking-[0.08em] transition", dayActive ? "bg-[#0d2a3a] text-cyan-50" : "text-slate-300 hover:bg-[#101b2d] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-[0.52rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
-                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-black/45 px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
+                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-[#08111f] px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {weekDays.map(([day]) => {
                         const availableIds = new Set(planningLookup.playerIdsByCell.get(planningEventKey(day, time)) || []);
                         const availablePlayers = Array.from(availableIds).map((id) => playerById.get(id)).filter(Boolean);
