@@ -66,6 +66,15 @@ const NAV = [
 
 const PRIMARY_NAV_IDS = ["teams", "matches", "champions", "planning", "profile", "guide"];
 const MORE_NAV_IDS = ["stats", "trends", "compositions", "reports"];
+const PROFILE_VIEW_ROUTES = [
+  { id: "overview", label: "Synthèse", path: "" },
+  { id: "champions", label: "Champions", path: "champions" },
+  { id: "builds", label: "Builds", path: "builds" },
+  { id: "pool", label: "Pool", path: "pool" },
+  { id: "matchups", label: "Matchups", path: "matchups" },
+  { id: "history", label: "Historique", path: "historique" },
+  { id: "coaching", label: "Coaching", path: "coaching" },
+];
 
 const AUTH_ROUTES = {
   "/connexion": "login",
@@ -91,10 +100,10 @@ const PLANNING_DAYS = [
   ["SUN", "Dim"],
 ];
 const PLANNING_EVENT_TYPES = [
+  { id: "diodes", label: "Diodes", dot: "bg-cyan-100 shadow-[0_0_12px_rgba(103,232,249,.72)]", cell: "border-cyan-200/40 bg-cyan-300/14 text-cyan-50" },
   { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200 shadow-[0_0_12px_rgba(240,171,252,.72)]", cell: "border-fuchsia-200/45 bg-fuchsia-400/14 text-fuchsia-50" },
   { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" },
   { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "border-amber-200/42 bg-amber-300/14 text-amber-50" },
-  { id: "custom", label: "Autre", dot: "bg-cyan-100 shadow-[0_0_12px_rgba(103,232,249,.72)]", cell: "border-cyan-200/40 bg-cyan-300/14 text-cyan-50" },
 ];
 
 function cleanOpponentName(value) {
@@ -146,11 +155,28 @@ function normalizePath(pathname = "/") {
 function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path === "/reviews") return "matches";
+  if (path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
   return NAV.find((item) => item.path === path)?.id || "teams";
 }
 
 function pathFromPage(pageId) {
   return NAV.find((item) => item.id === pageId)?.path || "/equipes";
+}
+
+function profileViewFromPath(pathname = window.location.pathname) {
+  const path = normalizePath(pathname);
+  if (path !== "/mon-profil" && !path.startsWith("/mon-profil/")) return "overview";
+  const slug = path.replace(/^\/mon-profil\/?/, "").split("/").filter(Boolean)[0] || "";
+  return PROFILE_VIEW_ROUTES.find((item) => item.path === slug)?.id || "overview";
+}
+
+function profilePathFromView(viewId = "overview") {
+  const view = PROFILE_VIEW_ROUTES.find((item) => item.id === viewId) || PROFILE_VIEW_ROUTES[0];
+  return view.path ? `/mon-profil/${view.path}` : "/mon-profil";
+}
+
+function profileViewLabel(viewId = "overview") {
+  return PROFILE_VIEW_ROUTES.find((item) => item.id === viewId)?.label || PROFILE_VIEW_ROUTES[0].label;
 }
 
 function authModeFromPath(pathname = window.location.pathname) {
@@ -159,6 +185,7 @@ function authModeFromPath(pathname = window.location.pathname) {
 
 function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
+  if (path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
   return NAV.some((item) => item.path === path);
 }
 
@@ -1231,8 +1258,9 @@ function RoleIcon({ role, className = "h-7 w-7" }) {
 
 function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
+  const navLabel = active === "profile" ? `${nav.label} > ${profileViewLabel(profileViewFromPath(window.location.pathname))}` : nav.label;
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  return <header className="sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{nav.label}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden border border-cyan-200/30 bg-[#050814] p-2 shadow-[0_30px_80px_rgba(0,0,0,.72),0_0_36px_rgba(34,211,238,.16)] ring-1 ring-white/10"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),rgba(5,8,20,.96)_42%,rgba(217,70,239,.10))]" /> <div className="relative z-10">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition", currentTeam?.id === team.id ?"border-cyan-200/25 bg-cyan-400/14 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent bg-[#070d1c] text-slate-200 hover:border-cyan-200/18 hover:bg-[#0b1428] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/22 bg-[#071221] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/12"><Plus className="h-4 w-4" />Créer une nouvelle team</button></div></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
+  return <header className="sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{navLabel}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden border border-cyan-200/30 bg-[#050814] p-2 shadow-[0_30px_80px_rgba(0,0,0,.72),0_0_36px_rgba(34,211,238,.16)] ring-1 ring-white/10"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),rgba(5,8,20,.96)_42%,rgba(217,70,239,.10))]" /> <div className="relative z-10">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition", currentTeam?.id === team.id ?"border-cyan-200/25 bg-cyan-400/14 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent bg-[#070d1c] text-slate-200 hover:border-cyan-200/18 hover:bg-[#0b1428] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/22 bg-[#071221] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/12"><Plus className="h-4 w-4" />Créer une nouvelle team</button></div></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -3220,14 +3248,14 @@ function PlayerProfileStatsPanel({ player, matches = [] }) {
   return <div className="rounded-2xl border border-cyan-300/16 bg-cyan-400/[0.055] p-4"><div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5"><MetricCard icon={Swords} label="Games" value={games} hint="Games intégrées" tone="cyan" /><MetricCard icon={Trophy} label="Winrate" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} hint={`${wins} victoire${wins > 1 ? "s" : ""}`} tone="green" /><MetricCard icon={Gauge} label="KDA" value={kda} hint="Moyenne globale" tone="purple" /><MetricCard icon={Flame} label="Dégâts" value={formatPoints(avg("damage"))} hint="Moyenne/game" tone="orange" /><MetricCard icon={Eye} label="Vision" value={Math.round(avg("vision"))} hint="Moyenne/game" tone="yellow" /></div><div className="mt-4 grid gap-2 xl:grid-cols-2">{championStats.map((stat) => { const champKda = ((stat.kills + stat.assists) / Math.max(1, stat.deaths)).toFixed(2); return <div key={stat.champion} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/25 p-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 rounded-xl object-cover" /><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><Badge tone={Math.round((stat.wins / Math.max(1, stat.games)) * 100) >= 50 ? "green" : "red"}>{Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</Badge></div><p className="mt-1 truncate text-xs font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} · KDA {champKda} · {formatPoints(stat.damage / Math.max(1, stat.games))} dégâts moy.</p></div></div>; })}</div></div>;
 }
 
-function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refreshAll, pushToast }) {
+function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refreshAll, pushToast, route, navigate }) {
   const players = sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)));
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const canObserveAll = true;
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
-  const [profileView, setProfileView] = useState("overview");
+  const [profileView, setProfileView] = useState(() => profileViewFromPath(route?.path || window.location.pathname));
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
   const [coachingContent, setCoachingContent] = useState("");
@@ -3244,11 +3272,19 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   useEffect(() => {
     setSelectedCategoryId("");
   }, [selectedTeamId]);
+  useEffect(() => {
+    setProfileView(profileViewFromPath(route?.path || window.location.pathname));
+  }, [route?.path]);
+  function openProfileView(viewId) {
+    const nextView = profileView === viewId ? "overview" : viewId;
+    setProfileView(nextView);
+    navigate?.(`${profilePathFromView(nextView)}${route?.search || window.location.search || ""}`);
+  }
   function selectProfile(playerId) {
     setSelectedPlayerId(playerId);
     const params = new URLSearchParams(window.location.search || "");
     params.set("player", playerId);
-    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+    navigate?.(`${window.location.pathname}?${params.toString()}`, { replace: true });
   }
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || linkedPlayer || players[0];
   const coachingNote = (data.profileCoachingNotes || []).find((note) => note.team_id === selectedTeamId && note.player_id === selectedPlayer?.id);
@@ -3624,9 +3660,11 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     pushToast?.({ type: "cyan", title: "PNG exporté", text: "Le résumé du profil a été téléchargé." });
   }
   const buildRowsCount = rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length).length;
+  const buildRows = sortedProfileRows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
   const profileViews = [
     ["overview", "Synthèse", Activity, `${games}G`],
     ["champions", "Champions", Crown, championStats.length],
+    ["builds", "Builds", Gauge, buildRowsCount],
     ["pool", "Pool", Shield, championPool.length],
     ["matchups", "Matchups", Swords, matchups.length],
     ["history", "Historique", FileText, rows.length],
@@ -3649,7 +3687,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       </div>
     </Surface>
     <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
-      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => setProfileView(active ? "overview" : id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
+      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
     </div>
     <AnimatePresence mode="wait">
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
@@ -3687,6 +3725,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
             {selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion à gauche pour afficher ses ratios globaux, ses matchups, ses builds et son historique game par game.</div>}
           </Surface>
         </div>}
+        {profileView === "builds" && <ProfileFold title="Builds importés" badge={`${buildRowsCount} build${buildRowsCount > 1 ? "s" : ""}`} icon={Gauge} toneName="purple"><div className="grid gap-3 xl:grid-cols-2">{buildRows.length ? buildRows.map((row, index) => <ProfileBuildGameCard key={(row.id || row.match?.id || row.match?.game_id || "build") + "-profile-build-" + index} row={row} />) : <EmptyState icon={Gauge} title="Aucun build importé" text="Importe des games avec les items pour alimenter cette section." />}</div></ProfileFold>}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
         {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
         {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => { const cs10 = csAtMinute(row, 10); const cs20 = csAtMinute(row, 20); return <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 transition hover:border-cyan-300/20 hover:bg-white/[0.055]"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p><div className="mt-2 flex flex-wrap gap-1.5"><Badge tone="cyan">CS10 {Number.isFinite(cs10) ? cs10 : "-"}</Badge><Badge tone="blue">CS20 {Number.isFinite(cs20) ? cs20 : "-"}</Badge><Badge tone="yellow">Total {row.cs || 0}</Badge></div></div></div>; }) : <EmptyState icon={BarChart3} title="Aucune game" text={selectedCategoryId ? "Aucune game de cette catégorie n’est encore reliée à ce profil." : "Aucune game importée n’est encore reliée à ce profil."} />}</div></ProfileFold>}
@@ -7806,28 +7845,18 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     if (!eventMenu) return;
     const { day, time } = eventMenu;
     const key = planningEventKey(day, time);
-    const current = visibleSlotEvents[key];
     const meta = planningEventMeta(type);
-    const label = window.prompt(`Nom de l'événement ${meta.label.toLowerCase()}`, current?.label || meta.label);
-    if (label === null) {
-      setEventMenu(null);
-      return;
-    }
-    const cleanLabel = label.trim();
     setSlotEvents((currentEvents) => {
       const next = { ...currentEvents };
-      if (!cleanLabel) delete next[key];
-      else next[key] = { label: cleanLabel, type };
+      next[key] = { label: meta.label, type };
       return next;
     });
     setEventMenu(null);
-    if (cleanLabel) {
-      setDraftSlots((currentSlots) => {
-        const list = Array.isArray(currentSlots[day]) ? currentSlots[day] : [];
-        if (list.includes(time)) return currentSlots;
-        return { ...currentSlots, [day]: PLANNING_TIMES.filter((item) => [...list, time].includes(item)) };
-      });
-    }
+    setDraftSlots((currentSlots) => {
+      const list = Array.isArray(currentSlots[day]) ? currentSlots[day] : [];
+      if (list.includes(time)) return currentSlots;
+      return { ...currentSlots, [day]: PLANNING_TIMES.filter((item) => [...list, time].includes(item)) };
+    });
   }
 
   function removePlanningEvent() {
@@ -7885,6 +7914,16 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => players.filter((player) => slotList(player.id, day).includes(time)).length)).filter((count) => count >= Math.min(5, players.length)).length;
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
+  const roleSlots = COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) })).filter((slot) => slot.player);
+  const selectedRole = normalizeProfileRole(selectedPlayer?.role);
+  const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
+  const frameTone = (slotEvent, availableCount) => {
+    if (slotEvent) return planningEventMeta(slotEvent.type).cell;
+    if (availableCount >= Math.min(5, roleSlots.length || players.length)) return "border-emerald-200/45 bg-emerald-300/16 text-emerald-50 shadow-[0_0_24px_rgba(16,185,129,.10)]";
+    if (availableCount >= 3) return "border-cyan-200/36 bg-cyan-300/12 text-cyan-50";
+    if (availableCount > 0) return "border-white/12 bg-white/[0.035] text-slate-300";
+    return "border-white/8 bg-white/[0.018] text-slate-500";
+  };
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
   if (!players.length) return <EmptyState icon={Users} title="Aucun profil joueur" text="Ajoute des profils joueurs pour construire le planning de team." />;
@@ -8890,11 +8929,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "reports") return <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
-    if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} />;
+    if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     if (active === "guide") return <GuidePage />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, loading, selectedTeamId, currentMember, route.search, pushToast, user, onUserUpdate]);
+  }, [active, data, loading, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   if (!bootstrapped) return <AppLoadingScreen />;
@@ -8938,7 +8977,9 @@ export default function NXT5() {
   }, []);
 
   useEffect(() => {
-    const navTitle = NAV.find((item) => item.path === route.path)?.label;
+    const navTitle = route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")
+      ? `Profil > ${profileViewLabel(profileViewFromPath(route.path))}`
+      : NAV.find((item) => item.path === route.path)?.label;
     const publicTitles = {
       "/": "NXT5",
       "/connexion": "Connexion — NXT5",
