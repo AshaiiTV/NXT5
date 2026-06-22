@@ -3818,8 +3818,6 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
   const urgentPick = enhancedStats.filter((stat) => stat.games >= 1).sort((a, b) => (a.winrate + Number(a.kda || 0) * 8) - (b.winrate + Number(b.kda || 0) * 8))[0];
   const topShare = bestPick ? bestPick.share : 0;
   const buildCoverage = totalGames ? Math.round((buildRowsCount / Math.max(1, totalGames)) * 100) : 0;
-  const readyPicks = enhancedStats.filter((stat) => ["lock", "playable"].includes(stat.status)).sort((a, b) => b.score - a.score).slice(0, 5);
-  const reviewPicks = enhancedStats.filter((stat) => stat.status === "review").sort((a, b) => a.score - b.score).slice(0, 5);
   const nextActions = [
     bestPick && { title: "Premier choix", text: `${championDisplayName(bestPick.champion)} sort le meilleur mix volume, WR, KDA et builds.`, toneName: "green", icon: ShieldCheck, champion: bestPick.champion },
     urgentPick && { title: "A verifier", text: `${championDisplayName(urgentPick.champion)} demande une review avant de le remettre en draft.`, toneName: "orange", icon: AlertTriangle, champion: urgentPick.champion },
@@ -3872,10 +3870,6 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
           {activeStat ? <ChampionProfileDetail stat={activeStat} rows={activeRows} /> : <EmptyState icon={Crown} title="Selection vide" text="Choisis un champion pour ouvrir son analyse." />}
         </Surface>
         <ProfileChampionDecisionCard stat={activeStat} safestPick={safestPick} urgentPick={urgentPick} />
-        <div className="grid gap-4 xl:grid-cols-2">
-          <ProfileChampionInsightPanel title="A lock / blind" icon={ShieldCheck} badge={`${readyPicks.length}`} toneName="green" items={readyPicks} empty="Pas encore de pick vraiment blindable." onSelect={onSelectChampion} />
-          <ProfileChampionInsightPanel title="Review avant draft" icon={AlertTriangle} badge={`${reviewPicks.length}`} toneName="orange" items={reviewPicks} empty="Aucun pick en alerte nette." onSelect={onSelectChampion} />
-        </div>
       </div>
     </div>
 
@@ -3949,17 +3943,6 @@ function ProfileChampionDecisionCard({ stat, safestPick, urgentPick }) {
       {recommendations.map((item) => <div key={item.label} className="grid grid-cols-[minmax(0,1fr)_minmax(92px,.42fr)] items-center gap-3 py-3"><p className="truncate text-xs font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</p><p className={cx("truncate text-right text-sm font-black", item.toneName === "green" ? "text-emerald-100" : item.toneName === "red" ? "text-rose-100" : item.toneName === "orange" ? "text-amber-100" : "text-cyan-100")}>{item.value}</p></div>)}
     </div>
     </div>
-  </Surface>;
-}
-
-function ProfileChampionInsightPanel({ title, icon: Icon, badge, toneName, items, empty, onSelect }) {
-  return <Surface glow={items.length > 0} className="min-w-0 p-4">
-    <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></span><h4 className="truncate text-xl font-black text-white">{title}</h4></div><Badge tone={toneName}>{badge}</Badge></div>
-    <div className="mt-4 grid gap-2">{items.length ? items.map((stat) => <button type="button" key={`${title}-${stat.champion}`} onClick={() => onSelect?.(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/24 p-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]">
-      <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
-      <div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{stat.games}G - {stat.winrate}% WR - KDA {stat.kda}</p></div>
-      <Badge tone={stat.status === "review" ? "orange" : stat.winrate >= 50 ? "green" : "red"}>{stat.score}</Badge>
-    </button>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{empty}</p>}</div>
   </Surface>;
 }
 
