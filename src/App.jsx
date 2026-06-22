@@ -8497,6 +8497,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const [selectedArchiveId, setSelectedArchiveId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState(urlReportId || null);
   const [lexiconOpen, setLexiconOpen] = useState(false);
+  const [reportSearch, setReportSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const selected = reports.find((report) => report.id === selectedReportId) || reports[0];
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
@@ -8513,6 +8514,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const reviewWins = reviewMatches.filter((match) => match.result === "Victoire").length;
   const selectedWins = selectedMatches.filter((match) => match.result === "Victoire").length;
   const newestReview = reports.slice().sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))[0];
+  const searchNeedle = reportSearch.trim().toLowerCase();
+  const filteredReports = scopedReports.filter((report) => {
+    if (!searchNeedle) return true;
+    const title = reportDisplayName(report, matches).toLowerCase();
+    const author = String(report.author_name || "").toLowerCase();
+    return title.includes(searchNeedle) || author.includes(searchNeedle) || String(report.content || "").toLowerCase().includes(searchNeedle);
+  });
+  const selectionLabel = reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% WR` : "Aucune game sélectionnée";
 
   function startBlankReview() {
     resetReportForm();
@@ -8522,6 +8531,10 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   function selectReport(report) {
     setSelectedReportId(report.id);
     window.history.replaceState({}, "", "/rapports?report=" + report.id);
+  }
+
+  function selectAllScopedMatches() {
+    setForm((current) => ({ ...current, matchIds: scopedMatches.map((match) => match.id) }));
   }
 
   useEffect(() => {
@@ -8601,85 +8614,95 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       <PageHeader
         eyebrow="Review room"
         title="Review"
-        subtitle="Choisis un bloc de games, écris les décisions, puis retrouve la review sans fouiller dans trois menus."
+        subtitle="Une seule page pour préparer, écrire et relire une review sans perdre le fil."
       >
         <Button icon={Plus} onClick={startBlankReview}>Nouvelle review</Button>
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
       </PageHeader>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.06] p-4">
-          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">Reviews</p>
-          <p className="mt-2 text-3xl font-black text-white">{reports.length}</p>
-          <p className="mt-1 text-xs font-semibold text-slate-400">{scopedReports.length} visibles dans le contexte</p>
-        </div>
-        <div className="rounded-2xl border border-purple-300/14 bg-purple-400/[0.06] p-4">
-          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-purple-100/75">Groupes</p>
-          <p className="mt-2 text-3xl font-black text-white">{archives.length}</p>
-          <p className="mt-1 truncate text-xs font-semibold text-slate-400">{selectedArchive?.name || "Aucun filtre actif"}</p>
-        </div>
-        <div className="rounded-2xl border border-emerald-300/14 bg-emerald-400/[0.06] p-4">
-          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-emerald-100/75">Sélection</p>
-          <p className="mt-2 text-3xl font-black text-white">{form.matchIds.length}</p>
-          <p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "Aucune game liée"}</p>
-        </div>
-        <div className="rounded-2xl border border-amber-300/14 bg-amber-400/[0.06] p-4">
-          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-amber-100/75">Dernière</p>
-          <p className="mt-2 truncate text-lg font-black text-white">{newestReview ? reportDisplayName(newestReview, matches) : "Pas encore"}</p>
-          <p className="mt-1 text-xs font-semibold text-slate-400">{newestReview ? new Date(newestReview.updated_at || newestReview.created_at).toLocaleDateString("fr-FR") : "Crée la première review"}</p>
-        </div>
-      </div>
-
       <Surface className="mb-5 p-4">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)]">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={selectedArchive ? "purple" : "slate"}>{selectedArchive ? "Bloc actif" : "Toutes les games"}</Badge>
-              <Badge tone="cyan">{scopedMatches.length} game{scopedMatches.length > 1 ? "s" : ""}</Badge>
-              <Badge tone="green">{form.matchIds.length} liée{form.matchIds.length > 1 ? "s" : ""}</Badge>
+              <Badge tone="cyan">Cockpit</Badge>
+              <Badge tone={selectedArchive ? "purple" : "slate"}>{selectedArchive?.name || "Toutes les games"}</Badge>
+              <Badge tone={form.matchIds.length ? "green" : "slate"}>{selectionLabel}</Badge>
             </div>
-            <h3 className="mt-3 break-words text-2xl font-black text-white">{selectedArchive?.name || "Choisis ton contexte de review"}</h3>
-            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
-              {selectedArchive ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans ce bloc. La bibliothèque et la sélection se concentrent dessus.` : "Travaille en global, ou clique un groupe pour review un scrim block précis sans bruit autour."}
-            </p>
+            <h3 className="mt-3 break-words text-2xl font-black text-white">{formDisplayTitle || "Review en préparation"}</h3>
+            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Sélectionne les games à gauche, écris au centre, relis ou retrouve les anciennes reviews à droite.</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-            <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Workflow</p>
-            <div className="mt-3 grid gap-2">
-              {["1. Choisir le bloc", "2. Lier les games", "3. Écrire les décisions"].map((step, index) => <div key={step} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-400/10 text-xs font-black text-cyan-100">{index + 1}</span>
-                <span className="text-sm font-black text-white">{step}</span>
-              </div>)}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center">
+              <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Reviews</p>
+              <p className="mt-1 text-xl font-black text-white">{reports.length}</p>
             </div>
-            {selectedArchive && <Button variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")} className="mt-3 w-full">Retirer le bloc</Button>}
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center">
+              <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p>
+              <p className="mt-1 text-xl font-black text-white">{scopedMatches.length}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center">
+              <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Liées</p>
+              <p className="mt-1 text-xl font-black text-white">{form.matchIds.length}</p>
+            </div>
           </div>
-        </div>
-
-        <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {archives.length ? archives.map((archive) => {
-            const ids = archiveMatchIds(archive);
-            const archiveMatches = matches.filter((match) => ids.includes(match.id));
-            const wins = archiveMatches.filter((match) => match.result === "Victoire").length;
-            const active = selectedArchiveId === archive.id;
-            return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-cyan-300/40 bg-cyan-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.055]")}>
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <p className="min-w-0 break-words text-sm font-black text-white">{archive.name}</p>
-                <Badge tone="purple">{ids.length}</Badge>
-              </div>
-              <p className="mt-1 truncate text-[0.66rem] font-black uppercase tracking-[0.12em] text-cyan-100/80">WR {Math.round((wins / Math.max(1, ids.length)) * 100)}% · {wins}W - {ids.length - wins}L</p>
-            </button>;
-          }) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 px-3 py-2 text-sm font-semibold text-slate-300">Aucun groupe pour le moment.</p>}
         </div>
       </Surface>
 
-      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,.72fr)]">
+      <div className="grid gap-5 2xl:grid-cols-[320px_minmax(0,1fr)_380px]">
+        <Surface className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <Badge tone="cyan">1</Badge>
+              <h3 className="mt-3 text-xl font-black text-white">Games à review</h3>
+              <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Filtre par bloc, puis coche les games utiles.</p>
+            </div>
+            {selectedArchive && <Button variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")}>Reset</Button>}
+          </div>
+
+          <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            <button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-300/20")}>Toutes</button>
+            {archives.map((archive) => {
+              const ids = archiveMatchIds(archive);
+              const active = selectedArchiveId === archive.id;
+              return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[150px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}>
+                <p className="truncate text-xs font-black text-white">{archive.name}</p>
+                <p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-400">{ids.length} game{ids.length > 1 ? "s" : ""}</p>
+              </button>;
+            })}
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <Button type="button" variant="ghost" icon={Check} onClick={selectAllScopedMatches} disabled={!scopedMatches.length}>Tout lier</Button>
+            <Button type="button" variant="ghost" icon={X} onClick={() => setForm((current) => ({ ...current, matchIds: [] }))} disabled={!form.matchIds.length}>Vider</Button>
+          </div>
+
+          <div className="mt-4 max-h-[620px] space-y-2 overflow-auto pr-1">
+            {scopedMatches.length ? scopedMatches.map((match) => {
+              const checked = form.matchIds.includes(match.id);
+              return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12 shadow-[0_0_24px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Game"}</Badge>
+                      {checked && <Badge tone="cyan">Liée</Badge>}
+                    </div>
+                    <p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p>
+                    <p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Side ?"}</p>
+                  </div>
+                  <span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span>
+                </div>
+              </button>;
+            }) : <EmptyState icon={Swords} title="Aucune game" text="Importe une game ou retire le filtre actif." />}
+          </div>
+        </Surface>
+
         <Surface className="p-5">
           <form onSubmit={saveReport} className="space-y-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Review en édition" : "Nouvelle review"}</Badge>
-                <h3 className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || (form.id ? "Modifier la review" : "Créer une review")}</h3>
-                <p className="mt-1 text-sm font-semibold text-slate-300">La review suit les games sélectionnées. Tu peux écrire brut, puis injecter les commandes data si besoin.</p>
+                <Badge tone={form.id ? "yellow" : "green"}>2 · {form.id ? "Édition" : "Écriture"}</Badge>
+                <h3 className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Nouvelle review"}</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-300">{selectionLabel}</p>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                 <Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)} className="w-full sm:w-auto">Commandes</Button>
@@ -8706,34 +8729,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               </div>
             </div>
 
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">2. Games liées</p>
-                <Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length} sélectionnée{form.matchIds.length > 1 ? "s" : ""}</Badge>
-              </div>
-              <div className="grid max-h-[210px] gap-2 overflow-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
-                {scopedMatches.length ? scopedMatches.map((match) => {
-                  const checked = form.matchIds.includes(match.id);
-                  return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/20 hover:bg-white/[0.055]")}>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge>
-                      {checked && <Badge tone="cyan">Liée</Badge>}
-                    </div>
-                    <p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p>
-                    <p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
-                  </button>;
-                }) : <p className="rounded-xl border border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Importe une game ou retire le filtre groupe.</p>}
-              </div>
-            </div>
-
-            <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,.75fr)]">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">
               <label className="block">
-                <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">3. Notes de review</span>
-                <textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions, timestamps, plans d'action...\n/KDA "ADC"`} required rows={16} className="min-h-[360px] w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-400 focus:border-cyan-300/35" />
+                <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span>
+                <textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required rows={20} className="min-h-[520px] w-full resize-y rounded-2xl border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" />
               </label>
               <div className="min-w-0">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Aperçu data</p>
+                  <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p>
                   <Badge tone="slate">Live</Badge>
                 </div>
                 <ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} />
@@ -8744,36 +8747,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
         <div className="space-y-5">
           <Surface className="p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-xl font-black text-white">Bibliothèque</h3>
-                <p className="mt-1 text-sm font-semibold text-slate-400">{scopedReports.length} / {reports.length} review{reports.length > 1 ? "s" : ""}</p>
-              </div>
-            </div>
-            <div className="mt-4 max-h-[420px] space-y-2 overflow-auto pr-1">
-              {scopedReports.length ? scopedReports.map((report) => {
-                const active = selected?.id === report.id;
-                const ids = reportMatchIds(report);
-                return <button key={report.id} type="button" onClick={() => selectReport(report)} className={cx("w-full rounded-xl border p-3 text-left transition", active ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/18 hover:bg-white/[0.055]")}>
-                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                    <p className="min-w-0 break-words font-black text-white">{reportDisplayName(report, matches)}</p>
-                    <Badge tone={active ? "cyan" : "slate"}>{ids.length} game{ids.length > 1 ? "s" : ""}</Badge>
-                  </div>
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-300">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p>
-                </button>;
-              }) : <EmptyState icon={FileText} title="Aucune review" text="Crée une review liée aux games de ce groupe." />}
-            </div>
-          </Surface>
-
-          <Surface className="p-4">
             {selected ? <>
               <div className="flex flex-col gap-3">
                 <div className="min-w-0">
-                  <Badge tone="purple">Review active</Badge>
+                  <Badge tone="purple">3 · Relire</Badge>
                   <h3 className="mt-3 break-words text-2xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
-                  <p className="mt-1 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatches.length} game{selectedMatches.length > 1 ? "s" : ""}</p>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
                     <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p>
                     <p className="mt-1 text-lg font-black text-white">{selectedMatches.length}</p>
@@ -8787,17 +8768,43 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                     <p className="mt-1 text-lg font-black text-white">{selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  <Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport} className="w-full sm:w-auto">Stats</Button>
-                  <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving} className="w-full sm:w-auto">Dupliquer</Button>
-                  {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving} className="w-full sm:w-auto">Éditer</Button>}
-                  {canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving} className="w-full sm:w-auto">Supprimer</Button>}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport}>Stats</Button>
+                  <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
+                  {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
+                  {canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}
                 </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-4 max-h-[330px] overflow-auto pr-1">
                 <ReportPreview content={selected.content} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
               </div>
             </> : <EmptyState icon={FileText} title="Sélectionne une review" text="Le contenu apparaîtra ici." />}
+          </Surface>
+
+          <Surface className="p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-xl font-black text-white">Bibliothèque</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-400">{filteredReports.length} / {reports.length} review{reports.length > 1 ? "s" : ""}</p>
+              </div>
+            </div>
+            <label className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+              <Search className="h-4 w-4 text-cyan-100/70" />
+              <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Chercher une review..." className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
+            </label>
+            <div className="mt-4 max-h-[380px] space-y-2 overflow-auto pr-1">
+              {filteredReports.length ? filteredReports.map((report) => {
+                const active = selected?.id === report.id;
+                const ids = reportMatchIds(report);
+                return <button key={report.id} type="button" onClick={() => selectReport(report)} className={cx("w-full rounded-xl border p-3 text-left transition", active ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/18 hover:bg-white/[0.055]")}>
+                  <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <p className="min-w-0 break-words font-black text-white">{reportDisplayName(report, matches)}</p>
+                    <Badge tone={active ? "cyan" : "slate"}>{ids.length} game{ids.length > 1 ? "s" : ""}</Badge>
+                  </div>
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-300">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p>
+                </button>;
+              }) : <EmptyState icon={FileText} title="Aucune review" text="Crée une review liée aux games de ce groupe." />}
+            </div>
           </Surface>
         </div>
       </div>
