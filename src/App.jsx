@@ -8064,21 +8064,21 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 }
 
 function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
-  const players = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
+  const players = useMemo(() => (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)), [data.players, selectedTeamId]);
   const baseWeekStart = useMemo(() => mondayOfWeek(), []);
   const weekOptions = useMemo(() => [
     { id: "current", label: "Semaine en cours", start: dateKey(baseWeekStart), range: formatWeekRange(baseWeekStart) },
     { id: "next", label: "Semaine d’après", start: dateKey(addDays(baseWeekStart, 7)), range: formatWeekRange(addDays(baseWeekStart, 7)) },
   ], [baseWeekStart]);
   const [selectedWeekStart, setSelectedWeekStart] = useState(weekOptions[0].start);
-  const selectedWeek = weekOptions.find((week) => week.start === selectedWeekStart) || weekOptions[0];
-  const weekStartDate = dateFromKey(selectedWeek.start);
-  const weekDays = PLANNING_DAYS.map(([day, label], index) => [day, label, addDays(weekStartDate, index)]);
-  const availability = (data.availability || []).filter((item) => {
+  const selectedWeek = useMemo(() => weekOptions.find((week) => week.start === selectedWeekStart) || weekOptions[0], [selectedWeekStart, weekOptions]);
+  const weekStartDate = useMemo(() => dateFromKey(selectedWeek.start), [selectedWeek.start]);
+  const weekDays = useMemo(() => PLANNING_DAYS.map(([day, label], index) => [day, label, addDays(weekStartDate, index)]), [weekStartDate]);
+  const availability = useMemo(() => (data.availability || []).filter((item) => {
     const itemWeek = item.week_start ? String(item.week_start).slice(0, 10) : weekOptions[0].start;
     return item.team_id === selectedTeamId && itemWeek === selectedWeek.start;
-  });
-  const playersKey = players.map((player) => `${player.id}:${player.role}:${player.user_id || ""}`).join("|");
+  }), [data.availability, selectedTeamId, selectedWeek.start, weekOptions]);
+  const playersKey = players.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
   const availabilityKey = availability.map((row) => `${row.id}:${row.player_id}:${row.updated_at || ""}`).join("|");
   const planningLookup = useMemo(() => {
     const slotsByPlayer = new Map();
@@ -8314,21 +8314,25 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   }
 
   const totalPlayers = players.length || 1;
-  const bestCells = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => ({
+  const bestCells = useMemo(() => weekDays.flatMap(([day]) => PLANNING_TIMES.map((time, timeIndex) => ({
     day,
     time,
+    timeIndex,
     count: planningLookup.playerIdsByCell.get(planningEventKey(day, time))?.length || 0,
-  }))).sort((a, b) => b.count - a.count || PLANNING_TIMES.indexOf(a.time) - PLANNING_TIMES.indexOf(b.time)).slice(0, 4);
-  const selectedFilledSlots = weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0);
-  const selectedFilledDays = weekDays.filter(([day]) => (draftSlots[day] || []).length).length;
+  }))).sort((a, b) => b.count - a.count || a.timeIndex - b.timeIndex).slice(0, 4), [planningLookup, weekDays]);
+  const selectedFilledSlots = useMemo(() => weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0), [draftSlots, weekDays]);
+  const selectedFilledDays = useMemo(() => weekDays.filter(([day]) => (draftSlots[day] || []).length).length, [draftSlots, weekDays]);
   const teamEvents = planningLookup.events;
-  const visibleSlotEvents = { ...teamEvents, ...slotEvents };
-  const selectedEventCount = Object.keys(visibleSlotEvents).length;
-  const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => planningLookup.playerIdsByCell.get(planningEventKey(day, time))?.length || 0)).filter((count) => count >= Math.min(5, players.length)).length;
+  const visibleSlotEvents = useMemo(() => ({ ...teamEvents, ...slotEvents }), [teamEvents, slotEvents]);
+  const selectedEventCount = useMemo(() => Object.keys(visibleSlotEvents).length, [visibleSlotEvents]);
+  const fullTeamSlots = useMemo(() => {
+    const target = Math.min(5, players.length);
+    return weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => sum + ((planningLookup.playerIdsByCell.get(planningEventKey(day, time))?.length || 0) >= target ? 1 : 0), 0), 0);
+  }, [planningLookup, players.length, weekDays]);
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
-  const roleSlots = COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) }));
-  const filledRoleSlots = roleSlots.filter((slot) => slot.player).length;
+  const roleSlots = useMemo(() => COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) })), [playersKey]);
+  const filledRoleSlots = useMemo(() => roleSlots.filter((slot) => slot.player).length, [roleSlots]);
   const teamSlotTarget = Math.min(5, filledRoleSlots || players.length || 5);
   const selectedRole = normalizeProfileRole(selectedPlayer?.role);
   const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
@@ -8345,6 +8349,34 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         : saveStatus === "saved"
           ? { tone: "green", label: "Synchronisé" }
           : { tone: "slate", label: "Sauvegarde auto" };
+  const planningGridRows = useMemo(() => PLANNING_TIMES.map((time) => ({
+    time,
+    cells: weekDays.map(([day]) => {
+      const key = planningEventKey(day, time);
+      const baseIds = planningLookup.playerIdsByCell.get(key) || [];
+      const activeSlot = (draftSlots[day] || []).includes(time);
+      const availableIds = new Set(baseIds);
+      if (activeSlot && selectedPlayer) availableIds.add(String(selectedPlayer.id));
+      const availablePlayers = baseIds.map((id) => playerById.get(id)).filter(Boolean);
+      const slotEvent = visibleSlotEvents[key];
+      const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
+      return {
+        day,
+        time,
+        key,
+        activeSlot,
+        slotEvent,
+        slotEventLabel,
+        title: [slotEventLabel, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · "),
+        roles: roleSlots.map(({ role, player }) => ({
+          role,
+          player,
+          lit: Boolean(player && availableIds.has(String(player.id))),
+          selectedRoleHere: selectedRole === role && activeSlot,
+        })),
+      };
+    }),
+  })), [draftSlots, planningLookup, playerById, roleSlots, selectedPlayer, selectedRole, visibleSlotEvents, weekDays]);
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
   if (!players.length) return <EmptyState icon={Users} title="Aucun profil joueur" text="Ajoute des profils joueurs pour construire le planning de team." />;
@@ -8482,23 +8514,15 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                     const dayActive = (draftSlots[day] || []).length;
                     return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-[#08111f] px-1.5 py-1 text-center text-[0.54rem] font-black uppercase tracking-[0.08em] transition", dayActive ? "bg-[#0d2a3a] text-cyan-50" : "text-slate-300 hover:bg-[#101b2d] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-[0.52rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
-                  {PLANNING_TIMES.map((time) => (
+                  {planningGridRows.map(({ time, cells }) => (
                     <React.Fragment key={time}>
                       <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-[#08111f] px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
-                      {weekDays.map(([day]) => {
-                        const availableIds = new Set(planningLookup.playerIdsByCell.get(planningEventKey(day, time)) || []);
-                        const availablePlayers = Array.from(availableIds).map((id) => playerById.get(id)).filter(Boolean);
-                        const activeSlot = (draftSlots[day] || []).includes(time);
-                        if (activeSlot && selectedPlayer) availableIds.add(String(selectedPlayer.id));
-                        const slotEvent = visibleSlotEvents[planningEventKey(day, time)];
-                        const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
-                        const title = [slotEventLabel, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · ");
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[2.35rem] px-1.5 py-1 text-left transition hover:bg-cyan-300/[0.035]", frameTone(slotEvent), !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
-                          {slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{slotEventLabel}</span>}
+                      {cells.map((cell) => {
+                        const day = cell.day;
+                        return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("relative min-h-[2.35rem] px-1.5 py-1 text-left transition hover:bg-cyan-300/[0.035]", frameTone(cell.slotEvent), !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
+                          {cell.slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{cell.slotEventLabel}</span>}
                           <div className="flex h-full items-center justify-center gap-2">
-                            {roleSlots.map(({ role, player }) => {
-                              const lit = player && availableIds.has(String(player.id));
-                              const selectedRoleHere = selectedRole === role && activeSlot;
+                            {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
                               return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "text-white [filter:brightness(1.85)_drop-shadow(0_0_6px_rgba(103,232,249,.72))]" : "text-slate-700 opacity-32 grayscale", selectedRoleHere && "text-white opacity-100 [filter:brightness(2.15)_drop-shadow(0_0_8px_rgba(255,255,255,.8))]")}>
                                 <RoleIcon role={role} className="h-4 w-4" />
                               </span>;
@@ -9445,4 +9469,3 @@ export default function NXT5() {
 
   return <>{view}<ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }
-
