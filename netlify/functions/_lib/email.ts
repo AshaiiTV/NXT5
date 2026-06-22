@@ -77,7 +77,7 @@ export async function sendEmailVerificationEmail({ to, token }) {
                         <tr>
                           <td style="border:1px solid rgba(250,204,21,.24);border-radius:18px;background:rgba(113,63,18,.22);padding:17px 18px">
                             <p style="margin:0;color:#fef3c7;font-size:14px;line-height:1.6;font-weight:900">Lien valable pendant 24h</p>
-                            <p style="margin:7px 0 0;color:#fde68a;font-size:13px;line-height:1.6">Une fois confirmé, les notifications de match, rapport et équipe pourront être envoyées normalement.</p>
+                            <p style="margin:7px 0 0;color:#fde68a;font-size:13px;line-height:1.6">Une fois confirmé, les notifications de match, review et équipe pourront être envoyées normalement.</p>
                           </td>
                         </tr>
                       </table>

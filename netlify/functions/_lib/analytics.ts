@@ -450,7 +450,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   }
   const missingEnemyInputs = requiredRoles.filter((role) => !normalizedEnemyLaneAssignments[role]);
   if (missingEnemyInputs.length) {
-    throw Object.assign(new Error(`Assignation adverse requise : indique ${missingEnemyInputs.join(', ')} avant d’importer. Cela évite les adversaires non reconnus dans les rapports et statistiques.`), { status: 400 });
+    throw Object.assign(new Error(`Assignation adverse requise : indique ${missingEnemyInputs.join(', ')} avant d’importer. Cela évite les adversaires non reconnus dans les reviews et statistiques.`), { status: 400 });
   }
   const participants = buildParticipants(match, allyTeamId, roster, normalizedLaneAssignments, normalizedPlayerAssignments, normalizedEnemyLaneAssignments);
   const assignedRoles = new Set(participants.filter((p) => p.team_key === 'ALLY').map((p) => p.role));

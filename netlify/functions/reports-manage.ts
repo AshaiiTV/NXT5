@@ -20,16 +20,16 @@ async function notifyReportCreate({ request, teamId, reportTitle }) {
   const siteUrl = String(process.env.PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '');
   const safeTitle = escapeHtml(reportTitle);
   const html = `
-    <p>Un nouveau rapport a été généré pour votre équipe.</p>
-    <p><strong>Rapport :</strong> ${safeTitle}</p>
+    <p>Une nouvelle review a ete generee pour votre equipe.</p>
+    <p><strong>Review :</strong> ${safeTitle}</p>
     <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
-    <p><a href="${escapeHtml(`${siteUrl}/rapports`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir le rapport sur NXT5</a></p>
+    <p><a href="${escapeHtml(`${siteUrl}/rapports`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir la review sur NXT5</a></p>
     <hr style="border:0;border-top:1px solid rgba(148,163,184,.18);margin:22px 0">
     <p style="font-size:12px;color:#888">Pour ne plus recevoir ces emails, rendez-vous dans vos préférences NXT5.</p>
   `;
   await Promise.all(emails.map((email) => sendNotification({
     to: email,
-    subject: `[NXT5] Nouveau rapport disponible — ${reportTitle}`,
+    subject: `[NXT5] Nouvelle review disponible — ${reportTitle}`,
     html
   })));
 }
@@ -62,12 +62,12 @@ export default async function handler(request: Request, context: Context): Promi
     const isCaptain = member.owner_id === user.id || ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(String(member.role || '').toLowerCase());
 
     if (action === 'delete') {
-      if (!reportId) throw Object.assign(new Error('Rapport requis.'), { status: 400 });
+      if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
       const existing = await sql`select * from reports where id = ${reportId} and team_id = ${teamId} limit 1`;
       const report = existing[0];
-      if (!report) throw Object.assign(new Error('Rapport introuvable.'), { status: 404 });
+      if (!report) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
-        throw Object.assign(new Error('Seul l’auteur du rapport ou le capitaine peut le supprimer.'), { status: 403 });
+        throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le supprimer.'), { status: 403 });
       }
       await sql`delete from reports where id = ${reportId} and team_id = ${teamId}`;
       await sql`
@@ -89,12 +89,12 @@ export default async function handler(request: Request, context: Context): Promi
     const primaryMatchId = validMatchIds[0] || null;
 
     if (action === 'update') {
-      if (!reportId) throw Object.assign(new Error('Rapport requis.'), { status: 400 });
+      if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
       const existing = await sql`select * from reports where id = ${reportId} and team_id = ${teamId} limit 1`;
       const report = existing[0];
-      if (!report) throw Object.assign(new Error('Rapport introuvable.'), { status: 404 });
+      if (!report) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
-        throw Object.assign(new Error('Seul l’auteur du rapport ou le capitaine peut le modifier.'), { status: 403 });
+        throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le modifier.'), { status: 403 });
       }
       const rows = await sql`
         update reports
