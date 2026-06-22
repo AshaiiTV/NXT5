@@ -8005,7 +8005,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
   const frameTone = (slotEvent) => {
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
-    return "bg-[#070b16]/78 text-slate-500";
+    return "bg-[#070b16]/92 text-slate-500";
   };
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
@@ -8134,10 +8134,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("weekend")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Week-end</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("weekend")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Week-end</button>
+              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
               <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Type de créneau</span>
@@ -8145,12 +8145,12 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <span className="ml-auto text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">{selectedRoleLabel}</span>
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <div className="min-w-[980px]">
-                <div className="grid grid-cols-[5rem_repeat(7,minmax(7.25rem,1fr))] gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10">
+              <div className="min-w-[760px]">
+                <div className="grid grid-cols-[4.1rem_repeat(7,minmax(5.4rem,1fr))] gap-px overflow-hidden rounded-xl border border-cyan-200/18 bg-cyan-100/22">
                   <div />
                   {weekDays.map(([day, label, date]) => {
                     const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected || saving} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-black/45 px-2 py-2 text-center text-[0.62rem] font-black uppercase tracking-[0.12em] transition", dayActive ? "bg-cyan-400/10 text-cyan-50" : "text-slate-300 hover:bg-white/[0.045] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
+                    return <button key={day} type="button" disabled={!canEditSelected || saving} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-black/45 px-2 py-1.5 text-center text-[0.58rem] font-black uppercase tracking-[0.1em] transition", dayActive ? "bg-cyan-400/10 text-cyan-50" : "text-slate-300 hover:bg-white/[0.045] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
@@ -8163,14 +8163,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                         const slotEvent = visibleSlotEvents[planningEventKey(day, time)];
                         const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
                         const title = [slotEventLabel, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · ");
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[5.2rem] px-3 py-2 text-left transition hover:bg-cyan-300/[0.035]", frameTone(slotEvent), !canEditSelected && "cursor-not-allowed opacity-70")} >
-                          {slotEvent && <span className="absolute left-2 top-2 text-[0.54rem] font-black uppercase tracking-[0.12em] opacity-70">{slotEventLabel}</span>}
-                          <div className="flex h-full items-center justify-center gap-5">
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[3.25rem] px-2 py-1.5 text-left transition hover:bg-cyan-300/[0.035]", frameTone(slotEvent), !canEditSelected && "cursor-not-allowed opacity-70")} >
+                          {slotEvent && <span className="absolute left-1.5 top-1 text-[0.5rem] font-black uppercase tracking-[0.12em] opacity-70">{slotEventLabel}</span>}
+                          <div className="flex h-full items-center justify-center gap-3">
                             {roleSlots.map(({ role, player }) => {
                               const lit = player && availableIds.has(String(player.id));
                               const selectedRoleHere = selectedRole === role && activeSlot;
-                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "scale-110 text-white [filter:brightness(2.4)_drop-shadow(0_0_6px_rgba(255,255,255,.9))_drop-shadow(0_0_12px_rgba(103,232,249,.72))]" : "scale-95 text-slate-700 opacity-35 grayscale", selectedRoleHere && "scale-115 text-white opacity-100 [filter:brightness(2.8)_drop-shadow(0_0_8px_rgba(255,255,255,.95))_drop-shadow(0_0_16px_rgba(103,232,249,.78))]")}>
-                                <RoleIcon role={role} className="h-6 w-6" />
+                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "text-white [filter:brightness(1.85)_drop-shadow(0_0_6px_rgba(103,232,249,.72))]" : "text-slate-700 opacity-32 grayscale", selectedRoleHere && "text-white opacity-100 [filter:brightness(2.15)_drop-shadow(0_0_8px_rgba(255,255,255,.8))]")}>
+                                <RoleIcon role={role} className="h-5 w-5" />
                               </span>;
                             })}
                           </div>
