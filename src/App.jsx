@@ -69,9 +69,7 @@ const MORE_NAV_IDS = ["stats", "trends", "compositions", "reports"];
 const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
   { id: "champions", label: "Champions", path: "champions" },
-  { id: "builds", label: "Builds", path: "builds" },
   { id: "pool", label: "Pool", path: "pool" },
-  { id: "matchups", label: "Matchups", path: "matchups" },
   { id: "history", label: "Historique", path: "historique" },
   { id: "coaching", label: "Coaching", path: "coaching" },
 ];
@@ -167,6 +165,7 @@ function profileViewFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path !== "/mon-profil" && !path.startsWith("/mon-profil/")) return "overview";
   const slug = path.replace(/^\/mon-profil\/?/, "").split("/").filter(Boolean)[0] || "";
+  if (["builds", "matchups"].includes(slug)) return "champions";
   return PROFILE_VIEW_ROUTES.find((item) => item.path === slug)?.id || "overview";
 }
 
@@ -3663,10 +3662,8 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const buildRows = sortedProfileRows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
   const profileViews = [
     ["overview", "Synthèse", Activity, `${games}G`],
-    ["champions", "Champions", Crown, championStats.length],
-    ["builds", "Builds", Gauge, buildRowsCount],
+    ["champions", "Champions", Crown, `${championStats.length}/${buildRowsCount}`],
     ["pool", "Pool", Shield, championPool.length],
-    ["matchups", "Matchups", Swords, matchups.length],
     ["history", "Historique", FileText, rows.length],
     ["coaching", "Coaching", Clipboard, coachingContent.trim() ? "OK" : "—"],
   ];
@@ -3688,7 +3685,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       </div>
     </Surface>
     <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
-      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
+      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-5">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
     </div>
     <AnimatePresence mode="wait">
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
@@ -3697,16 +3694,21 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
           <Surface className="min-w-0 p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <Badge tone="cyan">{buildRowsCount ? `${buildRowsCount} builds intégrés` : "Games importées"}</Badge>
-                <h3 className="mt-3 text-xl font-black text-white">Champions joués</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne un champion pour lire ses stats, builds et games.</p>
+                <Badge tone="cyan">{buildRowsCount ? `${buildRowsCount} builds integres` : "Games importees"}</Badge>
+                <h3 className="mt-3 text-xl font-black text-white">Champions, builds et matchups</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Selectionne un champion : tout est au meme endroit, stats, duels, builds et games.</p>
               </div>
               <Crown className="h-5 w-5 shrink-0 text-cyan-100" />
             </div>
             <div className="mt-4 grid min-w-0 gap-2 sm:grid-cols-2 lg:max-h-[44rem] lg:grid-cols-1 lg:overflow-auto lg:pr-1">
               {championStats.length ? championStats.map((stat) => {
                 const active = selectedProfileChampionStats?.champion === stat.champion;
-                const buildRows = stat.rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
+                const buildRowsForChampion = stat.rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
+                const matchupCount = Array.from(stat.rows.reduce((map, row) => {
+                  const enemy = opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId);
+                  if (enemy?.champion) map.set(enemy.champion, true);
+                  return map;
+                }, new Map()).keys()).length;
                 return <button key={stat.champion} type="button" onClick={() => setSelectedProfileChampion(stat.champion)} className={cx("group flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition hover:border-cyan-200/35 hover:bg-white/[0.055]", active ? "border-cyan-200/55 bg-cyan-400/12 shadow-[0_0_18px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/24")}>
                     <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 shrink-0 rounded-xl border border-white/10 object-cover" />
                     <div className="min-w-0 flex-1">
@@ -3714,21 +3716,30 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
                         <p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p>
                         <span className={cx("shrink-0 text-xs font-black", stat.winrate >= 50 ? "text-emerald-100" : "text-amber-100")}>{stat.winrate}%</span>
                       </div>
-                      <p className="mt-1 truncate text-xs font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} · KDA {stat.kda}</p>
-                      <p className="mt-1 truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100/70">{buildRows.length ? `${buildRows.length} build${buildRows.length > 1 ? "s" : ""}` : "Aucun build"}</p>
+                      <p className="mt-1 truncate text-xs font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} ? KDA {stat.kda}</p>
+                      <p className="mt-1 truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100/70">{buildRowsForChampion.length} build{buildRowsForChampion.length > 1 ? "s" : ""} ? {matchupCount} matchup{matchupCount > 1 ? "s" : ""}</p>
                     </div>
                     <ChevronRight className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "translate-x-0.5")} />
                 </button>;
-              }) : <EmptyState icon={Crown} title="Aucun champion importé" text={selectedCategoryId ? "Aucune game de cette catégorie pour ce profil." : "Importe une game pour alimenter les champions joués."} />}
+              }) : <EmptyState icon={Crown} title="Aucun champion importe" text={selectedCategoryId ? "Aucune game de cette categorie pour ce profil." : "Importe une game pour alimenter les champions joues."} />}
             </div>
           </Surface>
           <Surface className="min-w-0 overflow-hidden p-4 md:p-5">
-            {selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion à gauche pour afficher ses ratios globaux, ses matchups, ses builds et son historique game par game.</div>}
+            {selectedProfileChampionStats ? <ChampionProfileDetail stat={selectedProfileChampionStats} rows={selectedProfileChampionRows} matchups={selectedProfileChampionMatchups} /> : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm font-semibold leading-6 text-slate-200">Clique sur un champion a gauche pour afficher ses ratios globaux, ses matchups, ses builds et son historique game par game.</div>}
           </Surface>
+          <div className="grid gap-4 lg:col-span-2 2xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]">
+            <ProfileFold title="Matchups a comprendre" badge={`${matchups.length} duels`} icon={Swords} toneName="cyan">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div><p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-100">Favorables</p><MatchupList items={bestMatchups.slice(0, 4)} toneName="green" /></div>
+                <div><p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-rose-100">A revoir</p><MatchupList items={worstMatchups.slice(0, 4)} toneName="red" /></div>
+              </div>
+            </ProfileFold>
+            <ProfileFold title="Builds recents" badge={`${buildRowsCount} build${buildRowsCount > 1 ? "s" : ""}`} icon={Gauge} toneName="purple">
+              <div className="grid gap-3 xl:grid-cols-2">{buildRows.length ? buildRows.slice(0, 4).map((row, index) => <ProfileBuildGameCard key={(row.id || row.match?.id || row.match?.game_id || "build") + "-profile-merged-build-" + index} row={row} />) : <EmptyState icon={Gauge} title="Aucun build importe" text="Importe des games avec les items pour alimenter cette section." />}</div>
+            </ProfileFold>
+          </div>
         </div>}
-        {profileView === "builds" && <ProfileFold title="Builds importés" badge={`${buildRowsCount} build${buildRowsCount > 1 ? "s" : ""}`} icon={Gauge} toneName="purple"><div className="grid gap-3 xl:grid-cols-2">{buildRows.length ? buildRows.map((row, index) => <ProfileBuildGameCard key={(row.id || row.match?.id || row.match?.game_id || "build") + "-profile-build-" + index} row={row} />) : <EmptyState icon={Gauge} title="Aucun build importé" text="Importe des games avec les items pour alimenter cette section." />}</div></ProfileFold>}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
-        {profileView === "matchups" && <div className="grid gap-5 xl:grid-cols-2"><ProfileFold title="Meilleurs matchups" badge="Favorables" icon={Trophy} toneName="green"><MatchupList items={bestMatchups} toneName="green" /></ProfileFold><ProfileFold title="Matchups difficiles" badge="À revoir" icon={AlertTriangle} toneName="red"><MatchupList items={worstMatchups} toneName="red" /></ProfileFold></div>}
         {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => { const cs10 = csAtMinute(row, 10); const cs20 = csAtMinute(row, 20); return <div key={(row.match?.id || row.match?.game_id || index) + row.champion} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 transition hover:border-cyan-300/20 hover:bg-white/[0.055]"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p><div className="mt-2 flex flex-wrap gap-1.5"><Badge tone="cyan">CS10 {Number.isFinite(cs10) ? cs10 : "-"}</Badge><Badge tone="blue">CS20 {Number.isFinite(cs20) ? cs20 : "-"}</Badge><Badge tone="yellow">Total {row.cs || 0}</Badge></div></div></div>; }) : <EmptyState icon={BarChart3} title="Aucune game" text={selectedCategoryId ? "Aucune game de cette catégorie n’est encore reliée à ce profil." : "Aucune game importée n’est encore reliée à ce profil."} />}</div></ProfileFold>}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des rapports liés aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
@@ -7915,12 +7926,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => players.filter((player) => slotList(player.id, day).includes(time)).length)).filter((count) => count >= Math.min(5, players.length)).length;
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
-  const roleSlots = COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) })).filter((slot) => slot.player);
+  const roleSlots = COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) }));
+  const filledRoleSlots = roleSlots.filter((slot) => slot.player).length;
+  const teamSlotTarget = Math.min(5, filledRoleSlots || players.length || 5);
   const selectedRole = normalizeProfileRole(selectedPlayer?.role);
   const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
   const frameTone = (slotEvent, availableCount) => {
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
-    if (availableCount >= Math.min(5, roleSlots.length || players.length)) return "border-emerald-200/45 bg-emerald-300/16 text-emerald-50 shadow-[0_0_24px_rgba(16,185,129,.10)]";
+    if (availableCount >= teamSlotTarget) return "border-emerald-200/45 bg-emerald-300/16 text-emerald-50 shadow-[0_0_24px_rgba(16,185,129,.10)]";
     if (availableCount >= 3) return "border-cyan-200/36 bg-cyan-300/12 text-cyan-50";
     if (availableCount > 0) return "border-white/12 bg-white/[0.035] text-slate-300";
     return "border-white/8 bg-white/[0.018] text-slate-500";
@@ -8022,8 +8035,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
           <Surface glow className="p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-xl font-black text-white">{selectedPlayer?.name || "Profil"}</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique les slots. Clic droit = ajouter un événement." : "Lecture seule."}</p>
+                <h3 className="text-xl font-black text-white">Planning team</h3>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un cadre pour allumer ton poste. Clic droit = Diodes, Scrim, Match ou Review." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedPlayer && <Badge tone="blue">{roleLabel(selectedPlayer.role)}</Badge>}
@@ -8039,12 +8052,13 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Diodes</span>
+              <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Fonds clic droit</span>
               {PLANNING_EVENT_TYPES.map((item) => <span key={item.id} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-100"><span className={cx("h-2 w-2 rounded-full", item.dot)} />{item.label}</span>)}
+              <span className="ml-auto text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">{selectedRoleLabel}</span>
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <div className="min-w-[560px] sm:min-w-[640px]">
-                <div className="grid grid-cols-[4.6rem_repeat(7,minmax(4.4rem,1fr))] gap-1">
+              <div className="min-w-[980px]">
+                <div className="grid grid-cols-[5rem_repeat(7,minmax(7.25rem,1fr))] gap-2">
                   <div />
                   {weekDays.map(([day, label, date]) => {
                     const dayActive = (draftSlots[day] || []).length;
@@ -8054,10 +8068,27 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                     <React.Fragment key={time}>
                       <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs font-black text-white transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {weekDays.map(([day]) => {
+                        const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
+                        const availableIds = new Set(availablePlayers.map((player) => String(player.id)));
                         const activeSlot = (draftSlots[day] || []).includes(time);
                         const slotEvent = visibleSlotEvents[planningEventKey(day, time)];
                         const eventMeta = slotEvent ? planningEventMeta(slotEvent.type) : null;
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={slotEvent?.label || (activeSlot ? "Disponible" : "Indisponible")} className={cx("grid min-h-7 place-items-center rounded-lg border text-xs font-black transition", slotEvent ? eventMeta.cell : activeSlot ? "border-cyan-200/40 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.024] text-slate-500 hover:border-cyan-300/25 hover:bg-cyan-400/10 hover:text-cyan-100", !canEditSelected && "cursor-not-allowed opacity-70")}><span className={cx("h-2.5 w-2.5 rounded-full", slotEvent ? eventMeta.dot : activeSlot ? "bg-cyan-100 shadow-[0_0_10px_rgba(103,232,249,.55)]" : "bg-white/10")} /></button>;
+                        const title = [slotEvent?.label, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · ");
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[5.35rem] rounded-2xl border p-2 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/35", frameTone(slotEvent, availablePlayers.length), activeSlot && "ring-1 ring-cyan-200/50", !canEditSelected && "cursor-not-allowed opacity-70")}>
+                          <div className="flex items-start justify-between gap-2">
+                            <span className="text-[0.62rem] font-black uppercase tracking-[0.12em] opacity-80">{slotEvent?.label || `${availablePlayers.length}/${teamSlotTarget}`}</span>
+                            <span className={cx("h-2.5 w-2.5 rounded-full", slotEvent ? eventMeta.dot : activeSlot ? "bg-cyan-100 shadow-[0_0_12px_rgba(103,232,249,.65)]" : "bg-white/12")} />
+                          </div>
+                          <div className="mt-3 grid grid-cols-5 gap-1.5">
+                            {roleSlots.map(({ role, player }) => {
+                              const lit = player && availableIds.has(String(player.id));
+                              const selectedRoleHere = selectedRole === role && activeSlot;
+                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("grid h-9 place-items-center rounded-xl border bg-black/28 transition", lit ? "border-cyan-100/55 text-cyan-50 shadow-[0_0_14px_rgba(34,211,238,.22)]" : "border-white/8 text-slate-600", selectedRoleHere && "border-cyan-100 text-white shadow-[0_0_18px_rgba(103,232,249,.45)]")}>
+                                <RoleIcon role={role} className="h-5 w-5" />
+                              </span>;
+                            })}
+                          </div>
+                        </button>;
                       })}
                     </React.Fragment>
                   ))}
