@@ -7504,18 +7504,58 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
   const slots = compositionSlots(composition.slots);
   const tags = jsonList(composition.tags);
   const mastery = compositionMastery(slots, rows);
-  const picks = COMP_ROLES.map((role) => rows.find((row) => row.id === slots[role]?.poolId)).filter(Boolean);
+  const slotPicks = COMP_ROLES.map((role) => ({ role, pick: rows.find((row) => row.id === slots[role]?.poolId) }));
+  const picks = slotPicks.map((slot) => slot.pick).filter(Boolean);
   const identity = compositionIdentity(picks);
-  return <Surface className="group relative overflow-hidden p-4 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/28 hover:shadow-[0_0_42px_rgba(34,211,238,.10)]">
-    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(34,211,238,.12),transparent_30%),radial-gradient(circle_at_82%_22%,rgba(217,70,239,.10),transparent_32%),linear-gradient(135deg,rgba(8,145,178,.08),rgba(2,6,23,.62)_48%,rgba(88,28,135,.10))]" />
-    <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/55 to-fuchsia-200/45" />
-    <div className="relative z-10">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge>{tags.map((tag) => <Badge key={tag} tone="purple">{tagLabel(tag)}</Badge>)}</div><h3 className="mt-3 truncate text-2xl font-black text-white">{composition.title}</h3><p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100/80">Créée par {composition.created_by_name || "un membre"}</p>{composition.notes && <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}</div>
-        {canManage && <div className="flex shrink-0 gap-1"><button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" className="rounded-xl border border-white/10 bg-black/25 p-2 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" className="rounded-xl border border-white/10 bg-black/25 p-2 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button><button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" className="rounded-xl border border-white/10 bg-black/25 p-2 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button></div>}
+  return <Surface className="group relative overflow-hidden border-cyan-200/18 bg-[#050916]/88 p-0 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/34 hover:shadow-[0_0_46px_rgba(34,211,238,.12)]">
+    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_12%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_92%_18%,rgba(217,70,239,.13),transparent_30%),linear-gradient(135deg,rgba(8,145,178,.08),rgba(2,6,23,.72)_46%,rgba(88,28,135,.12))]" />
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-200/70 via-white/45 to-fuchsia-200/55" />
+    <div className="relative z-10 p-4 sm:p-5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge><Badge tone="cyan">{picks.length}/5 picks</Badge>{tags.map((tag) => <Badge key={tag} tone="purple">{tagLabel(tag)}</Badge>)}</div>
+          <h3 className="mt-3 truncate text-3xl font-black text-white">{composition.title}</h3>
+          <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100/72">Créée par {composition.created_by_name || "un membre"}</p>
+          {composition.notes && <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}
+        </div>
+        {canManage && <div className="flex shrink-0 gap-1 rounded-2xl border border-white/10 bg-black/24 p-1">
+          <button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" className="rounded-xl p-2 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" className="rounded-xl p-2 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" className="rounded-xl p-2 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
+        </div>}
       </div>
-      <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{COMP_ROLES.map((role) => { const pick = rows.find((row) => row.id === slots[role]?.poolId); const pickStatus = pick ? championPoolStatus(pick) : ""; return <div key={role} className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", pick ? "border-cyan-200/18 bg-black/35" : "border-white/10 bg-black/25 text-slate-400")}><div className="flex items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-[0.66rem] font-black uppercase tracking-[0.12em]"><RoleIcon role={role} className="h-4 w-4" />{role}</span>{pick && <span className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-cyan-100">{championPoolStatusLabel(pickStatus)}</span>}</div>{pick ? <div className="relative mt-3 rounded-xl border border-white/10 bg-black/24 p-2.5 pr-8"><ChampionTierMark tier={championTierByStatus(pickStatus)} active className="absolute right-1.5 top-1.5 h-5 w-5 rounded-md ring-1 ring-black/45 [&_svg]:h-3 [&_svg]:w-3" /><div className="flex items-center gap-2"><span className="inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(pick.champion)}</p><p className="truncate text-[0.66rem] font-semibold text-slate-200">{pick.player_name}</p></div></div></div> : <p className="mt-3 text-xs font-semibold">Vide</p>}</div>; })}</div>
-      {picks.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div>}
+      <div className="mt-5 overflow-hidden rounded-[1.4rem] border border-white/10 bg-black/24">
+        <div className="grid gap-px bg-white/10 sm:grid-cols-2 lg:grid-cols-5">
+          {slotPicks.map(({ role, pick }) => {
+            const pickStatus = pick ? championPoolStatus(pick) : "";
+            const tier = pick ? championTierByStatus(pickStatus) : null;
+            return <div key={role} className={cx("relative min-h-[180px] overflow-hidden bg-[#07101f] p-3", pick ? "text-white" : "text-slate-400")}>
+              {pick && <ChampionBackdrop champion={pick.champion} />}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/12 via-[#06101f]/74 to-[#050814]" />
+              <div className="relative z-10 flex h-full min-h-[156px] flex-col justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[0.66rem] font-black uppercase tracking-[0.14em]"><RoleIcon role={role} className="h-4 w-4 text-cyan-100" />{role}</span>
+                  {tier && <ChampionTierMark tier={tier} active className="h-8 w-8 rounded-xl ring-1 ring-black/45 [&_svg]:h-4 [&_svg]:w-4" />}
+                </div>
+                {pick ? <div className="mt-8">
+                  <div className="flex items-end gap-3">
+                    <span className="inline-flex h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/15 bg-black/45 shadow-[0_14px_32px_rgba(0,0,0,.34)]"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span>
+                    <div className="min-w-0 pb-1">
+                      <p className="truncate text-xl font-black text-white">{championDisplayName(pick.champion)}</p>
+                      <p className="truncate text-xs font-bold text-slate-200">{pick.player_name || "Joueur"}</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 truncate rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-[0.66rem] font-black uppercase tracking-[0.12em] text-cyan-100">{championPoolStatusLabel(pickStatus)}</p>
+                </div> : <div className="flex flex-1 items-center justify-center text-sm font-black uppercase tracking-[0.16em] text-slate-500">Slot vide</div>}
+              </div>
+            </div>;
+          })}
+        </div>
+      </div>
+      {(identity.tags.length > 0 || picks.length > 0) && <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Badge tone={championStyleTone(identity.primary)}>{tagLabel(identity.primary)}</Badge>
+        {identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}
+      </div>}
       <CompositionCounterPanel slots={slots} rows={rows} compact />
     </div>
   </Surface>;
