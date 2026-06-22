@@ -3804,20 +3804,6 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
   });
   const activeStat = enhancedStats.find((stat) => stat.champion === selectedChampion) || enhancedStats[0] || null;
   const activeRows = activeStat?.rows || [];
-  const activeMatchups = activeStat ? Array.from(activeRows.reduce((map, row) => {
-    const enemy = opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId);
-    const champion = enemy?.champion || "Adversaire";
-    const current = map.get(champion) || { champion, games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0 };
-    current.games += 1;
-    current.wins += row.match?.result === "Victoire" ? 1 : 0;
-    current.kills += Number(row.kills || 0);
-    current.deaths += Number(row.deaths || 0);
-    current.assists += Number(row.assists || 0);
-    current.damage += Number(row.damage || 0);
-    current.vision += Number(row.vision || 0);
-    map.set(champion, current);
-    return map;
-  }, new Map()).values()).map((item) => ({ ...item, losses: Math.max(0, item.games - item.wins), winrate: Math.round((item.wins / Math.max(1, item.games)) * 100), kda: ((item.kills + item.assists) / Math.max(1, item.deaths)).toFixed(2), avgDamage: item.damage / Math.max(1, item.games), avgVision: item.vision / Math.max(1, item.games) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate) : [];
   const sortedStats = enhancedStats
     .filter((stat) => championDisplayName(stat.champion).toLowerCase().includes(query.trim().toLowerCase()))
     .filter((stat) => lens === "decision" || (lens === "ready" ? ["lock", "playable"].includes(stat.status) : lens === "review" ? stat.status === "review" : stat.buildCount > 0))
@@ -3864,7 +3850,7 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
       </div>
     </Surface>
 
-    <div className="grid gap-5 2xl:grid-cols-[minmax(320px,.31fr)_minmax(0,.69fr)]">
+    <div className="grid gap-5 2xl:grid-cols-[minmax(300px,.28fr)_minmax(0,.72fr)]">
       <Surface className="min-w-0 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0"><Badge tone="cyan">{sortedStats.length}/{enhancedStats.length} visibles</Badge><h4 className="mt-3 text-xl font-black text-white">Board champions</h4><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Filtre par intention, pas par tableur.</p></div>
@@ -3882,12 +3868,10 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
       </Surface>
 
       <div className="min-w-0 space-y-5">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,.68fr)_minmax(280px,.32fr)]">
-          <Surface className="min-w-0 overflow-hidden p-4 md:p-5">
-            {activeStat ? <ChampionProfileDetail stat={activeStat} rows={activeRows} matchups={activeMatchups} /> : <EmptyState icon={Crown} title="Selection vide" text="Choisis un champion pour ouvrir son analyse." />}
-          </Surface>
-          <ProfileChampionDecisionCard stat={activeStat} safestPick={safestPick} urgentPick={urgentPick} />
-        </div>
+        <Surface className="min-w-0 overflow-hidden p-4 md:p-5">
+          {activeStat ? <ChampionProfileDetail stat={activeStat} rows={activeRows} /> : <EmptyState icon={Crown} title="Selection vide" text="Choisis un champion pour ouvrir son analyse." />}
+        </Surface>
+        <ProfileChampionDecisionCard stat={activeStat} safestPick={safestPick} urgentPick={urgentPick} />
         <div className="grid gap-4 xl:grid-cols-2">
           <ProfileChampionInsightPanel title="A lock / blind" icon={ShieldCheck} badge={`${readyPicks.length}`} toneName="green" items={readyPicks} empty="Pas encore de pick vraiment blindable." onSelect={onSelectChampion} />
           <ProfileChampionInsightPanel title="Review avant draft" icon={AlertTriangle} badge={`${reviewPicks.length}`} toneName="orange" items={reviewPicks} empty="Aucun pick en alerte nette." onSelect={onSelectChampion} />
@@ -3954,12 +3938,16 @@ function ProfileChampionDecisionCard({ stat, safestPick, urgentPick }) {
     { label: "Alternative sure", value: safestPick ? championDisplayName(safestPick.champion) : "-", toneName: "cyan" },
     { label: "Pick critique", value: urgentPick ? championDisplayName(urgentPick.champion) : "-", toneName: "red" },
   ];
-  return <Surface glow className="min-w-0 p-4">
-    <div className="flex items-center justify-between gap-3"><Badge tone={meta.toneName}>{meta.label}</Badge><Target className="h-5 w-5 text-cyan-100" /></div>
-    <h4 className="mt-4 text-2xl font-black text-white">Decision rapide</h4>
-    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{championDisplayName(stat.champion)} est classe selon volume, WR, KDA, builds et matchups. Le but est de savoir si tu le drafts maintenant ou si tu l'ouvres en review.</p>
-    <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
+  return <Surface glow className="min-w-0 p-4 md:p-5">
+    <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(260px,.34fr)_minmax(0,.66fr)] xl:items-start">
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-3"><Badge tone={meta.toneName}>{meta.label}</Badge><Target className="h-5 w-5 text-cyan-100" /></div>
+        <h4 className="mt-4 text-2xl font-black text-white">Decision rapide</h4>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{championDisplayName(stat.champion)} est classe selon volume, WR, KDA, builds et lecture lane. Le but est de savoir si tu le drafts maintenant ou si tu l'ouvres en review.</p>
+      </div>
+    <div className="divide-y divide-white/10 border-y border-white/10">
       {recommendations.map((item) => <div key={item.label} className="grid grid-cols-[minmax(0,1fr)_minmax(92px,.42fr)] items-center gap-3 py-3"><p className="truncate text-xs font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</p><p className={cx("truncate text-right text-sm font-black", item.toneName === "green" ? "text-emerald-100" : item.toneName === "red" ? "text-rose-100" : item.toneName === "orange" ? "text-amber-100" : "text-cyan-100")}>{item.value}</p></div>)}
+    </div>
     </div>
   </Surface>;
 }
@@ -4114,7 +4102,7 @@ function ProfilePoolChampionRow({ row, stat, selectedPlayer }) {
   </div>;
 }
 
-function ChampionProfileDetail({ stat, rows, matchups }) {
+function ChampionProfileDetail({ stat, rows }) {
   const safeGames = Math.max(1, stat.games || rows.length || 0);
   const avg = (value, decimals = 1) => (Number(value || 0) / safeGames).toFixed(decimals);
   const sortedRows = rows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || "")));
@@ -4145,21 +4133,17 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
       </div>
     </div>
 
-    <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,.46fr)_minmax(0,.54fr)]">
+    <div className="grid min-w-0 gap-5">
       <section className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Repères champion</p><Badge tone="cyan">{formatPoints(stat.damage / safeGames)} DMG moy.</Badge></div>
-        <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
+        <div className="mt-3 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 md:grid-cols-2 xl:grid-cols-4">
           <ChampionReferenceLine label="Vision" value={avg(stat.vision)} detail="moyenne/game" />
           <ChampionReferenceLine label="Dégâts" value={formatPoints(stat.damage / safeGames)} detail="moyenne/game" />
           {csMilestones.samples > 0 && <ChampionReferenceLine label="CS 10 / 20" value={`${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}`} detail={`${csMilestones.samples} timeline${csMilestones.samples > 1 ? "s" : ""}`} />}
           {bestDamageRow && <ChampionReferenceLine label="Peak dégâts" value={formatPoints(bestDamageRow.damage)} detail={matchDisplayName(bestDamageRow.match, "game inconnue")} />}
         </div>
       </section>
-      <section className="min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Matchups</p><Badge tone="cyan">{matchups.length}</Badge></div>
-        <div className="mt-3 max-h-64 divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{matchups.length ? matchups.map((matchup) => <div key={matchup.champion} className="flex min-w-0 items-center gap-3 py-3"><ChampionPortrait champion={matchup.champion} alt={matchup.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(matchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-400">{matchup.games} game{matchup.games > 1 ? "s" : ""} · {matchup.wins}W - {matchup.losses}L · KDA {matchup.kda}</p></div><span className={cx("text-sm font-black", matchup.winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{matchup.winrate}%</span></div>) : <p className="py-4 text-sm font-semibold text-slate-400">Aucun matchup direct reconnu.</p>}</div>
-      </section>
-      <div className="2xl:col-span-2"><ChampionLanePanel rows={sortedRows} /></div>
+      <ChampionLanePanel rows={sortedRows} />
     </div>
 
     <section className="min-w-0">
@@ -4237,9 +4221,9 @@ function ChampionVisualMetric({ label, value, detail, color }) {
 }
 
 function ChampionReferenceLine({ label, value, detail }) {
-  return <div className="grid min-w-0 gap-1 py-3 sm:grid-cols-[minmax(88px,.5fr)_minmax(82px,.35fr)_minmax(0,1fr)] sm:items-center sm:gap-3">
+  return <div className="grid min-w-0 gap-1 bg-[#07101d] p-3">
     <p className="truncate text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</p>
-    <p className="break-words text-sm font-black text-white">{value}</p>
+    <p className="break-words text-lg font-black text-white">{value}</p>
     <p className="break-words text-xs font-semibold text-slate-400 sm:truncate">{detail}</p>
   </div>;
 }
@@ -4247,7 +4231,7 @@ function ChampionReferenceLine({ label, value, detail }) {
 function ChampionLanePanel({ rows }) {
   return <section className="min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Lecture lane</p><Badge tone="cyan">{rows.length} game{rows.length > 1 ? "s" : ""}</Badge></div>
-    <div className="mt-3 max-h-72 divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{rows.length ? rows.map((row, index) => {
+    <div className="mt-3 max-h-[34rem] divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{rows.length ? rows.map((row, index) => {
       const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase());
       const cs10 = csAtMinute(row, 10);
       const cs20 = csAtMinute(row, 20);
