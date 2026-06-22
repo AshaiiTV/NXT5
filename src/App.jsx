@@ -3198,10 +3198,10 @@ function playerImportedChampionStats(player, matches = []) {
   }, new Map()).values()).sort((a, b) => b.games - a.games || b.wins - a.wins || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
 }
 
-function ImportedChampionBadges({ player }) {
-  const items = parseMostPlayed(player?.most_played).slice(0, 3);
-  if (!items.length) return <span className="text-xs font-semibold text-slate-300">SoloQ non synchronisée</span>;
-  return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={(champion.championId || champion.champion) + "-soloq-" + index} champion={champion} index={index} />)}</div>;
+function ImportedChampionBadges({ player, matches = [] }) {
+  const items = playerImportedChampionStats(player, matches).slice(0, 3);
+  if (!items.length) return <span className="text-xs font-semibold text-slate-300">Aucune game importee pour ce profil</span>;
+  return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={(champion.championId || champion.champion) + "-imported-" + index} champion={champion} index={index} />)}</div>;
 }
 
 function normalizeProfileKey(value) {
@@ -4196,12 +4196,12 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10 }) {
       <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
         <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Build final</p><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length}</Badge></div>
         {finalItems.length ? <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, itemIndex) => <HudIcon key={`champion-lane-final-${row.id || row.match?.id}-${itemIndex}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-10 w-10" />)}</div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucun build final importe pour cette game.</p>}
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone={timeline.length ? "purple" : "slate"}>{timeline.length}</Badge></div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.length ? timeline.map((event, eventIndex) => <div key={`${row.id || row.match?.id}-lane-item-event-${eventIndex}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
+        {timeline.length > 0 && <><div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone="purple">{timeline.length}</Badge></div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.map((event, eventIndex) => <div key={`${row.id || row.match?.id}-lane-item-event-${eventIndex}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
           <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
           <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
           <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` -> ${event.secondaryId}` : ""}</p></div>
-        </div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucune timeline d'achat importee pour cette game.</p>}</div>
+        </div>)}</div></>}
       </div>
     </div>
   </details>;
@@ -8464,8 +8464,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                           {cell.slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{cell.slotEventLabel}</span>}
                           <div className="flex h-full items-center justify-center gap-2">
                             {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
-                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center", lit ? "text-cyan-50 opacity-100" : "text-slate-700 opacity-35", selectedRoleHere && "text-white opacity-100")}>
-                                <RoleIcon role={role} lightweight className="h-4 w-4" />
+                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "nxt5-planning-role-lit" : "nxt5-planning-role-dim", selectedRoleHere && "nxt5-planning-role-selected")}>
+                                <RoleIcon role={role} lightweight className="h-5 w-5" />
                               </span>;
                             })}
                           </div>
