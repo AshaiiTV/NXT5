@@ -8000,12 +8000,9 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const teamSlotTarget = Math.min(5, filledRoleSlots || players.length || 5);
   const selectedRole = normalizeProfileRole(selectedPlayer?.role);
   const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
-  const frameTone = (slotEvent, availableCount) => {
+  const frameTone = (slotEvent) => {
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
-    if (availableCount >= teamSlotTarget) return "border-cyan-200/24 bg-cyan-300/[0.085] text-cyan-50";
-    if (availableCount >= 3) return "border-cyan-200/18 bg-cyan-300/[0.055] text-cyan-50";
-    if (availableCount > 0) return "border-cyan-200/12 bg-white/[0.035] text-slate-300";
-    return "border-white/7 bg-white/[0.012] text-slate-500";
+    return "bg-[#070b16]/78 text-slate-500";
   };
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
@@ -8047,7 +8044,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       </div>}
 
       <div className="space-y-5">
-        <div className="hidden">
+        {false && <div className="hidden">
           <Surface glow className="p-3">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -8098,14 +8095,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               ))}
             </div>
           </Surface>
-        </div>
+        </div>}
 
         <div className="space-y-5">
           <Surface glow className="p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-xl font-black text-white">Planning team</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un cadre pour allumer ton poste. Clic droit = Diodes, Scrim, Match ou Review." : "Lecture seule."}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un créneau pour allumer ton poste. Clic droit = Diodes, Scrim, Match ou Review." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedPlayer && <Badge tone="blue">{roleLabel(selectedPlayer.role)}</Badge>}
@@ -8140,34 +8137,35 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.12em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-              <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Fonds clic droit</span>
-              {PLANNING_EVENT_TYPES.map((item) => <span key={item.id} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-100"><span className={cx("h-2 w-2 rounded-full", item.dot)} />{item.label}</span>)}
+              <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Type de créneau</span>
+              {PLANNING_EVENT_TYPES.map((item) => <span key={item.id} className="inline-flex items-center rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-100">{item.label}</span>)}
               <span className="ml-auto text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">{selectedRoleLabel}</span>
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
               <div className="min-w-[980px]">
-                <div className="grid grid-cols-[5rem_repeat(7,minmax(7.25rem,1fr))] gap-2">
+                <div className="grid grid-cols-[5rem_repeat(7,minmax(7.25rem,1fr))] gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10">
                   <div />
                   {weekDays.map(([day, label, date]) => {
                     const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected || saving} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("rounded-lg border px-2 py-1.5 text-center text-[0.62rem] font-black uppercase tracking-[0.12em] transition", dayActive ? "border-cyan-200/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-black/25 text-slate-300 hover:border-cyan-300/25 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")}><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
+                    return <button key={day} type="button" disabled={!canEditSelected || saving} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-black/45 px-2 py-2 text-center text-[0.62rem] font-black uppercase tracking-[0.12em] transition", dayActive ? "bg-cyan-400/10 text-cyan-50" : "text-slate-300 hover:bg-white/[0.045] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
-                      <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs font-black text-white transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
+                      <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-black/45 px-2 py-1 text-xs font-black text-white transition hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {weekDays.map(([day]) => {
                         const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
                         const availableIds = new Set(availablePlayers.map((player) => String(player.id)));
                         const activeSlot = (draftSlots[day] || []).includes(time);
+                        if (activeSlot && selectedPlayer) availableIds.add(String(selectedPlayer.id));
                         const slotEvent = visibleSlotEvents[planningEventKey(day, time)];
                         const title = [slotEvent?.label, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · ");
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[5.2rem] rounded-xl border px-3 py-2 text-left transition hover:-translate-y-0.5 hover:border-cyan-200/24", frameTone(slotEvent, availablePlayers.length), !canEditSelected && "cursor-not-allowed opacity-70")}>
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[5.2rem] px-3 py-2 text-left transition hover:bg-cyan-300/[0.035]", frameTone(slotEvent), !canEditSelected && "cursor-not-allowed opacity-70")} >
                           {slotEvent && <span className="absolute left-2 top-2 text-[0.54rem] font-black uppercase tracking-[0.12em] opacity-70">{slotEvent.label}</span>}
                           <div className="flex h-full items-center justify-center gap-5">
                             {roleSlots.map(({ role, player }) => {
                               const lit = player && availableIds.has(String(player.id));
                               const selectedRoleHere = selectedRole === role && activeSlot;
-                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "scale-110 text-white [filter:drop-shadow(0_0_8px_rgba(255,255,255,.95))_drop-shadow(0_0_20px_rgba(103,232,249,.9))_drop-shadow(0_0_34px_rgba(34,211,238,.62))]" : "scale-90 text-slate-800 opacity-25 grayscale", selectedRoleHere && "scale-125 text-white opacity-100 [filter:drop-shadow(0_0_10px_rgba(255,255,255,1))_drop-shadow(0_0_26px_rgba(255,255,255,.92))_drop-shadow(0_0_46px_rgba(34,211,238,.85))]")}>
+                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "scale-110 text-white [filter:brightness(2.4)_drop-shadow(0_0_6px_rgba(255,255,255,.9))_drop-shadow(0_0_12px_rgba(103,232,249,.72))]" : "scale-95 text-slate-700 opacity-35 grayscale", selectedRoleHere && "scale-115 text-white opacity-100 [filter:brightness(2.8)_drop-shadow(0_0_8px_rgba(255,255,255,.95))_drop-shadow(0_0_16px_rgba(103,232,249,.78))]")}>
                                 <RoleIcon role={role} className="h-6 w-6" />
                               </span>;
                             })}
@@ -8184,55 +8182,12 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected || saving} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
             </div>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs font-semibold text-slate-400">Jour/heure = raccourcis. Clic droit sur une diode = événement.</p>
+              <p className="text-xs font-semibold text-slate-400">Jour/heure = raccourcis. Clic droit sur un créneau = type de session.</p>
               <Button type="button" icon={saving ? Loader2 : Check} disabled={!canEditSelected || saving} onClick={saveAvailability}>{saving ? "Enregistrement..." : "Enregistrer les dispos"}</Button>
             </div>
           </Surface>
 
-          <Surface className="hidden p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h3 className="text-xl font-black text-white">Planning général</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{selectedWeek.label} · {selectedWeek.range}</p>
-              </div>
-              <Badge tone="purple">{players.length} profils</Badge>
-            </div>
-            <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <div className="min-w-[620px] sm:min-w-[720px]">
-                <div className="grid grid-cols-[4.4rem_repeat(7,minmax(4.8rem,1fr))] gap-1">
-                  <div />
-                  {weekDays.map(([day, label, date]) => <div key={day} className="rounded-lg border border-white/10 bg-black/25 px-2 py-1.5 text-center text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-300"><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></div>)}
-                  {PLANNING_TIMES.map((time) => (
-                    <React.Fragment key={time}>
-                      <div className="flex items-center rounded-lg border border-white/10 bg-black/25 px-2 py-1 text-xs font-black text-white">{time}</div>
-                      {weekDays.map(([day]) => {
-                        const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
-                        const ratio = availablePlayers.length / totalPlayers;
-                        const fullTeam = availablePlayers.length >= Math.min(5, players.length);
-                        const slotEvent = teamEventFor(day, time);
-                        const eventMeta = slotEvent ? planningEventMeta(slotEvent.type) : null;
-                        const cellTone = slotEvent ? eventMeta.cell : fullTeam ? "border-emerald-200/45 bg-emerald-300/16 text-emerald-50" : ratio >= 0.8 ? "border-cyan-200/42 bg-cyan-300/14 text-cyan-50" : ratio >= 0.6 ? "border-cyan-200/28 bg-cyan-400/9 text-cyan-50" : ratio >= 0.35 ? "border-violet-200/20 bg-violet-400/7 text-violet-100" : availablePlayers.length ? "border-white/12 bg-white/[0.03] text-slate-300" : "border-white/8 bg-white/[0.018] text-slate-500";
-                        const title = [slotEvent?.label, availablePlayers.map((player) => player.name).join(" · ") || "Aucun joueur disponible"].filter(Boolean).join(" · ");
-                        return (
-                          <div key={`${day}-${time}`} title={title} className={cx("relative min-h-[2.35rem] overflow-hidden rounded-lg border px-1.5 py-1 transition", cellTone)}>
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="relative z-10 text-xs font-black">{availablePlayers.length}/{players.length}</span>
-                              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/30"><span className="block h-full rounded-full bg-current" style={{ width: `${Math.round(ratio * 100)}%` }} /></span>
-                            </div>
-                            <div className="relative z-10 mt-0.5 truncate text-[0.52rem] font-black uppercase tracking-[0.06em] opacity-80">
-                              {slotEvent?.label || (availablePlayers.length ? availablePlayers.slice(0, 3).map((player) => String(player.role || "?").slice(0, 3)).join(" ") : "-")}
-                              {!slotEvent && availablePlayers.length > 3 ? ` +${availablePlayers.length - 3}` : ""}
-                            </div>
-                            {slotEvent ? <span className={cx("absolute right-1 top-1 h-1.5 w-1.5 rounded-full", eventMeta.dot)} /> : fullTeam && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-emerald-100 shadow-[0_0_10px_rgba(167,243,208,.7)]" />}
-                          </div>
-                        );
-                      })}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Surface>
+          {false && null}
         </div>
       </div>
     </div>
