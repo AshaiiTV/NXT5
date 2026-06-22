@@ -3782,9 +3782,27 @@ function CoachReferenceMetric({ item }) {
 
 function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, matchups = [], bestMatchups = [], worstMatchups = [], buildRows = [], buildRowsCount = 0, selectedCategoryId }) {
   const [query, setQuery] = useState("");
-  const [sortMode, setSortMode] = useState("volume");
+  const [lens, setLens] = useState("decision");
+  const [sortMode, setSortMode] = useState("coach");
   const totalGames = championStats.reduce((total, stat) => total + Number(stat.games || 0), 0);
-  const activeStat = championStats.find((stat) => stat.champion === selectedChampion) || championStats[0] || null;
+  const enhancedStats = championStats.map((stat) => {
+    const safeGames = Math.max(1, Number(stat.games || 0));
+    const buildCount = (stat.rows || []).filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length).length;
+    const matchupCount = Array.from((stat.rows || []).reduce((map, row) => {
+      const enemy = opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId);
+      if (enemy?.champion) map.set(enemy.champion, true);
+      return map;
+    }, new Map()).keys()).length;
+    const avgDamage = Number(stat.damage || 0) / safeGames;
+    const avgVision = Number(stat.vision || 0) / safeGames;
+    const avgKp = Number(stat.kp || 0) / safeGames;
+    const share = Math.round((Number(stat.games || 0) / Math.max(1, totalGames)) * 100);
+    const score = Math.round((Number(stat.winrate || 0) * 0.9) + (Number(stat.kda || 0) * 9) + (Math.min(5, Number(stat.games || 0)) * 7) + Math.min(18, buildCount * 4) + Math.min(12, matchupCount * 2));
+    const risk = Number(stat.games || 0) <= 1 ? "sample" : Number(stat.winrate || 0) < 45 ? "wr" : Number(stat.kda || 0) < 2 ? "kda" : share >= 60 ? "overfocus" : "";
+    const status = Number(stat.games || 0) >= 2 && Number(stat.winrate || 0) >= 55 ? "lock" : Number(stat.games || 0) >= 2 && Number(stat.winrate || 0) >= 48 ? "playable" : risk ? "review" : "test";
+    return { ...stat, buildCount, matchupCount, avgDamage, avgVision, avgKp, share, score, risk, status };
+  });
+  const activeStat = enhancedStats.find((stat) => stat.champion === selectedChampion) || enhancedStats[0] || null;
   const activeRows = activeStat?.rows || [];
   const activeMatchups = activeStat ? Array.from(activeRows.reduce((map, row) => {
     const enemy = opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId);
@@ -3800,68 +3818,79 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
     map.set(champion, current);
     return map;
   }, new Map()).values()).map((item) => ({ ...item, losses: Math.max(0, item.games - item.wins), winrate: Math.round((item.wins / Math.max(1, item.games)) * 100), kda: ((item.kills + item.assists) / Math.max(1, item.deaths)).toFixed(2), avgDamage: item.damage / Math.max(1, item.games), avgVision: item.vision / Math.max(1, item.games) })).sort((a, b) => b.games - a.games || b.winrate - a.winrate) : [];
-  const filteredStats = championStats
+  const sortedStats = enhancedStats
     .filter((stat) => championDisplayName(stat.champion).toLowerCase().includes(query.trim().toLowerCase()))
+    .filter((stat) => lens === "decision" || (lens === "ready" ? ["lock", "playable"].includes(stat.status) : lens === "review" ? stat.status === "review" : stat.buildCount > 0))
     .sort((a, b) => {
       if (sortMode === "wr") return b.winrate - a.winrate || b.games - a.games;
-      if (sortMode === "kda") return Number(b.kda || 0) - Number(a.kda || 0) || b.games - a.games;
-      if (sortMode === "damage") return (b.damage / Math.max(1, b.games)) - (a.damage / Math.max(1, a.games));
-      return b.games - a.games || b.winrate - a.winrate;
+      if (sortMode === "volume") return b.games - a.games || b.score - a.score;
+      if (sortMode === "damage") return b.avgDamage - a.avgDamage || b.score - a.score;
+      return b.score - a.score || b.games - a.games;
     });
-  const topChampion = championStats[0];
-  const topShare = topChampion ? Math.round((Number(topChampion.games || 0) / Math.max(1, totalGames)) * 100) : 0;
+  const bestPick = enhancedStats.slice().sort((a, b) => b.score - a.score || b.games - a.games)[0];
+  const safestPick = enhancedStats.filter((stat) => stat.games >= 2).sort((a, b) => b.winrate - a.winrate || Number(b.kda || 0) - Number(a.kda || 0))[0] || bestPick;
+  const urgentPick = enhancedStats.filter((stat) => stat.games >= 1).sort((a, b) => (a.winrate + Number(a.kda || 0) * 8) - (b.winrate + Number(b.kda || 0) * 8))[0];
+  const topShare = bestPick ? bestPick.share : 0;
   const buildCoverage = totalGames ? Math.round((buildRowsCount / Math.max(1, totalGames)) * 100) : 0;
-  const matchupCount = matchups.length;
-  const readyPicks = championStats.filter((stat) => stat.games >= 2 && stat.winrate >= 50).slice(0, 4);
-  const reviewPicks = championStats.filter((stat) => stat.games >= 1).slice().sort((a, b) => a.winrate - b.winrate || Number(a.kda || 0) - Number(b.kda || 0)).slice(0, 4);
-  const championSignals = [
-    { label: "Volume", value: `${championStats.length}`, detail: `${totalGames} game${totalGames > 1 ? "s" : ""} analysees`, toneName: championStats.length >= 4 ? "green" : "yellow", icon: Crown },
-    { label: "Concentration", value: topChampion ? `${topShare}%` : "-", detail: topChampion ? championDisplayName(topChampion.champion) : "Aucun pick", toneName: topShare >= 60 ? "orange" : "cyan", icon: Target },
-    { label: "Matchups", value: matchupCount, detail: "duels reconnus", toneName: matchupCount ? "purple" : "slate", icon: Swords },
-    { label: "Builds", value: `${buildCoverage}%`, detail: `${buildRowsCount}/${totalGames || 0} games`, toneName: buildCoverage >= 70 ? "green" : buildRowsCount ? "yellow" : "slate", icon: Gauge },
-  ];
-  const sortOptions = [["volume", "Volume"], ["wr", "WR"], ["kda", "KDA"], ["damage", "DMG"]];
+  const readyPicks = enhancedStats.filter((stat) => ["lock", "playable"].includes(stat.status)).sort((a, b) => b.score - a.score).slice(0, 5);
+  const reviewPicks = enhancedStats.filter((stat) => stat.status === "review").sort((a, b) => a.score - b.score).slice(0, 5);
+  const nextActions = [
+    bestPick && { title: "Premier choix", text: `${championDisplayName(bestPick.champion)} sort le meilleur mix volume, WR, KDA et builds.`, toneName: "green", icon: ShieldCheck, champion: bestPick.champion },
+    urgentPick && { title: "A verifier", text: `${championDisplayName(urgentPick.champion)} demande une review avant de le remettre en draft.`, toneName: "orange", icon: AlertTriangle, champion: urgentPick.champion },
+    buildCoverage < 65 && { title: "Builds incomplets", text: "Priorite: importer ou relire les games sans build pour rendre la lecture fiable.", toneName: "purple", icon: Gauge },
+  ].filter(Boolean).slice(0, 3);
+  const lensOptions = [["decision", "Decision"], ["ready", "Jouables"], ["review", "A revoir"], ["builds", "Builds"]];
+  const sortOptions = [["coach", "Coach"], ["volume", "Volume"], ["wr", "WR"], ["damage", "DMG"]];
   if (!championStats.length) return <Surface glow className="p-6"><EmptyState icon={Crown} title="Aucun champion importe" text={selectedCategoryId ? "Aucune game de cette categorie pour ce profil." : "Importe une game pour alimenter les champions joues."} /></Surface>;
   return <div className="space-y-5">
-    <Surface className="relative overflow-hidden p-5 md:p-6">
-      {topChampion?.champion && <ChampionBackdrop champion={topChampion.champion} focus="face" />}
-      <div className="relative z-10 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.42fr)] xl:items-end">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champion lab</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge><Badge tone={selectedCategoryId ? "purple" : "green"}>{selectedCategoryId ? "Filtre actif" : "Toutes les games"}</Badge></div>
-          <h3 className="mt-4 text-3xl font-black leading-tight text-white md:text-4xl">Lecture champions de {selectedPlayer?.name || "profil"}</h3>
-          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Une vue decisionnelle: volume, fiabilite, matchups, builds et signaux coach au meme endroit.</p>
+    <Surface className="relative overflow-hidden p-0">
+      {bestPick?.champion && <ChampionBackdrop champion={bestPick.champion} focus="face" />}
+      <div className="relative z-10 grid gap-0 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.36fr)]">
+        <div className="min-w-0 p-5 md:p-6">
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champion cockpit</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge><Badge tone={selectedCategoryId ? "purple" : "green"}>{selectedCategoryId ? "Filtre actif" : "Toutes les games"}</Badge></div>
+          <h3 className="mt-4 max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">{bestPick ? `Pick de reference: ${championDisplayName(bestPick.champion)}` : "Champion cockpit"}</h3>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">La page commence par la decision, puis donne les preuves. Tu dois pouvoir choisir un pick, comprendre le risque et ouvrir la review sans fouiller.</p>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <ProfileChampionSignal icon={Crown} label="Pool joue" value={enhancedStats.length} detail={`${totalGames} games`} toneName={enhancedStats.length >= 4 ? "green" : "yellow"} />
+            <ProfileChampionSignal icon={Target} label="Dependance" value={bestPick ? `${topShare}%` : "-"} detail={bestPick ? championDisplayName(bestPick.champion) : "Aucun pick"} toneName={topShare >= 60 ? "orange" : "cyan"} />
+            <ProfileChampionSignal icon={Swords} label="Duels" value={matchups.length} detail="matchups reconnus" toneName={matchups.length ? "purple" : "slate"} />
+            <ProfileChampionSignal icon={Gauge} label="Builds" value={`${buildCoverage}%`} detail={`${buildRowsCount}/${totalGames || 0} games`} toneName={buildCoverage >= 70 ? "green" : buildRowsCount ? "yellow" : "slate"} />
+          </div>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {championSignals.map((item) => <ProfileChampionSignal key={item.label} item={item} />)}
-        </div>
+        <aside className="border-t border-white/10 bg-black/32 p-5 xl:border-l xl:border-t-0">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Plan d'action</p>
+          <div className="mt-4 space-y-3">{nextActions.map((item) => <ProfileChampionAction key={item.title} item={item} onSelect={item.champion ? () => onSelectChampion(item.champion) : undefined} />)}</div>
+        </aside>
       </div>
     </Surface>
 
-    <div className="grid gap-5 xl:grid-cols-[minmax(300px,.36fr)_minmax(0,.64fr)]">
+    <div className="grid gap-5 2xl:grid-cols-[minmax(320px,.31fr)_minmax(0,.69fr)]">
       <Surface className="min-w-0 p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0"><Badge tone="cyan">{filteredStats.length}/{championStats.length} champions</Badge><h4 className="mt-3 text-xl font-black text-white">Selection</h4></div>
-            <Crown className="h-5 w-5 shrink-0 text-cyan-100" />
-          </div>
-          <label className="flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/24 px-3 py-2">
-            <Search className="h-4 w-4 shrink-0 text-cyan-100" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Chercher un champion" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-400" />
-          </label>
-          <div className="grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-black/20 p-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-xl px-2 py-2 text-xs font-black transition", sortMode === id ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0"><Badge tone="cyan">{sortedStats.length}/{enhancedStats.length} visibles</Badge><h4 className="mt-3 text-xl font-black text-white">Board champions</h4><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Filtre par intention, pas par tableur.</p></div>
+          <Search className="h-5 w-5 shrink-0 text-cyan-100" />
         </div>
-        <div className="mt-4 grid max-h-[52rem] gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-1">
-          {filteredStats.length ? filteredStats.map((stat) => <ProfileChampionSelectCard key={stat.champion} stat={stat} active={activeStat?.champion === stat.champion} totalGames={totalGames} onClick={() => onSelectChampion(stat.champion)} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion ne correspond a la recherche.</p>}
+        <label className="mt-4 flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/24 px-3 py-2">
+          <Search className="h-4 w-4 shrink-0 text-cyan-100" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Chercher un champion" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-400" />
+        </label>
+        <div className="mt-3 grid grid-cols-2 gap-2">{lensOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setLens(id)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", lens === id ? "border-cyan-200/50 bg-cyan-300 text-slate-950" : "border-white/10 bg-white/[0.035] text-slate-300 hover:bg-white/[0.065] hover:text-white")}>{label}</button>)}</div>
+        <div className="mt-2 grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-black/20 p-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-xl px-2 py-2 text-[0.62rem] font-black transition", sortMode === id ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
+        <div className="mt-4 grid max-h-[64rem] gap-2 overflow-auto pr-1 sm:grid-cols-2 2xl:grid-cols-1">
+          {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} active={activeStat?.champion === stat.champion} onClick={() => onSelectChampion(stat.champion)} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion ne correspond a cette lecture.</p>}
         </div>
       </Surface>
 
       <div className="min-w-0 space-y-5">
-        <Surface className="min-w-0 overflow-hidden p-4 md:p-5">
-          {activeStat ? <ChampionProfileDetail stat={activeStat} rows={activeRows} matchups={activeMatchups} /> : <EmptyState icon={Crown} title="Selection vide" text="Choisis un champion pour ouvrir son analyse." />}
-        </Surface>
-        <div className="grid gap-4 2xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]">
-          <ProfileChampionInsightPanel title="Picks a jouer" icon={ShieldCheck} badge={`${readyPicks.length}`} toneName="green" items={readyPicks} empty="Aucun pick fiable avec assez de volume pour l'instant." />
-          <ProfileChampionInsightPanel title="Picks a revoir" icon={AlertTriangle} badge={`${reviewPicks.length}`} toneName="orange" items={reviewPicks} empty="Aucun pick problematique isole." />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,.68fr)_minmax(280px,.32fr)]">
+          <Surface className="min-w-0 overflow-hidden p-4 md:p-5">
+            {activeStat ? <ChampionProfileDetail stat={activeStat} rows={activeRows} matchups={activeMatchups} /> : <EmptyState icon={Crown} title="Selection vide" text="Choisis un champion pour ouvrir son analyse." />}
+          </Surface>
+          <ProfileChampionDecisionCard stat={activeStat} safestPick={safestPick} urgentPick={urgentPick} />
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <ProfileChampionInsightPanel title="A lock / blind" icon={ShieldCheck} badge={`${readyPicks.length}`} toneName="green" items={readyPicks} empty="Pas encore de pick vraiment blindable." onSelect={onSelectChampion} />
+          <ProfileChampionInsightPanel title="Review avant draft" icon={AlertTriangle} badge={`${reviewPicks.length}`} toneName="orange" items={reviewPicks} empty="Aucun pick en alerte nette." onSelect={onSelectChampion} />
         </div>
       </div>
     </div>
@@ -3880,40 +3909,80 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
   </div>;
 }
 
-function ProfileChampionSignal({ item }) {
-  const Icon = item.icon || Activity;
+function ProfileChampionSignal({ icon: Icon = Activity, label, value, detail, toneName = "cyan" }) {
   return <div className="min-w-0 rounded-2xl border border-white/10 bg-black/30 p-3">
-    <div className="flex items-center justify-between gap-3"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</p><span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border", tone(item.toneName))}><Icon className="h-4 w-4" /></span></div>
-    <p className="mt-2 truncate text-2xl font-black text-white">{item.value}</p>
-    <p className="mt-1 truncate text-xs font-semibold text-slate-300">{item.detail}</p>
+    <div className="flex items-center justify-between gap-3"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border", tone(toneName))}><Icon className="h-4 w-4" /></span></div>
+    <p className="mt-2 truncate text-2xl font-black text-white">{value}</p>
+    <p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p>
   </div>;
 }
 
-function ProfileChampionSelectCard({ stat, active, totalGames, onClick }) {
-  const share = Math.round((Number(stat.games || 0) / Math.max(1, totalGames)) * 100);
-  const avgDamage = formatPoints(Number(stat.damage || 0) / Math.max(1, stat.games || 0));
-  return <button type="button" onClick={onClick} className={cx("group min-w-0 rounded-2xl border p-3 text-left transition hover:border-cyan-200/35 hover:bg-white/[0.055]", active ? "border-cyan-200/60 bg-cyan-400/12 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/24")}>
-    <div className="flex min-w-0 items-center gap-3">
-      <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-white/10 object-cover" />
+function ProfileChampionAction({ item, onSelect }) {
+  const Icon = item.icon || Activity;
+  const content = <><span className={cx("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(item.toneName))}><Icon className="h-4 w-4" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-black text-white">{item.title}</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-300">{item.text}</span></span>{onSelect && <ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" />}</>;
+  return onSelect ? <button type="button" onClick={onSelect} className="flex w-full gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.06]">{content}</button> : <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">{content}</div>;
+}
+
+function profileChampionStatusMeta(status) {
+  return {
+    lock: { label: "Lock", toneName: "green", text: "Pret a draft" },
+    playable: { label: "Jouable", toneName: "cyan", text: "Bon signal" },
+    review: { label: "Review", toneName: "orange", text: "Risque visible" },
+    test: { label: "Test", toneName: "purple", text: "A confirmer" },
+  }[status] || { label: "Data", toneName: "slate", text: "A lire" };
+}
+
+function ProfileChampionCommandCard({ stat, active, onClick }) {
+  const meta = profileChampionStatusMeta(stat.status);
+  return <button type="button" onClick={onClick} className={cx("group min-w-0 overflow-hidden rounded-2xl border p-3 text-left transition hover:border-cyan-200/35 hover:bg-white/[0.055]", active ? "border-cyan-200/65 bg-cyan-400/12 shadow-[0_0_24px_rgba(34,211,238,.13)]" : "border-white/10 bg-black/24")}>
+    <div className="flex min-w-0 gap-3">
+      <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-16 w-16 shrink-0 rounded-2xl border border-white/10 object-cover" />
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-start justify-between gap-2"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><Badge tone={stat.winrate >= 50 ? "green" : "red"}>{stat.winrate}%</Badge></div>
-        <p className="mt-1 truncate text-xs font-semibold text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""} - KDA {stat.kda} - {avgDamage} DMG</p>
+        <div className="flex min-w-0 items-start justify-between gap-2"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><Badge tone={meta.toneName}>{meta.label}</Badge></div>
+        <p className="mt-1 truncate text-xs font-semibold text-slate-300">{meta.text} - score {stat.score}</p>
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          <ProfileChampionMini label="G" value={stat.games} />
+          <ProfileChampionMini label="WR" value={`${stat.winrate}%`} toneName={stat.winrate >= 50 ? "green" : "red"} />
+          <ProfileChampionMini label="KDA" value={stat.kda} />
+          <ProfileChampionMini label="DMG" value={formatPoints(stat.avgDamage)} />
+        </div>
       </div>
-      <ChevronRight className={cx("h-4 w-4 shrink-0 text-cyan-100 transition", active && "translate-x-0.5")} />
     </div>
-    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.06]"><div className={cx("h-full rounded-full", stat.winrate >= 50 ? "bg-emerald-300" : "bg-amber-300")} style={{ width: `${Math.min(100, share)}%` }} /></div>
-    <p className="mt-2 text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{share}% du volume du profil</p>
+    <div className="mt-3 flex flex-wrap gap-2"><Badge tone="slate">{stat.share}% volume</Badge><Badge tone={stat.buildCount ? "purple" : "slate"}>{stat.buildCount} build{stat.buildCount > 1 ? "s" : ""}</Badge><Badge tone={stat.matchupCount ? "cyan" : "slate"}>{stat.matchupCount} duel{stat.matchupCount > 1 ? "s" : ""}</Badge></div>
   </button>;
 }
 
-function ProfileChampionInsightPanel({ title, icon: Icon, badge, toneName, items, empty }) {
+function ProfileChampionMini({ label, value, toneName = "cyan" }) {
+  return <span className="min-w-0 rounded-xl border border-white/10 bg-black/24 px-2 py-1.5"><span className="block truncate text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-400">{label}</span><span className={cx("mt-0.5 block truncate text-xs font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-white")}>{value}</span></span>;
+}
+
+function ProfileChampionDecisionCard({ stat, safestPick, urgentPick }) {
+  if (!stat) return <Surface className="p-4"><EmptyState icon={Crown} title="Aucun pick" text="Selectionne un champion." /></Surface>;
+  const meta = profileChampionStatusMeta(stat.status);
+  const recommendations = [
+    { label: "Decision", value: stat.status === "lock" ? "Draftable" : stat.status === "playable" ? "Possible" : stat.status === "review" ? "Review first" : "A tester", toneName: meta.toneName },
+    { label: "Risque", value: stat.risk === "overfocus" ? "Pool trop centre" : stat.risk === "sample" ? "Sample faible" : stat.risk === "wr" ? "WR bas" : stat.risk === "kda" ? "KDA bas" : "Controle", toneName: stat.risk ? "orange" : "green" },
+    { label: "Alternative sure", value: safestPick ? championDisplayName(safestPick.champion) : "-", toneName: "cyan" },
+    { label: "Pick critique", value: urgentPick ? championDisplayName(urgentPick.champion) : "-", toneName: "red" },
+  ];
+  return <Surface glow className="min-w-0 p-4">
+    <div className="flex items-center justify-between gap-3"><Badge tone={meta.toneName}>{meta.label}</Badge><Target className="h-5 w-5 text-cyan-100" /></div>
+    <h4 className="mt-4 text-2xl font-black text-white">Decision rapide</h4>
+    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{championDisplayName(stat.champion)} est classe selon volume, WR, KDA, builds et matchups. Le but est de savoir si tu le drafts maintenant ou si tu l'ouvres en review.</p>
+    <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
+      {recommendations.map((item) => <div key={item.label} className="grid grid-cols-[minmax(0,1fr)_minmax(92px,.42fr)] items-center gap-3 py-3"><p className="truncate text-xs font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</p><p className={cx("truncate text-right text-sm font-black", item.toneName === "green" ? "text-emerald-100" : item.toneName === "red" ? "text-rose-100" : item.toneName === "orange" ? "text-amber-100" : "text-cyan-100")}>{item.value}</p></div>)}
+    </div>
+  </Surface>;
+}
+
+function ProfileChampionInsightPanel({ title, icon: Icon, badge, toneName, items, empty, onSelect }) {
   return <Surface glow={items.length > 0} className="min-w-0 p-4">
-    <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-5 w-5" /></span><h4 className="truncate text-xl font-black text-white">{title}</h4></div><Badge tone={toneName}>{badge}</Badge></div>
-    <div className="mt-4 grid gap-2">{items.length ? items.map((stat) => <div key={`${title}-${stat.champion}`} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/24 p-3">
+    <div className="flex items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></span><h4 className="truncate text-xl font-black text-white">{title}</h4></div><Badge tone={toneName}>{badge}</Badge></div>
+    <div className="mt-4 grid gap-2">{items.length ? items.map((stat) => <button type="button" key={`${title}-${stat.champion}`} onClick={() => onSelect?.(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-black/24 p-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]">
       <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
       <div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p><p className="truncate text-xs font-semibold text-slate-300">{stat.games}G - {stat.winrate}% WR - KDA {stat.kda}</p></div>
-      <Badge tone={stat.winrate >= 50 ? "green" : "red"}>{formatPoints(Number(stat.damage || 0) / Math.max(1, stat.games || 0))}</Badge>
-    </div>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{empty}</p>}</div>
+      <Badge tone={stat.status === "review" ? "orange" : stat.winrate >= 50 ? "green" : "red"}>{stat.score}</Badge>
+    </button>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{empty}</p>}</div>
   </Surface>;
 }
 
