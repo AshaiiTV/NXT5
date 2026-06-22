@@ -52,7 +52,7 @@ const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-ar
 
 const NAV = [
   { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
-  { id: "matches", label: "Intégration", icon: Swords, shortcut: "I", path: "/integration" },
+  { id: "matches", label: "Reviews", icon: Swords, shortcut: "I", path: "/integration" },
   { id: "stats", label: "Statistiques", icon: BarChart3, shortcut: "S", path: "/statistiques" },
   { id: "trends", label: "Tendances", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
@@ -63,6 +63,9 @@ const NAV = [
   { id: "profile", label: "Mon profil", icon: Activity, shortcut: "M", path: "/mon-profil", hidden: true },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
+
+const PRIMARY_NAV_IDS = ["teams", "matches", "champions", "planning"];
+const MORE_NAV_IDS = ["stats", "trends", "compositions", "reports", "guide"];
 
 const AUTH_ROUTES = {
   "/connexion": "login",
@@ -1154,12 +1157,15 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
 
 function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer }) {
   const status = profileStatusLabel(currentMember);
-  const navItems = NAV.filter((item) => !["guide"].includes(item.id) && !item.hidden);
-  const guideItem = NAV.find((item) => item.id === "guide");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const navItems = NAV.filter((item) => PRIMARY_NAV_IDS.includes(item.id) && !item.hidden);
+  const moreItems = NAV.filter((item) => MORE_NAV_IDS.includes(item.id) && !item.hidden);
+  const moreActive = moreItems.some((item) => item.id === active);
   const profileRole = linkedPlayer?.role || currentMember?.role || "";
   const go = (pageId) => {
     setActive(pageId);
     setOpen(false);
+    setMoreOpen(false);
   };
   return (
     <>
@@ -1174,13 +1180,8 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><img src="/apple-touch-icon.png?v=6" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.22em] text-cyan-100/60">Draft Tools</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-300 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
-        <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}</nav>
+        <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}<div className="pt-1"><button type="button" onClick={() => setMoreOpen((value) => !value)} title="Plus" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", moreActive ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/20 via-blue-500/12 to-fuchsia-500/16 text-white shadow-[0_0_22px_rgba(34,211,238,.09)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}><Menu className={cx("h-5 w-5 shrink-0 transition", moreActive ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Plus</span><ChevronDown className={cx("ml-auto h-4 w-4 text-slate-400 transition", moreOpen && "rotate-180", collapsed && "lg:hidden")} /></button><AnimatePresence initial={false}>{moreOpen && !collapsed && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="mt-1 space-y-1 border-l border-cyan-200/14 pl-3">{moreItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} type="button" onClick={() => go(item.id)} className={cx("group flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-xs font-black transition", selected ?"border-cyan-200/22 bg-cyan-400/10 text-white" : "border-transparent text-slate-400 hover:border-cyan-200/14 hover:bg-white/[0.045] hover:text-white")}><Icon className={cx("h-4 w-4 shrink-0", selected ?"text-cyan-100" : "text-slate-400 group-hover:text-cyan-200")} /><span className="truncate">{item.label}</span></button>; })}</div></motion.div>}</AnimatePresence></div></nav>
         <div className="relative z-10 shrink-0 space-y-3 pt-3">
-          {guideItem && (() => {
-            const Icon = guideItem.icon;
-            const selected = active === guideItem.id;
-            return <button type="button" onClick={() => go(guideItem.id)} title={guideItem.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{guideItem.label}</span></button>;
-          })()}
           <button type="button" onClick={() => go("profile")} title="Mon profil" className={cx("nxt5-panel nxt5-premium-panel group relative w-full max-w-full overflow-hidden border border-cyan-200/16 text-left backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-300/35", collapsed ?"p-2.5" : "p-3")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-3 flex flex-wrap gap-2", collapsed && "lg:hidden")}><Badge tone="green" pulse>Online</Badge><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></button>
           <button type="button" onClick={() => go("account-settings")} title="Paramètres" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", active === "account-settings" ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Settings className={cx("h-5 w-5 shrink-0 transition", active === "account-settings" ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Paramètres</span></button>
           <Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ?"justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button>
