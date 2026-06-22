@@ -4859,7 +4859,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const latestMatch = teamMatches[0];
   return (
     <div className="nxt5-data-dense">
-      <PageHeader eyebrow="Intégration" title="Intégration des games" subtitle="Un flux court pour transformer le JSON local en game exploitable dans Stats, Profils et Review." />
+      <PageHeader eyebrow="Intégration" title="Intégration des games" />
       <div className="grid min-w-0 gap-5">
         <Surface glow className="min-w-0 p-0">
           <div className="grid min-w-0 gap-0 xl:grid-cols-[minmax(280px,.72fr)_minmax(0,1fr)]">
