@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
@@ -98,7 +98,7 @@ const PLANNING_DAYS = [
   ["SUN", "Dim"],
 ];
 const PLANNING_EVENT_TYPES = [
-  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200 shadow-[0_0_12px_rgba(240,171,252,.72)]", cell: "bg-fuchsia-500/22 text-fuchsia-50" },
+  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-100 shadow-[0_0_16px_rgba(240,171,252,.92)]", cell: "bg-fuchsia-500/42 text-fuchsia-50 shadow-[inset_0_0_0_1px_rgba(240,171,252,.28),inset_0_0_28px_rgba(217,70,239,.22)]" },
   { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "bg-emerald-400/20 text-emerald-50" },
   { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "bg-amber-400/20 text-amber-50" },
 ];
@@ -3895,17 +3895,6 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
       </div>
     </div>
 
-    <div className="grid gap-4 2xl:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)]">
-      <ProfileFold title="Matchups a comprendre" badge={`${matchups.length} duels`} icon={Swords} toneName="cyan">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div><p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-emerald-100">Favorables</p><MatchupList items={bestMatchups.slice(0, 4)} toneName="green" /></div>
-          <div><p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-rose-100">A revoir</p><MatchupList items={worstMatchups.slice(0, 4)} toneName="red" /></div>
-        </div>
-      </ProfileFold>
-      <ProfileFold title="Builds recents" badge={`${buildRowsCount} build${buildRowsCount > 1 ? "s" : ""}`} icon={Gauge} toneName="purple">
-        <div className="grid gap-3 xl:grid-cols-2">{buildRows.length ? buildRows.slice(0, 4).map((row, index) => <ProfileBuildGameCard key={(row.id || row.match?.id || row.match?.game_id || "build") + "-profile-merged-build-" + index} row={row} />) : <EmptyState icon={Gauge} title="Aucun build importe" text="Importe des games avec les items pour alimenter cette section." />}</div>
-      </ProfileFold>
-    </div>
   </div>;
 }
 
@@ -4126,7 +4115,6 @@ function ProfilePoolChampionRow({ row, stat, selectedPlayer }) {
 }
 
 function ChampionProfileDetail({ stat, rows, matchups }) {
-  const [activeDetail, setActiveDetail] = useState("stats");
   const safeGames = Math.max(1, stat.games || rows.length || 0);
   const avg = (value, decimals = 1) => (Number(value || 0) / safeGames).toFixed(decimals);
   const sortedRows = rows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || "")));
@@ -4139,11 +4127,6 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
     ["KDA", stat.kda, `${stat.kills}/${stat.deaths}/${stat.assists} total`, "text-cyan-100"],
     ["KP", `${avg(stat.kp, 0)}%`, "moyenne", "text-fuchsia-100"],
     ["CS/min", avg(stat.csPerMin), csMilestones.samples > 0 ? `CS10/20 ${csMilestones.at10 ?? "-"} / ${csMilestones.at20 ?? "-"}` : "moyenne", "text-amber-100"],
-  ];
-  const detailTabs = [
-    ["stats", "Stats", Activity, `${stat.games}G`],
-    ["builds", "Builds", Gauge, buildRows.length],
-    ["history", "Historique", FileText, sortedRows.length],
   ];
   return <div className="space-y-4">
     <div className="rounded-2xl border border-cyan-300/14 bg-black/24 p-4">
@@ -4162,14 +4145,7 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
       </div>
     </div>
 
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-1">
-      <div className="grid gap-1 sm:grid-cols-3">{detailTabs.map(([id, label, Icon, count]) => {
-        const active = activeDetail === id;
-        return <button key={id} type="button" onClick={() => setActiveDetail(id)} className={cx("flex min-w-0 items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-xs font-black transition", active ? "bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,.24)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}><span className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{label}</span></span><span>{count}</span></button>;
-      })}</div>
-    </div>
-
-    {activeDetail === "stats" && <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,.46fr)_minmax(0,.54fr)]">
+    <div className="grid min-w-0 gap-5 2xl:grid-cols-[minmax(0,.46fr)_minmax(0,.54fr)]">
       <section className="min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Repères champion</p><Badge tone="cyan">{formatPoints(stat.damage / safeGames)} DMG moy.</Badge></div>
         <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
@@ -4184,14 +4160,15 @@ function ChampionProfileDetail({ stat, rows, matchups }) {
         <div className="mt-3 max-h-64 divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{matchups.length ? matchups.map((matchup) => <div key={matchup.champion} className="flex min-w-0 items-center gap-3 py-3"><ChampionPortrait champion={matchup.champion} alt={matchup.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="truncate font-black text-white">vs {championDisplayName(matchup.champion)}</p><p className="truncate text-xs font-semibold text-slate-400">{matchup.games} game{matchup.games > 1 ? "s" : ""} · {matchup.wins}W - {matchup.losses}L · KDA {matchup.kda}</p></div><span className={cx("text-sm font-black", matchup.winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{matchup.winrate}%</span></div>) : <p className="py-4 text-sm font-semibold text-slate-400">Aucun matchup direct reconnu.</p>}</div>
       </section>
       <div className="2xl:col-span-2"><ChampionLanePanel rows={sortedRows} /></div>
-    </div>}
+    </div>
 
-    {activeDetail === "builds" && <ChampionBuildPanel rows={sortedRows} />}
-
-    {activeDetail === "history" && <section>
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Historique par game</p>
-      <div className="mt-3 max-h-[32rem] divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{sortedRows.length ? sortedRows.map((row, index) => { const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase()); return <ChampionHistoryLine key={(row.id || row.match?.id || index) + "-profile-champ"} row={row} enemy={enemy} />; }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune game sur ce champion.</p>}</div>
-    </section>}
+    <section className="min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div><p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Games et builds du champion</p><p className="mt-1 text-xs font-semibold text-slate-400">Chaque ligne correspond a une game jouee avec ce champion: matchup, resultat, stats, items finaux et timeline d'achats.</p></div>
+        <div className="flex flex-wrap gap-2"><Badge tone="purple">{sortedRows.length} game{sortedRows.length > 1 ? "s" : ""}</Badge><Badge tone={buildRows.length ? "cyan" : "slate"}>{buildRows.length} build{buildRows.length > 1 ? "s" : ""}</Badge></div>
+      </div>
+      <div className="mt-3 grid gap-3">{sortedRows.length ? sortedRows.map((row, index) => <ChampionGameBuildLine key={(row.id || row.match?.id || row.match?.game_id || "champ-game") + "-" + index} row={row} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game sur ce champion.</p>}</div>
+    </section>
   </div>;
 }
 
@@ -4199,6 +4176,56 @@ function ChampionStylePill({ tag }) {
   return <span className={cx("inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[0.62rem] font-black uppercase leading-4 tracking-[0.08em] whitespace-nowrap shadow-[0_0_14px_rgba(255,255,255,.035)]", tone(championStyleTone(tag)))}>
     {tagLabel(tag)}
   </span>;
+}
+
+function ChampionGameBuildLine({ row }) {
+  const finalItems = finalBuildItems(row);
+  const timeline = itemBuildTimeline(row);
+  const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase());
+  const cs10 = csAtMinute(row, 10);
+  const cs20 = csAtMinute(row, 20);
+  return <details className="group overflow-hidden rounded-2xl border border-white/10 bg-black/24">
+    <summary className="grid cursor-pointer list-none gap-3 p-3 transition hover:bg-white/[0.035] xl:grid-cols-[minmax(0,.82fr)_minmax(260px,.5fr)_auto] xl:items-center [&::-webkit-details-marker]:hidden">
+      <div className="flex min-w-0 items-center gap-3">
+        <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 shrink-0 rounded-xl border border-cyan-200/16 object-cover" />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || "Side ?"}</Badge>{enemy?.champion && <Badge tone="slate">vs {championDisplayName(enemy.champion)}</Badge>}</div>
+          <p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(row.match, "Game")}</p>
+          <p className="truncate text-xs font-semibold text-slate-300">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0} - KP {Math.round(parsePercent(row.kill_participation || row.kp || 0))}% - {formatPoints(row.damage)} DMG</p>
+        </div>
+      </div>
+      <div className="grid min-w-0 grid-cols-3 gap-2 text-center">
+        <ProfileChampionMini label="CS10" value={Number.isFinite(cs10) ? cs10 : "-"} />
+        <ProfileChampionMini label="CS20" value={Number.isFinite(cs20) ? cs20 : "-"} />
+        <ProfileChampionMini label="Total CS" value={creepScore(row) || "-"} />
+      </div>
+      <div className="flex min-w-0 items-center justify-between gap-3 xl:justify-end">
+        {finalItems.length ? <div className="flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, index) => <HudIcon key={`champion-game-final-${row.id || row.match?.id}-${index}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-9 w-9" />)}</div> : <Badge tone="slate">Build absent</Badge>}
+        <ChevronDown className="h-4 w-4 shrink-0 text-cyan-100 transition group-open:rotate-180" />
+      </div>
+    </summary>
+    <div className="border-t border-white/10 bg-white/[0.025] p-3">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,.44fr)_minmax(0,.56fr)]">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Lecture game</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <ProfileChampionMini label="Vision" value={Math.round(Number(row.vision || 0))} />
+            <ProfileChampionMini label="Gold" value={formatPoints(row.gold)} />
+            <ProfileChampionMini label="Duree" value={row.match?.duration || "--:--"} />
+            <ProfileChampionMini label="Game ID" value={String(row.match?.game_id || row.match?.id || "-").slice(-6)} />
+          </div>
+        </div>
+        <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
+          <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone={timeline.length ? "purple" : "slate"}>{timeline.length}</Badge></div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.length ? timeline.map((event, index) => <div key={`${row.id || row.match?.id}-champ-item-event-${index}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
+            <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
+            <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
+            <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` -> ${event.secondaryId}` : ""}</p></div>
+          </div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucune timeline d'achat importee pour cette game.</p>}</div>
+        </div>
+      </div>
+    </div>
+  </details>;
 }
 
 function ChampionVisualMetric({ label, value, detail, color }) {
@@ -4353,7 +4380,7 @@ function ProfileBuildGameCard({ row }) {
 
 function ProfileFold({ title, badge, icon: Icon = Activity, toneName = "cyan", children }) {
   const [open, setOpen] = useState(true);
-  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-5 w-5" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><AnimatePresence initial={false}>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }} className="overflow-hidden"><div className="pt-4">{children}</div></motion.div>}</AnimatePresence></Surface>;
+  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><AnimatePresence initial={false}>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }} className="overflow-hidden"><div className="pt-4">{children}</div></motion.div>}</AnimatePresence></Surface>;
 }
 
 function MatchupList({ items, toneName }) {
@@ -4474,7 +4501,7 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
           const staff = isStaffRole(item.role);
           const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
           const isLinkedToMe = String(item.user_id || "") === String(currentUserId || "");
-          return <div key={item.id} className="rounded-2xl border border-white/10 bg-black/[0.18] p-3 transition hover:border-cyan-300/25 hover:bg-white/[0.04]"><button type="button" onClick={() => openProfile(item)} disabled={staff} className="flex w-full items-start justify-between gap-3 text-left disabled:cursor-default"><div className="flex min-w-0 items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-5 w-5" /> : <Users className="h-4 w-4 text-violet-200" />}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={staff ?"purple" : "blue"}>{roleLabel(item.role)}</Badge>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div><p className="mt-2 truncate text-lg font-black text-white">{item.name}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{staff ? "Non utilisé dans OP.GG" : item.riot_id || "Sans Riot ID"}</p></div></div>{!staff && <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-cyan-100" />}</button><div className="mt-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</div>{showActions && <div className="mt-4 grid grid-cols-4 gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div>}</div>;
+          return <div key={item.id} className="rounded-2xl border border-white/10 bg-black/[0.18] p-3 transition hover:border-cyan-300/25 hover:bg-white/[0.04]"><button type="button" onClick={() => openProfile(item)} disabled={staff} className="flex w-full items-start justify-between gap-3 text-left disabled:cursor-default"><div className="flex min-w-0 items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-4 w-4" /> : <Users className="h-4 w-4 text-violet-200" />}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={staff ?"purple" : "blue"}>{roleLabel(item.role)}</Badge>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div><p className="mt-2 truncate text-lg font-black text-white">{item.name}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{staff ? "Non utilisé dans OP.GG" : item.riot_id || "Sans Riot ID"}</p></div></div>{!staff && <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-cyan-100" />}</button><div className="mt-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</div>{showActions && <div className="mt-4 grid grid-cols-4 gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div>}</div>;
         })}
       </div><div className="hidden overflow-x-auto md:block">
         <table className={cx("w-full text-left text-sm", showActions ? "min-w-[940px]" : "min-w-[760px]")}>
@@ -6135,8 +6162,8 @@ function TimelineReadoutCard({ icon: Icon, label, value, detail, toneName }) {
 
 function TimelineEventGlyph({ event }) {
   if (event.kind === "objective") return <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-8 w-8" />;
-  if (event.kind === "fight") return <Swords className="h-5 w-5" />;
-  return <Shield className="h-5 w-5" />;
+  if (event.kind === "fight") return <Swords className="h-4 w-4" />;
+  return <Shield className="h-4 w-4" />;
 }
 
 function TimelineEventCard({ event, index, kills, match }) {
@@ -6737,24 +6764,26 @@ function TrendsPage({ data, selectedTeamId }) {
               <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
             </div>
             <h2 className="nxt5-metal-text mt-4 max-w-4xl break-words text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">Cockpit stratégique</h2>
-            <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200 sm:text-base sm:leading-7">Vue d’ensemble des patterns d’équipe : contexte, ressources, dégâts, vision et identité draft sur les games importées.</p>
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-200 sm:text-base sm:leading-7">Le portrait du bloc en cours, côté jeu.</p>
           </div>
           <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
               <div className="flex min-w-0 items-center gap-2">
                 <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
+                <p className="min-w-0 truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p>
               </div>
-              <p className="mt-3 truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p>
-              <p className="mt-1 break-words text-2xl font-black leading-tight text-white">{value}</p>
+              <p className="mt-3 break-words text-2xl font-black leading-tight text-white">{value}</p>
               <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{hint}</p>
             </div>)}
           </div>
         </div>
         <aside className="min-w-0 rounded-2xl border border-white/10 bg-black/26 p-4">
-          <Button type="button" icon={ImageIcon} onClick={exportTrends} className="mb-4 w-full">Exporter les tendances</Button>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Bloc actif</p>
+            <Button type="button" variant="ghost" icon={ImageIcon} onClick={exportTrends} className="shrink-0 px-3 py-2 text-xs">Exporter</Button>
+          </div>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Bloc actif</p>
               <p className={cx("mt-2 text-4xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
               <p className="mt-1 text-sm font-black text-white">{wins}W - {losses}L</p>
             </div>
@@ -6771,8 +6800,8 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
     </section>
     <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
-      <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture data</Badge><h3 className="mt-3 text-2xl font-black text-white">Résumé du bloc</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale de tous les contextes importés."} Les écarts sont ramenés par game pour comparer scrim, tournoi et catégories custom sans gonfler le volume.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-5 grid gap-2 md:grid-cols-3">{[["KP moyen haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision moyenne haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game haut", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className={cx("mt-2 break-words text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
-      <Surface className="p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Scrim, Tournoi et custom, avec écarts moyens par game.</p></div><Badge tone="slate">{baseMatches.length} games total</Badge></div><div className="mt-4 grid gap-2">{categoryBreakdown.length ? categoryBreakdown.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-2xl border p-3 text-left transition sm:grid-cols-2 lg:grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] lg:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0 sm:col-span-2 lg:col-span-1"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games} game{entry.games > 1 ? "s" : ""} · {entry.wins}W - {entry.games - entry.wins}L</p></div><span className="min-w-0 text-sm font-black text-white sm:text-right lg:text-left">{entry.wr}% WR</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 break-words text-sm font-black sm:text-right lg:text-left", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)} dmg</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff} vision</span></button>) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
+      <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-3 text-2xl font-black text-white">Résumé</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Les écarts sont moyennés par game pour comparer les contextes sans tricher avec le volume.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-5 grid gap-2 md:grid-cols-3">{[["KP moyen haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision moyenne haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game haut", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className={cx("mt-2 break-words text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
+      <Surface className="p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Les blocs qui pèsent vraiment dans la lecture.</p></div><Badge tone="slate">{baseMatches.length} games total</Badge></div><div className="mt-4 grid gap-2">{categoryBreakdown.length ? <><div className="hidden grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] gap-2 px-3 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400 lg:grid"><span>Contexte</span><span>WR</span><span>Or</span><span>Dégâts</span><span>Vision</span></div>{categoryBreakdown.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-2xl border p-3 text-left transition sm:grid-cols-2 lg:grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] lg:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0 sm:col-span-2 lg:col-span-1"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games} game{entry.games > 1 ? "s" : ""} · {entry.wins}W - {entry.games - entry.wins}L</p></div><span className="min-w-0 text-sm font-black text-white sm:text-right lg:text-left"><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">WR</span>{entry.wr}%</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Or</span>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 break-words text-sm font-black sm:text-right lg:text-left", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Dégâts</span>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)} dmg</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Vision</span>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
     </div>
     <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,.92fr)]">
       <Surface className="p-5 md:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-3 text-3xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-5 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4"><RoleIcon role={focusRole.role} className="h-8 w-8" /><div><p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-100">Focus ressources</p><p className="font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} or moyen · {formatPoints(avgInt(focusRole.damage))} dégâts moyens</p></div></div>}</Surface>
@@ -7701,7 +7730,7 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
       if (row && String(payload.role || row.role || "").toUpperCase() === role) onChange(role, { playerId: row.player_id || player?.id || "", poolId: row.id });
     } catch {}
   }
-  return <div className="group relative overflow-hidden rounded-[1.35rem] border border-white/10 bg-black/24 p-3 shadow-[0_0_26px_rgba(34,211,238,.05)]">
+  return <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-black/18 p-3">
     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
@@ -7711,10 +7740,10 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
       {pick ? <Badge tone={championPoolStatusTone(status)}>{championPoolStatusLabel(status)}</Badge> : <Badge tone="slate">À PICK</Badge>}
     </div>
     {rolePlayers.length > 1 && <div className="mt-3 flex flex-wrap gap-1.5">{rolePlayers.map((item) => <button key={item.id} type="button" onClick={() => onChange(role, { playerId: item.id, poolId: "" })} className={cx("rounded-xl border px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.1em] transition", item.id === player?.id ? "border-cyan-200/45 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{item.name}</button>)}</div>}
-    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("relative mt-3 min-h-[220px] overflow-hidden rounded-2xl border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
+    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("relative mt-3 min-h-[168px] overflow-hidden rounded-xl border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
       {pick && <><ChampionBackdrop champion={pick.champion} /><div className="absolute inset-0 bg-gradient-to-t from-[#050711] via-[#050711]/72 to-transparent" /></>}
-      <div className={cx("relative z-10 flex h-full min-h-[196px] flex-col", pick ? "justify-end" : "justify-center")}>
-        {pick ? <div className="relative rounded-2xl border border-white/10 bg-black/30 p-3 pr-10 shadow-[inset_0_1px_0_rgba(255,255,255,.08)]"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/35 shadow-[0_0_25px_rgba(34,211,238,.16)]"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="truncate text-2xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 truncate text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="mt-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Vider le slot</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-8 w-8 text-cyan-100/70" /><p className="mt-3 text-sm font-black text-white">Glisse un champion ici</p><p className="mt-1 text-xs font-semibold text-slate-300">Pool {player?.name || role}</p></div>}
+      <div className={cx("relative z-10 flex h-full min-h-[144px] flex-col", pick ? "justify-end" : "justify-center")}>
+        {pick ? <div className="relative rounded-xl border border-white/10 bg-black/30 p-3 pr-10"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="truncate text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 truncate text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Vider</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-black text-white">Glisse un champion ici</p><p className="mt-1 text-xs font-semibold text-slate-300">Pool {player?.name || role}</p></div>}
       </div>
     </div>
   </div>;
@@ -7726,7 +7755,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
     event.dataTransfer.setData("application/json", JSON.stringify({ role, playerId: row.player_id || "", poolId: row.id }));
     event.dataTransfer.effectAllowed = "copy";
   }
-  return <div className="mt-5 rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
+  return <div className="mt-4 rounded-xl border border-white/10 bg-black/18 p-3">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/80">Banque de champions</p><p className="mt-1 text-sm font-semibold text-slate-300">Glisse une icône vers le cadre de compo correspondant.</p></div>
       <div className="flex flex-wrap gap-2">
@@ -7747,7 +7776,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
             if (tierDiff) return tierDiff;
             return championDisplayName(a.champion).localeCompare(championDisplayName(b.champion));
           });
-        return <div key={role} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
+        return <div key={role} className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-3">
           <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
           <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-4 sm:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5">{pool.length ? pool.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />) : <div className="col-span-full rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}</div>
         </div>;
@@ -7758,13 +7787,13 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
 
 function CompositionCounterPanel({ slots, rows, compact = false }) {
   const groups = compositionCounterRecommendations(slots, rows, compact ? 1 : 3).filter((group) => group.counters.length);
-  if (!groups.length) return <div className="mt-4 rounded-[1.25rem] border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Ajoute des champions dans la compo pour afficher les counters probables par rôle.</div>;
+  if (!groups.length) return <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-black/18 p-3 text-sm font-semibold text-slate-300">Ajoute des champions dans la compo pour afficher les counters probables par rôle.</div>;
   const allCounters = groups.flatMap((group) => group.counters.map((counter) => ({ ...counter, role: group.role }))).sort((a, b) => b.score - a.score);
-  if (compact) return <div className="mt-4 rounded-2xl border border-rose-300/14 bg-rose-500/[0.055] p-3">
+  if (compact) return <div className="mt-4 rounded-xl border border-rose-300/14 bg-rose-500/[0.045] p-3">
     <div className="mb-3 flex items-center justify-between gap-2"><Badge tone="red">Counters à prévoir</Badge></div>
     <div className="flex flex-wrap gap-2">{allCounters.slice(0, 5).map((counter) => <div key={`${counter.role}-${counter.champion}`} className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/24 py-1.5 pl-1.5 pr-3"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-8 w-8 rounded-lg object-cover" /><span className="text-xs font-black text-white">{counter.role} · {championDisplayName(counter.champion)}</span></div>)}</div>
   </div>;
-  return <div className="mt-5 rounded-[1.35rem] border border-rose-300/14 bg-gradient-to-br from-rose-500/[0.075] via-black/22 to-cyan-400/[0.045] p-4">
+  return <div className="mt-4 rounded-xl border border-rose-300/14 bg-black/18 p-3">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div><Badge tone="red">Counter system</Badge><h3 className="mt-3 text-xl font-black text-white">Counters probables à anticiper</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Lecture inspirée matchup/tag : les picks ci-dessous sont ceux qui peuvent rendre cette compo pénible à jouer.</p></div>
     </div>
@@ -7787,41 +7816,40 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
   const slotPicks = COMP_ROLES.map((role) => ({ role, pick: rows.find((row) => row.id === slots[role]?.poolId) }));
   const picks = slotPicks.map((slot) => slot.pick).filter(Boolean);
   const identity = compositionIdentity(picks);
-  return <Surface className="group relative overflow-hidden border-cyan-200/18 bg-[#050916]/88 p-0 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/34 hover:shadow-[0_0_46px_rgba(34,211,238,.12)]">
-    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_12%,rgba(34,211,238,.16),transparent_28%),radial-gradient(circle_at_92%_18%,rgba(217,70,239,.13),transparent_30%),linear-gradient(135deg,rgba(8,145,178,.08),rgba(2,6,23,.72)_46%,rgba(88,28,135,.12))]" />
-    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-200/70 via-white/45 to-fuchsia-200/55" />
-    <div className="relative z-10 p-4 sm:p-5">
+  return <Surface className="group relative overflow-hidden p-0 transition duration-200 hover:border-cyan-300/28">
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-200/55 via-white/30 to-fuchsia-200/35" />
+    <div className="relative z-10 p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge><Badge tone="cyan">{picks.length}/5 picks</Badge>{tags.map((tag) => <Badge key={tag} tone="purple">{tagLabel(tag)}</Badge>)}</div>
-          <h3 className="mt-3 truncate text-3xl font-black text-white">{composition.title}</h3>
+          <h3 className="mt-3 truncate text-2xl font-black text-white">{composition.title}</h3>
           <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100/72">Créée par {composition.created_by_name || "un membre"}</p>
           {composition.notes && <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}
         </div>
-        {canManage && <div className="flex shrink-0 gap-1 rounded-2xl border border-white/10 bg-black/24 p-1">
+        {canManage && <div className="flex shrink-0 gap-1 rounded-xl border border-white/10 bg-black/24 p-1">
           <button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" className="rounded-xl p-2 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button>
           <button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" className="rounded-xl p-2 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button>
           <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" className="rounded-xl p-2 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
         </div>}
       </div>
-      <div className="mt-5 overflow-hidden rounded-[1.4rem] border border-white/10 bg-black/24">
+      <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/24">
         <div className="grid gap-px bg-white/10 sm:grid-cols-2 lg:grid-cols-5">
           {slotPicks.map(({ role, pick }) => {
             const pickStatus = pick ? championPoolStatus(pick) : "";
             const tier = pick ? championTierByStatus(pickStatus) : null;
-            return <div key={role} className={cx("relative min-h-[180px] overflow-hidden bg-[#07101f] p-3", pick ? "text-white" : "text-slate-400")}>
+            return <div key={role} className={cx("relative min-h-[140px] overflow-hidden bg-[#07101f] p-3", pick ? "text-white" : "text-slate-400")}>
               {pick && <ChampionBackdrop champion={pick.champion} />}
               <div className="absolute inset-0 bg-gradient-to-b from-black/12 via-[#06101f]/74 to-[#050814]" />
-              <div className="relative z-10 flex h-full min-h-[156px] flex-col justify-between">
+              <div className="relative z-10 flex h-full min-h-[116px] flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[0.66rem] font-black uppercase tracking-[0.14em]"><RoleIcon role={role} className="h-4 w-4 text-cyan-100" />{role}</span>
                   {tier && <ChampionTierMark tier={tier} active className="h-8 w-8 rounded-xl ring-1 ring-black/45 [&_svg]:h-4 [&_svg]:w-4" />}
                 </div>
-                {pick ? <div className="mt-8">
+                {pick ? <div className="mt-5">
                   <div className="flex items-end gap-3">
-                    <span className="inline-flex h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/15 bg-black/45 shadow-[0_14px_32px_rgba(0,0,0,.34)]"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span>
+                    <span className="inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-black/45"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span>
                     <div className="min-w-0 pb-1">
-                      <p className="truncate text-xl font-black text-white">{championDisplayName(pick.champion)}</p>
+                      <p className="truncate text-lg font-black text-white">{championDisplayName(pick.champion)}</p>
                       <p className="truncate text-xs font-bold text-slate-200">{pick.player_name || "Joueur"}</p>
                     </div>
                   </div>
@@ -7855,6 +7883,17 @@ function ChampionPoolColorSummary() {
     <span className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Couleurs pool</span>
     {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] py-1 pl-1 pr-2.5 text-[0.62rem] font-black uppercase tracking-[0.08em] text-slate-100"><ChampionTierMark tier={tier} className="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />{tier.title}</span>)}
   </div>;
+}
+
+function CompositionSummaryStrip({ players, rows, compositions, formPicks }) {
+  const locked = rows.filter((row) => ["lock", "pocket"].includes(championPoolStatus(row))).length;
+  const items = [
+    ["Roster", `${players.length}/5`, "Profils lanes"],
+    ["Pool draft", rows.length, `${locked} prêts`],
+    ["Compos", compositions.length, "Enregistrées"],
+    ["Builder", `${formPicks.length}/5`, "Picks actifs"],
+  ];
+  return <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{items.map(([label, value, detail]) => <div key={label} className="rounded-xl border border-white/10 bg-black/18 px-3 py-2.5"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="truncate text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
 }
 
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -7936,7 +7975,92 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   ];
   const formPicks = COMP_ROLES.map((role) => rows.find((row) => row.id === form.slots?.[role]?.poolId)).filter(Boolean);
   const formIdentity = compositionIdentity(formPicks);
-  return <div className="nxt5-data-dense min-w-0 overflow-hidden"><PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos à partir des Champion Pools réels, avec une lecture immédiate des catégories poste par poste." /><div className="mb-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center"><button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-4 py-2.5 text-sm font-black text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,.08)] transition hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-400/16"><BookOpen className="h-4 w-4" />Sommaire des tags<ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} /></button><ChampionPoolColorSummary /></div><AnimatePresence initial={false}><CompositionTagLexicon open={showTagLexicon} /></AnimatePresence></div>{players.length ? <form onSubmit={saveComposition}><Surface className="p-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div><Badge tone="cyan">Builder 5 lanes</Badge><h3 className="mt-3 text-3xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la catégorie se met à jour instantanément.</p></div><Badge tone={mastery.tone}>{mastery.label}</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end"><TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} /><div className="flex flex-wrap gap-2">{tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}</div></div><label className="mt-4 block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Résumé</span><textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft, infos importantes pour cette compo..." rows={4} className="w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300 focus:border-cyan-300/35" /></label><div className="mt-5 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">{COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}</div>{formPicks.length > 0 && <div className="mt-5 rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between"><div><Badge tone={championStyleTone(formIdentity.primary)}>Identité en cours</Badge><h4 className="mt-3 text-xl font-black text-white">{tagLabel(formIdentity.primary)}</h4><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{formIdentity.text}</p></div><Badge tone="cyan">{formPicks.length}/5 picks</Badge></div><div className="mt-4 flex flex-wrap gap-2">{formIdentity.tags.length ? formIdentity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Standard</Badge>}</div></div>}<CompositionCounterPanel slots={form.slots} rows={rows} /><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /><div className="mt-5 flex flex-wrap justify-end gap-2">{form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}<Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer la Compo"}</Button></div></Surface></form> : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}<div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="text-sm font-black uppercase tracking-[0.28em] text-slate-300">Compos enregistrées</h3><p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p></div><div className="flex w-full rounded-2xl border border-white/10 bg-black/20 p-1 shadow-[0_0_24px_rgba(34,211,238,0.08)] md:w-auto">{sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-xl px-3 py-2 text-xs font-black uppercase tracking-[0.16em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,0.34)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}</div></div><div className="mt-3 grid gap-3">{filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}</div></div>;
+  return (
+    <div className="nxt5-data-dense min-w-0 overflow-hidden">
+      <PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos a partir des Champion Pools reels, avec une lecture immediate des categories poste par poste.">
+        <button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-400/16">
+          <BookOpen className="h-4 w-4" />
+          Tags
+          <ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} />
+        </button>
+        <ChampionPoolColorSummary />
+      </PageHeader>
+
+      <CompositionSummaryStrip players={players} rows={rows} compositions={compositions} formPicks={formPicks} />
+
+      <AnimatePresence initial={false}>
+        <CompositionTagLexicon open={showTagLexicon} />
+      </AnimatePresence>
+
+      {players.length ? (
+        <form onSubmit={saveComposition} className="mt-4">
+          <Surface glow className="p-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="cyan">Builder 5 lanes</Badge>
+                  <Badge tone={mastery.tone}>{mastery.label}</Badge>
+                </div>
+                <h3 className="mt-3 text-2xl font-black text-white md:text-3xl">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3>
+                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la categorie se met a jour instantanement.</p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}
+                <Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Creer"}</Button>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,.32fr)] xl:items-start">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} />
+                <div className="flex flex-wrap gap-2">
+                  {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}
+                </div>
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">Resume</span>
+                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft..." rows={3} className="nxt5-input-shell w-full resize-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" />
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">
+              {COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}
+            </div>
+
+            {formPicks.length > 0 && <div className="nxt5-flat-block mt-4 rounded-xl border p-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <Badge tone={championStyleTone(formIdentity.primary)}>Identite en cours</Badge>
+                  <h4 className="mt-2 text-xl font-black text-white">{tagLabel(formIdentity.primary)}</h4>
+                  <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{formIdentity.text}</p>
+                </div>
+                <Badge tone="cyan">{formPicks.length}/5 picks</Badge>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">{formIdentity.tags.length ? formIdentity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Standard</Badge>}</div>
+            </div>}
+
+            <CompositionCounterPanel slots={form.slots} rows={rows} />
+            <CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} />
+          </Surface>
+        </form>
+      ) : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour creer des Compos Types." />}
+
+      <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Compos enregistrees</h3>
+          <p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p>
+        </div>
+        <div className="flex w-full rounded-xl border border-white/10 bg-black/20 p-1 md:w-auto">
+          {sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.24)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}
+        </div>
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        {filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Cree une premiere Compo a partir des Champion Pools de tes joueurs." />}
+      </div>
+    </div>
+  );
 }
 
 function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -7954,23 +8078,75 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     const itemWeek = item.week_start ? String(item.week_start).slice(0, 10) : weekOptions[0].start;
     return item.team_id === selectedTeamId && itemWeek === selectedWeek.start;
   });
-  const linkedPlayer = players.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
+  const playersKey = players.map((player) => `${player.id}:${player.role}:${player.user_id || ""}`).join("|");
+  const availabilityKey = availability.map((row) => `${row.id}:${row.player_id}:${row.updated_at || ""}`).join("|");
+  const planningLookup = useMemo(() => {
+    const slotsByPlayer = new Map();
+    const playerIdsByCell = new Map();
+    const events = {};
+    for (const row of availability) {
+      const playerId = String(row.player_id || "");
+      const slots = availabilitySlots(row?.slots);
+      slotsByPlayer.set(playerId, slots);
+      for (const [day, times] of Object.entries(slots)) {
+        for (const time of times || []) {
+          const key = planningEventKey(day, time);
+          const list = playerIdsByCell.get(key) || [];
+          list.push(playerId);
+          playerIdsByCell.set(key, list);
+        }
+      }
+      for (const [key, event] of Object.entries(availabilityEvents(row?.slots))) {
+        if (event?.label && !events[key]) events[key] = { ...event, playerId: row.player_id };
+      }
+    }
+    return { slotsByPlayer, playerIdsByCell, events };
+  }, [availabilityKey, playersKey]);
+  const playerById = useMemo(() => new Map(players.map((player) => [String(player.id), player])), [playersKey]);
+  const linkedPlayer = players.find((player) => player.user_id && String(player.user_id) === String(user?.id || "")) || (currentMember ? { teamOnly: true } : null);
   const [draftSlots, setDraftSlots] = useState({});
   const [slotEvents, setSlotEvents] = useState({});
   const [eventMenu, setEventMenu] = useState(null);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [planningDirty, setPlanningDirty] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const changeSeqRef = useRef(0);
 
-  const selectedPlayer = linkedPlayer || null;
+  const selectedPlayer = linkedPlayer?.teamOnly ? null : linkedPlayer || null;
   const selectedAvailability = availability.find((item) => item.player_id === selectedPlayer?.id) || null;
+  const eventStoreRow = availability.find((item) => Object.keys(availabilityEvents(item?.slots)).length);
+  const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || players[0] || null;
+  const eventStoreAvailability = availability.find((item) => item.player_id === eventStorePlayer?.id) || null;
   const canEditSelected = Boolean(selectedPlayer && String(selectedPlayer.user_id || "") === String(user?.id || ""));
+  const canEditEvents = Boolean(currentMember && eventStorePlayer);
 
   useEffect(() => {
     setDraftSlots(availabilitySlots(selectedAvailability?.slots));
-    setSlotEvents(availabilityEvents(selectedAvailability?.slots));
     setEventMenu(null);
     setNotes(selectedAvailability?.notes || "");
+    setPlanningDirty(false);
+    setSaveStatus("idle");
   }, [selectedAvailability?.id, selectedAvailability?.updated_at, selectedPlayer?.id, selectedWeek.start]);
+
+  useEffect(() => {
+    setSlotEvents(availabilityEvents(eventStoreAvailability?.slots));
+    setEventMenu(null);
+  }, [eventStoreAvailability?.id, eventStoreAvailability?.updated_at, eventStorePlayer?.id, selectedWeek.start]);
+
+  useEffect(() => {
+    if (!planningDirty || saving) return undefined;
+    const timer = window.setTimeout(() => {
+      saveAvailability({ silent: true });
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [planningDirty, saving, draftSlots, slotEvents, notes, eventStorePlayer?.id, selectedTeamId, selectedWeek.start, canEditSelected, canEditEvents]);
+
+  function markPlanningDirty() {
+    changeSeqRef.current += 1;
+    setPlanningDirty(true);
+    setSaveStatus("dirty");
+  }
 
   useEffect(() => {
     if (!eventMenu) return undefined;
@@ -7989,12 +8165,12 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   }, [eventMenu]);
 
   function slotList(playerId, day) {
-    const row = availability.find((item) => item.player_id === playerId);
-    return availabilitySlots(row?.slots)[day] || [];
+    return planningLookup.slotsByPlayer.get(String(playerId || ""))?.[day] || [];
   }
 
   function toggleSlot(day, time) {
     if (!canEditSelected) return;
+    markPlanningDirty();
     setDraftSlots((current) => {
       const list = Array.isArray(current[day]) ? current[day] : [];
       const nextList = list.includes(time) ? list.filter((item) => item !== time) : PLANNING_TIMES.filter((item) => [...list, time].includes(item));
@@ -8011,6 +8187,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function setDaySlots(day, times) {
     if (!canEditSelected) return;
+    markPlanningDirty();
     const nextTimes = PLANNING_TIMES.filter((time) => times.includes(time));
     setDraftSlots((current) => ({ ...current, [day]: nextTimes }));
     setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
@@ -8021,6 +8198,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function setTimeForWeek(time) {
     if (!canEditSelected) return;
+    markPlanningDirty();
     const allActive = weekDays.every(([day]) => (draftSlots[day] || []).includes(time));
     setDraftSlots((current) => {
       return Object.fromEntries(weekDays.map(([day]) => {
@@ -8036,6 +8214,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function applyAvailabilityPreset(kind) {
     if (!canEditSelected) return;
+    markPlanningDirty();
     const presets = {
       evenings: ["20:00", "21:00", "22:00", "23:00"],
       scrim: ["19:00", "20:00", "21:00", "22:00"],
@@ -8066,7 +8245,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function openPlanningEventMenu(event, day, time) {
     event.preventDefault();
-    if (!canEditSelected || saving) return;
+    if (!canEditEvents) return;
     setEventMenu({
       day,
       time,
@@ -8076,7 +8255,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   }
 
   function applyPlanningEventType(type) {
-    if (!eventMenu) return;
+    if (!eventMenu || !canEditEvents) return;
+    markPlanningDirty();
     const { day, time } = eventMenu;
     const key = planningEventKey(day, time);
     const meta = planningEventMeta(type);
@@ -8086,15 +8266,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       return next;
     });
     setEventMenu(null);
-    setDraftSlots((currentSlots) => {
-      const list = Array.isArray(currentSlots[day]) ? currentSlots[day] : [];
-      if (list.includes(time)) return currentSlots;
-      return { ...currentSlots, [day]: PLANNING_TIMES.filter((item) => [...list, time].includes(item)) };
-    });
   }
 
   function removePlanningEvent() {
-    if (!eventMenu) return;
+    if (!eventMenu || !canEditEvents) return;
+    markPlanningDirty();
     const key = planningEventKey(eventMenu.day, eventMenu.time);
     setSlotEvents((current) => {
       const next = { ...current };
@@ -8112,14 +8288,25 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     }).find(Boolean) || null;
   }
 
-  async function saveAvailability() {
-    if (!selectedPlayer || !selectedTeamId || !canEditSelected) return;
+  async function saveAvailability({ silent = false } = {}) {
+    if (!eventStorePlayer || !selectedTeamId || (!canEditSelected && !canEditEvents)) return;
+    const changeVersion = changeSeqRef.current;
+    const baseSlots = canEditSelected ? draftSlots : availabilitySlots(eventStoreAvailability?.slots);
+    const baseNotes = canEditSelected ? notes : eventStoreAvailability?.notes || "";
     setSaving(true);
+    setSaveStatus("saving");
     try {
-      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, weekStart: selectedWeek.start, slots: planningSlotsPayload(draftSlots, slotEvents), notes }) });
-      await refreshAll();
-      pushToast({ type: "green", title: "Planning mis à jour", text: `Les dispos du profil sont enregistrées pour ${selectedWeek.label.toLowerCase()}.` });
+      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: eventStorePlayer.id, weekStart: selectedWeek.start, slots: planningSlotsPayload(baseSlots, slotEvents), notes: baseNotes }) });
+      if (changeSeqRef.current === changeVersion) {
+        setPlanningDirty(false);
+        setSaveStatus("saved");
+      }
+      if (!silent) {
+        await refreshAll();
+        pushToast({ type: "green", title: "Planning mis a jour", text: "Planning enregistre." });
+      }
     } catch (err) {
+      setSaveStatus("error");
       pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
       setSaving(false);
@@ -8130,22 +8317,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const bestCells = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => ({
     day,
     time,
-    count: players.filter((player) => slotList(player.id, day).includes(time)).length,
+    count: planningLookup.playerIdsByCell.get(planningEventKey(day, time))?.length || 0,
   }))).sort((a, b) => b.count - a.count || PLANNING_TIMES.indexOf(a.time) - PLANNING_TIMES.indexOf(b.time)).slice(0, 4);
   const selectedFilledSlots = weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0);
   const selectedFilledDays = weekDays.filter(([day]) => (draftSlots[day] || []).length).length;
-  const teamEvents = useMemo(() => {
-    const entries = {};
-    for (const row of availability) {
-      for (const [key, event] of Object.entries(availabilityEvents(row?.slots))) {
-        if (event?.label && !entries[key]) entries[key] = { ...event, playerId: row.player_id };
-      }
-    }
-    return entries;
-  }, [availability.map((row) => `${row.id}:${row.updated_at}`).join("|")]);
+  const teamEvents = planningLookup.events;
   const visibleSlotEvents = { ...teamEvents, ...slotEvents };
   const selectedEventCount = Object.keys(visibleSlotEvents).length;
-  const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => players.filter((player) => slotList(player.id, day).includes(time)).length)).filter((count) => count >= Math.min(5, players.length)).length;
+  const fullTeamSlots = weekDays.flatMap(([day]) => PLANNING_TIMES.map((time) => planningLookup.playerIdsByCell.get(planningEventKey(day, time))?.length || 0)).filter((count) => count >= Math.min(5, players.length)).length;
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
   const roleSlots = COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) }));
@@ -8157,6 +8336,15 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
     return "bg-[#070b16]/92 text-slate-500";
   };
+  const saveStatusMeta = saveStatus === "saving"
+    ? { tone: "yellow", label: "Sauvegarde..." }
+    : saveStatus === "dirty"
+      ? { tone: "cyan", label: "Modification locale" }
+      : saveStatus === "error"
+        ? { tone: "red", label: "Erreur sauvegarde" }
+        : saveStatus === "saved"
+          ? { tone: "green", label: "Synchronisé" }
+          : { tone: "slate", label: "Sauvegarde auto" };
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
   if (!players.length) return <EmptyState icon={Users} title="Aucun profil joueur" text="Ajoute des profils joueurs pour construire le planning de team." />;
@@ -8276,10 +8464,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? "Mon planning" : "Lecture seule"}</Badge>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("weekend")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Week-end</button>
-              <button type="button" disabled={!canEditSelected || saving} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
+              <button type="button" disabled={!canEditSelected} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
+              <button type="button" disabled={!canEditSelected} onClick={() => applyAvailabilityPreset("scrim")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Bloc scrim</button>
+              <button type="button" disabled={!canEditSelected} onClick={() => applyAvailabilityPreset("weekend")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Week-end</button>
+              <button type="button" disabled={!canEditSelected} onClick={() => applyAvailabilityPreset("clear")} className="rounded-lg border border-rose-300/15 bg-rose-500/10 px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-rose-100 transition hover:border-rose-200/35 disabled:cursor-not-allowed disabled:opacity-50">Vider</button>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
               <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Type de créneau</span>
@@ -8287,32 +8475,32 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               <span className="ml-auto text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">{selectedRoleLabel}</span>
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <div className="min-w-[760px]">
-                <div className="grid grid-cols-[4.1rem_repeat(7,minmax(5.4rem,1fr))] gap-px overflow-hidden rounded-xl border border-cyan-200/18 bg-cyan-100/22">
+              <div className="min-w-[660px]">
+                <div className="grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] gap-px overflow-hidden rounded-lg border border-cyan-200/20 bg-cyan-100/25">
                   <div />
                   {weekDays.map(([day, label, date]) => {
                     const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected || saving} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-black/45 px-2 py-1.5 text-center text-[0.58rem] font-black uppercase tracking-[0.1em] transition", dayActive ? "bg-cyan-400/10 text-cyan-50" : "text-slate-300 hover:bg-white/[0.045] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="mt-0.5 block text-[0.56rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
+                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-black/45 px-1.5 py-1 text-center text-[0.54rem] font-black uppercase tracking-[0.08em] transition", dayActive ? "bg-cyan-400/10 text-cyan-50" : "text-slate-300 hover:bg-white/[0.045] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-[0.52rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
                   {PLANNING_TIMES.map((time) => (
                     <React.Fragment key={time}>
-                      <button type="button" disabled={!canEditSelected || saving} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-black/45 px-2 py-1 text-xs font-black text-white transition hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
+                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-black/45 px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {weekDays.map(([day]) => {
-                        const availablePlayers = players.filter((player) => slotList(player.id, day).includes(time));
-                        const availableIds = new Set(availablePlayers.map((player) => String(player.id)));
+                        const availableIds = new Set(planningLookup.playerIdsByCell.get(planningEventKey(day, time)) || []);
+                        const availablePlayers = Array.from(availableIds).map((id) => playerById.get(id)).filter(Boolean);
                         const activeSlot = (draftSlots[day] || []).includes(time);
                         if (activeSlot && selectedPlayer) availableIds.add(String(selectedPlayer.id));
                         const slotEvent = visibleSlotEvents[planningEventKey(day, time)];
                         const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
                         const title = [slotEventLabel, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · ");
-                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected || saving} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[3.25rem] px-2 py-1.5 text-left transition hover:bg-cyan-300/[0.035]", frameTone(slotEvent), !canEditSelected && "cursor-not-allowed opacity-70")} >
-                          {slotEvent && <span className="absolute left-1.5 top-1 text-[0.5rem] font-black uppercase tracking-[0.12em] opacity-70">{slotEventLabel}</span>}
-                          <div className="flex h-full items-center justify-center gap-3">
+                        return <button key={`${day}-${time}`} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={title} className={cx("relative min-h-[2.35rem] px-1.5 py-1 text-left transition hover:bg-cyan-300/[0.035]", frameTone(slotEvent), !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
+                          {slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{slotEventLabel}</span>}
+                          <div className="flex h-full items-center justify-center gap-2">
                             {roleSlots.map(({ role, player }) => {
                               const lit = player && availableIds.has(String(player.id));
                               const selectedRoleHere = selectedRole === role && activeSlot;
                               return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "text-white [filter:brightness(1.85)_drop-shadow(0_0_6px_rgba(103,232,249,.72))]" : "text-slate-700 opacity-32 grayscale", selectedRoleHere && "text-white opacity-100 [filter:brightness(2.15)_drop-shadow(0_0_8px_rgba(255,255,255,.8))]")}>
-                                <RoleIcon role={role} className="h-5 w-5" />
+                                <RoleIcon role={role} className="h-4 w-4" />
                               </span>;
                             })}
                           </div>
@@ -8325,11 +8513,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="mt-5">
               <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Note planning</label>
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected || saving} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
+              <textarea value={notes} onChange={(event) => { setNotes(event.target.value); markPlanningDirty(); }} disabled={!canEditSelected} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
             </div>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs font-semibold text-slate-400">Jour/heure = raccourcis. Clic droit sur un créneau = type de session.</p>
-              <Button type="button" icon={saving ? Loader2 : Check} disabled={!canEditSelected || saving} onClick={saveAvailability}>{saving ? "Enregistrement..." : "Enregistrer les dispos"}</Button>
+              <p className="text-xs font-semibold text-slate-400">Chaque clic est sauvegardé automatiquement. Clic droit sur un créneau = type de session.</p>
+              <Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>
             </div>
           </Surface>
 
@@ -9337,3 +9525,4 @@ export default function NXT5() {
 
   return <>{view}<ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }
+
