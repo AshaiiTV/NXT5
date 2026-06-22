@@ -3860,7 +3860,7 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
         </label>
         <div className="mt-3 grid grid-cols-2 gap-2">{lensOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setLens(id)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", lens === id ? "border-cyan-200/50 bg-cyan-300 text-slate-950" : "border-white/10 bg-white/[0.035] text-slate-300 hover:bg-white/[0.065] hover:text-white")}>{label}</button>)}</div>
         <div className="mt-2 grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-black/20 p-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-xl px-2 py-2 text-[0.62rem] font-black transition", sortMode === id ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
-        <div className="mt-4 grid max-h-[64rem] gap-2 overflow-auto pr-1 sm:grid-cols-2 2xl:grid-cols-1">
+        <div className="mt-4 grid max-h-[64rem] gap-2 overflow-auto pr-1 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))] 2xl:grid-cols-1">
           {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} active={activeStat?.champion === stat.champion} onClick={() => onSelectChampion(stat.champion)} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion ne correspond a cette lecture.</p>}
         </div>
       </Surface>
@@ -3902,12 +3902,12 @@ function profileChampionStatusMeta(status) {
 function ProfileChampionCommandCard({ stat, active, onClick }) {
   const meta = profileChampionStatusMeta(stat.status);
   return <button type="button" onClick={onClick} className={cx("group min-w-0 overflow-hidden rounded-2xl border p-3 text-left transition hover:border-cyan-200/35 hover:bg-white/[0.055]", active ? "border-cyan-200/65 bg-cyan-400/12 shadow-[0_0_24px_rgba(34,211,238,.13)]" : "border-white/10 bg-black/24")}>
-    <div className="flex min-w-0 gap-3">
-      <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-16 w-16 shrink-0 rounded-2xl border border-white/10 object-cover" />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-start justify-between gap-2"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><Badge tone={meta.toneName}>{meta.label}</Badge></div>
+    <div className="grid min-w-0 grid-cols-[3.5rem_minmax(0,1fr)] gap-3">
+      <ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-14 w-14 shrink-0 rounded-2xl border border-white/10 object-cover" />
+      <div className="min-w-0">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-2"><p className="min-w-0 truncate font-black text-white">{championDisplayName(stat.champion)}</p><span className="min-w-0 shrink-0"><Badge tone={meta.toneName}>{meta.label}</Badge></span></div>
         <p className="mt-1 truncate text-xs font-semibold text-slate-300">{meta.text} - score {stat.score}</p>
-        <div className="mt-3 grid grid-cols-4 gap-1.5">
+        <div className="mt-3 grid gap-1.5 [grid-template-columns:repeat(auto-fit,minmax(3.8rem,1fr))]">
           <ProfileChampionMini label="G" value={stat.games} />
           <ProfileChampionMini label="WR" value={`${stat.winrate}%`} toneName={stat.winrate >= 50 ? "green" : "red"} />
           <ProfileChampionMini label="KDA" value={stat.kda} />
@@ -3915,12 +3915,12 @@ function ProfileChampionCommandCard({ stat, active, onClick }) {
         </div>
       </div>
     </div>
-    <div className="mt-3 flex flex-wrap gap-2"><Badge tone="slate">{stat.share}% volume</Badge><Badge tone={stat.buildCount ? "purple" : "slate"}>{stat.buildCount} build{stat.buildCount > 1 ? "s" : ""}</Badge><Badge tone={stat.matchupCount ? "cyan" : "slate"}>{stat.matchupCount} duel{stat.matchupCount > 1 ? "s" : ""}</Badge></div>
+    <div className="mt-3 flex min-w-0 flex-wrap gap-1.5"><Badge tone="slate">{stat.share}% volume</Badge><Badge tone={stat.buildCount ? "purple" : "slate"}>{stat.buildCount} build{stat.buildCount > 1 ? "s" : ""}</Badge><Badge tone={stat.matchupCount ? "cyan" : "slate"}>{stat.matchupCount} duel{stat.matchupCount > 1 ? "s" : ""}</Badge></div>
   </button>;
 }
 
 function ProfileChampionMini({ label, value, toneName = "cyan" }) {
-  return <span className="min-w-0 rounded-xl border border-white/10 bg-black/24 px-2 py-1.5"><span className="block truncate text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-400">{label}</span><span className={cx("mt-0.5 block truncate text-xs font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-white")}>{value}</span></span>;
+  return <span className="min-w-0 rounded-xl border border-white/10 bg-black/24 px-2 py-1.5"><span className="block truncate text-[0.52rem] font-black uppercase tracking-[0.06em] text-slate-400">{label}</span><span className={cx("mt-0.5 block min-w-0 truncate text-xs font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-white")}>{value}</span></span>;
 }
 
 function ProfileChampionDecisionCard({ stat, safestPick, urgentPick }) {
@@ -4129,13 +4129,6 @@ function ChampionProfileDetail({ stat, rows }) {
       <ChampionLanePanel rows={sortedRows} />
     </div>
 
-    <section className="min-w-0">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div><p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/80">Games et builds du champion</p><p className="mt-1 text-xs font-semibold text-slate-400">Chaque ligne correspond a une game jouee avec ce champion: matchup, resultat, stats, items finaux et timeline d'achats.</p></div>
-        <div className="flex flex-wrap gap-2"><Badge tone="purple">{sortedRows.length} game{sortedRows.length > 1 ? "s" : ""}</Badge><Badge tone={buildRows.length ? "cyan" : "slate"}>{buildRows.length} build{buildRows.length > 1 ? "s" : ""}</Badge></div>
-      </div>
-      <div className="mt-3 grid gap-3">{sortedRows.length ? sortedRows.map((row, index) => <ChampionGameBuildLine key={(row.id || row.match?.id || row.match?.game_id || "champ-game") + "-" + index} row={row} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game sur ce champion.</p>}</div>
-    </section>
   </div>;
 }
 
@@ -4143,58 +4136,6 @@ function ChampionStylePill({ tag }) {
   return <span className={cx("inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-[0.62rem] font-black uppercase leading-4 tracking-[0.08em] whitespace-nowrap shadow-[0_0_14px_rgba(255,255,255,.035)]", tone(championStyleTone(tag)))}>
     {tagLabel(tag)}
   </span>;
-}
-
-function ChampionGameBuildLine({ row }) {
-  const finalItems = finalBuildItems(row);
-  const timeline = itemBuildTimeline(row);
-  const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase());
-  const cs10 = csAtMinute(row, 10);
-  const cs20 = csAtMinute(row, 20);
-  return <details className="group overflow-hidden rounded-2xl border border-white/10 bg-black/24">
-    <summary className="grid cursor-pointer list-none gap-3 p-3 transition hover:bg-white/[0.035] xl:grid-cols-[minmax(0,1fr)_minmax(260px,.38fr)_auto] xl:items-center [&::-webkit-details-marker]:hidden">
-      <div className="flex min-w-0 items-center gap-3">
-        <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-12 w-12 shrink-0 rounded-xl border border-cyan-200/16 object-cover" />
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || "Side ?"}</Badge>{enemy?.champion && <Badge tone="slate">vs {championDisplayName(enemy.champion)}</Badge>}</div>
-          <p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(row.match, "Game")}</p>
-          <p className="truncate text-xs font-semibold text-slate-300">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0} - KP {Math.round(parsePercent(row.kill_participation || row.kp || 0))}% - {formatPoints(row.damage)} DMG</p>
-        </div>
-      </div>
-      <div className="grid min-w-0 grid-cols-3 gap-2 text-center">
-        <ProfileChampionMini label="CS10" value={Number.isFinite(cs10) ? cs10 : "-"} />
-        <ProfileChampionMini label="CS20" value={Number.isFinite(cs20) ? cs20 : "-"} />
-        <ProfileChampionMini label="Total CS" value={creepScore(row) || "-"} />
-      </div>
-      <div className="flex min-w-0 items-center justify-between gap-3 xl:justify-end">
-        <Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length ? "Voir build" : "Build absent"}</Badge>
-        <ChevronDown className="h-4 w-4 shrink-0 text-cyan-100 transition group-open:rotate-180" />
-      </div>
-    </summary>
-    <div className="border-t border-white/10 bg-white/[0.025] p-3">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,.44fr)_minmax(0,.56fr)]">
-        <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
-          <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Lecture game</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <ProfileChampionMini label="Vision" value={Math.round(Number(row.vision || 0))} />
-            <ProfileChampionMini label="Gold" value={formatPoints(row.gold)} />
-            <ProfileChampionMini label="Duree" value={row.match?.duration || "--:--"} />
-            <ProfileChampionMini label="Game ID" value={String(row.match?.game_id || row.match?.id || "-").slice(-6)} />
-          </div>
-        </div>
-        <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
-          <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Build final</p><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length}</Badge></div>
-          {finalItems.length ? <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, index) => <HudIcon key={`champion-game-open-final-${row.id || row.match?.id}-${index}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-10 w-10" />)}</div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucun build final importe pour cette game.</p>}
-          <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone={timeline.length ? "purple" : "slate"}>{timeline.length}</Badge></div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.length ? timeline.map((event, index) => <div key={`${row.id || row.match?.id}-champ-item-event-${index}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
-            <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
-            <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
-            <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` -> ${event.secondaryId}` : ""}</p></div>
-          </div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucune timeline d'achat importee pour cette game.</p>}</div>
-        </div>
-      </div>
-    </div>
-  </details>;
 }
 
 function ChampionVisualMetric({ label, value, detail, color }) {
@@ -4214,25 +4155,56 @@ function ChampionReferenceLine({ label, value, detail }) {
 }
 
 function ChampionLanePanel({ rows }) {
+  const buildRows = rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
   return <section className="min-w-0">
-    <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Lecture lane</p><Badge tone="cyan">{rows.length} game{rows.length > 1 ? "s" : ""}</Badge></div>
+    <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Lecture lane</p><div className="flex flex-wrap gap-2"><Badge tone="cyan">{rows.length} game{rows.length > 1 ? "s" : ""}</Badge><Badge tone={buildRows.length ? "purple" : "slate"}>{buildRows.length} build{buildRows.length > 1 ? "s" : ""}</Badge></div></div>
     <div className="mt-3 max-h-[34rem] divide-y divide-white/10 overflow-auto border-y border-white/10 pr-1">{rows.length ? rows.map((row, index) => {
       const enemy = (row.match?.participants || []).find((item) => item.team_key === "ENEMY" && String(item.role || "").toUpperCase() === String(row.role || "").toUpperCase());
       const cs10 = csAtMinute(row, 10);
       const cs20 = csAtMinute(row, 20);
       const enemyCs10 = enemy ? csAtMinute({ ...enemy, match: row.match }, 10) : null;
       const diff10 = Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null;
-      return <div key={`${row.match?.id || row.match?.game_id || index}-lane`} className="grid gap-3 py-3 2xl:grid-cols-[minmax(0,1fr)_repeat(3,minmax(58px,.25fr))] 2xl:items-center">
-        <div className="flex min-w-0 items-center gap-3">
-          {enemy?.champion ? <ChampionPortrait champion={enemy.champion} alt={enemy.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /> : <div className="h-10 w-10 shrink-0 rounded-xl bg-white/[0.05]" />}
-          <div className="min-w-0"><p className="truncate text-sm font-black text-white">vs {enemy?.champion ? championDisplayName(enemy.champion) : "Matchup inconnu"}</p><p className="truncate text-xs font-semibold text-slate-400">{matchDisplayName(row.match, "Game")} · {row.match?.result || "Résultat ?"}</p></div>
-        </div>
-        <ChampionMiniStat label="CS10" value={Number.isFinite(cs10) ? cs10 : "-"} />
-        <ChampionMiniStat label="CS20" value={Number.isFinite(cs20) ? cs20 : "-"} />
-        <ChampionMiniStat label="Diff10" value={diff10 === null ? "-" : `${diff10 >= 0 ? "+" : ""}${diff10}`} toneName={diff10 === null ? "slate" : diff10 >= 0 ? "green" : "red"} />
-      </div>;
+      return <ChampionLaneGameLine key={`${row.match?.id || row.match?.game_id || index}-lane`} row={row} enemy={enemy} cs10={cs10} cs20={cs20} diff10={diff10} />;
     }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune lane exploitable sur ce champion.</p>}</div>
   </section>;
+}
+
+function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10 }) {
+  const finalItems = finalBuildItems(row);
+  const timeline = itemBuildTimeline(row);
+  return <details className="group">
+    <summary className="grid cursor-pointer list-none gap-3 py-3 transition hover:bg-white/[0.025] 2xl:grid-cols-[minmax(0,1fr)_repeat(3,minmax(70px,.18fr))_auto] 2xl:items-center [&::-webkit-details-marker]:hidden">
+      <div className="flex min-w-0 items-center gap-3">
+        {enemy?.champion ? <ChampionPortrait champion={enemy.champion} alt={enemy.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /> : <div className="h-10 w-10 shrink-0 rounded-xl bg-white/[0.05]" />}
+        <div className="min-w-0"><p className="truncate text-sm font-black text-white">vs {enemy?.champion ? championDisplayName(enemy.champion) : "Matchup inconnu"}</p><p className="truncate text-xs font-semibold text-slate-400">{matchDisplayName(row.match, "Game")} - {row.match?.result || "Resultat ?"}</p></div>
+      </div>
+      <ChampionMiniStat label="CS10" value={Number.isFinite(cs10) ? cs10 : "-"} />
+      <ChampionMiniStat label="CS20" value={Number.isFinite(cs20) ? cs20 : "-"} />
+      <ChampionMiniStat label="Diff10" value={diff10 === null ? "-" : `${diff10 >= 0 ? "+" : ""}${diff10}`} toneName={diff10 === null ? "slate" : diff10 >= 0 ? "green" : "red"} />
+      <div className="flex min-w-0 items-center justify-between gap-2 2xl:justify-end"><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length ? "Build" : "Sans build"}</Badge><ChevronDown className="h-4 w-4 shrink-0 text-cyan-100 transition group-open:rotate-180" /></div>
+    </summary>
+    <div className="grid gap-3 border-t border-white/10 bg-white/[0.025] py-3 xl:grid-cols-[minmax(0,.36fr)_minmax(0,.64fr)]">
+      <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Data game</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <ProfileChampionMini label="KDA" value={`${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`} />
+          <ProfileChampionMini label="KP" value={`${Math.round(parsePercent(row.kill_participation || row.kp || 0))}%`} />
+          <ProfileChampionMini label="DMG" value={formatPoints(row.damage)} />
+          <ProfileChampionMini label="Vision" value={Math.round(Number(row.vision || 0))} />
+        </div>
+      </div>
+      <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
+        <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Build final</p><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length}</Badge></div>
+        {finalItems.length ? <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, itemIndex) => <HudIcon key={`champion-lane-final-${row.id || row.match?.id}-${itemIndex}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-10 w-10" />)}</div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucun build final importe pour cette game.</p>}
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone={timeline.length ? "purple" : "slate"}>{timeline.length}</Badge></div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.length ? timeline.map((event, eventIndex) => <div key={`${row.id || row.match?.id}-lane-item-event-${eventIndex}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
+          <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
+          <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
+          <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` -> ${event.secondaryId}` : ""}</p></div>
+        </div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucune timeline d'achat importee pour cette game.</p>}</div>
+      </div>
+    </div>
+  </details>;
 }
 
 function ChampionBuildPanel({ rows }) {
