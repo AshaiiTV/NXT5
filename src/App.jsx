@@ -3672,15 +3672,16 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   ];
   if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle="Diagnostic coach complet, axes de travail et détails exploitables sans perdre le fil de la review.">
-      <div className="flex w-full flex-col gap-3 sm:w-[30rem]">
-	        <div className="w-full sm:w-80"><SelectInput label="Profil observé" value={selectedPlayer.id} onChange={selectProfile}>{sortPlayersByRole(players).map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput></div>
-        {matchCategories.length > 0 && <div className="rounded-2xl border border-cyan-300/14 bg-black/20 p-3"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(categoryId) => setSelectedCategoryId(categoryId)} label="Filtrer par" /></div>}
-        <Button type="button" variant="ghost" icon={Download} onClick={exportProfilePng} className="w-full justify-center">Exporter le résumé PNG</Button>
-      </div>
-    </PageHeader>
+    <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle={"Diagnostic coach complet, axes de travail et d\u00e9tails exploitables sans perdre le fil de la review."} />
     <Surface className="relative overflow-hidden p-5">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(34,211,238,.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(217,70,239,.13),transparent_34%)]" />
+      <div className="relative z-10 mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 2xl:flex-row 2xl:items-end 2xl:justify-between">
+        <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] lg:items-end">
+          <div className="min-w-0"><SelectInput label={"Profil observ\u00e9"} value={selectedPlayer.id} onChange={selectProfile}>{sortPlayersByRole(players).map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)}{" \u00b7 "}{player.name}</option>)}</SelectInput></div>
+          {matchCategories.length > 0 && <div className="min-w-0 rounded-2xl border border-cyan-300/14 bg-black/20 p-2.5"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(categoryId) => setSelectedCategoryId(categoryId)} label="Filtrer" /></div>}
+        </div>
+        <Button type="button" variant="ghost" icon={Download} onClick={exportProfilePng} className="shrink-0 justify-center 2xl:w-auto">{"Exporter le r\u00e9sum\u00e9 PNG"}</Button>
+      </div>
       <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge>{activeProfileCategory && <Badge tone={matchCategoryTone(activeProfileCategory)}>{activeProfileCategory.name}</Badge>}</div><h2 className="mt-4 truncate text-4xl font-black text-white md:text-5xl">{selectedPlayer.name}</h2><p className="mt-2 truncate text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
         <div className="grid w-full gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
