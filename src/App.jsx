@@ -8507,6 +8507,22 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
   const selectedMatchForReport = selected ? matches.find((match) => reportMatchIds(selected).includes(match.id) && (!urlMatchId || match.id === urlMatchId)) || matches.find((match) => reportMatchIds(selected).includes(match.id)) : null;
   const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Review");
+  const reviewMatches = form.matchIds.length ? matches.filter((match) => form.matchIds.includes(match.id)) : [];
+  const selectedMatchIds = selected ? reportMatchIds(selected) : [];
+  const selectedMatches = selected ? matches.filter((match) => selectedMatchIds.includes(match.id)) : [];
+  const reviewWins = reviewMatches.filter((match) => match.result === "Victoire").length;
+  const selectedWins = selectedMatches.filter((match) => match.result === "Victoire").length;
+  const newestReview = reports.slice().sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))[0];
+
+  function startBlankReview() {
+    resetReportForm();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function selectReport(report) {
+    setSelectedReportId(report.id);
+    window.history.replaceState({}, "", "/rapports?report=" + report.id);
+  }
 
   useEffect(() => {
     if (urlReportId && reports.some((report) => report.id === urlReportId)) setSelectedReportId(urlReportId);
@@ -8556,7 +8572,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: form.content, matchIds: form.matchIds }) });
       resetReportForm();
       await refreshAll();
-      pushToast({ type: "green", title: form.id ? "Review mis à jour" : "Review cr??eréé", text: "Le contenu de review est enregistré." });
+      pushToast({ type: "green", title: form.id ? "Review mise à jour" : "Review créée", text: "Le contenu de review est enregistré." });
     } catch (err) {
       pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
@@ -8571,7 +8587,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     try {
       await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, reportId: report.id }) });
       await refreshAll();
-      pushToast({ type: "green", title: "Review supprim?eé", text: "La review a été retiré." });
+      pushToast({ type: "green", title: "Review supprimée", text: "La review a été retirée." });
     } catch (err) {
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
     } finally {
@@ -8583,25 +8599,60 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   return (
     <div className="nxt5-data-dense min-w-0 overflow-hidden">
       <PageHeader
-        eyebrow="Review staff"
+        eyebrow="Review room"
         title="Review"
-        subtitle="Rédige, retrouve et relis les reviews sans mélanger les filtres, les games et le contenu."
-      />
+        subtitle="Choisis un bloc de games, écris les décisions, puis retrouve la review sans fouiller dans trois menus."
+      >
+        <Button icon={Plus} onClick={startBlankReview}>Nouvelle review</Button>
+        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
+      </PageHeader>
+
+      <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.06] p-4">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">Reviews</p>
+          <p className="mt-2 text-3xl font-black text-white">{reports.length}</p>
+          <p className="mt-1 text-xs font-semibold text-slate-400">{scopedReports.length} visibles dans le contexte</p>
+        </div>
+        <div className="rounded-2xl border border-purple-300/14 bg-purple-400/[0.06] p-4">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-purple-100/75">Groupes</p>
+          <p className="mt-2 text-3xl font-black text-white">{archives.length}</p>
+          <p className="mt-1 truncate text-xs font-semibold text-slate-400">{selectedArchive?.name || "Aucun filtre actif"}</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-300/14 bg-emerald-400/[0.06] p-4">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-emerald-100/75">Sélection</p>
+          <p className="mt-2 text-3xl font-black text-white">{form.matchIds.length}</p>
+          <p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "Aucune game liée"}</p>
+        </div>
+        <div className="rounded-2xl border border-amber-300/14 bg-amber-400/[0.06] p-4">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-amber-100/75">Dernière</p>
+          <p className="mt-2 truncate text-lg font-black text-white">{newestReview ? reportDisplayName(newestReview, matches) : "Pas encore"}</p>
+          <p className="mt-1 text-xs font-semibold text-slate-400">{newestReview ? new Date(newestReview.updated_at || newestReview.created_at).toLocaleDateString("fr-FR") : "Crée la première review"}</p>
+        </div>
+      </div>
 
       <Surface className="mb-5 p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.55fr)]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={selectedArchive ? "purple" : "slate"}>{selectedArchive ? "Groupe actif" : "Toutes les reviews"}</Badge>
-              <Badge tone="cyan">{scopedReports.length} review{scopedReports.length > 1 ? "s" : ""}</Badge>
-              <Badge tone="green">{form.matchIds.length} game{form.matchIds.length > 1 ? "s" : ""} liée{form.matchIds.length > 1 ? "s" : ""}</Badge>
+              <Badge tone={selectedArchive ? "purple" : "slate"}>{selectedArchive ? "Bloc actif" : "Toutes les games"}</Badge>
+              <Badge tone="cyan">{scopedMatches.length} game{scopedMatches.length > 1 ? "s" : ""}</Badge>
+              <Badge tone="green">{form.matchIds.length} liée{form.matchIds.length > 1 ? "s" : ""}</Badge>
             </div>
-            <h3 className="mt-3 break-words text-2xl font-black text-white">{selectedArchive?.name || "Vue globale review"}</h3>
-            <p className="mt-1 text-sm font-semibold text-slate-300">
-              {selectedArchive ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans ce groupe. Les reviews et la sélection sont filtrés.` : "Sélectionne un groupe si tu veux travailler sur un bloc de scrim précis."}
+            <h3 className="mt-3 break-words text-2xl font-black text-white">{selectedArchive?.name || "Choisis ton contexte de review"}</h3>
+            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">
+              {selectedArchive ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans ce bloc. La bibliothèque et la sélection se concentrent dessus.` : "Travaille en global, ou clique un groupe pour review un scrim block précis sans bruit autour."}
             </p>
           </div>
-          {selectedArchive && <Button variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")}>Retirer le groupe</Button>}
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+            <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Workflow</p>
+            <div className="mt-3 grid gap-2">
+              {["1. Choisir le bloc", "2. Lier les games", "3. Écrire les décisions"].map((step, index) => <div key={step} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-300/20 bg-cyan-400/10 text-xs font-black text-cyan-100">{index + 1}</span>
+                <span className="text-sm font-black text-white">{step}</span>
+              </div>)}
+            </div>
+            {selectedArchive && <Button variant="ghost" icon={X} onClick={() => setSelectedArchiveId("")} className="mt-3 w-full">Retirer le bloc</Button>}
+          </div>
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -8626,9 +8677,9 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
           <form onSubmit={saveReport} className="space-y-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modification" : "Nouvelle review"}</Badge>
+                <Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Review en édition" : "Nouvelle review"}</Badge>
                 <h3 className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || (form.id ? "Modifier la review" : "Créer une review")}</h3>
-                <p className="mt-1 text-sm font-semibold text-slate-300">Le titre vient automatiquement des games liées. Le champ titre sert seulement de secours.</p>
+                <p className="mt-1 text-sm font-semibold text-slate-300">La review suit les games sélectionnées. Tu peux écrire brut, puis injecter les commandes data si besoin.</p>
               </div>
               <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                 <Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)} className="w-full sm:w-auto">Commandes</Button>
@@ -8646,11 +8697,18 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               </div>
             </div>}
 
-            <TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} />
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]">
+              <TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} />
+              <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan sélection</p>
+                <p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p>
+                <p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p>
+              </div>
+            </div>
 
             <div>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games liées</p>
+                <p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">2. Games liées</p>
                 <Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length} sélectionnée{form.matchIds.length > 1 ? "s" : ""}</Badge>
               </div>
               <div className="grid max-h-[210px] gap-2 overflow-auto pr-1 md:grid-cols-2 xl:grid-cols-3">
@@ -8670,7 +8728,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
             <div className="grid gap-4 2xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,.75fr)]">
               <label className="block">
-                <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes de review</span>
+                <span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">3. Notes de review</span>
                 <textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions, timestamps, plans d'action...\n/KDA "ADC"`} required rows={16} className="min-h-[360px] w-full resize-y rounded-2xl border border-white/10 bg-black/[0.22] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-400 focus:border-cyan-300/35" />
               </label>
               <div className="min-w-0">
@@ -8696,14 +8754,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               {scopedReports.length ? scopedReports.map((report) => {
                 const active = selected?.id === report.id;
                 const ids = reportMatchIds(report);
-                return <button key={report.id} type="button" onClick={() => setSelectedReportId(report.id)} className={cx("w-full rounded-xl border p-3 text-left transition", active ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/18 hover:bg-white/[0.055]")}>
+                return <button key={report.id} type="button" onClick={() => selectReport(report)} className={cx("w-full rounded-xl border p-3 text-left transition", active ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/18 hover:bg-white/[0.055]")}>
                   <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <p className="min-w-0 break-words font-black text-white">{reportDisplayName(report, matches)}</p>
                     <Badge tone={active ? "cyan" : "slate"}>{ids.length} game{ids.length > 1 ? "s" : ""}</Badge>
                   </div>
                   <p className="mt-1 truncate text-xs font-semibold text-slate-300">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p>
                 </button>;
-              }) : <EmptyState icon={FileText} title="Aucune review" text="Crée une review lieeé aux games de ce groupe." />}
+              }) : <EmptyState icon={FileText} title="Aucune review" text="Crée une review liée aux games de ce groupe." />}
             </div>
           </Surface>
 
@@ -8711,9 +8769,23 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             {selected ? <>
               <div className="flex flex-col gap-3">
                 <div className="min-w-0">
-                  <Badge tone="purple">Lecture</Badge>
+                  <Badge tone="purple">Review active</Badge>
                   <h3 className="mt-3 break-words text-2xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {reportMatchIds(selected).length} game{reportMatchIds(selected).length > 1 ? "s" : ""} liée{reportMatchIds(selected).length > 1 ? "s" : ""}</p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                    <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p>
+                    <p className="mt-1 text-lg font-black text-white">{selectedMatches.length}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                    <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Record</p>
+                    <p className="mt-1 text-lg font-black text-white">{selectedMatches.length ? `${selectedWins}W - ${selectedMatches.length - selectedWins}L` : "--"}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
+                    <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p>
+                    <p className="mt-1 text-lg font-black text-white">{selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport} className="w-full sm:w-auto">Stats</Button>
