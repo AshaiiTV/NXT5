@@ -4913,7 +4913,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const laneAssignmentsReady = COMP_ROLES.every((role) => String(laneAssignments[role] || "").trim() && String(playerAssignments[role] || "").trim());
   const enemyAssignmentsReady = COMP_ROLES.every((role) => String(enemyLaneAssignments[role] || "").trim());
   const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
-  const previewTeams = importPreport?.teams || [];
+  const previewTeams = importPreview?.teams || [];
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
   const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
