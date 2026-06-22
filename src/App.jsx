@@ -7998,10 +7998,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
   const frameTone = (slotEvent, availableCount) => {
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
-    if (availableCount >= teamSlotTarget) return "border-emerald-200/45 bg-emerald-300/16 text-emerald-50 shadow-[0_0_24px_rgba(16,185,129,.10)]";
-    if (availableCount >= 3) return "border-cyan-200/36 bg-cyan-300/12 text-cyan-50";
-    if (availableCount > 0) return "border-white/12 bg-white/[0.035] text-slate-300";
-    return "border-white/8 bg-white/[0.018] text-slate-500";
+    if (availableCount >= teamSlotTarget) return "border-cyan-200/24 bg-cyan-300/[0.085] text-cyan-50";
+    if (availableCount >= 3) return "border-cyan-200/18 bg-cyan-300/[0.055] text-cyan-50";
+    if (availableCount > 0) return "border-cyan-200/12 bg-white/[0.035] text-slate-300";
+    return "border-white/7 bg-white/[0.012] text-slate-500";
   };
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
