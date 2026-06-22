@@ -64,8 +64,8 @@ const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
 
-const PRIMARY_NAV_IDS = ["teams", "matches", "champions", "planning"];
-const MORE_NAV_IDS = ["stats", "trends", "compositions", "reports", "guide"];
+const PRIMARY_NAV_IDS = ["teams", "matches", "champions", "planning", "guide"];
+const MORE_NAV_IDS = ["stats", "trends", "compositions", "reports"];
 
 const AUTH_ROUTES = {
   "/connexion": "login",
