@@ -96,12 +96,13 @@ textarea {
 .nxt5-planning-role-lit img,
 .nxt5-planning-role-lit svg {
   opacity: 1 !important;
-  filter: brightness(0) invert(1) drop-shadow(0 0 6px rgba(255, 255, 255, 0.98)) drop-shadow(0 0 16px rgba(255, 255, 255, 0.72)) !important;
+  filter: brightness(0) invert(1) !important;
 }
 
 .nxt5-planning-role-selected img,
 .nxt5-planning-role-selected svg {
-  filter: brightness(0) invert(1) drop-shadow(0 0 8px #fff) drop-shadow(0 0 22px rgba(255, 255, 255, 0.92)) !important;
+  opacity: 1 !important;
+  filter: brightness(0) invert(1) !important;
 }
 
 .nxt5-planning-role-dim img,
@@ -121,6 +122,7 @@ textarea {
   font-weight: 900;
   line-height: 1;
   transition: none !important;
+  will-change: auto;
 }
 
 .nxt5-planning-role-lit {

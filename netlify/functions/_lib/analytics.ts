@@ -210,6 +210,7 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
       const cs = Number(p.totalMinionsKilled || 0) + Number(p.neutralMinionsKilled || 0);
       const gold = Number(p.goldEarned || 0);
       const damage = Number(p.totalDamageDealtToChampions || 0);
+      const damageToTurrets = participantNumber(p, 'damageDealtToTurrets', 'damageToTurrets', 'damage_to_turrets');
       const vision = Number(p.visionScore || 0);
       const killsForTeam = Math.max(1, teamKills(match, p.teamId));
       const kp = (kills + assists) / killsForTeam;
@@ -232,6 +233,7 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
         cs,
         gold,
         damage,
+        damage_to_turrets: damageToTurrets,
         vision,
         kp,
         kda: `${kills}/${deaths}/${assists}`,
@@ -275,7 +277,7 @@ function buildMatchSummary(match, allyTeamId, participants) {
 function reportForMatch({ team, summary, participants }) {
   const ally = participants.filter((p) => p.team_key === 'ALLY');
   const rows = ally
-    .map((p) => `- **${p.role || 'ROLE'} ${p.summoner_name || p.riot_id || 'Joueur'}** sur **${p.champion || 'Champion'}** : ${p.kda}, ${p.cs_per_min} CS/min, ${p.gold_per_min} gold/min, ${p.damage} dégâts, ${p.vision} vision.`)
+    .map((p) => `- **${p.role || 'ROLE'} ${p.summoner_name || p.riot_id || 'Joueur'}** sur **${p.champion || 'Champion'}** : ${p.kda}, ${p.cs_per_min} CS/min, ${p.gold_per_min} gold/min, ${p.damage} dégâts, ${p.damage_to_turrets || 0} dégâts tours, ${p.vision} vision.`)
     .join('\n');
 
   return `## Review — ${team.name}\n\n**Résultat :** ${summary.result}  \n**Durée :** ${summary.duration}  \n**Side :** ${summary.side}  \n**Objectifs neutres :** ${summary.objective_score}  \n**Vision diff :** ${summary.vision_score}\n\n### Données joueurs\n${rows || '- Aucun participant allié détecté.'}`;
@@ -410,6 +412,7 @@ async function ensureMatchImporterColumn() {
   await sql`alter table match_participants add column if not exists cs integer not null default 0`;
   await sql`alter table match_participants add column if not exists gold integer not null default 0`;
   await sql`alter table match_participants add column if not exists damage integer not null default 0`;
+  await sql`alter table match_participants add column if not exists damage_to_turrets integer not null default 0`;
   await sql`alter table match_participants add column if not exists vision integer not null default 0`;
   await sql`alter table match_participants add column if not exists kp numeric`;
   await sql`alter table match_participants add column if not exists kda text`;
@@ -511,12 +514,12 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
     await sql`
       insert into match_participants (
         match_id, player_id, team_key, summoner_name, riot_id, champion, role,
-        kills, deaths, assists, cs, gold, damage, vision, kp, kda,
+        kills, deaths, assists, cs, gold, damage, damage_to_turrets, vision, kp, kda,
         cs_per_min, gold_per_min, kill_participation, grade, raw
       )
       values (
         ${savedMatch.id}, ${p.player_id}, ${p.team_key}, ${p.summoner_name}, ${p.riot_id}, ${p.champion}, ${p.role},
-        ${p.kills}, ${p.deaths}, ${p.assists}, ${p.cs}, ${p.gold}, ${p.damage}, ${p.vision}, ${p.kp}, ${p.kda},
+        ${p.kills}, ${p.deaths}, ${p.assists}, ${p.cs}, ${p.gold}, ${p.damage}, ${p.damage_to_turrets}, ${p.vision}, ${p.kp}, ${p.kda},
         ${p.cs_per_min}, ${p.gold_per_min}, ${p.kill_participation}, ${p.grade}, ${JSON.stringify(p.raw)}::jsonb
       )
     `;

@@ -108,15 +108,31 @@ export default async function handler(request: Request, context: Context): Promi
     if (action === 'roles') {
       const roles = body.roles && typeof body.roles === 'object' ? body.roles : {};
       const allowedRoles = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP']);
+      const players = await sql`select id from players where team_id = ${teamId}`;
+      const validPlayerIds = new Set(players.map((player) => String(player.id)));
       for (const [participantId, roleRaw] of Object.entries(roles)) {
-        const role = cleanText(roleRaw, 12).toUpperCase();
+        const assignment = roleRaw && typeof roleRaw === 'object' ? roleRaw as Record<string, any> : { role: roleRaw };
+        const role = cleanText(assignment.role, 12).toUpperCase();
+        const playerId = cleanText(assignment.playerId, 80);
         if (!allowedRoles.has(role)) continue;
-        await sql`
-          update match_participants
-          set role = ${role}
-          where id = ${participantId}
-            and match_id = ${matchId}
-        `;
+        if (playerId && !validPlayerIds.has(playerId)) throw Object.assign(new Error('Profil joueur invalide pour cette team.'), { status: 400 });
+        if (playerId) {
+          await sql`
+            update match_participants
+            set role = ${role},
+                player_id = ${playerId}
+            where id = ${participantId}
+              and match_id = ${matchId}
+              and team_key = 'ALLY'
+          `;
+        } else {
+          await sql`
+            update match_participants
+            set role = ${role}
+            where id = ${participantId}
+              and match_id = ${matchId}
+          `;
+        }
       }
       await sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

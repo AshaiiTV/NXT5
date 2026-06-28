@@ -2211,6 +2211,10 @@ function formatPoints(value) {
   return `${sign}${abs}`;
 }
 
+function towerDamage(row) {
+  return Number(row?.damage_to_turrets ?? row?.damageToTurrets ?? row?.raw?.damageDealtToTurrets ?? row?.raw?.damageToTurrets ?? row?.raw?.damage_to_turrets ?? 0);
+}
+
 function formatGoldDiff(value) {
   const number = Math.round(Number(value || 0));
   return `${number >= 0 ? "+" : "-"}${Math.abs(number)}`;
@@ -3244,7 +3248,13 @@ function playerIntegratedRows(player, matches = []) {
   return matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match }))).filter((row) => {
     const rowRole = normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane);
     const roleMatches = !playerRole || playerRole === "SUB" || rowRole === playerRole;
-    const identityMatches = row.player_id === player?.id || normalizeProfileKey(row.riot_id) === riotKey || normalizeProfileKey(row.summoner_name) === nameKey;
+    const rowPlayerId = String(row.player_id || "");
+    const playerId = String(player?.id || "");
+    const rowRiotKey = normalizeProfileKey(row.riot_id);
+    const rowSummonerKey = normalizeProfileKey(row.summoner_name);
+    const identityMatches = rowPlayerId
+      ? rowPlayerId === playerId
+      : (Boolean(riotKey) && rowRiotKey === riotKey) || (Boolean(nameKey) && rowSummonerKey === nameKey);
     if (!(row.team_key === "ALLY" && roleMatches && identityMatches)) return false;
     const key = [row.match?.id || row.match?.game_id, row.raw?.participantId || row.participant_id || row.role, row.player_id || row.riot_id || row.summoner_name || player?.id, row.champion].map((value) => String(value || "")).join("|");
     if (seen.has(key)) return false;
@@ -4637,7 +4647,7 @@ function JsonUploadProgress({ progress }) {
   </div>;
 }
 
-function ImportHistoryCard({ match, categories, editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onSaveRoles }) {
+function ImportHistoryCard({ match, categories, roster = [], editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onPlayerChange, onSaveRoles }) {
   const importer = match.created_by_name || match.created_by_account || "";
   const participants = match.participants || [];
   const selectedCategories = matchCategoriesForMatch(match, categories);
@@ -4670,8 +4680,13 @@ function ImportHistoryCard({ match, categories, editing, editForm, saving, onEdi
       </div>
     </div>
     {roleEditorOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-white">Réassigner les postes</p><p className="mt-1 text-xs font-semibold text-slate-300">Corrige les lanes après import si Riot ou le JSON a mal placé un champion.</p></div><Button type="button" icon={saving ? Loader2 : Check} onClick={onSaveRoles} disabled={saving}>Enregistrer les postes</Button></div>
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey} className={cx("rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/14 bg-cyan-400/[0.045]" : "border-rose-300/14 bg-rose-500/[0.045]")}><div className="mb-3 flex items-center justify-between gap-2"><Badge tone={teamKey === "ALLY" ? "cyan" : "red"}>{teamKey === "ALLY" ? "Alliés" : "Adversaires"}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{participants.filter((row) => row.team_key === teamKey).map((row) => <label key={row.id} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/22 p-2"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-white">{championDisplayName(row.champion)}</span><span className="block truncate text-[0.62rem] font-semibold text-slate-300">{row.summoner_name || row.riot_id || "Joueur"}</span></span><select value={roleForm[row.id] || row.role || ""} onChange={(event) => onRoleChange(row.id, event.target.value)} className="w-20 rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-[0.68rem] font-black text-white outline-none">{COMP_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select></label>)}</div></div>)}</div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-white">Réassigner postes et profils</p><p className="mt-1 text-xs font-semibold text-slate-300">Corrige les lanes et le profil NXT5 attaché au champion, notamment en cas d'inversion ADC/SUP.</p></div><Button type="button" icon={saving ? Loader2 : Check} onClick={onSaveRoles} disabled={saving}>Enregistrer</Button></div>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey} className={cx("rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/14 bg-cyan-400/[0.045]" : "border-rose-300/14 bg-rose-500/[0.045]")}><div className="mb-3 flex items-center justify-between gap-2"><Badge tone={teamKey === "ALLY" ? "cyan" : "red"}>{teamKey === "ALLY" ? "Alliés" : "Adversaires"}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{participants.filter((row) => row.team_key === teamKey).map((row) => {
+        const formValue = roleForm[row.id];
+        const form = formValue && typeof formValue === "object" ? formValue : { role: formValue || row.role || "", playerId: row.player_id || "" };
+        const linkedPlayer = roster.find((player) => String(player.id || "") === String(form.playerId || ""));
+        return <label key={row.id} className="grid min-w-0 gap-2 rounded-xl border border-white/10 bg-black/22 p-2"><span className="flex min-w-0 items-center gap-2"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-white">{championDisplayName(row.champion)}</span><span className="block truncate text-[0.62rem] font-semibold text-slate-300">{teamKey === "ALLY" && linkedPlayer ? `${linkedPlayer.name} · ${row.summoner_name || row.riot_id || "Joueur"}` : row.summoner_name || row.riot_id || "Joueur"}</span></span></span><span className="grid grid-cols-[76px_minmax(0,1fr)] gap-2"><select value={form.role || ""} onChange={(event) => onRoleChange(row.id, event.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-[0.68rem] font-black text-white outline-none">{COMP_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select>{teamKey === "ALLY" ? <select value={form.playerId || ""} onChange={(event) => onPlayerChange(row.id, event.target.value)} className="min-w-0 rounded-lg border border-cyan-300/14 bg-cyan-400/[0.07] px-2 py-1.5 text-[0.68rem] font-black text-white outline-none"><option value="">Profil NXT5</option>{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</select> : <span className="rounded-lg border border-white/10 bg-black/24 px-2 py-1.5 text-[0.68rem] font-black text-slate-400">Adversaire</span>}</span></label>;
+      })}</div></div>)}</div>
     </div>}
   </div>;
 }
@@ -4860,10 +4875,21 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   function toggleRoleEditor(match) {
     const open = roleEditorMatchId === match.id;
     setRoleEditorMatchId(open ? "" : match.id);
-    setRoleEditForm(open ? {} : Object.fromEntries((match.participants || []).map((row) => [row.id, row.role || ""])));
+    setRoleEditForm(open ? {} : Object.fromEntries((match.participants || []).map((row) => [row.id, { role: row.role || "", playerId: row.player_id || "" }])));
   }
   function updateRoleEdit(participantId, role) {
-    setRoleEditForm((current) => ({ ...current, [participantId]: role }));
+    setRoleEditForm((current) => {
+      const previous = current[participantId];
+      const form = previous && typeof previous === "object" ? previous : { role: previous || "", playerId: "" };
+      return { ...current, [participantId]: { ...form, role } };
+    });
+  }
+  function updatePlayerEdit(participantId, playerId) {
+    setRoleEditForm((current) => {
+      const previous = current[participantId];
+      const form = previous && typeof previous === "object" ? previous : { role: previous || "", playerId: "" };
+      return { ...current, [participantId]: { ...form, playerId } };
+    });
   }
   async function saveMatchRoles(match) {
     setManagingMatchId(match.id);
@@ -4872,7 +4898,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       setRoleEditorMatchId("");
       setRoleEditForm({});
       await refreshAll();
-      pushToast({ type: "green", title: "Postes corrigés", text: "Les statistiques et la lecture 5v5 utilisent les nouveaux postes." });
+      pushToast({ type: "green", title: "Assignation corrigée", text: "Les profils, statistiques et lectures 5v5 utilisent les bons joueurs." });
     } catch (err) {
       pushToast({ type: "red", title: "Correction impossible", text: err.message });
     } finally {
@@ -5129,7 +5155,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
             <div className="flex items-end"><Button type="button" variant="ghost" icon={X} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }}>Annuler</Button></div>
           </form>}
         </div>
-        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onSaveRoles={() => saveMatchRoles(match)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
+        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
       </Surface>
     </div>
   );
@@ -6561,9 +6587,10 @@ function MatchDataPanel({ match }) {
   const allyAssists = sumRows(ally, "assists");
   const enemyKills = sumRows(enemy, "kills");
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
+  const towerDamageDiff = ally.reduce((total, row) => total + towerDamage(row), 0) - enemy.reduce((total, row) => total + towerDamage(row), 0);
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Trophy} label="Dégâts tours" value={(towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff)} hint="Pression structures" tone={towerDamageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, towerDamageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -6576,6 +6603,7 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
   const enemy = rows.filter((row) => row.team_key === "ENEMY");
   const wins = matches.filter((match) => match.result === "Victoire").length;
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
+  const towerDamageDiff = ally.reduce((total, row) => total + towerDamage(row), 0) - enemy.reduce((total, row) => total + towerDamage(row), 0);
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
   const deaths = sumRows(ally, "deaths");
@@ -6595,7 +6623,7 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
         <Badge tone={wins >= matches.length / 2 ? "green" : "red"}>{wins}W / {matches.length - wins}L</Badge>
       </div>
     </div>
-    <div className="mt-5 grid gap-3 lg:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
+    <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Target} label="Dégâts tours" value={(towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff)} hint="Total structures" tone={diffTone(towerDamageDiff)} sideMarker={winningTeamForDiff(towerDamageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
     <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button><div className="mt-3 flex justify-end"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div>; })}</div>
   </Surface>;
 }
@@ -7209,29 +7237,34 @@ function ReviewSignalPanel({ match, rows }) {
   const enemyVision = sum(enemy, "vision");
   const allyGold = sum(ally, "gold");
   const enemyGold = sum(enemy, "gold");
+  const allyTowerDamage = ally.reduce((total, row) => total + towerDamage(row), 0);
+  const enemyTowerDamage = enemy.reduce((total, row) => total + towerDamage(row), 0);
   const topDamage = ally.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
   const topVision = ally.slice().sort((a, b) => Number(b.vision || 0) - Number(a.vision || 0))[0];
   const goldDiff = allyGold - enemyGold;
   const damageDiff = allyDamage - enemyDamage;
+  const towerDamageDiff = allyTowerDamage - enemyTowerDamage;
   const visionDiff = allyVision - enemyVision;
   const signals = [
     [Target, "Dégâts", (damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff) + " dégâts équipe", damageDiff >= 0 ? "green" : "red"],
+    [Trophy, "Tours", (towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff) + " dégâts tours", towerDamageDiff >= 0 ? "green" : "red"],
     [Eye, "Vision", (visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff) + " vision face aux adversaires", visionDiff >= 0 ? "cyan" : "red"],
     [Gauge, "Économie", formatGoldDiff(goldDiff) + " or équipe", goldDiff >= 0 ? "green" : "red"],
   ];
   const identity = compositionIdentity(ally);
   if (!rows.length) return null;
-  return <div className="mb-5 grid gap-3 xl:grid-cols-[1fr_.72fr]"><div className="grid gap-3 md:grid-cols-3">{signals.map(([Icon, title, value, t]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{title}</p><div className={cx("rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-3 text-sm font-black leading-6 text-white">{value}</p></div>)}</div><div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Identité de Compo</p><Badge tone={championStyleTone(identity.primary)}>{tagLabel(identity.primary)}</Badge></div><p className="mt-3 text-sm font-bold leading-6 text-white">{identity.text}</p><div className="mt-3 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Standard</Badge>}</div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">{[["Plus de dégâts", topDamage], ["Plus de vision", topVision]].map(([label, row]) => <div key={label} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-2"><div className="h-10 w-10 overflow-hidden rounded-full border border-white/10 bg-black/30">{row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} /> : null}</div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "À remplir"}</p><p className="truncate text-xs font-semibold text-slate-300">{label} · {row ? championDisplayName(row.champion) : "Importe une game"}</p></div></div>)}</div></div></div>;
+  return <div className="mb-5 grid gap-3 xl:grid-cols-[1fr_.72fr]"><div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">{signals.map(([Icon, title, value, t]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{title}</p><div className={cx("rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-3 text-sm font-black leading-6 text-white">{value}</p></div>)}</div><div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Identité de Compo</p><Badge tone={championStyleTone(identity.primary)}>{tagLabel(identity.primary)}</Badge></div><p className="mt-3 text-sm font-bold leading-6 text-white">{identity.text}</p><div className="mt-3 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Standard</Badge>}</div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">{[["Plus de dégâts", topDamage], ["Plus de vision", topVision]].map(([label, row]) => <div key={label} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/25 p-2"><div className="h-10 w-10 overflow-hidden rounded-full border border-white/10 bg-black/30">{row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} /> : null}</div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "À remplir"}</p><p className="truncate text-xs font-semibold text-slate-300">{label} · {row ? championDisplayName(row.champion) : "Importe une game"}</p></div></div>)}</div></div></div>;
 }
 
 function ParticipantTable({ rows }) {
   const [query, setQuery] = useState("");
   const [teamFilter, setTeamFilter] = useState("ALLY");
   const maxDamage = Math.max(1, ...rows.map((row) => Number(row.damage || 0)));
+  const maxTowerDamage = Math.max(1, ...rows.map((row) => towerDamage(row)));
   const maxGold = Math.max(1, ...rows.map((row) => Number(row.gold || 0)));
   const filtered = rows.filter((row) => { const rowText = String(row.summoner_name || "") + " " + String(row.champion || "") + " " + String(row.role || ""); return rowText.toLowerCase().includes(query.toLowerCase()) && (teamFilter === "ALL" || row.team_key === teamFilter); });
   if (!rows.length) return <EmptyState icon={BarChart3} title="Participants non calculés" text="Importe une game Riot pour afficher les champions, KDA, dégâts, gold et vision." />;
-  return <div><div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div className="w-full md:max-w-sm"><TextInput label="Rechercher" value={query} onChange={setQuery} placeholder="Champion, joueur, rôle..." icon={Search} /></div><div className="flex gap-2">{[["ALLY", "Nous"], ["ENEMY", "Eux"], ["ALL", "Tous"]].map(([id, label]) => <button key={id} onClick={() => setTeamFilter(id)} className={cx("rounded-2xl border px-4 py-2 text-sm font-black transition", teamFilter === id ?"border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{label}</button>)}</div></div><div className="grid gap-3">{filtered.map((row) => <div key={row.id} className={cx("grid gap-4 rounded-[1.35rem] border p-4 transition xl:grid-cols-[minmax(220px,1.35fr)_minmax(120px,.8fr)_minmax(140px,.85fr)_minmax(140px,.85fr)_minmax(90px,.55fr)] md:items-center", row.team_key === "ALLY" ?"border-cyan-300/20 bg-cyan-400/8" : "border-rose-300/15 bg-rose-500/7")}><div className="flex min-w-0 items-center gap-3"><div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/30"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ?"cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate text-lg font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-sm font-semibold text-slate-300">{row.summoner_name || row.riot_id || "?"}</p></div></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">KDA</p><p className="mt-1 text-lg font-black text-white">{row.kda}</p><p className="text-xs font-semibold text-slate-300">KP {row.kill_participation}</p></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Dégâts</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.damage)}</p><StatBar value={row.damage} max={maxDamage} tone={row.team_key === "ALLY" ?"cyan" : "red"} /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Gold / CS</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.gold)}</p><p className="text-xs font-semibold text-slate-300">{row.cs} CS · {row.cs_per_min}/min</p><StatBar value={row.gold} max={maxGold} tone="yellow" /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Vision</p><p className="mt-1 text-lg font-black text-white">{row.vision}</p></div></div>)}</div></div>;
+  return <div><div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div className="w-full md:max-w-sm"><TextInput label="Rechercher" value={query} onChange={setQuery} placeholder="Champion, joueur, rôle..." icon={Search} /></div><div className="flex gap-2">{[["ALLY", "Nous"], ["ENEMY", "Eux"], ["ALL", "Tous"]].map(([id, label]) => <button key={id} onClick={() => setTeamFilter(id)} className={cx("rounded-2xl border px-4 py-2 text-sm font-black transition", teamFilter === id ?"border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{label}</button>)}</div></div><div className="grid gap-3">{filtered.map((row) => <div key={row.id} className={cx("grid gap-4 rounded-[1.35rem] border p-4 transition xl:grid-cols-[minmax(220px,1.35fr)_minmax(110px,.62fr)_minmax(128px,.72fr)_minmax(128px,.72fr)_minmax(128px,.72fr)_minmax(90px,.5fr)] md:items-center", row.team_key === "ALLY" ?"border-cyan-300/20 bg-cyan-400/8" : "border-rose-300/15 bg-rose-500/7")}><div className="flex min-w-0 items-center gap-3"><div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/30"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ?"cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate text-lg font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-sm font-semibold text-slate-300">{row.summoner_name || row.riot_id || "?"}</p></div></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">KDA</p><p className="mt-1 text-lg font-black text-white">{row.kda}</p><p className="text-xs font-semibold text-slate-300">KP {row.kill_participation}</p></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Dégâts</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.damage)}</p><StatBar value={row.damage} max={maxDamage} tone={row.team_key === "ALLY" ?"cyan" : "red"} /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Dégâts tours</p><p className="mt-1 text-lg font-black text-white">{formatPoints(towerDamage(row))}</p><StatBar value={towerDamage(row)} max={maxTowerDamage} tone="purple" /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Gold / CS</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.gold)}</p><p className="text-xs font-semibold text-slate-300">{row.cs} CS · {row.cs_per_min}/min</p><StatBar value={row.gold} max={maxGold} tone="yellow" /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Vision</p><p className="mt-1 text-lg font-black text-white">{row.vision}</p></div></div>)}</div></div>;
 }
 
 function ChampionPoolCard({ row }) {
@@ -8190,7 +8223,9 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 }
 
 function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
-  const players = useMemo(() => (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)), [data.players, selectedTeamId]);
+  const gameplayPlayers = useMemo(() => sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role))), [data.players, selectedTeamId]);
+  const staffProfiles = useMemo(() => (data.players || []).filter((player) => player.team_id === selectedTeamId && isStaffRole(player.role)).sort((a, b) => String(roleLabel(a.role)).localeCompare(String(roleLabel(b.role))) || String(a.name || "").localeCompare(String(b.name || ""))), [data.players, selectedTeamId]);
+  const players = useMemo(() => [...gameplayPlayers, ...staffProfiles], [gameplayPlayers, staffProfiles]);
   const baseWeekStart = useMemo(() => mondayOfWeek(), []);
   const weekOptions = useMemo(() => [
     { id: "current", label: "Semaine en cours", start: dateKey(baseWeekStart), range: formatWeekRange(baseWeekStart) },
@@ -8205,6 +8240,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     return item.team_id === selectedTeamId && itemWeek === selectedWeek.start;
   }), [data.availability, selectedTeamId, selectedWeek.start, weekOptions]);
   const playersKey = players.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
+  const gameplayPlayersKey = gameplayPlayers.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
+  const staffProfilesKey = staffProfiles.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
   const availabilityKey = availability.map((row) => `${row.id}:${row.player_id}:${row.updated_at || ""}`).join("|");
   const planningLookup = useMemo(() => {
     const slotsByPlayer = new Map();
@@ -8242,7 +8279,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const selectedPlayer = linkedPlayer?.teamOnly ? null : linkedPlayer || null;
   const selectedAvailability = availability.find((item) => item.player_id === selectedPlayer?.id) || null;
   const eventStoreRow = availability.find((item) => Object.keys(availabilityEvents(item?.slots)).length);
-  const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || players[0] || null;
+  const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || gameplayPlayers[0] || staffProfiles[0] || null;
   const eventStoreAvailability = availability.find((item) => item.player_id === eventStorePlayer?.id) || null;
   const canEditSelected = Boolean(selectedPlayer && String(selectedPlayer.user_id || "") === String(user?.id || ""));
   const canEditEvents = Boolean(currentMember && eventStorePlayer);
@@ -8453,7 +8490,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     }
     return map;
   }, [draftSlots, planningLookup, selectedPlayerId, weekDays]);
-  const totalPlayers = players.length || 1;
   const bestCells = useMemo(() => weekDays.flatMap(([day]) => PLANNING_TIMES.map((time, timeIndex) => ({
     day,
     time,
@@ -8466,15 +8502,24 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const visibleSlotEvents = useMemo(() => ({ ...teamEvents, ...slotEvents }), [teamEvents, slotEvents]);
   const selectedEventCount = useMemo(() => Object.keys(visibleSlotEvents).length, [visibleSlotEvents]);
   const fullTeamSlots = useMemo(() => {
-    const target = Math.min(5, players.length);
-    return weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => sum + ((effectivePlayerIdsByCell.get(planningEventKey(day, time))?.length || 0) >= target ? 1 : 0), 0), 0);
-  }, [effectivePlayerIdsByCell, players.length, weekDays]);
+    const target = Math.min(5, gameplayPlayers.length);
+    if (!target) return 0;
+    return weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => {
+      const availableIds = new Set(effectivePlayerIdsByCell.get(planningEventKey(day, time)) || []);
+      const playerCount = gameplayPlayers.filter((player) => availableIds.has(String(player.id))).length;
+      return sum + (playerCount >= target ? 1 : 0);
+    }, 0), 0);
+  }, [effectivePlayerIdsByCell, gameplayPlayers, weekDays]);
+  const staffAvailableSlots = useMemo(() => weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => {
+    const availableIds = new Set(effectivePlayerIdsByCell.get(planningEventKey(day, time)) || []);
+    return sum + (staffProfiles.some((profile) => availableIds.has(String(profile.id))) ? 1 : 0);
+  }, 0), 0), [effectivePlayerIdsByCell, staffProfiles, weekDays]);
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
-  const roleSlots = useMemo(() => COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) })), [playersKey]);
-  const filledRoleSlots = useMemo(() => roleSlots.filter((slot) => slot.player).length, [roleSlots]);
-  const teamSlotTarget = Math.min(5, filledRoleSlots || players.length || 5);
+  const roleSlots = useMemo(() => COMP_ROLES.map((role) => ({ role, player: gameplayPlayers.find((player) => normalizeProfileRole(player.role) === role) })), [gameplayPlayersKey]);
+  const staffSlots = useMemo(() => staffProfiles.map((player) => ({ role: String(player.role || "").toUpperCase(), player })), [staffProfilesKey]);
   const selectedRole = normalizeProfileRole(selectedPlayer?.role);
+  const selectedIsStaff = selectedPlayer ? isStaffRole(selectedPlayer.role) : false;
   const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
   const frameTone = (slotEvent) => {
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
@@ -8512,13 +8557,19 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
           lit: Boolean(player && availableIds.has(String(player.id))),
           selectedRoleHere: selectedRole === role && activeSlot,
         })),
+        staff: staffSlots.map(({ role, player }) => ({
+          role,
+          player,
+          lit: Boolean(player && availableIds.has(String(player.id))),
+          selectedStaffHere: selectedIsStaff && String(player?.id || "") === selectedPlayerId && activeSlot,
+        })),
       };
     }),
-  })), [draftSlots, effectivePlayerIdsByCell, playerById, roleSlots, selectedRole, visibleSlotEvents, weekDays]);
+  })), [draftSlots, effectivePlayerIdsByCell, playerById, roleSlots, selectedIsStaff, selectedPlayerId, selectedRole, staffSlots, visibleSlotEvents, weekDays]);
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
-  if (!players.length) return <EmptyState icon={Users} title="Aucun profil joueur" text="Ajoute des profils joueurs pour construire le planning de team." />;
-  if (!linkedPlayer) return <EmptyState icon={Users} title="Aucun profil joueur lié" text="Seuls les cinq joueurs liés à un rôle peuvent renseigner leurs disponibilités. Va dans Gestion pour lier ton compte à un joueur." />;
+  if (!players.length) return <EmptyState icon={Users} title="Aucun profil" text="Ajoute des joueurs ou du coaching staff pour construire le planning de team." />;
+  if (!linkedPlayer) return <EmptyState icon={Users} title="Aucun profil lié" text="Les joueurs et le coaching staff doivent être liés à un compte pour renseigner leurs disponibilités. Va dans Gestion pour lier ton compte à un profil." />;
 
   return (
     <div>
@@ -8533,7 +8584,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         </div>
         <div className="flex flex-wrap gap-2">
           {bestCells[0]?.count > 0 && <Badge tone="cyan">Top créneau : {bestCells[0].count}/{players.length}</Badge>}
-          <Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} slots team complète</Badge>
+          <Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} slots 5 joueurs</Badge>
+          {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} slots staff</Badge>}
         </div>
       </PageHeader>
       {eventMenu && <div onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="fixed z-[80] w-[210px] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050814]/98 p-2 text-white shadow-[0_24px_70px_rgba(0,0,0,.70),0_0_34px_rgba(34,211,238,.16)] ring-1 ring-white/10 backdrop-blur-xl" style={{ left: eventMenu.x, top: eventMenu.y }}>
@@ -8614,10 +8666,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-xl font-black text-white">Planning team</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un créneau pour allumer ton poste. Clic droit = Scrim, Match ou Review." : "Lecture seule."}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un créneau pour indiquer ta dispo. Clic droit = Scrim, Match ou Review." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {selectedPlayer && <Badge tone="blue">{roleLabel(selectedPlayer.role)}</Badge>}
+                {selectedPlayer && <Badge tone={selectedIsStaff ? "purple" : "blue"}>{roleLabel(selectedPlayer.role)}</Badge>}
+                {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} staff</Badge>}
                 <Badge tone={selectedFilledSlots ? "cyan" : "slate"}>{selectedFilledSlots} slots</Badge>
                 <Badge tone={selectedFilledDays >= 4 ? "green" : selectedFilledDays ? "purple" : "slate"}>{selectedFilledDays}/7 jours</Badge>
                 <Badge tone={selectedEventCount ? "purple" : "slate"}>{selectedEventCount} event</Badge>
@@ -8628,10 +8681,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                 <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-white">{selectedPlayer?.name || "Profil non lié"}</p>
-                  <p className="mt-0.5 truncate text-xs font-semibold text-slate-400">{selectedPlayer ? `${roleLabel(selectedPlayer.role)} · compte lié` : "Lie ton compte à un joueur dans Gestion."}</p>
+                  <p className="mt-0.5 truncate text-xs font-semibold text-slate-400">{selectedPlayer ? `${roleLabel(selectedPlayer.role)} · compte lié` : "Lie ton compte à un profil dans Gestion."}</p>
                 </div>
               </div>
-              <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? "Mon planning" : "Lecture seule"}</Badge>
+              <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? (selectedIsStaff ? "Mon planning staff" : "Mon planning") : "Lecture seule"}</Badge>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" disabled={!canEditSelected} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
@@ -8659,12 +8712,22 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                         const day = cell.day;
                         return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("relative min-h-[2.35rem] px-1.5 py-1 text-left transition hover:bg-cyan-300/[0.035]", frameTone(cell.slotEvent), !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
                           {cell.slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{cell.slotEventLabel}</span>}
-                          <div className="flex h-full items-center justify-center gap-1">
-                            {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
-                              return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "nxt5-planning-role-lit" : "nxt5-planning-role-dim", selectedRoleHere && "nxt5-planning-role-selected")}>
-                                {role === "JGL" ? "JG" : String(role || "?").slice(0, 1)}
-                              </span>;
-                            })}
+                          <div className="flex h-full flex-col items-center justify-center gap-1">
+                            <div className="flex items-center justify-center gap-1">
+                              {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
+                                return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "nxt5-planning-role-lit" : "nxt5-planning-role-dim", selectedRoleHere && "nxt5-planning-role-selected")}>
+                                  <RoleIcon role={role} lightweight className="h-4 w-4" />
+                                </span>;
+                              })}
+                            </div>
+                            {cell.staff.some((item) => item.player) && (
+                              <div className="flex max-w-full flex-wrap justify-center gap-0.5">
+                                {cell.staff.map(({ role, player, lit, selectedStaffHere }) => {
+                                  if (!player) return null;
+                                  return <span key={player.id} title={`${roleLabel(role)} · ${player.name}`} className={cx("inline-flex h-4 min-w-4 items-center justify-center rounded-md border px-1 text-[0.48rem] font-black uppercase leading-none transition", lit ? "border-fuchsia-200/35 bg-fuchsia-400/18 text-fuchsia-50 shadow-[0_0_10px_rgba(217,70,239,.18)]" : "border-white/8 bg-black/18 text-slate-600", selectedStaffHere && "border-white/60 bg-white/18 text-white")}>{roleLabel(role).slice(0, 2)}</span>;
+                                })}
+                              </div>
+                            )}
                           </div>
                         </button>;
                       })}
@@ -8845,12 +8908,13 @@ function reportRawGameLine(match) {
   const deaths = sum("deaths");
   const assists = sum("assists");
   const damage = sum("damage");
+  const towerDmg = rows.reduce((total, row) => total + towerDamage(row), 0);
   const gold = sum("gold");
   const vision = sum("vision");
   const objectives = match.objective_score ? ` · Objectifs: ${match.objective_score}` : "";
   const core = `${matchDisplayName(match, "Adversaire inconnu")} · ${match.game_id || "Game ID"} · ${match.result || "Résultat ?"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`;
   if (!rows.length) return `${core} · Données joueurs absentes`;
-  return `${core} · KDA ${kills}/${deaths}/${assists} · DMG ${formatPoints(damage)} · Gold ${formatPoints(gold)} · Vision ${vision}${objectives}`;
+  return `${core} · KDA ${kills}/${deaths}/${assists} · DMG ${formatPoints(damage)} · Tours ${formatPoints(towerDmg)} · Gold ${formatPoints(gold)} · Vision ${vision}${objectives}`;
 }
 
 function reportRawSummaryLines(matches) {
@@ -8858,12 +8922,13 @@ function reportRawSummaryLines(matches) {
   const rows = matches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY"));
   if (!rows.length) return ["Games liées, mais données joueurs absentes."];
   const sum = (field) => rows.reduce((total, row) => total + Number(row[field] || 0), 0);
+  const towerTotal = rows.reduce((total, row) => total + towerDamage(row), 0);
   const wins = matches.filter((match) => match.result === "Victoire").length;
   const games = matches.length;
   return [
     `Games: ${games} · ${wins}W - ${games - wins}L · WR ${Math.round((wins / Math.max(1, games)) * 100)}%`,
     `KDA équipe: ${sum("kills")}/${sum("deaths")}/${sum("assists")}`,
-    `Moyennes joueur/game: ${formatPoints(sum("damage") / Math.max(1, rows.length))} DMG · ${formatPoints(sum("gold") / Math.max(1, rows.length))} Gold · ${Math.round(sum("vision") / Math.max(1, rows.length))} Vision`,
+    `Moyennes joueur/game: ${formatPoints(sum("damage") / Math.max(1, rows.length))} DMG · ${formatPoints(towerTotal / Math.max(1, rows.length))} Tours · ${formatPoints(sum("gold") / Math.max(1, rows.length))} Gold · ${Math.round(sum("vision") / Math.max(1, rows.length))} Vision`,
   ];
 }
 

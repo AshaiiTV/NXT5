@@ -186,6 +186,7 @@ create table if not exists match_participants (
   cs integer not null default 0,
   gold integer not null default 0,
   damage integer not null default 0,
+  damage_to_turrets integer not null default 0,
   vision integer not null default 0,
   kp numeric,
   kda text,
