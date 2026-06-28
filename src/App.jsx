@@ -1193,15 +1193,12 @@ function AuthPage({ mode, onAuth, pushToast, navigate }) {
 
 function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer }) {
   const status = profileStatusLabel(currentMember);
-  const [moreOpen, setMoreOpen] = useState(false);
   const navItems = NAV.filter((item) => PRIMARY_NAV_IDS.includes(item.id) && !item.hidden);
   const moreItems = NAV.filter((item) => MORE_NAV_IDS.includes(item.id) && !item.hidden);
-  const moreActive = moreItems.some((item) => item.id === active);
   const profileRole = linkedPlayer?.role || currentMember?.role || "";
   const go = (pageId) => {
     setActive(pageId);
     setOpen(false);
-    setMoreOpen(false);
   };
   return (
     <>
@@ -1216,7 +1213,29 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><img src="/apple-touch-icon.png?v=6" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.22em] text-cyan-100/60">Draft Tools</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-300 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
-        <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">{navItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}><Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span></button>; })}<div className="pt-1"><button type="button" onClick={() => setMoreOpen((value) => !value)} title="Plus" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", moreActive ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/20 via-blue-500/12 to-fuchsia-500/16 text-white shadow-[0_0_22px_rgba(34,211,238,.09)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}><Menu className={cx("h-5 w-5 shrink-0 transition", moreActive ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Plus</span><ChevronDown className={cx("ml-auto h-4 w-4 text-slate-400 transition", moreOpen && "rotate-180", collapsed && "lg:hidden")} /></button><AnimatePresence initial={false}>{moreOpen && !collapsed && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden"><div className="mt-1 space-y-1 border-l border-cyan-200/14 pl-3">{moreItems.map((item) => { const Icon = item.icon; const selected = active === item.id; return <button key={item.id} type="button" onClick={() => go(item.id)} className={cx("group flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-xs font-black transition", selected ?"border-cyan-200/22 bg-cyan-400/10 text-white" : "border-transparent text-slate-400 hover:border-cyan-200/14 hover:bg-white/[0.045] hover:text-white")}><Icon className={cx("h-4 w-4 shrink-0", selected ?"text-cyan-100" : "text-slate-400 group-hover:text-cyan-200")} /><span className="truncate">{item.label}</span></button>; })}</div></motion.div>}</AnimatePresence></div></nav>
+        <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const selected = active === item.id;
+            return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}>
+              <Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-300 group-hover:text-cyan-200")} />
+              <span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span>
+            </button>;
+          })}
+          {!!moreItems.length && <div className="pt-1">
+            <div className={cx("mb-1 border-t border-cyan-200/10", collapsed && "lg:mx-2")} />
+            <div className={cx("space-y-1", !collapsed && "pt-1")}>
+              {moreItems.map((item) => {
+                const Icon = item.icon;
+                const selected = active === item.id;
+                return <button key={item.id} type="button" onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/20 via-blue-500/12 to-fuchsia-500/16 text-white shadow-[0_0_22px_rgba(34,211,238,.09)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}>
+                  <Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.35)]" : "text-slate-300 group-hover:text-cyan-200")} />
+                  <span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span>
+                </button>;
+              })}
+            </div>
+          </div>}
+        </nav>
         <div className="relative z-10 shrink-0 space-y-3 pt-3">
           <button type="button" onClick={() => go("guide")} title="Guide" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", active === "guide" ?"border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><BookOpen className={cx("h-5 w-5 shrink-0 transition", active === "guide" ?"text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Guide</span></button>
           <div className={cx("nxt5-panel nxt5-premium-panel relative w-full max-w-full overflow-hidden border border-cyan-200/16 text-left backdrop-blur-2xl", collapsed ?"p-2" : "p-2.5")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-2 flex flex-wrap gap-1.5", collapsed && "lg:hidden")}><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></div>
@@ -3703,7 +3722,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         {profileView === "overview" && <CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} />}
         {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} />}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
-        {profileView === "history" && <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple"><div className="grid gap-1.5 xl:grid-cols-2 2xl:grid-cols-3">{rows.length ? rows.slice().reverse().map((row, index) => { const cs10 = csAtMinute(row, 10); const cs20 = csAtMinute(row, 20); const targetMatchId = row.match?.id || ""; return <button key={(row.match?.id || row.match?.game_id || index) + row.champion} type="button" disabled={!targetMatchId} onClick={() => targetMatchId && navigate?.(`/statistiques?match=${encodeURIComponent(targetMatchId)}`)} className={cx("flex w-full min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-2 text-left transition hover:border-cyan-300/20 hover:bg-white/[0.055]", targetMatchId ? "cursor-pointer" : "cursor-default opacity-75")}><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><div className="min-w-0 flex-1"><div className="flex min-w-0 items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-xs font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div><p className="mt-0.5 truncate text-[0.66rem] font-semibold text-slate-300">{matchDisplayName(row.match)} · {row.match?.duration || "--:--"} · {formatPoints(row.damage)} dégâts</p><div className="mt-2 flex flex-wrap gap-1.5"><Badge tone="cyan">CS10 {Number.isFinite(cs10) ? cs10 : "-"}</Badge><Badge tone="blue">CS20 {Number.isFinite(cs20) ? cs20 : "-"}</Badge><Badge tone="yellow">Total {row.cs || 0}</Badge></div></div><ArrowRight className="h-4 w-4 shrink-0 text-cyan-100 opacity-70" /></button>; }) : <EmptyState icon={BarChart3} title="Aucune game" text={selectedCategoryId ? "Aucune game de cette catégorie n’est encore reliée à ce profil." : "Aucune game importée n’est encore reliée à ce profil."} />}</div></ProfileFold>}
+        {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des reviews liees aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
     </AnimatePresence>
@@ -4234,6 +4253,89 @@ function ChampionHistoryLine({ row, enemy }) {
     <div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">KP</p><p className="break-words font-black text-white">{Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</p></div>
     <div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">DMG</p><p className="break-words font-black text-white">{formatPoints(row.damage)}</p></div>
   </div>;
+}
+
+function profileHistorySortKey(row) {
+  const raw = row?.match?.created_at || row?.match?.game_date || row?.match?.date || row?.match?.raw?.info?.gameCreation || row?.match?.game_id || "";
+  const numeric = Number(raw || 0);
+  if (Number.isFinite(numeric) && numeric > 1000000000) return numeric;
+  const parsed = Date.parse(String(raw || ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function profileHistoryDateLabel(row) {
+  const value = row?.match?.created_at || row?.match?.game_date || row?.match?.date || "";
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
+}
+
+function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
+  const [championFilter, setChampionFilter] = useState("");
+  const [resultFilter, setResultFilter] = useState("all");
+  const orderedRows = rows.slice().sort((a, b) => profileHistorySortKey(b) - profileHistorySortKey(a) || String(b.match?.game_id || "").localeCompare(String(a.match?.game_id || "")));
+  const championOptions = Array.from(new Set(orderedRows.map((row) => row.champion).filter(Boolean))).sort((a, b) => championDisplayName(a).localeCompare(championDisplayName(b)));
+  const filteredRows = orderedRows.filter((row) => {
+    const result = row.match?.result || "";
+    return (!championFilter || row.champion === championFilter)
+      && (resultFilter === "all" || (resultFilter === "win" ? result === "Victoire" : result === "Défaite"));
+  });
+  const wins = filteredRows.filter((row) => row.match?.result === "Victoire").length;
+  const totalDamage = filteredRows.reduce((sum, row) => sum + Number(row.damage || 0), 0);
+  const avgKp = Math.round(filteredRows.reduce((sum, row) => sum + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, filteredRows.length));
+  const resultOptions = [["all", "Toutes"], ["win", "Victoires"], ["loss", "Défaites"]];
+  return <ProfileFold title="Historique importé" badge="Games" icon={FileText} toneName="purple">
+    <div className="grid gap-3 xl:grid-cols-[minmax(220px,.34fr)_minmax(0,1fr)] xl:items-end">
+      <SelectInput label="Champion" value={championFilter} onChange={setChampionFilter}>
+        <option value="">Tous les champions</option>
+        {championOptions.map((champion) => <option key={champion} value={champion}>{championDisplayName(champion)}</option>)}
+      </SelectInput>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="rounded-xl border border-white/10 bg-black/20 p-1">
+          <div className="grid gap-1 sm:grid-cols-3">{resultOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setResultFilter(id)} className={cx("rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", resultFilter === id ? "bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,.22)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Badge tone={filteredRows.length ? "cyan" : "slate"}>{filteredRows.length}/{rows.length} games</Badge>
+          <Badge tone={wins >= filteredRows.length - wins ? "green" : "red"}>{filteredRows.length ? Math.round((wins / Math.max(1, filteredRows.length)) * 100) : 0}% WR</Badge>
+          <Badge tone="purple">{formatPoints(totalDamage)} dmg</Badge>
+          <Badge tone="yellow">KP {avgKp}%</Badge>
+        </div>
+      </div>
+    </div>
+    <div className="mt-4 grid gap-2 xl:grid-cols-2 2xl:grid-cols-3">
+      {filteredRows.length ? filteredRows.map((row, index) => {
+        const cs10 = csAtMinute(row, 10);
+        const cs20 = csAtMinute(row, 20);
+        const targetMatchId = row.match?.id || "";
+        const enemy = opponentRoleRow(row.match, row.role, row.raw?.participantId || row.participantId);
+        const kp = Math.round(parsePercent(row.kill_participation || row.kp || 0));
+        return <button key={(row.match?.id || row.match?.game_id || index) + row.champion} type="button" disabled={!targetMatchId} onClick={() => targetMatchId && navigate?.(`/statistiques?match=${encodeURIComponent(targetMatchId)}`)} className={cx("group min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-cyan-300/22 hover:bg-white/[0.055]", targetMatchId ? "cursor-pointer" : "cursor-default opacity-75")}>
+          <div className="flex min-w-0 gap-3">
+            <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover" />
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2"><Badge tone={row.match?.result === "Victoire" ? "green" : "red"}>{row.match?.result || "Game"}</Badge><Badge tone={row.match?.side === "Blue" ? "blue" : "red"}>{row.match?.side || "Side ?"}</Badge>{row.match?.patch && <Badge tone="slate">{row.match.patch}</Badge>}</div>
+              <div className="mt-2 flex min-w-0 items-center gap-2"><p className="truncate text-base font-black text-white">{championDisplayName(row.champion)}</p><span className="ml-auto shrink-0 text-sm font-black text-cyan-100">{row.kills || 0}/{row.deaths || 0}/{row.assists || 0}</span></div>
+              <p className="mt-1 truncate text-xs font-semibold text-slate-300">{matchDisplayName(row.match)}{profileHistoryDateLabel(row) ? ` · ${profileHistoryDateLabel(row)}` : ""} · {row.match?.duration || "--:--"}</p>
+            </div>
+            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-cyan-100 opacity-70 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+            <ProfileChampionMini label="Dmg" value={formatPoints(row.damage)} toneName="cyan" />
+            <ProfileChampionMini label="Gold" value={formatPoints(row.gold)} toneName="yellow" />
+            <ProfileChampionMini label="Vision" value={Math.round(Number(row.vision || 0))} toneName="purple" />
+            <ProfileChampionMini label="KP" value={`${kp}%`} toneName={kp >= 60 ? "green" : "orange"} />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {enemy?.champion && <Badge tone="slate">vs {championDisplayName(enemy.champion)}</Badge>}
+            <Badge tone="cyan">CS10 {Number.isFinite(cs10) ? cs10 : "-"}</Badge>
+            <Badge tone="blue">CS20 {Number.isFinite(cs20) ? cs20 : "-"}</Badge>
+            <Badge tone="yellow">Total {row.cs || 0}</Badge>
+          </div>
+        </button>;
+      }) : <EmptyState icon={BarChart3} title="Aucune game" text={rows.length ? "Aucune game ne correspond aux filtres." : selectedCategoryId ? "Aucune game de cette catégorie n’est encore reliée à ce profil." : "Aucune game importée n’est encore reliée à ce profil."} />}
+    </div>
+  </ProfileFold>;
 }
 
 function ProfileCsMilestonePanel({ rows = [] }) {
@@ -6677,6 +6779,50 @@ function TrendsPage({ data, selectedTeamId }) {
     { icon: Eye, label: "Vision moyenne", value: signedAvg(visionDiff), hint: "Par game", tone: diffTone(visionDiff) },
     { icon: Shield, label: "Morts alliées", value: objectiveRatio(sumRows(ally, "deaths"), matches.length), hint: "Par game", tone: avg(sumRows(ally, "deaths")) <= 15 ? "green" : avg(sumRows(ally, "deaths")) >= 20 ? "red" : "orange" },
   ];
+  const diffChartItems = [
+    { label: "Or", value: avgInt(goldDiff), display: formatGoldDiff(avgInt(goldDiff)), tone: diffTone(goldDiff) },
+    { label: "Dégâts", value: avgInt(damageDiff), display: signedAvg(damageDiff), tone: diffTone(damageDiff) },
+    { label: "Vision", value: avgInt(visionDiff), display: signedAvg(visionDiff), tone: diffTone(visionDiff) },
+    { label: "Morts", value: avgInt(deathsDiff), display: signedAvg(deathsDiff), tone: deathsDiff <= 0 ? "green" : "red" },
+  ];
+  const objectiveChartItems = [
+    ["Drakes", objectiveTotals.dragons, "cyan"],
+    ["Grubs", objectiveTotals.grubs, "purple"],
+    ["Herald", objectiveTotals.heralds, "blue"],
+    ["Nashor", objectiveTotals.barons, "orange"],
+    ["Tours", objectiveTotals.towers, "green"],
+  ].map(([label, value, toneName]) => ({ label, value: Number(value || 0) / Math.max(1, matches.length), display: objectiveRatio(value, matches.length), tone: toneName }));
+  const roleResourceChartItems = roleFocus.slice(0, 5).map((stat) => ({
+    label: roleLabel(stat.role),
+    value: Math.round((stat.gold + stat.damage / 3) / Math.max(1, stat.games)),
+    detail: `${formatPoints(Math.round(stat.gold / Math.max(1, stat.games)))} or · ${formatPoints(Math.round(stat.damage / Math.max(1, stat.games)))} dégâts`,
+    role: stat.role,
+  }));
+  const maxDiffChart = Math.max(1, ...diffChartItems.map((item) => Math.abs(item.value)));
+  const maxObjectiveChart = Math.max(1, ...objectiveChartItems.map((item) => item.value));
+  const maxRoleResourceChart = Math.max(1, ...roleResourceChartItems.map((item) => item.value));
+  const barToneClass = {
+    cyan: "from-cyan-300 to-cyan-500",
+    blue: "from-sky-300 to-blue-500",
+    green: "from-emerald-300 to-emerald-500",
+    red: "from-rose-300 to-rose-500",
+    purple: "from-fuchsia-300 to-violet-500",
+    orange: "from-amber-300 to-orange-500",
+    slate: "from-slate-300 to-slate-500",
+  };
+  const SignedBar = ({ item }) => {
+    const positive = item.value >= 0;
+    const width = Math.max(6, Math.min(50, (Math.abs(item.value) / maxDiffChart) * 50));
+    return <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="flex items-center justify-between gap-3"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-300">{item.label}</span><span className={cx("text-sm font-black", item.tone === "red" ? "text-rose-100" : item.tone === "green" ? "text-emerald-100" : "text-cyan-100")}>{item.display}</span></div><div className="relative mt-3 h-3 overflow-hidden rounded-full bg-white/[0.055]"><span className="absolute left-1/2 top-0 h-full w-px bg-white/24" /><span className={cx("absolute top-0 h-full rounded-full bg-gradient-to-r", barToneClass[item.tone] || barToneClass.cyan)} style={positive ? { left: "50%", width: `${width}%` } : { right: "50%", width: `${width}%` }} /></div></div>;
+  };
+  const VerticalBar = ({ item, max }) => {
+    const height = Math.max(10, Math.min(100, (Number(item.value || 0) / max) * 100));
+    return <div className="flex min-w-0 flex-col justify-end rounded-xl border border-white/10 bg-black/18 p-2 text-center"><div className="flex h-24 items-end justify-center"><span className={cx("w-full max-w-[2.35rem] rounded-t-xl bg-gradient-to-t shadow-[0_0_18px_rgba(34,211,238,.12)]", barToneClass[item.tone] || barToneClass.cyan)} style={{ height: `${height}%` }} /></div><p className="mt-2 text-lg font-black text-white">{item.display}</p><p className="truncate text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{item.label}</p></div>;
+  };
+  const RoleResourceBar = ({ item }) => {
+    const width = Math.max(8, Math.min(100, (item.value / maxRoleResourceChart) * 100));
+    return <div className="rounded-xl border border-white/10 bg-black/18 p-3"><div className="flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-2"><RoleIcon role={item.role} className="h-4 w-4 shrink-0" /><span className="truncate text-sm font-black text-white">{item.label}</span></span><span className="shrink-0 text-xs font-semibold text-slate-300">{item.detail}</span></div><div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/[0.055]"><span className="block h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" style={{ width: `${width}%` }} /></div></div>;
+  };
   const exportTrendSections = [
     { title: "Écarts moyens", items: forceItems, tone: "green" },
     { title: "Pression et exposition", items: riskItems, tone: "red" },
@@ -6740,6 +6886,45 @@ function TrendsPage({ data, selectedTeamId }) {
         </aside>
       </div>
     </section>
+    <Surface className="p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <Badge tone="purple">Graphiques clés</Badge>
+          <h3 className="mt-3 text-2xl font-black text-white">Lecture visuelle</h3>
+          <p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Les écarts, les objectifs et les rôles qui portent le plus de ressources.</p>
+        </div>
+        <Badge tone={winrate >= 50 ? "green" : "red"}>{matches.length} games · {winrate}% WR</Badge>
+      </div>
+      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,.95fr)_minmax(260px,.7fr)_minmax(0,1.05fr)]">
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Écarts moyens</h4>
+            <Badge tone="slate">Par game</Badge>
+          </div>
+          <div className="mt-4 grid gap-2">
+            {diffChartItems.map((item) => <SignedBar key={item.label} item={item} />)}
+          </div>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Objectifs</h4>
+            <Badge tone="cyan">/ game</Badge>
+          </div>
+          <div className="mt-4 grid grid-cols-5 gap-2">
+            {objectiveChartItems.map((item) => <VerticalBar key={item.label} item={item} max={maxObjectiveChart} />)}
+          </div>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Ressources par rôle</h4>
+            <Badge tone="purple">Top {roleResourceChartItems.length || 0}</Badge>
+          </div>
+          <div className="mt-4 grid gap-2">
+            {roleResourceChartItems.length ? roleResourceChartItems.map((item) => <RoleResourceBar key={item.role} item={item} />) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Pas assez de volume pour tracer les rôles.</p>}
+          </div>
+        </div>
+      </div>
+    </Surface>
     <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
       <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-3 text-2xl font-black text-white">Résumé</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Les écarts sont moyennés par game pour comparer les contextes sans tricher avec le volume.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-5 grid gap-2 md:grid-cols-3">{[["KP moyen haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision moyenne haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game haut", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className={cx("mt-2 break-words text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
       <Surface className="p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Les blocs qui pèsent vraiment dans la lecture.</p></div><Badge tone="slate">{baseMatches.length} games total</Badge></div><div className="mt-4 grid gap-2">{categoryBreakdown.length ? <><div className="hidden grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] gap-2 px-3 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400 lg:grid"><span>Contexte</span><span>WR</span><span>Or</span><span>Dégâts</span><span>Vision</span></div>{categoryBreakdown.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-2xl border p-3 text-left transition sm:grid-cols-2 lg:grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] lg:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0 sm:col-span-2 lg:col-span-1"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games} game{entry.games > 1 ? "s" : ""} · {entry.wins}W - {entry.games - entry.wins}L</p></div><span className="min-w-0 text-sm font-black text-white sm:text-right lg:text-left"><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">WR</span>{entry.wr}%</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Or</span>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 break-words text-sm font-black sm:text-right lg:text-left", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Dégâts</span>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)} dmg</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Vision</span>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
@@ -8254,13 +8439,27 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     }
   }
 
+  const selectedPlayerId = String(selectedPlayer?.id || "");
+  const effectivePlayerIdsByCell = useMemo(() => {
+    const map = new Map();
+    for (const [day] of weekDays) {
+      for (const time of PLANNING_TIMES) {
+        const key = planningEventKey(day, time);
+        const baseIds = planningLookup.playerIdsByCell.get(key) || [];
+        const ids = new Set(selectedPlayerId ? baseIds.filter((id) => String(id) !== selectedPlayerId) : baseIds);
+        if (selectedPlayerId && (draftSlots[day] || []).includes(time)) ids.add(selectedPlayerId);
+        map.set(key, Array.from(ids));
+      }
+    }
+    return map;
+  }, [draftSlots, planningLookup, selectedPlayerId, weekDays]);
   const totalPlayers = players.length || 1;
   const bestCells = useMemo(() => weekDays.flatMap(([day]) => PLANNING_TIMES.map((time, timeIndex) => ({
     day,
     time,
     timeIndex,
-    count: planningLookup.playerIdsByCell.get(planningEventKey(day, time))?.length || 0,
-  }))).sort((a, b) => b.count - a.count || a.timeIndex - b.timeIndex).slice(0, 4), [planningLookup, weekDays]);
+    count: effectivePlayerIdsByCell.get(planningEventKey(day, time))?.length || 0,
+  }))).sort((a, b) => b.count - a.count || a.timeIndex - b.timeIndex).slice(0, 4), [effectivePlayerIdsByCell, weekDays]);
   const selectedFilledSlots = useMemo(() => weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0), [draftSlots, weekDays]);
   const selectedFilledDays = useMemo(() => weekDays.filter(([day]) => (draftSlots[day] || []).length).length, [draftSlots, weekDays]);
   const teamEvents = planningLookup.events;
@@ -8268,8 +8467,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const selectedEventCount = useMemo(() => Object.keys(visibleSlotEvents).length, [visibleSlotEvents]);
   const fullTeamSlots = useMemo(() => {
     const target = Math.min(5, players.length);
-    return weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => sum + ((planningLookup.playerIdsByCell.get(planningEventKey(day, time))?.length || 0) >= target ? 1 : 0), 0), 0);
-  }, [planningLookup, players.length, weekDays]);
+    return weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => sum + ((effectivePlayerIdsByCell.get(planningEventKey(day, time))?.length || 0) >= target ? 1 : 0), 0), 0);
+  }, [effectivePlayerIdsByCell, players.length, weekDays]);
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
   const roleSlots = useMemo(() => COMP_ROLES.map((role) => ({ role, player: players.find((player) => normalizeProfileRole(player.role) === role) })), [playersKey]);
@@ -8294,11 +8493,9 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     time,
     cells: weekDays.map(([day]) => {
       const key = planningEventKey(day, time);
-      const baseIds = planningLookup.playerIdsByCell.get(key) || [];
       const activeSlot = (draftSlots[day] || []).includes(time);
-      const availableIds = new Set(baseIds);
-      if (activeSlot && selectedPlayer) availableIds.add(String(selectedPlayer.id));
-      const availablePlayers = baseIds.map((id) => playerById.get(id)).filter(Boolean);
+      const availableIds = new Set(effectivePlayerIdsByCell.get(key) || []);
+      const availablePlayers = Array.from(availableIds).map((id) => playerById.get(String(id))).filter(Boolean);
       const slotEvent = visibleSlotEvents[key];
       const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
       return {
@@ -8317,7 +8514,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         })),
       };
     }),
-  })), [draftSlots, planningLookup, playerById, roleSlots, selectedPlayer, selectedRole, visibleSlotEvents, weekDays]);
+  })), [draftSlots, effectivePlayerIdsByCell, playerById, roleSlots, selectedRole, visibleSlotEvents, weekDays]);
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
   if (!players.length) return <EmptyState icon={Users} title="Aucun profil joueur" text="Ajoute des profils joueurs pour construire le planning de team." />;
@@ -8462,10 +8659,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                         const day = cell.day;
                         return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("relative min-h-[2.35rem] px-1.5 py-1 text-left transition hover:bg-cyan-300/[0.035]", frameTone(cell.slotEvent), !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
                           {cell.slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{cell.slotEventLabel}</span>}
-                          <div className="flex h-full items-center justify-center gap-2">
+                          <div className="flex h-full items-center justify-center gap-1">
                             {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
                               return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "nxt5-planning-role-lit" : "nxt5-planning-role-dim", selectedRoleHere && "nxt5-planning-role-selected")}>
-                                <RoleIcon role={role} lightweight className="h-5 w-5" />
+                                {role === "JGL" ? "JG" : String(role || "?").slice(0, 1)}
                               </span>;
                             })}
                           </div>
