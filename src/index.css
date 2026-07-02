@@ -464,8 +464,8 @@ svg {
 }
 
 .nxt5-data-dense .nxt5-page-header h2 {
-  font-size: clamp(2rem, 3.25vw, 3.05rem);
-  line-height: 1.06;
+  font-size: clamp(1.65rem, 2.45vw, 2.45rem);
+  line-height: 1.1;
 }
 
 .nxt5-data-dense .nxt5-page-header p {
@@ -493,6 +493,45 @@ svg {
 
 .nxt5-data-dense :where(.max-h-80, .max-h-72, .max-h-64) {
   scrollbar-width: thin;
+}
+
+.nxt5-compositions-page :where(.truncate) {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  overflow-wrap: normal !important;
+}
+
+.nxt5-compositions-page :where(.overflow-hidden):not(img):not(svg):not(canvas):not(video) {
+  overflow: hidden !important;
+}
+
+.nxt5-composition-slots,
+.nxt5-composition-bank-grid,
+.nxt5-composition-card-slots {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)) !important;
+}
+
+.nxt5-composition-card-slots {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.25rem), 1fr)) !important;
+}
+
+.nxt5-composition-bank-pool {
+  grid-template-columns: repeat(auto-fill, minmax(4.45rem, 1fr)) !important;
+}
+
+@media (min-width: 1280px) {
+  .nxt5-composition-slots,
+  .nxt5-composition-bank-grid,
+  .nxt5-composition-card-slots {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .nxt5-composition-bank-pool {
+    grid-template-columns: repeat(auto-fill, minmax(3.9rem, 1fr)) !important;
+  }
 }
 
 .nxt5-readable-grid {

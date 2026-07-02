@@ -51,21 +51,21 @@ const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Wi
 const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-arm64-${NXT5_IMPORTER_VERSION}.zip`;
 
 const NAV = [
-  { id: "teams", label: "Équipe", icon: Users, shortcut: "T", path: "/equipes" },
-  { id: "matches", label: "Games & review", icon: Swords, shortcut: "G", path: "/integration" },
-  { id: "stats", label: "Statistiques", icon: BarChart3, shortcut: "S", path: "/statistiques" },
-  { id: "trends", label: "Tendances", icon: Activity, shortcut: "N", path: "/tendances" },
-  { id: "champions", label: "Champion Pool", icon: Crown, shortcut: "C", path: "/champion-pool" },
-  { id: "planning", label: "Planning", icon: CalendarDays, shortcut: "L", path: "/planning" },
-  { id: "compositions", label: "Compos Types", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
-  { id: "reports", label: "Review", icon: FileText, shortcut: "R", path: "/rapports" },
-  { id: "guide", label: "Guide", icon: BookOpen, shortcut: "A", path: "/guide" },
-  { id: "profile", label: "Profil", icon: Activity, shortcut: "P", path: "/mon-profil" },
+  { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
+  { id: "matches", label: "Games", hint: "Importer, lire, review", icon: Swords, shortcut: "G", path: "/integration" },
+  { id: "stats", label: "Statistiques", hint: "Lecture détaillée", icon: BarChart3, shortcut: "S", path: "/statistiques" },
+  { id: "trends", label: "Tendances", hint: "Comprendre l'équipe", icon: Activity, shortcut: "N", path: "/tendances" },
+  { id: "champions", label: "Pool équipe", hint: "Picks par joueur", icon: Crown, shortcut: "C", path: "/champion-pool" },
+  { id: "planning", label: "Planning", hint: "Dispos et sessions", icon: CalendarDays, shortcut: "L", path: "/planning" },
+  { id: "compositions", label: "Compos", hint: "Drafts préparées", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
+  { id: "reports", label: "Review", hint: "Décisions staff", icon: FileText, shortcut: "R", path: "/rapports" },
+  { id: "guide", label: "Guide", hint: "Parcours guidé", icon: BookOpen, shortcut: "A", path: "/guide" },
+  { id: "profile", label: "Profil", hint: "Ton espace joueur", icon: Activity, shortcut: "P", path: "/mon-profil" },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
 
-const PRIMARY_NAV_IDS = ["teams", "matches", "champions", "planning", "profile"];
-const MORE_NAV_IDS = ["trends", "compositions"];
+const PRIMARY_NAV_IDS = ["teams", "matches", "trends", "planning", "profile"];
+const MORE_NAV_IDS = ["champions", "compositions"];
 const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
   { id: "champions", label: "Champions", path: "champions" },
@@ -553,11 +553,11 @@ function PremiumToggle({ checked, onChange, title, text }) {
 
 function PageHeader({ eyebrow, title, subtitle, children }) {
   return (
-    <div className="nxt5-page-header mb-7 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="nxt5-page-header mb-5 flex flex-col gap-3 border-b border-cyan-100/10 pb-4 xl:flex-row xl:items-end xl:justify-between">
       <div className="min-w-0">
-        <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">{eyebrow}</p></div>
-        <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl lg:text-5xl">{title}</h2>
-        {subtitle && <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">{subtitle}</p>}
+        <div className="mb-1.5 flex items-center gap-2"><span className="h-px w-7 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.64rem] font-black uppercase tracking-[0.26em] text-cyan-100/80">{eyebrow}</p></div>
+        <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-2xl font-black leading-[1.12] tracking-tight sm:text-3xl lg:text-4xl">{title}</h2>
+        {subtitle && <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-300">{subtitle}</p>}
       </div>
       {children && <div className="flex w-full min-w-0 flex-wrap gap-2 xl:w-auto xl:justify-end">{children}</div>}
     </div>
@@ -592,6 +592,49 @@ function EmptyState({ icon: Icon = BarChart3, title, text, action }) {
       {action && <div className="relative mt-5">{action}</div>}
     </div>
   );
+}
+
+function BeginnerCompass({ active, data, currentTeam, onNavigate, onClose }) {
+  if (!currentTeam) return null;
+  const teamMatches = (data.matches || []).filter((match) => match.team_id === currentTeam.id);
+  const teamPlayers = (data.players || []).filter((player) => player.team_id === currentTeam.id);
+  const teamReports = (data.reports || []).filter((report) => report.team_id === currentTeam.id);
+  const doneCount = [
+    teamPlayers.length >= 5,
+    teamMatches.length >= 1,
+    teamMatches.length >= 3,
+    teamReports.length >= 1,
+  ].filter(Boolean).length;
+  const steps = [
+    { id: "teams", icon: Users, label: "Roster", text: teamPlayers.length >= 5 ? "Base prête" : "Ajoute les 5 joueurs", done: teamPlayers.length >= 5 },
+    { id: "matches", icon: Upload, label: "Importer", text: teamMatches.length ? `${teamMatches.length} game${teamMatches.length > 1 ? "s" : ""}` : "Ajoute une game", done: teamMatches.length >= 1 },
+    { id: "trends", icon: Activity, label: "Comprendre", text: teamMatches.length >= 3 ? "Tendances fiables" : "Lis les répétitions", done: teamMatches.length >= 3 },
+    { id: "reports", icon: FileText, label: "Décider", text: teamReports.length ? `${teamReports.length} review${teamReports.length > 1 ? "s" : ""}` : "Écris une review", done: teamReports.length >= 1 },
+  ];
+  const nextStep = steps.find((step) => !step.done) || steps[2];
+  return <section className="mb-4 overflow-hidden rounded-2xl border border-cyan-200/16 bg-[linear-gradient(135deg,rgba(8,18,31,.88),rgba(5,10,25,.68))] p-3 shadow-[0_12px_34px_rgba(0,0,0,.18)]">
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Démarrage guidé</Badge><Badge tone={doneCount >= 3 ? "green" : "orange"}>{doneCount}/4</Badge></div>
+        <h2 className="mt-2 text-lg font-black text-white">Le chemin simple pour rendre NXT5 utile</h2>
+        <p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-300">Pas besoin de tout ouvrir. Suis ces quatre étapes : structure, import, compréhension, décision.</p>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        <Button type="button" icon={nextStep.icon} onClick={() => onNavigate(nextStep.id)} className="px-3 py-2 text-xs">Continuer : {nextStep.label}</Button>
+        <Button type="button" variant="ghost" icon={X} onClick={onClose} className="px-3 py-2 text-xs">Masquer</Button>
+      </div>
+    </div>
+    <div className="mt-3 grid gap-2 md:grid-cols-4">
+      {steps.map((step, index) => {
+        const Icon = step.icon;
+        const selected = active === step.id || (step.id === "matches" && active === "stats");
+        return <button key={step.id} type="button" onClick={() => onNavigate(step.id)} className={cx("flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left transition", selected ? "border-cyan-200/32 bg-cyan-300/10" : step.done ? "border-emerald-200/16 bg-emerald-300/[0.045]" : "border-white/10 bg-white/[0.028] hover:border-cyan-200/20 hover:bg-cyan-300/[0.055]")}>
+          <span className={cx("grid h-8 w-8 shrink-0 place-items-center rounded-lg border text-xs font-black", step.done ? "border-emerald-200/24 bg-emerald-300/10 text-emerald-100" : "border-cyan-200/18 bg-cyan-300/10 text-cyan-100")}>{step.done ? <Check className="h-4 w-4" /> : `0${index + 1}`}</span>
+          <span className="min-w-0"><span className="flex items-center gap-1.5 truncate text-xs font-black text-white"><Icon className="h-3.5 w-3.5 shrink-0" />{step.label}</span><span className="mt-0.5 block truncate text-[0.64rem] font-semibold text-slate-400">{step.text}</span></span>
+        </button>;
+      })}
+    </div>
+  </section>;
 }
 
 function metricSideMarkerMeta(marker) {
@@ -894,13 +937,13 @@ function HomeScreen({ navigate }) {
         <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.82fr_1.18fr] lg:py-10">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
             <img src="/assets/nxt5-logo.png" alt="NXT5" className="mb-6 h-auto w-full max-w-[520px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)]" />
-            <Badge tone="cyan" pulse>Team tools for the next five</Badge>
+            <Badge tone="cyan" pulse>Outil d'équipe League of Legends</Badge>
             <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
-              Passe ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">cinq</span> au <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">niveau suivant</span>.
+              Comprends ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">équipe</span> sans te perdre dans les <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">stats</span>.
             </h1>
-            <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-200 md:text-lg">Une plateforme cyber esport pour importer tes games, lire le 5v5, préparer tes compos et garder des reviews propres sans transformer la review en tableur.</p>
+            <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-200 md:text-lg">NXT5 transforme tes games en une lecture claire : qui porte l'équipe, comment vous gagnez, ce qui vous fait perdre et quoi corriger au prochain bloc.</p>
             <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-3">
-              {["Draft à 5", "Stats lisibles", "Review staff"].map((label, index) => <div key={label} className="nxt5-panel border border-cyan-200/14 bg-white/[0.035] px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">0{index + 1}</p><p className="mt-1 text-sm font-black text-white">{label}</p></div>)}
+              {["Crée la team", "Importe les games", "Lis les tendances"].map((label, index) => <div key={label} className="nxt5-panel border border-cyan-200/14 bg-white/[0.035] px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">0{index + 1}</p><p className="mt-1 text-sm font-black text-white">{label}</p></div>)}
             </div>
             <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
               <LinkButton href="/creer-un-compte" navigate={navigate} icon={ChevronRight} className="px-6 py-4 sm:px-7">Créer un compte</LinkButton>
@@ -913,16 +956,16 @@ function HomeScreen({ navigate }) {
         <section id="features" className="mt-4">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <Badge tone="purple">Modules NXT5</Badge>
-              <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Le cockpit de ta team</h2>
+              <Badge tone="purple">Ce que tu fais avec NXT5</Badge>
+              <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Un parcours simple, puis des outils puissants</h2>
             </div>
-            <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-300">Tout est pensé pour consulter vite, comparer proprement, puis laisser le coach et les joueurs faire la vraie lecture.</p>
+            <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-300">Le premier usage reste guidé. Les analyses avancées arrivent ensuite, quand la team a assez de games.</p>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
           {[
-            { icon: Crown, title: "Champion Pool lisible", text: "Repère les picks fiables, les picks de confort et les champions à remettre au travail sans transformer le pool en tableau de stats.", t: "cyan" },
-            { icon: Swords, title: "Apprendre après chaque game", text: "Lis chaque match avec champions, KDA, dégâts, gold, vision, objectifs et erreurs à comprendre.", t: "purple" },
-            { icon: Target, title: "Préparation compétition", text: "Prépare scrims, matchs officiels et blocs compétitifs avec des données de vision, morts, dragons, Nashor et side lanes.", t: "green" },
+            { icon: Users, title: "Pose le roster", text: "Crée la team, ajoute les joueurs et relie les profils. NXT5 sait ensuite à qui appartient chaque donnée.", t: "cyan" },
+            { icon: Swords, title: "Ajoute les games", text: "Importe une game ou un bloc de scrim. Le site garde le side, les champions, les objectifs et les stats importantes.", t: "purple" },
+            { icon: Activity, title: "Comprends le collectif", text: "Tendances explique comment l'équipe fonctionne : condition de victoire, rôles moteurs, tempo et fail states.", t: "green" },
           ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
           </div>
         </section>
@@ -1210,27 +1253,29 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
         <div className={cx("relative z-10 mb-5 flex items-center", collapsed ?"justify-center" : "justify-between")}>
-          <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><img src="/apple-touch-icon.png?v=6" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.22em] text-cyan-100/60">Draft Tools</p></div></div>
+          <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><img src="/apple-touch-icon.png?v=6" alt="NXT5" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.2em] text-cyan-100/60">Comprendre l'équipe</p></div></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-300 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">
+          <p className={cx("px-3 pb-1 text-[0.56rem] font-black uppercase tracking-[0.18em] text-cyan-100/50", collapsed && "lg:hidden")}>Essentiel</p>
           {navItems.map((item) => {
             const Icon = item.icon;
             const selected = active === item.id;
             return <button key={item.id} onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}>
               <Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-300 group-hover:text-cyan-200")} />
-              <span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span>
+              <span className={cx("min-w-0", collapsed && "lg:hidden")}><span className="block truncate">{item.label}</span>{item.hint && <span className="mt-0.5 block truncate text-[0.64rem] font-semibold text-slate-500 group-hover:text-slate-300">{item.hint}</span>}</span>
             </button>;
           })}
           {!!moreItems.length && <div className="pt-1">
             <div className={cx("mb-1 border-t border-cyan-200/10", collapsed && "lg:mx-2")} />
             <div className={cx("space-y-1", !collapsed && "pt-1")}>
+              <p className={cx("px-3 pb-1 text-[0.56rem] font-black uppercase tracking-[0.18em] text-slate-500", collapsed && "lg:hidden")}>Avancé</p>
               {moreItems.map((item) => {
                 const Icon = item.icon;
                 const selected = active === item.id;
                 return <button key={item.id} type="button" onClick={() => go(item.id)} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ?"justify-center px-2 lg:justify-center" : "px-3", selected ?"border-cyan-200/26 bg-gradient-to-r from-cyan-500/20 via-blue-500/12 to-fuchsia-500/16 text-white shadow-[0_0_22px_rgba(34,211,238,.09)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}>
                   <Icon className={cx("h-5 w-5 shrink-0 transition", selected ?"text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.35)]" : "text-slate-300 group-hover:text-cyan-200")} />
-                  <span className={cx("truncate", collapsed && "lg:hidden")}>{item.label}</span>
+                  <span className={cx("min-w-0", collapsed && "lg:hidden")}><span className="block truncate">{item.label}</span>{item.hint && <span className="mt-0.5 block truncate text-[0.64rem] font-semibold text-slate-500 group-hover:text-slate-300">{item.hint}</span>}</span>
                 </button>;
               })}
             </div>
@@ -2170,7 +2215,19 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   if (managementOnly) return <div className="nxt5-data-dense"><PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Permissions, liaisons de comptes et création de profils. La lecture sportive reste dans l’onglet Équipe." />{selectedTeam ? <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} /> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}</div>;
 
-  return <div><PageHeader eyebrow="Team manager" title={hasTeams ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Choisis clairement ton entrée : créer ta structure ou rejoindre une team avec un code temporaire."} />
+  return <div><PageHeader eyebrow="Équipe" title={hasTeams ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."} />
+    {!hasTeams && <Surface className="mb-5 p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <Badge tone="cyan">Démarrage</Badge>
+          <h3 className="mt-2 text-xl font-black text-white">Le plus simple pour commencer</h3>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Si tu es capitaine ou coach, crée la team. Si quelqu'un t'a envoyé un code, rejoins directement. Le roster et les imports viennent après.</p>
+        </div>
+      </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-3">
+        {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter le roster", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une game", "NXT5 commence alors à expliquer l'équipe."]].map(([number, title, text]) => <div key={title} className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-xs font-black text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
+      </div>
+    </Surface>}
     <div className={cx("grid gap-5", !hasTeams && "xl:grid-cols-2")}>
       {!hasTeams && <div className="space-y-5">
         <Surface glow>
@@ -2995,6 +3052,12 @@ function GuidePage() {
     "Après le bloc : créer un groupe, ouvrir les stats de groupe, exporter le PNG si besoin, puis générer ou écrire la review liée.",
     "Avant la prochaine session : consulter Tendances, mettre à jour Pool, Compos Types, bilan coaching et corrections de profil.",
   ];
+  const expressSteps = [
+    [Users, "1. Équipe", "Crée la team ou rejoins-la avec un code."],
+    [Upload, "2. Games", "Importe une game ou un bloc de scrim."],
+    [Activity, "3. Tendances", "Lis comment l'équipe fonctionne."],
+    [FileText, "4. Review", "Transforme la lecture en décisions simples."],
+  ];
 
   const StepList = ({ items }) => <div className="grid gap-3">{items.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-cyan-300/10 text-sm font-black text-cyan-100">{index + 1}</span><div><h4 className="text-base font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div></div>)}</div>;
 
@@ -3003,6 +3066,24 @@ function GuidePage() {
       <Button icon={Swords} onClick={() => openAppPath("/integration")}>Importer une game</Button>
       <Button variant="ghost" icon={Settings} onClick={() => openAppPath("/gestion-equipe")}>Gestion équipe</Button>
     </PageHeader>
+
+    <Surface glow className="mb-5 p-5 md:p-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <Badge tone="cyan">Guide express</Badge>
+          <h3 className="mt-3 text-2xl font-black text-white">Si tu découvres NXT5, commence ici</h3>
+          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Le site est puissant, mais tu n'as pas besoin de tout maîtriser au départ. Ce parcours suffit pour rendre la plateforme utile.</p>
+        </div>
+        <Button type="button" icon={Activity} onClick={() => openAppPath("/tendances")}>Voir Tendances</Button>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
+        {expressSteps.map(([Icon, title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-300/10 text-cyan-100"><Icon className="h-5 w-5" /></div>
+          <h4 className="mt-3 text-sm font-black text-white">{title}</h4>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{text}</p>
+        </div>)}
+      </div>
+    </Surface>
 
     <Surface glow className="mb-5 p-5 md:p-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -6732,6 +6813,8 @@ function TrendsPage({ data, selectedTeamId }) {
   const [trendSourceModal, setTrendSourceModal] = useState(null);
   const [expandedTrendPatternId, setExpandedTrendPatternId] = useState("");
   const [expandedTeamModelId, setExpandedTeamModelId] = useState("win-condition");
+  const [draftTrendView, setDraftTrendView] = useState("ally");
+  const [trendPanel, setTrendPanel] = useState("summary");
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
   const ally = rows.filter((row) => row.team_key === "ALLY");
@@ -6805,32 +6888,6 @@ function TrendsPage({ data, selectedTeamId }) {
     return { role, games, gold: sumRows(roleRows, "gold"), damage: sumRows(roleRows, "damage"), kills: sumRows(roleRows, "kills"), deaths: sumRows(roleRows, "deaths") };
   }).filter((stat) => stat.games).sort((a, b) => (b.gold + b.damage / 3) - (a.gold + a.damage / 3));
   const focusRole = roleFocus[0];
-  const playerSignals = Array.from(ally.reduce((map, row) => {
-    const key = row.player_id || row.summoner_name || row.riot_id || row.role || row.champion;
-    const current = map.get(key) || { key, name: row.summoner_name || row.riot_id || row.role || "Profil", role: normalizeProfileRole(row.role), games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, gold: 0, vision: 0, kp: 0 };
-    current.games += 1;
-    current.wins += row.match?.result === "Victoire" ? 1 : 0;
-    current.kills += Number(row.kills || 0);
-    current.deaths += Number(row.deaths || 0);
-    current.assists += Number(row.assists || 0);
-    current.damage += Number(row.damage || 0);
-    current.gold += Number(row.gold || 0);
-    current.vision += Number(row.vision || 0);
-    current.kp += parsePercent(row.kill_participation || row.kp || 0);
-    map.set(key, current);
-    return map;
-  }, new Map()).values()).map((stat) => ({
-    ...stat,
-    wr: Math.round((stat.wins / Math.max(1, stat.games)) * 100),
-    kda: Number(((stat.kills + stat.assists) / Math.max(1, stat.deaths)).toFixed(2)),
-    avgGold: Math.round(stat.gold / Math.max(1, stat.games)),
-    avgDamage: Math.round(stat.damage / Math.max(1, stat.games)),
-    avgVision: Math.round(stat.vision / Math.max(1, stat.games)),
-    avgKp: Math.round(stat.kp / Math.max(1, stat.games))
-  })).sort((a, b) => (b.avgGold + b.avgDamage / 4 + b.avgVision * 80) - (a.avgGold + a.avgDamage / 4 + a.avgVision * 80));
-  const pressureSignal = playerSignals.slice().sort((a, b) => b.deaths / Math.max(1, b.games) - a.deaths / Math.max(1, a.games))[0];
-  const supportSignal = playerSignals.slice().sort((a, b) => b.avgVision - a.avgVision)[0];
-  const kpSignal = playerSignals.slice().sort((a, b) => b.avgKp - a.avgKp)[0];
   const commonTags = (sourceRows) => Array.from(sourceRows.reduce((map, row) => {
     championStyleTags(row.champion).forEach((tag) => map.set(tag, (map.get(tag) || 0) + 1));
     return map;
@@ -7066,7 +7123,6 @@ function TrendsPage({ data, selectedTeamId }) {
   const averageFirstObjective = averageValues(objectiveTimingValues);
   const earlyObjectiveRate = Math.round((objectiveTimingValues.filter((value) => value <= 9.5).length / Math.max(1, objectiveTimingValues.length)) * 100);
   const bestSide = sideStats.filter((stat) => stat.games).sort((a, b) => b.wr - a.wr || b.games - a.games)[0] || null;
-  const topDamageSignal = playerSignals.slice().sort((a, b) => b.avgDamage - a.avgDamage)[0] || null;
   const teamKpAverage = Math.round(ally.reduce((total, row) => total + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, ally.length));
   const teamCsAverage = (ally.reduce((total, row) => total + Number(row.cs_per_min || 0), 0) / Math.max(1, ally.length)).toFixed(1);
   const deathsPerGame = Number(objectiveRatio(sumRows(ally, "deaths"), matches.length));
@@ -7143,8 +7199,8 @@ function TrendsPage({ data, selectedTeamId }) {
       label: "Fail state",
       title: fragilePattern ? `Risque : ${fragilePattern.label}` : "Risque principal",
       value: `${deathsPerGame.toFixed(Number.isInteger(deathsPerGame) ? 0 : 1)} morts/G`,
-      text: fragilePattern ? `${fragilePattern.label} tombe à ${fragilePattern.wr}% WR. Quand ce pattern sort mal, la review doit vérifier les morts avant objectif, la vision et la surcharge d'une seule win condition.` : `Le signal le plus instable vient de l'exposition : ${pressureSignal ? `${pressureSignal.name} à ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)} morts/game` : `${deathsPerGame} morts/game`}.`,
-      details: [pressureSignal && `${pressureSignal.name} : ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)} morts/G`, `Défaites : ${lossModel.games} games, ${formatGoldDiff(lossModel.goldDiff)} or/game`, `Vision en défaite : ${lossModel.visionDiff >= 0 ? "+" : ""}${lossModel.visionDiff}`].filter(Boolean),
+      text: fragilePattern ? `${fragilePattern.label} tombe à ${fragilePattern.wr}% WR. Quand ce pattern sort mal, la review doit vérifier les morts avant objectif, la vision du side faible et la surcharge d'une seule win condition.` : `Le signal le plus instable vient de l'exposition collective : ${deathsPerGame} morts/game, ${formatGoldDiff(lossModel.goldDiff)} or/game en défaite et ${lossModel.visionDiff >= 0 ? "+" : ""}${lossModel.visionDiff} vision en défaite.`,
+      details: [`Morts équipe : ${deathsPerGame} / game`, `Défaites : ${lossModel.games} games, ${formatGoldDiff(lossModel.goldDiff)} or/game`, `Vision en défaite : ${lossModel.visionDiff >= 0 ? "+" : ""}${lossModel.visionDiff}`].filter(Boolean),
       sourceGames: fragilePattern?.sourceGames?.length ? fragilePattern.sourceGames : lossModel.sourceGames.length ? lossModel.sourceGames : sourceGames,
     },
   ];
@@ -7225,8 +7281,8 @@ function TrendsPage({ data, selectedTeamId }) {
       toneName: deathsPerGame >= 20 || fragilePattern?.wr < 45 ? "red" : "purple",
       label: "Priorité review",
       title: fragilePattern ? `Stabiliser ${fragilePattern.label}` : "Conserver les forces identifiées",
-      text: fragilePattern ? `${fragilePattern.label} descend à ${fragilePattern.wr}% WR sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le champion pool associé.` : `${topDamageSignal?.name || "Carry principal"} porte ${topDamageSignal ? formatPoints(topDamageSignal.avgDamage) : "n/a"} dégâts moyens ; ${kpSignal?.name || "le meilleur KP"} atteint ${kpSignal?.avgKp || 0}% KP. Objectif : conserver le plan fort sans surcharger une seule condition de victoire.`,
-      evidence: [pressureSignal && `${pressureSignal.name} ${((pressureSignal.deaths || 0) / Math.max(1, pressureSignal.games)).toFixed(1)} morts/G`, supportSignal && `${supportSignal.name} vision ${supportSignal.avgVision}`, topDamageSignal && `${topDamageSignal.name} ${formatPoints(topDamageSignal.avgDamage)} dmg`].filter(Boolean),
+      text: fragilePattern ? `${fragilePattern.label} descend à ${fragilePattern.wr}% WR sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le plan de draft associé.` : `Le bloc reste à stabiliser collectivement : ${teamKpAverage}% KP équipe, ${objectiveRatio(sumRows(ally, "deaths"), matches.length)} morts/game et ${signedAvg(visionDiff)} vision moyenne. Objectif : conserver le plan fort sans surcharger une seule condition de victoire.`,
+      evidence: [`KP équipe ${teamKpAverage}%`, `Morts équipe ${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/G`, `Vision ${signedAvg(visionDiff)}`].filter(Boolean),
       sourceGames: fragilePattern?.sourceGames || sourceGames,
     },
   ].filter(Boolean).slice(0, 5);
@@ -7241,7 +7297,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const riskItems = [
     `Écart morts moyen: ${signedAvg(deathsDiff)} par game.`,
     `Morts alliées: ${objectiveRatio(sumRows(ally, "deaths"), matches.length)} par game.`,
-    pressureSignal && `${pressureSignal.name}: ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)} morts/game.`,
+    lossModel.games > 0 && `En défaite: ${lossModel.deaths} morts/game et ${formatGoldDiff(lossModel.goldDiff)} or/game.`,
     `Nashor: ${objectiveRatio(objectiveTotals.barons, matches.length)} par game.`,
     `Tours: ${objectiveRatio(objectiveTotals.towers, matches.length)} par game.`
   ].filter(Boolean).slice(0, 5);
@@ -7260,11 +7316,11 @@ function TrendsPage({ data, selectedTeamId }) {
     lossTags[0] && `En défaite: ${tagLabel(lossTags[0][0])} x${lossTags[0][1]}.`
   ].filter(Boolean).slice(0, 5);
   const recommendations = [
-    kpSignal && `KP moyen le plus haut: ${kpSignal.name} (${kpSignal.avgKp}%).`,
-    supportSignal && `Vision moyenne la plus haute: ${supportSignal.name} (${supportSignal.avgVision}).`,
-    playerSignals[0] && `Dégâts moyens max: ${playerSignals.slice().sort((a, b) => b.avgDamage - a.avgDamage)[0]?.name || "-"} (${formatPoints(playerSignals.slice().sort((a, b) => b.avgDamage - a.avgDamage)[0]?.avgDamage || 0)}).`,
-    `KP moyen équipe: ${Math.round(ally.reduce((total, row) => total + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, ally.length))}%.`,
-    `CS/min moyen équipe: ${(ally.reduce((total, row) => total + Number(row.cs_per_min || 0), 0) / Math.max(1, ally.length)).toFixed(1)}.`
+    `KP moyen équipe: ${teamKpAverage}%.`,
+    `CS/min moyen équipe: ${teamCsAverage}.`,
+    `Rendement ressources: ${signedAvg(damageDiff)} dégâts pour ${formatGoldDiff(avgInt(goldDiff))} or par game.`,
+    `Tempo objectif: ${formatMinute(averageFirstObjective)} en moyenne, ${earlyObjectiveRate}% avant 9:30.`,
+    focusRole && `Rôle moteur collectif: ${roleLabel(focusRole.role)} concentre les ressources du bloc.`
   ].filter(Boolean).slice(0, 5);
   const trendToneClass = {
     cyan: "from-cyan-400/14 via-white/[0.035] to-transparent text-cyan-100",
@@ -7332,7 +7388,7 @@ function TrendsPage({ data, selectedTeamId }) {
     { title: "Pression et exposition", items: riskItems, tone: "red" },
     { title: "Objectifs / game", items: timingItems, tone: "cyan" },
     { title: "Identité draft", items: draftNeeds, tone: "purple" },
-    { title: "Ratios profils", items: recommendations, tone: "orange" },
+    { title: "Lecture collective", items: recommendations, tone: "orange" },
   ];
   const exportTrends = () => exportTrendsPng({
     title: "Cockpit stratégique",
@@ -7358,81 +7414,103 @@ function TrendsPage({ data, selectedTeamId }) {
     const matchId = game?.id || game?.match?.id || game?.match?.game_id || "";
     openAppPath(matchId ? `/statistiques?match=${encodeURIComponent(String(matchId))}` : "/statistiques");
   };
+  const draftTrendModel = buildDraftTrendModel(matches);
+  const trendPanelOptions = [
+    ["summary", "Synthèse", Gauge, "Le modèle d'équipe lisible en premier."],
+    ["draft", "Draft", Crown, "Picks, archétypes et menaces."],
+    ["patterns", "Patterns", Activity, "Styles détectés et synthèse coach."],
+    ["details", "Détails", BarChart3, "Graphiques et listes secondaires."],
+  ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <section className="relative mb-4 overflow-hidden rounded-2xl border border-cyan-200/16 bg-[linear-gradient(135deg,rgba(8,18,38,.9),rgba(3,7,18,.78)_52%,rgba(35,12,48,.64))] p-4 shadow-[0_14px_44px_rgba(0,0,0,.24)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(34,211,238,.16),transparent_30%),radial-gradient(circle_at_88%_12%,rgba(217,70,239,.12),transparent_30%)]" />
-      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/75 to-fuchsia-100/55" />
-      <div className="relative z-10 grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-stretch">
-        <div className="flex min-w-0 flex-col justify-between gap-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
+    <section className="relative mb-3 overflow-hidden rounded-xl border border-cyan-200/14 bg-[linear-gradient(135deg,rgba(8,18,38,.78),rgba(3,7,18,.72)_58%,rgba(25,10,39,.48))] p-3 shadow-[0_10px_28px_rgba(0,0,0,.20)]">
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/65 to-fuchsia-100/40" />
+      <div className="relative z-10 grid gap-3 xl:grid-cols-[minmax(0,1fr)_15.5rem] xl:items-stretch">
+        <div className="flex min-w-0 flex-col justify-between gap-3">
+          <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
               <Badge tone="cyan">Tendances</Badge>
               <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
-            </div>
-            <h2 className="nxt5-metal-text mt-3 max-w-4xl break-words text-3xl font-black leading-[1.08] tracking-tight lg:text-4xl">Cockpit stratégique</h2>
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-200">Le portrait du bloc en cours, côté jeu.</p>
-          </div>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-2 2xl:grid-cols-4">
-            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-xl border border-white/10 bg-black/24 p-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className={cx("grid h-8 w-8 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
-                <p className="min-w-0 break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.12em] text-slate-300">{label}</p>
               </div>
-              <p className="mt-2 break-words text-xl font-black leading-tight text-white">{value}</p>
-              <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{hint}</p>
+              <h2 className="nxt5-metal-text mt-1 max-w-4xl break-words text-2xl font-black leading-[1.08] tracking-tight lg:text-3xl">Cockpit stratégique</h2>
+            </div>
+            <p className="max-w-xl text-xs font-semibold leading-5 text-slate-300">Portrait du bloc actif, filtré par contexte.</p>
+          </div>
+          <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 2xl:grid-cols-4">
+            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-lg border border-white/10 bg-black/22 p-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-md border", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
+                <p className="min-w-0 truncate text-[0.58rem] font-black uppercase tracking-[0.11em] text-slate-300">{label}</p>
+              </div>
+              <p className="mt-1 break-words text-lg font-black leading-tight text-white">{value}</p>
+              <p className="mt-0.5 truncate text-[0.62rem] font-semibold text-slate-400">{hint}</p>
             </div>)}
           </div>
         </div>
-        <aside className="min-w-0 rounded-2xl border border-white/10 bg-black/26 p-3">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Bloc actif</p>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <Button type="button" variant="ghost" icon={FileText} onClick={() => openTrendSources({ title: "Games du bloc actif", subtitle: `${activeTrendCategory?.name || "Toutes les games"} · base complète de la lecture automatique`, metrics: sourceScopeMetrics, games: sourceGames })} className="px-3 py-2 text-xs">Sources</Button>
-              <Button type="button" variant="ghost" icon={ImageIcon} onClick={exportTrends} className="px-3 py-2 text-xs">Exporter</Button>
+        <aside className="min-w-0 rounded-xl border border-white/10 bg-black/24 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Bloc actif</p>
+            <div className="flex shrink-0 items-center gap-1">
+              <button type="button" onClick={() => openTrendSources({ title: "Games du bloc actif", subtitle: `${activeTrendCategory?.name || "Toutes les games"} · base complète de la lecture automatique`, metrics: sourceScopeMetrics, games: sourceGames })} className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-cyan-100 transition hover:bg-cyan-300/10" title="Sources"><FileText className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={exportTrends} className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-cyan-100 transition hover:bg-cyan-300/10" title="Exporter"><ImageIcon className="h-3.5 w-3.5" /></button>
             </div>
           </div>
-          <div className="flex items-start justify-between gap-3">
+          <div className="mt-2 flex items-center justify-between gap-3">
             <div>
-              <p className={cx("mt-1 text-3xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
-              <p className="mt-1 text-sm font-black text-white">{wins}W - {losses}L</p>
+              <p className={cx("text-2xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
+              <p className="mt-0.5 text-xs font-black text-white">{wins}W - {losses}L</p>
             </div>
-            <span className={cx("rounded-xl border p-2.5", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-5 w-5" /></span>
+            <span className={cx("rounded-lg border p-2", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-4 w-4" /></span>
           </div>
-          <div className="mt-3 grid gap-2">
-            <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="text-lg font-black text-white">{matches.length}</p></div>
-            <div className="min-w-0 rounded-xl border border-cyan-200/14 bg-cyan-300/[0.045] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-cyan-100">Base de calcul</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{matches.length} games filtrées · {ally.length} lignes alliées · {timelineGamesCount}/{matches.length} timelines objectifs exploitables.</p></div>
-            <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Identité équipe</p><p className="mt-1 break-words text-sm font-black leading-5 text-cyan-100">{tagLabel(identity.primary)}</p><div className="mt-2 flex min-w-0 flex-wrap gap-1">{identity.tags.slice(0, 3).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div></div>
+          <div className="mt-2 grid gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.12em] text-slate-400">Games</p><p className="text-sm font-black text-white">{matches.length}</p></div>
+              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.12em] text-slate-400">Timeline</p><p className="text-sm font-black text-white">{timelineGamesCount}/{matches.length}</p></div>
+            </div>
+            <div className="min-w-0 rounded-lg border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.12em] text-slate-400">Identité</p><p className="mt-0.5 truncate text-xs font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
           </div>
-          <div className="mt-3 border-t border-white/10 pt-3">
+          <div className="mt-2 border-t border-white/10 pt-2">
             <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
           </div>
         </aside>
       </div>
     </section>
-    <Surface className="p-3">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+    <div className="mb-3 rounded-xl border border-white/10 bg-black/24 p-1.5">
+      <div className="grid gap-1.5 md:grid-cols-4">
+        {trendPanelOptions.map(([id, label, Icon, text]) => <button key={id} type="button" onClick={() => setTrendPanel(id)} className={cx("flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition", trendPanel === id ? "border-cyan-200/28 bg-cyan-300/12 text-white" : "border-transparent text-slate-300 hover:border-cyan-200/16 hover:bg-white/[0.045] hover:text-white")}>
+          <Icon className="h-4 w-4 shrink-0 text-cyan-100" />
+          <span className="min-w-0">
+            <span className="block truncate text-xs font-black uppercase tracking-[0.12em]">{label}</span>
+            <span className="mt-0.5 block truncate text-[0.6rem] font-semibold text-slate-400">{text}</span>
+          </span>
+        </button>)}
+      </div>
+    </div>
+    {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} view={draftTrendView} onView={setDraftTrendView} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} />}
+    {trendPanel === "summary" && <Surface className="p-2.5">
+      <div className="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <Badge tone="cyan">Modèle d'équipe</Badge>
-          <h3 className="mt-2 text-xl font-black text-white">Comment l'équipe fonctionne vraiment</h3>
-          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Cette lecture isole le plan naturel, les rôles qui structurent la map, les timings qui font basculer les games et les signaux qui transforment une draft en défaite.</p>
+          <h3 className="mt-1.5 text-lg font-black text-white">Comment l'équipe fonctionne vraiment</h3>
+          <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-slate-300">Plan naturel, rôles moteurs, timings et signaux de défaite.</p>
         </div>
-        <button type="button" onClick={() => openTrendSources({ title: "Base complète du modèle d'équipe", subtitle: "Toutes les games utilisées pour lire l'identité, les rôles, les timings et les écarts win/loss.", metrics: sourceScopeMetrics, games: sourceGames })} className="inline-flex w-fit items-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/16"><FileText className="h-4 w-4" />Voir la base</button>
+        <button type="button" onClick={() => openTrendSources({ title: "Base complète du modèle d'équipe", subtitle: "Toutes les games utilisées pour lire l'identité, les rôles, les timings et les écarts win/loss.", metrics: sourceScopeMetrics, games: sourceGames })} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-cyan-200/18 bg-cyan-300/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/16"><FileText className="h-3.5 w-3.5" />Voir la base</button>
       </div>
       <div className="mt-3 grid gap-2 xl:grid-cols-4">
         {teamModelCards.map((card) => {
           const expanded = expandedTeamModelId === card.id;
-          return <article key={card.id} className={cx("min-w-0 rounded-xl border p-3 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.028]")}>
+          return <article key={card.id} className={cx("min-w-0 rounded-lg border p-2.5 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.028]")}>
             <button type="button" onClick={() => setExpandedTeamModelId(expanded ? "" : card.id)} className="flex w-full min-w-0 items-start justify-between gap-3 text-left">
               <span className="min-w-0">
                 <Badge tone={card.toneName}>{card.label}</Badge>
-                <span className="mt-2 block break-words text-sm font-black leading-5 text-white">{card.title}</span>
-                <span className={cx("mt-2 block text-2xl font-black leading-none", card.toneName === "red" ? "text-rose-100" : card.toneName === "orange" ? "text-amber-100" : card.toneName === "purple" ? "text-fuchsia-100" : "text-cyan-100")}>{card.value}</span>
+                <span className="mt-1.5 block break-words text-xs font-black leading-4 text-white">{card.title}</span>
+                <span className={cx("mt-1.5 block text-xl font-black leading-none", card.toneName === "red" ? "text-rose-100" : card.toneName === "orange" ? "text-amber-100" : card.toneName === "purple" ? "text-fuchsia-100" : "text-cyan-100")}>{card.value}</span>
               </span>
               <ChevronDown className={cx("mt-1 h-4 w-4 shrink-0 text-slate-400 transition", expanded && "rotate-180 text-cyan-100")} />
             </button>
-            <p className="mt-2 text-xs font-semibold leading-5 text-slate-300">{card.text}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{card.text}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
               <button type="button" onClick={() => openTrendSources({ title: card.title, subtitle: card.text, metrics: card.details.map((detail, index) => ({ label: index === 0 ? "Signal" : `Signal ${index + 1}`, value: detail })), games: card.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-200/24 hover:bg-cyan-300/10 hover:text-cyan-50"><FileText className="h-3.5 w-3.5" />{card.sourceGames?.length || 0} games</button>
             </div>
             <AnimatePresence initial={false}>
@@ -7445,31 +7523,31 @@ function TrendsPage({ data, selectedTeamId }) {
           </article>;
         })}
       </div>
-      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)]">
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-black/18 p-3">
+      <div className="mt-2.5 grid gap-2.5 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)]">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-2.5">
           <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Rôles dans le système</h4>
+            <h4 className="text-xs font-black uppercase tracking-[0.14em] text-white">Rôles dans le système</h4>
             <Badge tone="slate">{roleSystemRows.length} rôles</Badge>
           </div>
-          <div className="mt-2.5 grid gap-2 lg:grid-cols-5">
-            {roleSystemRows.map((row) => <button key={row.role} type="button" onClick={() => openTrendSources({ title: `${roleLabel(row.role)} dans le système`, subtitle: `${row.functionLabel} · ${row.games} games · ${row.wr}% WR`, metrics: [`Or ${Math.round(row.goldShare || 0)}%`, `Dégâts ${Math.round(row.damageShare || 0)}%`, `KP ${Math.round(row.kp || 0)}%`, `CS10 ${Number.isFinite(row.cs10) ? `${row.cs10 >= 0 ? "+" : ""}${row.cs10.toFixed(1)}` : "n/a"}`].map((value, index) => ({ label: index === 0 ? "Signal" : `Signal ${index + 1}`, value })), games: row.sourceGames })} className={cx("min-w-0 rounded-xl border p-2.5 text-left transition hover:bg-cyan-300/[0.055]", row.toneName === "red" ? "border-rose-200/18 bg-rose-400/[0.04]" : row.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : "border-white/10 bg-white/[0.028]")}>
+          <div className="mt-2 grid gap-1.5 lg:grid-cols-5">
+            {roleSystemRows.map((row) => <button key={row.role} type="button" onClick={() => openTrendSources({ title: `${roleLabel(row.role)} dans le système`, subtitle: `${row.functionLabel} · ${row.games} games · ${row.wr}% WR`, metrics: [`Or ${Math.round(row.goldShare || 0)}%`, `Dégâts ${Math.round(row.damageShare || 0)}%`, `KP ${Math.round(row.kp || 0)}%`, `CS10 ${Number.isFinite(row.cs10) ? `${row.cs10 >= 0 ? "+" : ""}${row.cs10.toFixed(1)}` : "n/a"}`].map((value, index) => ({ label: index === 0 ? "Signal" : `Signal ${index + 1}`, value })), games: row.sourceGames })} className={cx("min-w-0 rounded-lg border p-2 text-left transition hover:bg-cyan-300/[0.055]", row.toneName === "red" ? "border-rose-200/18 bg-rose-400/[0.04]" : row.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : "border-white/10 bg-white/[0.028]")}>
               <div className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2"><RoleIcon role={row.role} className="h-4 w-4 shrink-0" /><span className="truncate text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(row.role)}</span></span>
                 <span className="text-xs font-black text-cyan-100">{row.wr}%</span>
               </div>
-              <p className="mt-2 truncate text-xs font-black text-white">{row.functionLabel}</p>
+              <p className="mt-1.5 truncate text-xs font-black text-white">{row.functionLabel}</p>
               <p className="mt-1 text-[0.62rem] font-semibold leading-4 text-slate-300">{Math.round(row.goldShare || 0)}% or · {Math.round(row.damageShare || 0)}% dégâts · KP {Math.round(row.kp || 0)}%</p>
               <p className="mt-1 truncate text-[0.58rem] font-semibold text-slate-400">{row.championText || "Pool non isolé"}</p>
             </button>)}
           </div>
         </div>
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-black/18 p-3">
+        <div className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-2.5">
           <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Ce qui bascule</h4>
+            <h4 className="text-xs font-black uppercase tracking-[0.14em] text-white">Ce qui bascule</h4>
             <Badge tone="purple">Win/Loss</Badge>
           </div>
-          <div className="mt-2.5 grid gap-2">
-            {swingRows.map((row) => <button key={row.id} type="button" onClick={() => openTrendSources({ title: `Bascule : ${row.label}`, subtitle: row.read, metrics: [{ label: "Victoires", value: row.win }, { label: "Défaites", value: row.loss }, { label: "Lecture", value: row.read }], games: row.id === "identity" ? sourceGames : [...winModel.sourceGames, ...lossModel.sourceGames] })} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.028] p-2.5 text-left transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]">
+          <div className="mt-2 grid gap-1.5">
+            {swingRows.map((row) => <button key={row.id} type="button" onClick={() => openTrendSources({ title: `Bascule : ${row.label}`, subtitle: row.read, metrics: [{ label: "Victoires", value: row.win }, { label: "Défaites", value: row.loss }, { label: "Lecture", value: row.read }], games: row.id === "identity" ? sourceGames : [...winModel.sourceGames, ...lossModel.sourceGames] })} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border border-white/10 bg-white/[0.028] p-2 text-left transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]">
               <span className="min-w-0"><span className="block truncate text-xs font-black uppercase tracking-[0.12em] text-slate-300">{row.label}</span><span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{row.read}</span></span>
               <span className="rounded-lg border border-emerald-200/14 bg-emerald-300/10 px-2 py-1 text-xs font-black text-emerald-50">{row.win}</span>
               <span className={cx("rounded-lg border px-2 py-1 text-xs font-black", row.toneName === "red" ? "border-rose-200/18 bg-rose-300/10 text-rose-50" : "border-white/10 bg-white/[0.045] text-slate-100")}>{row.loss}</span>
@@ -7477,36 +7555,36 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </div>
       </div>
-    </Surface>
-    <Surface className="p-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    </Surface>}
+    {trendPanel === "patterns" && <Surface className="p-2.5">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge tone="cyan">Lecture automatique</Badge>
-          <h3 className="mt-2 text-xl font-black text-white">Style draft et timings</h3>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Le site croise les rôles qui captent les ressources, les tags de champions, le CS10/20 et le premier timing objectif.</p>
+          <h3 className="mt-1.5 text-lg font-black text-white">Style draft et timings</h3>
+          <p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-300">Ressources par rôle, tags champions, CS10/20 et premier objectif.</p>
         </div>
         <Badge tone="slate">{autoPatterns.length} pattern{autoPatterns.length > 1 ? "s" : ""} détecté{autoPatterns.length > 1 ? "s" : ""}</Badge>
       </div>
-      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
-        <div className="grid min-w-0 gap-2 lg:grid-cols-2">
+      <div className="mt-2.5 grid gap-2.5 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
+        <div className="grid min-w-0 gap-1.5 lg:grid-cols-2">
           {autoPatterns.length ? autoPatterns.slice(0, 4).map((pattern) => {
             const expanded = expandedTrendPatternId === pattern.id;
-            return <article key={pattern.id} className={cx("min-w-0 rounded-xl border p-2.5 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.065]" : "border-white/10 bg-black/22")}>
+            return <article key={pattern.id} className={cx("min-w-0 rounded-lg border p-2 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.065]" : "border-white/10 bg-black/22")}>
               <button type="button" onClick={() => setExpandedTrendPatternId(expanded ? "" : pattern.id)} className="flex w-full min-w-0 items-start justify-between gap-3 text-left">
                 <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-2"><Badge tone={pattern.tone}>{pattern.label}</Badge><Badge tone={pattern.verdictTone}>{pattern.verdict}</Badge></span>
-                  <span className="mt-2 block text-2xl font-black leading-none text-white">{pattern.wr}%</span>
-                  <span className="mt-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-400">{pattern.wins}W - {pattern.games - pattern.wins}L · {pattern.games} games sources</span>
+                  <span className="flex flex-wrap items-center gap-1.5"><Badge tone={pattern.tone}>{pattern.label}</Badge><Badge tone={pattern.verdictTone}>{pattern.verdict}</Badge></span>
+                  <span className="mt-1.5 block text-xl font-black leading-none text-white">{pattern.wr}%</span>
+                  <span className="mt-1 block text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-400">{pattern.wins}W - {pattern.games - pattern.wins}L · {pattern.games} games</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
-                  {pattern.bestRole && <span className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-200/18 bg-cyan-300/10 text-cyan-50"><RoleIcon role={pattern.bestRole.role} className="h-5 w-5" /></span>}
+                  {pattern.bestRole && <span className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200/18 bg-cyan-300/10 text-cyan-50"><RoleIcon role={pattern.bestRole.role} className="h-4 w-4" /></span>}
                   <ChevronDown className={cx("h-4 w-4 text-slate-300 transition", expanded && "rotate-180 text-cyan-100")} />
                 </span>
               </button>
-              <div className="mt-3 grid gap-1.5">
+              <div className="mt-2 grid gap-1">
                 {pattern.details.slice(1).map((detail) => <p key={detail} className="truncate text-xs font-semibold text-slate-300">{detail}</p>)}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <button type="button" onClick={() => openTrendSources({ title: pattern.label, subtitle: pattern.read, metrics: pattern.details.map((detail, index) => ({ label: index === 0 ? "Volume" : `Signal ${index}`, value: detail })), games: pattern.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200/18 bg-cyan-300/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/16"><FileText className="h-3.5 w-3.5" />Voir les sources</button>
               </div>
               <AnimatePresence initial={false}>
@@ -7568,7 +7646,8 @@ function TrendsPage({ data, selectedTeamId }) {
           <p className="mt-1 text-xs font-semibold text-slate-300">CS20 {Number.isFinite(stat.cs20) ? `${stat.cs20 >= 0 ? "+" : ""}${stat.cs20.toFixed(1)}` : "n/a"}</p>
         </div>)}
       </div>}
-    </Surface>
+    </Surface>}
+    {trendPanel === "details" && <>
     <Surface className="p-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
@@ -7609,15 +7688,16 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
     </Surface>
     <div className="mt-3 grid items-start gap-3 xl:grid-cols-2">
-      <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-lg font-black text-white">Résumé</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Écarts moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-3 grid gap-2 md:grid-cols-3">{[["KP haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p><p className={cx("mt-1.5 break-words text-xs font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
+      <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-lg font-black text-white">Résumé équipe</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Écarts moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-3 grid gap-2 md:grid-cols-3">{[["KP équipe", `${teamKpAverage}%`, "green"], ["Vision équipe", signedAvg(visionDiff), "cyan"], ["Morts équipe", `${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/G`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p><p className={cx("mt-1.5 break-words text-xs font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
       <Surface className="p-3"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black text-white">Comparatif contextes</h3><p className="mt-1 text-xs font-semibold text-slate-300">Les blocs qui pèsent vraiment.</p></div><Badge tone="slate">{baseMatches.length} games</Badge></div><div className="mt-2.5 grid gap-2">{categoryBreakdown.length ? <>{categoryBreakdown.slice(0, 4).map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-xl border p-2.5 text-left transition md:grid-cols-[minmax(120px,1fr)_repeat(4,minmax(52px,auto))] md:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-[0.68rem] font-semibold text-slate-300">{entry.games}G · {entry.wins}W/{entry.games - entry.wins}L</p></div><span className="min-w-0 text-xs font-black text-white md:text-right">{entry.wr}%</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
     </div>
     <div className="mt-3 grid items-stretch gap-3 xl:grid-cols-2">
       <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-2 text-xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-1.5 max-w-4xl text-xs font-semibold leading-5 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-3 flex flex-wrap gap-1.5">{identity.tags.length ? identity.tags.slice(0, 5).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-3 flex items-center gap-3 border-t border-white/10 pt-2.5"><RoleIcon role={focusRole.role} className="h-6 w-6" /><div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-cyan-100">Focus ressources</p><p className="break-words text-xs font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} or · {formatPoints(avgInt(focusRole.damage))} dégâts</p></div></div>}</Surface>
       <Surface className="p-3"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black text-white">Objectifs par side</h3><p className="mt-1 text-xs font-semibold text-slate-300">Moyenne par game sur chaque side.</p></div><Badge tone="slate">Ratio/game</Badge></div><div className="mt-2.5 grid gap-2 md:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className={cx("rounded-xl border p-2.5", stat.side === "Blue" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-400/[0.055]")}><div className="flex flex-wrap items-center justify-between gap-2"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="text-xs font-black text-white">{stat.wr}% · {stat.wins}W/{stat.games - stat.wins}L</span></div><div className="mt-2.5 grid grid-cols-5 gap-1.5">{[["Drakes", stat.objectives.dragons, "dragon"], ["Grubs", stat.objectives.grubs, "grub"], ["Herald", stat.objectives.heralds, "herald"], ["Nashor", stat.objectives.barons, "baron"], ["Tours", stat.objectives.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="min-w-0 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-5 w-5" /><p className="mt-1 text-sm font-black text-white">{objectiveRatio(value, stat.games)}</p><p className="truncate text-[0.5rem] font-black uppercase tracking-[0.08em] text-slate-300">{label}</p></div>)}</div></div>)}</div></Surface>
     </div>
-    <div className="mt-3 grid items-stretch gap-3 md:grid-cols-2 2xl:grid-cols-4"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Ratios profils" icon={Clipboard} items={recommendations} tone="orange" /></div>
+    <div className="mt-3 grid items-stretch gap-3 md:grid-cols-2 2xl:grid-cols-4"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Lecture collective" icon={Clipboard} items={recommendations} tone="orange" /></div>
     <Surface className="mt-3 p-3"><div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-lg font-black text-white">Champions récurrents</h3><p className="mt-1 text-xs font-semibold text-slate-300">Volume et WR des picks les plus vus.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-2.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.slice(0, 8).map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] p-2"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-[0.68rem] font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 1).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
+    </>}
     <AnimatePresence>
       {trendSourceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/78 p-3 backdrop-blur-md sm:items-center">
         <button type="button" aria-label="Fermer les sources" onClick={() => setTrendSourceModal(null)} className="absolute inset-0 cursor-default" />
@@ -8621,7 +8701,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
         </span>)}
       </div>
     </div>
-    <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">
+    <div className="nxt5-composition-bank-grid mt-4 grid gap-3">
       {COMP_ROLES.map((role) => {
         const slot = slots[role] || {};
         const player = players.find((item) => item.id === slot.playerId) || players.find((item) => item.role === role);
@@ -8634,7 +8714,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
           });
         return <div key={role} className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-3">
           <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
-          <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-4 sm:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-5">{pool.length ? pool.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />) : <div className="col-span-full rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}</div>
+          <div className="nxt5-composition-bank-pool grid gap-2">{pool.length ? pool.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />) : <div className="col-span-full rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}</div>
         </div>;
       })}
     </div>
@@ -8689,7 +8769,7 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
         </div>}
       </div>
       <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/24">
-        <div className="grid gap-px bg-white/10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="nxt5-composition-card-slots grid gap-px bg-white/10">
           {slotPicks.map(({ role, pick }) => {
             const pickStatus = pick ? championPoolStatus(pick) : "";
             const tier = pick ? championTierByStatus(pickStatus) : null;
@@ -8832,7 +8912,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   const formPicks = COMP_ROLES.map((role) => rows.find((row) => row.id === form.slots?.[role]?.poolId)).filter(Boolean);
   const formIdentity = compositionIdentity(formPicks);
   return (
-    <div className="nxt5-data-dense min-w-0 overflow-hidden">
+    <div className="nxt5-data-dense nxt5-compositions-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos a partir des Champion Pools reels, avec une lecture immediate des categories poste par poste.">
         <button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-400/16">
           <BookOpen className="h-4 w-4" />
@@ -8880,7 +8960,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
               </label>
             </div>
 
-            <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-5">
+            <div className="nxt5-composition-slots mt-4 grid gap-3">
               {COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}
             </div>
 
@@ -9499,6 +9579,234 @@ function RolePrepMatrix({ players, championPool }) {
 function CompositionIdentityPanel({ picks }) {
   const identity = compositionIdentity(picks);
   return <Surface><div className="flex items-start justify-between gap-3"><div><h3 className="text-2xl font-black text-white">Identité de Compo</h3><p className="mt-1 text-sm font-semibold text-slate-300">La tendance de Draft selon les champions conforts actuels.</p></div><Badge tone={championStyleTone(identity.primary)}>{tagLabel(identity.primary)}</Badge></div><p className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-bold leading-6 text-white">{identity.text}</p><div className="mt-4 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Pas assez de Picks</Badge>}</div></Surface>;
+}
+
+const DRAFT_SCORE_TAGS = [
+  ["engage", ["engage", "dive", "lockdown", "pick"]],
+  ["scaling", ["scaling", "front-to-back", "farm", "dps"]],
+  ["frontline", ["frontline", "bruiser", "sustain"]],
+  ["controle", ["control", "waveclear", "disengage", "peel", "vision"]],
+  ["pression", ["early", "lane", "tempo", "snowball", "roam"]],
+  ["side", ["side", "duel", "split", "siege"]],
+];
+
+function draftRows(match, teamKey) {
+  return (match?.participants || [])
+    .filter((row) => row.team_key === teamKey)
+    .map((row) => ({ ...row, match, role: normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane) }))
+    .sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role));
+}
+
+function draftTagScores(rows) {
+  const tags = rows.flatMap((row) => championStyleTags(row.champion));
+  return DRAFT_SCORE_TAGS.map(([id, needles]) => {
+    const count = tags.filter((tag) => needles.includes(tag)).length;
+    return { id, label: tagLabel(id), value: Math.min(100, Math.round((count / Math.max(1, rows.length)) * 100)), count };
+  });
+}
+
+function draftIdentityForRows(rows) {
+  const identity = compositionIdentity(rows);
+  const scores = draftTagScores(rows);
+  const gaps = [
+    !scores.find((score) => score.id === "engage")?.count && "Peu d'initiation claire",
+    !scores.find((score) => score.id === "frontline")?.count && "Frontline faible",
+    !scores.find((score) => score.id === "controle")?.count && "Contrôle limité",
+    scores.find((score) => score.id === "scaling")?.count >= 3 && "Draft très scaling",
+    scores.find((score) => score.id === "pression")?.count >= 3 && "Draft orientée tempo",
+  ].filter(Boolean);
+  return { ...identity, scores, gaps };
+}
+
+function buildDraftTrendModel(matches) {
+  const scoped = Array.isArray(matches) ? matches : [];
+  const buildSide = (teamKey) => {
+    const rows = scoped.flatMap((match) => draftRows(match, teamKey));
+    const sideWins = (match) => teamKey === "ALLY" ? match.result === "Victoire" : match.result === "Défaite";
+    const matchDrafts = scoped.map((match) => {
+      const draft = draftRows(match, teamKey);
+      const identity = draftIdentityForRows(draft);
+      return { match, rows: draft, identity, win: sideWins(match) };
+    }).filter((entry) => entry.rows.length);
+    const picks = Array.from(rows.reduce((map, row) => {
+      const key = `${championAssetId(row.champion)}|${row.role || "ROLE"}`;
+      const current = map.get(key) || { champion: row.champion, role: row.role || "ROLE", games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, matches: [] };
+      current.games += 1;
+      current.wins += sideWins(row.match) ? 1 : 0;
+      current.kills += Number(row.kills || 0);
+      current.deaths += Number(row.deaths || 0);
+      current.assists += Number(row.assists || 0);
+      current.damage += Number(row.damage || 0);
+      current.vision += Number(row.vision || 0);
+      current.gold += Number(row.gold || 0);
+      current.matches.push(row.match);
+      map.set(key, current);
+      return map;
+    }, new Map()).values()).map((pick) => ({
+      ...pick,
+      wr: Math.round((pick.wins / Math.max(1, pick.games)) * 100),
+      kda: Number(((pick.kills + pick.assists) / Math.max(1, pick.deaths)).toFixed(2)),
+      avgDamage: Math.round(pick.damage / Math.max(1, pick.games)),
+      avgVision: Math.round(pick.vision / Math.max(1, pick.games)),
+      avgGold: Math.round(pick.gold / Math.max(1, pick.games)),
+      tags: championStyleTags(pick.champion),
+    })).sort((a, b) => b.games - a.games || b.wr - a.wr);
+    const rolePicks = ROSTER_ROLE_ORDER.map((role) => ({ role, picks: picks.filter((pick) => pick.role === role).slice(0, 3) })).filter((entry) => entry.picks.length);
+    const archetypes = Array.from(matchDrafts.reduce((map, entry) => {
+      const key = entry.identity.primary;
+      const current = map.get(key) || { tag: key, games: 0, wins: 0, matches: [] };
+      current.games += 1;
+      current.wins += entry.win ? 1 : 0;
+      current.matches.push(entry.match);
+      map.set(key, current);
+      return map;
+    }, new Map()).values()).map((entry) => ({ ...entry, wr: Math.round((entry.wins / Math.max(1, entry.games)) * 100) })).sort((a, b) => b.games - a.games || b.wr - a.wr);
+    const pairRows = [];
+    for (const entry of matchDrafts) {
+      [["JGL", "MID"], ["ADC", "SUP"], ["TOP", "JGL"]].forEach(([a, b]) => {
+        const left = entry.rows.find((row) => row.role === a);
+        const right = entry.rows.find((row) => row.role === b);
+        if (!left || !right) return;
+        pairRows.push({ pair: `${roleLabel(a)} + ${roleLabel(b)}`, champions: `${championDisplayName(left.champion)} + ${championDisplayName(right.champion)}`, win: entry.win, match: entry.match });
+      });
+    }
+    const duos = Array.from(pairRows.reduce((map, row) => {
+      const key = `${row.pair}|${row.champions}`;
+      const current = map.get(key) || { pair: row.pair, champions: row.champions, games: 0, wins: 0, matches: [] };
+      current.games += 1;
+      current.wins += row.win ? 1 : 0;
+      current.matches.push(row.match);
+      map.set(key, current);
+      return map;
+    }, new Map()).values()).map((entry) => ({ ...entry, wr: Math.round((entry.wins / Math.max(1, entry.games)) * 100) })).sort((a, b) => b.games - a.games || b.wr - a.wr).slice(0, 6);
+    const latestIdentity = draftIdentityForRows(rows);
+    const comfort = picks.filter((pick) => pick.games >= 2 && pick.wr >= 50).slice(0, 5);
+    const traps = picks.filter((pick) => pick.games >= 2 && pick.wr < 50).slice().sort((a, b) => a.wr - b.wr || b.games - a.games).slice(0, 5);
+    const threats = teamKey === "ENEMY" ? picks.filter((pick) => pick.games >= 1).slice().sort((a, b) => (b.wr * 2 + b.games * 5 + b.avgDamage / 1200) - (a.wr * 2 + a.games * 5 + a.avgDamage / 1200)).slice(0, 6) : [];
+    const wins = matchDrafts.filter((entry) => entry.win).length;
+    return { rows, matchDrafts, picks, rolePicks, archetypes, duos, identity: latestIdentity, comfort, traps, threats, games: matchDrafts.length, wins, wr: Math.round((wins / Math.max(1, matchDrafts.length)) * 100) };
+  };
+  const ally = buildSide("ALLY");
+  const enemy = buildSide("ENEMY");
+  const allyBest = ally.archetypes[0];
+  const enemyBest = enemy.archetypes[0];
+  const warnings = [
+    ally.identity.gaps[0] && `Nos drafts : ${ally.identity.gaps[0].toLowerCase()}.`,
+    ally.traps[0] && `${championDisplayName(ally.traps[0].champion)} revient souvent avec ${ally.traps[0].wr}% WR.`,
+    enemy.threats[0] && `${championDisplayName(enemy.threats[0].champion)} est le pick adverse le plus pénible (${enemy.threats[0].wr}% contre nous).`,
+    enemyBest && enemyBest.wr >= 55 && `Les drafts adverses ${tagLabel(enemyBest.tag).toLowerCase()} nous battent souvent (${enemyBest.wr}%).`,
+  ].filter(Boolean).slice(0, 4);
+  const recommendations = [
+    allyBest && `Conserver le noyau ${tagLabel(allyBest.tag).toLowerCase()} quand il sort : ${allyBest.wr}% WR sur ${allyBest.games} game${allyBest.games > 1 ? "s" : ""}.`,
+    ally.comfort[0] && `Pick équipe à sécuriser : ${championDisplayName(ally.comfort[0].champion)} ${roleLabel(ally.comfort[0].role)} (${ally.comfort[0].wr}% WR).`,
+    enemy.threats[0] && `Préparer une réponse claire contre ${championDisplayName(enemy.threats[0].champion)} ${roleLabel(enemy.threats[0].role)}.`,
+    ally.identity.scores.find((score) => score.id === "frontline")?.count === 0 && "Ajouter une vraie première ligne ou assumer un plan poke/side sans front-to-back.",
+  ].filter(Boolean).slice(0, 4);
+  return { ally, enemy, warnings, recommendations };
+}
+
+function DraftMiniChampion({ item, variant = "ally", onSources }) {
+  const toneName = item.wr >= 55 ? "green" : item.wr < 45 ? "red" : "orange";
+  return <button type="button" onClick={onSources} className="grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] p-2 text-left transition hover:border-cyan-200/26 hover:bg-cyan-300/[0.06]">
+    <span className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/35"><ChampionPortrait champion={item.champion} alt={item.champion} /></span>
+    <span className="min-w-0">
+      <span className="block truncate text-sm font-black text-white">{championDisplayName(item.champion)}</span>
+      <span className="mt-0.5 block truncate text-[0.66rem] font-semibold text-slate-300">{roleLabel(item.role)} · {item.games}G · KDA {item.kda}</span>
+    </span>
+    <span className={cx("rounded-lg border px-2 py-1 text-xs font-black", tone(toneName))}>{variant === "enemy" ? `${item.wr}% vs` : `${item.wr}%`}</span>
+  </button>;
+}
+
+function DraftScoreRail({ scores }) {
+  return <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-3">{scores.map((score) => <div key={score.id} className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-2.5">
+    <div className="flex items-center justify-between gap-2"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-300">{score.label}</p><p className="shrink-0 text-xs font-black text-white">{score.count}/5</p></div>
+    <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.055]"><span className={cx("block h-full rounded-full bg-gradient-to-r", score.id === "engage" ? "from-rose-300 to-orange-400" : score.id === "scaling" ? "from-cyan-300 to-blue-500" : score.id === "frontline" ? "from-emerald-300 to-teal-500" : score.id === "side" ? "from-amber-300 to-yellow-500" : "from-fuchsia-300 to-cyan-300")} style={{ width: `${Math.max(5, score.value)}%` }} /></div>
+  </div>)}</div>;
+}
+
+function DraftTrendTable({ title, rows, empty, onSources, enemy = false }) {
+  return <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+    <div className="flex items-center justify-between gap-3"><h4 className="text-sm font-black uppercase tracking-[0.14em] text-white">{title}</h4><Badge tone="slate">{rows.length}</Badge></div>
+    <div className="mt-2 grid gap-2">{rows.length ? rows.slice(0, 5).map((row, index) => <button key={`${title}-${row.tag || row.champions || row.champion}-${index}`} type="button" onClick={() => onSources?.(row)} className="grid min-w-0 gap-2 rounded-xl border border-white/10 bg-black/18 p-2 text-left transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-black text-white">{row.tag ? tagLabel(row.tag) : row.champions}</span>
+        <span className="mt-0.5 block truncate text-[0.66rem] font-semibold text-slate-300">{row.pair || `${row.games} game${row.games > 1 ? "s" : ""}`} · {row.wins}W - {row.games - row.wins}L</span>
+      </span>
+      <span className={cx("w-fit rounded-lg border px-2 py-1 text-xs font-black sm:justify-self-end", tone(row.wr >= 55 ? enemy ? "red" : "green" : row.wr < 45 ? enemy ? "green" : "red" : "orange"))}>{row.wr}%</span>
+    </button>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">{empty}</p>}</div>
+  </div>;
+}
+
+function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForMatches }) {
+  const active = view === "enemy" ? model.enemy : model.ally;
+  const enemyMode = view === "enemy";
+  const sourceFor = (entry) => sourceGamesForMatches?.(entry.matches || []) || [];
+  const openSources = (entry, title, subtitle) => onOpenSources?.({ title, subtitle, metrics: [{ label: "Games", value: String(entry.games || entry.matches?.length || active.games) }, { label: "WR", value: `${entry.wr ?? active.wr}%` }], games: sourceFor(entry) });
+  const mainPick = enemyMode ? active.threats[0] : active.comfort[0] || active.picks[0];
+  return <Surface glow className="mt-3 overflow-hidden p-0">
+    <div className="border-b border-white/10 p-3">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Tendances draft</Badge><Badge tone={enemyMode ? "red" : "cyan"}>{enemyMode ? "Drafts adverses" : "Nos drafts"}</Badge><Badge tone="slate">{active.games} games</Badge></div>
+          <h3 className="mt-2 break-words text-xl font-black text-white">Lecture draft du bloc</h3>
+          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">{enemyMode ? "Ce que les équipes posent contre nous, ce qui nous bat, et les réponses à préparer." : "Nos patterns, nos picks fiables, nos pièges, et la structure réelle de nos compos."}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/22 p-1">
+          {[["ally", "Nos drafts", Crown], ["enemy", "Contre nous", Shield]].map(([id, label, Icon]) => <button key={id} type="button" onClick={() => onView(id)} className={cx("inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", view === id ? "bg-cyan-300/16 text-cyan-50 shadow-[inset_0_0_18px_rgba(34,211,238,.08)]" : "text-slate-300 hover:bg-white/[0.05]")}><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{label}</span></button>)}
+        </div>
+      </div>
+    </div>
+    <div className="grid gap-3 p-3 2xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,.85fr)]">
+      <div className="min-w-0">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)]">
+          <div className="relative min-h-[17rem] overflow-hidden rounded-2xl border border-cyan-200/16 bg-black/24 p-4">
+            <ChampionBackdrop champion={mainPick?.champion} />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050711] via-[#050711]/78 to-[#050711]/22" />
+            <div className="relative z-10 flex h-full min-h-[14rem] flex-col justify-between">
+              <div>
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">{enemyMode ? "Menace draft adverse" : "Pick équipe à sécuriser"}</p>
+                <h4 className="mt-3 break-words text-3xl font-black leading-none text-white">{mainPick ? championDisplayName(mainPick.champion) : "À confirmer"}</h4>
+                <p className="mt-2 text-sm font-bold text-slate-300">{mainPick ? `${roleLabel(mainPick.role)} · ${mainPick.games} games · ${mainPick.wr}% ${enemyMode ? "contre nous" : "WR"}` : "Importe plus de games pour stabiliser la lecture."}</p>
+              </div>
+              <div className="mt-5 grid grid-cols-3 gap-2">
+                <div className="rounded-xl border border-white/10 bg-black/34 p-2"><p className="text-[0.56rem] font-black uppercase tracking-[0.1em] text-slate-400">WR</p><p className="mt-1 text-lg font-black text-white">{active.wr}%</p></div>
+                <div className="rounded-xl border border-white/10 bg-black/34 p-2"><p className="text-[0.56rem] font-black uppercase tracking-[0.1em] text-slate-400">Identité</p><p className="mt-1 truncate text-lg font-black text-white">{tagLabel(active.identity.primary)}</p></div>
+                <div className="rounded-xl border border-white/10 bg-black/34 p-2"><p className="text-[0.56rem] font-black uppercase tracking-[0.1em] text-slate-400">Pool</p><p className="mt-1 text-lg font-black text-white">{active.picks.length}</p></div>
+              </div>
+            </div>
+          </div>
+          <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+            <div className="flex items-center justify-between gap-3"><h4 className="text-sm font-black uppercase tracking-[0.14em] text-white">Score de draft</h4><Badge tone={championStyleTone(active.identity.primary)}>{tagLabel(active.identity.primary)}</Badge></div>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{active.identity.text}</p>
+            <div className="mt-3"><DraftScoreRail scores={active.identity.scores} /></div>
+            <div className="mt-3 flex flex-wrap gap-1.5">{active.identity.tags.slice(0, 6).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div>
+          </div>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {(enemyMode ? active.threats : active.comfort).slice(0, 6).map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} variant={enemyMode ? "enemy" : "ally"} onSources={() => openSources(item, enemyMode ? `Menace adverse : ${championDisplayName(item.champion)}` : `Pick NXT5 : ${championDisplayName(item.champion)}`, `${item.games} games · ${item.wr}% ${enemyMode ? "contre nous" : "WR"} · ${roleLabel(item.role)}`)} />)}
+        </div>
+      </div>
+      <div className="grid min-w-0 gap-3">
+        <DraftTrendTable title={enemyMode ? "Archétypes qui nous battent" : "Archétypes rentables"} rows={active.archetypes} empty="Pas encore assez de drafts complètes." enemy={enemyMode} onSources={(row) => openSources(row, enemyMode ? `Archétype adverse : ${tagLabel(row.tag)}` : `Archétype NXT5 : ${tagLabel(row.tag)}`, `${row.games} games · ${row.wr}%`)} />
+        <DraftTrendTable title={enemyMode ? "Duos ennemis fréquents" : "Duos NXT5 fréquents"} rows={active.duos} empty="Les duos apparaîtront avec plus de games." enemy={enemyMode} onSources={(row) => openSources(row, row.champions, `${row.pair} · ${row.games} games · ${row.wr}%`)} />
+      </div>
+    </div>
+    <div className="grid gap-3 border-t border-white/10 p-3 xl:grid-cols-2">
+      <div className="min-w-0">
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">{enemyMode ? "À préparer" : "Alertes draft"}</p>
+        <div className="mt-2 grid gap-2">{(enemyMode ? model.recommendations : model.warnings).slice(0, 4).map((item) => <p key={item} className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm font-semibold leading-6 text-slate-200">{item}</p>)}</div>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Picks équipe par rôle</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {active.rolePicks.slice(0, 5).map((entry) => <div key={entry.role} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.025] p-2.5">
+            <div className="flex items-center gap-2"><RoleIcon role={entry.role} className="h-4 w-4 shrink-0" /><p className="text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(entry.role)}</p></div>
+            <p className="mt-1 truncate text-xs font-semibold text-slate-300">{entry.picks.map((pick) => championDisplayName(pick.champion)).join(" · ")}</p>
+          </div>)}
+        </div>
+      </div>
+    </div>
+  </Surface>;
 }
 
 function reportMatchIds(report) {
@@ -10226,6 +10534,10 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const [loading, setLoading] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
+    try { return window.localStorage.getItem("nxt5_beginner_compass_hidden") === "1"; }
+    catch { return false; }
+  });
 
   function setActive(pageId) {
     setActiveState(pageId);
@@ -10239,6 +10551,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   function openTeamManagement() {
     navigate("/gestion-equipe");
+  }
+
+  function hideBeginnerCompass() {
+    setBeginnerCompassHidden(true);
+    try { window.localStorage.setItem("nxt5_beginner_compass_hidden", "1"); } catch {}
   }
 
   async function refreshAll() {
@@ -10269,9 +10586,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }, [active, data, loading, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
+  const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
+  const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
   if (!bootstrapped) return <AppLoadingScreen />;
   if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }} className="min-w-0">{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} />{showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}<AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }} className="min-w-0">{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
 }
 
 export default function NXT5() {
