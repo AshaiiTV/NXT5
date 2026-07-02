@@ -6922,8 +6922,10 @@ function TrendsPage({ data, selectedTeamId }) {
     const games = patternInsights.length;
     const patternWins = patternInsights.filter((entry) => entry.win).length;
     const wr = Math.round((patternWins / Math.max(1, games)) * 100);
-    const verdict = games < 2 ? "à confirmer" : wr >= 58 ? "ça passe" : wr >= 48 ? "stable mais pas tranché" : "ça ne passe pas";
+    const verdict = games < 2 ? "échantillon faible" : wr >= 58 ? "levier validé" : wr >= 48 ? "rendement neutre" : "rendement défavorable";
     const verdictTone = games < 2 ? "slate" : wr >= 58 ? "green" : wr >= 48 ? "orange" : "red";
+    const avgGoldDiff = Math.round((sumRows(patternAlly, "gold") - sumRows(patternEnemy, "gold")) / Math.max(1, games));
+    const avgDamageDiff = Math.round((sumRows(patternAlly, "damage") - sumRows(patternEnemy, "damage")) / Math.max(1, games));
     const cs10 = averageValues(patternInsights.flatMap((entry) => entry.roleStats.map((stat) => stat.cs10Diff)));
     const cs20 = averageValues(patternInsights.flatMap((entry) => entry.roleStats.map((stat) => stat.cs20Diff)));
     const firstObjective = averageValues(patternInsights.map((entry) => entry.firstObjectiveMinute));
@@ -6944,13 +6946,18 @@ function TrendsPage({ data, selectedTeamId }) {
       verdict,
       verdictTone,
       bestRole,
+      avgGoldDiff,
+      avgDamageDiff,
+      cs10,
+      cs20,
+      firstObjective,
       details: [
         `${games} game${games > 1 ? "s" : ""} · ${patternWins}W-${games - patternWins}L · ${wr}% WR`,
-        `Écart or ${formatGoldDiff(Math.round((sumRows(patternAlly, "gold") - sumRows(patternEnemy, "gold")) / Math.max(1, games)))}`,
+        `Écart or ${formatGoldDiff(avgGoldDiff)} · dégâts ${avgDamageDiff >= 0 ? "+" : ""}${formatPoints(avgDamageDiff)}`,
         `CS10 ${Number.isFinite(cs10) ? `${cs10 >= 0 ? "+" : ""}${cs10.toFixed(1)}` : "n/a"} · CS20 ${Number.isFinite(cs20) ? `${cs20 >= 0 ? "+" : ""}${cs20.toFixed(1)}` : "n/a"}`,
         `1er obj ${formatMinute(firstObjective)}${Number.isFinite(firstDragon) ? ` · Drake ${formatMinute(firstDragon)}` : Number.isFinite(firstGrub) ? ` · Grubs ${formatMinute(firstGrub)}` : ""}`,
       ],
-      read: games ? `${label} : ${verdict}. ${games} game${games > 1 ? "s" : ""}, ${wr}% WR, ${Number.isFinite(firstObjective) ? `premier objectif moyen à ${formatMinute(firstObjective)}` : "timing objectif non disponible"}.` : "",
+      read: games ? `${label} : ${verdict}. ${games} game${games > 1 ? "s" : ""}, ${patternWins}W-${games - patternWins}L, ${wr}% WR, ${formatGoldDiff(avgGoldDiff)} or/game et ${Number.isFinite(firstObjective) ? `premier objectif moyen à ${formatMinute(firstObjective)}` : "timing objectif non disponible"}.` : "",
     };
   };
   const hasTags = (stat, tags) => tags.some((tag) => stat?.tags?.includes(tag));
@@ -6969,7 +6976,7 @@ function TrendsPage({ data, selectedTeamId }) {
       const top = entry.roleStats.find((stat) => stat.role === "TOP");
       return hasTags(top, ["frontline", "engage", "teamfight", "control", "sustain", "peel"]);
     }, { tone: "green" }),
-    summarizePattern("early-objectives", "Setup early objectifs", (entry) => Number.isFinite(entry.firstObjectiveMinute) && entry.firstObjectiveMinute <= 9.5, { tone: "orange" }),
+    summarizePattern("early-objectives", "Contrôle objectifs early", (entry) => Number.isFinite(entry.firstObjectiveMinute) && entry.firstObjectiveMinute <= 9.5, { tone: "orange" }),
     summarizePattern("front-to-back", "Front-to-back / scaling", (entry) => entry.roleStats.flatMap((stat) => stat.tags).filter((tag) => ["front-to-back", "scaling", "peel", "control"].includes(tag)).length >= 3, { tone: "blue" }),
   ].filter((pattern) => pattern.games).sort((a, b) => b.games - a.games || b.wr - a.wr).slice(0, 5);
   const laneTimings = ROSTER_ROLE_ORDER.map((role) => {
@@ -6982,13 +6989,62 @@ function TrendsPage({ data, selectedTeamId }) {
       samples: Math.max(values10.length, values20.length),
     };
   }).filter((stat) => stat.samples).sort((a, b) => Math.abs(b.cs10 || 0) - Math.abs(a.cs10 || 0));
-  const autoReads = [
-    autoPatterns[0]?.read,
-    autoPatterns.find((pattern) => pattern.id === "jgl-mid")?.read,
-    autoPatterns.find((pattern) => pattern.id === "top-frontline")?.read,
-    laneTimings[0] && `${roleLabel(laneTimings[0].role)} : ${laneTimings[0].cs10 >= 0 ? "priorité lane" : "lane sous pression"} au CS10 (${laneTimings[0].cs10 >= 0 ? "+" : ""}${laneTimings[0].cs10.toFixed(1)}), CS20 ${Number.isFinite(laneTimings[0].cs20) ? `${laneTimings[0].cs20 >= 0 ? "+" : ""}${laneTimings[0].cs20.toFixed(1)}` : "n/a"}.`,
-    `Objectifs : ${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game, ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game, premier timing moyen ${formatMinute(averageValues(matchInsights.map((entry) => entry.firstObjectiveMinute)))}.`,
+  const strongestPattern = autoPatterns[0] || null;
+  const fragilePattern = autoPatterns.slice().filter((pattern) => pattern.games >= 2).sort((a, b) => a.wr - b.wr || b.games - a.games)[0] || null;
+  const bestLaneTiming = laneTimings.filter((stat) => Number.isFinite(stat.cs10)).sort((a, b) => b.cs10 - a.cs10)[0] || null;
+  const worstLaneTiming = laneTimings.filter((stat) => Number.isFinite(stat.cs10)).sort((a, b) => a.cs10 - b.cs10)[0] || null;
+  const objectiveTimingValues = matchInsights.map((entry) => entry.firstObjectiveMinute).filter((value) => Number.isFinite(value));
+  const averageFirstObjective = averageValues(objectiveTimingValues);
+  const earlyObjectiveRate = Math.round((objectiveTimingValues.filter((value) => value <= 9.5).length / Math.max(1, objectiveTimingValues.length)) * 100);
+  const bestSide = sideStats.filter((stat) => stat.games).sort((a, b) => b.wr - a.wr || b.games - a.games)[0] || null;
+  const topDamageSignal = playerSignals.slice().sort((a, b) => b.avgDamage - a.avgDamage)[0] || null;
+  const teamKpAverage = Math.round(ally.reduce((total, row) => total + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, ally.length));
+  const teamCsAverage = (ally.reduce((total, row) => total + Number(row.cs_per_min || 0), 0) / Math.max(1, ally.length)).toFixed(1);
+  const deathsPerGame = Number(objectiveRatio(sumRows(ally, "deaths"), matches.length));
+  const coachKpis = [
+    { label: "Échantillon", value: `${matches.length}G`, detail: `${wins}W-${losses}L · ${winrate}% WR`, toneName: matches.length >= 5 ? "green" : "orange" },
+    { label: "Diff. or", value: formatGoldDiff(avgInt(goldDiff)), detail: "moyenne/game", toneName: diffTone(goldDiff) },
+    { label: "1er objectif", value: formatMinute(averageFirstObjective), detail: `${earlyObjectiveRate}% ≤ 9:30`, toneName: earlyObjectiveRate >= 60 ? "green" : earlyObjectiveRate >= 35 ? "orange" : "red" },
+    { label: "Morts", value: deathsPerGame.toFixed(Number.isInteger(deathsPerGame) ? 0 : 1), detail: "alliées/game", toneName: deathsPerGame <= 15 ? "green" : deathsPerGame >= 20 ? "red" : "orange" },
+  ];
+  const coachBriefs = [
+    {
+      toneName: winrate >= 55 ? "green" : winrate >= 45 ? "orange" : "red",
+      label: "Diagnostic",
+      title: `${winrate >= 55 ? "Bloc favorable" : winrate >= 45 ? "Bloc compétitif mais instable" : "Bloc défavorable"}`,
+      text: `${matches.length} games analysées, ${wins}W-${losses}L. Écarts moyens : ${formatGoldDiff(avgInt(goldDiff))} or, ${signedAvg(damageDiff)} dégâts, ${signedAvg(visionDiff)} vision. Le volume ${matches.length >= 5 ? "permet une lecture exploitable" : "reste court : priorité à la validation sur le prochain bloc"}.`,
+      evidence: [`WR ${winrate}%`, `morts ${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/game`, `KP équipe ${teamKpAverage}%`],
+    },
+    strongestPattern && {
+      toneName: strongestPattern.verdictTone,
+      label: "Plan de jeu",
+      title: `${strongestPattern.label} · ${strongestPattern.verdict}`,
+      text: `${strongestPattern.games} occurrence${strongestPattern.games > 1 ? "s" : ""}, ${strongestPattern.wins}W-${strongestPattern.games - strongestPattern.wins}L, ${strongestPattern.wr}% WR. ${strongestPattern.bestRole ? `${roleLabel(strongestPattern.bestRole.role)} est le rôle le plus porteur dans ce pattern` : "Rôle porteur non isolé"}, avec ${formatGoldDiff(strongestPattern.avgGoldDiff)} or/game et ${strongestPattern.avgDamageDiff >= 0 ? "+" : ""}${formatPoints(strongestPattern.avgDamageDiff)} dégâts/game.`,
+      evidence: [`CS10 ${Number.isFinite(strongestPattern.cs10) ? `${strongestPattern.cs10 >= 0 ? "+" : ""}${strongestPattern.cs10.toFixed(1)}` : "n/a"}`, `CS20 ${Number.isFinite(strongestPattern.cs20) ? `${strongestPattern.cs20 >= 0 ? "+" : ""}${strongestPattern.cs20.toFixed(1)}` : "n/a"}`, `1er obj ${formatMinute(strongestPattern.firstObjective)}`],
+    },
+    {
+      toneName: averageFirstObjective && averageFirstObjective <= 9.5 ? "green" : averageFirstObjective && averageFirstObjective <= 12 ? "orange" : "red",
+      label: "Objectifs",
+      title: `Tempo objectifs : ${formatMinute(averageFirstObjective)}`,
+      text: `${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game, ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game, ${objectiveRatio(objectiveTotals.towers, matches.length)} tours/game. ${earlyObjectiveRate}% des games avec un premier objectif allié avant 9:30${bestSide ? ` ; meilleur side actuel : ${bestSide.side} (${bestSide.wr}% WR sur ${bestSide.games}G)` : ""}.`,
+      evidence: [`Nashor ${objectiveRatio(objectiveTotals.barons, matches.length)}/game`, `Herald ${objectiveRatio(objectiveTotals.heralds, matches.length)}/game`, `${objectiveTimingValues.length}/${matches.length} timings`],
+    },
+    {
+      toneName: worstLaneTiming && worstLaneTiming.cs10 < -5 ? "red" : bestLaneTiming && bestLaneTiming.cs10 > 5 ? "green" : "orange",
+      label: "Laning",
+      title: worstLaneTiming && worstLaneTiming.cs10 < -5 ? `${roleLabel(worstLaneTiming.role)} sous pression` : bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} crée la priorité` : "Lecture lane limitée",
+      text: `${bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} meilleur CS10 (${bestLaneTiming.cs10 >= 0 ? "+" : ""}${bestLaneTiming.cs10.toFixed(1)})` : "Pas de CS10 fiable"}.${worstLaneTiming ? ` Point de contrôle : ${roleLabel(worstLaneTiming.role)} au CS10 (${worstLaneTiming.cs10 >= 0 ? "+" : ""}${worstLaneTiming.cs10.toFixed(1)}), CS20 ${Number.isFinite(worstLaneTiming.cs20) ? `${worstLaneTiming.cs20 >= 0 ? "+" : ""}${worstLaneTiming.cs20.toFixed(1)}` : "n/a"}.` : ""} À revoir : wave 1-3, premier reset et move river associé.`,
+      evidence: [bestLaneTiming && `${roleLabel(bestLaneTiming.role)} ${bestLaneTiming.samples} sample(s)`, worstLaneTiming && `${roleLabel(worstLaneTiming.role)} ${worstLaneTiming.samples} sample(s)`, `CS/min ${teamCsAverage}`].filter(Boolean),
+    },
+    {
+      toneName: deathsPerGame >= 20 || fragilePattern?.wr < 45 ? "red" : "purple",
+      label: "Priorité review",
+      title: fragilePattern ? `Stabiliser ${fragilePattern.label}` : "Conserver les forces identifiées",
+      text: fragilePattern ? `${fragilePattern.label} descend à ${fragilePattern.wr}% WR sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le champion pool associé.` : `${topDamageSignal?.name || "Carry principal"} porte ${topDamageSignal ? formatPoints(topDamageSignal.avgDamage) : "n/a"} dégâts moyens ; ${kpSignal?.name || "le meilleur KP"} atteint ${kpSignal?.avgKp || 0}% KP. Objectif : conserver le plan fort sans surcharger une seule condition de victoire.`,
+      evidence: [pressureSignal && `${pressureSignal.name} ${((pressureSignal.deaths || 0) / Math.max(1, pressureSignal.games)).toFixed(1)} morts/G`, supportSignal && `${supportSignal.name} vision ${supportSignal.avgVision}`, topDamageSignal && `${topDamageSignal.name} ${formatPoints(topDamageSignal.avgDamage)} dmg`].filter(Boolean),
+    },
   ].filter(Boolean).slice(0, 5);
+  const autoReads = coachBriefs.map((brief) => `${brief.label} — ${brief.title}. ${brief.text}`);
   const forceItems = [
     `${wins}W - ${losses}L sur ${matches.length} game${matches.length > 1 ? "s" : ""} (${winrate}% WR).`,
     `Écart or moyen: ${formatGoldDiff(avgInt(goldDiff))} par game.`,
@@ -7031,7 +7087,7 @@ function TrendsPage({ data, selectedTeamId }) {
     purple: "from-fuchsia-400/14 via-white/[0.035] to-transparent text-fuchsia-100",
     orange: "from-amber-400/14 via-white/[0.035] to-transparent text-amber-100",
   };
-  const TrendPanel = ({ title, icon: Icon, items, tone = "cyan" }) => <section className="nxt5-flat-block flex h-full min-h-[13rem] flex-col rounded-2xl border p-4"><div className="flex items-center gap-3"><span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br", trendToneClass[tone] || trendToneClass.cyan)}><Icon className="h-4 w-4" /></span><h3 className="min-w-0 truncate text-base font-black text-white">{title}</h3></div><div className="mt-3 flex-1 divide-y divide-white/8">{items.length ? items.slice(0, 4).map((item, index) => <div key={item} className="flex gap-3 py-2.5 first:pt-0 last:pb-0"><span className={cx("mt-2 h-1.5 w-1.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]", tone === "red" ? "bg-rose-300 text-rose-300" : tone === "green" ? "bg-emerald-300 text-emerald-300" : tone === "purple" ? "bg-fuchsia-300 text-fuchsia-300" : tone === "orange" ? "bg-amber-300 text-amber-300" : "bg-cyan-300 text-cyan-300")} /><p className="min-w-0 text-sm font-semibold leading-5 text-slate-200">{index === 0 ? <span className="font-black text-white">{item}</span> : item}</p></div>) : <p className="py-2 text-sm font-semibold text-slate-300">Pas assez de volume.</p>}</div></section>;
+  const TrendPanel = ({ title, icon: Icon, items, tone = "cyan" }) => <section className="nxt5-flat-block flex h-full min-h-[9.5rem] flex-col rounded-xl border p-3"><div className="flex items-center gap-2.5"><span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-gradient-to-br", trendToneClass[tone] || trendToneClass.cyan)}><Icon className="h-4 w-4" /></span><h3 className="min-w-0 truncate text-sm font-black text-white">{title}</h3></div><div className="mt-2.5 flex-1 divide-y divide-white/8">{items.length ? items.slice(0, 3).map((item, index) => <div key={item} className="flex gap-2.5 py-2 first:pt-0 last:pb-0"><span className={cx("mt-2 h-1.5 w-1.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]", tone === "red" ? "bg-rose-300 text-rose-300" : tone === "green" ? "bg-emerald-300 text-emerald-300" : tone === "purple" ? "bg-fuchsia-300 text-fuchsia-300" : tone === "orange" ? "bg-amber-300 text-amber-300" : "bg-cyan-300 text-cyan-300")} /><p className="min-w-0 text-xs font-semibold leading-5 text-slate-200">{index === 0 ? <span className="font-black text-white">{item}</span> : item}</p></div>) : <p className="py-2 text-xs font-semibold text-slate-300">Pas assez de volume.</p>}</div></section>;
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const topMetrics = [
     { icon: Trophy, label: "Winrate", value: `${winrate}%`, hint: `${wins}W - ${losses}L`, tone: winrate >= 50 ? "green" : "red" },
@@ -7147,7 +7203,7 @@ function TrendsPage({ data, selectedTeamId }) {
         </aside>
       </div>
     </section>
-    <Surface className="p-4">
+    <Surface className="p-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge tone="cyan">Lecture automatique</Badge>
@@ -7156,9 +7212,9 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>
         <Badge tone="slate">{autoPatterns.length} pattern{autoPatterns.length > 1 ? "s" : ""} détecté{autoPatterns.length > 1 ? "s" : ""}</Badge>
       </div>
-      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
+      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
         <div className="grid min-w-0 gap-2 lg:grid-cols-2">
-          {autoPatterns.length ? autoPatterns.map((pattern) => <div key={pattern.id} className="min-w-0 rounded-2xl border border-white/10 bg-black/22 p-3">
+          {autoPatterns.length ? autoPatterns.slice(0, 4).map((pattern) => <div key={pattern.id} className="min-w-0 rounded-xl border border-white/10 bg-black/22 p-2.5">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2"><Badge tone={pattern.tone}>{pattern.label}</Badge><Badge tone={pattern.verdictTone}>{pattern.verdict}</Badge></div>
@@ -7175,14 +7231,31 @@ function TrendsPage({ data, selectedTeamId }) {
         <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
           <div className="flex items-center justify-between gap-3">
             <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Synthèse coach</h4>
-            <Badge tone={winrate >= 50 ? "green" : "red"}>{winrate}% WR</Badge>
+            <Badge tone={winrate >= 50 ? "green" : "red"}>{coachBriefs.length} axes</Badge>
           </div>
-          <div className="mt-3 divide-y divide-white/8">
-            {autoReads.map((read, index) => <p key={read} className={cx("py-2.5 text-sm font-semibold leading-5 text-slate-200 first:pt-0 last:pb-0", index === 0 && "font-black text-white")}>{read}</p>)}
+          <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+            {coachKpis.map((item) => <div key={item.label} className={cx("min-w-0 rounded-lg border px-2 py-1.5", tone(item.toneName))}>
+              <p className="truncate text-[0.52rem] font-black uppercase tracking-[0.12em] opacity-80">{item.label}</p>
+              <p className="mt-0.5 truncate text-sm font-black text-white">{item.value}</p>
+              <p className="truncate text-[0.58rem] font-semibold opacity-80">{item.detail}</p>
+            </div>)}
+          </div>
+          <div className="mt-2.5 grid gap-2">
+            {coachBriefs.map((brief, index) => <article key={`${brief.label}-${index}`} className={cx("rounded-xl border p-2.5", index === 0 ? "border-cyan-200/24 bg-cyan-400/[0.075]" : "border-white/10 bg-black/18")}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Badge tone={brief.toneName}>{brief.label}</Badge>
+                <span className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">#{index + 1}</span>
+              </div>
+              <h5 className="mt-2 text-sm font-black leading-5 text-white">{brief.title}</h5>
+              <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-200">{brief.text}</p>
+              {brief.evidence?.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">
+                {brief.evidence.slice(0, 3).map((item) => <span key={item} className="rounded-md border border-white/10 bg-white/[0.045] px-1.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.08em] text-cyan-50">{item}</span>)}
+              </div>}
+            </article>)}
           </div>
         </div>
       </div>
-      {laneTimings.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+      {laneTimings.length > 0 && <div className="mt-2.5 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
         {laneTimings.map((stat) => <div key={stat.role} className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-2.5">
           <div className="flex items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-2"><RoleIcon role={stat.role} className="h-4 w-4 shrink-0" /><span className="truncate text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(stat.role)}</span></span>
@@ -7193,7 +7266,7 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>)}
       </div>}
     </Surface>
-    <Surface className="p-4">
+    <Surface className="p-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge tone="purple">Graphiques clés</Badge>
@@ -7202,7 +7275,7 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>
         <Badge tone={winrate >= 50 ? "green" : "red"}>{matches.length} games · {winrate}% WR</Badge>
       </div>
-      <div className="mt-4 grid items-stretch gap-3 xl:grid-cols-3">
+      <div className="mt-3 grid items-stretch gap-3 xl:grid-cols-3">
         <div className="flex min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.025] p-3">
           <div className="flex items-center justify-between gap-3">
             <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Écarts moyens</h4>
@@ -7232,18 +7305,16 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>
       </div>
     </Surface>
-    <div className="mt-4 grid items-start gap-4 xl:grid-cols-2">
-      <Surface className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-xl font-black text-white">Résumé</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Les écarts sont moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-4 grid gap-2 md:grid-cols-3">{[["KP haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p><p className={cx("mt-2 break-words text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
-      <Surface className="p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Les blocs qui pèsent vraiment.</p></div><Badge tone="slate">{baseMatches.length} games</Badge></div><div className="mt-3 grid gap-2">{categoryBreakdown.length ? <>{categoryBreakdown.slice(0, 5).map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-xl border p-3 text-left transition md:grid-cols-[minmax(130px,1fr)_repeat(4,minmax(58px,auto))] md:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games}G · {entry.wins}W/{entry.games - entry.wins}L</p></div><span className="min-w-0 text-sm font-black text-white md:text-right">{entry.wr}%</span><span className={cx("min-w-0 text-sm font-black md:text-right", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 text-sm font-black md:text-right", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)}</span><span className={cx("min-w-0 text-sm font-black md:text-right", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
+    <div className="mt-3 grid items-start gap-3 xl:grid-cols-2">
+      <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-lg font-black text-white">Résumé</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Écarts moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-3 grid gap-2 md:grid-cols-3">{[["KP haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p><p className={cx("mt-1.5 break-words text-xs font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
+      <Surface className="p-3"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black text-white">Comparatif contextes</h3><p className="mt-1 text-xs font-semibold text-slate-300">Les blocs qui pèsent vraiment.</p></div><Badge tone="slate">{baseMatches.length} games</Badge></div><div className="mt-2.5 grid gap-2">{categoryBreakdown.length ? <>{categoryBreakdown.slice(0, 4).map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-xl border p-2.5 text-left transition md:grid-cols-[minmax(120px,1fr)_repeat(4,minmax(52px,auto))] md:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-[0.68rem] font-semibold text-slate-300">{entry.games}G · {entry.wins}W/{entry.games - entry.wins}L</p></div><span className="min-w-0 text-xs font-black text-white md:text-right">{entry.wr}%</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
     </div>
-    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-2">
-      <Surface className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-2 text-2xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-4 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.slice(0, 6).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-3"><RoleIcon role={focusRole.role} className="h-7 w-7" /><div className="min-w-0"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Focus ressources</p><p className="break-words text-sm font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} or · {formatPoints(avgInt(focusRole.damage))} dégâts</p></div></div>}</Surface>
-      <Surface className="p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Objectifs par side</h3><p className="mt-1 text-sm font-semibold text-slate-300">Moyenne par game sur chaque side.</p></div><Badge tone="slate">Ratio/game</Badge></div><div className="mt-3 grid gap-3 md:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className={cx("rounded-2xl border p-3", stat.side === "Blue" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-400/[0.055]")}><div className="flex flex-wrap items-center justify-between gap-2"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="text-sm font-black text-white">{stat.wr}% · {stat.wins}W/{stat.games - stat.wins}L</span></div><div className="mt-3 grid grid-cols-5 gap-2">{[["Drakes", stat.objectives.dragons, "dragon"], ["Grubs", stat.objectives.grubs, "grub"], ["Herald", stat.objectives.heralds, "herald"], ["Nashor", stat.objectives.barons, "baron"], ["Tours", stat.objectives.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="min-w-0 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-6 w-6" /><p className="mt-1.5 text-base font-black text-white">{objectiveRatio(value, stat.games)}</p><p className="truncate text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-300">{label}</p></div>)}</div></div>)}</div></Surface>
+    <div className="mt-3 grid items-stretch gap-3 xl:grid-cols-2">
+      <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-2 text-xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-1.5 max-w-4xl text-xs font-semibold leading-5 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-3 flex flex-wrap gap-1.5">{identity.tags.length ? identity.tags.slice(0, 5).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-3 flex items-center gap-3 border-t border-white/10 pt-2.5"><RoleIcon role={focusRole.role} className="h-6 w-6" /><div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-cyan-100">Focus ressources</p><p className="break-words text-xs font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} or · {formatPoints(avgInt(focusRole.damage))} dégâts</p></div></div>}</Surface>
+      <Surface className="p-3"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black text-white">Objectifs par side</h3><p className="mt-1 text-xs font-semibold text-slate-300">Moyenne par game sur chaque side.</p></div><Badge tone="slate">Ratio/game</Badge></div><div className="mt-2.5 grid gap-2 md:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className={cx("rounded-xl border p-2.5", stat.side === "Blue" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-400/[0.055]")}><div className="flex flex-wrap items-center justify-between gap-2"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="text-xs font-black text-white">{stat.wr}% · {stat.wins}W/{stat.games - stat.wins}L</span></div><div className="mt-2.5 grid grid-cols-5 gap-1.5">{[["Drakes", stat.objectives.dragons, "dragon"], ["Grubs", stat.objectives.grubs, "grub"], ["Herald", stat.objectives.heralds, "herald"], ["Nashor", stat.objectives.barons, "baron"], ["Tours", stat.objectives.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="min-w-0 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-5 w-5" /><p className="mt-1 text-sm font-black text-white">{objectiveRatio(value, stat.games)}</p><p className="truncate text-[0.5rem] font-black uppercase tracking-[0.08em] text-slate-300">{label}</p></div>)}</div></div>)}</div></Surface>
     </div>
-    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-2"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /></div>
-    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-3"><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags en victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags en défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /></div>
-    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-2"><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Ratios profils" icon={Clipboard} items={recommendations} tone="orange" /></div>
-    <Surface className="mt-4 p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-xl font-black text-white">Champions récurrents</h3><p className="mt-1 text-sm font-semibold text-slate-300">Volume et WR des picks les plus vus.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2.5"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-xs font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
+    <div className="mt-3 grid items-stretch gap-3 md:grid-cols-2 2xl:grid-cols-4"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Ratios profils" icon={Clipboard} items={recommendations} tone="orange" /></div>
+    <Surface className="mt-3 p-3"><div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-lg font-black text-white">Champions récurrents</h3><p className="mt-1 text-xs font-semibold text-slate-300">Volume et WR des picks les plus vus.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-2.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.slice(0, 8).map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] p-2"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-[0.68rem] font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 1).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
   </div>;
 }
 
