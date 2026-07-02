@@ -9,7 +9,7 @@ Dashboard premium d'analyse LoL pour équipes semi-pro.
 - Netlify Hosting
 - Netlify Functions
 - Neon PostgreSQL
-- Riot Match-V5 + Tournament-V5 API côté serveur
+- Riot Match-V5 API côté serveur
 - Auth par cookie HttpOnly + sessions en DB
 
 ## Installation locale
@@ -57,21 +57,6 @@ RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 `RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton "Analyser profils" recalcule les champions joués sur la saison courante.
 `RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
 
-Pour générer des codes tournoi directement depuis NXT5, ajoute aussi au choix :
-
-```txt
-RIOT_TOURNAMENT_ID=...
-```
-
-ou :
-
-```txt
-RIOT_TOURNAMENT_CALLBACK_URL=https://ton-site.netlify.app/.netlify/functions/riot-tournament-callback
-RIOT_TOURNAMENT_NAME=NXT5 Scrims
-```
-
-Sans ces variables Tournament-V5, la page Codes Tournoi fonctionne quand même en ajout manuel de codes.
-
 ## Neon
 
 Dans Neon, exécute le script :
@@ -80,7 +65,7 @@ Dans Neon, exécute le script :
 database/schema.sql
 ```
 
-Il crée toutes les tables nécessaires : users, sessions, teams, players, matches, match_participants, champion_pool, improvements, reports, composition_types, tournament_codes, audit_logs.
+Il crée toutes les tables nécessaires : users, sessions, teams, players, matches, match_participants, champion_pool, improvements, reports, composition_types, audit_logs.
 
 ## Test rapide
 
@@ -98,7 +83,7 @@ Colle un Game ID du type `EUW1_7123456789`. L'outil demande les données à NXT5
 
 Dans NXT5 : Intégration → Importer un fichier NXT5 local → Choisir le JSON.
 
-NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot. Un code tournoi seul ne suffit pas dans ce mode : il faut l'accès Riot `Match by tournament code`, ou le Game ID final.
+NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot.
 
 ## Application NXT5 Importer
 

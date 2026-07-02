@@ -24,22 +24,6 @@ function buildDashboard(matches, improvements) {
   };
 }
 
-async function loadTournamentCodes(teamIds) {
-  try {
-    return await sql`
-      select tournament_codes.*, users.name as created_by_name
-      from tournament_codes
-      left join users on users.id = tournament_codes.created_by
-      where tournament_codes.team_id = any(${teamIds})
-      order by tournament_codes.created_at desc
-      limit 100
-    `;
-  } catch (err) {
-    if (err?.code === '42P01') return [];
-    throw err;
-  }
-}
-
 async function loadAvailability(teamIds) {
   try {
     return await sql`
@@ -175,7 +159,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     await ensureUserNotificationColumns(sql);
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], tournamentCodes: [], inviteCodes: [], availability: [], profileCoachingNotes: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], inviteCodes: [], availability: [], profileCoachingNotes: [] });
     }
     await ensureMatchImporterColumn();
     await ensureMatchCategoriesSchema();
@@ -193,7 +177,6 @@ export default async function handler(request: Request, context: Context): Promi
       reports,
       matchArchives,
       matchCategories,
-      tournamentCodes,
       inviteCodes,
       availability,
       profileCoachingNotes
@@ -237,7 +220,6 @@ export default async function handler(request: Request, context: Context): Promi
       `,
       loadMatchArchives(teamIds),
       sql`select * from match_categories where team_id = any(${teamIds}) order by is_default desc, name asc`,
-      loadTournamentCodes(teamIds),
       loadInviteCodes(teamIds),
       loadAvailability(teamIds),
       loadProfileCoachingNotes(teamIds)
@@ -253,7 +235,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, tournamentCodes, inviteCodes, availability, profileCoachingNotes });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes });
   } catch (err) {
     return handleError(err);
   }

@@ -6729,6 +6729,8 @@ function TrendsPage({ data, selectedTeamId }) {
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [trendSourceModal, setTrendSourceModal] = useState(null);
+  const [expandedTrendPatternId, setExpandedTrendPatternId] = useState("");
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
   const ally = rows.filter((row) => row.team_key === "ALLY");
@@ -6913,6 +6915,34 @@ function TrendsPage({ data, selectedTeamId }) {
       allyObjectiveCount: allyEvents.length,
     };
   });
+  const sourceGameFromInsight = (entry) => {
+    const match = entry.match;
+    const allyRows = teamRows(match, "ALLY");
+    const enemyRows = teamRows(match, "ENEMY");
+    const topRole = entry.sortedRoles?.[0];
+    const matchId = match.id || match.game_id || match.match_id || "";
+    return {
+      id: matchId,
+      match,
+      title: matchDisplayName(match, "Game"),
+      result: match.result || "Analyse",
+      side: match.side || "Side ?",
+      patch: match.patch || "Patch ?",
+      duration: match.duration || "--:--",
+      goldDiff: sumRows(allyRows, "gold") - sumRows(enemyRows, "gold"),
+      damageDiff: sumRows(allyRows, "damage") - sumRows(enemyRows, "damage"),
+      visionDiff: sumRows(allyRows, "vision") - sumRows(enemyRows, "vision"),
+      deaths: sumRows(allyRows, "deaths"),
+      enemyDeaths: sumRows(enemyRows, "deaths"),
+      firstObjective: formatMinute(entry.firstObjectiveMinute),
+      objectiveCount: entry.allyObjectiveCount || 0,
+      topRoles: entry.topRoles || [],
+      topRoleLabel: topRole ? `${roleLabel(topRole.role)} · ${championDisplayName(topRole.champion)}` : "Rôle non isolé",
+      topRoleDetail: topRole ? `${Math.round(topRole.goldShare)}% or · ${Math.round(topRole.damageShare)}% dégâts · KP ${Math.round(topRole.kp)}%` : "Pas assez de données rôle",
+    };
+  };
+  const sourceGames = matchInsights.map(sourceGameFromInsight);
+  const timelineGamesCount = sourceGames.filter((game) => game.firstObjective !== "--").length;
   const summarizePattern = (id, label, predicate, options = {}) => {
     const patternInsights = matchInsights.filter(predicate);
     const patternMatches = patternInsights.map((entry) => entry.match);
@@ -6951,6 +6981,7 @@ function TrendsPage({ data, selectedTeamId }) {
       cs10,
       cs20,
       firstObjective,
+      sourceGames: patternInsights.map(sourceGameFromInsight),
       details: [
         `${games} game${games > 1 ? "s" : ""} · ${patternWins}W-${games - patternWins}L · ${wr}% WR`,
         `Écart or ${formatGoldDiff(avgGoldDiff)} · dégâts ${avgDamageDiff >= 0 ? "+" : ""}${formatPoints(avgDamageDiff)}`,
@@ -7014,6 +7045,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: `${winrate >= 55 ? "Bloc favorable" : winrate >= 45 ? "Bloc compétitif mais instable" : "Bloc défavorable"}`,
       text: `${matches.length} games analysées, ${wins}W-${losses}L. Écarts moyens : ${formatGoldDiff(avgInt(goldDiff))} or, ${signedAvg(damageDiff)} dégâts, ${signedAvg(visionDiff)} vision. Le volume ${matches.length >= 5 ? "permet une lecture exploitable" : "reste court : priorité à la validation sur le prochain bloc"}.`,
       evidence: [`WR ${winrate}%`, `morts ${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/game`, `KP équipe ${teamKpAverage}%`],
+      sourceGames,
     },
     strongestPattern && {
       toneName: strongestPattern.verdictTone,
@@ -7021,6 +7053,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: `${strongestPattern.label} · ${strongestPattern.verdict}`,
       text: `${strongestPattern.games} occurrence${strongestPattern.games > 1 ? "s" : ""}, ${strongestPattern.wins}W-${strongestPattern.games - strongestPattern.wins}L, ${strongestPattern.wr}% WR. ${strongestPattern.bestRole ? `${roleLabel(strongestPattern.bestRole.role)} est le rôle le plus porteur dans ce pattern` : "Rôle porteur non isolé"}, avec ${formatGoldDiff(strongestPattern.avgGoldDiff)} or/game et ${strongestPattern.avgDamageDiff >= 0 ? "+" : ""}${formatPoints(strongestPattern.avgDamageDiff)} dégâts/game.`,
       evidence: [`CS10 ${Number.isFinite(strongestPattern.cs10) ? `${strongestPattern.cs10 >= 0 ? "+" : ""}${strongestPattern.cs10.toFixed(1)}` : "n/a"}`, `CS20 ${Number.isFinite(strongestPattern.cs20) ? `${strongestPattern.cs20 >= 0 ? "+" : ""}${strongestPattern.cs20.toFixed(1)}` : "n/a"}`, `1er obj ${formatMinute(strongestPattern.firstObjective)}`],
+      sourceGames: strongestPattern.sourceGames,
     },
     {
       toneName: averageFirstObjective && averageFirstObjective <= 9.5 ? "green" : averageFirstObjective && averageFirstObjective <= 12 ? "orange" : "red",
@@ -7028,6 +7061,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: `Tempo objectifs : ${formatMinute(averageFirstObjective)}`,
       text: `${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game, ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game, ${objectiveRatio(objectiveTotals.towers, matches.length)} tours/game. ${earlyObjectiveRate}% des games avec un premier objectif allié avant 9:30${bestSide ? ` ; meilleur side actuel : ${bestSide.side} (${bestSide.wr}% WR sur ${bestSide.games}G)` : ""}.`,
       evidence: [`Nashor ${objectiveRatio(objectiveTotals.barons, matches.length)}/game`, `Herald ${objectiveRatio(objectiveTotals.heralds, matches.length)}/game`, `${objectiveTimingValues.length}/${matches.length} timings`],
+      sourceGames: matchInsights.filter((entry) => Number.isFinite(entry.firstObjectiveMinute)).map(sourceGameFromInsight),
     },
     {
       toneName: worstLaneTiming && worstLaneTiming.cs10 < -5 ? "red" : bestLaneTiming && bestLaneTiming.cs10 > 5 ? "green" : "orange",
@@ -7035,6 +7069,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: worstLaneTiming && worstLaneTiming.cs10 < -5 ? `${roleLabel(worstLaneTiming.role)} sous pression` : bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} crée la priorité` : "Lecture lane limitée",
       text: `${bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} meilleur CS10 (${bestLaneTiming.cs10 >= 0 ? "+" : ""}${bestLaneTiming.cs10.toFixed(1)})` : "Pas de CS10 fiable"}.${worstLaneTiming ? ` Point de contrôle : ${roleLabel(worstLaneTiming.role)} au CS10 (${worstLaneTiming.cs10 >= 0 ? "+" : ""}${worstLaneTiming.cs10.toFixed(1)}), CS20 ${Number.isFinite(worstLaneTiming.cs20) ? `${worstLaneTiming.cs20 >= 0 ? "+" : ""}${worstLaneTiming.cs20.toFixed(1)}` : "n/a"}.` : ""} À revoir : wave 1-3, premier reset et move river associé.`,
       evidence: [bestLaneTiming && `${roleLabel(bestLaneTiming.role)} ${bestLaneTiming.samples} sample(s)`, worstLaneTiming && `${roleLabel(worstLaneTiming.role)} ${worstLaneTiming.samples} sample(s)`, `CS/min ${teamCsAverage}`].filter(Boolean),
+      sourceGames: matchInsights.filter((entry) => entry.roleStats.some((stat) => [bestLaneTiming?.role, worstLaneTiming?.role].filter(Boolean).includes(stat.role))).map(sourceGameFromInsight),
     },
     {
       toneName: deathsPerGame >= 20 || fragilePattern?.wr < 45 ? "red" : "purple",
@@ -7042,6 +7077,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: fragilePattern ? `Stabiliser ${fragilePattern.label}` : "Conserver les forces identifiées",
       text: fragilePattern ? `${fragilePattern.label} descend à ${fragilePattern.wr}% WR sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le champion pool associé.` : `${topDamageSignal?.name || "Carry principal"} porte ${topDamageSignal ? formatPoints(topDamageSignal.avgDamage) : "n/a"} dégâts moyens ; ${kpSignal?.name || "le meilleur KP"} atteint ${kpSignal?.avgKp || 0}% KP. Objectif : conserver le plan fort sans surcharger une seule condition de victoire.`,
       evidence: [pressureSignal && `${pressureSignal.name} ${((pressureSignal.deaths || 0) / Math.max(1, pressureSignal.games)).toFixed(1)} morts/G`, supportSignal && `${supportSignal.name} vision ${supportSignal.avgVision}`, topDamageSignal && `${topDamageSignal.name} ${formatPoints(topDamageSignal.avgDamage)} dmg`].filter(Boolean),
+      sourceGames: fragilePattern?.sourceGames || sourceGames,
     },
   ].filter(Boolean).slice(0, 5);
   const autoReads = coachBriefs.map((brief) => `${brief.label} — ${brief.title}. ${brief.text}`);
@@ -7155,6 +7191,22 @@ function TrendsPage({ data, selectedTeamId }) {
     champions: championCounts,
     filename: `nxt5-tendances-${String(activeTrendCategory?.name || "global").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`
   });
+  const sourceScopeMetrics = [
+    { label: "Contexte", value: activeTrendCategory?.name || "Toutes" },
+    { label: "Games", value: String(matches.length) },
+    { label: "Timelines", value: `${timelineGamesCount}/${matches.length}` },
+    { label: "WR", value: `${winrate}%` },
+  ];
+  const openTrendSources = ({ title, subtitle, metrics, games }) => setTrendSourceModal({
+    title,
+    subtitle,
+    metrics: metrics || sourceScopeMetrics,
+    games: games?.length ? games : sourceGames,
+  });
+  const openSourceGame = (game) => {
+    const matchId = game?.id || game?.match?.id || game?.match?.game_id || "";
+    openAppPath(matchId ? `/statistiques?match=${encodeURIComponent(String(matchId))}` : "/statistiques");
+  };
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <section className="relative mb-4 overflow-hidden rounded-2xl border border-cyan-200/16 bg-[linear-gradient(135deg,rgba(8,18,38,.9),rgba(3,7,18,.78)_52%,rgba(35,12,48,.64))] p-4 shadow-[0_14px_44px_rgba(0,0,0,.24)]">
@@ -7184,7 +7236,10 @@ function TrendsPage({ data, selectedTeamId }) {
         <aside className="min-w-0 rounded-2xl border border-white/10 bg-black/26 p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Bloc actif</p>
-            <Button type="button" variant="ghost" icon={ImageIcon} onClick={exportTrends} className="shrink-0 px-3 py-2 text-xs">Exporter</Button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button type="button" variant="ghost" icon={FileText} onClick={() => openTrendSources({ title: "Games du bloc actif", subtitle: `${activeTrendCategory?.name || "Toutes les games"} · base complète de la lecture automatique`, metrics: sourceScopeMetrics, games: sourceGames })} className="px-3 py-2 text-xs">Sources</Button>
+              <Button type="button" variant="ghost" icon={ImageIcon} onClick={exportTrends} className="px-3 py-2 text-xs">Exporter</Button>
+            </div>
           </div>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -7195,6 +7250,7 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
           <div className="mt-3 grid gap-2">
             <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="text-lg font-black text-white">{matches.length}</p></div>
+            <div className="min-w-0 rounded-xl border border-cyan-200/14 bg-cyan-300/[0.045] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-cyan-100">Base de calcul</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{matches.length} games filtrées · {ally.length} lignes alliées · {timelineGamesCount}/{matches.length} timelines objectifs exploitables.</p></div>
             <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Identité équipe</p><p className="mt-1 break-words text-sm font-black leading-5 text-cyan-100">{tagLabel(identity.primary)}</p><div className="mt-2 flex min-w-0 flex-wrap gap-1">{identity.tags.slice(0, 3).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div></div>
           </div>
           <div className="mt-3 border-t border-white/10 pt-3">
@@ -7214,19 +7270,47 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
       <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
         <div className="grid min-w-0 gap-2 lg:grid-cols-2">
-          {autoPatterns.length ? autoPatterns.slice(0, 4).map((pattern) => <div key={pattern.id} className="min-w-0 rounded-xl border border-white/10 bg-black/22 p-2.5">
-            <div className="flex min-w-0 items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2"><Badge tone={pattern.tone}>{pattern.label}</Badge><Badge tone={pattern.verdictTone}>{pattern.verdict}</Badge></div>
-                <p className="mt-2 text-2xl font-black leading-none text-white">{pattern.wr}%</p>
-                <p className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{pattern.wins}W - {pattern.games - pattern.wins}L</p>
+          {autoPatterns.length ? autoPatterns.slice(0, 4).map((pattern) => {
+            const expanded = expandedTrendPatternId === pattern.id;
+            return <article key={pattern.id} className={cx("min-w-0 rounded-xl border p-2.5 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.065]" : "border-white/10 bg-black/22")}>
+              <button type="button" onClick={() => setExpandedTrendPatternId(expanded ? "" : pattern.id)} className="flex w-full min-w-0 items-start justify-between gap-3 text-left">
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2"><Badge tone={pattern.tone}>{pattern.label}</Badge><Badge tone={pattern.verdictTone}>{pattern.verdict}</Badge></span>
+                  <span className="mt-2 block text-2xl font-black leading-none text-white">{pattern.wr}%</span>
+                  <span className="mt-1 block text-xs font-black uppercase tracking-[0.14em] text-slate-400">{pattern.wins}W - {pattern.games - pattern.wins}L · {pattern.games} games sources</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2">
+                  {pattern.bestRole && <span className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-200/18 bg-cyan-300/10 text-cyan-50"><RoleIcon role={pattern.bestRole.role} className="h-5 w-5" /></span>}
+                  <ChevronDown className={cx("h-4 w-4 text-slate-300 transition", expanded && "rotate-180 text-cyan-100")} />
+                </span>
+              </button>
+              <div className="mt-3 grid gap-1.5">
+                {pattern.details.slice(1).map((detail) => <p key={detail} className="truncate text-xs font-semibold text-slate-300">{detail}</p>)}
               </div>
-              {pattern.bestRole && <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/18 bg-cyan-300/10 text-cyan-50"><RoleIcon role={pattern.bestRole.role} className="h-5 w-5" /></span>}
-            </div>
-            <div className="mt-3 grid gap-1.5">
-              {pattern.details.slice(1).map((detail) => <p key={detail} className="truncate text-xs font-semibold text-slate-300">{detail}</p>)}
-            </div>
-          </div>) : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de volume pour isoler un style de draft fiable.</div>}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => openTrendSources({ title: pattern.label, subtitle: pattern.read, metrics: pattern.details.map((detail, index) => ({ label: index === 0 ? "Volume" : `Signal ${index}`, value: detail })), games: pattern.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200/18 bg-cyan-300/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/16"><FileText className="h-3.5 w-3.5" />Voir les sources</button>
+              </div>
+              <AnimatePresence initial={false}>
+                {expanded && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
+                  <div className="mt-3 rounded-xl border border-white/10 bg-black/24 p-2.5">
+                    <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-cyan-100">Pourquoi ce pattern sort</p>
+                    <div className="mt-2 grid gap-1.5">
+                      {pattern.details.map((detail) => <p key={detail} className="text-xs font-semibold leading-5 text-slate-200">{detail}</p>)}
+                    </div>
+                    <div className="mt-2 divide-y divide-white/8">
+                      {pattern.sourceGames.slice(0, 3).map((game) => <button key={`${pattern.id}-${game.id || game.title}`} type="button" onClick={() => openSourceGame(game)} className="flex w-full min-w-0 items-center justify-between gap-3 py-2 text-left transition hover:text-cyan-100">
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-black text-white">{game.title}</span>
+                          <span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{game.result} · {game.topRoleLabel} · 1er obj {game.firstObjective}</span>
+                        </span>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" />
+                      </button>)}
+                    </div>
+                  </div>
+                </motion.div>}
+              </AnimatePresence>
+            </article>;
+          }) : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de volume pour isoler un style de draft fiable.</div>}
         </div>
         <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
           <div className="flex items-center justify-between gap-3">
@@ -7244,7 +7328,7 @@ function TrendsPage({ data, selectedTeamId }) {
             {coachBriefs.map((brief, index) => <article key={`${brief.label}-${index}`} className={cx("rounded-xl border p-2.5", index === 0 ? "border-cyan-200/24 bg-cyan-400/[0.075]" : "border-white/10 bg-black/18")}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Badge tone={brief.toneName}>{brief.label}</Badge>
-                <span className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">#{index + 1}</span>
+                <button type="button" onClick={() => openTrendSources({ title: brief.title, subtitle: brief.text, metrics: brief.evidence?.map((item, metricIndex) => ({ label: metricIndex === 0 ? "Signal" : `Signal ${metricIndex + 1}`, value: item })) || sourceScopeMetrics, games: brief.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-200/24 hover:bg-cyan-300/10 hover:text-cyan-50"><FileText className="h-3 w-3" />{brief.sourceGames?.length || matches.length} games</button>
               </div>
               <h5 className="mt-2 text-sm font-black leading-5 text-white">{brief.title}</h5>
               <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-200">{brief.text}</p>
@@ -7315,6 +7399,50 @@ function TrendsPage({ data, selectedTeamId }) {
     </div>
     <div className="mt-3 grid items-stretch gap-3 md:grid-cols-2 2xl:grid-cols-4"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Ratios profils" icon={Clipboard} items={recommendations} tone="orange" /></div>
     <Surface className="mt-3 p-3"><div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-lg font-black text-white">Champions récurrents</h3><p className="mt-1 text-xs font-semibold text-slate-300">Volume et WR des picks les plus vus.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-2.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.slice(0, 8).map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] p-2"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-[0.68rem] font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 1).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
+    <AnimatePresence>
+      {trendSourceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/78 p-3 backdrop-blur-md sm:items-center">
+        <button type="button" aria-label="Fermer les sources" onClick={() => setTrendSourceModal(null)} className="absolute inset-0 cursor-default" />
+        <motion.section initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, scale: 0.98, opacity: 0 }} transition={{ duration: 0.18 }} className="relative z-10 flex max-h-[88vh] w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-2xl border border-cyan-100/18 bg-[#050913] shadow-[0_24px_80px_rgba(0,0,0,.5)]">
+          <div className="border-b border-white/10 p-4">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Badge tone="cyan">Sources de calcul</Badge>
+                <h3 className="mt-2 break-words text-xl font-black leading-tight text-white">{trendSourceModal.title}</h3>
+                {trendSourceModal.subtitle && <p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-300">{trendSourceModal.subtitle}</p>}
+              </div>
+              <button type="button" onClick={() => setTrendSourceModal(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-200 transition hover:border-rose-200/30 hover:bg-rose-300/10 hover:text-rose-50"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {(trendSourceModal.metrics || sourceScopeMetrics).slice(0, 4).map((metric, index) => <div key={`${metric.label}-${index}`} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
+                <p className="truncate text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">{metric.label}</p>
+                <p className="mt-1 break-words text-sm font-black leading-5 text-white">{metric.value}</p>
+              </div>)}
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="grid gap-2">
+              {(trendSourceModal.games || []).map((game, index) => <button key={`${game.id || game.title}-${index}`} type="button" onClick={() => openSourceGame(game)} className="group grid min-w-0 gap-3 rounded-xl border border-white/10 bg-white/[0.028] p-3 text-left transition hover:border-cyan-200/28 hover:bg-cyan-300/[0.06] lg:grid-cols-[minmax(12rem,1fr)_minmax(16rem,1.1fr)_auto] lg:items-center">
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <Badge tone={game.result === "Victoire" ? "green" : game.result === "Défaite" ? "red" : "slate"}>{game.result}</Badge>
+                    <Badge tone={String(game.side).toLowerCase().includes("red") ? "red" : "cyan"}>{game.side}</Badge>
+                    <Badge tone="slate">{game.patch}</Badge>
+                  </span>
+                  <span className="mt-2 block truncate text-sm font-black text-white">{game.title}</span>
+                  <span className="mt-0.5 block text-[0.68rem] font-semibold text-slate-400">{game.duration} · {game.objectiveCount} objectifs alliés · 1er obj {game.firstObjective}</span>
+                </span>
+                <span className="grid min-w-0 gap-1.5 sm:grid-cols-2">
+                  <span className="rounded-lg border border-white/10 bg-black/18 px-2 py-1.5"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Rôle moteur</span><span className="mt-0.5 block truncate text-xs font-black text-cyan-50">{game.topRoleLabel}</span><span className="mt-0.5 block truncate text-[0.58rem] font-semibold text-slate-400">{game.topRoleDetail}</span></span>
+                  <span className="rounded-lg border border-white/10 bg-black/18 px-2 py-1.5"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Écarts</span><span className={cx("mt-0.5 block text-xs font-black", game.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(game.goldDiff)} or</span><span className={cx("mt-0.5 block text-[0.58rem] font-semibold", game.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{game.visionDiff >= 0 ? "+" : ""}{game.visionDiff} vision · morts {game.deaths}</span></span>
+                </span>
+                <span className="inline-flex items-center justify-end gap-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100">Ouvrir stats<ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
+              </button>)}
+              {!trendSourceModal.games?.length && <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game source isolée pour ce signal.</p>}
+            </div>
+          </div>
+        </motion.section>
+      </motion.div>}
+    </AnimatePresence>
   </div>;
 }
 

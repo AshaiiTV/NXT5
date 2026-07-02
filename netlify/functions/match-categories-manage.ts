@@ -61,7 +61,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!category) throw Object.assign(new Error('Catégorie introuvable.'), { status: 404 });
 
     if (action === 'delete') {
-      if (category.is_default) throw Object.assign(new Error('Scrim et Tournoi sont des catégories de base et ne peuvent pas être supprimées.'), { status: 400 });
+      if (category.is_default) throw Object.assign(new Error('Scrim et Match officiel sont des catégories de base et ne peuvent pas être supprimées.'), { status: 400 });
       await sql`update matches set category_id = null where team_id = ${teamId} and category_id = ${categoryId}`;
       const matches = await sql`select id, category_ids from matches where team_id = ${teamId}`;
       for (const match of matches) {
@@ -84,7 +84,7 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     if (action === 'update') {
-      if (category.is_default && name && name !== category.name) throw Object.assign(new Error('Les catégories Scrim et Tournoi ne peuvent pas être renommées.'), { status: 400 });
+      if (category.is_default && name && name !== category.name) throw Object.assign(new Error('Les catégories Scrim et Match officiel ne peuvent pas être renommées.'), { status: 400 });
       const rows = await sql`
         update match_categories
         set name = ${name || category.name},

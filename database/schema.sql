@@ -273,21 +273,6 @@ create table if not exists composition_types (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists tournament_codes (
-  id uuid primary key default gen_random_uuid(),
-  team_id uuid not null references teams(id) on delete cascade,
-  created_by uuid references users(id) on delete set null,
-  label text not null,
-  opponent text,
-  code text not null,
-  platform text not null default 'EUW1',
-  status text not null default 'ready',
-  match_id uuid references matches(id) on delete set null,
-  imported_game_id text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
 create table if not exists player_availability (
   id uuid primary key default gen_random_uuid(),
   team_id uuid not null references teams(id) on delete cascade,
@@ -356,8 +341,6 @@ alter table composition_types add column if not exists tags jsonb not null defau
 alter table player_availability add column if not exists week_start date not null default date_trunc('week', current_date)::date;
 alter table player_availability drop constraint if exists player_availability_team_id_player_id_key;
 create index if not exists idx_composition_types_team on composition_types(team_id, created_at desc);
-create index if not exists idx_tournament_codes_team on tournament_codes(team_id, created_at desc);
-create unique index if not exists idx_tournament_codes_team_code on tournament_codes(team_id, code);
 create index if not exists idx_player_availability_team on player_availability(team_id);
 create unique index if not exists idx_player_availability_week on player_availability(team_id, player_id, week_start);
 
@@ -395,8 +378,4 @@ for each row execute function set_updated_at();
 
 drop trigger if exists trg_match_archives_updated_at on match_archives;
 create trigger trg_match_archives_updated_at before update on match_archives
-for each row execute function set_updated_at();
-
-drop trigger if exists trg_tournament_codes_updated_at on tournament_codes;
-create trigger trg_tournament_codes_updated_at before update on tournament_codes
 for each row execute function set_updated_at();

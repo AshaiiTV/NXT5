@@ -2,7 +2,7 @@ import { sql } from './db';
 
 export const DEFAULT_MATCH_CATEGORIES = [
   { name: 'Scrim', color: 'cyan' },
-  { name: 'Tournoi', color: 'purple' }
+  { name: 'Match officiel', color: 'purple' }
 ];
 
 export async function ensureMatchCategoriesSchema() {
@@ -24,6 +24,19 @@ export async function ensureMatchCategoriesSchema() {
   await sql`create unique index if not exists idx_match_categories_team_name on match_categories(team_id, lower(name))`;
   await sql`create index if not exists idx_match_categories_team on match_categories(team_id, created_at asc)`;
   await sql`create index if not exists idx_matches_category on matches(category_id)`;
+  await sql`
+    update match_categories legacy
+    set name = 'Match officiel',
+        updated_at = now()
+    where lower(legacy.name) = 'tournoi'
+      and legacy.is_default = true
+      and not exists (
+        select 1
+        from match_categories current
+        where current.team_id = legacy.team_id
+          and lower(current.name) = 'match officiel'
+      )
+  `;
 }
 
 export async function seedDefaultMatchCategories(teamIds: string[], userId: string | null = null): Promise<void> {

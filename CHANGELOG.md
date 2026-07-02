@@ -23,4 +23,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Auth with HttpOnly cookie sessions stored in the database.
 - Team creation, team joining, roster management, and player profiles.
 - Riot match import, local match-file import, match archive groups, and reports.
-- Champion pool views, composition builder, planning tools, and tournament code management.
+- Champion pool views, composition builder, planning tools, and match archive groups.
