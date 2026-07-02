@@ -6814,7 +6814,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const [expandedTrendPatternId, setExpandedTrendPatternId] = useState("");
   const [expandedTeamModelId, setExpandedTeamModelId] = useState("win-condition");
   const [draftTrendView, setDraftTrendView] = useState("ally");
-  const [trendPanel, setTrendPanel] = useState("summary");
+  const [trendPanel, setTrendPanel] = useState("coach");
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
   const ally = rows.filter((row) => row.team_key === "ALLY");
@@ -7416,29 +7416,25 @@ function TrendsPage({ data, selectedTeamId }) {
   };
   const draftTrendModel = buildDraftTrendModel(matches);
   const trendPanelOptions = [
-    ["summary", "Synthèse", Gauge, "Le modèle d'équipe lisible en premier."],
+    ["coach", "Vue coach", Gauge, "Synthèse, patterns et actions."],
     ["draft", "Draft", Crown, "Picks, archétypes et menaces."],
-    ["patterns", "Patterns", Activity, "Styles détectés et synthèse coach."],
-    ["details", "Détails", BarChart3, "Graphiques et listes secondaires."],
+    ["details", "Données", BarChart3, "Graphiques et listes secondaires."],
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <section className="relative mb-3 overflow-hidden rounded-xl border border-cyan-200/14 bg-[linear-gradient(135deg,rgba(8,18,38,.78),rgba(3,7,18,.72)_58%,rgba(25,10,39,.48))] p-3 shadow-[0_10px_28px_rgba(0,0,0,.20)]">
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/65 to-fuchsia-100/40" />
-      <div className="relative z-10 grid gap-3 xl:grid-cols-[minmax(0,1fr)_15.5rem] xl:items-stretch">
-        <div className="flex min-w-0 flex-col justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-              <Badge tone="cyan">Tendances</Badge>
-              <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
-              </div>
-              <h2 className="nxt5-metal-text mt-1 max-w-4xl break-words text-2xl font-black leading-[1.08] tracking-tight lg:text-3xl">Cockpit stratégique</h2>
-            </div>
-            <p className="max-w-xl text-xs font-semibold leading-5 text-slate-300">Portrait du bloc actif, filtré par contexte.</p>
+      <div className="relative z-10 grid gap-2 xl:grid-cols-[minmax(13rem,.55fr)_minmax(0,1.35fr)_minmax(18rem,.72fr)] xl:items-stretch">
+        <div className="flex min-w-0 flex-col justify-center rounded-lg border border-white/10 bg-black/18 p-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge tone="cyan">Tendances</Badge>
+            <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes"}</Badge>
           </div>
-          <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 2xl:grid-cols-4">
-            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-lg border border-white/10 bg-black/22 p-2">
+          <h2 className="nxt5-metal-text mt-1 break-words text-xl font-black leading-[1.05] tracking-tight lg:text-2xl">Cockpit stratégique</h2>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Lecture équipe du bloc actif.</p>
+        </div>
+        <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
+          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-lg border border-white/10 bg-black/22 p-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-md border", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
                 <p className="min-w-0 truncate text-[0.58rem] font-black uppercase tracking-[0.11em] text-slate-300">{label}</p>
@@ -7446,9 +7442,8 @@ function TrendsPage({ data, selectedTeamId }) {
               <p className="mt-1 break-words text-lg font-black leading-tight text-white">{value}</p>
               <p className="mt-0.5 truncate text-[0.62rem] font-semibold text-slate-400">{hint}</p>
             </div>)}
-          </div>
         </div>
-        <aside className="min-w-0 rounded-xl border border-white/10 bg-black/24 p-2.5">
+        <aside className="min-w-0 rounded-lg border border-white/10 bg-black/24 p-2.5">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Bloc actif</p>
             <div className="flex shrink-0 items-center gap-1">
@@ -7456,28 +7451,28 @@ function TrendsPage({ data, selectedTeamId }) {
               <button type="button" onClick={exportTrends} className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-cyan-100 transition hover:bg-cyan-300/10" title="Exporter"><ImageIcon className="h-3.5 w-3.5" /></button>
             </div>
           </div>
-          <div className="mt-2 flex items-center justify-between gap-3">
+          <div className="mt-2 flex items-center gap-3">
             <div>
               <p className={cx("text-2xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
               <p className="mt-0.5 text-xs font-black text-white">{wins}W - {losses}L</p>
             </div>
             <span className={cx("rounded-lg border p-2", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-4 w-4" /></span>
-          </div>
-          <div className="mt-2 grid gap-1.5">
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.12em] text-slate-400">Games</p><p className="text-sm font-black text-white">{matches.length}</p></div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.12em] text-slate-400">Timeline</p><p className="text-sm font-black text-white">{timelineGamesCount}/{matches.length}</p></div>
+            <div className="min-w-0 flex-1">
+              <div className="grid grid-cols-3 gap-1.5">
+                <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Games</p><p className="text-xs font-black text-white">{matches.length}</p></div>
+                <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Timeline</p><p className="text-xs font-black text-white">{timelineGamesCount}/{matches.length}</p></div>
+                <div className="min-w-0"><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Identité</p><p className="truncate text-xs font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
+              </div>
             </div>
-            <div className="min-w-0 rounded-lg border border-white/10 bg-white/[0.035] p-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.12em] text-slate-400">Identité</p><p className="mt-0.5 truncate text-xs font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
           </div>
-          <div className="mt-2 border-t border-white/10 pt-2">
+          <div className="mt-2 border-t border-white/10 pt-2 [&_button]:px-2 [&_button]:py-1 [&_button]:text-[0.58rem] [&_span]:text-[0.56rem]">
             <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
           </div>
         </aside>
       </div>
     </section>
     <div className="mb-3 rounded-xl border border-white/10 bg-black/24 p-1.5">
-      <div className="grid gap-1.5 md:grid-cols-4">
+      <div className="grid gap-1.5 md:grid-cols-3">
         {trendPanelOptions.map(([id, label, Icon, text]) => <button key={id} type="button" onClick={() => setTrendPanel(id)} className={cx("flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition", trendPanel === id ? "border-cyan-200/28 bg-cyan-300/12 text-white" : "border-transparent text-slate-300 hover:border-cyan-200/16 hover:bg-white/[0.045] hover:text-white")}>
           <Icon className="h-4 w-4 shrink-0 text-cyan-100" />
           <span className="min-w-0">
@@ -7487,15 +7482,15 @@ function TrendsPage({ data, selectedTeamId }) {
         </button>)}
       </div>
     </div>
-    {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} view={draftTrendView} onView={setDraftTrendView} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} />}
-    {trendPanel === "summary" && <Surface className="p-2.5">
+    {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} view={draftTrendView} onView={setDraftTrendView} sourceGamesForMatches={sourceGamesForMatches} />}
+    {trendPanel === "coach" && <Surface className="p-2.5">
       <div className="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <Badge tone="cyan">Modèle d'équipe</Badge>
           <h3 className="mt-1.5 text-lg font-black text-white">Comment l'équipe fonctionne vraiment</h3>
           <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-slate-300">Plan naturel, rôles moteurs, timings et signaux de défaite.</p>
         </div>
-        <button type="button" onClick={() => openTrendSources({ title: "Base complète du modèle d'équipe", subtitle: "Toutes les games utilisées pour lire l'identité, les rôles, les timings et les écarts win/loss.", metrics: sourceScopeMetrics, games: sourceGames })} className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-cyan-200/18 bg-cyan-300/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/16"><FileText className="h-3.5 w-3.5" />Voir la base</button>
+        <Badge tone="slate">{matches.length} games analysées</Badge>
       </div>
       <div className="mt-3 grid gap-2 xl:grid-cols-4">
         {teamModelCards.map((card) => {
@@ -7510,9 +7505,7 @@ function TrendsPage({ data, selectedTeamId }) {
               <ChevronDown className={cx("mt-1 h-4 w-4 shrink-0 text-slate-400 transition", expanded && "rotate-180 text-cyan-100")} />
             </button>
             <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{card.text}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button type="button" onClick={() => openTrendSources({ title: card.title, subtitle: card.text, metrics: card.details.map((detail, index) => ({ label: index === 0 ? "Signal" : `Signal ${index + 1}`, value: detail })), games: card.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-200/24 hover:bg-cyan-300/10 hover:text-cyan-50"><FileText className="h-3.5 w-3.5" />{card.sourceGames?.length || 0} games</button>
-            </div>
+            <div className="mt-2 flex flex-wrap gap-2"><Badge tone="slate">{card.sourceGames?.length || 0} games</Badge></div>
             <AnimatePresence initial={false}>
               {expanded && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
                 <div className="mt-3 grid gap-1.5 border-t border-white/10 pt-2.5">
@@ -7530,7 +7523,7 @@ function TrendsPage({ data, selectedTeamId }) {
             <Badge tone="slate">{roleSystemRows.length} rôles</Badge>
           </div>
           <div className="mt-2 grid gap-1.5 lg:grid-cols-5">
-            {roleSystemRows.map((row) => <button key={row.role} type="button" onClick={() => openTrendSources({ title: `${roleLabel(row.role)} dans le système`, subtitle: `${row.functionLabel} · ${row.games} games · ${row.wr}% WR`, metrics: [`Or ${Math.round(row.goldShare || 0)}%`, `Dégâts ${Math.round(row.damageShare || 0)}%`, `KP ${Math.round(row.kp || 0)}%`, `CS10 ${Number.isFinite(row.cs10) ? `${row.cs10 >= 0 ? "+" : ""}${row.cs10.toFixed(1)}` : "n/a"}`].map((value, index) => ({ label: index === 0 ? "Signal" : `Signal ${index + 1}`, value })), games: row.sourceGames })} className={cx("min-w-0 rounded-lg border p-2 text-left transition hover:bg-cyan-300/[0.055]", row.toneName === "red" ? "border-rose-200/18 bg-rose-400/[0.04]" : row.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : "border-white/10 bg-white/[0.028]")}>
+            {roleSystemRows.map((row) => <div key={row.role} className={cx("min-w-0 rounded-lg border p-2 text-left", row.toneName === "red" ? "border-rose-200/18 bg-rose-400/[0.04]" : row.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : "border-white/10 bg-white/[0.028]")}>
               <div className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2"><RoleIcon role={row.role} className="h-4 w-4 shrink-0" /><span className="truncate text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(row.role)}</span></span>
                 <span className="text-xs font-black text-cyan-100">{row.wr}%</span>
@@ -7538,114 +7531,26 @@ function TrendsPage({ data, selectedTeamId }) {
               <p className="mt-1.5 truncate text-xs font-black text-white">{row.functionLabel}</p>
               <p className="mt-1 text-[0.62rem] font-semibold leading-4 text-slate-300">{Math.round(row.goldShare || 0)}% or · {Math.round(row.damageShare || 0)}% dégâts · KP {Math.round(row.kp || 0)}%</p>
               <p className="mt-1 truncate text-[0.58rem] font-semibold text-slate-400">{row.championText || "Pool non isolé"}</p>
-            </button>)}
+            </div>)}
           </div>
         </div>
         <div className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-2.5">
           <div className="flex items-center justify-between gap-3">
-            <h4 className="text-xs font-black uppercase tracking-[0.14em] text-white">Ce qui bascule</h4>
-            <Badge tone="purple">Win/Loss</Badge>
-          </div>
-          <div className="mt-2 grid gap-1.5">
-            {swingRows.map((row) => <button key={row.id} type="button" onClick={() => openTrendSources({ title: `Bascule : ${row.label}`, subtitle: row.read, metrics: [{ label: "Victoires", value: row.win }, { label: "Défaites", value: row.loss }, { label: "Lecture", value: row.read }], games: row.id === "identity" ? sourceGames : [...winModel.sourceGames, ...lossModel.sourceGames] })} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border border-white/10 bg-white/[0.028] p-2 text-left transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]">
-              <span className="min-w-0"><span className="block truncate text-xs font-black uppercase tracking-[0.12em] text-slate-300">{row.label}</span><span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{row.read}</span></span>
-              <span className="rounded-lg border border-emerald-200/14 bg-emerald-300/10 px-2 py-1 text-xs font-black text-emerald-50">{row.win}</span>
-              <span className={cx("rounded-lg border px-2 py-1 text-xs font-black", row.toneName === "red" ? "border-rose-200/18 bg-rose-300/10 text-rose-50" : "border-white/10 bg-white/[0.045] text-slate-100")}>{row.loss}</span>
-            </button>)}
-          </div>
-        </div>
-      </div>
-    </Surface>}
-    {trendPanel === "patterns" && <Surface className="p-2.5">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Badge tone="cyan">Lecture automatique</Badge>
-          <h3 className="mt-1.5 text-lg font-black text-white">Style draft et timings</h3>
-          <p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-300">Ressources par rôle, tags champions, CS10/20 et premier objectif.</p>
-        </div>
-        <Badge tone="slate">{autoPatterns.length} pattern{autoPatterns.length > 1 ? "s" : ""} détecté{autoPatterns.length > 1 ? "s" : ""}</Badge>
-      </div>
-      <div className="mt-2.5 grid gap-2.5 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
-        <div className="grid min-w-0 gap-1.5 lg:grid-cols-2">
-          {autoPatterns.length ? autoPatterns.slice(0, 4).map((pattern) => {
-            const expanded = expandedTrendPatternId === pattern.id;
-            return <article key={pattern.id} className={cx("min-w-0 rounded-lg border p-2 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.065]" : "border-white/10 bg-black/22")}>
-              <button type="button" onClick={() => setExpandedTrendPatternId(expanded ? "" : pattern.id)} className="flex w-full min-w-0 items-start justify-between gap-3 text-left">
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-1.5"><Badge tone={pattern.tone}>{pattern.label}</Badge><Badge tone={pattern.verdictTone}>{pattern.verdict}</Badge></span>
-                  <span className="mt-1.5 block text-xl font-black leading-none text-white">{pattern.wr}%</span>
-                  <span className="mt-1 block text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-400">{pattern.wins}W - {pattern.games - pattern.wins}L · {pattern.games} games</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  {pattern.bestRole && <span className="grid h-8 w-8 place-items-center rounded-lg border border-cyan-200/18 bg-cyan-300/10 text-cyan-50"><RoleIcon role={pattern.bestRole.role} className="h-4 w-4" /></span>}
-                  <ChevronDown className={cx("h-4 w-4 text-slate-300 transition", expanded && "rotate-180 text-cyan-100")} />
-                </span>
-              </button>
-              <div className="mt-2 grid gap-1">
-                {pattern.details.slice(1).map((detail) => <p key={detail} className="truncate text-xs font-semibold text-slate-300">{detail}</p>)}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" onClick={() => openTrendSources({ title: pattern.label, subtitle: pattern.read, metrics: pattern.details.map((detail, index) => ({ label: index === 0 ? "Volume" : `Signal ${index}`, value: detail })), games: pattern.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200/18 bg-cyan-300/10 px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/16"><FileText className="h-3.5 w-3.5" />Voir les sources</button>
-              </div>
-              <AnimatePresence initial={false}>
-                {expanded && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
-                  <div className="mt-3 rounded-xl border border-white/10 bg-black/24 p-2.5">
-                    <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-cyan-100">Pourquoi ce pattern sort</p>
-                    <div className="mt-2 grid gap-1.5">
-                      {pattern.details.map((detail) => <p key={detail} className="text-xs font-semibold leading-5 text-slate-200">{detail}</p>)}
-                    </div>
-                    <div className="mt-2 max-h-72 divide-y divide-white/8 overflow-y-auto pr-1">
-                      {pattern.sourceGames.map((game) => <button key={`${pattern.id}-${game.id || game.title}`} type="button" onClick={() => openSourceGame(game)} className="flex w-full min-w-0 items-center justify-between gap-3 py-2 text-left transition hover:text-cyan-100">
-                        <span className="min-w-0">
-                          <span className="block truncate text-xs font-black text-white">{game.title}</span>
-                          <span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{game.result} · {game.topRoleLabel} · 1er obj {game.firstObjective}</span>
-                        </span>
-                        <ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" />
-                      </button>)}
-                    </div>
-                  </div>
-                </motion.div>}
-              </AnimatePresence>
-            </article>;
-          }) : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de volume pour isoler un style de draft fiable.</div>}
-        </div>
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Synthèse coach</h4>
+            <h4 className="text-xs font-black uppercase tracking-[0.14em] text-white">Synthèse coach</h4>
             <Badge tone={winrate >= 50 ? "green" : "red"}>{coachBriefs.length} axes</Badge>
           </div>
-          <div className="mt-2.5 grid grid-cols-2 gap-1.5">
-            {coachKpis.map((item) => <div key={item.label} className={cx("min-w-0 rounded-lg border px-2 py-1.5", tone(item.toneName))}>
-              <p className="truncate text-[0.52rem] font-black uppercase tracking-[0.12em] opacity-80">{item.label}</p>
-              <p className="mt-0.5 truncate text-sm font-black text-white">{item.value}</p>
-              <p className="truncate text-[0.58rem] font-semibold opacity-80">{item.detail}</p>
-            </div>)}
-          </div>
-          <div className="mt-2.5 grid gap-2">
-            {coachBriefs.map((brief, index) => <article key={`${brief.label}-${index}`} className={cx("rounded-xl border p-2.5", index === 0 ? "border-cyan-200/24 bg-cyan-400/[0.075]" : "border-white/10 bg-black/18")}>
+          <div className="mt-2 grid gap-1.5">
+            {coachBriefs.map((brief, index) => <div key={`${brief.label}-${index}`} className={cx("min-w-0 rounded-lg border p-2", index === 0 ? "border-cyan-200/24 bg-cyan-400/[0.07]" : "border-white/10 bg-white/[0.028]")}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Badge tone={brief.toneName}>{brief.label}</Badge>
-                <button type="button" onClick={() => openTrendSources({ title: brief.title, subtitle: brief.text, metrics: brief.evidence?.map((item, metricIndex) => ({ label: metricIndex === 0 ? "Signal" : `Signal ${metricIndex + 1}`, value: item })) || sourceScopeMetrics, games: brief.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-200/24 hover:bg-cyan-300/10 hover:text-cyan-50"><FileText className="h-3 w-3" />{brief.sourceGames?.length || matches.length} games</button>
+                <Badge tone="slate">{brief.sourceGames?.length || matches.length} games</Badge>
               </div>
-              <h5 className="mt-2 text-sm font-black leading-5 text-white">{brief.title}</h5>
-              <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-200">{brief.text}</p>
-              {brief.evidence?.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">
-                {brief.evidence.slice(0, 3).map((item) => <span key={item} className="rounded-md border border-white/10 bg-white/[0.045] px-1.5 py-1 text-[0.56rem] font-black uppercase tracking-[0.08em] text-cyan-50">{item}</span>)}
-              </div>}
-            </article>)}
+              <p className="mt-1.5 text-xs font-black leading-5 text-white">{brief.title}</p>
+              <p className="mt-1 text-[0.66rem] font-semibold leading-4 text-slate-300">{brief.text}</p>
+            </div>)}
           </div>
         </div>
       </div>
-      {laneTimings.length > 0 && <div className="mt-2.5 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
-        {laneTimings.map((stat) => <div key={stat.role} className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="flex min-w-0 items-center gap-2"><RoleIcon role={stat.role} className="h-4 w-4 shrink-0" /><span className="truncate text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(stat.role)}</span></span>
-            <Badge tone={(stat.cs10 || 0) >= 0 ? "green" : "red"}>{stat.samples}</Badge>
-          </div>
-          <p className={cx("mt-2 text-sm font-black", (stat.cs10 || 0) >= 0 ? "text-emerald-100" : "text-rose-100")}>CS10 {Number.isFinite(stat.cs10) ? `${stat.cs10 >= 0 ? "+" : ""}${stat.cs10.toFixed(1)}` : "n/a"}</p>
-          <p className="mt-1 text-xs font-semibold text-slate-300">CS20 {Number.isFinite(stat.cs20) ? `${stat.cs20 >= 0 ? "+" : ""}${stat.cs20.toFixed(1)}` : "n/a"}</p>
-        </div>)}
-      </div>}
     </Surface>}
     {trendPanel === "details" && <>
     <Surface className="p-3">
@@ -7691,12 +7596,6 @@ function TrendsPage({ data, selectedTeamId }) {
       <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-lg font-black text-white">Résumé équipe</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Écarts moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-3 grid gap-2 md:grid-cols-3">{[["KP équipe", `${teamKpAverage}%`, "green"], ["Vision équipe", signedAvg(visionDiff), "cyan"], ["Morts équipe", `${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/G`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p><p className={cx("mt-1.5 break-words text-xs font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
       <Surface className="p-3"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black text-white">Comparatif contextes</h3><p className="mt-1 text-xs font-semibold text-slate-300">Les blocs qui pèsent vraiment.</p></div><Badge tone="slate">{baseMatches.length} games</Badge></div><div className="mt-2.5 grid gap-2">{categoryBreakdown.length ? <>{categoryBreakdown.slice(0, 4).map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-xl border p-2.5 text-left transition md:grid-cols-[minmax(120px,1fr)_repeat(4,minmax(52px,auto))] md:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-[0.68rem] font-semibold text-slate-300">{entry.games}G · {entry.wins}W/{entry.games - entry.wins}L</p></div><span className="min-w-0 text-xs font-black text-white md:text-right">{entry.wr}%</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
     </div>
-    <div className="mt-3 grid items-stretch gap-3 xl:grid-cols-2">
-      <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-2 text-xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-1.5 max-w-4xl text-xs font-semibold leading-5 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-3 flex flex-wrap gap-1.5">{identity.tags.length ? identity.tags.slice(0, 5).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-3 flex items-center gap-3 border-t border-white/10 pt-2.5"><RoleIcon role={focusRole.role} className="h-6 w-6" /><div className="min-w-0"><p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-cyan-100">Focus ressources</p><p className="break-words text-xs font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} or · {formatPoints(avgInt(focusRole.damage))} dégâts</p></div></div>}</Surface>
-      <Surface className="p-3"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black text-white">Objectifs par side</h3><p className="mt-1 text-xs font-semibold text-slate-300">Moyenne par game sur chaque side.</p></div><Badge tone="slate">Ratio/game</Badge></div><div className="mt-2.5 grid gap-2 md:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className={cx("rounded-xl border p-2.5", stat.side === "Blue" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-400/[0.055]")}><div className="flex flex-wrap items-center justify-between gap-2"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="text-xs font-black text-white">{stat.wr}% · {stat.wins}W/{stat.games - stat.wins}L</span></div><div className="mt-2.5 grid grid-cols-5 gap-1.5">{[["Drakes", stat.objectives.dragons, "dragon"], ["Grubs", stat.objectives.grubs, "grub"], ["Herald", stat.objectives.heralds, "herald"], ["Nashor", stat.objectives.barons, "baron"], ["Tours", stat.objectives.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="min-w-0 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-5 w-5" /><p className="mt-1 text-sm font-black text-white">{objectiveRatio(value, stat.games)}</p><p className="truncate text-[0.5rem] font-black uppercase tracking-[0.08em] text-slate-300">{label}</p></div>)}</div></div>)}</div></Surface>
-    </div>
-    <div className="mt-3 grid items-stretch gap-3 md:grid-cols-2 2xl:grid-cols-4"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Lecture collective" icon={Clipboard} items={recommendations} tone="orange" /></div>
-    <Surface className="mt-3 p-3"><div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-lg font-black text-white">Champions récurrents</h3><p className="mt-1 text-xs font-semibold text-slate-300">Volume et WR des picks les plus vus.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-2.5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.slice(0, 8).map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.035] p-2"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-[0.68rem] font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 1).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
     </>}
     <AnimatePresence>
       {trendSourceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-end justify-center bg-slate-950/78 p-3 backdrop-blur-md sm:items-center">
@@ -9707,14 +9606,16 @@ function buildDraftTrendModel(matches) {
 
 function DraftMiniChampion({ item, variant = "ally", onSources }) {
   const toneName = item.wr >= 55 ? "green" : item.wr < 45 ? "red" : "orange";
-  return <button type="button" onClick={onSources} className="grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] p-2 text-left transition hover:border-cyan-200/26 hover:bg-cyan-300/[0.06]">
+  const className = cx("grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] p-2 text-left", onSources && "transition hover:border-cyan-200/26 hover:bg-cyan-300/[0.06]");
+  const content = <>
     <span className="h-11 w-11 shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/35"><ChampionPortrait champion={item.champion} alt={item.champion} /></span>
     <span className="min-w-0">
       <span className="block truncate text-sm font-black text-white">{championDisplayName(item.champion)}</span>
       <span className="mt-0.5 block truncate text-[0.66rem] font-semibold text-slate-300">{roleLabel(item.role)} · {item.games}G · KDA {item.kda}</span>
     </span>
     <span className={cx("rounded-lg border px-2 py-1 text-xs font-black", tone(toneName))}>{variant === "enemy" ? `${item.wr}% vs` : `${item.wr}%`}</span>
-  </button>;
+  </>;
+  return onSources ? <button type="button" onClick={onSources} className={className}>{content}</button> : <div className={className}>{content}</div>;
 }
 
 function DraftScoreRail({ scores }) {
@@ -9727,13 +9628,17 @@ function DraftScoreRail({ scores }) {
 function DraftTrendTable({ title, rows, empty, onSources, enemy = false }) {
   return <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
     <div className="flex items-center justify-between gap-3"><h4 className="text-sm font-black uppercase tracking-[0.14em] text-white">{title}</h4><Badge tone="slate">{rows.length}</Badge></div>
-    <div className="mt-2 grid gap-2">{rows.length ? rows.slice(0, 5).map((row, index) => <button key={`${title}-${row.tag || row.champions || row.champion}-${index}`} type="button" onClick={() => onSources?.(row)} className="grid min-w-0 gap-2 rounded-xl border border-white/10 bg-black/18 p-2 text-left transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-black text-white">{row.tag ? tagLabel(row.tag) : row.champions}</span>
-        <span className="mt-0.5 block truncate text-[0.66rem] font-semibold text-slate-300">{row.pair || `${row.games} game${row.games > 1 ? "s" : ""}`} · {row.wins}W - {row.games - row.wins}L</span>
-      </span>
-      <span className={cx("w-fit rounded-lg border px-2 py-1 text-xs font-black sm:justify-self-end", tone(row.wr >= 55 ? enemy ? "red" : "green" : row.wr < 45 ? enemy ? "green" : "red" : "orange"))}>{row.wr}%</span>
-    </button>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">{empty}</p>}</div>
+    <div className="mt-2 grid gap-2">{rows.length ? rows.slice(0, 5).map((row, index) => {
+      const className = cx("grid min-w-0 gap-2 rounded-xl border border-white/10 bg-black/18 p-2 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center", onSources && "transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]");
+      const content = <>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-black text-white">{row.tag ? tagLabel(row.tag) : row.champions}</span>
+          <span className="mt-0.5 block truncate text-[0.66rem] font-semibold text-slate-300">{row.pair || `${row.games} game${row.games > 1 ? "s" : ""}`} · {row.wins}W - {row.games - row.wins}L</span>
+        </span>
+        <span className={cx("w-fit rounded-lg border px-2 py-1 text-xs font-black sm:justify-self-end", tone(row.wr >= 55 ? enemy ? "red" : "green" : row.wr < 45 ? enemy ? "green" : "red" : "orange"))}>{row.wr}%</span>
+      </>;
+      return onSources ? <button key={`${title}-${row.tag || row.champions || row.champion}-${index}`} type="button" onClick={() => onSources(row)} className={className}>{content}</button> : <div key={`${title}-${row.tag || row.champions || row.champion}-${index}`} className={className}>{content}</div>;
+    }) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">{empty}</p>}</div>
   </div>;
 }
 
