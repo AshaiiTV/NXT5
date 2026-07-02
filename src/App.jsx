@@ -434,9 +434,9 @@ function profileStatusTone(member) {
   return "blue";
 }
 
-function Badge({ children, tone: t = "slate", pulse = false }) {
+function Badge({ children, tone: t = "slate", pulse = false, className = "", ...props }) {
   return (
-    <span className={cx("inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border px-2.5 py-1 text-left text-[0.64rem] font-black uppercase leading-4 tracking-[0.08em] whitespace-normal", tone(t))}>
+    <span {...props} className={cx("inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border px-2.5 py-1 text-left text-[0.64rem] font-black uppercase leading-4 tracking-[0.08em] whitespace-normal", tone(t), className)}>
       {pulse && <span className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_12px_currentColor]" />}
       <span className="min-w-0 break-words">{children}</span>
     </span>
@@ -1761,6 +1761,15 @@ function roleLabel(role) {
     CAPTAIN: "Capitaine",
     STAFF: "Staff",
   }[String(role || "").toUpperCase()] || String(role || "Profil");
+}
+
+function RoleTag({ role, staff = false, className = "" }) {
+  const label = roleLabel(role);
+  return (
+    <Badge tone={staff ? "purple" : "blue"} className={cx("overflow-hidden justify-center px-2 sm:justify-start sm:px-2.5", className)} title={label}>
+      <span className="block max-w-full truncate">{label}</span>
+    </Badge>
+  );
 }
 
 function decodeLoose(value) {
@@ -3150,7 +3159,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
           const staff = isStaffRole(player.role);
           return <div key={player.id} className={cx("grid gap-3 rounded-2xl border p-3 xl:grid-cols-[minmax(180px,.78fr)_minmax(210px,1fr)_minmax(150px,.58fr)_minmax(0,.95fr)] xl:items-center", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2"><Badge tone={staff ? "purple" : "blue"}>{roleLabel(player.role)}</Badge><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge></div>
+              <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge></div>
               <p className="mt-2 truncate text-lg font-black text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
               <p className="truncate text-xs font-semibold text-slate-300">{player.riot_id || (staff ? "Staff" : "Riot ID manquant")}</p>
             </div>
@@ -3184,7 +3193,7 @@ function LinkedPlayerSummary({ player, linkedMember, matches = [] }) {
   const displayName = linkedMember?.name || linkedMember?.account_name || player.name;
   return (
     <div className="min-w-0 flex-1">
-      <div className="flex flex-wrap items-center gap-2"><Badge tone={staff ?"purple" : "blue"}>{roleLabel(player.role)}</Badge><p className="text-2xl font-black text-white">{displayName}</p></div>
+      <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><p className="min-w-0 truncate text-2xl font-black text-white">{displayName}</p></div>
       <p className="mt-2 text-sm font-semibold text-slate-300">{player.riot_id || (staff ? "Profil staff sans Riot ID" : "Riot ID manquant")}</p>
       {staff ?<p className="mt-5 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-sm font-semibold text-slate-300">Accès gestion possible si le compte est lié, mais exclu du draft, du Champion Pool et des imports OP.GG.</p> : (
         <div className="mt-5 flex flex-wrap gap-3">
@@ -4554,7 +4563,7 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
           const staff = isStaffRole(item.role);
           const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
           const isLinkedToMe = String(item.user_id || "") === String(currentUserId || "");
-          return <div key={item.id} className="rounded-2xl border border-white/10 bg-black/[0.18] p-3 transition hover:border-cyan-300/25 hover:bg-white/[0.04]"><button type="button" onClick={() => openProfile(item)} disabled={staff} className="flex w-full items-start justify-between gap-3 text-left disabled:cursor-default"><div className="flex min-w-0 items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-4 w-4" /> : <Users className="h-4 w-4 text-violet-200" />}</div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={staff ?"purple" : "blue"}>{roleLabel(item.role)}</Badge>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div><p className="mt-2 truncate text-lg font-black text-white">{item.name}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{staff ? "Non utilisé dans OP.GG" : item.riot_id || "Sans Riot ID"}</p></div></div>{!staff && <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-cyan-100" />}</button><div className="mt-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</div>{showActions && <div className="mt-4 grid grid-cols-4 gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div>}</div>;
+          return <div key={item.id} className="rounded-2xl border border-white/10 bg-black/[0.18] p-3 transition hover:border-cyan-300/25 hover:bg-white/[0.04]"><button type="button" onClick={() => openProfile(item)} disabled={staff} className="flex w-full items-start justify-between gap-3 text-left disabled:cursor-default"><div className="flex min-w-0 items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-4 w-4" /> : <Users className="h-4 w-4 text-violet-200" />}</div><div className="min-w-0"><div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={item.role} staff={staff} className="max-w-[7rem]" />{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div><p className="mt-2 truncate text-lg font-black text-white">{item.name}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{staff ? "Non utilisé dans OP.GG" : item.riot_id || "Sans Riot ID"}</p></div></div>{!staff && <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-cyan-100" />}</button><div className="mt-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</div>{showActions && <div className="mt-4 grid grid-cols-4 gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div>}</div>;
         })}
       </div><div className="hidden overflow-x-auto md:block">
         <table className={cx("w-full text-left text-sm", showActions ? "min-w-[940px]" : "min-w-[760px]")}>
@@ -4563,7 +4572,7 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
     const staff = isStaffRole(item.role);
     const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
     const isLinkedToMe = String(item.user_id || "") === String(currentUserId || "");
-    return <tr key={item.id} onClick={() => openProfile(item)} className={cx("bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]", staff ? "cursor-default" : "cursor-pointer")}><td className="px-4 py-4"><div className="flex items-center gap-2">{!staff && <ArrowRight className="h-4 w-4 text-cyan-100" />}<div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-5 w-5" /> : <Users className="h-4 w-4 text-violet-200" />}</div><Badge tone={staff ?"purple" : "blue"}>{roleLabel(item.role)}</Badge></div></td><td className="px-4 py-4"><div className="flex flex-wrap items-center gap-2"><span className="font-black text-white">{item.name}</span>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div></td><td className="px-4 py-4 font-semibold text-slate-300">{staff ? "Non utilisé" : item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</td>{showActions && <td className="px-4 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div></td>}</tr>;
+    return <tr key={item.id} onClick={() => openProfile(item)} className={cx("bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]", staff ? "cursor-default" : "cursor-pointer")}><td className="px-4 py-4"><div className="flex min-w-0 items-center gap-2">{!staff && <ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" />}<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-5 w-5" /> : <Users className="h-4 w-4 text-violet-200" />}</div><RoleTag role={item.role} staff={staff} className="max-w-[7.5rem]" /></div></td><td className="px-4 py-4"><div className="flex min-w-0 flex-wrap items-center gap-2"><span className="min-w-0 truncate font-black text-white">{item.name}</span>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div></td><td className="px-4 py-4 font-semibold text-slate-300">{staff ? "Non utilisé" : item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</td>{showActions && <td className="px-4 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div></td>}</tr>;
           })}</tbody>
         </table>
       </div></> : <div className="p-4"><div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{emptyText}</div></div>}
@@ -4621,7 +4630,7 @@ function CategoryMultiSelect({ categories, selectedIds, onChange, label = "Caté
     <div className="flex flex-wrap gap-2">
       {(categories || []).map((category) => {
         const active = ids.includes(String(category.id));
-        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? tone(matchCategoryTone(category)) : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{category.name}</button>;
+        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? [tone(matchCategoryTone(category)), "scale-[1.03] ring-2 ring-white/55 shadow-[0_0_24px_rgba(34,211,238,.24)]"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
       })}
       {!categories?.length && <Badge tone="slate">Aucune catégorie</Badge>}
     </div>
@@ -4645,6 +4654,29 @@ function JsonUploadProgress({ progress }) {
       <div className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-sky-400 to-fuchsia-300 shadow-[0_0_18px_rgba(34,211,238,.35)] transition-[width] duration-150 ease-out" style={{ width: `${percent}%` }} />
     </div>
   </div>;
+}
+
+function ImportRoleHeader({ role, toneName = "cyan", player = null, fallbackLabel = "À lier" }) {
+  const roleTone = toneName === "red"
+    ? "border-rose-200/20 bg-rose-500/[0.08] text-rose-100"
+    : "border-cyan-200/20 bg-cyan-400/[0.08] text-cyan-100";
+  const chipTone = player
+    ? "border-white/10 bg-white/[0.055] text-white"
+    : "border-white/10 bg-black/20 text-slate-400";
+  return (
+    <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
+      <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border", roleTone)}>
+        <RoleIcon role={role} className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">Poste</span>
+        <span className="block truncate text-sm font-black text-white">{roleLabel(role)}</span>
+      </span>
+      <span className={cx("min-w-0 max-w-[46%] shrink rounded-lg border px-2 py-1 text-right text-[0.62rem] font-black uppercase tracking-[0.08em]", chipTone)}>
+        <span className="block truncate">{player?.name || fallbackLabel}</span>
+      </span>
+    </div>
+  );
 }
 
 function ImportHistoryCard({ match, categories, roster = [], editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onPlayerChange, onSaveRoles }) {
@@ -5088,12 +5120,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                 <div className="grid gap-4 xl:grid-cols-2">
                   <div className="rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide || "Side ?"}</Badge></div>
-                    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5 xl:grid-cols-1">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       {COMP_ROLES.map((role) => {
                         const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
                         const pickedChampion = selectedPreviewParticipant(allyPreviewTeam, laneAssignments[role]);
-                        return <div key={role} className={cx("rounded-2xl border p-3 transition", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
-                          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></span>{assignedPlayer && <Badge tone="slate">{assignedPlayer.name}</Badge>}</div>
+                        return <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
+                          <ImportRoleHeader role={role} player={assignedPlayer} />
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Swords className="h-4 w-4" /></span>}
                             <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
@@ -5112,12 +5144,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                   </div>
                   <div className="rounded-[1.35rem] border border-rose-300/14 bg-rose-500/[0.055] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side || "Side ?"}</Badge></div>
-                    <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-5 xl:grid-cols-1">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       {COMP_ROLES.map((role) => {
                         const pickedChampion = selectedPreviewParticipant(enemyPreviewTeam, enemyLaneAssignments[role]);
                         return (
-                        <div key={role} className={cx("rounded-2xl border p-3 transition", enemyLaneAssignments[role] ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
-                          <div className="mb-3 flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><span className="text-sm font-black text-white">{role}</span></div>
+                        <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", enemyLaneAssignments[role] ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
+                          <ImportRoleHeader role={role} toneName="red" fallbackLabel="Adverse" />
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Shield className="h-4 w-4" /></span>}
                             <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion adverse"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
