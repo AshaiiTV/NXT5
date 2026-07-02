@@ -3845,14 +3845,14 @@ function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, i
             const Icon = item.icon || Activity;
             return <div key={item.title} className="flex gap-3 py-4">
               <span className={cx("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(item.toneName))}><Icon className="h-4 w-4" /></span>
-              <div className="min-w-0"><p className="font-black text-white">{item.title}</p><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{item.text}</p></div>
+              <div className="min-w-0"><p className="font-black text-white">{item.title}</p><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{item.text}</p>{item.action && <p className="mt-2 rounded-xl border border-cyan-300/12 bg-cyan-400/[0.055] px-3 py-2 text-xs font-black leading-5 text-cyan-50">{item.action}</p>}</div>
             </div>;
           }) : <p className="py-4 text-sm font-semibold text-slate-300">Importe plus de games pour produire une lecture fiable.</p>}
         </div>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {decisions.map((item) => <div key={item.label} className={cx("min-w-0 border-l-2 pl-3", item.toneName === "green" ? "border-emerald-300/60" : item.toneName === "red" ? "border-rose-300/60" : item.toneName === "orange" ? "border-amber-300/60" : item.toneName === "purple" ? "border-fuchsia-300/60" : "border-cyan-300/60")}>
             <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{item.label}</p>
-            <p className="mt-1 truncate text-sm font-black text-white">{item.text}</p>
+            <p className="mt-1 break-words text-sm font-black leading-5 text-white">{item.text}</p>
           </div>)}
         </div>
       </div>
@@ -8505,6 +8505,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const gameplayPlayers = useMemo(() => sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role))), [data.players, selectedTeamId]);
   const staffProfiles = useMemo(() => (data.players || []).filter((player) => player.team_id === selectedTeamId && isStaffRole(player.role)).sort((a, b) => String(roleLabel(a.role)).localeCompare(String(roleLabel(b.role))) || String(a.name || "").localeCompare(String(b.name || ""))), [data.players, selectedTeamId]);
   const players = useMemo(() => [...gameplayPlayers, ...staffProfiles], [gameplayPlayers, staffProfiles]);
+  const planningUnitTotal = gameplayPlayers.length + (staffProfiles.length ? 1 : 0);
   const baseWeekStart = useMemo(() => mondayOfWeek(), []);
   const weekOptions = useMemo(() => [
     { id: "current", label: "Semaine en cours", start: dateKey(baseWeekStart), range: formatWeekRange(baseWeekStart) },
@@ -8545,7 +8546,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     return { slotsByPlayer, playerIdsByCell, events };
   }, [availabilityKey, playersKey]);
   const playerById = useMemo(() => new Map(players.map((player) => [String(player.id), player])), [playersKey]);
-  const linkedPlayer = players.find((player) => player.user_id && String(player.user_id) === String(user?.id || "")) || (currentMember ? { teamOnly: true } : null);
+  const linkedGameplayPlayer = gameplayPlayers.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
+  const linkedStaffProfile = staffProfiles.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
+  const staffPlanningPlayer = linkedStaffProfile || staffProfiles.find((player) => String(player.role || "").toUpperCase() === "COACH") || staffProfiles[0] || null;
+  const canManagePlanningStaff = canStaffManage(currentMember?.role);
+  const linkedPlayer = linkedGameplayPlayer || (staffPlanningPlayer && canManagePlanningStaff ? staffPlanningPlayer : linkedStaffProfile) || (currentMember ? { teamOnly: true } : null);
   const [draftSlots, setDraftSlots] = useState({});
   const [slotEvents, setSlotEvents] = useState({});
   const [eventMenu, setEventMenu] = useState(null);
@@ -8556,11 +8561,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const changeSeqRef = useRef(0);
 
   const selectedPlayer = linkedPlayer?.teamOnly ? null : linkedPlayer || null;
+  const selectedIsStaff = selectedPlayer ? isStaffRole(selectedPlayer.role) : false;
+  const selectedDisplayName = selectedIsStaff ? "Coaching Staff" : selectedPlayer?.name || "Profil non lié";
+  const selectedDisplayRole = selectedIsStaff ? "Coaching Staff" : selectedPlayer ? roleLabel(selectedPlayer.role) : "Aucun profil";
   const selectedAvailability = availability.find((item) => item.player_id === selectedPlayer?.id) || null;
   const eventStoreRow = availability.find((item) => Object.keys(availabilityEvents(item?.slots)).length);
   const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || gameplayPlayers[0] || staffProfiles[0] || null;
   const eventStoreAvailability = availability.find((item) => item.player_id === eventStorePlayer?.id) || null;
-  const canEditSelected = Boolean(selectedPlayer && String(selectedPlayer.user_id || "") === String(user?.id || ""));
+  const canEditSelected = Boolean(selectedPlayer && (String(selectedPlayer.user_id || "") === String(user?.id || "") || (selectedIsStaff && canManagePlanningStaff)));
   const canEditEvents = Boolean(currentMember && eventStorePlayer);
 
   useEffect(() => {
@@ -8769,12 +8777,18 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     }
     return map;
   }, [draftSlots, planningLookup, selectedPlayerId, weekDays]);
+  const planningUnitCountForIds = (ids = []) => {
+    const availableIds = new Set(ids.map((id) => String(id)));
+    const playerCount = gameplayPlayers.filter((player) => availableIds.has(String(player.id))).length;
+    const coachingStaffCount = staffProfiles.some((profile) => availableIds.has(String(profile.id))) ? 1 : 0;
+    return playerCount + coachingStaffCount;
+  };
   const bestCells = useMemo(() => weekDays.flatMap(([day]) => PLANNING_TIMES.map((time, timeIndex) => ({
     day,
     time,
     timeIndex,
-    count: effectivePlayerIdsByCell.get(planningEventKey(day, time))?.length || 0,
-  }))).sort((a, b) => b.count - a.count || a.timeIndex - b.timeIndex).slice(0, 4), [effectivePlayerIdsByCell, weekDays]);
+    count: planningUnitCountForIds(effectivePlayerIdsByCell.get(planningEventKey(day, time)) || []),
+  }))).sort((a, b) => b.count - a.count || a.timeIndex - b.timeIndex).slice(0, 4), [effectivePlayerIdsByCell, gameplayPlayers, staffProfiles, weekDays]);
   const selectedFilledSlots = useMemo(() => weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0), [draftSlots, weekDays]);
   const selectedFilledDays = useMemo(() => weekDays.filter(([day]) => (draftSlots[day] || []).length).length, [draftSlots, weekDays]);
   const teamEvents = planningLookup.events;
@@ -8796,10 +8810,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
   const roleSlots = useMemo(() => COMP_ROLES.map((role) => ({ role, player: gameplayPlayers.find((player) => normalizeProfileRole(player.role) === role) })), [gameplayPlayersKey]);
-  const staffSlots = useMemo(() => staffProfiles.map((player) => ({ role: String(player.role || "").toUpperCase(), player })), [staffProfilesKey]);
-  const selectedRole = normalizeProfileRole(selectedPlayer?.role);
-  const selectedIsStaff = selectedPlayer ? isStaffRole(selectedPlayer.role) : false;
-  const selectedRoleLabel = selectedPlayer ? `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.name}` : "Aucun profil";
+  const selectedRole = selectedIsStaff ? "" : normalizeProfileRole(selectedPlayer?.role);
+  const selectedRoleLabel = selectedPlayer ? `${selectedDisplayRole} · ${selectedDisplayName}` : "Aucun profil";
   const frameTone = (slotEvent) => {
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
     return "bg-[#050914] text-slate-500";
@@ -8819,7 +8831,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       const key = planningEventKey(day, time);
       const activeSlot = (draftSlots[day] || []).includes(time);
       const availableIds = new Set(effectivePlayerIdsByCell.get(key) || []);
-      const availablePlayers = Array.from(availableIds).map((id) => playerById.get(String(id))).filter(Boolean);
+      const staffLit = staffProfiles.some((profile) => availableIds.has(String(profile.id)));
+      const availableNames = [
+        ...roleSlots.filter(({ player }) => player && availableIds.has(String(player.id))).map(({ role, player }) => `${roleLabel(role)} · ${player.name}`),
+        staffLit ? "Coaching Staff" : null,
+      ].filter(Boolean);
       const slotEvent = visibleSlotEvents[key];
       const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
       return {
@@ -8829,26 +8845,25 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
         activeSlot,
         slotEvent,
         slotEventLabel,
-        title: [slotEventLabel, availablePlayers.map((player) => player.name).join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · "),
+        title: [slotEventLabel, availableNames.join(" · ") || "Aucun profil allumé"].filter(Boolean).join(" · "),
         roles: roleSlots.map(({ role, player }) => ({
           role,
           player,
           lit: Boolean(player && availableIds.has(String(player.id))),
           selectedRoleHere: selectedRole === role && activeSlot,
         })),
-        staff: staffSlots.map(({ role, player }) => ({
-          role,
-          player,
-          lit: Boolean(player && availableIds.has(String(player.id))),
-          selectedStaffHere: selectedIsStaff && String(player?.id || "") === selectedPlayerId && activeSlot,
-        })),
+        staffUnit: staffProfiles.length ? {
+          lit: staffLit,
+          selectedStaffHere: selectedIsStaff && activeSlot,
+          title: staffLit ? "Coaching Staff disponible" : "Coaching Staff indisponible",
+        } : null,
       };
     }),
-  })), [draftSlots, effectivePlayerIdsByCell, playerById, roleSlots, selectedIsStaff, selectedPlayerId, selectedRole, staffSlots, visibleSlotEvents, weekDays]);
+  })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedRole, staffProfiles, visibleSlotEvents, weekDays]);
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
   if (!players.length) return <EmptyState icon={Users} title="Aucun profil" text="Ajoute des joueurs ou du coaching staff pour construire le planning de team." />;
-  if (!linkedPlayer) return <EmptyState icon={Users} title="Aucun profil lié" text="Les joueurs et le coaching staff doivent être liés à un compte pour renseigner leurs disponibilités. Va dans Gestion pour lier ton compte à un profil." />;
+  if (!linkedPlayer) return <EmptyState icon={Users} title="Aucun profil lié" text="Les joueurs doivent être liés à un compte pour renseigner leurs disponibilités. Le coaching staff utilise désormais une seule entrée partagée dans le planning." />;
 
   return (
     <div>
