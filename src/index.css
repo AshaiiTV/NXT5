@@ -116,6 +116,42 @@ textarea {
 
 .nxt5-planning-cell {
   box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.025);
+  contain: paint;
+}
+
+.nxt5-planning-cell-icons {
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+  line-height: 0;
+}
+
+.nxt5-planning-cell .nxt5-planning-role-lit,
+.nxt5-planning-cell .nxt5-planning-role-dim,
+.nxt5-planning-cell .nxt5-planning-role-selected,
+.nxt5-planning-staff-unit {
+  width: 1.06rem;
+  height: 1.06rem;
+  flex: 0 0 1.06rem;
+}
+
+.nxt5-planning-staff-unit svg {
+  width: 0.56rem;
+  height: 0.56rem;
+}
+
+.nxt5-planning-staff-icon {
+  display: inline-flex;
+  width: 0.82rem;
+  height: 0.82rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.28rem;
+  border: 1px solid rgba(207, 250, 254, 0.28);
+  background: rgba(8, 17, 31, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 6px rgba(217, 70, 239, 0.12);
 }
 
 .nxt5-planning-day-base {

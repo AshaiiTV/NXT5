@@ -6856,24 +6856,6 @@ function TrendsPage({ data, selectedTeamId }) {
     total.towers += summary.towers || 0;
     return total;
   }, { dragons: 0, grubs: 0, heralds: 0, barons: 0, towers: 0 });
-  const categoryBreakdown = [
-    ...matchCategories.map((category) => ({ id: category.id, name: category.name, color: matchCategoryTone(category), matches: baseMatches.filter((match) => matchHasCategory(match, category.id)) })),
-    { id: "none", name: "Non classées", color: "slate", matches: baseMatches.filter((match) => !matchCategoryIds(match).length) }
-  ].filter((entry) => entry.matches.length).map((entry) => {
-    const entryRows = entry.matches.flatMap((match) => match.participants || []);
-    const entryAlly = entryRows.filter((row) => row.team_key === "ALLY");
-    const entryEnemy = entryRows.filter((row) => row.team_key === "ENEMY");
-    const entryWins = entry.matches.filter((match) => match.result === "Victoire").length;
-    return {
-      ...entry,
-      games: entry.matches.length,
-      wins: entryWins,
-      wr: Math.round((entryWins / Math.max(1, entry.matches.length)) * 100),
-      goldDiff: Math.round((sumRows(entryAlly, "gold") - sumRows(entryEnemy, "gold")) / Math.max(1, entry.matches.length)),
-      visionDiff: Math.round((sumRows(entryAlly, "vision") - sumRows(entryEnemy, "vision")) / Math.max(1, entry.matches.length)),
-      damageDiff: Math.round((sumRows(entryAlly, "damage") - sumRows(entryEnemy, "damage")) / Math.max(1, entry.matches.length))
-    };
-  }).sort((a, b) => b.games - a.games || b.wr - a.wr);
   const championCounts = Array.from(ally.reduce((map, row) => {
     const key = championAssetId(row.champion);
     const current = map.get(key) || { champion: row.champion, games: 0, wins: 0, tags: championStyleTags(row.champion) };
@@ -7592,9 +7574,8 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>
       </div>
     </Surface>
-    <div className="mt-3 grid items-start gap-3 xl:grid-cols-2">
+    <div className="mt-3">
       <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-lg font-black text-white">Résumé équipe</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Écarts moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-3 grid gap-2 md:grid-cols-3">{[["KP équipe", `${teamKpAverage}%`, "green"], ["Vision équipe", signedAvg(visionDiff), "cyan"], ["Morts équipe", `${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/G`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p><p className={cx("mt-1.5 break-words text-xs font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
-      <Surface className="p-3"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-lg font-black text-white">Comparatif contextes</h3><p className="mt-1 text-xs font-semibold text-slate-300">Les blocs qui pèsent vraiment.</p></div><Badge tone="slate">{baseMatches.length} games</Badge></div><div className="mt-2.5 grid gap-2">{categoryBreakdown.length ? <>{categoryBreakdown.slice(0, 4).map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-xl border p-2.5 text-left transition md:grid-cols-[minmax(120px,1fr)_repeat(4,minmax(52px,auto))] md:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-[0.68rem] font-semibold text-slate-300">{entry.games}G · {entry.wins}W/{entry.games - entry.wins}L</p></div><span className="min-w-0 text-xs font-black text-white md:text-right">{entry.wr}%</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)}</span><span className={cx("min-w-0 text-xs font-black md:text-right", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
     </div>
     </>}
     <AnimatePresence>
@@ -9410,16 +9391,16 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                       <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-[#08111f] px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {cells.map((cell) => {
                         const day = cell.day;
-                        return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("nxt5-planning-cell relative min-h-[2.35rem] px-1.5 py-1 text-left transition", cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", frameTone(cell.slotEvent), !cell.slotEvent && "hover:bg-cyan-300/[0.055]", !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
+                        return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("nxt5-planning-cell relative min-h-[2.55rem] overflow-hidden px-1 py-1 text-left transition", cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", frameTone(cell.slotEvent), !cell.slotEvent && "hover:bg-cyan-300/[0.055]", !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
                           {cell.slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{cell.slotEventLabel}</span>}
                           <div className="flex h-full flex-col items-center justify-center gap-1">
-                            <div className="flex items-center justify-center gap-1">
+                            <div className="nxt5-planning-cell-icons flex items-center justify-center gap-1">
                               {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
                                 return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "nxt5-planning-role-lit" : "nxt5-planning-role-dim", selectedRoleHere && "nxt5-planning-role-selected")}>
                                   <RoleIcon role={role} lightweight className="h-4 w-4" />
                                 </span>;
                               })}
-                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("relative inline-flex h-[1.2rem] w-[1.2rem] items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-gradient-to-br from-fuchsia-400/30 via-cyan-400/14 to-black/10 text-fuchsia-50 shadow-[0_0_14px_rgba(217,70,239,.24)]" : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 shadow-[0_0_16px_rgba(255,255,255,.14)]")}><BookOpen className="h-3 w-3" />{cell.staffUnit.lit && <span className="absolute -right-px -top-px h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 shadow-[0_0_8px_rgba(125,211,252,.8)]" />}</span>}
+                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("nxt5-planning-staff-unit relative inline-flex items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-gradient-to-br from-fuchsia-400/30 via-cyan-400/14 to-black/10 text-fuchsia-50 shadow-[0_0_8px_rgba(217,70,239,.18)]" : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 shadow-[0_0_10px_rgba(255,255,255,.12)]")}><span className="nxt5-planning-staff-icon"><BookOpen /></span>{cell.staffUnit.lit && <span className="absolute right-0 top-0 h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 shadow-[0_0_5px_rgba(125,211,252,.72)]" />}</span>}
                             </div>
                           </div>
                         </button>;
@@ -9618,18 +9599,87 @@ function DraftMiniChampion({ item, variant = "ally", onSources }) {
   return onSources ? <button type="button" onClick={onSources} className={className}>{content}</button> : <div className={className}>{content}</div>;
 }
 
-function DraftScoreRail({ scores }) {
-  return <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-3">{scores.map((score) => <div key={score.id} className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-2.5">
-    <div className="flex items-center justify-between gap-2"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-300">{score.label}</p><p className="shrink-0 text-xs font-black text-white">{score.count}/5</p></div>
-    <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.055]"><span className={cx("block h-full rounded-full bg-gradient-to-r", score.id === "engage" ? "from-rose-300 to-orange-400" : score.id === "scaling" ? "from-cyan-300 to-blue-500" : score.id === "frontline" ? "from-emerald-300 to-teal-500" : score.id === "side" ? "from-amber-300 to-yellow-500" : "from-fuchsia-300 to-cyan-300")} style={{ width: `${Math.max(5, score.value)}%` }} /></div>
-  </div>)}</div>;
+function draftScoreTone(scoreId) {
+  if (scoreId === "engage") return "from-rose-300 via-orange-300 to-amber-400 text-rose-100 border-rose-200/20 bg-rose-400/[0.055]";
+  if (scoreId === "scaling") return "from-cyan-300 via-blue-400 to-indigo-500 text-cyan-100 border-cyan-200/20 bg-cyan-400/[0.055]";
+  if (scoreId === "frontline") return "from-emerald-300 via-teal-400 to-cyan-500 text-emerald-100 border-emerald-200/20 bg-emerald-400/[0.055]";
+  if (scoreId === "side") return "from-yellow-300 via-amber-400 to-orange-500 text-yellow-100 border-yellow-200/20 bg-yellow-400/[0.055]";
+  if (scoreId === "pression") return "from-fuchsia-300 via-sky-300 to-cyan-300 text-fuchsia-100 border-fuchsia-200/20 bg-fuchsia-400/[0.05]";
+  return "from-violet-300 via-sky-300 to-cyan-300 text-violet-100 border-violet-200/20 bg-violet-400/[0.05]";
 }
 
-function DraftTrendTable({ title, rows, empty, onSources, enemy = false }) {
-  return <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
-    <div className="flex items-center justify-between gap-3"><h4 className="text-sm font-black uppercase tracking-[0.14em] text-white">{title}</h4><Badge tone="slate">{rows.length}</Badge></div>
+function DraftScoreBoard({ identity, games = 0, enemyMode = false }) {
+  const scores = [...(identity?.scores || [])].sort((a, b) => b.count - a.count);
+  const maxCount = Math.max(1, ...scores.map((score) => score.count));
+  const primary = scores[0] || null;
+  const secondary = scores[1] || null;
+  const weak = scores.filter((score) => score.count <= Math.max(1, Math.round(maxCount * 0.28))).slice(0, 2);
+  const avgPerDraft = (score) => (Number(score?.count || 0) / Math.max(1, games)).toFixed(1);
+  const read = primary
+    ? enemyMode
+      ? `Les adversaires nous imposent surtout ${primary.label.toLowerCase()}. Préparer une réponse claire avant la review draft.`
+      : `Notre draft penche vers ${primary.label.toLowerCase()}. Le plan doit assumer cette identité dès les deux premiers picks.`
+    : "Pas assez de volume pour isoler une identité de draft.";
+  const next = secondary
+    ? `Second signal : ${secondary.label.toLowerCase()} (${avgPerDraft(secondary)} marqueur/draft).`
+    : "Second signal encore trop faible.";
+  return <div className="relative min-w-0 overflow-hidden rounded-2xl border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(10,20,35,.86),rgba(4,8,18,.76)_58%,rgba(22,13,37,.72))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_18px_45px_rgba(0,0,0,.22)]">
+    <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/70 to-fuchsia-100/45" />
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Profil draft</Badge>{primary && <Badge tone={championStyleTone(identity.primary)}>{primary.label}</Badge>}</div>
+        <h4 className="mt-2 text-lg font-black uppercase tracking-[0.12em] text-white">Score de draft</h4>
+        <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p>
+      </div>
+      <div className="grid shrink-0 grid-cols-2 gap-2">
+        <div className="rounded-xl border border-white/10 bg-black/24 px-3 py-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.14em] text-slate-400">Signal #1</p><p className="mt-1 truncate text-sm font-black text-cyan-50">{primary?.label || "-"}</p></div>
+        <div className="rounded-xl border border-white/10 bg-black/24 px-3 py-2"><p className="text-[0.54rem] font-black uppercase tracking-[0.14em] text-slate-400">Volume</p><p className="mt-1 text-sm font-black text-white">{games} drafts</p></div>
+      </div>
+    </div>
+    <div className="mt-3 grid gap-2">
+      {scores.map((score) => {
+        const width = Math.max(6, Math.min(100, (score.count / maxCount) * 100));
+        return <div key={score.id} className={cx("min-w-0 rounded-xl border p-2.5", draftScoreTone(score.id))}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="truncate text-[0.66rem] font-black uppercase tracking-[0.14em] text-white">{score.label}</p>
+            <p className="shrink-0 text-sm font-black text-white">{score.count}x <span className="text-[0.62rem] text-slate-300">· {avgPerDraft(score)}/draft</span></p>
+          </div>
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-black/25">
+            <span className={cx("block h-full rounded-full bg-gradient-to-r shadow-[0_0_18px_rgba(34,211,238,.18)]", draftScoreTone(score.id).split(" ").slice(0, 3).join(" "))} style={{ width: `${width}%` }} />
+          </div>
+        </div>;
+      })}
+    </div>
+    <div className="mt-3 grid gap-2 md:grid-cols-3">
+      <div className="rounded-xl border border-cyan-200/14 bg-cyan-300/[0.055] p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-cyan-100">Lecture</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-100">{read}</p></div>
+      <div className="rounded-xl border border-white/10 bg-white/[0.035] p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Complément</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{next}</p></div>
+      <div className="rounded-xl border border-amber-200/16 bg-amber-300/[0.055] p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-amber-100">À surveiller</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{identity.gaps?.[0] || (weak.length ? `Faible signal ${weak.map((score) => score.label.toLowerCase()).join(" / ")}.` : "Profil plutôt équilibré sur ce bloc.")}</p></div>
+    </div>
+  </div>;
+}
+
+function DraftTrendTable({ title, rows, empty, onSources, enemy = false, variant = "archetypes" }) {
+  const isDuos = variant === "duos";
+  const shell = isDuos
+    ? "border-fuchsia-200/16 bg-[linear-gradient(135deg,rgba(30,14,42,.42),rgba(4,8,18,.54))]"
+    : enemy
+      ? "border-rose-200/16 bg-[linear-gradient(135deg,rgba(45,13,23,.38),rgba(4,8,18,.54))]"
+      : "border-cyan-200/16 bg-[linear-gradient(135deg,rgba(8,32,42,.40),rgba(4,8,18,.55))]";
+  const rail = isDuos ? "via-fuchsia-100/70" : enemy ? "via-rose-100/70" : "via-cyan-100/70";
+  const label = isDuos ? "Combinaisons" : enemy ? "Risques draft" : "Structures";
+  const description = isDuos ? "Les paires qui reviennent le plus souvent dans les drafts du bloc." : enemy ? "Les archétypes adverses qui performent contre nous." : "Les formes de compo qui convertissent le mieux.";
+  return <section className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]", shell)}>
+    <div className={cx("pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent to-transparent", rail)} />
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <Badge tone={isDuos ? "purple" : enemy ? "red" : "cyan"}>{label}</Badge>
+        <h4 className="mt-2 truncate text-sm font-black uppercase tracking-[0.14em] text-white">{title}</h4>
+        <p className="mt-1 text-[0.68rem] font-semibold leading-4 text-slate-400">{description}</p>
+      </div>
+      <Badge tone={isDuos ? "purple" : enemy ? "red" : "cyan"}>{rows.length}</Badge>
+    </div>
     <div className="mt-2 grid gap-2">{rows.length ? rows.slice(0, 5).map((row, index) => {
-      const className = cx("grid min-w-0 gap-2 rounded-xl border border-white/10 bg-black/18 p-2 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center", onSources && "transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]");
+      const className = cx("grid min-w-0 gap-2 rounded-xl border bg-black/18 p-2 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center", isDuos ? "border-fuchsia-100/12" : enemy ? "border-rose-100/12" : "border-cyan-100/12", onSources && "transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]");
       const content = <>
         <span className="min-w-0">
           <span className="block truncate text-sm font-black text-white">{row.tag ? tagLabel(row.tag) : row.champions}</span>
@@ -9639,7 +9689,7 @@ function DraftTrendTable({ title, rows, empty, onSources, enemy = false }) {
       </>;
       return onSources ? <button key={`${title}-${row.tag || row.champions || row.champion}-${index}`} type="button" onClick={() => onSources(row)} className={className}>{content}</button> : <div key={`${title}-${row.tag || row.champions || row.champion}-${index}`} className={className}>{content}</div>;
     }) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">{empty}</p>}</div>
-  </div>;
+  </section>;
 }
 
 function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForMatches }) {
@@ -9680,20 +9730,15 @@ function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForM
               </div>
             </div>
           </div>
-          <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
-            <div className="flex items-center justify-between gap-3"><h4 className="text-sm font-black uppercase tracking-[0.14em] text-white">Score de draft</h4><Badge tone={championStyleTone(active.identity.primary)}>{tagLabel(active.identity.primary)}</Badge></div>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{active.identity.text}</p>
-            <div className="mt-3"><DraftScoreRail scores={active.identity.scores} /></div>
-            <div className="mt-3 flex flex-wrap gap-1.5">{active.identity.tags.slice(0, 6).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div>
-          </div>
+          <DraftScoreBoard identity={active.identity} games={active.games} enemyMode={enemyMode} />
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {(enemyMode ? active.threats : active.comfort).slice(0, 6).map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} variant={enemyMode ? "enemy" : "ally"} onSources={() => openSources(item, enemyMode ? `Menace adverse : ${championDisplayName(item.champion)}` : `Pick NXT5 : ${championDisplayName(item.champion)}`, `${item.games} games · ${item.wr}% ${enemyMode ? "contre nous" : "WR"} · ${roleLabel(item.role)}`)} />)}
         </div>
       </div>
-      <div className="grid min-w-0 gap-3">
-        <DraftTrendTable title={enemyMode ? "Archétypes qui nous battent" : "Archétypes rentables"} rows={active.archetypes} empty="Pas encore assez de drafts complètes." enemy={enemyMode} onSources={(row) => openSources(row, enemyMode ? `Archétype adverse : ${tagLabel(row.tag)}` : `Archétype NXT5 : ${tagLabel(row.tag)}`, `${row.games} games · ${row.wr}%`)} />
-        <DraftTrendTable title={enemyMode ? "Duos ennemis fréquents" : "Duos NXT5 fréquents"} rows={active.duos} empty="Les duos apparaîtront avec plus de games." enemy={enemyMode} onSources={(row) => openSources(row, row.champions, `${row.pair} · ${row.games} games · ${row.wr}%`)} />
+      <div className="grid min-w-0 items-start gap-3">
+        <DraftTrendTable title={enemyMode ? "Archétypes qui nous battent" : "Archétypes rentables"} rows={active.archetypes} empty="Pas encore assez de drafts complètes." enemy={enemyMode} variant="archetypes" onSources={(row) => openSources(row, enemyMode ? `Archétype adverse : ${tagLabel(row.tag)}` : `Archétype NXT5 : ${tagLabel(row.tag)}`, `${row.games} games · ${row.wr}%`)} />
+        <DraftTrendTable title={enemyMode ? "Duos ennemis fréquents" : "Duos NXT5 fréquents"} rows={active.duos} empty="Les duos apparaîtront avec plus de games." enemy={enemyMode} variant="duos" onSources={(row) => openSources(row, row.champions, `${row.pair} · ${row.games} games · ${row.wr}%`)} />
       </div>
     </div>
     <div className="grid gap-3 border-t border-white/10 p-3 xl:grid-cols-2">
