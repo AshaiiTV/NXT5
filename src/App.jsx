@@ -922,7 +922,7 @@ function HomeScreen({ navigate }) {
           {[
             { icon: Crown, title: "Champion Pool lisible", text: "Repère les picks fiables, les picks de confort et les champions à remettre au travail sans transformer le pool en tableau de stats.", t: "cyan" },
             { icon: Swords, title: "Apprendre après chaque game", text: "Lis chaque match avec champions, KDA, dégâts, gold, vision, objectifs et erreurs à comprendre.", t: "purple" },
-            { icon: Target, title: "Préparation compétition", text: "Prépare scrims, tournois et matchs officiels avec des données de vision, morts, dragons, Nashor et side lanes.", t: "green" },
+            { icon: Target, title: "Préparation compétition", text: "Prépare scrims, matchs officiels et blocs compétitifs avec des données de vision, morts, dragons, Nashor et side lanes.", t: "green" },
           ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
           </div>
         </section>
@@ -5234,12 +5234,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       </div>
 
       <Surface className="mt-5 p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-300">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""}. Classe-les en Scrim, Tournoi ou catégories custom pour analyser les blocs séparément.</p></div><Badge tone="cyan">Stats synchronisées</Badge></div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-300">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""}. Classe-les en Scrim, Match officiel ou catégories custom pour analyser les blocs séparément.</p></div><Badge tone="cyan">Stats synchronisées</Badge></div>
         <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap gap-2">{matchCategories.length ? matchCategories.map((category) => <span key={category.id} className={cx("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em]", tone(matchCategoryTone(category)))}>{category.name}{!category.is_default && canManageCategories && <button type="button" onClick={() => deleteMatchCategory(category)} disabled={savingCategory} className="rounded-full p-0.5 opacity-70 transition hover:bg-white/10 hover:opacity-100" aria-label={`Supprimer ${category.name}`}><X className="h-3 w-3" /></button>}</span>) : <Badge tone="slate">Catégories en cours de création</Badge>}</div>
-              <p className="mt-2 text-sm font-semibold text-slate-300">Les catégories servent à comparer les performances selon le contexte : scrim, tournoi, bootcamp, ligue, test draft...</p>
+              <p className="mt-2 text-sm font-semibold text-slate-300">Les catégories servent à comparer les performances selon le contexte : scrim, match officiel, bootcamp, ligue, test draft...</p>
             </div>
             {canManageCategories && <Button type="button" icon={categoryCreatorOpen ? X : Plus} variant={categoryCreatorOpen ? "ghost" : "primary"} onClick={() => { setCategoryCreatorOpen((open) => !open); if (categoryCreatorOpen) setCategoryForm({ name: "", color: "cyan" }); }}>{categoryCreatorOpen ? "Fermer" : "Ajouter une catégorie"}</Button>}
           </div>
@@ -6742,7 +6742,7 @@ function TrendsPage({ data, selectedTeamId }) {
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">Tendances</p></div>
           <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl lg:text-5xl">Cockpit stratégique</h2>
-          <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Lis les patterns de la team par scrim, tournoi ou catégorie custom.</p>
+          <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Lis les patterns de la team par scrim, match officiel ou catégorie custom.</p>
         </div>
         <Badge tone="slate">{baseMatches.length} game{baseMatches.length > 1 ? "s" : ""} importée{baseMatches.length > 1 ? "s" : ""}</Badge>
       </div>
@@ -8097,7 +8097,7 @@ function planningEventKey(day, time) {
 
 function planningEventTypeFromLabel(label) {
   const value = String(label || "").toLowerCase();
-  if (/\b(match|official|officiel|tournoi|ligue|cup|bo[1235])\b/.test(value)) return "match";
+  if (/\b(match|official|officiel|ligue|cup|bo[1235])\b/.test(value)) return "match";
   if (/\b(review|vod|debrief|débrief|analyse)\b/.test(value)) return "review";
   if (/\b(scrim|scrims|pracc|train|training)\b/.test(value)) return "scrim";
   return "custom";
@@ -8906,7 +8906,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
           : { tone: "slate", label: "Sauvegarde auto" };
   const planningGridRows = useMemo(() => PLANNING_TIMES.map((time) => ({
     time,
-    cells: weekDays.map(([day]) => {
+    cells: weekDays.map(([day], dayIndex) => {
       const key = planningEventKey(day, time);
       const activeSlot = (draftSlots[day] || []).includes(time);
       const availableIds = new Set(effectivePlayerIdsByCell.get(key) || []);
@@ -8919,6 +8919,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       const slotEventLabel = slotEvent ? planningEventMeta(slotEvent.type).label : "";
       return {
         day,
+        dayIndex,
         time,
         key,
         activeSlot,
@@ -9072,18 +9073,18 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
               <div className="min-w-[660px]">
-                <div className="grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] gap-px overflow-hidden rounded-lg border border-cyan-200/18 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)] [contain:layout_paint]">
+                <div className="nxt5-planning-grid grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] overflow-hidden rounded-lg border border-cyan-200/22 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.045)] [contain:layout_paint]">
                   <div />
-                  {weekDays.map(([day, label, date]) => {
+                  {weekDays.map(([day, label, date], dayIndex) => {
                     const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("bg-[#08111f] px-1.5 py-1 text-center text-[0.54rem] font-black uppercase tracking-[0.08em] transition", dayActive ? "bg-[#0d2a3a] text-cyan-50" : "text-slate-300 hover:bg-[#101b2d] hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-[0.52rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
+                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("nxt5-planning-day-header px-1.5 py-1 text-center text-[0.54rem] font-black uppercase tracking-[0.08em] transition", dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", dayActive ? "nxt5-planning-day-active text-cyan-50" : "text-slate-300 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-[0.52rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
                   {planningGridRows.map(({ time, cells }) => (
                     <React.Fragment key={time}>
                       <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-[#08111f] px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {cells.map((cell) => {
                         const day = cell.day;
-                        return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("relative min-h-[2.35rem] px-1.5 py-1 text-left transition hover:bg-cyan-300/[0.035]", frameTone(cell.slotEvent), !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
+                        return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("nxt5-planning-cell relative min-h-[2.35rem] px-1.5 py-1 text-left transition", cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", frameTone(cell.slotEvent), !cell.slotEvent && "hover:bg-cyan-300/[0.055]", !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
                           {cell.slotEvent && <span className="absolute left-1 top-0.5 text-[0.44rem] font-black uppercase tracking-[0.09em] opacity-75">{cell.slotEventLabel}</span>}
                           <div className="flex h-full flex-col items-center justify-center gap-1">
                             <div className="flex items-center justify-center gap-1">
@@ -9146,16 +9147,6 @@ function BanRecommendations({ risk, comfort }) {
 function RolePrepMatrix({ players, championPool }) {
   const roles = COMP_ROLES;
   return <Surface glow><div className="mb-5 flex items-center justify-between gap-3"><div><h3 className="text-2xl font-black text-white">Roster par rôle</h3><p className="mt-1 text-sm font-semibold text-slate-300">Champions liés aux profils à partir des données disponibles.</p></div><Badge tone="cyan">roster</Badge></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{roles.map((role) => { const player = players.find((item) => item.role === role); const picks = player ?playerChampionRows(player, championPool).slice(0, 3) : []; return <div key={role} className="rounded-2xl border border-white/10 bg-black/25 p-4"><div className="flex items-center justify-between gap-3"><Badge tone={role === "COACH" ?"purple" : "blue"}>{role}</Badge><span className="truncate text-sm font-black text-white">{player?.name || "Slot ouvert"}</span></div><div className="mt-4 flex gap-2">{picks.length ?picks.map((pick) => <div key={pick.id} className="h-12 w-12 overflow-hidden rounded-full border border-cyan-300/20 bg-black/30"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} /></div>) : <p className="text-sm font-semibold leading-6 text-slate-300">Pas encore assez de données champion.</p>}</div><p className="mt-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Données</p><p className="mt-1 text-sm font-bold leading-6 text-slate-300">{picks.length ? ` champion affiché` : "Aucune donnée liée"}</p></div>; })}</div></Surface>;
-}
-
-function TournamentChecklist({ latest }) {
-  const items = [
-    ["Dernière game", latest?.game_id || "Aucune game sélectionnée"],
-    ["Objectifs neutres", latest?.objective_score || "Aucune donnée objectif"],
-    ["Vision diff", latest?.vision_score || "Aucune donnée vision"],
-    ["Durée", latest?.duration || "--:--"],
-  ];
-  return <Surface><div className="mb-5 flex items-center justify-between gap-3"><div><h3 className="text-2xl font-black text-white">Fiche match</h3><p className="mt-1 text-sm font-semibold text-slate-300">Données rapides issues de la dernière game importée.</p></div><Badge tone={latest ?"green" : "yellow"}>{latest ?"data active" : "en attente"}</Badge></div><div className="space-y-3">{items.map(([title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><p className="text-sm font-black text-white">{title}</p><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div></Surface>;
 }
 
 function CompositionIdentityPanel({ picks }) {

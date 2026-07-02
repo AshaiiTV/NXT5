@@ -93,6 +93,44 @@ textarea {
   min-width: 0;
 }
 
+.nxt5-planning-grid {
+  gap: 0;
+  background:
+    linear-gradient(90deg, rgba(103, 232, 249, 0.22), rgba(217, 70, 239, 0.13)),
+    rgba(8, 17, 31, 0.85);
+}
+
+.nxt5-planning-grid > * {
+  border-right: 2px solid rgba(125, 211, 252, 0.16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.nxt5-planning-grid > *:nth-child(8n) {
+  border-right: 0;
+}
+
+.nxt5-planning-day-header {
+  border-bottom-color: rgba(125, 211, 252, 0.24) !important;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+
+.nxt5-planning-cell {
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.025);
+}
+
+.nxt5-planning-day-base {
+  background-color: rgba(8, 17, 31, 0.92);
+}
+
+.nxt5-planning-day-alt {
+  background-color: rgba(12, 23, 42, 0.98);
+}
+
+.nxt5-planning-day-active {
+  background:
+    linear-gradient(180deg, rgba(34, 211, 238, 0.18), rgba(14, 42, 58, 0.92)) !important;
+}
+
 .nxt5-planning-role-lit img,
 .nxt5-planning-role-lit svg {
   opacity: 1 !important;
