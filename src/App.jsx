@@ -8522,6 +8522,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const playersKey = players.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
   const gameplayPlayersKey = gameplayPlayers.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
   const staffProfilesKey = staffProfiles.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
+  const staffProfileIdSet = useMemo(() => new Set(staffProfiles.map((player) => String(player.id))), [staffProfilesKey]);
   const availabilityKey = availability.map((row) => `${row.id}:${row.player_id}:${row.updated_at || ""}`).join("|");
   const planningLookup = useMemo(() => {
     const slotsByPlayer = new Map();
@@ -8545,10 +8546,10 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     }
     return { slotsByPlayer, playerIdsByCell, events };
   }, [availabilityKey, playersKey]);
-  const playerById = useMemo(() => new Map(players.map((player) => [String(player.id), player])), [playersKey]);
   const linkedGameplayPlayer = gameplayPlayers.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
   const linkedStaffProfile = staffProfiles.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
   const staffPlanningPlayer = linkedStaffProfile || staffProfiles.find((player) => String(player.role || "").toUpperCase() === "COACH") || staffProfiles[0] || null;
+  const staffPlanningPlayerId = String(staffPlanningPlayer?.id || "");
   const canManagePlanningStaff = canStaffManage(currentMember?.role);
   const linkedPlayer = linkedGameplayPlayer || (staffPlanningPlayer && canManagePlanningStaff ? staffPlanningPlayer : linkedStaffProfile) || (currentMember ? { teamOnly: true } : null);
   const [draftSlots, setDraftSlots] = useState({});
@@ -8564,6 +8565,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const selectedIsStaff = selectedPlayer ? isStaffRole(selectedPlayer.role) : false;
   const selectedDisplayName = selectedIsStaff ? "Coaching Staff" : selectedPlayer?.name || "Profil non lié";
   const selectedDisplayRole = selectedIsStaff ? "Coaching Staff" : selectedPlayer ? roleLabel(selectedPlayer.role) : "Aucun profil";
+  const staffPlanningAvailabilityExists = Boolean(staffPlanningPlayerId && availability.some((item) => String(item.player_id || "") === staffPlanningPlayerId));
   const selectedAvailability = availability.find((item) => item.player_id === selectedPlayer?.id) || null;
   const eventStoreRow = availability.find((item) => Object.keys(availabilityEvents(item?.slots)).length);
   const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || gameplayPlayers[0] || staffProfiles[0] || null;
@@ -8770,13 +8772,21 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       for (const time of PLANNING_TIMES) {
         const key = planningEventKey(day, time);
         const baseIds = planningLookup.playerIdsByCell.get(key) || [];
-        const ids = new Set(selectedPlayerId ? baseIds.filter((id) => String(id) !== selectedPlayerId) : baseIds);
+        const hasStaffBase = staffPlanningAvailabilityExists
+          ? baseIds.some((id) => String(id) === staffPlanningPlayerId)
+          : baseIds.some((id) => staffProfileIdSet.has(String(id)));
+        const ids = new Set(baseIds.filter((id) => {
+          const normalizedId = String(id);
+          if (selectedPlayerId && normalizedId === selectedPlayerId) return false;
+          return !staffProfileIdSet.has(normalizedId);
+        }));
+        if (!selectedIsStaff && hasStaffBase && staffPlanningPlayerId) ids.add(staffPlanningPlayerId);
         if (selectedPlayerId && (draftSlots[day] || []).includes(time)) ids.add(selectedPlayerId);
         map.set(key, Array.from(ids));
       }
     }
     return map;
-  }, [draftSlots, planningLookup, selectedPlayerId, weekDays]);
+  }, [draftSlots, planningLookup, selectedIsStaff, selectedPlayerId, staffPlanningAvailabilityExists, staffPlanningPlayerId, staffProfileIdSet, weekDays]);
   const planningUnitCountForIds = (ids = []) => {
     const availableIds = new Set(ids.map((id) => String(id)));
     const playerCount = gameplayPlayers.filter((player) => availableIds.has(String(player.id))).length;
@@ -8867,7 +8877,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   return (
     <div>
-      <PageHeader eyebrow="Organisation" title="Planning" subtitle="Dispos individuelles et créneaux team lisibles en vue compacte.">
+      <PageHeader eyebrow="Organisation" title="Planning" subtitle="Dispos joueurs et présence Coaching Staff groupée, en vue compacte.">
         <div className="flex flex-wrap gap-2">
           {weekOptions.map((week) => (
             <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} className={cx("rounded-lg border px-2.5 py-1.5 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
@@ -8877,9 +8887,9 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
-          {bestCells[0]?.count > 0 && <Badge tone="cyan">Top créneau : {bestCells[0].count}/{players.length}</Badge>}
+          {bestCells[0]?.count > 0 && <Badge tone="cyan">Top créneau : {bestCells[0].count}/{planningUnitTotal}</Badge>}
           <Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} slots 5 joueurs</Badge>
-          {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} slots staff</Badge>}
+          {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} slots CS</Badge>}
         </div>
       </PageHeader>
       {eventMenu && <div onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="fixed z-[80] w-[210px] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050814]/98 p-2 text-white shadow-[0_24px_70px_rgba(0,0,0,.70),0_0_34px_rgba(34,211,238,.16)] ring-1 ring-white/10 backdrop-blur-xl" style={{ left: eventMenu.x, top: eventMenu.y }}>
@@ -8963,8 +8973,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{canEditSelected ? "Clique un créneau pour indiquer ta dispo. Clic droit = Scrim, Match ou Review." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {selectedPlayer && <Badge tone={selectedIsStaff ? "purple" : "blue"}>{roleLabel(selectedPlayer.role)}</Badge>}
-                {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} staff</Badge>}
+                {selectedPlayer && <Badge tone={selectedIsStaff ? "purple" : "blue"}>{selectedDisplayRole}</Badge>}
+                {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} CS</Badge>}
                 <Badge tone={selectedFilledSlots ? "cyan" : "slate"}>{selectedFilledSlots} slots</Badge>
                 <Badge tone={selectedFilledDays >= 4 ? "green" : selectedFilledDays ? "purple" : "slate"}>{selectedFilledDays}/7 jours</Badge>
                 <Badge tone={selectedEventCount ? "purple" : "slate"}>{selectedEventCount} event</Badge>
@@ -8972,13 +8982,13 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/18 p-3">
               <div className="flex min-w-0 items-center gap-3">
-                <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />
+                {selectedIsStaff ? <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200/35 bg-gradient-to-br from-fuchsia-400/18 to-cyan-400/12 px-2 text-[0.64rem] font-black uppercase tracking-[0.08em] text-fuchsia-50 shadow-[0_0_18px_rgba(217,70,239,.14)]">CS</span> : <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />}
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-white">{selectedPlayer?.name || "Profil non lié"}</p>
-                  <p className="mt-0.5 truncate text-xs font-semibold text-slate-400">{selectedPlayer ? `${roleLabel(selectedPlayer.role)} · compte lié` : "Lie ton compte à un profil dans Gestion."}</p>
+                  <p className="truncate text-sm font-black text-white">{selectedDisplayName}</p>
+                  <p className="mt-0.5 truncate text-xs font-semibold text-slate-400">{selectedPlayer ? `${selectedDisplayRole} · ${selectedIsStaff ? "présence staff groupée" : "compte lié"}` : "Lie ton compte à un profil dans Gestion."}</p>
                 </div>
               </div>
-              <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? (selectedIsStaff ? "Mon planning staff" : "Mon planning") : "Lecture seule"}</Badge>
+              <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? (selectedIsStaff ? "Planning CS" : "Mon planning") : "Lecture seule"}</Badge>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button type="button" disabled={!canEditSelected} onClick={() => applyAvailabilityPreset("evenings")} className="rounded-lg border border-white/10 bg-white/[0.035] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-300/25 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50">Soirées</button>
@@ -9013,15 +9023,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                                   <RoleIcon role={role} lightweight className="h-4 w-4" />
                                 </span>;
                               })}
+                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("inline-flex h-[1.05rem] min-w-[1.45rem] items-center justify-center rounded-md border px-1 text-[0.48rem] font-black uppercase leading-none tracking-[0.04em] transition", cell.staffUnit.lit ? "border-fuchsia-200/45 bg-gradient-to-r from-fuchsia-400/24 to-cyan-400/14 text-fuchsia-50 shadow-[0_0_12px_rgba(217,70,239,.20)]" : "border-white/8 bg-black/20 text-slate-600", cell.staffUnit.selectedStaffHere && "border-white/65 bg-white/18 text-white shadow-[0_0_16px_rgba(255,255,255,.14)]")}>CS</span>}
                             </div>
-                            {cell.staff.some((item) => item.player) && (
-                              <div className="flex max-w-full flex-wrap justify-center gap-0.5">
-                                {cell.staff.map(({ role, player, lit, selectedStaffHere }) => {
-                                  if (!player) return null;
-                                  return <span key={player.id} title={`${roleLabel(role)} · ${player.name}`} className={cx("inline-flex h-4 min-w-4 items-center justify-center rounded-md border px-1 text-[0.48rem] font-black uppercase leading-none transition", lit ? "border-fuchsia-200/35 bg-fuchsia-400/18 text-fuchsia-50 shadow-[0_0_10px_rgba(217,70,239,.18)]" : "border-white/8 bg-black/18 text-slate-600", selectedStaffHere && "border-white/60 bg-white/18 text-white")}>{roleLabel(role).slice(0, 2)}</span>;
-                                })}
-                              </div>
-                            )}
                           </div>
                         </button>;
                       })}
