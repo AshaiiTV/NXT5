@@ -7186,6 +7186,10 @@ function TrendsPage({ data, selectedTeamId }) {
       sourceGames: fragilePattern?.sourceGames?.length ? fragilePattern.sourceGames : lossModel.sourceGames.length ? lossModel.sourceGames : sourceGames,
     },
   ];
+  const primaryTeamModelCard = teamModelCards[0];
+  const secondaryTeamModelCards = teamModelCards.slice(1);
+  const teamModelIcon = (id) => id === "win-condition" ? Target : id === "resource-map" ? Users : id === "tempo-map" ? Gauge : AlertTriangle;
+  const teamModelActionLabel = (id) => id === "win-condition" ? "Plan à assumer" : id === "resource-map" ? "Rôles à cadrer" : id === "tempo-map" ? "Timing à viser" : "Risque à review";
   const swingRows = [
     {
       id: "gold",
@@ -7470,33 +7474,72 @@ function TrendsPage({ data, selectedTeamId }) {
         <div>
           <Badge tone="cyan">Modèle d'équipe</Badge>
           <h3 className="mt-1.5 text-lg font-black text-white">Comment l'équipe fonctionne vraiment</h3>
-          <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-slate-300">Plan naturel, rôles moteurs, timings et signaux de défaite.</p>
+          <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-slate-300">Une lecture en 4 étages : le plan principal, les rôles qui portent le jeu, le tempo carte, puis le risque à corriger.</p>
         </div>
         <Badge tone="slate">{matches.length} games analysées</Badge>
       </div>
-      <div className="mt-3 grid gap-2 xl:grid-cols-4">
-        {teamModelCards.map((card) => {
-          const expanded = expandedTeamModelId === card.id;
-          return <article key={card.id} className={cx("min-w-0 rounded-lg border p-2.5 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.028]")}>
-            <button type="button" onClick={() => setExpandedTeamModelId(expanded ? "" : card.id)} className="flex w-full min-w-0 items-start justify-between gap-3 text-left">
-              <span className="min-w-0">
-                <Badge tone={card.toneName}>{card.label}</Badge>
-                <span className="mt-1.5 block break-words text-xs font-black leading-4 text-white">{card.title}</span>
-                <span className={cx("mt-1.5 block text-xl font-black leading-none", card.toneName === "red" ? "text-rose-100" : card.toneName === "orange" ? "text-amber-100" : card.toneName === "purple" ? "text-fuchsia-100" : "text-cyan-100")}>{card.value}</span>
-              </span>
-              <ChevronDown className={cx("mt-1 h-4 w-4 shrink-0 text-slate-400 transition", expanded && "rotate-180 text-cyan-100")} />
-            </button>
-            <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{card.text}</p>
-            <div className="mt-2 flex flex-wrap gap-2"><Badge tone="slate">{card.sourceGames?.length || 0} games</Badge></div>
+      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.04fr)_minmax(18rem,.96fr)]">
+        {primaryTeamModelCard && (() => {
+          const card = primaryTeamModelCard;
+          const Icon = teamModelIcon(card.id);
+          return <article className="relative min-w-0 overflow-hidden rounded-xl border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(8,28,42,.74),rgba(4,8,18,.82)_58%,rgba(35,14,47,.52))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.055)]">
+            <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/70 to-fuchsia-100/45" />
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-xl border", tone(card.toneName))}><Icon className="h-5 w-5" /></span>
+                <div className="min-w-0">
+                  <Badge tone={card.toneName}>Verdict principal</Badge>
+                  <h4 className="mt-2 break-words text-xl font-black leading-tight text-white">{card.title}</h4>
+                  <p className={cx("mt-1 text-3xl font-black leading-none", card.toneName === "red" ? "text-rose-100" : card.toneName === "orange" ? "text-amber-100" : card.toneName === "purple" ? "text-fuchsia-100" : "text-cyan-100")}>{card.value}</p>
+                </div>
+              </div>
+              <button type="button" onClick={() => openTrendSources({ title: card.label, subtitle: card.title, games: card.sourceGames })} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-cyan-100 transition hover:border-cyan-200/30 hover:bg-cyan-300/10" title="Voir les games sources"><FileText className="h-4 w-4" /></button>
+            </div>
+            <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(12rem,.62fr)]">
+              <div className="rounded-lg border border-cyan-100/14 bg-cyan-300/[0.055] p-2.5">
+                <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-cyan-100">Ce que ça veut dire</p>
+                <p className="mt-1.5 text-sm font-semibold leading-6 text-slate-100">{card.text}</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-black/22 p-2.5">
+                <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Preuves rapides</p>
+                <div className="mt-2 grid gap-1.5">
+                  {card.details.slice(0, 3).map((detail) => <p key={detail} className="rounded-md border border-white/8 bg-white/[0.035] px-2 py-1.5 text-[0.68rem] font-semibold leading-4 text-slate-200">{detail}</p>)}
+                </div>
+              </div>
+            </div>
+          </article>;
+        })()}
+        <div className="grid min-w-0 gap-2">
+          {secondaryTeamModelCards.map((card) => {
+            const expanded = expandedTeamModelId === card.id;
+            const Icon = teamModelIcon(card.id);
+            return <article key={card.id} className={cx("min-w-0 rounded-xl border p-2.5 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.028]")}>
+              <button type="button" onClick={() => setExpandedTeamModelId(expanded ? "" : card.id)} className="flex w-full min-w-0 items-start gap-2.5 text-left">
+                <span className={cx("mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg border", tone(card.toneName))}><Icon className="h-4 w-4" /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <Badge tone={card.toneName}>{teamModelActionLabel(card.id)}</Badge>
+                    <Badge tone="slate">{card.sourceGames?.length || 0} games</Badge>
+                  </span>
+                  <span className="mt-1.5 block break-words text-sm font-black leading-5 text-white">{card.title}</span>
+                  <span className="mt-1 block text-[0.68rem] font-semibold leading-4 text-slate-300">{card.text}</span>
+                </span>
+                <span className="shrink-0 text-right">
+                  <span className={cx("block text-lg font-black leading-none", card.toneName === "red" ? "text-rose-100" : card.toneName === "orange" ? "text-amber-100" : card.toneName === "purple" ? "text-fuchsia-100" : "text-cyan-100")}>{card.value}</span>
+                  <ChevronDown className={cx("ml-auto mt-2 h-4 w-4 text-slate-400 transition", expanded && "rotate-180 text-cyan-100")} />
+                </span>
+              </button>
             <AnimatePresence initial={false}>
               {expanded && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
-                <div className="mt-3 grid gap-1.5 border-t border-white/10 pt-2.5">
-                  {card.details.slice(0, 4).map((detail) => <p key={detail} className="text-xs font-semibold leading-5 text-slate-200">{detail}</p>)}
+                <div className="mt-2.5 grid gap-1.5 border-t border-white/10 pt-2.5">
+                  {card.details.slice(0, 4).map((detail) => <p key={detail} className="rounded-md border border-white/8 bg-black/18 px-2 py-1.5 text-xs font-semibold leading-5 text-slate-200">{detail}</p>)}
+                  <button type="button" onClick={() => openTrendSources({ title: card.label, subtitle: card.title, games: card.sourceGames })} className="mt-1 inline-flex w-fit items-center gap-2 rounded-lg border border-cyan-200/18 bg-cyan-300/[0.06] px-2.5 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/12"><FileText className="h-3.5 w-3.5" /> Sources</button>
                 </div>
               </motion.div>}
             </AnimatePresence>
-          </article>;
-        })}
+            </article>;
+          })}
+        </div>
       </div>
       <div className="mt-2.5 grid gap-2.5 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)]">
         <div className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-2.5">
