@@ -8980,7 +8980,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/18 p-3">
               <div className="flex min-w-0 items-center gap-3">
-                {selectedIsStaff ? <span className="inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200/35 bg-gradient-to-br from-fuchsia-400/18 to-cyan-400/12 px-2 text-[0.64rem] font-black uppercase tracking-[0.08em] text-fuchsia-50 shadow-[0_0_18px_rgba(217,70,239,.14)]">CS</span> : <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />}
+                {selectedIsStaff ? <span title="Coaching Staff" className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200/40 bg-gradient-to-br from-fuchsia-400/20 via-cyan-400/12 to-black/20 text-fuchsia-50 shadow-[0_0_18px_rgba(217,70,239,.16)]"><BookOpen className="h-4 w-4" /><span className="absolute -right-0.5 -top-0.5 h-2 w-2 rotate-45 rounded-[2px] border border-cyan-100/60 bg-cyan-200 shadow-[0_0_10px_rgba(125,211,252,.75)]" /></span> : <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-white">{selectedDisplayName}</p>
                   <p className="mt-0.5 truncate text-xs font-semibold text-slate-400">{selectedPlayer ? `${selectedDisplayRole} · ${selectedIsStaff ? "présence staff groupée" : "compte lié"}` : "Lie ton compte à un profil dans Gestion."}</p>
@@ -9021,7 +9021,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                                   <RoleIcon role={role} lightweight className="h-4 w-4" />
                                 </span>;
                               })}
-                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("inline-flex h-[1.05rem] min-w-[1.45rem] items-center justify-center rounded-md border px-1 text-[0.48rem] font-black uppercase leading-none tracking-[0.04em] transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-gradient-to-r from-fuchsia-400/28 to-cyan-400/16 text-fuchsia-50 shadow-[0_0_14px_rgba(217,70,239,.24)]" : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 shadow-[0_0_16px_rgba(255,255,255,.14)]")}>CS</span>}
+                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("relative inline-flex h-[1.2rem] w-[1.2rem] items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-gradient-to-br from-fuchsia-400/30 via-cyan-400/14 to-black/10 text-fuchsia-50 shadow-[0_0_14px_rgba(217,70,239,.24)]" : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 shadow-[0_0_16px_rgba(255,255,255,.14)]")}><BookOpen className="h-3 w-3" />{cell.staffUnit.lit && <span className="absolute -right-px -top-px h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 shadow-[0_0_8px_rgba(125,211,252,.8)]" />}</span>}
                             </div>
                           </div>
                         </button>;
