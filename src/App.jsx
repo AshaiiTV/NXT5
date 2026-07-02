@@ -7188,7 +7188,6 @@ function TrendsPage({ data, selectedTeamId }) {
     { label: "1er objectif", value: formatMinute(averageFirstObjective), detail: `${earlyObjectiveRate}% ≤ 9:30`, toneName: earlyObjectiveRate >= 60 ? "green" : earlyObjectiveRate >= 35 ? "orange" : "red" },
     { label: "Morts", value: deathsPerGame.toFixed(Number.isInteger(deathsPerGame) ? 0 : 1), detail: "alliées/game", toneName: deathsPerGame <= 15 ? "green" : deathsPerGame >= 20 ? "red" : "orange" },
   ];
-  const coachAnalysisSourceGames = sourceGames;
   const coachBriefs = [
     {
       toneName: winrate >= 55 ? "green" : winrate >= 45 ? "orange" : "red",
@@ -7196,15 +7195,15 @@ function TrendsPage({ data, selectedTeamId }) {
       title: `${winrate >= 55 ? "Bloc favorable" : winrate >= 45 ? "Bloc compétitif mais instable" : "Bloc défavorable"}`,
       text: `${matches.length} games analysées, ${wins}W-${losses}L. Écarts moyens : ${formatGoldDiff(avgInt(goldDiff))} or, ${signedAvg(damageDiff)} dégâts, ${signedAvg(visionDiff)} vision. Le volume ${matches.length >= 5 ? "permet une lecture exploitable" : "reste court : priorité à la validation sur le prochain bloc"}.`,
       evidence: [`WR ${winrate}%`, `morts ${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/game`, `KP équipe ${teamKpAverage}%`],
-      sourceGames: coachAnalysisSourceGames,
+      sourceGames,
     },
     strongestPattern && {
       toneName: strongestPattern.verdictTone,
       label: "Plan de jeu",
       title: `${strongestPattern.label} · ${strongestPattern.verdict}`,
       text: `${strongestPattern.games} occurrence${strongestPattern.games > 1 ? "s" : ""}, ${strongestPattern.wins}W-${strongestPattern.games - strongestPattern.wins}L, ${strongestPattern.wr}% WR. ${strongestPattern.bestRole ? `${roleLabel(strongestPattern.bestRole.role)} est le rôle le plus porteur dans ce pattern` : "Rôle porteur non isolé"}, avec ${formatGoldDiff(strongestPattern.avgGoldDiff)} or/game et ${strongestPattern.avgDamageDiff >= 0 ? "+" : ""}${formatPoints(strongestPattern.avgDamageDiff)} dégâts/game.`,
-      evidence: [`Base ${matches.length} games`, `Pattern ${strongestPattern.games} games`, `1er obj ${formatMinute(strongestPattern.firstObjective)}`],
-      sourceGames: coachAnalysisSourceGames,
+      evidence: [`Pattern ${strongestPattern.games} games`, `CS10 ${Number.isFinite(strongestPattern.cs10) ? `${strongestPattern.cs10 >= 0 ? "+" : ""}${strongestPattern.cs10.toFixed(1)}` : "n/a"}`, `1er obj ${formatMinute(strongestPattern.firstObjective)}`],
+      sourceGames: strongestPattern.sourceGames,
     },
     {
       toneName: averageFirstObjective && averageFirstObjective <= 9.5 ? "green" : averageFirstObjective && averageFirstObjective <= 12 ? "orange" : "red",
@@ -7212,7 +7211,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: `Tempo objectifs : ${formatMinute(averageFirstObjective)}`,
       text: `${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game, ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game, ${objectiveRatio(objectiveTotals.towers, matches.length)} tours/game. ${earlyObjectiveRate}% des games avec un premier objectif allié avant 9:30${bestSide ? ` ; meilleur side actuel : ${bestSide.side} (${bestSide.wr}% WR sur ${bestSide.games}G)` : ""}.`,
       evidence: [`Nashor ${objectiveRatio(objectiveTotals.barons, matches.length)}/game`, `Herald ${objectiveRatio(objectiveTotals.heralds, matches.length)}/game`, `${objectiveTimingValues.length}/${matches.length} timings`],
-      sourceGames: coachAnalysisSourceGames,
+      sourceGames: objectiveSourceGames,
     },
     {
       toneName: worstLaneTiming && worstLaneTiming.cs10 < -5 ? "red" : bestLaneTiming && bestLaneTiming.cs10 > 5 ? "green" : "orange",
@@ -7220,7 +7219,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: worstLaneTiming && worstLaneTiming.cs10 < -5 ? `${roleLabel(worstLaneTiming.role)} sous pression` : bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} crée la priorité` : "Lecture lane limitée",
       text: `${bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} meilleur CS10 (${bestLaneTiming.cs10 >= 0 ? "+" : ""}${bestLaneTiming.cs10.toFixed(1)})` : "Pas de CS10 fiable"}.${worstLaneTiming ? ` Point de contrôle : ${roleLabel(worstLaneTiming.role)} au CS10 (${worstLaneTiming.cs10 >= 0 ? "+" : ""}${worstLaneTiming.cs10.toFixed(1)}), CS20 ${Number.isFinite(worstLaneTiming.cs20) ? `${worstLaneTiming.cs20 >= 0 ? "+" : ""}${worstLaneTiming.cs20.toFixed(1)}` : "n/a"}.` : ""} À revoir : wave 1-3, premier reset et move river associé.`,
       evidence: [bestLaneTiming && `${roleLabel(bestLaneTiming.role)} ${bestLaneTiming.samples} sample(s)`, worstLaneTiming && `${roleLabel(worstLaneTiming.role)} ${worstLaneTiming.samples} sample(s)`, `CS/min ${teamCsAverage}`].filter(Boolean),
-      sourceGames: coachAnalysisSourceGames,
+      sourceGames: sourceGamesForInsights(matchInsights.filter((entry) => entry.roleStats.some((stat) => [bestLaneTiming?.role, worstLaneTiming?.role].filter(Boolean).includes(stat.role)))),
     },
     {
       toneName: deathsPerGame >= 20 || fragilePattern?.wr < 45 ? "red" : "purple",
@@ -7228,7 +7227,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: fragilePattern ? `Stabiliser ${fragilePattern.label}` : "Conserver les forces identifiées",
       text: fragilePattern ? `${fragilePattern.label} descend à ${fragilePattern.wr}% WR sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le champion pool associé.` : `${topDamageSignal?.name || "Carry principal"} porte ${topDamageSignal ? formatPoints(topDamageSignal.avgDamage) : "n/a"} dégâts moyens ; ${kpSignal?.name || "le meilleur KP"} atteint ${kpSignal?.avgKp || 0}% KP. Objectif : conserver le plan fort sans surcharger une seule condition de victoire.`,
       evidence: [pressureSignal && `${pressureSignal.name} ${((pressureSignal.deaths || 0) / Math.max(1, pressureSignal.games)).toFixed(1)} morts/G`, supportSignal && `${supportSignal.name} vision ${supportSignal.avgVision}`, topDamageSignal && `${topDamageSignal.name} ${formatPoints(topDamageSignal.avgDamage)} dmg`].filter(Boolean),
-      sourceGames: coachAnalysisSourceGames,
+      sourceGames: fragilePattern?.sourceGames || sourceGames,
     },
   ].filter(Boolean).slice(0, 5);
   const autoReads = coachBriefs.map((brief) => `${brief.label} — ${brief.title}. ${brief.text}`);
@@ -7517,8 +7516,8 @@ function TrendsPage({ data, selectedTeamId }) {
                     <div className="mt-2 grid gap-1.5">
                       {pattern.details.map((detail) => <p key={detail} className="text-xs font-semibold leading-5 text-slate-200">{detail}</p>)}
                     </div>
-                    <div className="mt-2 divide-y divide-white/8">
-                      {pattern.sourceGames.slice(0, 3).map((game) => <button key={`${pattern.id}-${game.id || game.title}`} type="button" onClick={() => openSourceGame(game)} className="flex w-full min-w-0 items-center justify-between gap-3 py-2 text-left transition hover:text-cyan-100">
+                    <div className="mt-2 max-h-72 divide-y divide-white/8 overflow-y-auto pr-1">
+                      {pattern.sourceGames.map((game) => <button key={`${pattern.id}-${game.id || game.title}`} type="button" onClick={() => openSourceGame(game)} className="flex w-full min-w-0 items-center justify-between gap-3 py-2 text-left transition hover:text-cyan-100">
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-black text-white">{game.title}</span>
                           <span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{game.result} · {game.topRoleLabel} · 1er obj {game.firstObjective}</span>
