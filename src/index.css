@@ -318,6 +318,29 @@ svg {
     0 10px 28px rgba(0, 0, 0, 0.22);
 }
 
+.nxt5-data-dense,
+.nxt5-data-dense :where(section, article, aside, header, footer, form, label, table, img, video, canvas, svg) {
+  max-width: 100%;
+}
+
+.nxt5-data-dense :where(.grid, .flex) {
+  min-width: 0;
+}
+
+.nxt5-data-dense :where([class*="min-w-["]) {
+  max-width: 100%;
+}
+
+.nxt5-data-dense :where([class*="overflow-auto"], [class*="overflow-x-auto"]) {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.nxt5-data-dense :where(table) {
+  width: 100%;
+  border-collapse: separate;
+}
+
 .nxt5-data-dense :where(.p-5, .p-6) {
   padding: 0.9rem !important;
 }
@@ -344,6 +367,54 @@ svg {
 
 .nxt5-data-dense :where(.text-3xl, .text-4xl, .text-5xl) {
   letter-spacing: 0;
+}
+
+.nxt5-data-dense :where(.truncate) {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+}
+
+.nxt5-data-dense :where(.whitespace-nowrap) {
+  white-space: normal !important;
+}
+
+.nxt5-data-dense :where(.line-clamp-1, .line-clamp-2, .line-clamp-3, [class*="line-clamp"]) {
+  display: block !important;
+  overflow: visible !important;
+  -webkit-line-clamp: unset !important;
+  -webkit-box-orient: initial !important;
+}
+
+.nxt5-data-dense :where(p, span, h1, h2, h3, h4, h5, h6, button, a, label, dd, dt, li) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.nxt5-data-dense :where(.overflow-hidden):not(img):not(svg):not(canvas):not(video):not([class*="rounded-full"]) {
+  overflow: clip;
+}
+
+.nxt5-data-dense :where(button, a)[class*="justify-between"] {
+  align-items: flex-start;
+}
+
+.nxt5-data-dense :where(button, a) :where(.truncate, .whitespace-nowrap, [class*="line-clamp"]) {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: anywhere;
+}
+
+.nxt5-responsive-nav-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr));
+}
+
+.nxt5-responsive-nav-grid > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .nxt5-data-dense .nxt5-page-header {
@@ -388,6 +459,61 @@ svg {
 
 .nxt5-readable-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+}
+
+@media (max-width: 1535px) {
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-"],
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-["] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .nxt5-data-dense :where(.\32xl\:col-span-2, .\32xl\:col-span-3) {
+    grid-column: auto !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .nxt5-data-dense :where(.p-4, .p-5, .p-6) {
+    padding: 0.8rem !important;
+  }
+
+  .nxt5-data-dense :where(.gap-4, .gap-5) {
+    gap: 0.75rem !important;
+  }
+
+  .nxt5-data-dense .grid[class*="xl:grid-cols-["],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-3"],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-4"],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-5"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .nxt5-data-dense :where(.xl\:col-span-2, .xl\:col-span-3) {
+    grid-column: auto !important;
+  }
+
+  .nxt5-data-dense :where(.text-4xl, .text-5xl) {
+    font-size: clamp(2rem, 3vw, 2.55rem);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .nxt5-data-dense .grid[class*="lg:grid-cols-["],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-["] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .nxt5-data-dense .grid[class*="lg:grid-cols-3"],
+  .nxt5-data-dense .grid[class*="lg:grid-cols-4"],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-3"],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-4"],
+  .nxt5-data-dense .grid[class*="xl:grid-cols-5"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .nxt5-data-dense :where(.lg\:flex-row, .xl\:flex-row) {
+    flex-wrap: wrap;
+  }
 }
 
 .nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="ring-white"] {

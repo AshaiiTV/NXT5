@@ -2929,51 +2929,77 @@ function InviteCodesPanel({ inviteCodes = [], nowTick }) {
 }
 
 function GuidePage() {
+  const newFeatureBlocks = [
+    [Upload, "Import plus sûr", "Upload avec progression, assignation side/lane/profil, rôles lisibles, catégories de contexte et corrections possibles depuis l’historique."],
+    [BarChart3, "Stats game et groupe", "Lecture instantanée, sélection visuelle, groupes de games, exports PNG game/groupe et comparaisons par side sans inverser les équipes."],
+    [Activity, "Cockpit stratégique", "Tendances compactes, identité d’équipe, patterns automatiques, écarts CS10/CS20, timings objectifs et export stratégique."],
+    [Crown, "Profil et Pool", "Mon Profil regroupe synthèse, champions/builds, pool avec tiers de maîtrise, historique, coaching et export PNG individuel."],
+    [FileText, "Review room", "Bibliothèque orientée lecture, reviews liées aux games/groupes, commandes de stats et fenêtre dédiée pour créer ou éditer."],
+    [CalendarDays, "Planning équipe", "Disponibilités plus denses, semaines courante/suivante, marqueurs Scrim/Match/Review, notes et disponibilités staff."],
+  ];
   const starterSteps = [
-    ["Créer ou rejoindre une team", "Au premier lancement, crée ta team ou colle le code temporaire donné par le capitaine. Sans team, NXT5 limite volontairement les accès."],
-    ["Construire le roster", "Dans Gestion équipe, ajoute les joueurs, remplaçants et staff. Mets les postes dans l’ordre LoL: TOP, JGL, MID, ADC, SUP."],
-    ["Relier comptes et profils", "Associe chaque compte NXT5 à son profil joueur. Un joueur peut avoir plusieurs comptes LoL, mais l’import doit toujours être lié au bon profil NXT5."],
-    ["Gérer les permissions", "Le créateur est capitaine. Le staff peut consulter et enrichir les données, les managers gèrent la structure, mais le planning personnel reste protégé."],
+    ["Créer ou rejoindre une team", "Au premier lancement, crée ta team ou colle le code temporaire donné par le capitaine. Sans team active, NXT5 garde les modules verrouillés."],
+    ["Vérifier le compte", "Confirme ton e-mail depuis le lien reçu. Les notifications et actions sensibles reposent sur un compte vérifié."],
+    ["Construire le roster", "Dans Gestion équipe, ajoute les joueurs et le staff. Les joueurs utilisent TOP, JGL, MID, ADC et SUP ; le staff reste hors draft, OP.GG et imports."],
+    ["Relier comptes et profils", "Associe chaque compte NXT5 au bon profil joueur. C’est ce lien qui alimente Mon Profil, Planning, Champion Pool et permissions personnelles."],
+    ["Gérer les accès", "Capitaine, coach et manager peuvent gérer la structure. Les joueurs gardent leurs données personnelles et leur planning, avec édition encadrée selon leur rôle."],
   ];
   const importSteps = [
     ["Télécharger NXT5 Importer", "Dans Intégration, télécharge l’importer Windows ou Mac sur le PC où le client League of Legends possède la game dans son historique."],
     ["Générer le JSON", "Dans l’importer, colle le Game ID du client LoL, choisis la région, puis génère le fichier. Les timelines, builds, summoners, wards et objectifs sont conservés si le client les fournit."],
-    ["Importer dans NXT5", "Dans Intégration, clique sur Importer un JSON. Donne un nom clair à la game au moment de l’assignation pour qu’il se retrouve partout: stats, profil et reviews."],
-    ["Assigner proprement", "Choisis ton side, puis vérifie les champions, lanes, profils alliés et adversaires. NXT5 préremplit, mais l’intégrateur confirme pour éviter les erreurs ADC/SUP ou comptes multiples."],
+    ["Importer dans NXT5", "Dans Intégration, clique sur Importer un JSON. La barre de progression indique l’upload puis l’analyse serveur."],
+    ["Nommer et catégoriser", "Donne un nom clair à la game et coche Scrim, Tournoi, BO, test draft ou toute catégorie custom. Ces tags servent ensuite aux filtres Stats, Profil, Tendances et Review."],
+    ["Assigner proprement", "Choisis ton side, puis vérifie champions, lanes, profils alliés et champions adverses. Les cartes de rôles sont séparées par poste pour éviter les confusions ADC/SUP."],
+    ["Corriger après coup", "Dans l’historique des imports, renomme, supprime ou corrige lanes/profils. Les pages Statistiques, Mon Profil, Tendances et Review se recalculent ensuite."],
   ];
   const analysisSteps = [
-    ["Lecture instantanée", "Sélectionne une game pour lire immédiatement les deux sides, les 10 joueurs, champions, KDA, KP, dégâts, gold, vision, summoners, builds et diff de gold par poste."],
-    ["Objectifs neutres", "Les dragons, grubs, Herald, Nashor et tours sont affichés par side. Si la timeline existe, la frise montre l’ordre, le timing et le side de chaque objectif."],
-    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. Reclique sur un groupe ou une game pour le retirer de la sélection. La review de groupe est generee automatiquement."],
-    ["Exports PNG", "Utilise Exporter la game ou Exporter le groupe dans Statistiques pour produire une fiche visuelle NXT5 avec les données clés, les joueurs, les champions et les objectifs."],
-    ["Stats de game", "Statistiques reste centrée sur les games et groupes de games. Les lectures longues par joueur vivent dans Mon profil."],
-    ["Tendances", "Lis le portrait stratégique global de la team: identité, forces récurrentes, risques, timings, patterns de victoire/défaite et priorités draft."],
-    ["Review", "Les reviews reprennent les noms des games et groupes. Elles servent de bloc-notes brut autour des datas, sans imposer d’analyse automatique."],
-    ["Mon profil", "La page Mon profil centralise les données individuelles: champions, matchups, builds, bilans coaching, bangers, flops et historique game par game."],
-    ["Champion Pool", "Le Champion Pool est indépendant des imports. Le joueur concerné et le capitaine peuvent organiser les champions par catégories de pool."],
-    ["Compos Types", "Glisse les champions issus des pools des joueurs dans une compo. Les tags, catégories, résumé et counters donnent une lecture draft sans quitter la page."],
-    ["Planning", "Chaque profil renseigne ses dispos de 10h à 00h. La vue générale met en évidence les créneaux où la team est complète."],
+    ["Lecture instantanée", "Sélectionne une game importée pour lire les deux sides, les 10 joueurs, champions, KDA, KP, dégâts, gold, vision, summoners, builds, objectifs et écarts par poste."],
+    ["Sides conservés", "Dans les vues de game, les équipes restent du côté réel Blue/Red. Les avantages sont signalés par side pour éviter de croire que NXT5 est toujours à gauche."],
+    ["Déroulé coach", "Quand la timeline est disponible, NXT5 extrait objectifs, fights, tours, phases early/mid/late, écarts d’or à 10/15/20 et contexte des morts."],
+    ["Objectifs neutres", "Dragons par élément, grubs, Herald, Nashor et tours sont affichés par side. La frise montre l’ordre, le timing et le side qui sécurise chaque objectif."],
+    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. La sélection est surlignée, le groupe peut être rouvert, et la review de groupe est générée avec les games liées."],
+    ["Exports PNG", "Utilise Exporter la game ou Exporter le groupe pour produire un visuel NXT5 avec picks alliés, champions adverses, résultat, patch, side, durée, objectifs et stats clés."],
+    ["Cockpit Tendances", "Lis l’identité de l’équipe, les patterns ADC centrique, JGL+MID, frontline, early objectifs, scaling, les écarts CS10/CS20 et les priorités draft."],
+    ["Mon Profil", "Chaque joueur a une synthèse coach, un onglet Champions qui fusionne stats et builds, un onglet Pool, un historique, des notes coaching et un export PNG."],
+    ["Pool par tiers", "L’onglet Pool détaille les champions par tiers de maîtrise, confort, priorité, pocket, test ou à travailler. Les pictos restent hors image pour garder les champions lisibles."],
+    ["Champion Pool global", "La page Champion Pool reste la vue équipe : elle aide à organiser les picks par joueur et à préparer les Compos Types."],
+    ["Compos Types", "Glisse les champions issus des pools dans les rôles, filtre Blue/Red side, duplique une compo et lis les tags, catégories, résumé et counters probables."],
+    ["Review", "La Review est maintenant orientée lecture : bibliothèque, recherche, filtres par groupe, lien direct vers Stats, preview live et commandes /KDA, /DAMAGE, /VISION, /GOLD, /KP."],
+    ["Planning", "Chaque profil renseigne ses dispos. Le staff peut annoter Scrim, Match ou Review, basculer semaine courante/suivante et suivre les disponibilités sans vue trop lourde."],
   ];
   const troubleshooting = [
     ["Images manquantes", "Recharge la page après un deploy. Les champions, items, summoners et objectifs utilisent DDragon/CommunityDragon avec fallbacks, mais le cache navigateur peut garder une vieille version."],
     ["Items ou summoners absents", "Le JSON doit venir d’un importer récent. Si l’ancien fichier ne contient pas ces données, NXT5 masque ou vide les zones concernées au lieu d’inventer."],
     ["Import introuvable", "Vérifie la région du Game ID, attends quelques minutes après la fin de la game, puis réessaie sur le PC où le client LoL possède la game dans son historique."],
-    ["Mauvais joueur au mauvais poste", "Va dans Intégration, ouvre la molette de la game importée et corrige les lanes/profils. Les pages Stats, Profil et Review se mettent ensuite à jour."],
+    ["Timeline limitée", "Certaines lectures coach disparaissent si Riot ne renvoie pas la timeline complète. La fiche reste exploitable avec les stats finales, mais les timings seront moins riches."],
+    ["Mauvais joueur au mauvais poste", "Va dans Intégration, ouvre la game importée et corrige lanes/profils. Les pages Stats, Mon Profil, Tendances et Review se mettent ensuite à jour."],
+    ["Groupe incomplet", "Vérifie que toutes les games du bloc sont importées, catégorisées et cochées dans le groupe. Une review de groupe reprend uniquement les IDs liés au groupe."],
     ["Permissions bloquées", "Vérifie le rôle dans Gestion équipe. Capitaine, coach et manager ont des droits étendus, mais certaines actions personnelles restent réservées au profil concerné."],
+    ["E-mail non vérifié", "Utilise Paramètres ou l’écran de vérification pour renvoyer le lien. Les notifications restent bloquées tant que l’adresse n’est pas confirmée."],
   ];
   const quickLinks = [
-    ["Intégration", "/integration", Download, "Importer JSON, renommer/supprimer les games, corriger lanes et profils."],
-    ["Statistiques", "/statistiques", BarChart3, "Analyser une game, un groupe, exporter en PNG et lire les signaux vision."],
-    ["Tendances", "/tendances", Activity, "Lire l’identité globale, les forces, les risques et les priorités draft."],
-    ["Mon profil", "/mon-profil", Activity, "Lire le profil joueur, builds, champions, matchups et bilan coaching."],
-    ["Compos Types", "/compositions-types", Sparkles, "Créer une compo depuis les champion pools et lire les counters."],
+    ["Intégration", "/integration", Download, "Importer JSON, catégoriser, corriger lanes, profils et champions adverses."],
+    ["Statistiques", "/statistiques", BarChart3, "Analyser une game, un groupe, le déroulé coach et les exports PNG."],
+    ["Tendances", "/tendances", Activity, "Lire cockpit stratégique, patterns, timings, écarts et identité d’équipe."],
+    ["Mon Profil", "/mon-profil", Activity, "Synthèse, Champions+Builds, Pool, Historique, Coaching et export PNG."],
+    ["Champion Pool", "/champion-pool", Crown, "Organiser les picks par joueur et préparer les tiers de maîtrise."],
+    ["Compos Types", "/compositions-types", Sparkles, "Créer des compos depuis les pools et lire les counters."],
+    ["Planning", "/planning", CalendarDays, "Dispos, semaines, événements Scrim/Match/Review et notes."],
+    ["Review", "/rapports", FileText, "Lire, chercher, lier des games/groupes et écrire les décisions staff."],
     ["Gestion", "/gestion-equipe", Settings, "Roster, invitations temporaires, liaisons, permissions et staff."],
+    ["Paramètres", "/parametres", ShieldCheck, "Compte, e-mail vérifié, session et sécurité personnelle."],
+  ];
+  const routineItems = [
+    "Avant scrim : vérifier roster, planning, champion pools, compos types, catégories et objectifs de test.",
+    "Après chaque game : générer le JSON, importer, nommer, catégoriser, confirmer side, lanes, profils alliés et champions adverses.",
+    "Après le bloc : créer un groupe, ouvrir les stats de groupe, exporter le PNG si besoin, puis générer ou écrire la review liée.",
+    "Avant la prochaine session : consulter Tendances, mettre à jour Pool, Compos Types, bilan coaching et corrections de profil.",
   ];
 
   const StepList = ({ items }) => <div className="grid gap-3">{items.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-cyan-300/10 text-sm font-black text-cyan-100">{index + 1}</span><div><h4 className="text-base font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div></div>)}</div>;
 
   return <div>
-    <PageHeader eyebrow="Guide NXT5" title="Guide complet d’utilisation" subtitle="Le parcours de A à Z pour configurer ta team, importer tes games, créer des groupes, lire les stats et produire des reviews propres.">
+    <PageHeader eyebrow="Guide NXT5" title="Guide complet d’utilisation" subtitle="Le parcours à jour pour configurer ta team, importer les games, lire les nouveautés, créer des groupes, suivre les profils et produire des reviews propres.">
       <Button icon={Swords} onClick={() => openAppPath("/integration")}>Importer une game</Button>
       <Button variant="ghost" icon={Settings} onClick={() => openAppPath("/gestion-equipe")}>Gestion équipe</Button>
     </PageHeader>
@@ -2986,10 +3012,27 @@ function GuidePage() {
           <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Le guide suit le workflow complet, mais ces raccourcis ouvrent directement les pages importantes.</p>
         </div>
       </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-5">{quickLinks.map(([title, path, Icon, text]) => <button key={title} type="button" onClick={() => openAppPath(path)} className="group rounded-2xl border border-white/10 bg-black/24 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-cyan-400/[0.07]">
+      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">{quickLinks.map(([title, path, Icon, text]) => <button key={title} type="button" onClick={() => openAppPath(path)} className="group rounded-2xl border border-white/10 bg-black/24 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-cyan-400/[0.07]">
         <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></span><h4 className="font-black text-white">{title}</h4></div>
         <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p>
       </button>)}</div>
+    </Surface>
+
+    <Surface glow className="mb-5 p-5 md:p-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <Badge tone="green">Nouveautés clés</Badge>
+          <h3 className="mt-3 text-2xl font-black text-white">Ce que le site sait faire maintenant</h3>
+          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Ces blocs résument les dernières évolutions produit : lecture plus claire, exports plus complets, profils mieux séparés et planning moins lourd.</p>
+        </div>
+        <Badge tone="cyan">Guide mis à jour</Badge>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+        {newFeatureBlocks.map(([Icon, title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4">
+          <div className="flex items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", tone(index % 3 === 0 ? "cyan" : index % 3 === 1 ? "purple" : "green"))}><Icon className="h-5 w-5" /></span><h4 className="font-black text-white">{title}</h4></div>
+          <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p>
+        </div>)}
+      </div>
     </Surface>
 
     <div className="grid gap-5 xl:grid-cols-[.9fr_1.1fr]">
@@ -3034,7 +3077,7 @@ function GuidePage() {
       <Surface className="p-5 md:p-6">
         <Badge tone="green">Routine recommandée</Badge>
         <div className="mt-4 grid gap-3">
-          {["Avant scrim: vérifier roster, planning, champion pools, compos types et catégories de picks.", "Après chaque game: générer le JSON, importer la game, confirmer side, lanes, profils alliés et adversaires.", "Après le bloc: créer un groupe de games, ouvrir les stats, exporter le PNG si besoin, puis ecrire la review de groupe.", "Avant la prochaine session: mettre à jour Champion Pool, compos types, bilans coaching et éventuelles corrections de profil."].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
+          {routineItems.map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
         </div>
       </Surface>
       <Surface className="p-5 md:p-6">
@@ -3415,59 +3458,81 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const topChampion = championStats[0];
   const topChampionShare = topChampion ? Math.round((topChampion.games / Math.max(1, games)) * 100) : 0;
   const sortedProfileRows = rows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || "")));
-  const avgRows = (items, getter, decimals = 1) => (items.reduce((total, item) => total + Number(getter(item) || 0), 0) / Math.max(1, items.length)).toFixed(decimals);
-  const globalCs = csMilestoneSummary(rows);
-  const avgCsPerMin = Number(avgRows(rows, (row) => row.cs_per_min));
-  const roleKey = normalizeProfileRole(selectedPlayer?.role);
+	  const avgRows = (items, getter, decimals = 1) => (items.reduce((total, item) => total + Number(getter(item) || 0), 0) / Math.max(1, items.length)).toFixed(decimals);
+	  const globalCs = csMilestoneSummary(rows);
+	  const avgCsPerMin = Number(avgRows(rows, (row) => row.cs_per_min));
+	  const roleKey = normalizeProfileRole(selectedPlayer?.role);
   const roleRowsAll = filteredMatches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY" && normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane) === roleKey).map((row) => ({ ...row, match })));
   const roleReferenceRows = roleRowsAll.filter((row) => !rows.some((item) => item.id === row.id));
   const benchmarkRows = roleReferenceRows.length ? roleReferenceRows : roleRowsAll;
   const benchmarkCs = csMilestoneSummary(benchmarkRows);
   const benchmarkKp = Number(avgRows(benchmarkRows, (row) => parsePercent(row.kill_participation || row.kp || 0), 0));
   const benchmarkDeaths = Number(avgRows(benchmarkRows, (row) => row.deaths));
-  const benchmarkDamageShare = benchmarkRows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "damage"), 0) / Math.max(1, benchmarkRows.length);
-  const benchmarkGoldShare = benchmarkRows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "gold"), 0) / Math.max(1, benchmarkRows.length);
-  const benchmarkResourceDelta = benchmarkDamageShare - benchmarkGoldShare;
-  const cs10Target = { TOP: 70, MID: 72, ADC: 74, JGL: 56, SUP: null }[normalizeProfileRole(selectedPlayer?.role)] ?? null;
-  const cs10Values = rows.map((row) => csAtMinute(row, 10)).filter((value) => Number.isFinite(value));
-  const lowCs10Count = cs10Target ? cs10Values.filter((value) => value < cs10Target - 8).length : 0;
-  const highDeathRows = rows.filter((row) => Number(row.deaths || 0) >= Math.max(4, Math.ceil(avgDeaths + 1)));
-  const lowKpRows = rows.filter((row) => parsePercent(row.kill_participation || row.kp || 0) < 50);
-  const lowCsRows = cs10Target ? rows.filter((row) => { const value = csAtMinute(row, 10); return Number.isFinite(value) && value < cs10Target - 8; }) : [];
-  const reviewRows = sortedProfileRows.filter((row) => highDeathRows.includes(row) || lowKpRows.includes(row) || lowCsRows.includes(row)).slice(0, 3);
-  const coachComparisons = [
-    { label: "CS10 vs poste", value: globalCs.at10 ?? "-", detail: benchmarkCs.samples ? `${Number(globalCs.at10 || 0) - Number(benchmarkCs.at10 || 0) >= 0 ? "+" : ""}${Number(globalCs.at10 || 0) - Number(benchmarkCs.at10 || 0)} vs réf.` : cs10Target ? `cible ${cs10Target}` : "réf. indisponible", toneName: benchmarkCs.samples ? Number(globalCs.at10 || 0) >= Number(benchmarkCs.at10 || 0) ? "green" : "orange" : "slate", icon: Target },
-    { label: "KP vs poste", value: `${Math.round(avgKp)}%`, detail: benchmarkRows.length ? (avgKp >= benchmarkKp ? "au-dessus de la réf." : "sous la réf.") : "réf. indisponible", toneName: !benchmarkRows.length || avgKp >= benchmarkKp ? "cyan" : "yellow", icon: Swords },
-    { label: "Morts vs poste", value: avgDeaths.toFixed(1), detail: benchmarkRows.length ? `${(avgDeaths - benchmarkDeaths) >= 0 ? "+" : ""}${(avgDeaths - benchmarkDeaths).toFixed(1)} vs réf.` : "réf. indisponible", toneName: !benchmarkRows.length || avgDeaths <= benchmarkDeaths ? "green" : "red", icon: Shield },
-    { label: "Rendement ressources", value: `${avgDamageShare.toFixed(1)}%`, detail: `${avgGoldShare.toFixed(1)}% de l'or équipe`, toneName: !benchmarkRows.length || damageResourceDelta >= benchmarkResourceDelta ? "green" : "orange", icon: Gauge },
-  ];
-  const coachIssues = [
-    games < 3 && { title: "Volume faible", text: "Pas encore assez de games pour conclure fort. À confirmer avec plus d'import.", toneName: "slate", icon: AlertTriangle },
-    avgDeathShare > 24 && { title: "Exposition élevée", text: `${avgDeaths.toFixed(1)} morts moy. · ${avgDeathShare.toFixed(1)}% des morts équipe.`, toneName: "red", icon: Shield },
-    avgKp < 55 && { title: "Connexion fights", text: `${Math.round(avgKp)}% KP moyen. Vérifier présence sur objectifs et timings de regroupement.`, toneName: "yellow", icon: Swords },
-    damageResourceDelta < -4 && { title: "Rendement ressources", text: `${avgDamageShare.toFixed(1)}% des dégâts pour ${avgGoldShare.toFixed(1)}% de l'or équipe. Trop de ressources pour l'impact produit.`, toneName: "orange", icon: Gauge },
-    avgVisionShare < 17 && { title: "Vision à clarifier", text: `${avgVisionShare.toFixed(1)}% de la vision équipe. Regarder routine wards / resets.`, toneName: "purple", icon: Eye },
-    cs10Target && globalCs.samples > 0 && Number(globalCs.at10 || 0) < cs10Target - 8 && { title: "Lane farm", text: `CS10 moyen ${globalCs.at10}. À revoir par matchup et wave states.`, toneName: "orange", icon: Target },
-    topChampionShare >= 65 && championStats.length > 1 && { title: "Pool concentré", text: `${championDisplayName(topChampion.champion)} représente ${topChampionShare}% des games. Prévoir alternatives draft.`, toneName: "yellow", icon: Crown },
-  ].filter(Boolean).slice(0, 4);
-  const coachStrengths = [
-    avgDamageShare >= avgGoldShare + 3 && { title: "Impact rentable", text: `${avgDamageShare.toFixed(1)}% dégâts pour ${avgGoldShare.toFixed(1)}% gold.`, toneName: "green", icon: Flame },
-    avgKp >= 65 && { title: "Bonne présence fights", text: `${Math.round(avgKp)}% KP moyen sur les games importées.`, toneName: "cyan", icon: Swords },
-    avgDeathShare <= 18 && games >= 3 && { title: "Profil stable", text: `${avgDeaths.toFixed(1)} morts moy. et faible exposition relative.`, toneName: "green", icon: Shield },
-    avgVisionShare >= 22 && { title: "Présence map", text: `${avgVisionShare.toFixed(1)}% de la vision équipe.`, toneName: "cyan", icon: Eye },
-    topChampion && topChampion.winrate >= 55 && { title: "Pick fiable", text: `${championDisplayName(topChampion.champion)} · ${topChampion.winrate}% WR sur ${topChampion.games} game${topChampion.games > 1 ? "s" : ""}.`, toneName: "green", icon: Crown },
-  ].filter(Boolean).slice(0, 3);
-  const coachDecisions = [
-    { label: "À travailler", text: coachIssues[0]?.title || "Stabiliser les standards du rôle", toneName: coachIssues[0]?.toneName || "cyan" },
-    { label: "À maintenir", text: coachStrengths[0]?.title || "Conserver les bons patterns visibles", toneName: coachStrengths[0]?.toneName || "green" },
-    { label: "Draft prioritaire", text: bangers[0] ? championDisplayName(bangers[0].champion) : topChampion ? championDisplayName(topChampion.champion) : "À confirmer", toneName: "green" },
-    { label: "Draft prudence", text: flops[0] ? championDisplayName(flops[0].champion) : worstMatchups[0] ? `vs ${championDisplayName(worstMatchups[0].champion)}` : "Aucune alerte", toneName: flops[0] || worstMatchups[0] ? "red" : "slate" },
-  ];
-  const coachActions = [
-    coachIssues[0] ? `Revoir en priorité : ${coachIssues[0].title.toLowerCase()}.` : "Conserver la structure actuelle, pas d'alerte majeure.",
-    reviewRows[0] ? `Ouvrir ${matchDisplayName(reviewRows[0].match, "la game prioritaire")} en review individuelle.` : flops[0] ? `Mettre ${championDisplayName(flops[0].champion)} en review avant de le ressortir.` : "Utiliser l'historique champion pour choisir le prochain focus.",
-    worstMatchups[0] ? `Isoler les games vs ${championDisplayName(worstMatchups[0].champion)}.` : topChampion ? `Valider si ${championDisplayName(topChampion.champion)} reste prioritaire en draft.` : "Comparer les matchups après quelques imports supplémentaires.",
-  ];
+	  const benchmarkDamageShare = benchmarkRows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "damage"), 0) / Math.max(1, benchmarkRows.length);
+	  const benchmarkGoldShare = benchmarkRows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "gold"), 0) / Math.max(1, benchmarkRows.length);
+	  const benchmarkResourceDelta = benchmarkDamageShare - benchmarkGoldShare;
+	  const cs20Values = rows.map((row) => csAtMinute(row, 20)).filter((value) => Number.isFinite(value));
+	  const benchmarkCs10Delta = benchmarkCs.samples ? Number(globalCs.at10 || 0) - Number(benchmarkCs.at10 || 0) : null;
+	  const benchmarkCs20Delta = benchmarkCs.samples ? Number(globalCs.at20 || 0) - Number(benchmarkCs.at20 || 0) : null;
+	  const roleKpDelta = benchmarkRows.length ? avgKp - benchmarkKp : null;
+	  const roleDeathDelta = benchmarkRows.length ? avgDeaths - benchmarkDeaths : null;
+	  const cs10Target = { TOP: 70, MID: 72, ADC: 74, JGL: 56, SUP: null }[normalizeProfileRole(selectedPlayer?.role)] ?? null;
+	  const cs10Values = rows.map((row) => csAtMinute(row, 10)).filter((value) => Number.isFinite(value));
+	  const lowCs10Count = cs10Target ? cs10Values.filter((value) => value < cs10Target - 8).length : 0;
+	  const highDeathRows = rows.filter((row) => Number(row.deaths || 0) >= Math.max(4, Math.ceil(avgDeaths + 1)));
+	  const lowKpRows = rows.filter((row) => parsePercent(row.kill_participation || row.kp || 0) < 50);
+	  const lowCsRows = cs10Target ? rows.filter((row) => { const value = csAtMinute(row, 10); return Number.isFinite(value) && value < cs10Target - 8; }) : [];
+	  const reviewRows = sortedProfileRows.filter((row) => highDeathRows.includes(row) || lowKpRows.includes(row) || lowCsRows.includes(row)).slice(0, 3);
+	  const worstDeathRow = rows.slice().sort((a, b) => Number(b.deaths || 0) - Number(a.deaths || 0))[0];
+	  const worstKpRow = rows.slice().sort((a, b) => parsePercent(a.kill_participation || a.kp || 0) - parsePercent(b.kill_participation || b.kp || 0))[0];
+	  const worstCs10Row = rows
+	    .map((row) => ({ row, value: csAtMinute(row, 10), enemy: opponentRoleRow(row.match, row.role || selectedPlayer?.role, row.raw?.participantId || row.participantId) }))
+	    .map((item) => ({ ...item, enemyValue: item.enemy ? csAtMinute({ ...item.enemy, match: item.row.match }, 10) : null }))
+	    .filter((item) => Number.isFinite(item.value) && Number.isFinite(item.enemyValue))
+	    .sort((a, b) => (a.value - a.enemyValue) - (b.value - b.enemyValue))[0];
+	  const roleCoachLens = {
+	    TOP: { lane: "jouer les deux premières waves pour garder le contrôle du bounce", fight: "annoncer TP ou absence de TP 70s avant objectif", vision: "poser une ward profonde uniquement quand la wave est fixée", draft: "prioriser un pick qui tient weakside si le plan équipe joue bot" },
+	    JGL: { lane: "verrouiller le premier clear et annoncer le premier move avant 3:15", fight: "lier chaque fight à un objectif ou à une wave prenable", vision: "poser la vision d'entrée 45s avant drake/grubs, pas au spawn", draft: "séparer les picks tempo des picks scaling dans les reviews" },
+	    MID: { lane: "transformer la prio wave en move river ou en reset tempo", fight: "arriver au fight avec la wave déjà neutralisée", vision: "warder un côté fort puis jouer autour de ce côté", draft: "garder au moins un champion prio lane et un champion contrôle" },
+	    ADC: { lane: "sécuriser les resets canon et éviter les trades sans wave favorable", fight: "jouer le premier fight autour de la distance max et du peel disponible", vision: "demander la ligne de vision avant de toucher mid T1 ou drake", draft: "distinguer les picks carry ressources des picks utilitaires" },
+	    SUP: { lane: "lier chaque roam à une wave bot crash ou un timer reset adverse", fight: "entrer en fight seulement si le carry peut suivre ou si la cible est isolée", vision: "placer le premier setup objectif avant le reset de contrôle", draft: "préparer un engage et un pick peel selon le plan ADC" },
+	  }[roleKey] || { lane: "clarifier le plan de lane", fight: "clarifier la présence en fight", vision: "clarifier la routine vision", draft: "clarifier le rôle en draft" };
+	  const championName = (stat) => stat?.champion ? championDisplayName(stat.champion) : "le champion principal";
+	  const matchName = (row) => row?.match ? matchDisplayName(row.match, "la game ciblée") : "la game ciblée";
+	  const coachComparisons = [
+	    { label: "CS10 vs poste", value: globalCs.at10 ?? "-", detail: benchmarkCs.samples ? `${Number(globalCs.at10 || 0) - Number(benchmarkCs.at10 || 0) >= 0 ? "+" : ""}${Number(globalCs.at10 || 0) - Number(benchmarkCs.at10 || 0)} vs réf.` : cs10Target ? `cible ${cs10Target}` : "réf. indisponible", toneName: benchmarkCs.samples ? Number(globalCs.at10 || 0) >= Number(benchmarkCs.at10 || 0) ? "green" : "orange" : "slate", icon: Target },
+	    { label: "KP vs poste", value: `${Math.round(avgKp)}%`, detail: benchmarkRows.length ? (avgKp >= benchmarkKp ? "au-dessus de la réf." : "sous la réf.") : "réf. indisponible", toneName: !benchmarkRows.length || avgKp >= benchmarkKp ? "cyan" : "yellow", icon: Swords },
+	    { label: "Morts vs poste", value: avgDeaths.toFixed(1), detail: benchmarkRows.length ? `${(avgDeaths - benchmarkDeaths) >= 0 ? "+" : ""}${(avgDeaths - benchmarkDeaths).toFixed(1)} vs réf.` : "réf. indisponible", toneName: !benchmarkRows.length || avgDeaths <= benchmarkDeaths ? "green" : "red", icon: Shield },
+	    { label: "Rendement ressources", value: `${avgDamageShare.toFixed(1)}%`, detail: `${avgGoldShare.toFixed(1)}% de l'or équipe`, toneName: !benchmarkRows.length || damageResourceDelta >= benchmarkResourceDelta ? "green" : "orange", icon: Gauge },
+	  ];
+	  const coachSignals = [
+	    games < 3 && { kind: "issue", priority: 98, title: "Volume trop faible", text: `${games} game${games > 1 ? "s" : ""} seulement : le bon angle est de formuler une hypothèse, pas une conclusion.`, action: `Prochaine review : choisir un seul test mesurable pour ${roleLabel(roleKey)} (${roleCoachLens.lane}) et le recontrôler après 3 games.`, toneName: "slate", icon: AlertTriangle },
+	    cs10Target && globalCs.samples > 0 && Number(globalCs.at10 || 0) < cs10Target - 8 && { kind: "issue", priority: 94, title: "Lane trop coûteuse avant 10", text: `CS10 moyen ${globalCs.at10} pour une cible ${cs10Target}. Le problème prioritaire n'est pas le farm final, c'est le plan des trois premières waves.`, action: worstCs10Row ? `Ouvrir ${matchName(worstCs10Row.row)} : ${championDisplayName(worstCs10Row.row.champion)} est à ${worstCs10Row.value - worstCs10Row.enemyValue} CS au CS10. Revoir matchup, wave 1-3 et premier reset.` : `En scrim : ${roleCoachLens.lane}, puis noter CS10 + reset timing.`, toneName: "orange", icon: Target },
+	    benchmarkCs.samples && benchmarkCs20Delta < -14 && { kind: "issue", priority: 90, title: "La lane ne se répare pas au midgame", text: `CS20 ${globalCs.at20 ?? "-"} (${benchmarkCs20Delta} vs référence du poste). Le retard continue après la lane, donc le problème est aussi sur les resets et la collecte side/mid.`, action: `Sur les 2 prochaines games : call explicite du prochain catch de wave avant chaque objectif, puis vérifier si le CS20 repasse au-dessus de ${Number(benchmarkCs.at20 || 0)}.`, toneName: "orange", icon: Target },
+	    avgDeathShare > 24 && { kind: "issue", priority: 88, title: "Exposition qui coûte les fights", text: `${avgDeaths.toFixed(1)} morts moy. et ${avgDeathShare.toFixed(1)}% des morts équipe. Le joueur prend trop souvent la mort qui rend le setup injouable.`, action: worstDeathRow ? `Review ${matchName(worstDeathRow)} : ${Number(worstDeathRow.deaths || 0)} morts sur ${championDisplayName(worstDeathRow.champion)}. Classer chaque mort : wave, vision, greed ou fight forcé.` : `En review : isoler les morts 90s avant objectif et décider si la règle doit être "reset" ou "pas de facecheck".`, toneName: "red", icon: Shield },
+	    avgKp < 55 && { kind: "issue", priority: 84, title: "Connexion fights insuffisante", text: `${Math.round(avgKp)}% KP moyen${Number.isFinite(roleKpDelta) ? ` (${roleKpDelta >= 0 ? "+" : ""}${roleKpDelta.toFixed(0)} vs poste)` : ""}. Le joueur est trop souvent hors du fight utile ou arrive après la conversion.`, action: worstKpRow ? `Ouvrir ${matchName(worstKpRow)} : KP ${Math.round(parsePercent(worstKpRow.kill_participation || worstKpRow.kp || 0))}% sur ${championDisplayName(worstKpRow.champion)}. Revoir le move juste avant les 2 premiers objectifs.` : `Prochain bloc : annoncer 30s avant objectif "je peux fight / je dois catch / je dois reset".`, toneName: "yellow", icon: Swords },
+	    damageResourceDelta < -4 && { kind: "issue", priority: 80, title: "Ressources mal converties", text: `${avgDamageShare.toFixed(1)}% des dégâts pour ${avgGoldShare.toFixed(1)}% de l'or équipe. L'équipe investit plus que ce que le profil transforme en pression.`, action: `Draft/review : si ${championName(topChampion)} reçoit les ressources, définir l'objectif de conversion avant 14:00 : plaque, drake, Herald/grubs ou tempo mid.`, toneName: "orange", icon: Gauge },
+	    avgVisionShare < 17 && { kind: "issue", priority: 72, title: "Vision sans impact visible", text: `${avgVisionShare.toFixed(1)}% de la vision équipe. Le sujet n'est pas juste le score de vision : il faut vérifier si les wards protègent le prochain move du rôle.`, action: `Prochain scrim : ${roleCoachLens.vision}. En review, garder uniquement les wards qui ont créé un fight, évité une mort ou sécurisé un objectif.`, toneName: "purple", icon: Eye },
+	    topChampionShare >= 65 && championStats.length > 1 && { kind: "issue", priority: 68, title: "Draft trop lisible", text: `${championDisplayName(topChampion.champion)} représente ${topChampionShare}% des games. Le joueur a peut-être un bon confort, mais le plan devient facile à cibler.`, action: `Préparer une alternative de même fonction que ${championDisplayName(topChampion.champion)} et une alternative opposée : ${roleCoachLens.draft}.`, toneName: "yellow", icon: Crown },
+	    avgDamageShare >= avgGoldShare + 3 && { kind: "strength", priority: 78, title: "Impact rentable", text: `${avgDamageShare.toFixed(1)}% dégâts pour ${avgGoldShare.toFixed(1)}% gold : le joueur convertit bien les ressources reçues.`, action: `À maintenir : continuer à lui donner les mêmes timings de ressources quand la draft demande du carry ${roleLabel(roleKey)}.`, toneName: "green", icon: Flame },
+	    avgKp >= 65 && { kind: "strength", priority: 74, title: "Présence fights solide", text: `${Math.round(avgKp)}% KP moyen : le joueur est connecté aux kills utiles et participe aux conversions.`, action: `À pousser : utiliser cette présence pour caller plus tôt le prochain objectif après kill, surtout quand ${championName(topChampion)} est joué.`, toneName: "cyan", icon: Swords },
+	    avgDeathShare <= 18 && games >= 3 && { kind: "strength", priority: 70, title: "Profil stable sous pression", text: `${avgDeaths.toFixed(1)} morts moy. et faible exposition relative. Il garde assez souvent la game jouable.`, action: `À conserver : ne pas le forcer dans des engages sans information ; construire autour de sa capacité à rester vivant jusqu'au fight clé.`, toneName: "green", icon: Shield },
+	    avgVisionShare >= 22 && { kind: "strength", priority: 64, title: "Présence map exploitable", text: `${avgVisionShare.toFixed(1)}% de la vision équipe : le profil participe déjà au contrôle de zone.`, action: `À préciser : transformer cette vision en call clair "on entre / on trade / on abandonne" avant les objectifs.`, toneName: "cyan", icon: Eye },
+	    topChampion && topChampion.winrate >= 55 && { kind: "strength", priority: 62, title: "Pick de confiance identifié", text: `${championDisplayName(topChampion.champion)} : ${topChampion.winrate}% WR sur ${topChampion.games} game${topChampion.games > 1 ? "s" : ""}, KDA ${topChampion.kda}.`, action: `Draft : garder ${championDisplayName(topChampion.champion)} comme référence, mais noter dans quelles lanes/matchups il gagne vraiment son avantage.`, toneName: "green", icon: Crown },
+	  ].filter(Boolean).sort((a, b) => b.priority - a.priority);
+	  const coachIssues = coachSignals.filter((item) => item.kind === "issue").slice(0, 4);
+	  const coachStrengths = coachSignals.filter((item) => item.kind === "strength").slice(0, 3);
+	  const coachDecisions = [
+	    { label: "Angle prioritaire", text: coachIssues[0]?.title || coachStrengths[0]?.title || "Stabiliser le rôle", toneName: coachIssues[0]?.toneName || coachStrengths[0]?.toneName || "cyan" },
+	    { label: "Consigne scrim", text: coachIssues[0]?.action || coachStrengths[0]?.action || roleCoachLens.lane, toneName: coachIssues[0]?.toneName || "green" },
+	    { label: "Pick à valoriser", text: bangers[0] ? championDisplayName(bangers[0].champion) : topChampion ? championDisplayName(topChampion.champion) : "À confirmer", toneName: "green" },
+	    { label: "Pick / matchup à revoir", text: flops[0] ? championDisplayName(flops[0].champion) : worstMatchups[0] ? `vs ${championDisplayName(worstMatchups[0].champion)}` : "Aucune alerte", toneName: flops[0] || worstMatchups[0] ? "red" : "slate" },
+	  ];
+	  const coachActions = [
+	    ...(coachIssues[0] ? [coachIssues[0].action] : [coachStrengths[0]?.action || `Conserver la base actuelle, puis contrôler ${roleCoachLens.fight} sur le prochain bloc.`]),
+	    reviewRows[0] ? `Ouvrir ${matchDisplayName(reviewRows[0].match, "la game prioritaire")} : vérifier précisément le déclencheur avant la mauvaise stat, pas seulement le score final.` : flops[0] ? `Mettre ${championDisplayName(flops[0].champion)} en review avant de le ressortir : identifier si le problème vient du matchup, du build ou du plan équipe.` : `Comparer ${championName(topChampion)} à une alternative de pool après quelques imports supplémentaires.`,
+	    worstMatchups[0] ? `Isoler les games vs ${championDisplayName(worstMatchups[0].champion)} : noter le plan de lane, le premier reset et le premier fight objectif.` : `Draft : ${roleCoachLens.draft}.`,
+	  ].filter(Boolean);
   const coachPillars = [
     { label: "Laning / farm", value: globalCs.at10 ?? "-", detail: cs10Target ? `${lowCs10Count}/${cs10Values.length || 0} sous cible CS10` : `${avgCsPerMin.toFixed(1)} CS/min moyen`, toneName: cs10Target && lowCs10Count > Math.max(1, cs10Values.length * 0.35) ? "orange" : "green", icon: Target },
     { label: "Fights", value: `${Math.round(avgKp)}%`, detail: `${lowKpRows.length} game${lowKpRows.length > 1 ? "s" : ""} sous 50% KP`, toneName: avgKp >= 60 ? "cyan" : "yellow", icon: Swords },
@@ -3729,12 +3794,12 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         <Button type="button" variant="ghost" icon={Download} onClick={exportProfilePng} className="shrink-0 justify-center 2xl:w-auto">{"Exporter le r\u00e9sum\u00e9 PNG"}</Button>
       </div>
       <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge>{activeProfileCategory && <Badge tone={matchCategoryTone(activeProfileCategory)}>{activeProfileCategory.name}</Badge>}</div><h2 className="mt-4 truncate text-4xl font-black text-white md:text-5xl">{selectedPlayer.name}</h2><p className="mt-2 truncate text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
-        <div className="grid w-full gap-2 sm:grid-cols-4 xl:w-auto xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge>{activeProfileCategory && <Badge tone={matchCategoryTone(activeProfileCategory)}>{activeProfileCategory.name}</Badge>}</div><h2 className="mt-4 break-words text-4xl font-black leading-tight text-white md:text-5xl">{selectedPlayer.name}</h2><p className="mt-2 break-words text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
+        <div className="grid w-full gap-2 sm:grid-cols-2 2xl:grid-cols-4 2xl:w-auto 2xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
       </div>
     </Surface>
     <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
-      <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-5">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className="flex min-w-0 items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0"><span className="block truncate text-sm font-black">{label}</span><span className="mt-0.5 block text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span></span><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></button>; })}</div>
+      <div className="nxt5-responsive-nav-grid grid gap-2">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group grid min-h-[5.1rem] min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0 self-center"><span className="block break-words text-sm font-black leading-5">{label}</span><span className="mt-0.5 block break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span><span className="justify-self-end"><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></span></button>; })}</div>
     </div>
     <AnimatePresence mode="wait">
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
@@ -6789,6 +6854,141 @@ function TrendsPage({ data, selectedTeamId }) {
     }, { dragons: 0, grubs: 0, heralds: 0, barons: 0, towers: 0 });
     return { side, games: sideMatches.length, wins: sideWins, wr: Math.round((sideWins / Math.max(1, sideMatches.length)) * 100), objectives };
   });
+  const roleFromRow = (row) => normalizeProfileRole(row?.role || row?.raw?.teamPosition || row?.raw?.individualPosition || row?.raw?.lane);
+  const minuteFromTimestamp = (timestamp) => {
+    const value = Number(timestamp || 0);
+    return value > 0 ? value / 60000 : null;
+  };
+  const formatMinute = (value) => Number.isFinite(value) ? formatCountdown(Math.round(value * 60)) : "--";
+  const averageValues = (values) => {
+    const valid = values.filter((value) => Number.isFinite(value));
+    return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
+  };
+  const matchInsights = matches.map((match) => {
+    const allyRows = teamRows(match, "ALLY");
+    const enemyRows = teamRows(match, "ENEMY");
+    const totalGold = Math.max(1, sumRows(allyRows, "gold"));
+    const totalDamage = Math.max(1, sumRows(allyRows, "damage"));
+    const roleStats = ROSTER_ROLE_ORDER.map((role) => {
+      const row = allyRows.find((item) => roleFromRow(item) === role);
+      const enemyRow = enemyRows.find((item) => roleFromRow(item) === role);
+      const gold = statValue(row, "gold");
+      const damage = statValue(row, "damage");
+      const goldShare = (gold / totalGold) * 100;
+      const damageShare = (damage / totalDamage) * 100;
+      const kp = parsePercent(row?.kill_participation || row?.kp || 0);
+      const cs10 = row ? csAtMinute({ ...row, match }, 10) : null;
+      const cs20 = row ? csAtMinute({ ...row, match }, 20) : null;
+      const enemyCs10 = enemyRow ? csAtMinute({ ...enemyRow, match }, 10) : null;
+      const enemyCs20 = enemyRow ? csAtMinute({ ...enemyRow, match }, 20) : null;
+      return {
+        role,
+        row,
+        champion: row?.champion || "",
+        tags: championStyleTags(row?.champion),
+        goldShare,
+        damageShare,
+        kp,
+        score: goldShare + damageShare * 1.1 + kp * 0.16,
+        cs10Diff: Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null,
+        cs20Diff: Number.isFinite(cs20) && Number.isFinite(enemyCs20) ? cs20 - enemyCs20 : null,
+      };
+    }).filter((stat) => stat.row);
+    const sortedRoles = roleStats.slice().sort((a, b) => b.score - a.score);
+    const events = objectiveEvents(match);
+    const allyEvents = events.filter((event) => event.teamKey === "ALLY");
+    const firstByType = (type) => minuteFromTimestamp(allyEvents.find((event) => objectiveEventType(event) === type)?.timestamp);
+    const firstObjectiveMinute = minuteFromTimestamp(allyEvents[0]?.timestamp);
+    return {
+      match,
+      win: match.result === "Victoire",
+      roleStats,
+      sortedRoles,
+      topRoles: sortedRoles.slice(0, 2).map((stat) => stat.role),
+      firstObjectiveMinute,
+      firstDragonMinute: firstByType("dragon"),
+      firstGrubMinute: firstByType("grub"),
+      firstHeraldMinute: firstByType("herald"),
+      firstBaronMinute: firstByType("baron"),
+      allyObjectiveCount: allyEvents.length,
+    };
+  });
+  const summarizePattern = (id, label, predicate, options = {}) => {
+    const patternInsights = matchInsights.filter(predicate);
+    const patternMatches = patternInsights.map((entry) => entry.match);
+    const patternRows = patternMatches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
+    const patternAlly = patternRows.filter((row) => row.team_key === "ALLY");
+    const patternEnemy = patternRows.filter((row) => row.team_key === "ENEMY");
+    const games = patternInsights.length;
+    const patternWins = patternInsights.filter((entry) => entry.win).length;
+    const wr = Math.round((patternWins / Math.max(1, games)) * 100);
+    const verdict = games < 2 ? "à confirmer" : wr >= 58 ? "ça passe" : wr >= 48 ? "stable mais pas tranché" : "ça ne passe pas";
+    const verdictTone = games < 2 ? "slate" : wr >= 58 ? "green" : wr >= 48 ? "orange" : "red";
+    const cs10 = averageValues(patternInsights.flatMap((entry) => entry.roleStats.map((stat) => stat.cs10Diff)));
+    const cs20 = averageValues(patternInsights.flatMap((entry) => entry.roleStats.map((stat) => stat.cs20Diff)));
+    const firstObjective = averageValues(patternInsights.map((entry) => entry.firstObjectiveMinute));
+    const firstDragon = averageValues(patternInsights.map((entry) => entry.firstDragonMinute));
+    const firstGrub = averageValues(patternInsights.map((entry) => entry.firstGrubMinute));
+    const bestRole = ROSTER_ROLE_ORDER.map((role) => ({
+      role,
+      score: averageValues(patternInsights.map((entry) => entry.roleStats.find((stat) => stat.role === role)?.score)),
+      cs10: averageValues(patternInsights.map((entry) => entry.roleStats.find((stat) => stat.role === role)?.cs10Diff)),
+    })).filter((stat) => Number.isFinite(stat.score)).sort((a, b) => b.score - a.score)[0];
+    return {
+      id,
+      label,
+      tone: options.tone || verdictTone,
+      games,
+      wins: patternWins,
+      wr,
+      verdict,
+      verdictTone,
+      bestRole,
+      details: [
+        `${games} game${games > 1 ? "s" : ""} · ${patternWins}W-${games - patternWins}L · ${wr}% WR`,
+        `Écart or ${formatGoldDiff(Math.round((sumRows(patternAlly, "gold") - sumRows(patternEnemy, "gold")) / Math.max(1, games)))}`,
+        `CS10 ${Number.isFinite(cs10) ? `${cs10 >= 0 ? "+" : ""}${cs10.toFixed(1)}` : "n/a"} · CS20 ${Number.isFinite(cs20) ? `${cs20 >= 0 ? "+" : ""}${cs20.toFixed(1)}` : "n/a"}`,
+        `1er obj ${formatMinute(firstObjective)}${Number.isFinite(firstDragon) ? ` · Drake ${formatMinute(firstDragon)}` : Number.isFinite(firstGrub) ? ` · Grubs ${formatMinute(firstGrub)}` : ""}`,
+      ],
+      read: games ? `${label} : ${verdict}. ${games} game${games > 1 ? "s" : ""}, ${wr}% WR, ${Number.isFinite(firstObjective) ? `premier objectif moyen à ${formatMinute(firstObjective)}` : "timing objectif non disponible"}.` : "",
+    };
+  };
+  const hasTags = (stat, tags) => tags.some((tag) => stat?.tags?.includes(tag));
+  const autoPatterns = [
+    summarizePattern("adc-centric", "ADC centrique", (entry) => {
+      const adc = entry.roleStats.find((stat) => stat.role === "ADC");
+      return entry.topRoles[0] === "ADC" || (adc && (adc.score >= 54 || adc.goldShare >= 23 || adc.damageShare >= 29));
+    }, { tone: "cyan" }),
+    summarizePattern("jgl-mid", "Axe JGL + MID", (entry) => {
+      const roles = new Set(entry.topRoles);
+      const jungle = entry.roleStats.find((stat) => stat.role === "JGL");
+      const mid = entry.roleStats.find((stat) => stat.role === "MID");
+      return (roles.has("JGL") && roles.has("MID")) || ((jungle?.score || 0) + (mid?.score || 0) >= 94);
+    }, { tone: "purple" }),
+    summarizePattern("top-frontline", "TOP frontline / tank", (entry) => {
+      const top = entry.roleStats.find((stat) => stat.role === "TOP");
+      return hasTags(top, ["frontline", "engage", "teamfight", "control", "sustain", "peel"]);
+    }, { tone: "green" }),
+    summarizePattern("early-objectives", "Setup early objectifs", (entry) => Number.isFinite(entry.firstObjectiveMinute) && entry.firstObjectiveMinute <= 9.5, { tone: "orange" }),
+    summarizePattern("front-to-back", "Front-to-back / scaling", (entry) => entry.roleStats.flatMap((stat) => stat.tags).filter((tag) => ["front-to-back", "scaling", "peel", "control"].includes(tag)).length >= 3, { tone: "blue" }),
+  ].filter((pattern) => pattern.games).sort((a, b) => b.games - a.games || b.wr - a.wr).slice(0, 5);
+  const laneTimings = ROSTER_ROLE_ORDER.map((role) => {
+    const values10 = matchInsights.map((entry) => entry.roleStats.find((stat) => stat.role === role)?.cs10Diff).filter((value) => Number.isFinite(value));
+    const values20 = matchInsights.map((entry) => entry.roleStats.find((stat) => stat.role === role)?.cs20Diff).filter((value) => Number.isFinite(value));
+    return {
+      role,
+      cs10: averageValues(values10),
+      cs20: averageValues(values20),
+      samples: Math.max(values10.length, values20.length),
+    };
+  }).filter((stat) => stat.samples).sort((a, b) => Math.abs(b.cs10 || 0) - Math.abs(a.cs10 || 0));
+  const autoReads = [
+    autoPatterns[0]?.read,
+    autoPatterns.find((pattern) => pattern.id === "jgl-mid")?.read,
+    autoPatterns.find((pattern) => pattern.id === "top-frontline")?.read,
+    laneTimings[0] && `${roleLabel(laneTimings[0].role)} : ${laneTimings[0].cs10 >= 0 ? "priorité lane" : "lane sous pression"} au CS10 (${laneTimings[0].cs10 >= 0 ? "+" : ""}${laneTimings[0].cs10.toFixed(1)}), CS20 ${Number.isFinite(laneTimings[0].cs20) ? `${laneTimings[0].cs20 >= 0 ? "+" : ""}${laneTimings[0].cs20.toFixed(1)}` : "n/a"}.`,
+    `Objectifs : ${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game, ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game, premier timing moyen ${formatMinute(averageValues(matchInsights.map((entry) => entry.firstObjectiveMinute)))}.`,
+  ].filter(Boolean).slice(0, 5);
   const forceItems = [
     `${wins}W - ${losses}L sur ${matches.length} game${matches.length > 1 ? "s" : ""} (${winrate}% WR).`,
     `Écart or moyen: ${formatGoldDiff(avgInt(goldDiff))} par game.`,
@@ -6831,7 +7031,7 @@ function TrendsPage({ data, selectedTeamId }) {
     purple: "from-fuchsia-400/14 via-white/[0.035] to-transparent text-fuchsia-100",
     orange: "from-amber-400/14 via-white/[0.035] to-transparent text-amber-100",
   };
-  const TrendPanel = ({ title, icon: Icon, items, tone = "cyan" }) => <section className="nxt5-flat-block rounded-2xl border p-4"><div className="flex items-center gap-3"><span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br", trendToneClass[tone] || trendToneClass.cyan)}><Icon className="h-4 w-4" /></span><h3 className="text-lg font-black text-white">{title}</h3></div><div className="mt-3 divide-y divide-white/8">{items.length ? items.map((item, index) => <div key={item} className="flex gap-3 py-2.5 first:pt-0 last:pb-0"><span className={cx("mt-2 h-1.5 w-1.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]", tone === "red" ? "bg-rose-300 text-rose-300" : tone === "green" ? "bg-emerald-300 text-emerald-300" : tone === "purple" ? "bg-fuchsia-300 text-fuchsia-300" : tone === "orange" ? "bg-amber-300 text-amber-300" : "bg-cyan-300 text-cyan-300")} /><p className="min-w-0 text-sm font-semibold leading-5 text-slate-200">{index === 0 ? <span className="font-black text-white">{item}</span> : item}</p></div>) : <p className="py-2 text-sm font-semibold text-slate-300">Pas assez de volume.</p>}</div></section>;
+  const TrendPanel = ({ title, icon: Icon, items, tone = "cyan" }) => <section className="nxt5-flat-block flex h-full min-h-[13rem] flex-col rounded-2xl border p-4"><div className="flex items-center gap-3"><span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-gradient-to-br", trendToneClass[tone] || trendToneClass.cyan)}><Icon className="h-4 w-4" /></span><h3 className="min-w-0 truncate text-base font-black text-white">{title}</h3></div><div className="mt-3 flex-1 divide-y divide-white/8">{items.length ? items.slice(0, 4).map((item, index) => <div key={item} className="flex gap-3 py-2.5 first:pt-0 last:pb-0"><span className={cx("mt-2 h-1.5 w-1.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]", tone === "red" ? "bg-rose-300 text-rose-300" : tone === "green" ? "bg-emerald-300 text-emerald-300" : tone === "purple" ? "bg-fuchsia-300 text-fuchsia-300" : tone === "orange" ? "bg-amber-300 text-amber-300" : "bg-cyan-300 text-cyan-300")} /><p className="min-w-0 text-sm font-semibold leading-5 text-slate-200">{index === 0 ? <span className="font-black text-white">{item}</span> : item}</p></div>) : <p className="py-2 text-sm font-semibold text-slate-300">Pas assez de volume.</p>}</div></section>;
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const topMetrics = [
     { icon: Trophy, label: "Winrate", value: `${winrate}%`, hint: `${wins}W - ${losses}L`, tone: winrate >= 50 ? "green" : "red" },
@@ -6873,17 +7073,18 @@ function TrendsPage({ data, selectedTeamId }) {
   const SignedBar = ({ item }) => {
     const positive = item.value >= 0;
     const width = Math.max(6, Math.min(50, (Math.abs(item.value) / maxDiffChart) * 50));
-    return <div className="rounded-xl border border-white/10 bg-black/20 p-3"><div className="flex items-center justify-between gap-3"><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-300">{item.label}</span><span className={cx("text-sm font-black", item.tone === "red" ? "text-rose-100" : item.tone === "green" ? "text-emerald-100" : "text-cyan-100")}>{item.display}</span></div><div className="relative mt-3 h-3 overflow-hidden rounded-full bg-white/[0.055]"><span className="absolute left-1/2 top-0 h-full w-px bg-white/24" /><span className={cx("absolute top-0 h-full rounded-full bg-gradient-to-r", barToneClass[item.tone] || barToneClass.cyan)} style={positive ? { left: "50%", width: `${width}%` } : { right: "50%", width: `${width}%` }} /></div></div>;
+  return <div className="rounded-xl border border-white/10 bg-black/20 p-2.5"><div className="flex items-center justify-between gap-3"><span className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-300">{item.label}</span><span className={cx("text-sm font-black", item.tone === "red" ? "text-rose-100" : item.tone === "green" ? "text-emerald-100" : "text-cyan-100")}>{item.display}</span></div><div className="relative mt-2.5 h-2.5 overflow-hidden rounded-full bg-white/[0.055]"><span className="absolute left-1/2 top-0 h-full w-px bg-white/24" /><span className={cx("absolute top-0 h-full rounded-full bg-gradient-to-r", barToneClass[item.tone] || barToneClass.cyan)} style={positive ? { left: "50%", width: `${width}%` } : { right: "50%", width: `${width}%` }} /></div></div>;
   };
   const VerticalBar = ({ item, max }) => {
     const height = Math.max(10, Math.min(100, (Number(item.value || 0) / max) * 100));
-    return <div className="flex min-w-0 flex-col justify-end rounded-xl border border-white/10 bg-black/18 p-2 text-center"><div className="flex h-24 items-end justify-center"><span className={cx("w-full max-w-[2.35rem] rounded-t-xl bg-gradient-to-t shadow-[0_0_18px_rgba(34,211,238,.12)]", barToneClass[item.tone] || barToneClass.cyan)} style={{ height: `${height}%` }} /></div><p className="mt-2 text-lg font-black text-white">{item.display}</p><p className="truncate text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{item.label}</p></div>;
+    return <div className="flex min-w-0 flex-col justify-end rounded-xl border border-white/10 bg-black/18 p-2 text-center"><div className="flex h-20 items-end justify-center"><span className={cx("w-full max-w-[2rem] rounded-t-xl bg-gradient-to-t shadow-[0_0_18px_rgba(34,211,238,.12)]", barToneClass[item.tone] || barToneClass.cyan)} style={{ height: `${height}%` }} /></div><p className="mt-2 text-base font-black text-white">{item.display}</p><p className="truncate text-[0.56rem] font-black uppercase tracking-[0.12em] text-slate-300">{item.label}</p></div>;
   };
   const RoleResourceBar = ({ item }) => {
     const width = Math.max(8, Math.min(100, (item.value / maxRoleResourceChart) * 100));
-    return <div className="rounded-xl border border-white/10 bg-black/18 p-3"><div className="flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-2"><RoleIcon role={item.role} className="h-4 w-4 shrink-0" /><span className="truncate text-sm font-black text-white">{item.label}</span></span><span className="shrink-0 text-xs font-semibold text-slate-300">{item.detail}</span></div><div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/[0.055]"><span className="block h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" style={{ width: `${width}%` }} /></div></div>;
+    return <div className="rounded-xl border border-white/10 bg-black/18 p-2.5"><div className="flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-2"><RoleIcon role={item.role} className="h-4 w-4 shrink-0" /><span className="truncate text-sm font-black text-white">{item.label}</span></span><span className="shrink-0 text-xs font-semibold text-slate-300">{item.detail}</span></div><div className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-white/[0.055]"><span className="block h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" style={{ width: `${width}%` }} /></div></div>;
   };
   const exportTrendSections = [
+    { title: "Lecture automatique", items: autoReads, tone: "cyan" },
     { title: "Écarts moyens", items: forceItems, tone: "green" },
     { title: "Pression et exposition", items: riskItems, tone: "red" },
     { title: "Objectifs / game", items: timingItems, tone: "cyan" },
@@ -6900,103 +7101,149 @@ function TrendsPage({ data, selectedTeamId }) {
   });
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <section className="relative mb-5 overflow-hidden rounded-[1.25rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(8,18,38,.9),rgba(3,7,18,.78)_52%,rgba(35,12,48,.64))] p-4 shadow-[0_18px_58px_rgba(0,0,0,.30)] md:p-5">
+    <section className="relative mb-4 overflow-hidden rounded-2xl border border-cyan-200/16 bg-[linear-gradient(135deg,rgba(8,18,38,.9),rgba(3,7,18,.78)_52%,rgba(35,12,48,.64))] p-4 shadow-[0_14px_44px_rgba(0,0,0,.24)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(34,211,238,.16),transparent_30%),radial-gradient(circle_at_88%_12%,rgba(217,70,239,.12),transparent_30%)]" />
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/75 to-fuchsia-100/55" />
-      <div className="relative z-10 grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(300px,.38fr)] xl:items-stretch">
+      <div className="relative z-10 grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-stretch">
         <div className="flex min-w-0 flex-col justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="cyan">Tendances</Badge>
               <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
             </div>
-            <h2 className="nxt5-metal-text mt-4 max-w-4xl break-words text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-5xl">Cockpit stratégique</h2>
-            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-200 sm:text-base sm:leading-7">Le portrait du bloc en cours, côté jeu.</p>
+            <h2 className="nxt5-metal-text mt-3 max-w-4xl break-words text-3xl font-black leading-[1.08] tracking-tight lg:text-4xl">Cockpit stratégique</h2>
+            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-200">Le portrait du bloc en cours, côté jeu.</p>
           </div>
-          <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
+          <div className="grid min-w-0 gap-2 sm:grid-cols-2 2xl:grid-cols-4">
+            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-xl border border-white/10 bg-black/24 p-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
-                <p className="min-w-0 truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p>
+                <span className={cx("grid h-8 w-8 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-4 w-4" /></span>
+                <p className="min-w-0 break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.12em] text-slate-300">{label}</p>
               </div>
-              <p className="mt-3 break-words text-2xl font-black leading-tight text-white">{value}</p>
+              <p className="mt-2 break-words text-xl font-black leading-tight text-white">{value}</p>
               <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{hint}</p>
             </div>)}
           </div>
         </div>
-        <aside className="min-w-0 rounded-2xl border border-white/10 bg-black/26 p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <aside className="min-w-0 rounded-2xl border border-white/10 bg-black/26 p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Bloc actif</p>
             <Button type="button" variant="ghost" icon={ImageIcon} onClick={exportTrends} className="shrink-0 px-3 py-2 text-xs">Exporter</Button>
           </div>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className={cx("mt-2 text-4xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
+              <p className={cx("mt-1 text-3xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
               <p className="mt-1 text-sm font-black text-white">{wins}W - {losses}L</p>
             </div>
-            <span className={cx("rounded-2xl border p-3", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-5 w-5" /></span>
+            <span className={cx("rounded-xl border p-2.5", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-5 w-5" /></span>
           </div>
-          <div className="mt-4 grid gap-2">
-            <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="text-xl font-black text-white">{matches.length}</p></div>
+          <div className="mt-3 grid gap-2">
+            <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="text-lg font-black text-white">{matches.length}</p></div>
             <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Identité équipe</p><p className="mt-1 break-words text-sm font-black leading-5 text-cyan-100">{tagLabel(identity.primary)}</p><div className="mt-2 flex min-w-0 flex-wrap gap-1">{identity.tags.slice(0, 3).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}</div></div>
           </div>
-          <div className="mt-4 border-t border-white/10 pt-3">
+          <div className="mt-3 border-t border-white/10 pt-3">
             <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
           </div>
         </aside>
       </div>
     </section>
-    <Surface className="p-5">
+    <Surface className="p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <Badge tone="cyan">Lecture automatique</Badge>
+          <h3 className="mt-2 text-xl font-black text-white">Style draft et timings</h3>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Le site croise les rôles qui captent les ressources, les tags de champions, le CS10/20 et le premier timing objectif.</p>
+        </div>
+        <Badge tone="slate">{autoPatterns.length} pattern{autoPatterns.length > 1 ? "s" : ""} détecté{autoPatterns.length > 1 ? "s" : ""}</Badge>
+      </div>
+      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
+        <div className="grid min-w-0 gap-2 lg:grid-cols-2">
+          {autoPatterns.length ? autoPatterns.map((pattern) => <div key={pattern.id} className="min-w-0 rounded-2xl border border-white/10 bg-black/22 p-3">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2"><Badge tone={pattern.tone}>{pattern.label}</Badge><Badge tone={pattern.verdictTone}>{pattern.verdict}</Badge></div>
+                <p className="mt-2 text-2xl font-black leading-none text-white">{pattern.wr}%</p>
+                <p className="mt-1 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{pattern.wins}W - {pattern.games - pattern.wins}L</p>
+              </div>
+              {pattern.bestRole && <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/18 bg-cyan-300/10 text-cyan-50"><RoleIcon role={pattern.bestRole.role} className="h-5 w-5" /></span>}
+            </div>
+            <div className="mt-3 grid gap-1.5">
+              {pattern.details.slice(1).map((detail) => <p key={detail} className="truncate text-xs font-semibold text-slate-300">{detail}</p>)}
+            </div>
+          </div>) : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de volume pour isoler un style de draft fiable.</div>}
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-3">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Synthèse coach</h4>
+            <Badge tone={winrate >= 50 ? "green" : "red"}>{winrate}% WR</Badge>
+          </div>
+          <div className="mt-3 divide-y divide-white/8">
+            {autoReads.map((read, index) => <p key={read} className={cx("py-2.5 text-sm font-semibold leading-5 text-slate-200 first:pt-0 last:pb-0", index === 0 && "font-black text-white")}>{read}</p>)}
+          </div>
+        </div>
+      </div>
+      {laneTimings.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+        {laneTimings.map((stat) => <div key={stat.role} className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-2"><RoleIcon role={stat.role} className="h-4 w-4 shrink-0" /><span className="truncate text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(stat.role)}</span></span>
+            <Badge tone={(stat.cs10 || 0) >= 0 ? "green" : "red"}>{stat.samples}</Badge>
+          </div>
+          <p className={cx("mt-2 text-sm font-black", (stat.cs10 || 0) >= 0 ? "text-emerald-100" : "text-rose-100")}>CS10 {Number.isFinite(stat.cs10) ? `${stat.cs10 >= 0 ? "+" : ""}${stat.cs10.toFixed(1)}` : "n/a"}</p>
+          <p className="mt-1 text-xs font-semibold text-slate-300">CS20 {Number.isFinite(stat.cs20) ? `${stat.cs20 >= 0 ? "+" : ""}${stat.cs20.toFixed(1)}` : "n/a"}</p>
+        </div>)}
+      </div>}
+    </Surface>
+    <Surface className="p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge tone="purple">Graphiques clés</Badge>
-          <h3 className="mt-3 text-2xl font-black text-white">Lecture visuelle</h3>
+          <h3 className="mt-2 text-xl font-black text-white">Lecture visuelle</h3>
           <p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Les écarts, les objectifs et les rôles qui portent le plus de ressources.</p>
         </div>
         <Badge tone={winrate >= 50 ? "green" : "red"}>{matches.length} games · {winrate}% WR</Badge>
       </div>
-      <div className="mt-5 grid gap-4 xl:grid-cols-[minmax(0,.95fr)_minmax(260px,.7fr)_minmax(0,1.05fr)]">
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+      <div className="mt-4 grid items-stretch gap-3 xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.025] p-3">
           <div className="flex items-center justify-between gap-3">
             <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Écarts moyens</h4>
             <Badge tone="slate">Par game</Badge>
           </div>
-          <div className="mt-4 grid gap-2">
+          <div className="mt-3 grid flex-1 content-start gap-2">
             {diffChartItems.map((item) => <SignedBar key={item.label} item={item} />)}
           </div>
         </div>
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+        <div className="flex min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.025] p-3">
           <div className="flex items-center justify-between gap-3">
             <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Objectifs</h4>
             <Badge tone="cyan">/ game</Badge>
           </div>
-          <div className="mt-4 grid grid-cols-5 gap-2">
+          <div className="mt-3 grid flex-1 grid-cols-5 gap-2">
             {objectiveChartItems.map((item) => <VerticalBar key={item.label} item={item} max={maxObjectiveChart} />)}
           </div>
         </div>
-        <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+        <div className="flex min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.025] p-3">
           <div className="flex items-center justify-between gap-3">
             <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Ressources par rôle</h4>
             <Badge tone="purple">Top {roleResourceChartItems.length || 0}</Badge>
           </div>
-          <div className="mt-4 grid gap-2">
+          <div className="mt-3 grid flex-1 content-start gap-2">
             {roleResourceChartItems.length ? roleResourceChartItems.map((item) => <RoleResourceBar key={item.role} item={item} />) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Pas assez de volume pour tracer les rôles.</p>}
           </div>
         </div>
       </div>
     </Surface>
-    <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
-      <Surface className="p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-3 text-2xl font-black text-white">Résumé</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Les écarts sont moyennés par game pour comparer les contextes sans tricher avec le volume.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-5 grid gap-2 md:grid-cols-3">{[["KP moyen haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision moyenne haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game haut", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className={cx("mt-2 break-words text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
-      <Surface className="p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Les blocs qui pèsent vraiment dans la lecture.</p></div><Badge tone="slate">{baseMatches.length} games total</Badge></div><div className="mt-4 grid gap-2">{categoryBreakdown.length ? <><div className="hidden grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] gap-2 px-3 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400 lg:grid"><span>Contexte</span><span>WR</span><span>Or</span><span>Dégâts</span><span>Vision</span></div>{categoryBreakdown.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-2xl border p-3 text-left transition sm:grid-cols-2 lg:grid-cols-[minmax(150px,1fr)_repeat(4,minmax(68px,auto))] lg:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0 sm:col-span-2 lg:col-span-1"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games} game{entry.games > 1 ? "s" : ""} · {entry.wins}W - {entry.games - entry.wins}L</p></div><span className="min-w-0 text-sm font-black text-white sm:text-right lg:text-left"><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">WR</span>{entry.wr}%</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Or</span>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 break-words text-sm font-black sm:text-right lg:text-left", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Dégâts</span>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)} dmg</span><span className={cx("min-w-0 text-sm font-black sm:text-right lg:text-left", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}><span className="mr-1 text-[0.58rem] uppercase tracking-[0.12em] text-slate-400 lg:hidden">Vision</span>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
+    <div className="mt-4 grid items-start gap-4 xl:grid-cols-2">
+      <Surface className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-xl font-black text-white">Résumé</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Les écarts sont moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-4 grid gap-2 md:grid-cols-3">{[["KP haut", kpSignal && `${kpSignal.name} · ${kpSignal.avgKp}%`, "green"], ["Vision haute", supportSignal && `${supportSignal.name} · ${supportSignal.avgVision}`, "cyan"], ["Morts/game", pressureSignal && `${pressureSignal.name} · ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)}`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.14em] text-slate-300">{label}</p><p className={cx("mt-2 break-words text-sm font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
+      <Surface className="p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Comparatif contextes</h3><p className="mt-1 text-sm font-semibold text-slate-300">Les blocs qui pèsent vraiment.</p></div><Badge tone="slate">{baseMatches.length} games</Badge></div><div className="mt-3 grid gap-2">{categoryBreakdown.length ? <>{categoryBreakdown.slice(0, 5).map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedCategoryId(entry.id === "none" ? "" : String(selectedCategoryId) === String(entry.id) ? "" : entry.id)} className={cx("grid min-w-0 gap-2 rounded-xl border p-3 text-left transition md:grid-cols-[minmax(130px,1fr)_repeat(4,minmax(58px,auto))] md:items-center", String(selectedCategoryId) === String(entry.id) ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}><div className="min-w-0"><Badge tone={entry.color}>{entry.name}</Badge><p className="mt-1 text-xs font-semibold text-slate-300">{entry.games}G · {entry.wins}W/{entry.games - entry.wins}L</p></div><span className="min-w-0 text-sm font-black text-white md:text-right">{entry.wr}%</span><span className={cx("min-w-0 text-sm font-black md:text-right", entry.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(entry.goldDiff)}</span><span className={cx("min-w-0 text-sm font-black md:text-right", entry.damageDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{entry.damageDiff >= 0 ? "+" : ""}{formatPoints(entry.damageDiff)}</span><span className={cx("min-w-0 text-sm font-black md:text-right", entry.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{entry.visionDiff >= 0 ? "+" : ""}{entry.visionDiff}</span></button>)}</> : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Classe tes games dans Intégration pour comparer les contextes.</p>}</div></Surface>
     </div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,.92fr)]">
-      <Surface className="p-5 md:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-3 text-3xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-5 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4"><RoleIcon role={focusRole.role} className="h-8 w-8" /><div><p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-100">Focus ressources</p><p className="font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} or moyen · {formatPoints(avgInt(focusRole.damage))} dégâts moyens</p></div></div>}</Surface>
-      <Surface className="p-5"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Objectifs par side</h3><p className="mt-1 text-sm font-semibold text-slate-300">Moyenne par game quand l’équipe joue le side correspondant.</p></div><Badge tone="slate">Ratio/game</Badge></div><div className="mt-4 grid gap-3">{sideStats.map((stat) => <div key={stat.side} className={cx("rounded-2xl border p-4", stat.side === "Blue" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-400/[0.055]")}><div className="flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="text-xs font-black uppercase tracking-[0.14em] text-slate-300">{stat.games} game{stat.games > 1 ? "s" : ""}</span></div><span className="text-sm font-black text-white">{stat.wr}% WR · {stat.wins}W - {stat.games - stat.wins}L</span></div><div className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(4.5rem,1fr))] gap-2">{[["Drakes", stat.objectives.dragons, "dragon"], ["Grubs", stat.objectives.grubs, "grub"], ["Herald", stat.objectives.heralds, "herald"], ["Nashor", stat.objectives.barons, "baron"], ["Tours", stat.objectives.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="min-w-0 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-7 w-7" /><p className="mt-2 text-lg font-black text-white">{objectiveRatio(value, stat.games)}</p><p className="truncate text-[0.55rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p></div>)}</div></div>)}</div></Surface>
+    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-2">
+      <Surface className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Identité équipe</Badge><h3 className="mt-2 text-2xl font-black text-white">{tagLabel(identity.primary)}</h3><p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{identity.text}</p></div><Badge tone="cyan">{matches.length} games</Badge></div><div className="mt-4 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.slice(0, 6).map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Volume faible</Badge>}</div>{focusRole && <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-3"><RoleIcon role={focusRole.role} className="h-7 w-7" /><div className="min-w-0"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Focus ressources</p><p className="break-words text-sm font-black text-white">{roleLabel(focusRole.role)} · {formatPoints(avgInt(focusRole.gold))} or · {formatPoints(avgInt(focusRole.damage))} dégâts</p></div></div>}</Surface>
+      <Surface className="p-4"><div className="flex flex-wrap items-end justify-between gap-3"><div><h3 className="text-xl font-black text-white">Objectifs par side</h3><p className="mt-1 text-sm font-semibold text-slate-300">Moyenne par game sur chaque side.</p></div><Badge tone="slate">Ratio/game</Badge></div><div className="mt-3 grid gap-3 md:grid-cols-2">{sideStats.map((stat) => <div key={stat.side} className={cx("rounded-2xl border p-3", stat.side === "Blue" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-400/[0.055]")}><div className="flex flex-wrap items-center justify-between gap-2"><Badge tone={stat.side === "Blue" ? "cyan" : "red"}>{stat.side} Side</Badge><span className="text-sm font-black text-white">{stat.wr}% · {stat.wins}W/{stat.games - stat.wins}L</span></div><div className="mt-3 grid grid-cols-5 gap-2">{[["Drakes", stat.objectives.dragons, "dragon"], ["Grubs", stat.objectives.grubs, "grub"], ["Herald", stat.objectives.heralds, "herald"], ["Nashor", stat.objectives.barons, "baron"], ["Tours", stat.objectives.towers, "tower"]].map(([label, value, icon]) => <div key={label} className="min-w-0 text-center"><ObjectivePictogram type={icon} fallback={label[0]} className="mx-auto h-6 w-6" /><p className="mt-1.5 text-base font-black text-white">{objectiveRatio(value, stat.games)}</p><p className="truncate text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-300">{label}</p></div>)}</div></div>)}</div></Surface>
     </div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-2"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /></div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-3"><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags en victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags en défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /></div>
-    <div className="mt-5 grid gap-5 xl:grid-cols-[.9fr_1.1fr]"><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Ratios profils" icon={Clipboard} items={recommendations} tone="orange" /></div>
-    <Surface className="mt-5 p-5"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-xl font-black text-white">Champions récurrents</h3><p className="mt-1 text-sm font-semibold text-slate-300">Volume et WR des picks les plus vus dans les imports.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-12 w-12 shrink-0 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-xs font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
+    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-2"><TrendPanel title="Écarts moyens" icon={ShieldCheck} items={forceItems} tone="green" /><TrendPanel title="Pression et exposition" icon={AlertTriangle} items={riskItems} tone="red" /></div>
+    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-3"><TrendPanel title="Objectifs / game" icon={Gauge} items={timingItems} /><TrendPanel title="Tags en victoire" icon={Trophy} items={winTags.map(([tag, count]) => `${tagLabel(tag)} présent dans ${count} pick(s) gagnant(s).`)} tone="green" /><TrendPanel title="Tags en défaite" icon={AlertTriangle} items={lossTags.map(([tag, count]) => `${tagLabel(tag)} revient dans ${count} pick(s) perdu(s).`)} tone="red" /></div>
+    <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-2"><TrendPanel title="Identité draft" icon={Target} items={draftNeeds} tone="purple" /><TrendPanel title="Ratios profils" icon={Clipboard} items={recommendations} tone="orange" /></div>
+    <Surface className="mt-4 p-4"><div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div><h3 className="text-xl font-black text-white">Champions récurrents</h3><p className="mt-1 text-sm font-semibold text-slate-300">Volume et WR des picks les plus vus.</p></div><Badge tone="slate">Données importées</Badge></div><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{championCounts.map((stat) => <div key={championAssetId(stat.champion)} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] p-2.5"><ChampionPortrait champion={stat.champion} alt={stat.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /><div className="min-w-0"><p className="truncate font-black text-white">{championDisplayName(stat.champion)}</p><p className="text-xs font-semibold text-slate-300">{stat.games} games · {Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR</p><div className="mt-1 flex flex-wrap gap-1">{stat.tags.slice(0, 2).map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}</div></div></div>)}</div></Surface>
   </div>;
 }
 
@@ -9599,7 +9846,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   if (!bootstrapped) return <AppLoadingScreen />;
   if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><img src="/assets/nxt5-mark.png?v=8" alt="NXT5" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="w-full px-3 py-5 sm:px-4 sm:py-7 lg:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }}>{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("relative z-10 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} /><AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22 }} className="min-w-0">{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
 }
 
 export default function NXT5() {
