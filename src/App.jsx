@@ -8772,16 +8772,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       for (const time of PLANNING_TIMES) {
         const key = planningEventKey(day, time);
         const baseIds = planningLookup.playerIdsByCell.get(key) || [];
-        const hasStaffBase = staffPlanningAvailabilityExists
-          ? baseIds.some((id) => String(id) === staffPlanningPlayerId)
-          : baseIds.some((id) => staffProfileIdSet.has(String(id)));
+        const hasStaffBase = staffPlanningAvailabilityExists && baseIds.some((id) => String(id) === staffPlanningPlayerId);
         const ids = new Set(baseIds.filter((id) => {
           const normalizedId = String(id);
           if (selectedPlayerId && normalizedId === selectedPlayerId) return false;
           return !staffProfileIdSet.has(normalizedId);
         }));
         if (!selectedIsStaff && hasStaffBase && staffPlanningPlayerId) ids.add(staffPlanningPlayerId);
-        if (selectedPlayerId && (draftSlots[day] || []).includes(time)) ids.add(selectedPlayerId);
+        if (selectedPlayerId && (draftSlots[day] || []).includes(time)) ids.add(selectedIsStaff && staffPlanningPlayerId ? staffPlanningPlayerId : selectedPlayerId);
         map.set(key, Array.from(ids));
       }
     }
@@ -8790,7 +8788,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const planningUnitCountForIds = (ids = []) => {
     const availableIds = new Set(ids.map((id) => String(id)));
     const playerCount = gameplayPlayers.filter((player) => availableIds.has(String(player.id))).length;
-    const coachingStaffCount = staffProfiles.some((profile) => availableIds.has(String(profile.id))) ? 1 : 0;
+    const coachingStaffCount = staffPlanningPlayerId && availableIds.has(staffPlanningPlayerId) ? 1 : 0;
     return playerCount + coachingStaffCount;
   };
   const bestCells = useMemo(() => weekDays.flatMap(([day]) => PLANNING_TIMES.map((time, timeIndex) => ({
@@ -8815,8 +8813,8 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   }, [effectivePlayerIdsByCell, gameplayPlayers, weekDays]);
   const staffAvailableSlots = useMemo(() => weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => {
     const availableIds = new Set(effectivePlayerIdsByCell.get(planningEventKey(day, time)) || []);
-    return sum + (staffProfiles.some((profile) => availableIds.has(String(profile.id))) ? 1 : 0);
-  }, 0), 0), [effectivePlayerIdsByCell, staffProfiles, weekDays]);
+    return sum + (staffPlanningPlayerId && availableIds.has(staffPlanningPlayerId) ? 1 : 0);
+  }, 0), 0), [effectivePlayerIdsByCell, staffPlanningPlayerId, weekDays]);
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
   const roleSlots = useMemo(() => COMP_ROLES.map((role) => ({ role, player: gameplayPlayers.find((player) => normalizeProfileRole(player.role) === role) })), [gameplayPlayersKey]);
@@ -8841,7 +8839,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       const key = planningEventKey(day, time);
       const activeSlot = (draftSlots[day] || []).includes(time);
       const availableIds = new Set(effectivePlayerIdsByCell.get(key) || []);
-      const staffLit = staffProfiles.some((profile) => availableIds.has(String(profile.id)));
+      const staffLit = Boolean(staffPlanningPlayerId && availableIds.has(staffPlanningPlayerId));
       const availableNames = [
         ...roleSlots.filter(({ player }) => player && availableIds.has(String(player.id))).map(({ role, player }) => `${roleLabel(role)} · ${player.name}`),
         staffLit ? "Coaching Staff" : null,
@@ -8862,14 +8860,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
           lit: Boolean(player && availableIds.has(String(player.id))),
           selectedRoleHere: selectedRole === role && activeSlot,
         })),
-        staffUnit: staffProfiles.length ? {
+        staffUnit: staffPlanningPlayerId ? {
           lit: staffLit,
           selectedStaffHere: selectedIsStaff && activeSlot,
           title: staffLit ? "Coaching Staff disponible" : "Coaching Staff indisponible",
         } : null,
       };
     }),
-  })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedRole, staffProfiles, visibleSlotEvents, weekDays]);
+  })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedRole, staffPlanningPlayerId, visibleSlotEvents, weekDays]);
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
   if (!players.length) return <EmptyState icon={Users} title="Aucun profil" text="Ajoute des joueurs ou du coaching staff pour construire le planning de team." />;
@@ -9023,7 +9021,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
                                   <RoleIcon role={role} lightweight className="h-4 w-4" />
                                 </span>;
                               })}
-                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("inline-flex h-[1.05rem] min-w-[1.45rem] items-center justify-center rounded-md border px-1 text-[0.48rem] font-black uppercase leading-none tracking-[0.04em] transition", cell.staffUnit.lit ? "border-fuchsia-200/45 bg-gradient-to-r from-fuchsia-400/24 to-cyan-400/14 text-fuchsia-50 shadow-[0_0_12px_rgba(217,70,239,.20)]" : "border-white/8 bg-black/20 text-slate-600", cell.staffUnit.selectedStaffHere && "border-white/65 bg-white/18 text-white shadow-[0_0_16px_rgba(255,255,255,.14)]")}>CS</span>}
+                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("inline-flex h-[1.05rem] min-w-[1.45rem] items-center justify-center rounded-md border px-1 text-[0.48rem] font-black uppercase leading-none tracking-[0.04em] transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-gradient-to-r from-fuchsia-400/28 to-cyan-400/16 text-fuchsia-50 shadow-[0_0_14px_rgba(217,70,239,.24)]" : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 shadow-[0_0_16px_rgba(255,255,255,.14)]")}>CS</span>}
                             </div>
                           </div>
                         </button>;
