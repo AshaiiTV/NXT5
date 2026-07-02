@@ -6731,6 +6731,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [trendSourceModal, setTrendSourceModal] = useState(null);
   const [expandedTrendPatternId, setExpandedTrendPatternId] = useState("");
+  const [expandedTeamModelId, setExpandedTeamModelId] = useState("win-condition");
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
   const ally = rows.filter((row) => row.team_key === "ALLY");
@@ -6915,6 +6916,7 @@ function TrendsPage({ data, selectedTeamId }) {
       allyObjectiveCount: allyEvents.length,
     };
   });
+  const matchKey = (match) => String(match?.id || match?.game_id || match?.match_id || matchDisplayName(match, "Game"));
   const sourceGameFromInsight = (entry) => {
     const match = entry.match;
     const allyRows = teamRows(match, "ALLY");
@@ -6942,7 +6944,43 @@ function TrendsPage({ data, selectedTeamId }) {
     };
   };
   const sourceGames = matchInsights.map(sourceGameFromInsight);
+  const sourceGamesForMatches = (sourceMatches) => {
+    const keys = new Set(sourceMatches.map(matchKey));
+    return sourceGames.filter((game) => keys.has(matchKey(game.match)));
+  };
+  const sourceGamesForInsights = (entries) => sourceGamesForMatches(entries.map((entry) => entry.match));
+  const sourceGamesForRole = (role) => sourceGamesForInsights(matchInsights.filter((entry) => entry.roleStats.some((stat) => stat.role === role)));
   const timelineGamesCount = sourceGames.filter((game) => game.firstObjective !== "--").length;
+  const summarizeMatchSet = (targetMatches) => {
+    const keys = new Set(targetMatches.map(matchKey));
+    const targetInsights = matchInsights.filter((entry) => keys.has(matchKey(entry.match)));
+    const targetRows = targetMatches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
+    const targetAlly = targetRows.filter((row) => row.team_key === "ALLY");
+    const targetEnemy = targetRows.filter((row) => row.team_key === "ENEMY");
+    const games = targetMatches.length;
+    const firstObjectives = targetInsights.map((entry) => entry.firstObjectiveMinute).filter((value) => Number.isFinite(value));
+    const objectives = targetMatches.reduce((total, match) => {
+      const summary = objectiveTeamSummary(match, "ALLY");
+      total.dragons += summary.dragonCount || 0;
+      total.grubs += summary.grubs || 0;
+      total.heralds += summary.heralds || 0;
+      total.barons += summary.barons || 0;
+      total.towers += summary.towers || 0;
+      return total;
+    }, { dragons: 0, grubs: 0, heralds: 0, barons: 0, towers: 0 });
+    return {
+      games,
+      sourceGames: sourceGamesForMatches(targetMatches),
+      goldDiff: Math.round((sumRows(targetAlly, "gold") - sumRows(targetEnemy, "gold")) / Math.max(1, games)),
+      damageDiff: Math.round((sumRows(targetAlly, "damage") - sumRows(targetEnemy, "damage")) / Math.max(1, games)),
+      visionDiff: Math.round((sumRows(targetAlly, "vision") - sumRows(targetEnemy, "vision")) / Math.max(1, games)),
+      deaths: Number((sumRows(targetAlly, "deaths") / Math.max(1, games)).toFixed(1)),
+      firstObjective: averageValues(firstObjectives),
+      earlyObjectiveRate: Math.round((firstObjectives.filter((value) => value <= 9.5).length / Math.max(1, firstObjectives.length)) * 100),
+      objectiveRate: Number(((objectives.dragons + objectives.grubs + objectives.heralds + objectives.barons) / Math.max(1, games)).toFixed(1)),
+      tags: commonTags(targetAlly),
+    };
+  };
   const summarizePattern = (id, label, predicate, options = {}) => {
     const patternInsights = matchInsights.filter(predicate);
     const patternMatches = patternInsights.map((entry) => entry.match);
@@ -7032,12 +7070,125 @@ function TrendsPage({ data, selectedTeamId }) {
   const teamKpAverage = Math.round(ally.reduce((total, row) => total + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, ally.length));
   const teamCsAverage = (ally.reduce((total, row) => total + Number(row.cs_per_min || 0), 0) / Math.max(1, ally.length)).toFixed(1);
   const deathsPerGame = Number(objectiveRatio(sumRows(ally, "deaths"), matches.length));
+  const winModel = summarizeMatchSet(matches.filter((match) => match.result === "Victoire"));
+  const lossModel = summarizeMatchSet(matches.filter((match) => match.result === "Défaite"));
+  const roleSystemRows = ROSTER_ROLE_ORDER.map((role) => {
+    const roleInsights = matchInsights.filter((entry) => entry.roleStats.some((stat) => stat.role === role));
+    const samples = roleInsights.map((entry) => entry.roleStats.find((stat) => stat.role === role)).filter(Boolean);
+    const championText = Array.from(samples.reduce((map, stat) => {
+      if (stat.champion) map.set(stat.champion, (map.get(stat.champion) || 0) + 1);
+      return map;
+    }, new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([champion, count]) => `${championDisplayName(champion)} x${count}`).join(" · ");
+    const winsForRole = roleInsights.filter((entry) => entry.win).length;
+    const goldShare = averageValues(samples.map((stat) => stat.goldShare));
+    const damageShare = averageValues(samples.map((stat) => stat.damageShare));
+    const kp = averageValues(samples.map((stat) => stat.kp));
+    const cs10 = averageValues(samples.map((stat) => stat.cs10Diff));
+    const cs20 = averageValues(samples.map((stat) => stat.cs20Diff));
+    const score = averageValues(samples.map((stat) => stat.score));
+    const functionLabel = damageShare >= 28 ? "Carry dégâts" : goldShare >= 23 ? "Ressources fortes" : kp >= 65 ? "Connecteur fights" : (cs10 || 0) >= 4 ? "Priorité lane" : (cs10 || 0) <= -4 ? "Lane sous pression" : "Rôle stable";
+    return {
+      role,
+      games: samples.length,
+      wins: winsForRole,
+      wr: Math.round((winsForRole / Math.max(1, samples.length)) * 100),
+      goldShare,
+      damageShare,
+      kp,
+      cs10,
+      cs20,
+      score,
+      championText,
+      functionLabel,
+      sourceGames: sourceGamesForRole(role),
+      toneName: (cs10 || 0) < -5 ? "red" : damageShare >= 28 || goldShare >= 23 || kp >= 65 ? "green" : "cyan",
+    };
+  }).filter((row) => row.games).sort((a, b) => (b.score || 0) - (a.score || 0));
+  const focusRoleModel = roleSystemRows.find((row) => row.role === focusRole?.role) || roleSystemRows[0];
+  const objectiveSourceGames = matchInsights.filter((entry) => Number.isFinite(entry.firstObjectiveMinute)).map(sourceGameFromInsight);
+  const teamModelCards = [
+    {
+      id: "win-condition",
+      toneName: strongestPattern?.verdictTone || championStyleTone(identity.primary),
+      label: "Condition de victoire",
+      title: strongestPattern ? strongestPattern.label : tagLabel(identity.primary),
+      value: strongestPattern ? `${strongestPattern.wr}% WR` : `${winrate}% WR`,
+      text: strongestPattern ? `Le plan qui revient le plus : ${strongestPattern.games} games, ${strongestPattern.wins}W-${strongestPattern.games - strongestPattern.wins}L. C'est la meilleure hypothèse actuelle pour comprendre comment l'équipe veut gagner.` : `Aucun pattern dominant assez net : l'identité la plus visible reste ${tagLabel(identity.primary)}.`,
+      details: strongestPattern?.details || draftNeeds,
+      sourceGames: strongestPattern?.sourceGames || sourceGames,
+    },
+    {
+      id: "resource-map",
+      toneName: focusRoleModel?.toneName || "cyan",
+      label: "Répartition des rôles",
+      title: focusRoleModel ? `${roleLabel(focusRoleModel.role)} structure le jeu` : "Ressources non isolées",
+      value: focusRoleModel ? `${Math.round(focusRoleModel.goldShare || 0)}% or` : "--",
+      text: focusRoleModel ? `${roleLabel(focusRoleModel.role)} capte ${Math.round(focusRoleModel.goldShare || 0)}% de l'or, ${Math.round(focusRoleModel.damageShare || 0)}% des dégâts et ${Math.round(focusRoleModel.kp || 0)}% KP. À lire comme le rôle autour duquel l'équipe s'organise le plus souvent.` : "Le volume ne permet pas encore de lire une répartition fiable.",
+      details: roleSystemRows.slice(0, 3).map((row) => `${roleLabel(row.role)} : ${row.functionLabel}, ${Math.round(row.goldShare || 0)}% or, ${Math.round(row.damageShare || 0)}% dégâts, ${row.wr}% WR`),
+      sourceGames: focusRoleModel?.sourceGames || sourceGames,
+    },
+    {
+      id: "tempo-map",
+      toneName: averageFirstObjective && averageFirstObjective <= 9.5 ? "green" : averageFirstObjective && averageFirstObjective <= 12 ? "orange" : "red",
+      label: "Tempo carte",
+      title: `Premier objectif ${formatMinute(averageFirstObjective)}`,
+      value: `${earlyObjectiveRate}% early`,
+      text: `${earlyObjectiveRate}% des games avec un premier objectif avant 9:30. La moyenne actuelle est ${formatMinute(averageFirstObjective)}, avec ${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game et ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game.`,
+      details: [`Timings exploitables : ${objectiveTimingValues.length}/${matches.length}`, `Objectifs neutres/game : ${objectiveRatio(objectiveTotals.dragons + objectiveTotals.grubs + objectiveTotals.heralds + objectiveTotals.barons, matches.length)}`, bestSide && `Side le plus rentable : ${bestSide.side} (${bestSide.wr}% WR sur ${bestSide.games}G)`].filter(Boolean),
+      sourceGames: objectiveSourceGames,
+    },
+    {
+      id: "fail-state",
+      toneName: deathsPerGame >= 20 || fragilePattern?.wr < 45 ? "red" : "orange",
+      label: "Fail state",
+      title: fragilePattern ? `Risque : ${fragilePattern.label}` : "Risque principal",
+      value: `${deathsPerGame.toFixed(Number.isInteger(deathsPerGame) ? 0 : 1)} morts/G`,
+      text: fragilePattern ? `${fragilePattern.label} tombe à ${fragilePattern.wr}% WR. Quand ce pattern sort mal, la review doit vérifier les morts avant objectif, la vision et la surcharge d'une seule win condition.` : `Le signal le plus instable vient de l'exposition : ${pressureSignal ? `${pressureSignal.name} à ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)} morts/game` : `${deathsPerGame} morts/game`}.`,
+      details: [pressureSignal && `${pressureSignal.name} : ${(pressureSignal.deaths / Math.max(1, pressureSignal.games)).toFixed(1)} morts/G`, `Défaites : ${lossModel.games} games, ${formatGoldDiff(lossModel.goldDiff)} or/game`, `Vision en défaite : ${lossModel.visionDiff >= 0 ? "+" : ""}${lossModel.visionDiff}`].filter(Boolean),
+      sourceGames: fragilePattern?.sourceGames?.length ? fragilePattern.sourceGames : lossModel.sourceGames.length ? lossModel.sourceGames : sourceGames,
+    },
+  ];
+  const swingRows = [
+    {
+      id: "gold",
+      label: "Or",
+      win: formatGoldDiff(winModel.goldDiff),
+      loss: formatGoldDiff(lossModel.goldDiff),
+      read: `En victoire l'équipe tourne à ${formatGoldDiff(winModel.goldDiff)} or/game ; en défaite à ${formatGoldDiff(lossModel.goldDiff)}.`,
+      toneName: winModel.goldDiff >= lossModel.goldDiff ? "green" : "red",
+    },
+    {
+      id: "deaths",
+      label: "Morts",
+      win: `${winModel.deaths}/G`,
+      loss: `${lossModel.deaths}/G`,
+      read: `La discipline change fortement si les défaites montent au-dessus des victoires : ${lossModel.deaths}/G contre ${winModel.deaths}/G.`,
+      toneName: lossModel.deaths > winModel.deaths ? "red" : "green",
+    },
+    {
+      id: "tempo",
+      label: "1er objectif",
+      win: formatMinute(winModel.firstObjective),
+      loss: formatMinute(lossModel.firstObjective),
+      read: `Tempo moyen en victoire : ${formatMinute(winModel.firstObjective)}. Tempo moyen en défaite : ${formatMinute(lossModel.firstObjective)}.`,
+      toneName: Number.isFinite(winModel.firstObjective) && Number.isFinite(lossModel.firstObjective) && winModel.firstObjective <= lossModel.firstObjective ? "green" : "orange",
+    },
+    {
+      id: "identity",
+      label: "Draft gagnante",
+      win: winModel.tags[0] ? tagLabel(winModel.tags[0][0]) : "--",
+      loss: lossModel.tags[0] ? tagLabel(lossModel.tags[0][0]) : "--",
+      read: `Tag le plus présent en win : ${winModel.tags[0] ? tagLabel(winModel.tags[0][0]) : "n/a"}. Tag le plus présent en loss : ${lossModel.tags[0] ? tagLabel(lossModel.tags[0][0]) : "n/a"}.`,
+      toneName: "purple",
+    },
+  ];
   const coachKpis = [
     { label: "Échantillon", value: `${matches.length}G`, detail: `${wins}W-${losses}L · ${winrate}% WR`, toneName: matches.length >= 5 ? "green" : "orange" },
     { label: "Diff. or", value: formatGoldDiff(avgInt(goldDiff)), detail: "moyenne/game", toneName: diffTone(goldDiff) },
     { label: "1er objectif", value: formatMinute(averageFirstObjective), detail: `${earlyObjectiveRate}% ≤ 9:30`, toneName: earlyObjectiveRate >= 60 ? "green" : earlyObjectiveRate >= 35 ? "orange" : "red" },
     { label: "Morts", value: deathsPerGame.toFixed(Number.isInteger(deathsPerGame) ? 0 : 1), detail: "alliées/game", toneName: deathsPerGame <= 15 ? "green" : deathsPerGame >= 20 ? "red" : "orange" },
   ];
+  const coachAnalysisSourceGames = sourceGames;
   const coachBriefs = [
     {
       toneName: winrate >= 55 ? "green" : winrate >= 45 ? "orange" : "red",
@@ -7045,15 +7196,15 @@ function TrendsPage({ data, selectedTeamId }) {
       title: `${winrate >= 55 ? "Bloc favorable" : winrate >= 45 ? "Bloc compétitif mais instable" : "Bloc défavorable"}`,
       text: `${matches.length} games analysées, ${wins}W-${losses}L. Écarts moyens : ${formatGoldDiff(avgInt(goldDiff))} or, ${signedAvg(damageDiff)} dégâts, ${signedAvg(visionDiff)} vision. Le volume ${matches.length >= 5 ? "permet une lecture exploitable" : "reste court : priorité à la validation sur le prochain bloc"}.`,
       evidence: [`WR ${winrate}%`, `morts ${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/game`, `KP équipe ${teamKpAverage}%`],
-      sourceGames,
+      sourceGames: coachAnalysisSourceGames,
     },
     strongestPattern && {
       toneName: strongestPattern.verdictTone,
       label: "Plan de jeu",
       title: `${strongestPattern.label} · ${strongestPattern.verdict}`,
       text: `${strongestPattern.games} occurrence${strongestPattern.games > 1 ? "s" : ""}, ${strongestPattern.wins}W-${strongestPattern.games - strongestPattern.wins}L, ${strongestPattern.wr}% WR. ${strongestPattern.bestRole ? `${roleLabel(strongestPattern.bestRole.role)} est le rôle le plus porteur dans ce pattern` : "Rôle porteur non isolé"}, avec ${formatGoldDiff(strongestPattern.avgGoldDiff)} or/game et ${strongestPattern.avgDamageDiff >= 0 ? "+" : ""}${formatPoints(strongestPattern.avgDamageDiff)} dégâts/game.`,
-      evidence: [`CS10 ${Number.isFinite(strongestPattern.cs10) ? `${strongestPattern.cs10 >= 0 ? "+" : ""}${strongestPattern.cs10.toFixed(1)}` : "n/a"}`, `CS20 ${Number.isFinite(strongestPattern.cs20) ? `${strongestPattern.cs20 >= 0 ? "+" : ""}${strongestPattern.cs20.toFixed(1)}` : "n/a"}`, `1er obj ${formatMinute(strongestPattern.firstObjective)}`],
-      sourceGames: strongestPattern.sourceGames,
+      evidence: [`Base ${matches.length} games`, `Pattern ${strongestPattern.games} games`, `1er obj ${formatMinute(strongestPattern.firstObjective)}`],
+      sourceGames: coachAnalysisSourceGames,
     },
     {
       toneName: averageFirstObjective && averageFirstObjective <= 9.5 ? "green" : averageFirstObjective && averageFirstObjective <= 12 ? "orange" : "red",
@@ -7061,7 +7212,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: `Tempo objectifs : ${formatMinute(averageFirstObjective)}`,
       text: `${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game, ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game, ${objectiveRatio(objectiveTotals.towers, matches.length)} tours/game. ${earlyObjectiveRate}% des games avec un premier objectif allié avant 9:30${bestSide ? ` ; meilleur side actuel : ${bestSide.side} (${bestSide.wr}% WR sur ${bestSide.games}G)` : ""}.`,
       evidence: [`Nashor ${objectiveRatio(objectiveTotals.barons, matches.length)}/game`, `Herald ${objectiveRatio(objectiveTotals.heralds, matches.length)}/game`, `${objectiveTimingValues.length}/${matches.length} timings`],
-      sourceGames: matchInsights.filter((entry) => Number.isFinite(entry.firstObjectiveMinute)).map(sourceGameFromInsight),
+      sourceGames: coachAnalysisSourceGames,
     },
     {
       toneName: worstLaneTiming && worstLaneTiming.cs10 < -5 ? "red" : bestLaneTiming && bestLaneTiming.cs10 > 5 ? "green" : "orange",
@@ -7069,7 +7220,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: worstLaneTiming && worstLaneTiming.cs10 < -5 ? `${roleLabel(worstLaneTiming.role)} sous pression` : bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} crée la priorité` : "Lecture lane limitée",
       text: `${bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} meilleur CS10 (${bestLaneTiming.cs10 >= 0 ? "+" : ""}${bestLaneTiming.cs10.toFixed(1)})` : "Pas de CS10 fiable"}.${worstLaneTiming ? ` Point de contrôle : ${roleLabel(worstLaneTiming.role)} au CS10 (${worstLaneTiming.cs10 >= 0 ? "+" : ""}${worstLaneTiming.cs10.toFixed(1)}), CS20 ${Number.isFinite(worstLaneTiming.cs20) ? `${worstLaneTiming.cs20 >= 0 ? "+" : ""}${worstLaneTiming.cs20.toFixed(1)}` : "n/a"}.` : ""} À revoir : wave 1-3, premier reset et move river associé.`,
       evidence: [bestLaneTiming && `${roleLabel(bestLaneTiming.role)} ${bestLaneTiming.samples} sample(s)`, worstLaneTiming && `${roleLabel(worstLaneTiming.role)} ${worstLaneTiming.samples} sample(s)`, `CS/min ${teamCsAverage}`].filter(Boolean),
-      sourceGames: matchInsights.filter((entry) => entry.roleStats.some((stat) => [bestLaneTiming?.role, worstLaneTiming?.role].filter(Boolean).includes(stat.role))).map(sourceGameFromInsight),
+      sourceGames: coachAnalysisSourceGames,
     },
     {
       toneName: deathsPerGame >= 20 || fragilePattern?.wr < 45 ? "red" : "purple",
@@ -7077,7 +7228,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: fragilePattern ? `Stabiliser ${fragilePattern.label}` : "Conserver les forces identifiées",
       text: fragilePattern ? `${fragilePattern.label} descend à ${fragilePattern.wr}% WR sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le champion pool associé.` : `${topDamageSignal?.name || "Carry principal"} porte ${topDamageSignal ? formatPoints(topDamageSignal.avgDamage) : "n/a"} dégâts moyens ; ${kpSignal?.name || "le meilleur KP"} atteint ${kpSignal?.avgKp || 0}% KP. Objectif : conserver le plan fort sans surcharger une seule condition de victoire.`,
       evidence: [pressureSignal && `${pressureSignal.name} ${((pressureSignal.deaths || 0) / Math.max(1, pressureSignal.games)).toFixed(1)} morts/G`, supportSignal && `${supportSignal.name} vision ${supportSignal.avgVision}`, topDamageSignal && `${topDamageSignal.name} ${formatPoints(topDamageSignal.avgDamage)} dmg`].filter(Boolean),
-      sourceGames: fragilePattern?.sourceGames || sourceGames,
+      sourceGames: coachAnalysisSourceGames,
     },
   ].filter(Boolean).slice(0, 5);
   const autoReads = coachBriefs.map((brief) => `${brief.label} — ${brief.title}. ${brief.text}`);
@@ -7176,6 +7327,7 @@ function TrendsPage({ data, selectedTeamId }) {
     return <div className="rounded-xl border border-white/10 bg-black/18 p-2.5"><div className="flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-2"><RoleIcon role={item.role} className="h-4 w-4 shrink-0" /><span className="truncate text-sm font-black text-white">{item.label}</span></span><span className="shrink-0 text-xs font-semibold text-slate-300">{item.detail}</span></div><div className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-white/[0.055]"><span className="block h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" style={{ width: `${width}%` }} /></div></div>;
   };
   const exportTrendSections = [
+    { title: "Modèle d'équipe", items: teamModelCards.map((card) => `${card.label}: ${card.title}. ${card.text}`), tone: "cyan" },
     { title: "Lecture automatique", items: autoReads, tone: "cyan" },
     { title: "Écarts moyens", items: forceItems, tone: "green" },
     { title: "Pression et exposition", items: riskItems, tone: "red" },
@@ -7259,6 +7411,74 @@ function TrendsPage({ data, selectedTeamId }) {
         </aside>
       </div>
     </section>
+    <Surface className="p-3">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div>
+          <Badge tone="cyan">Modèle d'équipe</Badge>
+          <h3 className="mt-2 text-xl font-black text-white">Comment l'équipe fonctionne vraiment</h3>
+          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Cette lecture isole le plan naturel, les rôles qui structurent la map, les timings qui font basculer les games et les signaux qui transforment une draft en défaite.</p>
+        </div>
+        <button type="button" onClick={() => openTrendSources({ title: "Base complète du modèle d'équipe", subtitle: "Toutes les games utilisées pour lire l'identité, les rôles, les timings et les écarts win/loss.", metrics: sourceScopeMetrics, games: sourceGames })} className="inline-flex w-fit items-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/16"><FileText className="h-4 w-4" />Voir la base</button>
+      </div>
+      <div className="mt-3 grid gap-2 xl:grid-cols-4">
+        {teamModelCards.map((card) => {
+          const expanded = expandedTeamModelId === card.id;
+          return <article key={card.id} className={cx("min-w-0 rounded-xl border p-3 transition", expanded ? "border-cyan-200/30 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.028]")}>
+            <button type="button" onClick={() => setExpandedTeamModelId(expanded ? "" : card.id)} className="flex w-full min-w-0 items-start justify-between gap-3 text-left">
+              <span className="min-w-0">
+                <Badge tone={card.toneName}>{card.label}</Badge>
+                <span className="mt-2 block break-words text-sm font-black leading-5 text-white">{card.title}</span>
+                <span className={cx("mt-2 block text-2xl font-black leading-none", card.toneName === "red" ? "text-rose-100" : card.toneName === "orange" ? "text-amber-100" : card.toneName === "purple" ? "text-fuchsia-100" : "text-cyan-100")}>{card.value}</span>
+              </span>
+              <ChevronDown className={cx("mt-1 h-4 w-4 shrink-0 text-slate-400 transition", expanded && "rotate-180 text-cyan-100")} />
+            </button>
+            <p className="mt-2 text-xs font-semibold leading-5 text-slate-300">{card.text}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={() => openTrendSources({ title: card.title, subtitle: card.text, metrics: card.details.map((detail, index) => ({ label: index === 0 ? "Signal" : `Signal ${index + 1}`, value: detail })), games: card.sourceGames })} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.045] px-2.5 py-1.5 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200 transition hover:border-cyan-200/24 hover:bg-cyan-300/10 hover:text-cyan-50"><FileText className="h-3.5 w-3.5" />{card.sourceGames?.length || 0} games</button>
+            </div>
+            <AnimatePresence initial={false}>
+              {expanded && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
+                <div className="mt-3 grid gap-1.5 border-t border-white/10 pt-2.5">
+                  {card.details.slice(0, 4).map((detail) => <p key={detail} className="text-xs font-semibold leading-5 text-slate-200">{detail}</p>)}
+                </div>
+              </motion.div>}
+            </AnimatePresence>
+          </article>;
+        })}
+      </div>
+      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)]">
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-black/18 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Rôles dans le système</h4>
+            <Badge tone="slate">{roleSystemRows.length} rôles</Badge>
+          </div>
+          <div className="mt-2.5 grid gap-2 lg:grid-cols-5">
+            {roleSystemRows.map((row) => <button key={row.role} type="button" onClick={() => openTrendSources({ title: `${roleLabel(row.role)} dans le système`, subtitle: `${row.functionLabel} · ${row.games} games · ${row.wr}% WR`, metrics: [`Or ${Math.round(row.goldShare || 0)}%`, `Dégâts ${Math.round(row.damageShare || 0)}%`, `KP ${Math.round(row.kp || 0)}%`, `CS10 ${Number.isFinite(row.cs10) ? `${row.cs10 >= 0 ? "+" : ""}${row.cs10.toFixed(1)}` : "n/a"}`].map((value, index) => ({ label: index === 0 ? "Signal" : `Signal ${index + 1}`, value })), games: row.sourceGames })} className={cx("min-w-0 rounded-xl border p-2.5 text-left transition hover:bg-cyan-300/[0.055]", row.toneName === "red" ? "border-rose-200/18 bg-rose-400/[0.04]" : row.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : "border-white/10 bg-white/[0.028]")}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex min-w-0 items-center gap-2"><RoleIcon role={row.role} className="h-4 w-4 shrink-0" /><span className="truncate text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(row.role)}</span></span>
+                <span className="text-xs font-black text-cyan-100">{row.wr}%</span>
+              </div>
+              <p className="mt-2 truncate text-xs font-black text-white">{row.functionLabel}</p>
+              <p className="mt-1 text-[0.62rem] font-semibold leading-4 text-slate-300">{Math.round(row.goldShare || 0)}% or · {Math.round(row.damageShare || 0)}% dégâts · KP {Math.round(row.kp || 0)}%</p>
+              <p className="mt-1 truncate text-[0.58rem] font-semibold text-slate-400">{row.championText || "Pool non isolé"}</p>
+            </button>)}
+          </div>
+        </div>
+        <div className="min-w-0 rounded-2xl border border-white/10 bg-black/18 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Ce qui bascule</h4>
+            <Badge tone="purple">Win/Loss</Badge>
+          </div>
+          <div className="mt-2.5 grid gap-2">
+            {swingRows.map((row) => <button key={row.id} type="button" onClick={() => openTrendSources({ title: `Bascule : ${row.label}`, subtitle: row.read, metrics: [{ label: "Victoires", value: row.win }, { label: "Défaites", value: row.loss }, { label: "Lecture", value: row.read }], games: row.id === "identity" ? sourceGames : [...winModel.sourceGames, ...lossModel.sourceGames] })} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.028] p-2.5 text-left transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]">
+              <span className="min-w-0"><span className="block truncate text-xs font-black uppercase tracking-[0.12em] text-slate-300">{row.label}</span><span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{row.read}</span></span>
+              <span className="rounded-lg border border-emerald-200/14 bg-emerald-300/10 px-2 py-1 text-xs font-black text-emerald-50">{row.win}</span>
+              <span className={cx("rounded-lg border px-2 py-1 text-xs font-black", row.toneName === "red" ? "border-rose-200/18 bg-rose-300/10 text-rose-50" : "border-white/10 bg-white/[0.045] text-slate-100")}>{row.loss}</span>
+            </button>)}
+          </div>
+        </div>
+      </div>
+    </Surface>
     <Surface className="p-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
