@@ -1,7 +1,9 @@
 import { json, readJson, handleError } from './_lib/http';
 import { fetchRiotMatch, fetchRiotMatchTimeline } from './_lib/riot';
+import { assertRateLimit } from './_lib/rate-limit';
 
 const EUROPE_PLATFORMS = ['EUW1', 'EUN1', 'TR1', 'RU'];
+const EXPORT_LIMIT = { limit: 12, windowSeconds: 60 };
 
 function normalizePlatform(value) {
   const platform = String(value || 'EUW1').trim().toUpperCase();
@@ -57,6 +59,20 @@ async function fetchFirstAvailableMatch(input) {
   );
 }
 
+function optionalExportToken() {
+  return (globalThis as any).Netlify?.env?.get?.('RIOT_EXPORT_TOKEN') || process.env.RIOT_EXPORT_TOKEN || '';
+}
+
+function assertExportToken(request: Request, body: Record<string, any>) {
+  const expected = optionalExportToken();
+  if (!expected) return;
+  const url = new URL(request.url);
+  const provided = request.headers.get('x-nxt5-export-token') || url.searchParams.get('token') || body.token || '';
+  if (provided !== expected) {
+    throw Object.assign(new Error('Export Riot non autorisÃ©.'), { status: 401 });
+  }
+}
+
 export default async function handler(request: Request): Promise<Response> {
   try {
     if (!['GET', 'POST'].includes(request.method)) {
@@ -65,6 +81,8 @@ export default async function handler(request: Request): Promise<Response> {
 
     const url = new URL(request.url);
     const body = request.method === 'POST' ? await readJson(request) : {};
+    assertExportToken(request, body);
+    await assertRateLimit(request, 'riot-match-export', EXPORT_LIMIT);
     const shouldFallback = url.searchParams.get('fallback') === '1' || body.fallback === true;
     const input = readGameId(url.searchParams.get('gameId') || body.gameId, url.searchParams.get('platform') || body.platform, shouldFallback);
     const { gameId, match, timeline } = await fetchFirstAvailableMatch(input);

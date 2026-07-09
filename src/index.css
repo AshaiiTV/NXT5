@@ -575,8 +575,8 @@ svg {
 }
 
 @media (max-width: 1535px) {
-  .nxt5-data-dense .grid[class*="2xl:grid-cols-"],
-  .nxt5-data-dense .grid[class*="2xl:grid-cols-["] {
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-["]:not(.nxt5-keep-grid) {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
@@ -594,10 +594,10 @@ svg {
     gap: 0.75rem !important;
   }
 
-  .nxt5-data-dense .grid[class*="xl:grid-cols-["],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-3"],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-4"],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-5"] {
+  .nxt5-data-dense .grid[class*="xl:grid-cols-["]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-3"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-4"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-5"]:not(.nxt5-keep-grid) {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
@@ -611,16 +611,16 @@ svg {
 }
 
 @media (min-width: 768px) and (max-width: 1279px) {
-  .nxt5-data-dense .grid[class*="lg:grid-cols-["],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-["] {
+  .nxt5-data-dense .grid[class*="lg:grid-cols-["]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-["]:not(.nxt5-keep-grid) {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  .nxt5-data-dense .grid[class*="lg:grid-cols-3"],
-  .nxt5-data-dense .grid[class*="lg:grid-cols-4"],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-3"],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-4"],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-5"] {
+  .nxt5-data-dense .grid[class*="lg:grid-cols-3"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="lg:grid-cols-4"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-3"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-4"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-5"]:not(.nxt5-keep-grid) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
@@ -1122,14 +1122,14 @@ svg {
 }
 
 @media (max-width: 1023px) {
-  .nxt5-data-dense :where(.sm\:grid-cols-3, .sm\:grid-cols-4, .md\:grid-cols-3, .md\:grid-cols-4, .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4, .xl\:grid-cols-2, .xl\:grid-cols-3, .xl\:grid-cols-4, .xl\:grid-cols-5, .\32xl\:grid-cols-3, .\32xl\:grid-cols-4, .\32xl\:grid-cols-5, .\32xl\:grid-cols-6),
-  .nxt5-data-dense .grid[class*="sm:grid-cols-3"],
-  .nxt5-data-dense .grid[class*="sm:grid-cols-4"],
-  .nxt5-data-dense .grid[class*="md:grid-cols-3"],
-  .nxt5-data-dense .grid[class*="md:grid-cols-4"],
-  .nxt5-data-dense .grid[class*="lg:grid-cols-["],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-["],
-  .nxt5-data-dense .grid[class*="2xl:grid-cols-["] {
+  .nxt5-data-dense :where(.sm\:grid-cols-3, .sm\:grid-cols-4, .md\:grid-cols-3, .md\:grid-cols-4, .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4, .xl\:grid-cols-2, .xl\:grid-cols-3, .xl\:grid-cols-4, .xl\:grid-cols-5, .\32xl\:grid-cols-3, .\32xl\:grid-cols-4, .\32xl\:grid-cols-5, .\32xl\:grid-cols-6):not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="sm:grid-cols-3"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="sm:grid-cols-4"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="md:grid-cols-3"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="md:grid-cols-4"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="lg:grid-cols-["]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-["]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-["]:not(.nxt5-keep-grid) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
@@ -1210,18 +1210,18 @@ svg {
     gap: 0.7rem;
   }
 
-  .nxt5-data-dense :where(.sm\:grid-cols-2, .sm\:grid-cols-3, .sm\:grid-cols-4, .md\:grid-cols-2, .md\:grid-cols-3, .md\:grid-cols-4, .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4, .xl\:grid-cols-2, .xl\:grid-cols-3, .xl\:grid-cols-4, .xl\:grid-cols-5, .\32xl\:grid-cols-2, .\32xl\:grid-cols-3, .\32xl\:grid-cols-4, .\32xl\:grid-cols-5, .\32xl\:grid-cols-6),
-  .nxt5-data-dense .grid[class*="grid-cols-["],
-  .nxt5-data-dense .grid[class*="sm:grid-cols-"],
-  .nxt5-data-dense .grid[class*="md:grid-cols-"],
-  .nxt5-data-dense .grid[class*="lg:grid-cols-"],
-  .nxt5-data-dense .grid[class*="xl:grid-cols-"],
-  .nxt5-data-dense .grid[class*="2xl:grid-cols-"] {
+  .nxt5-data-dense :where(.sm\:grid-cols-2, .sm\:grid-cols-3, .sm\:grid-cols-4, .md\:grid-cols-2, .md\:grid-cols-3, .md\:grid-cols-4, .lg\:grid-cols-2, .lg\:grid-cols-3, .lg\:grid-cols-4, .xl\:grid-cols-2, .xl\:grid-cols-3, .xl\:grid-cols-4, .xl\:grid-cols-5, .\32xl\:grid-cols-2, .\32xl\:grid-cols-3, .\32xl\:grid-cols-4, .\32xl\:grid-cols-5, .\32xl\:grid-cols-6):not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="grid-cols-["]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="sm:grid-cols-"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="md:grid-cols-"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="lg:grid-cols-"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="xl:grid-cols-"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="2xl:grid-cols-"]:not(.nxt5-keep-grid) {
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  .nxt5-data-dense .grid[class*="grid-cols-5"],
-  .nxt5-data-dense .grid[class*="grid-cols-[repeat(auto-fit"] {
+  .nxt5-data-dense .grid[class*="grid-cols-5"]:not(.nxt5-keep-grid),
+  .nxt5-data-dense .grid[class*="grid-cols-[repeat(auto-fit"]:not(.nxt5-keep-grid) {
     grid-template-columns: repeat(auto-fit, minmax(4.35rem, 1fr)) !important;
   }
 
@@ -1229,7 +1229,7 @@ svg {
     min-width: 0;
   }
 
-  .nxt5-data-dense :where(.truncate) {
+  .nxt5-data-dense :where(.truncate):not(.nxt5-keep-truncate) {
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
