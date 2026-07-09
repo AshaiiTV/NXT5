@@ -4825,7 +4825,7 @@ function ImportRoleHeader({ role, toneName = "cyan", player = null, fallbackLabe
   );
 }
 
-function ImportHistoryCard({ match, categories, roster = [], editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onPlayerChange, onSaveRoles }) {
+function ImportHistoryCard({ match, categories, roster = [], editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onPlayerChange, onSaveRoles, onOpenGame }) {
   const importer = match.created_by_name || match.created_by_account || "";
   const participants = match.participants || [];
   const selectedCategories = matchCategoriesForMatch(match, categories);
@@ -4851,6 +4851,9 @@ function ImportHistoryCard({ match, categories, roster = [], editing, editForm, 
           <Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button>
           <Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button>
         </> : <>
+          <button type="button" title="Ouvrir la game" aria-label="Ouvrir la game" onClick={onOpenGame} disabled={saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35">
+            <ArrowRight className="h-4 w-4" />
+          </button>
           <Button type="button" variant="ghost" icon={Settings} onClick={onToggleRoles} disabled={saving}>Postes</Button>
           <Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Modifier</Button>
           <Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button>
@@ -5333,7 +5336,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
             <div className="flex items-end"><Button type="button" variant="ghost" icon={X} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }}>Annuler</Button></div>
           </form>}
         </div>
-        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
+        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} onOpenGame={() => openAppPath(`/statistiques?match=${encodeURIComponent(match.id)}`)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
       </Surface>
     </div>
   );
