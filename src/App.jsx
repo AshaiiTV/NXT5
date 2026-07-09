@@ -7711,10 +7711,9 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
             </button>;
           })}
         </div>
-        <div className="grid grid-cols-3 gap-2 xl:min-w-[20rem]">
+        <div className="grid grid-cols-2 gap-2 xl:min-w-[14rem]">
           <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{teamMatches.length}</p></div>
           <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-xl font-black text-white">{Math.round((wins / Math.max(1, teamMatches.length)) * 100)}%</p></div>
-          <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Review</p><p className="mt-1 text-xl font-black text-white">{teamReports.length || teamArchives.length}</p></div>
         </div>
       </div>
     </Surface>
@@ -10126,8 +10125,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             <h3 className="mt-3 break-words text-2xl font-black text-white">{selected ? reportDisplayName(selected, matches) : "Aucune review sélectionnée"}</h3>
             <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">La création est rangée dans une fenêtre dédiée. Ici, tu lis, tu retrouves, tu ouvres les stats et tu prends une décision.</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Reviews</p><p className="mt-1 text-xl font-black text-white">{reports.length}</p></div>
+          <div className="grid grid-cols-2 gap-2">
             <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{selectedMatches.length}</p></div>
             <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-xl font-black text-white">{selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
           </div>
