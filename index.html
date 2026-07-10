@@ -19,6 +19,24 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="NXT5">
     <meta name="twitter:description" content="NXT5 — Dashboard premium d'analyse League of Legends pour équipes semi-pro.">
+    <script>
+      (function () {
+        try {
+          var key = "nxt5-performance-mode";
+          var saved = window.localStorage && window.localStorage.getItem(key);
+          if (saved === "full") return;
+          if (saved === "low") {
+            document.documentElement.classList.add("nxt5-low-gpu");
+            return;
+          }
+          var canvas = document.createElement("canvas");
+          var gl = canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true }) || canvas.getContext("experimental-webgl", { failIfMajorPerformanceCaveat: true });
+          if (!gl) document.documentElement.classList.add("nxt5-low-gpu");
+        } catch (error) {
+          document.documentElement.classList.add("nxt5-low-gpu");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -380,6 +380,86 @@ svg {
   box-shadow: none !important;
 }
 
+html.nxt5-low-gpu body {
+  background:
+    linear-gradient(135deg, rgba(8, 24, 45, 0.76), rgba(4, 8, 20, 0.94)),
+    #020511;
+}
+
+html.nxt5-low-gpu *,
+html.nxt5-low-gpu *::before,
+html.nxt5-low-gpu *::after {
+  animation: none !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.nxt5-low-gpu .nxt5-ambient-bg {
+  background:
+    linear-gradient(135deg, rgba(8, 27, 52, 0.9), rgba(3, 7, 18, 0.98)),
+    #020511 !important;
+}
+
+html.nxt5-low-gpu .nxt5-ambient-bg > div {
+  display: none !important;
+}
+
+html.nxt5-low-gpu .nxt5-ambient-bg > div:first-child {
+  display: block !important;
+  opacity: 0.34;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34, 211, 238, 0.12), transparent 34%),
+    radial-gradient(circle at 82% 8%, rgba(217, 70, 239, 0.08), transparent 36%) !important;
+}
+
+html.nxt5-low-gpu :where([class*="backdrop-blur"], .nxt5-loader-kicker, .nxt5-loader-role, .nxt5-panel .nxt5-panel) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+html.nxt5-low-gpu :where([class*="blur-"], [class*="drop-shadow"]) {
+  filter: none !important;
+}
+
+html.nxt5-low-gpu :where([class*="shadow-"], .nxt5-premium-panel, .nxt5-loader-kicker, .nxt5-loader-arena-ring, .nxt5-loader-role, .nxt5-loader-beam) {
+  box-shadow: none !important;
+}
+
+html.nxt5-low-gpu .nxt5-premium-panel {
+  background:
+    linear-gradient(135deg, rgba(8, 17, 36, 0.94), rgba(4, 8, 20, 0.9) 54%, rgba(15, 10, 30, 0.82)),
+    rgba(2, 7, 18, 0.86) !important;
+}
+
+html.nxt5-low-gpu .nxt5-premium-panel::before,
+html.nxt5-low-gpu .nxt5-premium-panel::after,
+html.nxt5-low-gpu .nxt5-hud-lines::before,
+html.nxt5-low-gpu .nxt5-loader-cinema::before,
+html.nxt5-low-gpu .nxt5-loader-cinema::after,
+html.nxt5-low-gpu .nxt5-loader-cinema-grid,
+html.nxt5-low-gpu .nxt5-loader-cinema-scan,
+html.nxt5-low-gpu .nxt5-loader-beam {
+  display: none !important;
+}
+
+html.nxt5-low-gpu .nxt5-loader-cinema {
+  min-height: clamp(340px, 42vh, 460px);
+}
+
+html.nxt5-low-gpu .nxt5-loader-arena-ring {
+  border-color: rgba(214, 246, 255, 0.11);
+}
+
+html.nxt5-low-gpu .nxt5-loader-core,
+html.nxt5-low-gpu .nxt5-loader-role,
+html.nxt5-low-gpu .nxt5-loader-stage {
+  transform: none;
+}
+
+html.nxt5-low-gpu .nxt5-loader-core {
+  transform: translate(-50%, -50%);
+}
+
 .nxt5-data-dense .nxt5-panel {
   padding: 0.85rem;
   clip-path: none;

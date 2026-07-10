@@ -49,6 +49,51 @@ const NXT5_IMPORTER_VERSION = "0.2.10";
 const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
 const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Windows-${NXT5_IMPORTER_VERSION}.exe`;
 const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-arm64-${NXT5_IMPORTER_VERSION}.zip`;
+const PERFORMANCE_MODE_STORAGE_KEY = "nxt5-performance-mode";
+
+function storedPerformanceMode() {
+  try {
+    const value = window.localStorage?.getItem(PERFORMANCE_MODE_STORAGE_KEY);
+    return value === "low" || value === "full" ? value : "";
+  } catch {
+    return "";
+  }
+}
+
+function setStoredPerformanceMode(mode) {
+  try {
+    window.localStorage?.setItem(PERFORMANCE_MODE_STORAGE_KEY, mode);
+  } catch {}
+}
+
+function detectSoftwareRenderer() {
+  if (typeof document === "undefined") return false;
+  const override = storedPerformanceMode();
+  if (override === "full") return false;
+  if (override === "low") return true;
+
+  const canvas = document.createElement("canvas");
+  const gl = canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true }) || canvas.getContext("experimental-webgl", { failIfMajorPerformanceCaveat: true });
+  if (!gl) return true;
+
+  const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+  const renderer = debugInfo ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || "").toLowerCase() : "";
+  return /swiftshader|software|llvmpipe|mesa|basic render|warp/.test(renderer);
+}
+
+function configurePerformanceMode() {
+  try {
+    document.documentElement.classList.toggle("nxt5-low-gpu", detectSoftwareRenderer());
+  } catch {
+    document.documentElement.classList.add("nxt5-low-gpu");
+  }
+}
+
+function currentPerformanceMode() {
+  const saved = storedPerformanceMode();
+  if (saved) return saved;
+  return detectSoftwareRenderer() ? "low" : "full";
+}
 
 const NAV = [
   { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
@@ -362,7 +407,7 @@ function Badge({ children, tone: t = "slate", pulse = false, className = "", ...
 
 function AmbientBackground() {
   return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[#020511]">
+    <div className="nxt5-ambient-bg pointer-events-none fixed inset-0 overflow-hidden bg-[#020511]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_10%,rgba(0,216,255,.24),transparent_28%),radial-gradient(circle_at_84%_8%,rgba(217,0,255,.19),transparent_30%),linear-gradient(118deg,rgba(16,76,190,.22)_0%,transparent_24%,transparent_66%,rgba(0,238,255,.14)_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.048)_1px,transparent_1px)] bg-[size:54px_54px] opacity-[0.22]" />
       <div className="absolute inset-0 bg-[repeating-linear-gradient(123deg,transparent_0,transparent_132px,rgba(0,216,255,.15)_133px,transparent_136px),repeating-linear-gradient(123deg,transparent_0,transparent_214px,rgba(217,0,255,.13)_215px,transparent_218px)]" />
@@ -10170,6 +10215,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [resendingVerify, setResendingVerify] = useState(false);
+  const [visualMode, setVisualMode] = useState(currentPerformanceMode);
 
   useEffect(() => {
     setProfileForm({ name: user?.name || user?.account_name || "", email: user?.email || "" });
@@ -10240,6 +10286,17 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     }
   }
 
+  function updateVisualMode(mode) {
+    setStoredPerformanceMode(mode);
+    setVisualMode(mode);
+    configurePerformanceMode();
+    pushToast?.({
+      type: "green",
+      title: mode === "low" ? "Mode Low cost active" : "Visuels OK actifs",
+      text: mode === "low" ? "Les effets lourds sont reduits sur cet appareil." : "Le rendu complet est force sur cet appareil.",
+    });
+  }
+
   return <div className="nxt5-data-dense min-w-0">
     <PageHeader eyebrow="Compte" title="Paramètres" subtitle="Modifie ton pseudo, ton e-mail de récupération et ton mot de passe NXT5." />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
@@ -10261,6 +10318,26 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
           <TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
           <Button type="submit" icon={savingPassword ? Loader2 : ShieldCheck} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ? "Mise à jour..." : "Changer le mot de passe"}</Button>
         </form>
+      </Surface>
+
+      <Surface className="p-5 xl:col-span-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <Badge tone="cyan">Options</Badge>
+            <h3 className="mt-3 text-2xl font-black text-white">Mode visuel</h3>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis le rendu de cet appareil selon la fluidite du navigateur.</p>
+          </div>
+          <Gauge className="h-5 w-5 shrink-0 text-cyan-100" />
+        </div>
+        <div className="mt-5 grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-1 sm:grid-cols-2">
+          {[
+            ["full", "Visuels OK", "Effets complets"],
+            ["low", "Mode Low cost", "Plus fluide sans GPU"],
+          ].map(([id, label, detail]) => {
+            const active = visualMode === id;
+            return <button key={id} type="button" onClick={() => updateVisualMode(id)} className={cx("rounded-xl border px-4 py-3 text-left transition", active ? "border-cyan-200/45 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,.22)]" : "border-transparent text-slate-300 hover:bg-white/[0.055] hover:text-white")}><span className="block text-sm font-black">{label}</span><span className={cx("mt-1 block text-xs font-bold", active ? "text-slate-800" : "text-slate-400")}>{detail}</span></button>;
+          })}
+        </div>
       </Surface>
 
       <Surface className="p-5 xl:col-span-2">
@@ -10526,6 +10603,15 @@ export default function NXT5() {
   function handleAuth(nextUser) {
     setUser(nextUser);
   }
+
+  useEffect(() => {
+    configurePerformanceMode();
+    const onStorage = (event) => {
+      if (event.key === PERFORMANCE_MODE_STORAGE_KEY) configurePerformanceMode();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   useEffect(() => {
     const onPopState = () => setRoute(readRoute());
