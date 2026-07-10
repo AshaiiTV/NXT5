@@ -45,6 +45,11 @@ form,
   overflow-x: clip;
 }
 
+.nxt5-app-shell {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 .grid > *,
 .flex > * {
   min-width: 0;
@@ -78,6 +83,33 @@ textarea {
 
 .nxt5-panel :where(button, a) {
   white-space: normal;
+}
+
+@supports (content-visibility: auto) {
+  .nxt5-defer-render {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 360px;
+  }
+
+  .nxt5-defer-row {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 112px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .nxt5-defer-render *,
+  .nxt5-defer-row * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 .nxt5-responsive-scroll {
