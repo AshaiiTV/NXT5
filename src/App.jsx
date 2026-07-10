@@ -638,6 +638,10 @@ function BrandLogo({ compact = false, className = "" }) {
       <img
         src="/assets/nxt5-logo.png"
         alt="NXT5"
+        width="1254"
+        height="989"
+        loading={compact ? "lazy" : "eager"}
+        decoding="async"
         className={cx(
           "object-contain drop-shadow-[0_0_30px_rgba(34,211,238,.36)]",
           compact ?"h-12 w-28 object-left" : "h-16 w-auto max-w-[220px] sm:max-w-[300px]"
@@ -648,7 +652,7 @@ function BrandLogo({ compact = false, className = "" }) {
 }
 
 function Nxt5Wordmark({ className = "" }) {
-  return <img src="/assets/nxt5-wordmark.png?v=3" alt="NXT5" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
+  return <img src="/assets/nxt5-wordmark.png?v=3" alt="NXT5" width="1115" height="350" loading="lazy" decoding="async" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
 }
 
 function MarketingPreview() {
@@ -898,7 +902,7 @@ function HomeScreen({ navigate }) {
       <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
         <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.82fr_1.18fr] lg:py-10">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
-            <img src="/assets/nxt5-logo.png" alt="NXT5" className="mb-6 h-auto w-full max-w-[520px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)]" />
+            <img src="/assets/nxt5-logo.png" alt="NXT5" width="1254" height="989" fetchPriority="high" decoding="async" className="mb-6 h-auto w-full max-w-[520px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)]" />
             <Badge tone="cyan" pulse>Outil d'équipe League of Legends</Badge>
             <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
               Comprends ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">équipe</span> sans te perdre dans les <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">stats</span>.
@@ -1258,7 +1262,7 @@ function TeamAvatar({ team, className = "h-12 w-12" }) {
   if (team?.avatar_data_url) {
     return <div className={cx("overflow-hidden rounded-xl border border-cyan-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || "Team"} className="h-full w-full object-cover" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
   }
-  return <img src="/assets/nxt5-logo.png" alt="NXT5" className={cx("object-contain object-left drop-shadow-[0_0_18px_rgba(34,211,238,.35)]", className)} />;
+  return <img src="/assets/nxt5-logo.png" alt="NXT5" width="1254" height="989" loading="lazy" decoding="async" className={cx("object-contain object-left drop-shadow-[0_0_18px_rgba(34,211,238,.35)]", className)} />;
 }
 
 function RoleIcon({ role, className = "h-7 w-7", lightweight = false }) {
@@ -3980,7 +3984,7 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
           <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champion cockpit</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge><Badge tone={selectedCategoryId ? "purple" : "green"}>{selectedCategoryId ? "Filtre actif" : "Toutes les games"}</Badge></div>
           <h3 className="mt-4 max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">{bestPick ? `Pick de reference: ${championDisplayName(bestPick.champion)}` : "Champion cockpit"}</h3>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">La page commence par la decision, puis donne les preuves. Tu dois pouvoir choisir un pick, comprendre le risque et ouvrir la review sans fouiller.</p>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
             <ProfileChampionSignal icon={Crown} label="Pool joue" value={enhancedStats.length} detail={`${totalGames} games`} toneName={enhancedStats.length >= 4 ? "green" : "yellow"} />
             <ProfileChampionSignal icon={Target} label="Dependance" value={bestPick ? `${topShare}%` : "-"} detail={bestPick ? championDisplayName(bestPick.champion) : "Aucun pick"} toneName={topShare >= 60 ? "orange" : "cyan"} />
             <ProfileChampionSignal icon={Swords} label="Duels" value={matchups.length} detail="matchups reconnus" toneName={matchups.length ? "purple" : "slate"} />
@@ -4285,7 +4289,7 @@ function ChampionStylePill({ tag }) {
 }
 
 function ChampionVisualMetric({ label, value, detail, color }) {
-  return <div className="min-w-0">
+  return <div className="nxt5-data-dense nxt5-game-workspace min-w-0 overflow-hidden">
     <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p>
     <p className={cx("mt-1 break-words text-xl font-black leading-tight sm:text-2xl", color)}>{value}</p>
     <p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p>
@@ -4791,7 +4795,7 @@ function ImportHistoryCard({ match, categories, roster = [], editing, editForm, 
   const importer = match.created_by_name || match.created_by_account || "";
   const participants = match.participants || [];
   const selectedCategories = matchCategoriesForMatch(match, categories);
-  return <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+  return <div className="nxt5-import-card rounded-2xl border border-white/10 bg-white/[0.035] p-4">
     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
       <div className="min-w-0 flex-1">
         {editing ? <div className="grid gap-3">
@@ -5166,7 +5170,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const importProgress = importChecks.filter(([, done]) => done).length;
   const latestMatch = teamMatches[0];
   return (
-    <div className="nxt5-data-dense">
+    <div className="nxt5-data-dense nxt5-import-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Intégration" title="Intégration des games" />
       <div className="grid min-w-0 gap-5">
         <Surface glow className="min-w-0 p-0">
@@ -5298,7 +5302,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
             <div className="flex items-end"><Button type="button" variant="ghost" icon={X} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }}>Annuler</Button></div>
           </form>}
         </div>
-        <div className="mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} onOpenGame={() => openAppPath(`/statistiques?match=${encodeURIComponent(match.id)}`)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
+        <div className="nxt5-game-list mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} onOpenGame={() => openAppPath(`/statistiques?match=${encodeURIComponent(match.id)}`)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
       </Surface>
     </div>
   );
@@ -6733,7 +6737,7 @@ function MatchDataPanel({ match }) {
   const towerDamageDiff = ally.reduce((total, row) => total + towerDamage(row), 0) - enemy.reduce((total, row) => total + towerDamage(row), 0);
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div><MatchVersusOverview match={match} /><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Trophy} label="Dégâts tours" value={(towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff)} hint="Pression structures" tone={towerDamageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, towerDamageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div><MatchVersusOverview match={match} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Trophy} label="Dégâts tours" value={(towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff)} hint="Pression structures" tone={towerDamageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, towerDamageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -6766,8 +6770,8 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
         <Badge tone={wins >= matches.length / 2 ? "green" : "red"}>{wins}W / {matches.length - wins}L</Badge>
       </div>
     </div>
-    <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Target} label="Dégâts tours" value={(towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff)} hint="Total structures" tone={diffTone(towerDamageDiff)} sideMarker={winningTeamForDiff(towerDamageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button><div className="mt-3 flex justify-end"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div>; })}</div>
+    <div className="nxt5-kpi-grid mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Target} label="Dégâts tours" value={(towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff)} hint="Total structures" tone={diffTone(towerDamageDiff)} sideMarker={winningTeamForDiff(towerDamageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
+    <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button><div className="mt-3 flex justify-end"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div>; })}</div>
   </Surface>;
 }
 
@@ -7661,9 +7665,9 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
       title="Games, stats et review"
       subtitle="Un seul flux : importe une game, lis les signaux utiles, puis transforme ça en review sans changer de contexte."
     />
-    <Surface glow className="sticky top-3 z-20 mb-5 overflow-hidden p-3 sm:p-4">
+    <Surface glow className="nxt5-workspace-tabs sticky top-3 z-20 mb-5 overflow-hidden p-3 sm:p-4">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="nxt5-workspace-tab-grid grid gap-2 sm:grid-cols-3">
           {GAME_WORKSPACE_TABS.map((tab) => {
             const Icon = tab.icon;
             const active = section === tab.id;
@@ -7676,7 +7680,7 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
             </button>;
           })}
         </div>
-        <div className="grid grid-cols-2 gap-2 xl:min-w-[14rem]">
+        <div className="nxt5-workspace-kpis grid grid-cols-2 gap-2 xl:min-w-[14rem]">
           <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{teamMatches.length}</p></div>
           <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-xl font-black text-white">{Math.round((wins / Math.max(1, teamMatches.length)) * 100)}%</p></div>
         </div>
@@ -8716,7 +8720,7 @@ function CompositionSummaryStrip({ players, rows, compositions, formPicks }) {
     ["Compos", compositions.length, "Enregistrées"],
     ["Builder", `${formPicks.length}/5`, "Picks actifs"],
   ];
-  return <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{items.map(([label, value, detail]) => <div key={label} className="rounded-xl border border-white/10 bg-black/18 px-3 py-2.5"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="truncate text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
+  return <div className="mb-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">{items.map(([label, value, detail]) => <div key={label} className="rounded-xl border border-white/10 bg-black/18 px-3 py-2.5"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="truncate text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
 }
 
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -9385,17 +9389,17 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
               {PLANNING_EVENT_TYPES.map((item) => <span key={item.id} className="inline-flex items-center rounded-lg border border-white/10 bg-white/[0.035] px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-100">{item.label}</span>)}
               <span className="ml-auto text-[0.62rem] font-black uppercase tracking-[0.14em] text-cyan-100">{selectedRoleLabel}</span>
             </div>
-            <div className="-mx-4 mt-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-              <div className="min-w-[660px]">
-                <div className="nxt5-keep-grid nxt5-planning-grid grid grid-cols-[3.4rem_repeat(7,minmax(4.65rem,1fr))] overflow-hidden rounded-lg border border-cyan-200/22 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.045)] [contain:layout_paint]">
-                  <div />
+            <div className="nxt5-planning-scroll -mx-4 mt-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+              <div className="nxt5-planning-frame">
+                <div className="nxt5-keep-grid nxt5-planning-grid grid overflow-hidden rounded-lg border border-cyan-200/22 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.045)] [contain:layout_paint]">
+                  <div className="nxt5-planning-corner" />
                   {weekDays.map(([day, label, date], dayIndex) => {
                     const dayActive = (draftSlots[day] || []).length;
                     return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("nxt5-planning-day-header px-1.5 py-1 text-center text-[0.54rem] font-black uppercase tracking-[0.08em] transition", dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", dayActive ? "nxt5-planning-day-active text-cyan-50" : "text-slate-300 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-[0.52rem] text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
                   })}
                   {planningGridRows.map(({ time, cells }) => (
                     <React.Fragment key={time}>
-                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="flex items-center bg-[#08111f] px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
+                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="nxt5-planning-time flex items-center justify-center bg-[#08111f] px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {cells.map((cell) => {
                         const day = cell.day;
                         return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={() => toggleSlot(day, time)} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("nxt5-planning-cell relative min-h-[2.55rem] overflow-hidden px-1 py-1 text-left transition", cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", frameTone(cell.slotEvent), !cell.slotEvent && "hover:bg-cyan-300/[0.055]", !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
@@ -10080,7 +10084,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       </PageHeader>
 
       <Surface className="mb-5 p-4">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(17rem,21rem)]">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="cyan">Lecture</Badge>
@@ -10105,7 +10109,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         </div>
       </Surface>
 
-      <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)]">
+      <div className="grid gap-5 2xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
         <Surface className="p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div><h3 className="text-xl font-black text-white">Bibliothèque</h3><p className="mt-1 text-sm font-semibold text-slate-400">{filteredReports.length} / {reports.length} review{reports.length > 1 ? "s" : ""}</p></div>
@@ -10115,7 +10119,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             <Search className="h-4 w-4 text-cyan-100/70" />
             <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Chercher une review..." className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
           </label>
-          <div className="mt-4 max-h-[680px] space-y-2 overflow-auto pr-1">
+          <div className="mt-4 max-h-[min(62vh,42rem)] space-y-2 overflow-auto pr-1">
             {filteredReports.length ? filteredReports.map((report) => {
               const active = selected?.id === report.id;
               const ids = reportMatchIds(report);
@@ -10135,7 +10139,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                 <h3 className="mt-3 break-words text-3xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
                 <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatches.length} game{selectedMatches.length > 1 ? "s" : ""} liée{selectedMatches.length > 1 ? "s" : ""}</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap lg:justify-end">
+              <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
                 <Button variant="ghost" icon={ArrowRight} onClick={() => selectedMatchForReport && openAppPath(`/statistiques?match=${selectedMatchForReport.id}`)} disabled={!selectedMatchForReport}>Stats</Button>
                 <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
                 {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
@@ -10154,27 +10158,27 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         </Surface>
       </div>
 
-      {composerOpen && <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/72 px-3 py-6 backdrop-blur-xl sm:px-5">
-        <div className="w-full max-w-6xl overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.75),0_0_48px_rgba(34,211,238,.16)]">
+      {composerOpen && <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/72 px-3 py-4 backdrop-blur-xl sm:px-5 lg:py-6">
+        <div className="w-full max-w-[min(92rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.75),0_0_48px_rgba(34,211,238,.16)]">
           <form onSubmit={saveReport} className="p-4 sm:p-5">
-            <div className="flex flex-col gap-3 border-b border-white/10 pb-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-3 border-b border-white/10 pb-4 2xl:flex-row 2xl:items-start 2xl:justify-between">
               <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Cette fenêtre sert uniquement à créer ou modifier. La lecture reste derrière.</p></div>
-              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={() => { setComposerOpen(false); setLexiconOpen(false); resetReportForm(); }}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !formDisplayTitle.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
+              <div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={() => { setComposerOpen(false); setLexiconOpen(false); resetReportForm(); }}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !formDisplayTitle.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
             </div>
 
-            {lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-3"><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/22 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-300">{text}</p></button>)}</div></div>}
+            {lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-3"><div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/22 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-300">{text}</p></button>)}</div></div>}
 
-            <div className="mt-4 grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
               <div className="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
                 <div className="flex items-start justify-between gap-3"><div><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
                 <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-400">{ids.length} game{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
                 <div className="mt-3 grid grid-cols-2 gap-2"><Button type="button" variant="ghost" icon={Check} onClick={selectAllScopedMatches} disabled={!scopedMatches.length}>Tout lier</Button><Button type="button" variant="ghost" icon={X} onClick={() => setForm((current) => ({ ...current, matchIds: [] }))} disabled={!form.matchIds.length}>Vider</Button></div>
-                <div className="mt-3 max-h-[420px] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Game"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Side ?"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune game" text="Importe une game ou retire le filtre actif." />}</div>
+                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Game"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Side ?"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune game" text="Importe une game ou retire le filtre actif." />}</div>
               </div>
 
               <div className="min-w-0 space-y-4">
-                <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required rows={18} className="min-h-[460px] w-full resize-y rounded-2xl border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required rows={18} className="min-h-[22rem] w-full resize-y rounded-2xl xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
             </div>
           </form>
@@ -10493,7 +10497,7 @@ function AppLoadingScreen() {
               <span key={`${role}-beam`} className={cx("nxt5-loader-beam", `nxt5-loader-beam-${index}`)} style={{ "--delay": `${index * 150}ms` }} />
             ))}
             <div className="nxt5-loader-core">
-              <img src="/assets/nxt5-loader-favicon.png?v=1" alt="NXT5" />
+              <img src="/assets/nxt5-loader-favicon.png?v=1" alt="NXT5" width="512" height="512" decoding="async" />
             </div>
           </div>
 
