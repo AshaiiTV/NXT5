@@ -7817,7 +7817,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const selectAllArchiveMatches = () => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }));
   const clearArchiveMatches = () => setArchiveForm((current) => ({ ...current, matchIds: [] }));
   return (
-    <div className="nxt5-data-dense min-w-0 overflow-hidden">
+    <div className="nxt5-data-dense nxt5-stats-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Performance" title="Statistiques" subtitle="Choisis un contexte, lis la game ou le bloc, puis ouvre les profils seulement quand tu veux descendre au joueur." />
       <Surface className="mb-5 p-4">
         <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(id) => { setSelectedCategoryId(id); setSelectedArchiveId(""); setSelectedMatchId(""); }} label="Type de games" />
