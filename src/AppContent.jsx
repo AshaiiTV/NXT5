@@ -4028,8 +4028,13 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
           <Search className="h-4 w-4 shrink-0 text-cyan-100" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Chercher un champion" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-400" />
         </label>
-        <div className="mt-3 grid grid-cols-2 gap-2">{lensOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setLens(id)} className={cx("rounded-xl border px-3 py-2 text-xs font-black transition", lens === id ? "border-cyan-200/50 bg-cyan-300 text-slate-950" : "border-white/10 bg-white/[0.035] text-slate-300 hover:bg-white/[0.065] hover:text-white")}>{label}</button>)}</div>
-        <div className="mt-2 grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-black/20 p-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-xl px-2 py-2 text-[0.62rem] font-black transition", sortMode === id ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
+        <div className="mt-4 rounded-2xl border border-white/10 bg-black/22 p-2">
+          <div className="grid grid-cols-2 gap-1.5">{lensOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setLens(id)} className={cx("rounded-xl px-3 py-2 text-xs font-black transition", lens === id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,.16)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
+          <div className="mt-3 flex min-w-0 items-center gap-2 border-t border-white/10 pt-2">
+            <span className="shrink-0 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-500">Tri</span>
+            <div className="flex min-w-0 flex-1 flex-wrap gap-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-lg px-2 py-1 text-[0.6rem] font-black uppercase tracking-[0.08em] transition", sortMode === id ? "bg-white/92 text-slate-950" : "text-slate-400 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
+          </div>
+        </div>
         <div className="mt-4 grid max-h-[64rem] gap-2 overflow-auto pr-1 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))] 2xl:grid-cols-1">
           {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} active={activeStat?.champion === stat.champion} onClick={() => onSelectChampion(stat.champion)} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion ne correspond a cette lecture.</p>}
         </div>
