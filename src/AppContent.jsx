@@ -4808,7 +4808,7 @@ function ImportHistoryCard({ match, categories, roster = [], editing, editForm, 
   const participants = match.participants || [];
   const selectedCategories = matchCategoriesForMatch(match, categories);
   return <div className="nxt5-import-card rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div className="nxt5-import-card-header flex flex-col gap-3">
       <div className="min-w-0 flex-1">
         {editing ? <div className="grid gap-3">
           <TextInput label="Nom de la game" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Game 1 vs BK, Finale LB..." icon={FileText} />
@@ -4824,7 +4824,7 @@ function ImportHistoryCard({ match, categories, roster = [], editing, editForm, 
           <div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="purple">{match.patch || "Patch ?"}</Badge></div>
         </>}
       </div>
-      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+      <div className="nxt5-import-card-actions flex flex-wrap gap-2">
         {editing ? <>
           <Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button>
           <Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button>
@@ -5314,7 +5314,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
             <div className="flex items-end"><Button type="button" variant="ghost" icon={X} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }}>Annuler</Button></div>
           </form>}
         </div>
-        <div className="nxt5-game-list mt-4 grid gap-3 2xl:grid-cols-2">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} onOpenGame={() => openAppPath(`/statistiques?match=${encodeURIComponent(match.id)}`)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
+        <div className="nxt5-import-history-list mt-4 grid gap-3">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} onOpenGame={() => openAppPath(`/statistiques?match=${encodeURIComponent(match.id)}`)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
       </Surface>
     </div>
   );

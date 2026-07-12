@@ -854,8 +854,50 @@ html.nxt5-low-gpu .nxt5-loader-core {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)) !important;
 }
 
+.nxt5-import-history-list {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.nxt5-import-history-list .nxt5-import-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.nxt5-import-card-header {
+  min-width: 0;
+}
+
+.nxt5-import-card-actions {
+  width: 100%;
+  min-width: 0;
+  justify-content: flex-start;
+}
+
+.nxt5-import-card-actions > * {
+  min-width: 0;
+}
+
 .nxt5-import-card {
   min-width: 0;
+}
+
+@media (min-width: 1500px) {
+  .nxt5-import-history-list {
+    grid-template-columns: repeat(2, minmax(30rem, 1fr));
+  }
+
+  .nxt5-import-card-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .nxt5-import-card-actions {
+    width: auto;
+    max-width: min(100%, 24rem);
+    justify-content: flex-end;
+  }
 }
 
 .nxt5-match-panel :where(.nxt5-responsive-scroll) {
