@@ -2264,6 +2264,14 @@ function formatGoldDiff(value) {
   return `${number >= 0 ? "+" : "-"}${Math.abs(number)}`;
 }
 
+function formatCompactGoldDiff(value) {
+  const number = Math.round(Number(value || 0));
+  const sign = number >= 0 ? "+" : "-";
+  const abs = Math.abs(number);
+  if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
+  return `${sign}${abs}`;
+}
+
 function oppositeSideKey(side) {
   return side === "blue" ? "red" : side === "red" ? "blue" : "";
 }
@@ -6700,8 +6708,8 @@ function MatchVersusOverview({ match }) {
     </div>
     <ObjectiveHud match={match} compact />
     <div className="nxt5-responsive-scroll">
-      <div className="min-w-[760px] lg:min-w-0">
-        <div className="mb-2 grid min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-center gap-2">
+      <div className="nxt5-versus-scroll-frame min-w-[860px] lg:min-w-0">
+        <div className="nxt5-versus-row-grid mb-2 grid min-w-0 items-center gap-2">
           <SideColumnHeader side="blue" />
           <div />
           <SideColumnHeader side="red" align="right" />
@@ -6718,12 +6726,12 @@ function MatchVersusOverview({ match }) {
             const winningEdge = blueGold === redGold ? "·" : blueGold > redGold ? "<" : ">";
             const open = openRole === role;
             return <div key={role} className={cx("rounded-[1.35rem] transition", open && "bg-cyan-400/[0.045] p-1 ring-1 ring-cyan-200/18")}>
-              <button type="button" aria-expanded={open} onClick={() => setOpenRole(open ? "" : role)} className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_3.25rem_minmax(0,1fr)] items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
+              <button type="button" aria-expanded={open} onClick={() => setOpenRole(open ? "" : role)} className="nxt5-versus-row-grid grid w-full min-w-0 items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
                 <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
                 <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/35")}>
                   <RoleIcon role={role} className="h-5 w-5" />
                   <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
-                  <span className={cx("mt-1 rounded-lg px-1.5 py-0.5 text-[0.54rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatGoldDiff(diff)}</span>
+                  <span className={cx("nxt5-versus-gold-diff mt-1 rounded-lg px-2 py-1 text-[0.62rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatCompactGoldDiff(diff)}</span>
                   <ChevronDown className={cx("mt-1 h-3.5 w-3.5 text-cyan-100 transition", open && "rotate-180")} />
                 </div>
                 <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />

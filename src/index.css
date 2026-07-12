@@ -906,6 +906,22 @@ html.nxt5-low-gpu .nxt5-loader-core {
   -webkit-overflow-scrolling: touch;
 }
 
+.nxt5-versus-row-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(5.75rem, 6rem) minmax(0, 1fr);
+}
+
+.nxt5-versus-gold-diff {
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 4.6rem;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
 .nxt5-participant-row {
   min-width: 0;
 }
@@ -945,8 +961,12 @@ html.nxt5-low-gpu .nxt5-loader-core {
     max-height: min(62vh, 32rem);
   }
 
-  .nxt5-match-panel :where(.nxt5-responsive-scroll > div) {
+  .nxt5-match-panel :where(.nxt5-responsive-scroll > div):not(.nxt5-versus-scroll-frame) {
     min-width: min(42rem, 100%) !important;
+  }
+
+  .nxt5-match-panel .nxt5-versus-scroll-frame {
+    min-width: 53.75rem !important;
   }
 }
 
