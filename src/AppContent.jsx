@@ -4367,8 +4367,8 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10 }) {
         {timeline.length > 0 && <><div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone="purple">{timeline.length}</Badge></div>
         <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.map((event, eventIndex) => <div key={`${row.id || row.match?.id}-lane-item-event-${eventIndex}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
           <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
-          <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
-          <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` -> ${event.secondaryId}` : ""}</p></div>
+          <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${itemDisplayName(event.itemId)}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
+          <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300"><ItemNameText itemId={event.itemId} secondaryId={event.secondaryId} /></p></div>
         </div>)}</div></>}
       </div>
     </div>
@@ -4562,8 +4562,8 @@ function ProfileBuildGameCard({ row }) {
       <div className="mb-3 flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100">Timeline build</p><Badge tone="cyan">{timeline.length}</Badge></div><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {timeline.map((event, index) => <div key={`${row.id || row.match?.id}-item-event-${index}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
           <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
-          <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${event.itemId}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
-          <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">Item {event.itemId}{event.secondaryId ? ` → ${event.secondaryId}` : ""}</p></div>
+          <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${itemDisplayName(event.itemId)}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
+          <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300"><ItemNameText itemId={event.itemId} secondaryId={event.secondaryId} /></p></div>
         </div>)}
       </div>
     </div>}
@@ -5551,6 +5551,62 @@ function itemIconSources(itemId) {
 
 function itemIconUrl(itemId) {
   return itemIconSources(itemId)[0] || "";
+}
+
+const ITEM_NAME_OVERRIDES = {
+  1001: "Bottes",
+  1018: "Cape d'agilit\u00e9",
+  1036: "\u00c9p\u00e9e longue",
+  1037: "Pioche",
+  1083: "Abatteur",
+  1086: "Arc de Doran",
+  2003: "Potion de soin",
+};
+
+const ITEM_NAME_CACHE = new Map(Object.entries(ITEM_NAME_OVERRIDES).map(([id, name]) => [Number(id), name]));
+let itemNamesPromise = null;
+
+function itemDisplayName(itemId) {
+  const id = Number(itemId || 0);
+  if (!id) return "";
+  return ITEM_NAME_CACHE.get(id) || `Item ${id}`;
+}
+
+function loadItemNames() {
+  if (itemNamesPromise) return itemNamesPromise;
+  const versions = [...new Set([DDRAGON_VERSION, ...DDRAGON_FALLBACK_VERSIONS])];
+  itemNamesPromise = (async () => {
+    for (const version of versions) {
+      try {
+        const response = await fetch(assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/item.json`));
+        if (!response.ok) continue;
+        const payload = await response.json();
+        Object.entries(payload?.data || {}).forEach(([id, item]) => {
+          if (item?.name) ITEM_NAME_CACHE.set(Number(id), item.name);
+        });
+        return ITEM_NAME_CACHE;
+      } catch {}
+    }
+    return ITEM_NAME_CACHE;
+  })();
+  return itemNamesPromise;
+}
+
+function ItemNameText({ itemId, secondaryId = 0 }) {
+  const [, setVersion] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    loadItemNames().then(() => {
+      if (mounted) setVersion((value) => value + 1);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [itemId, secondaryId]);
+
+  const secondaryName = secondaryId ? itemDisplayName(secondaryId) : "";
+  return <>{itemDisplayName(itemId)}{secondaryName ? ` \u2192 ${secondaryName}` : ""}</>;
 }
 
 function safeJsonParse(value, fallback) {
