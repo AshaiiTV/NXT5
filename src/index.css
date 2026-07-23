@@ -1175,7 +1175,12 @@ html.nxt5-low-gpu .nxt5-loader-core {
 
 .nxt5-loader-cinema {
   position: relative;
-  min-height: clamp(430px, 46vh, 540px);
+  display: flex;
+  min-height: clamp(470px, 48vh, 560px);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1.1rem, 2.3vh, 1.7rem);
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -1240,12 +1245,10 @@ html.nxt5-low-gpu .nxt5-loader-core {
 }
 
 .nxt5-loader-arena {
-  position: absolute;
-  left: 50%;
-  top: 55%;
+  position: relative;
+  flex: 0 0 auto;
   width: min(50vw, 440px);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%);
 }
 
 .nxt5-loader-arena-ring,
@@ -1362,15 +1365,12 @@ html.nxt5-low-gpu .nxt5-loader-core {
 .nxt5-loader-beam-4 { transform: rotate(148deg); }
 
 .nxt5-loader-stages {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
+  position: relative;
   z-index: 2;
   display: grid;
   width: min(100%, 680px);
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: clamp(0.35rem, 1.4vw, 1rem);
-  transform: translateX(-50%);
 }
 
 .nxt5-loader-stage {
@@ -1668,11 +1668,12 @@ html.nxt5-low-gpu .nxt5-loader-core {
   }
 
   .nxt5-loader-cinema {
-    min-height: 500px;
+    min-height: 480px;
+    justify-content: center;
+    gap: 1.25rem;
   }
 
   .nxt5-loader-arena {
-    top: 51%;
     width: min(82vw, 340px);
   }
 
