@@ -1310,6 +1310,8 @@ html.nxt5-low-gpu .nxt5-loader-core {
   height: 128%;
   max-width: none;
   object-fit: contain;
+  object-position: center;
+  transform: translate(2%, 3%);
   filter:
     drop-shadow(0 0 12px rgba(255, 255, 255, 0.26))
     drop-shadow(0 0 20px rgba(103, 232, 249, 0.38));
