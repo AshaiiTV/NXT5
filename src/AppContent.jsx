@@ -3952,8 +3952,7 @@ function CoachReferenceMetric({ item }) {
 
 function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, matchups = [], bestMatchups = [], worstMatchups = [], buildRows = [], buildRowsCount = 0, selectedCategoryId }) {
   const [query, setQuery] = useState("");
-  const [lens, setLens] = useState("decision");
-  const [sortMode, setSortMode] = useState("coach");
+  const [sortMode, setSortMode] = useState("volume");
   const totalGames = championStats.reduce((total, stat) => total + Number(stat.games || 0), 0);
   const enhancedStats = championStats.map((stat) => {
     const safeGames = Math.max(1, Number(stat.games || 0));
@@ -3976,11 +3975,10 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
   const activeRows = activeStat?.rows || [];
   const sortedStats = enhancedStats
     .filter((stat) => championDisplayName(stat.champion).toLowerCase().includes(query.trim().toLowerCase()))
-    .filter((stat) => lens === "decision" || (lens === "ready" ? ["lock", "playable"].includes(stat.status) : lens === "review" ? stat.status === "review" : stat.buildCount > 0))
     .sort((a, b) => {
       if (sortMode === "wr") return b.winrate - a.winrate || b.games - a.games;
+      if (sortMode === "kda") return Number(b.kda || 0) - Number(a.kda || 0) || b.games - a.games;
       if (sortMode === "volume") return b.games - a.games || b.score - a.score;
-      if (sortMode === "damage") return b.avgDamage - a.avgDamage || b.score - a.score;
       return b.score - a.score || b.games - a.games;
     });
   const bestPick = enhancedStats.slice().sort((a, b) => b.score - a.score || b.games - a.games)[0];
@@ -3993,8 +3991,7 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
     urgentPick && { title: "A verifier", text: `${championDisplayName(urgentPick.champion)} demande une review avant de le remettre en draft.`, toneName: "orange", icon: AlertTriangle, champion: urgentPick.champion },
     buildCoverage < 65 && { title: "Builds incomplets", text: "Priorite: importer ou relire les games sans build pour rendre la lecture fiable.", toneName: "purple", icon: Gauge },
   ].filter(Boolean).slice(0, 3);
-  const lensOptions = [["decision", "Decision"], ["ready", "Jouables"], ["review", "A revoir"], ["builds", "Builds"]];
-  const sortOptions = [["coach", "Coach"], ["volume", "Volume"], ["wr", "WR"], ["damage", "DMG"]];
+  const sortOptions = [["volume", "Quantité"], ["kda", "KDA"], ["wr", "Winrate"]];
   if (!championStats.length) return <Surface glow className="p-6"><EmptyState icon={Crown} title="Aucun champion importe" text={selectedCategoryId ? "Aucune game de cette categorie pour ce profil." : "Importe une game pour alimenter les champions joues."} /></Surface>;
   return <div className="space-y-5">
     <Surface className="relative overflow-hidden p-0">
@@ -4021,19 +4018,15 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
     <div className="grid gap-5 2xl:grid-cols-[minmax(300px,.28fr)_minmax(0,.72fr)]">
       <Surface className="min-w-0 p-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0"><Badge tone="cyan">{sortedStats.length}/{enhancedStats.length} visibles</Badge><h4 className="mt-3 text-xl font-black text-white">Board champions</h4><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Filtre par intention, pas par tableur.</p></div>
+          <div className="min-w-0"><Badge tone="cyan">{sortedStats.length}/{enhancedStats.length} visibles</Badge><h4 className="mt-3 text-xl font-black text-white">Board champions</h4><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Trie par quantité, KDA ou winrate.</p></div>
           <Search className="h-5 w-5 shrink-0 text-cyan-100" />
         </div>
         <label className="mt-4 flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/24 px-3 py-2">
           <Search className="h-4 w-4 shrink-0 text-cyan-100" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Chercher un champion" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-400" />
         </label>
-        <div className="mt-4 rounded-2xl border border-white/10 bg-black/22 p-2">
-          <div className="grid grid-cols-2 gap-1.5">{lensOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setLens(id)} className={cx("rounded-xl px-3 py-2 text-xs font-black transition", lens === id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,.16)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
-          <div className="mt-3 flex min-w-0 items-center gap-2 border-t border-white/10 pt-2">
-            <span className="shrink-0 text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-500">Tri</span>
-            <div className="flex min-w-0 flex-1 flex-wrap gap-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-lg px-2 py-1 text-[0.6rem] font-black uppercase tracking-[0.08em] transition", sortMode === id ? "bg-white/92 text-slate-950" : "text-slate-400 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
-          </div>
+        <div className="mt-4 rounded-2xl border border-white/10 bg-black/22 p-1.5">
+          <div className="grid grid-cols-3 gap-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-xl px-2 py-2 text-[0.66rem] font-black uppercase tracking-[0.08em] transition", sortMode === id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,.16)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
         </div>
         <div className="mt-4 grid max-h-[64rem] gap-2 overflow-auto pr-1 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))] 2xl:grid-cols-1">
           {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} active={activeStat?.champion === stat.champion} onClick={() => onSelectChampion(stat.champion)} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion ne correspond a cette lecture.</p>}
