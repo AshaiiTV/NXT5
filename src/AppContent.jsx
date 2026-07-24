@@ -3421,7 +3421,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   useEffect(() => {
     const requestedPlayerId = new URLSearchParams(window.location.search || "").get("player") || "";
     const requestedPlayer = players.find((player) => String(player.id || "") === String(requestedPlayerId));
-    const fallback = requestedPlayer?.id || players[0]?.id || linkedPlayer?.id;
+    const fallback = requestedPlayer?.id || linkedPlayer?.id || players[0]?.id;
     if (!selectedPlayerId || !players.some((player) => player.id === selectedPlayerId)) setSelectedPlayerId(fallback || "");
   }, [linkedPlayer?.id, players.map((player) => player.id).join("|"), selectedPlayerId]);
   useEffect(() => {
@@ -7315,6 +7315,38 @@ function TrendsPage({ data, selectedTeamId }) {
       sourceGames: fragilePattern?.sourceGames || sourceGames,
     },
   ].filter(Boolean).slice(0, 5);
+  const coachPriorityCards = [
+    {
+      label: "Priorité 1",
+      title: coachBriefs.at(-1)?.title || coachBriefs[0]?.title || "Priorité à définir",
+      value: coachBriefs.at(-1)?.label || "Review",
+      text: coachBriefs.at(-1)?.evidence?.slice(0, 2).join(" · ") || coachBriefs.at(-1)?.text || "Choisir un axe unique pour le prochain bloc.",
+      toneName: coachBriefs.at(-1)?.toneName || "cyan",
+      sourceGames: coachBriefs.at(-1)?.sourceGames || sourceGames,
+    },
+    coachBriefs.find((brief) => brief.label === "Laning") && {
+      label: "Point review",
+      title: coachBriefs.find((brief) => brief.label === "Laning").title,
+      value: "Lane",
+      text: coachBriefs.find((brief) => brief.label === "Laning").evidence?.slice(0, 2).join(" · ") || coachBriefs.find((brief) => brief.label === "Laning").text,
+      toneName: coachBriefs.find((brief) => brief.label === "Laning").toneName,
+      sourceGames: coachBriefs.find((brief) => brief.label === "Laning").sourceGames,
+    },
+    focusRoleModel && {
+      label: "Rôle moteur",
+      title: `${roleLabel(focusRoleModel.role)} structure le jeu`,
+      value: `${Math.round(focusRoleModel.goldShare || 0)}% or`,
+      text: `${Math.round(focusRoleModel.damageShare || 0)}% dégâts · KP ${Math.round(focusRoleModel.kp || 0)}%`,
+      toneName: focusRoleModel.toneName || "cyan",
+      sourceGames: focusRoleModel.sourceGames,
+    },
+  ].filter(Boolean);
+  const coachDataPillars = [
+    { label: "Plan", value: primaryTeamModelCard?.title || "À définir", hint: primaryTeamModelCard?.value || `${winrate}% WR`, toneName: primaryTeamModelCard?.toneName || "cyan", sourceGames: primaryTeamModelCard?.sourceGames || sourceGames },
+    { label: "Tempo", value: formatMinute(averageFirstObjective), hint: `${earlyObjectiveRate}% avant 9:30`, toneName: earlyObjectiveRate >= 60 ? "green" : earlyObjectiveRate >= 35 ? "orange" : "red", sourceGames: objectiveSourceGames },
+    { label: "Risque", value: `${deathsPerGame.toFixed(Number.isInteger(deathsPerGame) ? 0 : 1)} morts/G`, hint: fragilePattern?.label || signedAvg(visionDiff), toneName: deathsPerGame >= 20 ? "red" : "orange", sourceGames: fragilePattern?.sourceGames || lossModel.sourceGames },
+    { label: "Volume", value: `${matches.length} games`, hint: activeTrendCategory?.name || "Toutes les games", toneName: matches.length >= 12 ? "green" : matches.length >= 5 ? "orange" : "slate", sourceGames },
+  ];
   const autoReads = coachBriefs.map((brief) => `${brief.label} — ${brief.title}. ${brief.text}`);
   const forceItems = [
     `${wins}W - ${losses}L sur ${matches.length} game${matches.length > 1 ? "s" : ""} (${winrate}% WR).`,
