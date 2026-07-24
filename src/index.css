@@ -50,6 +50,30 @@ form,
   overflow-x: clip;
 }
 
+@media (min-width: 1024px) {
+  .nxt5-app-shell {
+    padding-left: 0 !important;
+  }
+
+  .nxt5-app-shell.is-sidebar-expanded {
+    margin-left: 22rem;
+    width: calc(100% - 22rem);
+  }
+
+  .nxt5-app-shell.is-sidebar-collapsed {
+    margin-left: 8.5rem;
+    width: calc(100% - 8.5rem);
+  }
+}
+
+@media (max-width: 1023px) {
+  .nxt5-app-shell {
+    margin-left: 0;
+    width: 100%;
+    padding-left: 0 !important;
+  }
+}
+
 .grid > *,
 .flex > * {
   min-width: 0;
