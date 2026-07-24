@@ -197,7 +197,7 @@ function normalizePath(pathname = "/") {
 function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path === "/statistiques" || path === "/rapports") return "matches";
-  if (path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
+  if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
   return NAV.find((item) => item.path === path)?.id || "teams";
 }
 
@@ -207,8 +207,8 @@ function pathFromPage(pageId) {
 
 function profileViewFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path !== "/mon-profil" && !path.startsWith("/mon-profil/")) return "overview";
-  const slug = path.replace(/^\/mon-profil\/?/, "").split("/").filter(Boolean)[0] || "";
+  if (path !== "/profil" && !path.startsWith("/profil/") && path !== "/mon-profil" && !path.startsWith("/mon-profil/")) return "overview";
+  const slug = path.replace(/^\/(?:mon-)?profil\/?/, "").split("/").filter(Boolean)[0] || "";
   if (["builds", "matchups"].includes(slug)) return "champions";
   return PROFILE_VIEW_ROUTES.find((item) => item.path === slug)?.id || "overview";
 }
@@ -239,7 +239,7 @@ function authModeFromPath(pathname = window.location.pathname) {
 
 function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
+  if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
   return NAV.some((item) => item.path === path);
 }
 
@@ -912,18 +912,18 @@ function HomeScreen({ navigate }) {
       </SiteHeader>
 
       <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
-        <section className="grid min-h-[calc(100vh-104px)] items-center gap-10 py-8 lg:grid-cols-[.82fr_1.18fr] lg:py-10">
+        <section className="grid min-h-[calc(100vh-104px)] items-start gap-7 py-4 lg:grid-cols-[.78fr_1.22fr] lg:py-6 xl:items-center">
           <motion.div initial={{ opacity: 0, y: 22 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6 }}>
-            <ResponsiveImage src="/assets/nxt5-logo.png" sources={[{ srcSet: "/assets/nxt5-logo-640.webp 640w, /assets/nxt5-logo-320.webp 320w" }]} alt="NXT5" width="1254" height="989" fetchPriority="high" decoding="async" className="mb-6 h-auto w-full max-w-[520px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)]" />
+            <ResponsiveImage src="/assets/nxt5-logo.png" sources={[{ srcSet: "/assets/nxt5-logo-640.webp 640w, /assets/nxt5-logo-320.webp 320w" }]} alt="NXT5" width="1254" height="989" fetchPriority="high" decoding="async" className="mb-4 h-auto w-full max-w-[300px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)] sm:max-w-[340px] xl:max-w-[380px]" />
             <Badge tone="cyan" pulse>Outil d'équipe League of Legends</Badge>
-            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
+            <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl">
               Comprends ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">équipe</span> sans te perdre dans les <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">stats</span>.
             </h1>
-            <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-slate-200 md:text-lg">NXT5 transforme tes games en une lecture claire : qui porte l'équipe, comment vous gagnez, ce qui vous fait perdre et quoi corriger au prochain bloc.</p>
-            <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-3">
+            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-200 md:text-lg">NXT5 transforme tes games en une lecture claire : qui porte l'équipe, comment vous gagnez, ce qui vous fait perdre et quoi corriger au prochain bloc.</p>
+            <div className="mt-4 grid max-w-2xl gap-3 sm:grid-cols-3">
               {["Crée la team", "Importe les games", "Lis les tendances"].map((label, index) => <div key={label} className="nxt5-panel border border-cyan-200/14 bg-white/[0.035] px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">0{index + 1}</p><p className="mt-1 text-sm font-black text-white">{label}</p></div>)}
             </div>
-            <div className="mt-8 grid gap-3 sm:flex sm:flex-wrap">
+            <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap">
               <LinkButton href="/creer-un-compte" navigate={navigate} icon={ChevronRight} className="px-6 py-4 sm:px-7">Créer un compte</LinkButton>
               <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="px-6 py-4 sm:px-7">Se connecter</LinkButton>
             </div>
@@ -7410,7 +7410,136 @@ function TrendsPage({ data, selectedTeamId }) {
     const width = Math.max(8, Math.min(100, (item.value / maxRoleResourceChart) * 100));
     return <div className="rounded-xl border border-white/10 bg-black/18 p-2.5"><div className="flex items-center justify-between gap-3"><span className="flex min-w-0 items-center gap-2"><RoleIcon role={item.role} className="h-4 w-4 shrink-0" /><span className="truncate text-sm font-black text-white">{item.label}</span></span><span className="shrink-0 text-xs font-semibold text-slate-300">{item.detail}</span></div><div className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-white/[0.055]"><span className="block h-full rounded-full bg-gradient-to-r from-cyan-300 via-blue-400 to-fuchsia-400" style={{ width: `${width}%` }} /></div></div>;
   };
+  const clampPercent = (value) => Math.max(0, Math.min(100, Math.round(Number(value || 0))));
+  const objectiveTone = (progress) => {
+    const value = clampPercent(progress);
+    return value >= 78 ? "green" : value >= 52 ? "orange" : "red";
+  };
+  const roleAiObjectives = ROSTER_ROLE_ORDER.map((role) => {
+    const row = roleSystemRows.find((item) => item.role === role);
+    if (!row) return null;
+    const cs10 = Number.isFinite(row.cs10) ? row.cs10 : 0;
+    const kp = Number.isFinite(row.kp) ? row.kp : 0;
+    const damageShare = Number.isFinite(row.damageShare) ? row.damageShare : 0;
+    const goldShare = Number.isFinite(row.goldShare) ? row.goldShare : 0;
+    const sourceGamesForObjective = row.sourceGames?.length ? row.sourceGames : sourceGamesForRole(role);
+    let title = "Valider le rôle dans le plan";
+    let target = "2 games propres sur les 3 prochaines";
+    let current = `${row.wr}% WR`;
+    let why = `${roleLabel(role)} est lu comme ${row.functionLabel.toLowerCase()} sur ce bloc.`;
+    let progress = row.wr;
+    if ((role === "TOP" || role === "MID") && cs10 < -3) {
+      title = "Stabiliser la lane";
+      target = "CS10 >= -3 pendant 3 games";
+      current = `CS10 ${cs10 >= 0 ? "+" : ""}${cs10.toFixed(1)}`;
+      why = "La lane perd trop tôt en ressources, donc les reviews doivent cibler waves 1-3, reset et couverture river.";
+      progress = 100 - Math.min(100, Math.abs(cs10) * 12);
+    } else if (role === "JGL" && earlyObjectiveRate < 60) {
+      title = "Débloquer le premier objectif";
+      target = "1er objectif avant 9:30 sur 2/3 games";
+      current = `${earlyObjectiveRate}% early`;
+      why = "Le tempo jungle doit transformer la priorité lane en drake, grubs ou herald plus tôt.";
+      progress = earlyObjectiveRate;
+    } else if ((role === "ADC" || role === "TOP" || role === "MID") && damageShare < 24) {
+      title = "Augmenter l'impact fight";
+      target = "Damage share >= 26%";
+      current = `${Math.round(damageShare)}% dégâts`;
+      why = "Le rôle a besoin d'un objectif mesurable en fights : positionnement, timing d'entrée et conversion DPS.";
+      progress = (damageShare / 26) * 100;
+    } else if (role === "SUP" && visionDiff < 0) {
+      title = "Reprendre la vision objective";
+      target = "Vision diff positive 60s avant objectif";
+      current = signedAvg(visionDiff);
+      why = "La préparation des objectifs passe par le support, même si l'exécution reste collective.";
+      progress = 42;
+    } else if (kp < 58) {
+      title = "Reconnecter les actions";
+      target = "KP >= 60% sur les 3 prochaines games";
+      current = `KP ${Math.round(kp)}%`;
+      why = "Le rôle apparaît trop isolé du résultat collectif ; l'objectif est de jouer plus tôt avec le noyau d'action.";
+      progress = (kp / 60) * 100;
+    } else if (goldShare >= 23 || damageShare >= 28 || kp >= 65) {
+      title = "Assumer la condition forte";
+      target = "Plan de jeu annoncé avant draft + review post-game";
+      current = `${Math.round(goldShare)}% or / ${Math.round(damageShare)}% dégâts`;
+      why = "Le rôle porte déjà une grosse partie de l'identité : l'objectif devient la répétition consciente du plan.";
+      progress = Math.max(row.wr, 72);
+    }
+    return {
+      role,
+      title,
+      target,
+      current,
+      why,
+      progress: clampPercent(progress),
+      toneName: objectiveTone(progress),
+      sourceGames: sourceGamesForObjective,
+    };
+  }).filter(Boolean);
+  const teamAiObjective = (() => {
+    if (earlyObjectiveRate < 55) {
+      return {
+        title: "Accélérer le premier objectif",
+        target: "2 games sur 3 avec un objectif avant 9:30",
+        current: `${earlyObjectiveRate}% actuellement`,
+        why: `Le premier objectif moyen arrive à ${formatMinute(averageFirstObjective)}. C'est le meilleur levier collectif du bloc.`,
+        progress: clampPercent(earlyObjectiveRate),
+        toneName: objectiveTone(earlyObjectiveRate),
+        sourceGames: objectiveSourceGames,
+      };
+    }
+    if (deathsPerGame >= 18) {
+      const progress = 100 - Math.min(100, (deathsPerGame - 12) * 8);
+      return {
+        title: "Réduire les morts gratuites",
+        target: "<= 16 morts équipe par game",
+        current: `${deathsPerGame.toFixed(Number.isInteger(deathsPerGame) ? 0 : 1)} morts/G`,
+        why: "Les deaths montent trop haut pour transformer les bons plans en games contrôlées.",
+        progress: clampPercent(progress),
+        toneName: objectiveTone(progress),
+        sourceGames: lossModel.sourceGames.length ? lossModel.sourceGames : sourceGames,
+      };
+    }
+    if (visionDiff < 0) {
+      const progress = clampPercent(50 + avgInt(visionDiff) * 2);
+      return {
+        title: "Reprendre l'information carte",
+        target: "Vision diff positive sur le prochain bloc",
+        current: signedAvg(visionDiff),
+        why: "L'équipe joue avec moins d'information que l'adversaire, ce qui fragilise setups et entrées rivière.",
+        progress,
+        toneName: objectiveTone(progress),
+        sourceGames,
+      };
+    }
+    if (fragilePattern) {
+      const progress = clampPercent(fragilePattern.wr);
+      return {
+        title: `Stabiliser ${fragilePattern.label}`,
+        target: "1 review ciblée + 2 drafts test",
+        current: `${fragilePattern.wr}% WR`,
+        why: "Le pattern existe mais son rendement chute : il faut séparer problème de draft, exécution et timing.",
+        progress,
+        toneName: objectiveTone(progress),
+        sourceGames: fragilePattern.sourceGames,
+      };
+    }
+    return {
+      title: "Conserver le plan fort",
+      target: "Reproduire le plan sur 3 games consécutives",
+      current: `${winrate}% WR`,
+      why: "Le bloc est plutôt sain : l'objectif IA sert à garder une direction claire, pas à tout changer.",
+      progress: clampPercent(winrate),
+      toneName: objectiveTone(winrate),
+      sourceGames,
+    };
+  })();
+  const aiObjectiveItems = [
+    `Équipe: ${teamAiObjective.title} — ${teamAiObjective.target}.`,
+    ...roleAiObjectives.map((item) => `${roleLabel(item.role)}: ${item.title} — ${item.target}.`)
+  ].slice(0, 7);
   const exportTrendSections = [
+    { title: "Objectif IA", items: aiObjectiveItems, tone: "purple" },
     { title: "Modèle d'équipe", items: teamModelCards.map((card) => `${card.label}: ${card.title}. ${card.text}`), tone: "cyan" },
     { title: "Lecture automatique", items: autoReads, tone: "cyan" },
     { title: "Écarts moyens", items: forceItems, tone: "green" },
@@ -7445,6 +7574,7 @@ function TrendsPage({ data, selectedTeamId }) {
   };
   const draftTrendModel = buildDraftTrendModel(matches);
   const trendPanelOptions = [
+    ["ai-objectives", "Objectif IA", Sparkles, "Cibles mesurables et preuves."],
     ["coach", "Vue coach", Gauge, "Synthèse, patterns et actions."],
     ["draft", "Draft", Crown, "Picks, archétypes et menaces."],
     ["details", "Données", BarChart3, "Graphiques et listes secondaires."],
@@ -7501,7 +7631,7 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
     </section>
     <div className="mb-3 rounded-xl border border-white/10 bg-black/24 p-1.5">
-      <div className="grid gap-1.5 md:grid-cols-3">
+      <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">
         {trendPanelOptions.map(([id, label, Icon, text]) => <button key={id} type="button" onClick={() => setTrendPanel(id)} className={cx("flex min-w-0 items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition", trendPanel === id ? "border-cyan-200/28 bg-cyan-300/12 text-white" : "border-transparent text-slate-300 hover:border-cyan-200/16 hover:bg-white/[0.045] hover:text-white")}>
           <Icon className="h-4 w-4 shrink-0 text-cyan-100" />
           <span className="min-w-0">
@@ -7512,6 +7642,94 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
     </div>
     {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} view={draftTrendView} onView={setDraftTrendView} sourceGamesForMatches={sourceGamesForMatches} />}
+    {trendPanel === "ai-objectives" && <Surface className="p-3">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
+          <Badge tone="purple">Objectif IA</Badge>
+          <h3 className="mt-2 text-2xl font-black leading-tight text-white">Plan de progression du bloc</h3>
+          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">NXT5 transforme les tendances en objectifs courts, vérifiables et reliés aux games sources. L'idée : un axe équipe, puis une cible claire par rôle.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="slate">{matches.length} games</Badge>
+          <Badge tone={teamAiObjective.toneName}>{teamAiObjective.progress}% prêt</Badge>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)]">
+        <article className="relative min-w-0 overflow-hidden rounded-2xl border border-fuchsia-200/20 bg-[linear-gradient(135deg,rgba(34,211,238,.10),rgba(6,10,24,.90)_48%,rgba(217,70,239,.12))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.065)]">
+          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-100/70 to-cyan-100/55" />
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={teamAiObjective.toneName}>Objectif équipe</Badge>
+                <Badge tone="cyan">Prochain bloc</Badge>
+              </div>
+              <h4 className="mt-3 break-words text-2xl font-black leading-tight text-white">{teamAiObjective.title}</h4>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{teamAiObjective.why}</p>
+            </div>
+            <button type="button" onClick={() => openTrendSources({ title: "Sources Objectif IA", subtitle: teamAiObjective.title, games: teamAiObjective.sourceGames })} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Sources</button>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,.42fr)]">
+            <div className="rounded-xl border border-white/10 bg-black/24 p-3">
+              <p className="text-[0.64rem] font-black uppercase tracking-[0.16em] text-slate-400">Cible mesurable</p>
+              <p className="mt-2 text-lg font-black text-white">{teamAiObjective.target}</p>
+              <p className="mt-1 text-sm font-semibold text-cyan-100">Actuel : {teamAiObjective.current}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/24 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[0.64rem] font-black uppercase tracking-[0.16em] text-slate-400">Progression</p>
+                <p className="text-xl font-black text-white">{teamAiObjective.progress}%</p>
+              </div>
+              <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/[0.07]">
+                <span className={cx("block h-full rounded-full bg-gradient-to-r", teamAiObjective.toneName === "green" ? "from-emerald-300 to-cyan-200" : teamAiObjective.toneName === "orange" ? "from-amber-300 to-fuchsia-300" : "from-rose-300 to-fuchsia-400")} style={{ width: `${teamAiObjective.progress}%` }} />
+              </div>
+            </div>
+          </div>
+        </article>
+        <aside className="grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+          <div>
+            <Badge tone="cyan">Méthode</Badge>
+            <h4 className="mt-2 text-lg font-black text-white">Ce que je mettrais dedans</h4>
+          </div>
+          {[
+            ["1", "Objectif équipe unique", "Le plus gros levier du bloc, pas une liste interminable."],
+            ["2", "Objectif par rôle", "Chaque joueur a une cible liée à son impact réel."],
+            ["3", "Preuves cliquables", "Les games sources restent accessibles pour review."],
+            ["4", "Validation courte", "On juge sur les 3 prochaines games, puis on ajuste."]
+          ].map(([step, title, text]) => <div key={step} className="rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
+            <div className="flex gap-2.5">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-fuchsia-200/20 bg-fuchsia-300/10 text-xs font-black text-fuchsia-50">{step}</span>
+              <div className="min-w-0">
+                <p className="text-sm font-black text-white">{title}</p>
+                <p className="mt-0.5 text-xs font-semibold leading-5 text-slate-300">{text}</p>
+              </div>
+            </div>
+          </div>)}
+        </aside>
+      </div>
+      <div className="mt-3 grid gap-2 lg:grid-cols-5">
+        {roleAiObjectives.map((item) => <article key={item.role} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.028] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl border", tone(item.toneName))}><RoleIcon role={item.role} className="h-5 w-5" /></span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-black text-white">{roleLabel(item.role)}</span>
+                <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-400">{item.current}</span>
+              </span>
+            </span>
+            <button type="button" onClick={() => openTrendSources({ title: `Sources ${roleLabel(item.role)}`, subtitle: item.title, games: item.sourceGames })} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-cyan-100 transition hover:bg-cyan-300/10" title="Voir les sources"><FileText className="h-3.5 w-3.5" /></button>
+          </div>
+          <h5 className="mt-3 break-words text-base font-black leading-5 text-white">{item.title}</h5>
+          <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{item.why}</p>
+          <div className="mt-3 rounded-xl border border-white/10 bg-black/22 p-2.5">
+            <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">Cible</p>
+            <p className="mt-1 text-xs font-black leading-5 text-cyan-50">{item.target}</p>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07]">
+              <span className={cx("block h-full rounded-full bg-gradient-to-r", item.toneName === "green" ? "from-emerald-300 to-cyan-200" : item.toneName === "orange" ? "from-amber-300 to-fuchsia-300" : "from-rose-300 to-fuchsia-400")} style={{ width: `${item.progress}%` }} />
+            </div>
+          </div>
+        </article>)}
+      </div>
+    </Surface>}
     {trendPanel === "coach" && <Surface className="p-2.5">
       <div className="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
         <div>
@@ -7913,7 +8131,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
         </div>
         {!selectedArchive && <Surface className="mt-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre la review lieeee.</p></div>
+            <div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre la review associée.</p></div>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: "nxt5-game-" + (selectedMatch?.game_id || "export") + ".png" })} disabled={!selectedMatch}>Exporter la game</Button>
               <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: scopedMatches.length + " games · " + wins + "W - " + (scopedMatches.length - wins) + "L", matches: scopedMatches, filename: "nxt5-groupe-" + String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".png" })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button>
@@ -10187,7 +10405,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         <Surface className="p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div><h3 className="text-xl font-black text-white">Bibliothèque</h3><p className="mt-1 text-sm font-semibold text-slate-400">{filteredReports.length} / {reports.length} review{reports.length > 1 ? "s" : ""}</p></div>
-            <Button type="button" icon={Plus} onClick={startBlankReview}>Créer</Button>
+            <Badge tone="cyan">Lecture</Badge>
           </div>
           <label className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
             <Search className="h-4 w-4 text-cyan-100/70" />
@@ -10201,7 +10419,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                 <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><p className="min-w-0 break-words font-black text-white">{reportDisplayName(report, matches)}</p><Badge tone={active ? "cyan" : "slate"}>{ids.length} game{ids.length > 1 ? "s" : ""}</Badge></div>
                 <p className="mt-1 truncate text-xs font-semibold text-slate-300">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p>
               </button>;
-            }) : <EmptyState icon={FileText} title="Aucune review" text="Crée une review depuis le bouton en haut, elle apparaîtra ici." />}
+            }) : <EmptyState icon={FileText} title="Aucune review" text="Crée une review depuis le bouton principal, elle apparaîtra ici." />}
           </div>
         </Surface>
 
@@ -10745,7 +10963,7 @@ export default function NXT5() {
   }, []);
 
   useEffect(() => {
-    const navTitle = route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")
+    const navTitle = route.path === "/profil" || route.path.startsWith("/profil/") || route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")
       ? `Profil > ${profileViewLabel(profileViewFromPath(route.path))}`
       : ["/integration", "/statistiques", "/rapports"].includes(route.path)
         ? `Games & review > ${gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))}`
