@@ -10557,6 +10557,21 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
     ["Draft", "Priorit\u00e9s charg\u00e9es", Crown, hasDraft],
     ["Review", "Signaux pr\u00eats", FileText, hasReview],
   ];
+  const targetDoneCount = stages.reduce((count, [, , , done]) => count + (done ? 1 : 0), 0);
+  const [visibleDoneCount, setVisibleDoneCount] = useState(0);
+  const readyVisible = ready && visibleDoneCount >= targetDoneCount;
+
+  useEffect(() => {
+    if (visibleDoneCount > targetDoneCount) {
+      setVisibleDoneCount(targetDoneCount);
+      return undefined;
+    }
+    if (visibleDoneCount >= targetDoneCount) return undefined;
+    const timer = window.setTimeout(() => {
+      setVisibleDoneCount((count) => Math.min(count + 1, targetDoneCount));
+    }, 190);
+    return () => window.clearTimeout(timer);
+  }, [targetDoneCount, visibleDoneCount]);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-6 text-white sm:px-6">
@@ -10592,7 +10607,8 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
 
           <div className="nxt5-warroom-panel">
             {stages.map(([stage, detail, Icon, done], index) => {
-              const state = loadingStepState(done, index === activeIndex && !done);
+              const visibleDone = done && index < visibleDoneCount;
+              const state = loadingStepState(visibleDone, index === activeIndex && !visibleDone);
               return <div key={stage} className={cx("nxt5-warroom-step", `is-${state}`)} style={{ "--delay": `${index * 180}ms` }}>
                 {state === "done" ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                 <div>
@@ -10601,7 +10617,7 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
                 </div>
               </div>;
             })}
-            <div className={cx("nxt5-warroom-ready", ready ? "is-done" : activeIndex === 4 && "is-active")}>
+            <div className={cx("nxt5-warroom-ready", readyVisible ? "is-done" : ready && "is-active")}>
               <Check className="h-4 w-4" />
               <span>{"Pr\u00eat"}</span>
             </div>
@@ -10649,7 +10665,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   async function refreshAll() {
     setLoading(true); setApiError(""); if (!bootstrapped) setBootstrapReady(false);
-    try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); if (!bootstrapped) { setBootstrapReady(true); await new Promise((resolve) => window.setTimeout(resolve, 620)); } }
+    try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); if (!bootstrapped) { setBootstrapReady(true); await new Promise((resolve) => window.setTimeout(resolve, 980)); } }
     catch (err) { setApiError(err.message || "Impossible de charger les données."); if (!bootstrapped) setData(DEFAULT_DATA); }
     finally { setLoading(false); setBootstrapped(true); }
   }
