@@ -10560,6 +10560,7 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
   const targetDoneCount = stages.reduce((count, [, , , done]) => count + (done ? 1 : 0), 0);
   const [visibleDoneCount, setVisibleDoneCount] = useState(0);
   const readyVisible = ready && visibleDoneCount >= targetDoneCount;
+  const progressValue = readyVisible ? 100 : Math.min(92, Math.max(12, Math.round((visibleDoneCount / Math.max(stages.length, 1)) * 100)));
 
   useEffect(() => {
     if (visibleDoneCount > targetDoneCount) {
@@ -10600,7 +10601,7 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
             </div>
             <div className="nxt5-player-board-title">
               <span>{readyVisible ? "Chargement termin\u00e9" : "Chargement roster"}</span>
-              <div className={cx("nxt5-player-progress", readyVisible && "is-complete")}>
+              <div className={cx("nxt5-player-progress", readyVisible && "is-complete")} style={{ "--progress": `${progressValue}%` }}>
                 <i />
               </div>
             </div>
