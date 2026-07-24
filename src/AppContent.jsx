@@ -7476,6 +7476,106 @@ function TrendsPage({ data, selectedTeamId }) {
       sourceGames: sourceGamesForObjective,
     };
   }).filter(Boolean);
+  const teamProfiles = sortPlayersByRole((data.players || []).filter((player) => String(player.team_id || "") === String(selectedTeamId || "") && isGameplayRole(player.role)));
+  const profileAiObjectives = teamProfiles.map((player) => {
+    const role = normalizeProfileRole(player.role);
+    const profileRows = playerIntegratedRows(player, matches);
+    const gamesCount = profileRows.length;
+    const roleObjective = roleAiObjectives.find((item) => item.role === role);
+    const profileWins = profileRows.filter((row) => row.match?.result === "Victoire").length;
+    const avgProfile = (field) => profileRows.reduce((total, row) => total + Number(row[field] || 0), 0) / Math.max(1, gamesCount);
+    const avgProfileKp = profileRows.reduce((total, row) => total + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, gamesCount);
+    const avgProfileDamageShare = profileRows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "damage"), 0) / Math.max(1, gamesCount);
+    const avgProfileGoldShare = profileRows.reduce((total, row) => total + shareOfTeam(row, teamRows(row.match, "ALLY"), "gold"), 0) / Math.max(1, gamesCount);
+    const cs10Values = profileRows.map((row) => csAtMinute(row, 10)).filter((value) => Number.isFinite(value));
+    const cs20Values = profileRows.map((row) => csAtMinute(row, 20)).filter((value) => Number.isFinite(value));
+    const avgCs10 = averageValues(cs10Values);
+    const avgCs20 = averageValues(cs20Values);
+    const mainChampion = Array.from(profileRows.reduce((map, row) => {
+      if (!row.champion) return map;
+      const current = map.get(row.champion) || { champion: row.champion, games: 0, wins: 0 };
+      current.games += 1;
+      current.wins += row.match?.result === "Victoire" ? 1 : 0;
+      map.set(row.champion, current);
+      return map;
+    }, new Map()).values()).sort((a, b) => b.games - a.games || b.wins - a.wins)[0];
+    const worstDeathRow = profileRows.slice().sort((a, b) => Number(b.deaths || 0) - Number(a.deaths || 0))[0];
+    const lowKpRow = profileRows.slice().sort((a, b) => parsePercent(a.kill_participation || a.kp || 0) - parsePercent(b.kill_participation || b.kp || 0))[0];
+    const profileSourceGames = sourceGamesForMatches(Array.from(new Map(profileRows.map((row) => [matchKey(row.match), row.match])).values()));
+    const rolePlaybook = {
+      TOP: { habit: "annoncer wave state + TP 70s avant objectif", review: "waves 1-3, premier reset, morts side avant objectif", scrim: "1 objectif : arriver au fight sans perdre la wave side" },
+      JGL: { habit: "annoncer premier path + premier objectif avant 3:15", review: "transition clear > river > objectif, pas seulement les fights", scrim: "2 objectifs early joués avec timer annoncé 45s avant" },
+      MID: { habit: "transformer chaque prio en reset ou move river", review: "wave avant roam, position jungle adverse, timing de reset", scrim: "call du côté joué avant chaque objectif neutre" },
+      ADC: { habit: "annoncer quand tu peux taper et quand tu dois attendre peel", review: "distance en fight, resets canon, morts avant 20", scrim: "1 fight joué sans flash défensif forcé avant l'objectif" },
+      SUP: { habit: "poser la première vision objectif avant le reset adverse", review: "roams sans wave crash, facechecks, accès river", scrim: "setup vision 60s avant objectif + annonce de la zone interdite" },
+    }[role] || { habit: "clarifier le rôle avant la game", review: "décisions clés du poste", scrim: "un test mesurable sur 3 games" };
+    let title = roleObjective?.title || "Créer un objectif profil";
+    let target = roleObjective?.target || "3 games avec une intention claire";
+    let trigger = roleObjective?.why || "Le profil doit être relié au plan d'équipe.";
+    let drill = rolePlaybook.scrim;
+    let review = rolePlaybook.review;
+    let validation = "Validé si la cible est tenue sur 2 des 3 prochaines games.";
+    let danger = "Pas assez de volume, ne pas surinterpréter.";
+    let progress = gamesCount ? profileWins / Math.max(1, gamesCount) * 100 : 18;
+    if (!gamesCount) {
+      title = "Brancher le profil aux données";
+      target = "Importer 3 games où ce Riot ID est présent";
+      trigger = "Aucune game importée ne permet encore de lire ce joueur individuellement.";
+      drill = "Après chaque import : vérifier que le profil NXT5 est bien lié au compte Riot.";
+      review = "Pas de review individuelle tant que le profil n'a pas au moins 3 games.";
+      validation = "Validé à 3 games exploitables.";
+      danger = "Sans linkage, l'IA ne peut proposer que l'objectif du rôle.";
+    } else if ((role === "TOP" || role === "MID" || role === "ADC") && Number.isFinite(avgCs10) && avgCs10 < 68) {
+      title = "Réparer le plan de lane";
+      target = `${role === "ADC" ? "CS10 >= 72" : "CS10 >= 70"} sur 2/3 games`;
+      trigger = `CS10 moyen ${Math.round(avgCs10)}${Number.isFinite(avgCs20) ? `, CS20 ${Math.round(avgCs20)}` : ""}.`;
+      drill = rolePlaybook.habit;
+      validation = "Validé si le CS10 remonte sans augmenter les morts avant objectif.";
+      danger = "Si le CS10 monte mais les deaths montent aussi, le problème est le trade pattern.";
+      progress = (avgCs10 / (role === "ADC" ? 72 : 70)) * 100;
+    } else if (avgProfile("deaths") >= 4.2) {
+      title = "Baisser l'exposition";
+      target = "<= 3.5 morts/game sur le prochain bloc";
+      trigger = `${avgProfile("deaths").toFixed(1)} morts/game, pic à ${Number(worstDeathRow?.deaths || 0)} morts.`;
+      drill = "Avant chaque objectif : annoncer reset / catch / fight, puis respecter l'appel.";
+      validation = "Validé si aucune mort n'arrive dans les 60s avant deux objectifs clés.";
+      danger = worstDeathRow ? `Review prioritaire : ${matchDisplayName(worstDeathRow.match, "game")} sur ${championDisplayName(worstDeathRow.champion)}.` : "Attention aux morts qui cassent les setups.";
+      progress = 100 - Math.min(100, (avgProfile("deaths") - 2.6) * 18);
+    } else if (avgProfileKp < 56) {
+      title = "Reconnecter le joueur au plan";
+      target = "KP >= 60% sur 2/3 games";
+      trigger = `KP moyen ${Math.round(avgProfileKp)}%, trop bas pour un rôle qui doit peser dans les actions collectives.`;
+      drill = rolePlaybook.habit;
+      validation = "Validé si le joueur est présent sur les deux premiers fights utiles.";
+      danger = lowKpRow ? `Game à ouvrir : ${matchDisplayName(lowKpRow.match, "game")} (${Math.round(parsePercent(lowKpRow.kill_participation || lowKpRow.kp || 0))}% KP).` : "Le risque est d'avoir une bonne lane sans conversion collective.";
+      progress = (avgProfileKp / 60) * 100;
+    } else if ((role === "ADC" || role === "MID" || role === "TOP") && avgProfileDamageShare < avgProfileGoldShare - 2) {
+      title = "Convertir les ressources";
+      target = "Damage share >= gold share - 1";
+      trigger = `${avgProfileGoldShare.toFixed(1)}% or pour ${avgProfileDamageShare.toFixed(1)}% dégâts.`;
+      drill = "Review des fights gagnables : position d'entrée, cible tapée, spell défensif utilisé.";
+      validation = "Validé si l'écart ressources/dégâts repasse sous 1 point.";
+      danger = "Si les ressources ne deviennent pas des dégâts, il faut ajuster draft ou setup fight.";
+      progress = 100 - Math.min(100, Math.max(0, avgProfileGoldShare - avgProfileDamageShare) * 12);
+    }
+    return {
+      player,
+      role,
+      games: gamesCount,
+      title,
+      target,
+      trigger,
+      drill,
+      review,
+      validation,
+      danger,
+      progress: clampPercent(progress),
+      toneName: objectiveTone(progress),
+      sourceGames: profileSourceGames.length ? profileSourceGames : roleObjective?.sourceGames || sourceGames,
+      mainChampion,
+      stats: gamesCount ? [`${profileWins}W-${gamesCount - profileWins}L`, `KP ${Math.round(avgProfileKp)}%`, `${avgProfile("deaths").toFixed(1)} morts/G`, mainChampion ? championDisplayName(mainChampion.champion) : "Pool à lire"] : ["0 game", player.riot_id || "Riot ID manquant", roleLabel(role), "À lier"],
+    };
+  });
   const teamAiObjective = (() => {
     if (earlyObjectiveRate < 55) {
       return {
@@ -7536,8 +7636,9 @@ function TrendsPage({ data, selectedTeamId }) {
   })();
   const aiObjectiveItems = [
     `Équipe: ${teamAiObjective.title} — ${teamAiObjective.target}.`,
+    ...profileAiObjectives.map((item) => `${item.player.name}: ${item.title} — ${item.target}.`),
     ...roleAiObjectives.map((item) => `${roleLabel(item.role)}: ${item.title} — ${item.target}.`)
-  ].slice(0, 7);
+  ].slice(0, 10);
   const exportTrendSections = [
     { title: "Objectif IA", items: aiObjectiveItems, tone: "purple" },
     { title: "Modèle d'équipe", items: teamModelCards.map((card) => `${card.label}: ${card.title}. ${card.text}`), tone: "cyan" },
@@ -7728,6 +7829,63 @@ function TrendsPage({ data, selectedTeamId }) {
             </div>
           </div>
         </article>)}
+      </div>
+      <div className="mt-4 rounded-2xl border border-cyan-200/14 bg-black/20 p-3">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+          <div>
+            <Badge tone="cyan">Par profil</Badge>
+            <h4 className="mt-2 text-xl font-black text-white">Contrats de progrès joueurs</h4>
+            <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-slate-300">Chaque carte donne une cible, un exercice concret, une règle de validation et l'alerte à regarder en review. C'est pensé pour le prochain bloc de 3 games.</p>
+          </div>
+          <Badge tone="slate">{profileAiObjectives.length}/5 profils</Badge>
+        </div>
+        <div className="mt-3 grid gap-3 xl:grid-cols-2">
+          {profileAiObjectives.map((item) => <article key={item.player.id} className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-3", item.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : item.toneName === "orange" ? "border-amber-200/18 bg-amber-400/[0.045]" : "border-rose-200/18 bg-rose-400/[0.04]")}>
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={item.toneName}>{roleLabel(item.role)}</Badge>
+                  <Badge tone={item.games ? "green" : "slate"}>{item.games} game{item.games > 1 ? "s" : ""}</Badge>
+                  {item.mainChampion && <Badge tone="purple">{championDisplayName(item.mainChampion.champion)}</Badge>}
+                </div>
+                <h5 className="mt-2 break-words text-xl font-black leading-tight text-white">{item.player.name}</h5>
+                <p className="mt-1 break-words text-xs font-semibold text-slate-300">{item.player.riot_id || "Riot ID non lié"}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <div className="min-w-[5.5rem] rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-right">
+                  <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">Score</p>
+                  <p className="text-lg font-black text-white">{item.progress}%</p>
+                </div>
+                <button type="button" onClick={() => openTrendSources({ title: `Sources ${item.player.name}`, subtitle: item.title, games: item.sourceGames })} className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-50 transition hover:bg-cyan-300/14" title="Voir les sources"><FileText className="h-4 w-4" /></button>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-4">
+              {item.stats.map((stat) => <div key={stat} className="min-w-0 rounded-xl border border-white/10 bg-black/22 px-2.5 py-2">
+                <p className="truncate text-xs font-black text-white">{stat}</p>
+              </div>)}
+            </div>
+            <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="rounded-xl border border-white/10 bg-black/22 p-3">
+                <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-cyan-100">Objectif</p>
+                <p className="mt-1.5 text-base font-black leading-5 text-white">{item.title}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{item.trigger}</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07]">
+                  <span className={cx("block h-full rounded-full bg-gradient-to-r", item.toneName === "green" ? "from-emerald-300 to-cyan-200" : item.toneName === "orange" ? "from-amber-300 to-fuchsia-300" : "from-rose-300 to-fuchsia-400")} style={{ width: `${item.progress}%` }} />
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-black/22 p-3">
+                <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-fuchsia-100">À faire</p>
+                <p className="mt-1.5 text-sm font-black leading-5 text-white">{item.target}</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{item.drill}</p>
+              </div>
+            </div>
+            <div className="mt-2 grid gap-2 lg:grid-cols-3">
+              <div className="rounded-xl border border-emerald-200/12 bg-emerald-400/[0.045] p-2.5"><p className="text-[0.56rem] font-black uppercase tracking-[0.13em] text-emerald-100">Validation</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{item.validation}</p></div>
+              <div className="rounded-xl border border-cyan-200/12 bg-cyan-400/[0.045] p-2.5"><p className="text-[0.56rem] font-black uppercase tracking-[0.13em] text-cyan-100">Review</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{item.review}</p></div>
+              <div className="rounded-xl border border-amber-200/12 bg-amber-400/[0.045] p-2.5"><p className="text-[0.56rem] font-black uppercase tracking-[0.13em] text-amber-100">Alerte</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{item.danger}</p></div>
+            </div>
+          </article>)}
+        </div>
       </div>
     </Surface>}
     {trendPanel === "coach" && <Surface className="p-2.5">
@@ -10915,7 +11073,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
   if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} />{showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}<AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="min-w-0">{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}</div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ?"lg:pl-[7rem]" : "lg:pl-[20.25rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} />{showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}<AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="min-w-0">{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}</div>;
 }
 
 export default function NXT5() {
