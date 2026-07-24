@@ -10532,7 +10532,13 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
   );
 }
 
-function AppLoadingScreen() {
+function loadingStepState(done, active) {
+  if (done) return "done";
+  if (active) return "active";
+  return "pending";
+}
+
+function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = false }) {
   const roles = [
     ["TOP", "top"],
     ["JGL", "jungle"],
@@ -10540,11 +10546,16 @@ function AppLoadingScreen() {
     ["ADC", "adc"],
     ["SUP", "support"],
   ];
+  const hasRoster = Boolean((data.teams || []).length || (data.players || []).length || (data.teamMembers || []).length);
+  const hasGames = Boolean((data.matches || []).length);
+  const hasDraft = Boolean((data.championPool || []).length || (data.compositions || []).length);
+  const hasReview = Boolean((data.reports || []).length || (data.matchArchives || []).length || hasGames);
+  const activeIndex = phase === "session" ? 0 : hasReview ? 4 : hasDraft ? 3 : hasGames ? 2 : hasRoster ? 1 : 0;
   const stages = [
-    ["Roster", "R\u00f4les align\u00e9s", Users],
-    ["Games", "Timelines index\u00e9es", Swords],
-    ["Draft", "Priorit\u00e9s charg\u00e9es", Crown],
-    ["Review", "Signaux pr\u00eats", FileText],
+    ["Roster", "R\u00f4les align\u00e9s", Users, phase !== "session" && hasRoster],
+    ["Games", "Timelines index\u00e9es", Swords, hasGames],
+    ["Draft", "Priorit\u00e9s charg\u00e9es", Crown, hasDraft],
+    ["Review", "Signaux pr\u00eats", FileText, hasReview],
   ];
 
   return (
@@ -10584,16 +10595,17 @@ function AppLoadingScreen() {
           </div>
 
           <div className="nxt5-warroom-panel">
-            {stages.map(([stage, detail, Icon], index) => (
-              <div key={stage} className="nxt5-warroom-step" style={{ "--delay": `${index * 180}ms` }}>
-                <Icon className="h-4 w-4" />
+            {stages.map(([stage, detail, Icon, done], index) => {
+              const state = loadingStepState(done, index === activeIndex && !done);
+              return <div key={stage} className={cx("nxt5-warroom-step", `is-${state}`)} style={{ "--delay": `${index * 180}ms` }}>
+                {state === "done" ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                 <div>
                   <p>{stage}</p>
                   <span>{detail}</span>
                 </div>
-              </div>
-            ))}
-            <div className="nxt5-warroom-ready">
+              </div>;
+            })}
+            <div className={cx("nxt5-warroom-ready", ready ? "is-done" : activeIndex === 4 && "is-active")}>
               <Check className="h-4 w-4" />
               <span>{"Pr\u00eat"}</span>
             </div>
@@ -10613,6 +10625,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
+  const [bootstrapReady, setBootstrapReady] = useState(false);
   const [apiError, setApiError] = useState("");
   const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
     try { return window.localStorage.getItem("nxt5_beginner_compass_hidden") === "1"; }
@@ -10639,8 +10652,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }
 
   async function refreshAll() {
-    setLoading(true); setApiError("");
-    try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); }
+    setLoading(true); setApiError(""); if (!bootstrapped) setBootstrapReady(false);
+    try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); if (!bootstrapped) { setBootstrapReady(true); await new Promise((resolve) => window.setTimeout(resolve, 620)); } }
     catch (err) { setApiError(err.message || "Impossible de charger les données."); if (!bootstrapped) setData(DEFAULT_DATA); }
     finally { setLoading(false); setBootstrapped(true); }
   }
@@ -10668,7 +10681,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
   const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
-  if (!bootstrapped) return <AppLoadingScreen />;
+  if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
   if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
   return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ?"lg:pl-24" : "lg:pl-[19rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} />{showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}<AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="min-w-0">{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}</div>;
 }
