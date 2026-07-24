@@ -6946,6 +6946,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const [draftTrendView, setDraftTrendView] = useState("ally");
   const [trendPanel, setTrendPanel] = useState("coach");
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
+  const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
   const ally = rows.filter((row) => row.team_key === "ALLY");
   const enemy = rows.filter((row) => row.team_key === "ENEMY");
@@ -7482,7 +7483,6 @@ function TrendsPage({ data, selectedTeamId }) {
     orange: "from-amber-400/14 via-white/[0.035] to-transparent text-amber-100",
   };
   const TrendPanel = ({ title, icon: Icon, items, tone = "cyan" }) => <section className="nxt5-flat-block flex h-full min-h-[9.5rem] flex-col rounded-xl border p-3"><div className="flex items-center gap-2.5"><span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-gradient-to-br", trendToneClass[tone] || trendToneClass.cyan)}><Icon className="h-4 w-4" /></span><h3 className="min-w-0 truncate text-sm font-black text-white">{title}</h3></div><div className="mt-2.5 flex-1 divide-y divide-white/8">{items.length ? items.slice(0, 3).map((item, index) => <div key={item} className="flex gap-2.5 py-2 first:pt-0 last:pb-0"><span className={cx("mt-2 h-1.5 w-1.5 shrink-0 rounded-full shadow-[0_0_10px_currentColor]", tone === "red" ? "bg-rose-300 text-rose-300" : tone === "green" ? "bg-emerald-300 text-emerald-300" : tone === "purple" ? "bg-fuchsia-300 text-fuchsia-300" : tone === "orange" ? "bg-amber-300 text-amber-300" : "bg-cyan-300 text-cyan-300")} /><p className="min-w-0 text-xs font-semibold leading-5 text-slate-200">{index === 0 ? <span className="font-black text-white">{item}</span> : item}</p></div>) : <p className="py-2 text-xs font-semibold text-slate-300">Pas assez de volume.</p>}</div></section>;
-  const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const topMetrics = [
     { icon: Trophy, label: "Winrate", value: `${winrate}%`, hint: `${wins}W - ${losses}L`, tone: winrate >= 50 ? "green" : "red" },
     { icon: Flame, label: "Dégâts moyens", value: signedAvg(damageDiff), hint: "Par game", tone: diffTone(damageDiff) },
