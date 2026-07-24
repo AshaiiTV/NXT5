@@ -5290,7 +5290,6 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
         <Surface className="min-w-0 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Charge un JSON, sélectionne le side de ton équipe, puis valide les lanes et profils. La barre ci-dessous montre ce qui manque avant confirmation.</p></div>
-            <div className="flex min-w-[180px] flex-wrap gap-1.5 md:justify-end">{importChecks.map(([label, done]) => <span key={label} className={cx("rounded-full border px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.12em]", done ? "border-emerald-200/28 bg-emerald-400/12 text-emerald-100" : "border-white/10 bg-white/[0.035] text-slate-400")}>{label}</span>)}</div>
           </div>
               {importPreview ? <div className="mt-4 space-y-4">
                 <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
