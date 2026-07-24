@@ -1756,7 +1756,6 @@ html.nxt5-low-gpu .nxt5-loader-core {
   box-shadow: 0 0 22px rgba(103, 232, 249, 0.32);
 }
 
-.nxt5-player-column span,
 .nxt5-player-column strong {
   position: relative;
   z-index: 1;
@@ -1767,15 +1766,7 @@ html.nxt5-low-gpu .nxt5-loader-core {
   text-transform: uppercase;
 }
 
-.nxt5-player-column span {
-  color: rgba(165, 243, 252, 0.68);
-  font-size: clamp(0.5rem, 1.05vw, 0.68rem);
-  font-weight: 1000;
-  letter-spacing: 0.12em;
-}
-
 .nxt5-player-column strong {
-  margin-top: 0.2rem;
   color: #ffffff;
   font-size: clamp(0.82rem, 1.7vw, 1.12rem);
   font-weight: 1000;
