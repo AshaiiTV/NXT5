@@ -10558,7 +10558,7 @@ function AppLoadingScreen() {
 
         <div className="nxt5-warroom-copy">
           <p>Ouverture espace staff</p>
-          <h1 className="nxt5-loader-title">{"Pr\u00e9paration de la review"}</h1>
+          <h1 className="nxt5-loader-title">Synchronisation en cours</h1>
         </div>
 
         <div className="nxt5-warroom-grid">

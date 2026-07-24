@@ -1512,11 +1512,11 @@ html.nxt5-low-gpu .nxt5-loader-core {
 
 .nxt5-warroom-copy h1 {
   margin: 0;
-  max-width: 760px;
-  font-size: clamp(2.25rem, 6vw, 5.4rem);
+  max-width: 560px;
+  font-size: clamp(1.35rem, 3vw, 2.4rem);
   font-weight: 1000;
-  line-height: 0.92;
-  letter-spacing: 0;
+  line-height: 1.05;
+  letter-spacing: 0.01em;
 }
 
 .nxt5-warroom-grid {
@@ -1952,8 +1952,8 @@ html.nxt5-low-gpu .nxt5-loader-core {
   }
 
   .nxt5-warroom-copy h1 {
-    font-size: clamp(2rem, 12vw, 3.4rem);
-    line-height: 0.98;
+    font-size: clamp(1.45rem, 7vw, 2.15rem);
+    line-height: 1.06;
   }
 
   .nxt5-warroom-grid {
