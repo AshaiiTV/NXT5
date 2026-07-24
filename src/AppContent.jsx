@@ -3871,7 +3871,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <React.Fragment>
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
         {profileView === "overview" && <CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} />}
-        {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} />}
+        {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
         {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des reviews liees aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
@@ -3950,7 +3950,7 @@ function CoachReferenceMetric({ item }) {
   </div>;
 }
 
-function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, matchups = [], bestMatchups = [], worstMatchups = [], buildRows = [], buildRowsCount = 0, selectedCategoryId }) {
+function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, matchups = [], bestMatchups = [], worstMatchups = [], buildRows = [], buildRowsCount = 0, selectedCategoryId, navigate }) {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState("volume");
   const totalGames = championStats.reduce((total, stat) => total + Number(stat.games || 0), 0);
@@ -4035,7 +4035,7 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
 
       <div className="min-w-0 space-y-5">
         <Surface className="min-w-0 overflow-hidden p-4 md:p-5">
-          {activeStat ? <ChampionProfileDetail stat={activeStat} rows={activeRows} /> : <EmptyState icon={Crown} title="Selection vide" text="Choisis un champion pour ouvrir son analyse." />}
+          {activeStat ? <ChampionProfileDetail stat={activeStat} rows={activeRows} navigate={navigate} /> : <EmptyState icon={Crown} title="Selection vide" text="Choisis un champion pour ouvrir son analyse." />}
         </Surface>
         <ProfileChampionDecisionCard stat={activeStat} safestPick={safestPick} urgentPick={urgentPick} />
       </div>
@@ -4248,7 +4248,7 @@ function ProfilePoolChampionRow({ row, stat, selectedPlayer }) {
   </div>;
 }
 
-function ChampionProfileDetail({ stat, rows }) {
+function ChampionProfileDetail({ stat, rows, navigate }) {
   const safeGames = Math.max(1, stat.games || rows.length || 0);
   const avg = (value, decimals = 1) => (Number(value || 0) / safeGames).toFixed(decimals);
   const sortedRows = rows.slice().sort((a, b) => String(b.match?.created_at || b.match?.game_date || b.match?.game_id || "").localeCompare(String(a.match?.created_at || a.match?.game_date || a.match?.game_id || "")));
@@ -4289,7 +4289,7 @@ function ChampionProfileDetail({ stat, rows }) {
           {bestDamageRow && <ChampionReferenceLine label="Peak dégâts" value={formatPoints(bestDamageRow.damage)} detail={matchDisplayName(bestDamageRow.match, "game inconnue")} />}
         </div>
       </section>
-      <ChampionLanePanel rows={sortedRows} />
+      <ChampionLanePanel rows={sortedRows} navigate={navigate} />
     </div>
 
   </div>;
@@ -4317,7 +4317,7 @@ function ChampionReferenceLine({ label, value, detail }) {
   </div>;
 }
 
-function ChampionLanePanel({ rows }) {
+function ChampionLanePanel({ rows, navigate }) {
   const buildRows = rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
   return <section className="min-w-0">
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/80">Lecture lane</p><div className="flex flex-wrap gap-2"><Badge tone="cyan">{rows.length} game{rows.length > 1 ? "s" : ""}</Badge><Badge tone={buildRows.length ? "purple" : "slate"}>{buildRows.length} build{buildRows.length > 1 ? "s" : ""}</Badge></div></div>
@@ -4327,26 +4327,72 @@ function ChampionLanePanel({ rows }) {
       const cs20 = csAtMinute(row, 20);
       const enemyCs10 = enemy ? csAtMinute({ ...enemy, match: row.match }, 10) : null;
       const diff10 = Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null;
-      return <ChampionLaneGameLine key={`${row.match?.id || row.match?.game_id || index}-lane`} row={row} enemy={enemy} cs10={cs10} cs20={cs20} diff10={diff10} />;
+      return <ChampionLaneGameLine key={`${row.match?.id || row.match?.game_id || index}-lane`} row={row} enemy={enemy} cs10={cs10} cs20={cs20} diff10={diff10} navigate={navigate} />;
     }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune lane exploitable sur ce champion.</p>}</div>
   </section>;
 }
 
-function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10 }) {
+function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
   const finalItems = finalBuildItems(row);
   const timeline = itemBuildTimeline(row);
+  const targetMatchId = row.match?.id || row.match?.game_id || "";
+  const allyRows = teamRows(row.match, "ALLY");
+  const enemyRows = teamRows(row.match, "ENEMY");
+  const spells = summonerSpellIds(row);
+  const enemyCs20 = enemy ? csAtMinute({ ...enemy, match: row.match }, 20) : null;
+  const diff20 = Number.isFinite(cs20) && Number.isFinite(enemyCs20) ? cs20 - enemyCs20 : null;
+  const laneGoldDiff = enemy ? statValue(row, "gold") - statValue(enemy, "gold") : null;
+  const laneDamageDiff = enemy ? statValue(row, "damage") - statValue(enemy, "damage") : null;
+  const teamGoldDiff = allyRows.length || enemyRows.length ? sumRows(allyRows, "gold") - sumRows(enemyRows, "gold") : null;
+  const teamDamageDiff = allyRows.length || enemyRows.length ? sumRows(allyRows, "damage") - sumRows(enemyRows, "damage") : null;
+  const goldShare = allyRows.length ? Math.round(shareOfTeam(row, allyRows, "gold")) : 0;
+  const damageShare = allyRows.length ? Math.round(shareOfTeam(row, allyRows, "damage")) : 0;
+  const matchDate = profileHistoryDateLabel(row);
+  const openMatch = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (targetMatchId) navigate?.(`/statistiques?match=${encodeURIComponent(targetMatchId)}`);
+  };
   return <details className="group">
     <summary className="grid cursor-pointer list-none gap-3 py-3 transition hover:bg-white/[0.025] 2xl:grid-cols-[minmax(0,1fr)_repeat(3,minmax(70px,.18fr))_auto] 2xl:items-center [&::-webkit-details-marker]:hidden">
       <div className="flex min-w-0 items-center gap-3">
         {enemy?.champion ? <ChampionPortrait champion={enemy.champion} alt={enemy.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /> : <div className="h-10 w-10 shrink-0 rounded-xl bg-white/[0.05]" />}
-        <div className="min-w-0"><p className="truncate text-sm font-black text-white">vs {enemy?.champion ? championDisplayName(enemy.champion) : "Matchup inconnu"}</p><p className="truncate text-xs font-semibold text-slate-400">{matchDisplayName(row.match, "Game")} - {row.match?.result || "Resultat ?"}</p></div>
+        <div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">vs {enemy?.champion ? championDisplayName(enemy.champion) : "Matchup inconnu"}</p><p className="truncate text-xs font-semibold text-slate-400">{matchDisplayName(row.match, "Game")} - {row.match?.result || "Resultat ?"}</p></div>
+        {targetMatchId && <button type="button" onClick={openMatch} title="Ouvrir cette game" aria-label="Ouvrir cette game" className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-200/25 bg-cyan-300/[0.08] text-cyan-50 transition hover:border-cyan-100/60 hover:bg-cyan-200/18 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-200/35">
+          <ArrowRight className="h-4 w-4" />
+        </button>}
       </div>
       <ChampionMiniStat label="CS10" value={Number.isFinite(cs10) ? cs10 : "-"} />
       <ChampionMiniStat label="CS20" value={Number.isFinite(cs20) ? cs20 : "-"} />
       <ChampionMiniStat label="Diff10" value={diff10 === null ? "-" : `${diff10 >= 0 ? "+" : ""}${diff10}`} toneName={diff10 === null ? "slate" : diff10 >= 0 ? "green" : "red"} />
       <div className="flex min-w-0 items-center justify-between gap-2 2xl:justify-end"><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length ? "Build" : "Sans build"}</Badge><ChevronDown className="h-4 w-4 shrink-0 text-cyan-100 transition group-open:rotate-180" /></div>
     </summary>
-    <div className="grid gap-3 border-t border-white/10 bg-white/[0.025] py-3 xl:grid-cols-[minmax(0,.36fr)_minmax(0,.64fr)]">
+    <div className="grid gap-3 border-t border-white/10 bg-white/[0.025] py-3 2xl:grid-cols-[minmax(0,.32fr)_minmax(0,.28fr)_minmax(0,.40fr)]">
+      <div className="min-w-0 rounded-xl border border-cyan-300/14 bg-cyan-400/[0.045] p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={row.match?.result === "Victoire" ? "green" : row.match?.result === "Défaite" ? "red" : "slate"}>{row.match?.result || "Game"}</Badge>
+          <Badge tone="blue">{row.match?.side || "Side ?"}</Badge>
+          <Badge tone="slate">{row.match?.duration || "--:--"}</Badge>
+          {row.match?.patch && <Badge tone="purple">{row.match.patch}</Badge>}
+        </div>
+        <p className="mt-3 truncate text-sm font-black text-white">{matchDisplayName(row.match, "Game")}</p>
+        <p className="mt-1 truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID ?"}{matchDate ? ` - ${matchDate}` : ""}</p>
+        <div className="mt-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/22 p-2">
+          <ChampionPortrait champion={row.champion} row={row} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-black text-white">{row.summoner_name || row.riot_id || "Joueur"}</p>
+            <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(row.champion)} - {roleLabel(row.role)}</p>
+          </div>
+          {spells.length > 0 && <div className="flex shrink-0 gap-1">{spells.map((spell, index) => <HudIcon key={`${row.id || targetMatchId}-lane-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-7 w-7 rounded-lg" />)}</div>}
+        </div>
+        {enemy && <div className="mt-2 flex min-w-0 items-center gap-2 rounded-xl border border-rose-300/10 bg-rose-500/[0.035] p-2">
+          <ChampionPortrait champion={enemy.champion} row={enemy} alt={enemy.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+          <div className="min-w-0">
+            <p className="truncate text-xs font-black text-white">Face a {enemy.summoner_name || enemy.riot_id || "adversaire"}</p>
+            <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(enemy.champion)} - {roleLabel(enemy.role)}</p>
+          </div>
+        </div>}
+      </div>
       <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Data game</p>
         <div className="mt-3 grid grid-cols-2 gap-2">
@@ -4354,6 +4400,18 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10 }) {
           <ProfileChampionMini label="KP" value={`${Math.round(parsePercent(row.kill_participation || row.kp || 0))}%`} />
           <ProfileChampionMini label="DMG" value={formatPoints(row.damage)} />
           <ProfileChampionMini label="Vision" value={Math.round(Number(row.vision || 0))} />
+          <ProfileChampionMini label="Gold" value={formatPoints(row.gold)} />
+          <ProfileChampionMini label="CS" value={creepScore(row) || "-"} />
+          <ProfileChampionMini label="Tours" value={formatPoints(towerDamage(row))} />
+          <ProfileChampionMini label="Ressources" value={goldShare ? `${goldShare}% or` : "-"} />
+        </div>
+        <div className="mt-3 grid gap-2 border-t border-white/10 pt-3 sm:grid-cols-2">
+          <ProfileChampionMini label="Diff gold lane" value={laneGoldDiff === null ? "-" : formatGoldDiff(laneGoldDiff)} toneName={laneGoldDiff === null ? "slate" : laneGoldDiff >= 0 ? "green" : "red"} />
+          <ProfileChampionMini label="Diff dmg lane" value={laneDamageDiff === null ? "-" : `${laneDamageDiff >= 0 ? "+" : ""}${formatPoints(laneDamageDiff)}`} toneName={laneDamageDiff === null ? "slate" : laneDamageDiff >= 0 ? "green" : "red"} />
+          <ProfileChampionMini label="Diff CS20" value={diff20 === null ? "-" : `${diff20 >= 0 ? "+" : ""}${diff20}`} toneName={diff20 === null ? "slate" : diff20 >= 0 ? "green" : "red"} />
+          <ProfileChampionMini label="Part degats" value={damageShare ? `${damageShare}%` : "-"} toneName="purple" />
+          <ProfileChampionMini label="Gold equipe" value={teamGoldDiff === null ? "-" : formatGoldDiff(teamGoldDiff)} toneName={teamGoldDiff === null ? "slate" : teamGoldDiff >= 0 ? "green" : "red"} />
+          <ProfileChampionMini label="Dmg equipe" value={teamDamageDiff === null ? "-" : `${teamDamageDiff >= 0 ? "+" : ""}${formatPoints(teamDamageDiff)}`} toneName={teamDamageDiff === null ? "slate" : teamDamageDiff >= 0 ? "green" : "red"} />
         </div>
       </div>
       <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
@@ -9468,14 +9526,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
     setEventMenu(null);
   }, [eventStoreAvailability?.id, eventStoreAvailability?.updated_at, eventStorePlayer?.id, selectedWeek.start]);
 
-  useEffect(() => {
-    if (!planningDirty || saving) return undefined;
-    const timer = window.setTimeout(() => {
-      saveAvailability({ silent: true });
-    }, 650);
-    return () => window.clearTimeout(timer);
-  }, [planningDirty, saving, draftSlots, slotEvents, notes, eventStorePlayer?.id, selectedTeamId, selectedWeek.start, canEditSelected, canEditEvents]);
-
   function markPlanningDirty() {
     changeSeqRef.current += 1;
     setPlanningDirty(true);
@@ -9646,6 +9696,14 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       setSaving(false);
     }
   }
+
+  useEffect(() => {
+    if (!planningDirty || saving) return undefined;
+    const timer = window.setTimeout(() => {
+      saveAvailability({ silent: true });
+    }, 650);
+    return () => window.clearTimeout(timer);
+  }, [planningDirty, saving, draftSlots, slotEvents, notes, eventStorePlayer?.id, selectedTeamId, selectedWeek.start, canEditSelected, canEditEvents]);
 
   const selectedPlayerId = String(selectedPlayer?.id || "");
   const effectivePlayerIdsByCell = useMemo(() => {
@@ -11010,7 +11068,6 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
         <div className="nxt5-warroom-grid">
           <div className="nxt5-player-board" aria-hidden="true">
             <div className="nxt5-player-board-noise" />
-            <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=1" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="" width="512" height="512" decoding="async" className="nxt5-player-board-token" />
             <div className="nxt5-player-columns">
               {roles.map(([role], index) => (
                 <span key={role} className={cx("nxt5-player-column", `nxt5-player-column-${index + 1}`, hasRoster && "is-loaded")} style={{ "--delay": `${index * 160}ms`, "--fill-delay": `${index * 130}ms` }}>
