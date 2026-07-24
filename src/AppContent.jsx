@@ -10553,10 +10553,6 @@ function AppLoadingScreen() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(103,232,249,.14),transparent_34%),radial-gradient(circle_at_74%_30%,rgba(217,70,239,.10),transparent_30%),linear-gradient(90deg,rgba(2,5,17,.86),transparent_42%,rgba(2,5,17,.84))]" />
       <motion.div initial={{ opacity: 0, y: 18, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.62, ease: "easeOut" }} className="nxt5-warroom relative z-10 w-full max-w-6xl">
         <div className="nxt5-warroom-header">
-          <div className="nxt5-loader-kicker">
-            <span />
-            <p>War room NXT5</p>
-          </div>
           <Nxt5Wordmark className="nxt5-loader-wordmark h-12 w-48 object-left sm:h-14 sm:w-56" />
         </div>
 

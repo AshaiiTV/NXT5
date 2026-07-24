@@ -1492,7 +1492,7 @@ html.nxt5-low-gpu .nxt5-loader-core {
 .nxt5-warroom-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 1rem;
 }
 
@@ -1948,7 +1948,6 @@ html.nxt5-low-gpu .nxt5-loader-core {
   }
 
   .nxt5-warroom-header {
-    flex-direction: column-reverse;
     align-items: flex-start;
   }
 
