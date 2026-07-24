@@ -1815,47 +1815,60 @@ html.nxt5-low-gpu .nxt5-loader-core {
 
 .nxt5-player-board-title {
   position: absolute;
-  left: 6%;
-  right: 6%;
+  left: 10%;
+  right: 10%;
   bottom: 5.5%;
   z-index: 3;
   text-align: center;
   text-transform: uppercase;
 }
 
-.nxt5-player-board-title span,
-.nxt5-player-board-title em {
+.nxt5-player-board-title span {
   display: block;
   color: rgba(214,246,255,0.72);
-  font-style: normal;
+  font-size: clamp(0.58rem, 1.2vw, 0.72rem);
   font-weight: 1000;
   letter-spacing: 0.14em;
 }
 
-.nxt5-player-board-title span {
-  font-size: clamp(0.55rem, 1.3vw, 0.74rem);
+.nxt5-player-progress {
+  position: relative;
+  height: 0.58rem;
+  margin-top: 0.65rem;
+  overflow: hidden;
+  border: 1px solid rgba(214, 246, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(2, 5, 17, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 0 22px rgba(34,211,238,0.08);
 }
 
-.nxt5-player-board-title strong {
-  display: block;
-  color: #ffffff;
-  font-size: clamp(1.55rem, 4.2vw, 2.55rem);
-  font-weight: 1000;
-  line-height: 1;
-  letter-spacing: 0.16em;
-  text-shadow:
-    0 4px 24px rgba(0,0,0,0.5),
-    0 0 36px rgba(34,211,238,0.22);
+.nxt5-player-progress i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 74%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #67e8f9, #60a5fa 48%, #d946ef);
+  box-shadow: 0 0 20px rgba(103,232,249,0.35);
+  transform-origin: left;
+  animation: nxt5-player-progress 1.35s ease-in-out infinite;
 }
 
-.nxt5-player-board-title em {
-  margin-top: 0.25rem;
-  font-size: clamp(0.56rem, 1.35vw, 0.78rem);
+.nxt5-player-progress.is-complete i {
+  width: 100%;
+  animation: none;
 }
 
 @keyframes nxt5-player-column {
   0%, 100% { border-color: rgba(214, 246, 255, 0.14); filter: brightness(0.96); transform: translateY(0); }
   50% { border-color: rgba(103, 232, 249, 0.34); filter: brightness(1.08); transform: translateY(-2px); }
+}
+
+@keyframes nxt5-player-progress {
+  0% { transform: translateX(-32%) scaleX(0.58); opacity: 0.72; }
+  52% { transform: translateX(18%) scaleX(0.86); opacity: 1; }
+  100% { transform: translateX(86%) scaleX(0.42); opacity: 0.72; }
 }
 
 .nxt5-warroom-step.is-done,

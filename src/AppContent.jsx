@@ -10599,9 +10599,10 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
               ))}
             </div>
             <div className="nxt5-player-board-title">
-              <span>Lineup scan</span>
-              <strong>Roster</strong>
-              <em>Roster en cours de synchronisation</em>
+              <span>{readyVisible ? "Chargement termin\u00e9" : "Chargement roster"}</span>
+              <div className={cx("nxt5-player-progress", readyVisible && "is-complete")}>
+                <i />
+              </div>
             </div>
           </div>
 
