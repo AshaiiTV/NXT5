@@ -4348,6 +4348,28 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
   const goldShare = allyRows.length ? Math.round(shareOfTeam(row, allyRows, "gold")) : 0;
   const damageShare = allyRows.length ? Math.round(shareOfTeam(row, allyRows, "damage")) : 0;
   const matchDate = profileHistoryDateLabel(row);
+  const performanceStats = [
+    ["KDA", `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`, "cyan"],
+    ["KP", `${Math.round(parsePercent(row.kill_participation || row.kp || 0))}%`, "purple"],
+    ["DMG", formatPoints(row.damage), "purple"],
+    ["Vision", Math.round(Number(row.vision || 0)), "cyan"],
+    ["Gold", formatPoints(row.gold), "yellow"],
+    ["CS", creepScore(row) || "-", "cyan"],
+    ["Tours", formatPoints(towerDamage(row)), "slate"],
+    ["Ressources", goldShare ? `${goldShare}% or` : "-", "yellow"],
+  ];
+  const laneStats = [
+    ["Gold", laneGoldDiff === null ? "-" : formatGoldDiff(laneGoldDiff), laneGoldDiff === null ? "slate" : laneGoldDiff >= 0 ? "green" : "red"],
+    ["Degats", laneDamageDiff === null ? "-" : `${laneDamageDiff >= 0 ? "+" : ""}${formatPoints(laneDamageDiff)}`, laneDamageDiff === null ? "slate" : laneDamageDiff >= 0 ? "green" : "red"],
+    ["CS10", diff10 === null ? "-" : `${diff10 >= 0 ? "+" : ""}${diff10}`, diff10 === null ? "slate" : diff10 >= 0 ? "green" : "red"],
+    ["CS20", diff20 === null ? "-" : `${diff20 >= 0 ? "+" : ""}${diff20}`, diff20 === null ? "slate" : diff20 >= 0 ? "green" : "red"],
+  ];
+  const teamStats = [
+    ["Gold equipe", teamGoldDiff === null ? "-" : formatGoldDiff(teamGoldDiff), teamGoldDiff === null ? "slate" : teamGoldDiff >= 0 ? "green" : "red"],
+    ["Dmg equipe", teamDamageDiff === null ? "-" : `${teamDamageDiff >= 0 ? "+" : ""}${formatPoints(teamDamageDiff)}`, teamDamageDiff === null ? "slate" : teamDamageDiff >= 0 ? "green" : "red"],
+    ["Part degats", damageShare ? `${damageShare}%` : "-", "purple"],
+    ["Part or", goldShare ? `${goldShare}%` : "-", "yellow"],
+  ];
   const openMatch = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -4367,62 +4389,75 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
       <ChampionMiniStat label="Diff10" value={diff10 === null ? "-" : `${diff10 >= 0 ? "+" : ""}${diff10}`} toneName={diff10 === null ? "slate" : diff10 >= 0 ? "green" : "red"} />
       <div className="flex min-w-0 items-center justify-between gap-2 2xl:justify-end"><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length ? "Build" : "Sans build"}</Badge><ChevronDown className="h-4 w-4 shrink-0 text-cyan-100 transition group-open:rotate-180" /></div>
     </summary>
-    <div className="grid gap-3 border-t border-white/10 bg-white/[0.025] py-3 2xl:grid-cols-[minmax(0,.32fr)_minmax(0,.28fr)_minmax(0,.40fr)]">
-      <div className="min-w-0 rounded-xl border border-cyan-300/14 bg-cyan-400/[0.045] p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={row.match?.result === "Victoire" ? "green" : row.match?.result === "Défaite" ? "red" : "slate"}>{row.match?.result || "Game"}</Badge>
-          <Badge tone="blue">{row.match?.side || "Side ?"}</Badge>
-          <Badge tone="slate">{row.match?.duration || "--:--"}</Badge>
-          {row.match?.patch && <Badge tone="purple">{row.match.patch}</Badge>}
-        </div>
-        <p className="mt-3 truncate text-sm font-black text-white">{matchDisplayName(row.match, "Game")}</p>
-        <p className="mt-1 truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID ?"}{matchDate ? ` - ${matchDate}` : ""}</p>
-        <div className="mt-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/22 p-2">
-          <ChampionPortrait champion={row.champion} row={row} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-black text-white">{row.summoner_name || row.riot_id || "Joueur"}</p>
-            <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(row.champion)} - {roleLabel(row.role)}</p>
-          </div>
-          {spells.length > 0 && <div className="flex shrink-0 gap-1">{spells.map((spell, index) => <HudIcon key={`${row.id || targetMatchId}-lane-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-7 w-7 rounded-lg" />)}</div>}
-        </div>
-        {enemy && <div className="mt-2 flex min-w-0 items-center gap-2 rounded-xl border border-rose-300/10 bg-rose-500/[0.035] p-2">
-          <ChampionPortrait champion={enemy.champion} row={enemy} alt={enemy.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+    <div className="border-t border-white/10 bg-white/[0.025] py-3">
+      <div className="rounded-2xl border border-cyan-300/12 bg-black/24 p-3">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,.36fr)]">
           <div className="min-w-0">
-            <p className="truncate text-xs font-black text-white">Face a {enemy.summoner_name || enemy.riot_id || "adversaire"}</p>
-            <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(enemy.champion)} - {roleLabel(enemy.role)}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={row.match?.result === "Victoire" ? "green" : row.match?.result === "Défaite" ? "red" : "slate"}>{row.match?.result || "Game"}</Badge>
+              <Badge tone="blue">{row.match?.side || "Side ?"}</Badge>
+              <Badge tone="slate">{row.match?.duration || "--:--"}</Badge>
+              {row.match?.patch && <Badge tone="purple">{row.match.patch}</Badge>}
+            </div>
+            <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] lg:items-center">
+              <div className="min-w-0">
+                <p className="truncate text-lg font-black text-white">{matchDisplayName(row.match, "Game")}</p>
+                <p className="mt-1 truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID ?"}{matchDate ? ` - ${matchDate}` : ""}</p>
+              </div>
+              <div className="grid min-w-0 gap-2 md:grid-cols-2">
+                <div className="flex min-w-0 items-center gap-2 rounded-xl border border-cyan-300/12 bg-cyan-400/[0.045] p-2">
+                  <ChampionPortrait champion={row.champion} row={row} alt={row.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-black text-white">{row.summoner_name || row.riot_id || "Joueur"}</p>
+                    <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(row.champion)} - {roleLabel(row.role)}</p>
+                  </div>
+                  {spells.length > 0 && <div className="flex shrink-0 gap-1">{spells.map((spell, index) => <HudIcon key={`${row.id || targetMatchId}-lane-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-7 w-7 rounded-lg" />)}</div>}
+                </div>
+                {enemy && <div className="flex min-w-0 items-center gap-2 rounded-xl border border-rose-300/10 bg-rose-500/[0.035] p-2">
+                  <ChampionPortrait champion={enemy.champion} row={enemy} alt={enemy.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-black text-white">{enemy.summoner_name || enemy.riot_id || "Adversaire"}</p>
+                    <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(enemy.champion)} - {roleLabel(enemy.role)}</p>
+                  </div>
+                </div>}
+              </div>
+            </div>
           </div>
+          <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Build final</p><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length}</Badge></div>
+            {finalItems.length ? <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, itemIndex) => <HudIcon key={`champion-lane-final-${row.id || row.match?.id}-${itemIndex}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-10 w-10" />)}</div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucun build final importe pour cette game.</p>}
+          </div>
+        </div>
+
+        <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,.82fr)_minmax(0,.82fr)]">
+          <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Performance</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
+              {performanceStats.map(([label, value, toneName]) => <ProfileChampionMini key={label} label={label} value={value} toneName={toneName} />)}
+            </div>
+          </div>
+          <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Lane vs matchup</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {laneStats.map(([label, value, toneName]) => <ProfileChampionMini key={label} label={label} value={value} toneName={toneName} />)}
+            </div>
+          </div>
+          <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+            <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Impact equipe</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              {teamStats.map(([label, value, toneName]) => <ProfileChampionMini key={label} label={label} value={value} toneName={toneName} />)}
+            </div>
+          </div>
+        </div>
+
+        {timeline.length > 0 && <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone="purple">{timeline.length}</Badge></div>
+          <div className="mt-3 grid max-h-56 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{timeline.map((event, eventIndex) => <div key={`${row.id || row.match?.id}-lane-item-event-${eventIndex}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
+            <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
+            <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${itemDisplayName(event.itemId)}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
+            <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300"><ItemNameText itemId={event.itemId} secondaryId={event.secondaryId} /></p></div>
+          </div>)}</div>
         </div>}
-      </div>
-      <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Data game</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <ProfileChampionMini label="KDA" value={`${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}`} />
-          <ProfileChampionMini label="KP" value={`${Math.round(parsePercent(row.kill_participation || row.kp || 0))}%`} />
-          <ProfileChampionMini label="DMG" value={formatPoints(row.damage)} />
-          <ProfileChampionMini label="Vision" value={Math.round(Number(row.vision || 0))} />
-          <ProfileChampionMini label="Gold" value={formatPoints(row.gold)} />
-          <ProfileChampionMini label="CS" value={creepScore(row) || "-"} />
-          <ProfileChampionMini label="Tours" value={formatPoints(towerDamage(row))} />
-          <ProfileChampionMini label="Ressources" value={goldShare ? `${goldShare}% or` : "-"} />
-        </div>
-        <div className="mt-3 grid gap-2 border-t border-white/10 pt-3 sm:grid-cols-2">
-          <ProfileChampionMini label="Diff gold lane" value={laneGoldDiff === null ? "-" : formatGoldDiff(laneGoldDiff)} toneName={laneGoldDiff === null ? "slate" : laneGoldDiff >= 0 ? "green" : "red"} />
-          <ProfileChampionMini label="Diff dmg lane" value={laneDamageDiff === null ? "-" : `${laneDamageDiff >= 0 ? "+" : ""}${formatPoints(laneDamageDiff)}`} toneName={laneDamageDiff === null ? "slate" : laneDamageDiff >= 0 ? "green" : "red"} />
-          <ProfileChampionMini label="Diff CS20" value={diff20 === null ? "-" : `${diff20 >= 0 ? "+" : ""}${diff20}`} toneName={diff20 === null ? "slate" : diff20 >= 0 ? "green" : "red"} />
-          <ProfileChampionMini label="Part degats" value={damageShare ? `${damageShare}%` : "-"} toneName="purple" />
-          <ProfileChampionMini label="Gold equipe" value={teamGoldDiff === null ? "-" : formatGoldDiff(teamGoldDiff)} toneName={teamGoldDiff === null ? "slate" : teamGoldDiff >= 0 ? "green" : "red"} />
-          <ProfileChampionMini label="Dmg equipe" value={teamDamageDiff === null ? "-" : `${teamDamageDiff >= 0 ? "+" : ""}${formatPoints(teamDamageDiff)}`} toneName={teamDamageDiff === null ? "slate" : teamDamageDiff >= 0 ? "green" : "red"} />
-        </div>
-      </div>
-      <div className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-3">
-        <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Build final</p><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length}</Badge></div>
-        {finalItems.length ? <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, itemIndex) => <HudIcon key={`champion-lane-final-${row.id || row.match?.id}-${itemIndex}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-10 w-10" />)}</div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucun build final importe pour cette game.</p>}
-        {timeline.length > 0 && <><div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Timeline achats</p><Badge tone="purple">{timeline.length}</Badge></div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">{timeline.map((event, eventIndex) => <div key={`${row.id || row.match?.id}-lane-item-event-${eventIndex}-${event.timestamp}-${event.itemId}`} className="flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
-          <span className="w-12 shrink-0 rounded-lg border border-cyan-200/15 bg-cyan-400/10 px-2 py-1 text-center text-[0.62rem] font-black text-cyan-50">{event.time}</span>
-          <HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${itemDisplayName(event.itemId)}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-9 w-9 shrink-0" />
-          <div className="min-w-0"><p className="truncate text-xs font-black text-white">{event.label}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300"><ItemNameText itemId={event.itemId} secondaryId={event.secondaryId} /></p></div>
-        </div>)}</div></>}
       </div>
     </div>
   </details>;
@@ -4439,7 +4474,7 @@ function ChampionBuildPanel({ rows }) {
 function ChampionMiniStat({ label, value, toneName = "cyan" }) {
   return <div className="min-w-0">
     <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
-    <p className={cx("mt-1 truncate font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-white")}>{value}</p>
+    <p className={cx("mt-1 truncate font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : toneName === "yellow" ? "text-amber-100" : toneName === "purple" ? "text-fuchsia-100" : toneName === "slate" ? "text-slate-200" : "text-white")}>{value}</p>
   </div>;
 }
 
