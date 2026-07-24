@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   ArrowRight,
@@ -529,7 +528,7 @@ function PageHeader({ eyebrow, title, subtitle, children }) {
 function ToastStack({ toasts, removeToast }) {
   return (
     <div className="fixed bottom-5 right-5 z-[80] space-y-3">
-      <AnimatePresence>
+      <React.Fragment>
         {toasts.map((toast) => (
           <motion.div key={toast.id} initial={{ opacity: 0, y: 20, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.96 }} className={cx("w-[min(92vw,380px)] rounded-3xl border p-4 shadow-2xl backdrop-blur-xl", tone(toast.type || "cyan"))}>
             <div className="flex items-start gap-3">
@@ -539,7 +538,7 @@ function ToastStack({ toasts, removeToast }) {
             </div>
           </motion.div>
         ))}
-      </AnimatePresence>
+      </React.Fragment>
     </div>
   );
 }
@@ -1223,7 +1222,7 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
   };
   return (
     <>
-      <AnimatePresence>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-30 bg-black/65 backdrop-blur-sm lg:hidden" />}</AnimatePresence>
+      <React.Fragment>{open && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} className="fixed inset-0 z-30 bg-black/65 backdrop-blur-sm lg:hidden" />}</React.Fragment>
       <aside className={cx("nxt5-sidebar fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-cyan-200/18 bg-[#050917]/90 p-3 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-all duration-300 lg:translate-x-0", collapsed ? "is-collapsed lg:w-24" : "lg:w-[19rem]", open ?"translate-x-0 w-[19rem] max-w-[calc(100vw-1rem)]" : "-translate-x-full w-[19rem] max-w-[calc(100vw-1rem)]")}>
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(150deg,rgba(34,211,238,.12),transparent_28%,rgba(217,70,239,.10)_72%,transparent),repeating-linear-gradient(90deg,transparent_0_46px,rgba(255,255,255,.025)_47px,transparent_48px)]" />
         <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-cyan-200/65 to-fuchsia-200/30" />
@@ -1312,7 +1311,7 @@ function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTea
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const navLabel = active === "profile" ? `${nav.label} > ${profileViewLabel(profileViewFromPath(window.location.pathname))}` : active === "matches" ? `${nav.label} > ${gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(window.location.pathname))}` : nav.label;
   const [teamMenuOpen, setTeamMenuOpen] = useState(false);
-  return <header className="sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{navLabel}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><AnimatePresence>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden border border-cyan-200/30 bg-[#050814] p-2 shadow-[0_30px_80px_rgba(0,0,0,.72),0_0_36px_rgba(34,211,238,.16)] ring-1 ring-white/10"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),rgba(5,8,20,.96)_42%,rgba(217,70,239,.10))]" /> <div className="relative z-10">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition", currentTeam?.id === team.id ?"border-cyan-200/25 bg-cyan-400/14 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent bg-[#070d1c] text-slate-200 hover:border-cyan-200/18 hover:bg-[#0b1428] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/22 bg-[#071221] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/12"><Plus className="h-4 w-4" />Créer une nouvelle team</button></div></motion.div>}</AnimatePresence></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
+  return <header className="sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button onClick={() => setOpen(true)} className="shrink-0 rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block"><TeamAvatar team={currentTeam} /></div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{navLabel}</p><button onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><React.Fragment>{teamMenuOpen && <motion.div initial={{ opacity: 0, y: -6, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: 0.98 }} className="nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(92vw,380px)] overflow-hidden border border-cyan-200/30 bg-[#050814] p-2 shadow-[0_30px_80px_rgba(0,0,0,.72),0_0_36px_rgba(34,211,238,.16)] ring-1 ring-white/10"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),rgba(5,8,20,.96)_42%,rgba(217,70,239,.10))]" /> <div className="relative z-10">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition", currentTeam?.id === team.id ?"border-cyan-200/25 bg-cyan-400/14 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent bg-[#070d1c] text-slate-200 hover:border-cyan-200/18 hover:bg-[#0b1428] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/22 bg-[#071221] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/12"><Plus className="h-4 w-4" />Créer une nouvelle team</button></div></motion.div>}</React.Fragment></div></div>{currentTeam && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
 }
 
 function ApiBanner({ error }) {
@@ -1825,7 +1824,7 @@ function parseMultiOpgg(input) {
     players.push({ name: cleanName, riotId });
   }
 
-  const riotIdPattern = /([A-Za-z0-9À-ÿ _.'-]{2,32})\s*#\s*([A-Za-z0-9]{2,8})/g;
+  const riotIdPattern = /([\p{L}\p{N} _.'-]{2,32})\s*#\s*([A-Za-z0-9]{2,8})/gu;
   for (const match of text.matchAll(riotIdPattern)) addRiotId(match[1], match[2]);
 
   const urlPattern = /https?:\/\/\S+/g;
@@ -3868,7 +3867,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
       <div className="nxt5-responsive-nav-grid grid gap-2">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group grid min-h-[5.1rem] min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0 self-center"><span className="block break-words text-sm font-black leading-5">{label}</span><span className="mt-0.5 block break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span><span className="justify-self-end"><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></span></button>; })}</div>
     </div>
-    <AnimatePresence mode="wait">
+    <React.Fragment>
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
         {profileView === "overview" && <CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} />}
         {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} />}
@@ -3876,7 +3875,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des reviews liees aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
-    </AnimatePresence>
+    </React.Fragment>
   </div>;
 }
 
@@ -4160,7 +4159,6 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
             <div className="min-w-0">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] opacity-75">Catégorie de pool</p>
               <p className="mt-1 text-xl font-black text-white">{tier.title}</p>
-              <p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{tier.hint}</p>
             </div>
             <ChampionTierMark tier={tier} active={rows.length > 0} />
           </div>
@@ -4181,7 +4179,6 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
             <div className="relative z-10 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{tier.title}</p>
-                <p className="mt-1 text-sm font-semibold leading-5 text-slate-200">{tier.hint}</p>
               </div>
               <Badge tone={tier.tone}>{tierRows.length}</Badge>
             </div>
@@ -4206,7 +4203,7 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
           <div className="mt-4 space-y-3">
             {CHAMPION_TIERS.map((tier) => <div key={tier.id} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
               <ChampionTierMark tier={tier} active className="h-8 w-8 rounded-xl [&_svg]:h-4 [&_svg]:w-4" />
-              <div className="min-w-0"><p className="text-sm font-black text-white">{tier.title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{tier.hint}</p></div>
+              <div className="min-w-0"><p className="text-sm font-black text-white">{tier.title}</p></div>
             </div>)}
           </div>
         </div>
@@ -4224,9 +4221,7 @@ function ProfilePoolReadLine({ label, value, detail, toneName = "cyan" }) {
 
 function ProfilePoolChampionRow({ row, stat, selectedPlayer }) {
   const status = championPoolStatus(row);
-  const tier = championTierByStatus(status);
   const tags = championStyleTags(row.champion).slice(0, 2);
-  const note = String(row.verdict || row.notes || row.note || "").trim();
   const sourceLabel = ["manual", "riot_manual"].includes(String(row.source || "")) ? "Déclaré" : "Pool";
   const games = Number(stat?.games ?? row.games ?? 0);
   const winrate = stat ? stat.winrate : games ? Math.round((Number(row.wins || 0) / Math.max(1, games)) * 100) : null;
@@ -4249,7 +4244,6 @@ function ProfilePoolChampionRow({ row, stat, selectedPlayer }) {
       <Badge tone={statTone}>{games ? `${games}G${winrate !== null ? ` · ${winrate}% WR` : ""}${kda ? ` · KDA ${kda}` : ""}` : "Pas encore importé"}</Badge>
       {tags.map((tag) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge>)}
     </div>
-    <p className="mt-3 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{note || tier.hint}</p>
   </div>;
 }
 
@@ -4572,7 +4566,7 @@ function ProfileBuildGameCard({ row }) {
 
 function ProfileFold({ title, badge, icon: Icon = Activity, toneName = "cyan", children }) {
   const [open, setOpen] = useState(true);
-  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><AnimatePresence initial={false}>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }} className="overflow-hidden"><div className="pt-4">{children}</div></motion.div>}</AnimatePresence></Surface>;
+  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><React.Fragment>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }} className="overflow-hidden"><div className="pt-4">{children}</div></motion.div>}</React.Fragment></Surface>;
 }
 
 function MatchupList({ items, toneName }) {
@@ -4592,7 +4586,7 @@ function MatchupList({ items, toneName }) {
           <ChevronDown className={cx("h-4 w-4 text-cyan-100 transition", open && "rotate-180")} />
         </div>
       </button>
-      <AnimatePresence initial={false}>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: "easeOut" }} className="overflow-hidden">
+      <React.Fragment>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: "easeOut" }} className="overflow-hidden">
         <div className="border-t border-white/10 p-3 pt-2">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Tes games dans ce matchup</p>
@@ -4600,7 +4594,7 @@ function MatchupList({ items, toneName }) {
           </div>
           <div className="grid gap-2">{gameRows.length ? gameRows.map(({ row, enemy }, index) => <MatchupGameDetailCard key={`${row?.id || row?.match?.id || row?.match?.game_id || item.champion}-${index}`} row={row} enemy={enemy} />) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucune game détaillée disponible.</p>}</div>
         </div>
-      </motion.div>}</AnimatePresence>
+      </motion.div>}</React.Fragment>
     </div>;
   }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de games pour afficher ce bloc.</p>}</div>;
 }
@@ -5510,7 +5504,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
       </div> : <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Pas encore de champion sur les games importées.</div>)}
     </div>
 
-    <AnimatePresence initial={false}>{!championsCollapsed && selectedChampionStats && <motion.div key={selectedChampionStats.champion} initial={{ height: 0, opacity: 0, y: -8 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: "easeOut" }} className="overflow-hidden">
+    <React.Fragment>{!championsCollapsed && selectedChampionStats && <motion.div key={selectedChampionStats.champion} initial={{ height: 0, opacity: 0, y: -8 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: "easeOut" }} className="overflow-hidden">
       <div className="mt-4 rounded-3xl border border-fuchsia-300/16 bg-fuchsia-400/[0.045] p-4 shadow-[0_0_35px_rgba(217,70,239,.06)]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div><Badge tone="purple">Games du champion</Badge><h4 className="mt-3 text-xl font-black text-white">{championDisplayName(selectedChampionStats.champion)}</h4></div>
@@ -5535,7 +5529,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
           })}
         </div>
       </div>
-    </motion.div>}</AnimatePresence>
+    </motion.div>}</React.Fragment>
   </Surface>;
 }
 
@@ -6790,7 +6784,7 @@ function MatchVersusOverview({ match }) {
                 </div>
                 <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
               </button>
-              <AnimatePresence>{open && <div className="mt-2"><LaneComparisonPanel match={match} role={role} allyRow={allyRow} enemyRow={enemyRow} /></div>}</AnimatePresence>
+              <React.Fragment>{open && <div className="mt-2"><LaneComparisonPanel match={match} role={role} allyRow={allyRow} enemyRow={enemyRow} /></div>}</React.Fragment>
             </div>;
           })}
         </div>
@@ -7929,7 +7923,24 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>
         <Badge tone="slate">{matches.length} games analysées</Badge>
       </div>
-      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.04fr)_minmax(18rem,.96fr)]">
+      <div className="mt-3 grid gap-2 lg:grid-cols-3">
+        {coachPriorityCards.map((card) => <button key={`${card.label}-${card.title}`} type="button" onClick={() => openTrendSources({ title: card.label, subtitle: card.title, games: card.sourceGames })} className={cx("min-w-0 rounded-xl border p-3 text-left transition hover:bg-white/[0.055]", card.toneName === "red" ? "border-rose-200/20 bg-rose-400/[0.045]" : card.toneName === "orange" ? "border-amber-200/20 bg-amber-400/[0.045]" : card.toneName === "green" ? "border-emerald-200/20 bg-emerald-400/[0.045]" : "border-cyan-200/18 bg-cyan-400/[0.045]")}>
+          <div className="flex items-start justify-between gap-3">
+            <Badge tone={card.toneName}>{card.label}</Badge>
+            <span className="shrink-0 text-sm font-black text-white">{card.value}</span>
+          </div>
+          <p className="mt-2 break-words text-base font-black leading-5 text-white">{card.title}</p>
+          <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{card.text}</p>
+        </button>)}
+      </div>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {coachDataPillars.map((item) => <button key={item.label} type="button" onClick={() => openTrendSources({ title: item.label, subtitle: item.value, games: item.sourceGames })} className="min-w-0 rounded-xl border border-white/10 bg-black/20 p-2.5 text-left transition hover:border-cyan-200/20 hover:bg-white/[0.045]">
+          <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</p>
+          <p className="mt-1 truncate text-sm font-black text-white">{item.value}</p>
+          <p className={cx("mt-0.5 truncate text-xs font-semibold", item.toneName === "red" ? "text-rose-100" : item.toneName === "orange" ? "text-amber-100" : item.toneName === "green" ? "text-emerald-100" : "text-cyan-100")}>{item.hint}</p>
+        </button>)}
+      </div>
+      <div className="hidden">
         {primaryTeamModelCard && (() => {
           const card = primaryTeamModelCard;
           const Icon = teamModelIcon(card.id);
@@ -7980,14 +7991,14 @@ function TrendsPage({ data, selectedTeamId }) {
                   <ChevronDown className={cx("ml-auto mt-2 h-4 w-4 text-slate-400 transition", expanded && "rotate-180 text-cyan-100")} />
                 </span>
               </button>
-            <AnimatePresence initial={false}>
+            <React.Fragment>
               {expanded && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }} className="overflow-hidden">
                 <div className="mt-2.5 grid gap-1.5 border-t border-white/10 pt-2.5">
                   {card.details.slice(0, 4).map((detail) => <p key={detail} className="rounded-md border border-white/8 bg-black/18 px-2 py-1.5 text-xs font-semibold leading-5 text-slate-200">{detail}</p>)}
                   <button type="button" onClick={() => openTrendSources({ title: card.label, subtitle: card.title, games: card.sourceGames })} className="mt-1 inline-flex w-fit items-center gap-2 rounded-lg border border-cyan-200/18 bg-cyan-300/[0.06] px-2.5 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/12"><FileText className="h-3.5 w-3.5" /> Sources</button>
                 </div>
               </motion.div>}
-            </AnimatePresence>
+            </React.Fragment>
             </article>;
           })}
         </div>
@@ -8016,14 +8027,14 @@ function TrendsPage({ data, selectedTeamId }) {
             <Badge tone={winrate >= 50 ? "green" : "red"}>{coachBriefs.length} axes</Badge>
           </div>
           <div className="mt-2 grid gap-1.5">
-            {coachBriefs.map((brief, index) => <div key={`${brief.label}-${index}`} className={cx("min-w-0 rounded-lg border p-2", index === 0 ? "border-cyan-200/24 bg-cyan-400/[0.07]" : "border-white/10 bg-white/[0.028]")}>
+            {coachBriefs.slice(0, 3).map((brief, index) => <button type="button" onClick={() => openTrendSources({ title: brief.label, subtitle: brief.title, games: brief.sourceGames })} key={`${brief.label}-${index}`} className={cx("min-w-0 rounded-lg border p-2 text-left transition hover:bg-white/[0.045]", index === 0 ? "border-cyan-200/24 bg-cyan-400/[0.07]" : "border-white/10 bg-white/[0.028]")}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Badge tone={brief.toneName}>{brief.label}</Badge>
                 <Badge tone="slate">{brief.sourceGames?.length || matches.length} games</Badge>
               </div>
               <p className="mt-1.5 text-xs font-black leading-5 text-white">{brief.title}</p>
-              <p className="mt-1 text-[0.66rem] font-semibold leading-4 text-slate-300">{brief.text}</p>
-            </div>)}
+              <p className="mt-1 line-clamp-2 text-[0.66rem] font-semibold leading-4 text-slate-300">{brief.text}</p>
+            </button>)}
           </div>
         </div>
       </div>
@@ -8072,7 +8083,7 @@ function TrendsPage({ data, selectedTeamId }) {
       <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-lg font-black text-white">Résumé équipe</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Écarts moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-3 grid gap-2 md:grid-cols-3">{[["KP équipe", `${teamKpAverage}%`, "green"], ["Vision équipe", signedAvg(visionDiff), "cyan"], ["Morts équipe", `${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/G`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p><p className={cx("mt-1.5 break-words text-xs font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
     </div>
     </>}
-    <AnimatePresence>
+    <React.Fragment>
       {trendSourceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[140] flex items-end justify-center bg-slate-950/90 p-3 backdrop-blur-xl sm:items-center">
         <button type="button" aria-label="Fermer les sources" onClick={() => setTrendSourceModal(null)} className="absolute inset-0 cursor-default" />
         <motion.section initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, scale: 0.98, opacity: 0 }} transition={{ duration: 0.18 }} className="relative z-10 flex max-h-[88vh] w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-2xl border border-cyan-100/18 bg-[#050913] shadow-[0_24px_80px_rgba(0,0,0,.5)]">
@@ -8115,7 +8126,7 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </motion.section>
       </motion.div>}
-    </AnimatePresence>
+    </React.Fragment>
   </div>;
 }
 
@@ -8168,13 +8179,13 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
         </div>
       </div>
     </Surface>
-    <AnimatePresence mode="wait">
+    <React.Fragment>
       <motion.div key={section} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
         {section === "import" && <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} currentMember={currentMember} user={user} />}
         {section === "stats" && <Statistics data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} />}
         {section === "review" && <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
       </motion.div>
-    </AnimatePresence>
+    </React.Fragment>
   </div>;
 }
 
@@ -8829,7 +8840,6 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                             </div>
                             <Badge tone={tier.tone}>{items.length}</Badge>
                           </div>
-                          <p className="mt-1 line-clamp-1 text-xs font-semibold text-slate-300">{tier.hint}</p>
                         </div>
                         <div className="relative z-10 grid max-h-[210px] flex-1 content-start gap-2 overflow-auto pr-1 sm:grid-cols-2">
                           {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[150px] items-center justify-center rounded-xl border border-dashed border-white/10 p-4 text-center text-xs font-semibold leading-5 text-slate-300">{canManageSelectedPool ? "Glisse un champion ici." : "Lecture seule."}</div>}
@@ -9297,9 +9307,9 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 
       <CompositionSummaryStrip players={players} rows={rows} compositions={compositions} formPicks={formPicks} />
 
-      <AnimatePresence initial={false}>
+      <React.Fragment>
         <CompositionTagLexicon open={showTagLexicon} />
-      </AnimatePresence>
+      </React.Fragment>
 
       {players.length ? (
         <form onSubmit={saveComposition} className="mt-4">
@@ -11105,7 +11115,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
   if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ?"lg:pl-[7rem]" : "lg:pl-[20.25rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} />{showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}<AnimatePresence mode="wait"><motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="min-w-0">{page}</motion.div></AnimatePresence></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}</div>;
+  return <div className="relative min-h-screen text-white"><AmbientBackground /><Sidebar active={active} setActive={setActive} open={sidebarOpen} setOpen={setSidebarOpen} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} user={user} currentMember={currentMember} linkedPlayer={linkedPlayer} onLogout={logout} /><div className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ?"lg:pl-[7rem]" : "lg:pl-[20.25rem]")}><Topbar active={active} setOpen={setSidebarOpen} currentTeam={currentTeam} teams={data.teams} onSelectTeam={setSelectedTeamId} onCreateTeam={openTeamCreation} onManageTeam={openTeamManagement} /><main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-6 xl:px-8 2xl:px-10"><ApiBanner error={apiError} />{showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}<React.Fragment><motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="min-w-0">{page}</motion.div></React.Fragment></main><LegalLinks navigate={navigate} /></div>{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}</div>;
 }
 
 export default function NXT5() {
