@@ -4,6 +4,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
 import { sendNotification } from './_mailer.js';
+import { ensureAuditLogsSchema, ensureReportsSchema } from './_lib/schema';
 
 function cleanText(value, max = 4000) {
   return String(value || '').trim().slice(0, max);
@@ -39,6 +40,8 @@ export default async function handler(request: Request, context: Context): Promi
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
+    await ensureReportsSchema();
+    await ensureAuditLogsSchema();
     const body = await readJson(request);
     const action = cleanText(body.action || 'create', 20);
     const teamId = cleanText(body.teamId, 80);

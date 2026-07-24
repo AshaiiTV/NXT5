@@ -3,6 +3,7 @@ import { sql } from './_lib/db';
 import { json, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema, seedDefaultMatchCategories } from './_lib/match-categories';
+import { ensureAuditLogsSchema, ensureCompositionTypesSchema, ensureReportsSchema } from './_lib/schema';
 import { ensureUserNotificationColumns } from './_getTeamMembers.js';
 
 function buildDashboard(matches, improvements) {
@@ -116,6 +117,25 @@ async function ensureMatchImporterColumn() {
 }
 
 async function ensureChampionPoolSchema() {
+  await sql`
+    create table if not exists champion_pool (
+      id uuid primary key default gen_random_uuid(),
+      team_id uuid not null references teams(id) on delete cascade,
+      player_id uuid references players(id) on delete cascade,
+      player_name text not null,
+      champion text not null,
+      games integer not null default 0,
+      wins integer not null default 0,
+      losses integer not null default 0,
+      winrate numeric not null default 0,
+      kda numeric not null default 0,
+      cs_per_min numeric not null default 0,
+      impact_grade text not null default '—',
+      verdict text not null default 'Données insuffisantes',
+      updated_at timestamptz not null default now(),
+      unique(team_id, player_id, champion)
+    )
+  `;
   await sql`alter table champion_pool add column if not exists role text`;
   await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
   await sql`alter table champion_pool add column if not exists notes text`;
@@ -124,12 +144,28 @@ async function ensureChampionPoolSchema() {
 }
 
 async function ensureRoleConstraints() {
+  await sql`
+    update players
+    set role = 'SUB'
+    where role is null
+      or role not in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD')
+  `;
   await sql`alter table players drop constraint if exists players_role_check`;
   await sql`
     alter table players add constraint players_role_check
     check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD'))
   `;
   await sql`alter table team_members drop constraint if exists team_members_role_check`;
+  await sql`
+    update team_members
+    set role = case
+      when lower(coalesce(role, '')) in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member')
+        then lower(role)
+      when lower(coalesce(role, '')) in ('staff', 'admin')
+        then 'coach'
+      else 'member'
+    end
+  `;
   await sql`
     alter table team_members add constraint team_members_role_check
     check (role in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member'))
@@ -165,6 +201,9 @@ export default async function handler(request: Request, context: Context): Promi
     await ensureMatchCategoriesSchema();
     await seedDefaultMatchCategories(teamIds, user.id);
     await ensureChampionPoolSchema();
+    await ensureReportsSchema();
+    await ensureCompositionTypesSchema();
+    await ensureAuditLogsSchema();
     await ensureRoleConstraints();
 
     const [

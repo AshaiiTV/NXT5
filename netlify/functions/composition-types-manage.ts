@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { ensureAuditLogsSchema, ensureCompositionTypesSchema } from './_lib/schema';
 
 function cleanText(value, max = 160) {
   return String(value || '').trim().slice(0, max);
@@ -12,6 +13,8 @@ export default async function handler(request: Request, context: Context): Promi
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
+    await ensureCompositionTypesSchema();
+    await ensureAuditLogsSchema();
     const body = await readJson(request);
     const action = cleanText(body.action || 'create', 20);
     const teamId = cleanText(body.teamId, 80);
