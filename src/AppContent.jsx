@@ -10573,25 +10573,22 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
         </div>
 
         <div className="nxt5-warroom-grid">
-          <div className="nxt5-warroom-map" aria-hidden="true">
-            <span className="nxt5-warroom-base nxt5-warroom-base-blue" />
-            <span className="nxt5-warroom-base nxt5-warroom-base-red" />
-            <span className="nxt5-warroom-map-line nxt5-warroom-map-line-top" />
-            <span className="nxt5-warroom-map-line nxt5-warroom-map-line-mid" />
-            <span className="nxt5-warroom-map-line nxt5-warroom-map-line-bot" />
-            <span className="nxt5-warroom-river" />
-            <span className="nxt5-warroom-objective nxt5-warroom-objective-herald" />
-            <span className="nxt5-warroom-objective nxt5-warroom-objective-drake" />
-            <span className="nxt5-warroom-camp nxt5-warroom-camp-blue-top" />
-            <span className="nxt5-warroom-camp nxt5-warroom-camp-blue-bot" />
-            <span className="nxt5-warroom-camp nxt5-warroom-camp-red-top" />
-            <span className="nxt5-warroom-camp nxt5-warroom-camp-red-bot" />
-            <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=1" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="" width="512" height="512" decoding="async" className="nxt5-warroom-mark" />
-            {roles.map(([role, lane], index) => (
-              <span key={role} className={cx("nxt5-warroom-role", `nxt5-warroom-role-${lane}`)} style={{ "--delay": `${index * 160}ms` }}>
-                {role}
-              </span>
-            ))}
+          <div className="nxt5-player-board" aria-hidden="true">
+            <div className="nxt5-player-board-noise" />
+            <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=1" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="" width="512" height="512" decoding="async" className="nxt5-player-board-token" />
+            <div className="nxt5-player-columns">
+              {roles.map(([role], index) => (
+                <span key={role} className={cx("nxt5-player-column", `nxt5-player-column-${index + 1}`)} style={{ "--delay": `${index * 160}ms` }}>
+                  <span>Player {String(index + 1).padStart(2, "0")}</span>
+                  <strong>{role}</strong>
+                </span>
+              ))}
+            </div>
+            <div className="nxt5-player-board-title">
+              <span>Chargement roster</span>
+              <strong>NXT5</strong>
+              <em>Les plans de la Faille</em>
+            </div>
           </div>
 
           <div className="nxt5-warroom-panel">

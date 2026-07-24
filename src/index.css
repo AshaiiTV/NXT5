@@ -1541,164 +1541,6 @@ html.nxt5-low-gpu .nxt5-loader-core {
   backdrop-filter: blur(22px);
 }
 
-.nxt5-warroom-map {
-  min-height: clamp(360px, 44vh, 510px);
-  isolation: isolate;
-}
-
-.nxt5-warroom-map::before {
-  content: "";
-  position: absolute;
-  inset: 1.2rem;
-  border: 1px solid rgba(103, 232, 249, 0.16);
-  border-radius: 1.05rem;
-  background:
-    radial-gradient(circle at 14% 86%, rgba(103, 232, 249, 0.18), transparent 13%),
-    radial-gradient(circle at 86% 14%, rgba(217, 70, 239, 0.18), transparent 13%),
-    linear-gradient(135deg, transparent 49.45%, rgba(230, 247, 255, 0.22) 49.9% 50.1%, transparent 50.55%),
-    linear-gradient(45deg, transparent 49.55%, rgba(103, 232, 249, 0.12) 49.9% 50.1%, transparent 50.45%),
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 54px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 54px);
-  opacity: 0.78;
-}
-
-.nxt5-warroom-map::after {
-  content: "";
-  position: absolute;
-  inset: 18% 12%;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(103, 232, 249, 0.16), transparent 58%);
-  filter: blur(4px);
-  opacity: 0.9;
-}
-
-.nxt5-warroom-map-line,
-.nxt5-warroom-river,
-.nxt5-warroom-base,
-.nxt5-warroom-objective,
-.nxt5-warroom-camp,
-.nxt5-warroom-role,
-.nxt5-warroom-mark {
-  position: absolute;
-  z-index: 1;
-}
-
-.nxt5-warroom-map-line {
-  height: 3px;
-  border-radius: 999px;
-  background:
-    linear-gradient(90deg, transparent, rgba(191, 219, 254, 0.28), rgba(103, 232, 249, 0.72), rgba(217, 70, 239, 0.48), transparent);
-  box-shadow:
-    0 0 18px rgba(103, 232, 249, 0.26),
-    0 0 36px rgba(217, 70, 239, 0.12);
-  opacity: 0.86;
-}
-
-.nxt5-warroom-map-line-top {
-  left: 9%;
-  top: 22%;
-  width: 46%;
-  transform: rotate(-36deg);
-}
-
-.nxt5-warroom-map-line-mid {
-  left: 14%;
-  top: 50%;
-  width: 72%;
-  transform: rotate(-45deg);
-}
-
-.nxt5-warroom-map-line-bot {
-  right: 9%;
-  bottom: 22%;
-  width: 46%;
-  transform: rotate(-36deg);
-}
-
-.nxt5-warroom-river {
-  inset: 7% 42%;
-  border-radius: 999px;
-  background:
-    linear-gradient(180deg, transparent, rgba(103, 232, 249, 0.3), rgba(217, 70, 239, 0.2), transparent);
-  filter: blur(0.5px);
-  transform: rotate(38deg);
-}
-
-.nxt5-warroom-base {
-  width: clamp(2.6rem, 7vw, 4.8rem);
-  aspect-ratio: 1;
-  border: 1px solid rgba(214, 246, 255, 0.2);
-  border-radius: 1rem;
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.08), transparent),
-    rgba(3, 10, 24, 0.82);
-  box-shadow:
-    inset 0 0 22px rgba(255, 255, 255, 0.06),
-    0 0 28px rgba(34, 211, 238, 0.14);
-  transform: rotate(45deg);
-}
-
-.nxt5-warroom-base-blue {
-  left: 8%;
-  bottom: 8%;
-  border-color: rgba(103, 232, 249, 0.34);
-}
-
-.nxt5-warroom-base-red {
-  right: 8%;
-  top: 8%;
-  border-color: rgba(217, 70, 239, 0.34);
-  box-shadow:
-    inset 0 0 22px rgba(255, 255, 255, 0.05),
-    0 0 28px rgba(217, 70, 239, 0.14);
-}
-
-.nxt5-warroom-objective {
-  width: clamp(0.9rem, 2vw, 1.25rem);
-  aspect-ratio: 1;
-  border: 1px solid rgba(253, 230, 138, 0.48);
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(253, 230, 138, 0.95), rgba(245, 158, 11, 0.22) 42%, rgba(3, 10, 24, 0.78) 70%);
-  box-shadow: 0 0 24px rgba(253, 230, 138, 0.25);
-}
-
-.nxt5-warroom-objective-herald {
-  left: 39%;
-  top: 34%;
-}
-
-.nxt5-warroom-objective-drake {
-  right: 35%;
-  bottom: 31%;
-}
-
-.nxt5-warroom-camp {
-  width: 0.48rem;
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: rgba(214, 246, 255, 0.72);
-  box-shadow: 0 0 14px rgba(103, 232, 249, 0.28);
-  opacity: 0.82;
-}
-
-.nxt5-warroom-camp-blue-top { left: 26%; top: 35%; }
-.nxt5-warroom-camp-blue-bot { left: 31%; bottom: 29%; }
-.nxt5-warroom-camp-red-top { right: 27%; top: 29%; }
-.nxt5-warroom-camp-red-bot { right: 30%; bottom: 36%; }
-
-.nxt5-warroom-mark {
-  left: 50%;
-  top: 50%;
-  width: clamp(58px, 10vw, 92px);
-  height: clamp(58px, 10vw, 92px);
-  object-fit: contain;
-  opacity: 0.68;
-  transform: translate(-50%, -50%);
-  filter:
-    drop-shadow(0 0 14px rgba(103, 232, 249, 0.34))
-    drop-shadow(0 0 20px rgba(217, 70, 239, 0.18));
-}
-
 .nxt5-warroom-role {
   display: inline-flex;
   min-width: 3.1rem;
@@ -1797,6 +1639,195 @@ html.nxt5-low-gpu .nxt5-loader-core {
   background: rgba(103, 232, 249, 0.09);
   opacity: 1;
   animation: nxt5-warroom-step 1.45s var(--delay, 0ms) ease-in-out infinite;
+}
+
+.nxt5-player-board {
+  position: relative;
+  min-height: clamp(360px, 44vh, 510px);
+  overflow: hidden;
+  border: 1px solid rgba(214, 246, 255, 0.14);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 78% 14%, rgba(190, 242, 100, 0.55), transparent 12%),
+    radial-gradient(circle at 22% 20%, rgba(103, 232, 249, 0.22), transparent 26%),
+    linear-gradient(180deg, rgba(37, 99, 235, 0.58) 0%, rgba(35, 18, 124, 0.84) 44%, rgba(178, 255, 0, 0.86) 68%, rgba(21, 20, 165, 0.92) 69%, rgba(3, 10, 34, 0.92) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 32px 90px rgba(0, 0, 0, 0.34);
+  isolation: isolate;
+}
+
+.nxt5-player-board::before,
+.nxt5-player-board::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.nxt5-player-board::before {
+  inset: 0;
+  background:
+    linear-gradient(110deg, transparent 0 24%, rgba(255,255,255,0.12) 24.4% 24.8%, transparent 25.2% 54%, rgba(217,70,239,0.16) 54.4% 54.8%, transparent 55.2%),
+    radial-gradient(circle at 18% 50%, transparent 0 8%, rgba(255,255,255,0.08) 8.3% 8.7%, transparent 9%),
+    radial-gradient(circle at 88% 45%, transparent 0 9%, rgba(255,255,255,0.09) 9.3% 9.7%, transparent 10%);
+  opacity: 0.5;
+}
+
+.nxt5-player-board::after {
+  left: -8%;
+  right: -8%;
+  bottom: -16%;
+  height: 44%;
+  background:
+    repeating-radial-gradient(ellipse at center, rgba(255,255,255,0.17) 0 1px, transparent 1px 10px);
+  opacity: 0.18;
+  transform: rotate(-5deg);
+}
+
+.nxt5-player-board-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 4px),
+    linear-gradient(90deg, rgba(2,5,17,0.2), transparent 28%, transparent 72%, rgba(2,5,17,0.24));
+  mix-blend-mode: overlay;
+  opacity: 0.22;
+}
+
+.nxt5-player-board-token {
+  position: absolute;
+  right: clamp(1.4rem, 5vw, 3.5rem);
+  top: clamp(1.2rem, 4vw, 2.4rem);
+  z-index: 4;
+  width: clamp(56px, 8vw, 86px);
+  height: clamp(56px, 8vw, 86px);
+  border: 1px solid rgba(214, 246, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(3, 10, 24, 0.42);
+  object-fit: contain;
+  padding: 0.25rem;
+  box-shadow:
+    0 0 32px rgba(190, 242, 100, 0.28),
+    0 0 42px rgba(34, 211, 238, 0.18);
+}
+
+.nxt5-player-columns {
+  position: absolute;
+  inset: 9% 5% 22%;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: end;
+  gap: clamp(0.45rem, 1.5vw, 1rem);
+}
+
+.nxt5-player-column {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: var(--height, 70%);
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid rgba(214, 246, 255, 0.12);
+  border-bottom: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 12, 39, 0.34), rgba(5, 12, 39, 0.68) 54%, rgba(14, 23, 68, 0.92)),
+    linear-gradient(90deg, rgba(103,232,249,0.08), transparent 45%, rgba(217,70,239,0.08));
+  padding: 0.65rem 0.45rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    0 -20px 46px rgba(103,232,249,0.08);
+  animation: nxt5-player-column 2.5s var(--delay, 0ms) ease-in-out infinite;
+}
+
+.nxt5-player-column::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0.35rem;
+  background: #d9ff00;
+  box-shadow: 0 0 22px rgba(217, 255, 0, 0.58);
+}
+
+.nxt5-player-column span,
+.nxt5-player-column strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+
+.nxt5-player-column span {
+  color: #06102f;
+  font-size: clamp(0.52rem, 1.2vw, 0.76rem);
+  font-weight: 1000;
+  letter-spacing: 0.05em;
+}
+
+.nxt5-player-column strong {
+  margin-top: 0.16rem;
+  color: #ffffff;
+  font-size: clamp(0.72rem, 1.5vw, 1rem);
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 18px rgba(3, 10, 24, 0.7);
+}
+
+.nxt5-player-column-1 { --height: 74%; }
+.nxt5-player-column-2 { --height: 52%; }
+.nxt5-player-column-3 { --height: 86%; }
+.nxt5-player-column-4 { --height: 42%; }
+.nxt5-player-column-5 { --height: 68%; }
+
+.nxt5-player-board-title {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 5%;
+  z-index: 3;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.nxt5-player-board-title span,
+.nxt5-player-board-title em {
+  display: block;
+  color: rgba(255,255,255,0.88);
+  font-style: normal;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+}
+
+.nxt5-player-board-title span {
+  font-size: clamp(0.55rem, 1.3vw, 0.74rem);
+}
+
+.nxt5-player-board-title strong {
+  display: block;
+  color: #ffffff;
+  font-size: clamp(3.4rem, 11vw, 7.2rem);
+  font-weight: 1000;
+  line-height: 0.86;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 4px 24px rgba(0,0,0,0.5),
+    0 0 42px rgba(34,211,238,0.24);
+}
+
+.nxt5-player-board-title em {
+  margin-top: 0.25rem;
+  font-size: clamp(0.62rem, 1.6vw, 0.92rem);
+}
+
+@keyframes nxt5-player-column {
+  0%, 100% { filter: brightness(0.92); transform: translateY(0); }
+  50% { filter: brightness(1.08); transform: translateY(-2px); }
 }
 
 .nxt5-warroom-step.is-done,
@@ -2064,7 +2095,7 @@ html.nxt5-low-gpu .nxt5-loader-core {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .nxt5-warroom-map {
+  .nxt5-player-board {
     min-height: 340px;
   }
 
