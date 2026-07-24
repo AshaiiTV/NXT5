@@ -1484,6 +1484,247 @@ html.nxt5-low-gpu .nxt5-loader-core {
   66%, 100% { transform: scaleX(1); }
 }
 
+.nxt5-warroom {
+  display: grid;
+  gap: clamp(1.3rem, 3vh, 2rem);
+}
+
+.nxt5-warroom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nxt5-warroom-copy {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.nxt5-warroom-copy p {
+  margin: 0;
+  color: #9defff;
+  font-size: clamp(0.62rem, 1.2vw, 0.78rem);
+  font-weight: 950;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.nxt5-warroom-copy h1 {
+  margin: 0;
+  max-width: 760px;
+  font-size: clamp(2.25rem, 6vw, 5.4rem);
+  font-weight: 1000;
+  line-height: 0.92;
+  letter-spacing: 0;
+}
+
+.nxt5-warroom-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(260px, 0.72fr);
+  gap: clamp(1rem, 2.8vw, 2rem);
+  align-items: stretch;
+}
+
+.nxt5-warroom-map,
+.nxt5-warroom-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(214, 246, 255, 0.14);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(135deg, rgba(6, 17, 36, 0.86), rgba(6, 9, 24, 0.76)),
+    rgba(2, 5, 17, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 32px 90px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(22px);
+}
+
+.nxt5-warroom-map {
+  min-height: clamp(360px, 44vh, 510px);
+  isolation: isolate;
+}
+
+.nxt5-warroom-map::before {
+  content: "";
+  position: absolute;
+  inset: 1.2rem;
+  border: 1px solid rgba(103, 232, 249, 0.13);
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, transparent 49.65%, rgba(103, 232, 249, 0.2) 49.9% 50.1%, transparent 50.35%),
+    linear-gradient(45deg, transparent 49.7%, rgba(217, 70, 239, 0.13) 49.95% 50.05%, transparent 50.3%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 54px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 54px);
+  opacity: 0.78;
+}
+
+.nxt5-warroom-map::after {
+  content: "";
+  position: absolute;
+  inset: 18% 12%;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(103, 232, 249, 0.16), transparent 58%);
+  filter: blur(4px);
+  opacity: 0.9;
+}
+
+.nxt5-warroom-map-line,
+.nxt5-warroom-river,
+.nxt5-warroom-role,
+.nxt5-warroom-mark {
+  position: absolute;
+  z-index: 1;
+}
+
+.nxt5-warroom-map-line {
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(103, 232, 249, 0.76), rgba(217, 70, 239, 0.42), transparent);
+  box-shadow: 0 0 18px rgba(103, 232, 249, 0.28);
+  opacity: 0.72;
+}
+
+.nxt5-warroom-map-line-top {
+  left: 11%;
+  top: 21%;
+  width: 48%;
+  transform: rotate(-34deg);
+}
+
+.nxt5-warroom-map-line-mid {
+  left: 18%;
+  top: 50%;
+  width: 64%;
+  transform: rotate(-45deg);
+}
+
+.nxt5-warroom-map-line-bot {
+  right: 10%;
+  bottom: 22%;
+  width: 50%;
+  transform: rotate(-34deg);
+}
+
+.nxt5-warroom-river {
+  inset: 8% 43%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, rgba(103, 232, 249, 0.25), rgba(217, 70, 239, 0.17), transparent);
+  filter: blur(1px);
+  transform: rotate(38deg);
+}
+
+.nxt5-warroom-mark {
+  left: 50%;
+  top: 50%;
+  width: clamp(76px, 14vw, 118px);
+  height: clamp(76px, 14vw, 118px);
+  object-fit: contain;
+  opacity: 0.88;
+  transform: translate(-50%, -50%);
+  filter:
+    drop-shadow(0 0 18px rgba(103, 232, 249, 0.42))
+    drop-shadow(0 0 26px rgba(217, 70, 239, 0.24));
+}
+
+.nxt5-warroom-role {
+  display: inline-flex;
+  min-width: 3.1rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(214, 246, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(3, 10, 24, 0.88);
+  padding: 0.58rem 0.7rem;
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 1000;
+  letter-spacing: 0.12em;
+  box-shadow:
+    0 0 26px rgba(34, 211, 238, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  animation: nxt5-warroom-pulse 2.15s var(--delay, 0ms) ease-in-out infinite;
+}
+
+.nxt5-warroom-role-top { left: 15%; top: 18%; }
+.nxt5-warroom-role-jungle { left: 31%; top: 41%; }
+.nxt5-warroom-role-mid { left: 50%; top: 31%; transform: translateX(-50%); }
+.nxt5-warroom-role-adc { right: 16%; bottom: 20%; }
+.nxt5-warroom-role-support { right: 32%; bottom: 39%; }
+
+.nxt5-warroom-panel {
+  display: grid;
+  gap: 0.65rem;
+  align-content: center;
+  padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.nxt5-warroom-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(103, 232, 249, 0.07), transparent 42%, rgba(217, 70, 239, 0.08));
+  pointer-events: none;
+}
+
+.nxt5-warroom-step,
+.nxt5-warroom-ready {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(214, 246, 255, 0.12);
+  border-radius: 0.85rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.85rem 0.9rem;
+  animation: nxt5-warroom-step 2.5s var(--delay, 0ms) ease-in-out infinite;
+}
+
+.nxt5-warroom-step svg,
+.nxt5-warroom-ready svg {
+  flex: 0 0 auto;
+  color: #a5f3fc;
+}
+
+.nxt5-warroom-step p,
+.nxt5-warroom-step span,
+.nxt5-warroom-ready span {
+  margin: 0;
+}
+
+.nxt5-warroom-step p,
+.nxt5-warroom-ready span {
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 1000;
+}
+
+.nxt5-warroom-step span {
+  display: block;
+  margin-top: 0.1rem;
+  color: rgba(243, 248, 255, 0.72);
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.nxt5-warroom-ready {
+  border-color: rgba(103, 232, 249, 0.28);
+  background: linear-gradient(135deg, rgba(103, 232, 249, 0.16), rgba(217, 70, 239, 0.12));
+}
+
+@keyframes nxt5-warroom-pulse {
+  0%, 100% { border-color: rgba(214, 246, 255, 0.18); opacity: 0.72; }
+  50% { border-color: rgba(103, 232, 249, 0.34); opacity: 1; }
+}
+
+@keyframes nxt5-warroom-step {
+  0%, 100% { border-color: rgba(214, 246, 255, 0.1); opacity: 0.72; }
+  50% { border-color: rgba(103, 232, 249, 0.28); opacity: 1; }
+}
+
 /* NXT5 favors high-contrast secondary text: readable silver over dim grey. */
 .text-slate-300 {
   color: #f3f8ff;
@@ -1701,6 +1942,44 @@ html.nxt5-low-gpu .nxt5-loader-core {
     padding: 0.45rem 0.55rem;
     font-size: 0.6rem;
   }
+
+  .nxt5-warroom {
+    gap: 1rem;
+  }
+
+  .nxt5-warroom-header {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+  }
+
+  .nxt5-warroom-copy h1 {
+    font-size: clamp(2rem, 12vw, 3.4rem);
+    line-height: 0.98;
+  }
+
+  .nxt5-warroom-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nxt5-warroom-map {
+    min-height: 340px;
+  }
+
+  .nxt5-warroom-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nxt5-warroom-ready {
+    grid-column: 1 / -1;
+  }
+
+  .nxt5-warroom-step {
+    padding: 0.75rem;
+  }
+
+  .nxt5-warroom-step span {
+    font-size: 0.58rem;
+  }
 }
 
 @media (max-width: 767px) {
@@ -1775,7 +2054,9 @@ html.nxt5-low-gpu .nxt5-loader-core {
   .nxt5-loader-role,
   .nxt5-loader-beam,
   .nxt5-loader-stage,
-  .nxt5-loader-stage-line::after {
+  .nxt5-loader-stage-line::after,
+  .nxt5-warroom-role,
+  .nxt5-warroom-step {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
   }

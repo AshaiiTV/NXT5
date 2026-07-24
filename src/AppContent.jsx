@@ -10533,56 +10533,66 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
 }
 
 function AppLoadingScreen() {
-  const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
+  const roles = [
+    ["TOP", "top"],
+    ["JGL", "jungle"],
+    ["MID", "mid"],
+    ["ADC", "adc"],
+    ["SUP", "support"],
+  ];
   const stages = [
-    ["Roster", Users],
-    ["Games", Swords],
-    ["Draft", Crown],
-    ["Review", FileText],
-    ["Prêt", Check],
+    ["Roster", "R\u00f4les align\u00e9s", Users],
+    ["Games", "Timelines index\u00e9es", Swords],
+    ["Draft", "Priorit\u00e9s charg\u00e9es", Crown],
+    ["Review", "Signaux pr\u00eats", FileText],
   ];
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-6 text-white sm:px-6">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,rgba(103,232,249,.16),transparent_31%),radial-gradient(circle_at_78%_26%,rgba(217,70,239,.12),transparent_28%),linear-gradient(90deg,rgba(2,5,17,.76),transparent_34%,transparent_66%,rgba(2,5,17,.8))]" />
-      <motion.div initial={{ opacity: 0, y: 18, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.62, ease: "easeOut" }} className="relative z-10 flex w-full max-w-6xl flex-col items-center">
-        <div className="nxt5-loader-kicker">
-          <span />
-          <p>Synchronisation NXT5</p>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(103,232,249,.14),transparent_34%),radial-gradient(circle_at_74%_30%,rgba(217,70,239,.10),transparent_30%),linear-gradient(90deg,rgba(2,5,17,.86),transparent_42%,rgba(2,5,17,.84))]" />
+      <motion.div initial={{ opacity: 0, y: 18, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.62, ease: "easeOut" }} className="nxt5-warroom relative z-10 w-full max-w-6xl">
+        <div className="nxt5-warroom-header">
+          <div className="nxt5-loader-kicker">
+            <span />
+            <p>War room NXT5</p>
+          </div>
+          <Nxt5Wordmark className="nxt5-loader-wordmark h-12 w-48 object-left sm:h-14 sm:w-56" />
         </div>
 
-        <Nxt5Wordmark className="nxt5-loader-wordmark mt-6 h-16 w-full max-w-[24rem] object-center sm:h-20" />
-        <h1 className="nxt5-loader-title mt-4 text-center text-3xl font-black leading-tight text-white sm:text-5xl">Préparation du terrain</h1>
+        <div className="nxt5-warroom-copy">
+          <p>Ouverture espace staff</p>
+          <h1 className="nxt5-loader-title">{"Pr\u00e9paration de la review"}</h1>
+        </div>
 
-        <div className="nxt5-loader-cinema mt-7 w-full">
-          <div className="nxt5-loader-cinema-grid" />
-          <div className="nxt5-loader-cinema-scan" />
-          <div className="nxt5-loader-arena" aria-hidden="true">
-            <span className="nxt5-loader-arena-ring nxt5-loader-arena-ring-one" />
-            <span className="nxt5-loader-arena-ring nxt5-loader-arena-ring-two" />
-            <span className="nxt5-loader-arena-ring nxt5-loader-arena-ring-three" />
-            {roles.map((role, index) => (
-              <span key={role} className={cx("nxt5-loader-role", `nxt5-loader-role-${index}`)} style={{ "--delay": `${index * 170}ms` }}>
+        <div className="nxt5-warroom-grid">
+          <div className="nxt5-warroom-map" aria-hidden="true">
+            <span className="nxt5-warroom-map-line nxt5-warroom-map-line-top" />
+            <span className="nxt5-warroom-map-line nxt5-warroom-map-line-mid" />
+            <span className="nxt5-warroom-map-line nxt5-warroom-map-line-bot" />
+            <span className="nxt5-warroom-river" />
+            <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=1" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="" width="512" height="512" decoding="async" className="nxt5-warroom-mark" />
+            {roles.map(([role, lane], index) => (
+              <span key={role} className={cx("nxt5-warroom-role", `nxt5-warroom-role-${lane}`)} style={{ "--delay": `${index * 160}ms` }}>
                 {role}
               </span>
             ))}
-            {roles.map((role, index) => (
-              <span key={`${role}-beam`} className={cx("nxt5-loader-beam", `nxt5-loader-beam-${index}`)} style={{ "--delay": `${index * 150}ms` }} />
-            ))}
-            <div className="nxt5-loader-core">
-              <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=1" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" decoding="async" />
-            </div>
           </div>
 
-          <div className="nxt5-loader-stages">
-            {stages.map(([stage, Icon], index) => (
-              <div key={stage} className="nxt5-loader-stage" style={{ "--delay": `${index * 170}ms` }}>
+          <div className="nxt5-warroom-panel">
+            {stages.map(([stage, detail, Icon], index) => (
+              <div key={stage} className="nxt5-warroom-step" style={{ "--delay": `${index * 180}ms` }}>
                 <Icon className="h-4 w-4" />
-                <span>{stage}</span>
+                <div>
+                  <p>{stage}</p>
+                  <span>{detail}</span>
+                </div>
               </div>
             ))}
-            <span className="nxt5-loader-stage-line" />
+            <div className="nxt5-warroom-ready">
+              <Check className="h-4 w-4" />
+              <span>{"Pr\u00eat"}</span>
+            </div>
           </div>
         </div>
       </motion.div>
