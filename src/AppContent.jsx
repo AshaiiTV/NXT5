@@ -10579,15 +10579,15 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
             <div className="nxt5-player-columns">
               {roles.map(([role], index) => (
                 <span key={role} className={cx("nxt5-player-column", `nxt5-player-column-${index + 1}`)} style={{ "--delay": `${index * 160}ms` }}>
-                  <span>Player {String(index + 1).padStart(2, "0")}</span>
+                  <span>Slot {String(index + 1).padStart(2, "0")}</span>
                   <strong>{role}</strong>
                 </span>
               ))}
             </div>
             <div className="nxt5-player-board-title">
-              <span>Chargement roster</span>
-              <strong>NXT5</strong>
-              <em>Les plans de la Faille</em>
+              <span>Lineup scan</span>
+              <strong>Roster</strong>
+              <em>Roster en cours de synchronisation</em>
             </div>
           </div>
 

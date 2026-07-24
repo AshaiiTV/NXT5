@@ -1645,14 +1645,15 @@ html.nxt5-low-gpu .nxt5-loader-core {
   position: relative;
   min-height: clamp(360px, 44vh, 510px);
   overflow: hidden;
-  border: 1px solid rgba(214, 246, 255, 0.14);
+  border: 1px solid rgba(214, 246, 255, 0.16);
   border-radius: 1.25rem;
   background:
-    radial-gradient(circle at 78% 14%, rgba(190, 242, 100, 0.55), transparent 12%),
-    radial-gradient(circle at 22% 20%, rgba(103, 232, 249, 0.22), transparent 26%),
-    linear-gradient(180deg, rgba(37, 99, 235, 0.58) 0%, rgba(35, 18, 124, 0.84) 44%, rgba(178, 255, 0, 0.86) 68%, rgba(21, 20, 165, 0.92) 69%, rgba(3, 10, 34, 0.92) 100%);
+    radial-gradient(circle at 78% 18%, rgba(217, 70, 239, 0.22), transparent 26%),
+    radial-gradient(circle at 18% 22%, rgba(103, 232, 249, 0.24), transparent 28%),
+    linear-gradient(180deg, rgba(5, 18, 38, 0.96) 0%, rgba(8, 13, 38, 0.95) 56%, rgba(12, 17, 44, 0.98) 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -80px 120px rgba(103, 232, 249, 0.05),
     0 32px 90px rgba(0, 0, 0, 0.34);
   isolation: isolate;
 }
@@ -1667,10 +1668,10 @@ html.nxt5-low-gpu .nxt5-loader-core {
 .nxt5-player-board::before {
   inset: 0;
   background:
-    linear-gradient(110deg, transparent 0 24%, rgba(255,255,255,0.12) 24.4% 24.8%, transparent 25.2% 54%, rgba(217,70,239,0.16) 54.4% 54.8%, transparent 55.2%),
-    radial-gradient(circle at 18% 50%, transparent 0 8%, rgba(255,255,255,0.08) 8.3% 8.7%, transparent 9%),
-    radial-gradient(circle at 88% 45%, transparent 0 9%, rgba(255,255,255,0.09) 9.3% 9.7%, transparent 10%);
-  opacity: 0.5;
+    linear-gradient(115deg, transparent 0 22%, rgba(103,232,249,0.12) 22.2% 22.5%, transparent 22.9% 56%, rgba(217,70,239,0.12) 56.2% 56.5%, transparent 56.9%),
+    radial-gradient(circle at 18% 52%, transparent 0 8%, rgba(103,232,249,0.08) 8.3% 8.6%, transparent 9%),
+    radial-gradient(circle at 88% 45%, transparent 0 9%, rgba(217,70,239,0.08) 9.3% 9.6%, transparent 10%);
+  opacity: 0.64;
 }
 
 .nxt5-player-board::after {
@@ -1679,9 +1680,9 @@ html.nxt5-low-gpu .nxt5-loader-core {
   bottom: -16%;
   height: 44%;
   background:
-    repeating-radial-gradient(ellipse at center, rgba(255,255,255,0.17) 0 1px, transparent 1px 10px);
-  opacity: 0.18;
-  transform: rotate(-5deg);
+    repeating-radial-gradient(ellipse at center, rgba(103,232,249,0.16) 0 1px, transparent 1px 12px);
+  opacity: 0.14;
+  transform: rotate(-4deg);
 }
 
 .nxt5-player-board-noise {
@@ -1689,10 +1690,10 @@ html.nxt5-low-gpu .nxt5-loader-core {
   inset: 0;
   z-index: 1;
   background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.045) 0 1px, transparent 1px 5px),
     linear-gradient(90deg, rgba(2,5,17,0.2), transparent 28%, transparent 72%, rgba(2,5,17,0.24));
   mix-blend-mode: overlay;
-  opacity: 0.22;
+  opacity: 0.18;
 }
 
 .nxt5-player-board-token {
@@ -1700,26 +1701,27 @@ html.nxt5-low-gpu .nxt5-loader-core {
   right: clamp(1.4rem, 5vw, 3.5rem);
   top: clamp(1.2rem, 4vw, 2.4rem);
   z-index: 4;
-  width: clamp(56px, 8vw, 86px);
-  height: clamp(56px, 8vw, 86px);
+  width: clamp(50px, 7vw, 74px);
+  height: clamp(50px, 7vw, 74px);
   border: 1px solid rgba(214, 246, 255, 0.28);
   border-radius: 999px;
-  background: rgba(3, 10, 24, 0.42);
+  background: rgba(3, 10, 24, 0.7);
   object-fit: contain;
   padding: 0.25rem;
   box-shadow:
-    0 0 32px rgba(190, 242, 100, 0.28),
-    0 0 42px rgba(34, 211, 238, 0.18);
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 30px rgba(34, 211, 238, 0.18),
+    0 0 46px rgba(217, 70, 239, 0.12);
 }
 
 .nxt5-player-columns {
   position: absolute;
-  inset: 9% 5% 22%;
+  inset: 12% 6% 31%;
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: end;
-  gap: clamp(0.45rem, 1.5vw, 1rem);
+  gap: clamp(0.55rem, 1.5vw, 1.05rem);
 }
 
 .nxt5-player-column {
@@ -1729,16 +1731,18 @@ html.nxt5-low-gpu .nxt5-loader-core {
   height: var(--height, 70%);
   flex-direction: column;
   justify-content: flex-end;
-  border: 1px solid rgba(214, 246, 255, 0.12);
-  border-bottom: 0;
+  border: 1px solid rgba(214, 246, 255, 0.16);
+  border-radius: 0.95rem 0.95rem 0.35rem 0.35rem;
   background:
-    linear-gradient(180deg, rgba(5, 12, 39, 0.34), rgba(5, 12, 39, 0.68) 54%, rgba(14, 23, 68, 0.92)),
-    linear-gradient(90deg, rgba(103,232,249,0.08), transparent 45%, rgba(217,70,239,0.08));
-  padding: 0.65rem 0.45rem;
+    linear-gradient(180deg, rgba(255,255,255,0.05), transparent 22%),
+    linear-gradient(180deg, rgba(7, 18, 42, 0.42), rgba(7, 13, 32, 0.88) 62%, rgba(10, 20, 48, 0.96)),
+    linear-gradient(90deg, rgba(103,232,249,0.1), transparent 48%, rgba(217,70,239,0.08));
+  padding: 0.72rem 0.58rem 0.95rem;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.07),
-    0 -20px 46px rgba(103,232,249,0.08);
-  animation: nxt5-player-column 2.5s var(--delay, 0ms) ease-in-out infinite;
+    inset 0 1px 0 rgba(255,255,255,0.09),
+    inset 0 -1px 0 rgba(103,232,249,0.18),
+    0 18px 44px rgba(0,0,0,0.18);
+  animation: nxt5-player-column 3s var(--delay, 0ms) ease-in-out infinite;
 }
 
 .nxt5-player-column::before {
@@ -1747,9 +1751,9 @@ html.nxt5-low-gpu .nxt5-loader-core {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 0.35rem;
-  background: #d9ff00;
-  box-shadow: 0 0 22px rgba(217, 255, 0, 0.58);
+  height: 0.24rem;
+  background: linear-gradient(90deg, #67e8f9, #60a5fa, #d946ef);
+  box-shadow: 0 0 22px rgba(103, 232, 249, 0.32);
 }
 
 .nxt5-player-column span,
@@ -1764,32 +1768,32 @@ html.nxt5-low-gpu .nxt5-loader-core {
 }
 
 .nxt5-player-column span {
-  color: #06102f;
-  font-size: clamp(0.52rem, 1.2vw, 0.76rem);
+  color: rgba(165, 243, 252, 0.68);
+  font-size: clamp(0.5rem, 1.05vw, 0.68rem);
   font-weight: 1000;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
 }
 
 .nxt5-player-column strong {
-  margin-top: 0.16rem;
+  margin-top: 0.2rem;
   color: #ffffff;
-  font-size: clamp(0.72rem, 1.5vw, 1rem);
+  font-size: clamp(0.82rem, 1.7vw, 1.12rem);
   font-weight: 1000;
-  letter-spacing: 0.08em;
-  text-shadow: 0 0 18px rgba(3, 10, 24, 0.7);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 18px rgba(103, 232, 249, 0.28);
 }
 
-.nxt5-player-column-1 { --height: 74%; }
-.nxt5-player-column-2 { --height: 52%; }
-.nxt5-player-column-3 { --height: 86%; }
-.nxt5-player-column-4 { --height: 42%; }
+.nxt5-player-column-1 { --height: 72%; }
+.nxt5-player-column-2 { --height: 58%; }
+.nxt5-player-column-3 { --height: 82%; }
+.nxt5-player-column-4 { --height: 52%; }
 .nxt5-player-column-5 { --height: 68%; }
 
 .nxt5-player-board-title {
   position: absolute;
   left: 6%;
   right: 6%;
-  bottom: 5%;
+  bottom: 5.5%;
   z-index: 3;
   text-align: center;
   text-transform: uppercase;
@@ -1798,10 +1802,10 @@ html.nxt5-low-gpu .nxt5-loader-core {
 .nxt5-player-board-title span,
 .nxt5-player-board-title em {
   display: block;
-  color: rgba(255,255,255,0.88);
+  color: rgba(214,246,255,0.72);
   font-style: normal;
   font-weight: 1000;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
 }
 
 .nxt5-player-board-title span {
@@ -1811,23 +1815,23 @@ html.nxt5-low-gpu .nxt5-loader-core {
 .nxt5-player-board-title strong {
   display: block;
   color: #ffffff;
-  font-size: clamp(3.4rem, 11vw, 7.2rem);
+  font-size: clamp(1.55rem, 4.2vw, 2.55rem);
   font-weight: 1000;
-  line-height: 0.86;
-  letter-spacing: 0.04em;
+  line-height: 1;
+  letter-spacing: 0.16em;
   text-shadow:
     0 4px 24px rgba(0,0,0,0.5),
-    0 0 42px rgba(34,211,238,0.24);
+    0 0 36px rgba(34,211,238,0.22);
 }
 
 .nxt5-player-board-title em {
   margin-top: 0.25rem;
-  font-size: clamp(0.62rem, 1.6vw, 0.92rem);
+  font-size: clamp(0.56rem, 1.35vw, 0.78rem);
 }
 
 @keyframes nxt5-player-column {
-  0%, 100% { filter: brightness(0.92); transform: translateY(0); }
-  50% { filter: brightness(1.08); transform: translateY(-2px); }
+  0%, 100% { border-color: rgba(214, 246, 255, 0.14); filter: brightness(0.96); transform: translateY(0); }
+  50% { border-color: rgba(103, 232, 249, 0.34); filter: brightness(1.08); transform: translateY(-2px); }
 }
 
 .nxt5-warroom-step.is-done,
