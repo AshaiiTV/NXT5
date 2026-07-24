@@ -10593,7 +10593,7 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
             <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=1" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="" width="512" height="512" decoding="async" className="nxt5-player-board-token" />
             <div className="nxt5-player-columns">
               {roles.map(([role], index) => (
-                <span key={role} className={cx("nxt5-player-column", `nxt5-player-column-${index + 1}`)} style={{ "--delay": `${index * 160}ms` }}>
+                <span key={role} className={cx("nxt5-player-column", `nxt5-player-column-${index + 1}`, hasRoster && "is-loaded")} style={{ "--delay": `${index * 160}ms`, "--fill-delay": `${index * 130}ms` }}>
                   <strong>{role}</strong>
                 </span>
               ))}
