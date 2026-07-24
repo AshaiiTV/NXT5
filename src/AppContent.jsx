@@ -7247,7 +7247,11 @@ function TrendsPage({ data, selectedTeamId }) {
       title: strongestPattern ? strongestPattern.label : tagLabel(identity.primary),
       value: strongestPattern ? `${strongestPattern.wr}% WR` : `${winrate}% WR`,
       text: strongestPattern ? `Le plan qui revient le plus : ${strongestPattern.games} games, ${strongestPattern.wins}W-${strongestPattern.games - strongestPattern.wins}L. C'est la meilleure hypothèse actuelle pour comprendre comment l'équipe veut gagner.` : `Aucun pattern dominant assez net : l'identité la plus visible reste ${tagLabel(identity.primary)}.`,
-      details: strongestPattern?.details || draftNeeds,
+      details: strongestPattern?.details || [
+        identity.tags[0] && `${tagLabel(identity.tags[0][0])}: ${identity.tags[0][1]} pick(s).`,
+        identity.tags[1] && `${tagLabel(identity.tags[1][0])}: ${identity.tags[1][1]} pick(s).`,
+        identity.tags[2] && `${tagLabel(identity.tags[2][0])}: ${identity.tags[2][1]} pick(s).`,
+      ].filter(Boolean),
       sourceGames: strongestPattern?.sourceGames || sourceGames,
     },
     {
