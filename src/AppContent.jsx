@@ -109,8 +109,8 @@ const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
 
-const PRIMARY_NAV_IDS = ["teams", "matches", "trends", "planning", "profile"];
-const MORE_NAV_IDS = ["champions", "compositions"];
+const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
+const MORE_NAV_IDS = ["trends", "champions", "compositions"];
 const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
   { id: "champions", label: "Champions", path: "champions" },
@@ -7881,10 +7881,10 @@ function TrendsPage({ data, selectedTeamId }) {
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <section className="relative mb-3 overflow-hidden rounded-xl border border-cyan-200/14 bg-[linear-gradient(135deg,rgba(8,18,38,.78),rgba(3,7,18,.72)_58%,rgba(25,10,39,.48))] p-3 shadow-[0_10px_28px_rgba(0,0,0,.20)]">
+    <section className="relative mb-3 overflow-hidden rounded-2xl border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(8,18,38,.82),rgba(3,7,18,.72)_58%,rgba(25,10,39,.50))] p-3 shadow-[0_10px_28px_rgba(0,0,0,.20)]">
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/65 to-fuchsia-100/40" />
-      <div className="relative z-10 grid gap-2 xl:grid-cols-[minmax(13rem,.55fr)_minmax(0,1.35fr)_minmax(18rem,.72fr)] xl:items-stretch">
-        <div className="flex min-w-0 flex-col justify-center rounded-lg border border-white/10 bg-black/18 p-2.5">
+      <div className="relative z-10 grid gap-2 xl:grid-cols-[minmax(13rem,.50fr)_minmax(0,1.25fr)_minmax(20rem,.82fr)] xl:items-start">
+        <div className="min-w-0 rounded-xl border border-cyan-200/12 bg-cyan-400/[0.055] p-3">
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge tone="cyan">Tendances</Badge>
             <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes"}</Badge>
@@ -7893,16 +7893,18 @@ function TrendsPage({ data, selectedTeamId }) {
           <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Lecture équipe du bloc actif.</p>
         </div>
         <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
-          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-lg border border-white/10 bg-black/22 p-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-md border", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
-                <p className="min-w-0 truncate text-[0.58rem] font-black uppercase tracking-[0.11em] text-slate-300">{label}</p>
+          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
+              <div className="flex min-w-0 items-start justify-between gap-2">
+                <p className="min-w-0 truncate text-[0.58rem] font-black uppercase tracking-[0.13em] text-slate-300">{label}</p>
+                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
               </div>
-              <p className="mt-1 break-words text-lg font-black leading-tight text-white">{value}</p>
-              <p className="mt-0.5 truncate text-[0.62rem] font-semibold text-slate-400">{hint}</p>
+              <div className="mt-2 flex min-w-0 items-end justify-between gap-2">
+                <p className="break-words text-xl font-black leading-none text-white">{value}</p>
+                <p className="truncate text-[0.62rem] font-semibold text-slate-400">{hint}</p>
+              </div>
             </div>)}
         </div>
-        <aside className="min-w-0 rounded-lg border border-white/10 bg-black/24 p-2.5">
+        <aside className="min-w-0 rounded-xl border border-fuchsia-200/12 bg-[linear-gradient(135deg,rgba(255,255,255,.045),rgba(168,85,247,.06))] p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Bloc actif</p>
             <div className="flex shrink-0 items-center gap-1">
@@ -7910,16 +7912,15 @@ function TrendsPage({ data, selectedTeamId }) {
               <button type="button" onClick={exportTrends} className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.035] text-cyan-100 transition hover:bg-cyan-300/10" title="Exporter"><ImageIcon className="h-3.5 w-3.5" /></button>
             </div>
           </div>
-          <div className="mt-2 flex items-center gap-3">
+          <div className="mt-3 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-3">
             <div>
-              <p className={cx("text-2xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
+              <p className={cx("text-3xl font-black leading-none", winrate >= 50 ? "text-emerald-100" : "text-rose-100")}>{winrate}%</p>
               <p className="mt-0.5 text-xs font-black text-white">{wins}W - {losses}L</p>
             </div>
-            <span className={cx("rounded-lg border p-2", tone(winrate >= 50 ? "green" : "red"))}><Trophy className="h-4 w-4" /></span>
             <div className="min-w-0 flex-1">
-              <div className="grid grid-cols-3 gap-1.5">
-                <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Games</p><p className="text-xs font-black text-white">{matches.length}</p></div>
-                <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Timeline</p><p className="text-xs font-black text-white">{timelineGamesCount}/{matches.length}</p></div>
+              <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-black/20 p-2">
+                <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Games</p><p className="mt-0.5 text-sm font-black text-white">{matches.length}</p></div>
+                <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Timeline</p><p className="mt-0.5 text-sm font-black text-white">{timelineGamesCount}/{matches.length}</p></div>
                 <div className="min-w-0"><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Identité</p><p className="truncate text-xs font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
               </div>
             </div>
