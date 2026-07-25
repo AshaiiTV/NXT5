@@ -7865,7 +7865,7 @@ function TrendsPage({ data, selectedTeamId }) {
     { label: "1er obj", value: game.firstObjective || "--", toneName: game.firstObjective && game.firstObjective !== "--" ? "cyan" : "slate" },
   ];
   const sourceGameRead = (game) => {
-    if (game.result === "Victoire" && game.goldDiff >= 0) return "Win avec avantage ressource : preuve forte que le plan peut convertir.";
+    if (game.result === "Victoire" && game.goldDiff >= 0) return "Victoire avec ressources : plan de jeu bien converti.";
     if (game.result === "Victoire" && game.goldDiff < 0) return "Win malgré retard économique : à relire pour les fights ou le scaling.";
     if (game.result === "Défaite" && game.deaths > game.enemyDeaths) return "Défaite liée à l'exposition : vérifier les morts avant objectif.";
     if (game.visionDiff < 0) return "Information défavorable : setup objectif ou facecheck à revoir.";
@@ -8291,7 +8291,7 @@ function TrendsPage({ data, selectedTeamId }) {
                     </span>)}
                   </span>
                   <span className="grid min-w-0 gap-1.5">
-                    <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Ce que ça prouve</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-200">{sourceGameRead(game)}</span></span>
+                    <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Lecture rapide</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-200">{sourceGameRead(game)}</span></span>
                     <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Rôle moteur</span><span className="mt-1 block truncate text-xs font-black text-cyan-50">{game.topRoleLabel}</span><span className="mt-0.5 block truncate text-[0.58rem] font-semibold text-slate-400">{game.topRoleDetail}</span></span>
                   </span>
                   <span className="inline-flex items-center justify-end gap-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100">Ouvrir<ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
