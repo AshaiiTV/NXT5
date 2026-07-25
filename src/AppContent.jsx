@@ -7109,6 +7109,8 @@ function TrendsPage({ data, selectedTeamId }) {
       firstObjective: formatMinute(entry.firstObjectiveMinute),
       objectiveCount: entry.allyObjectiveCount || 0,
       topRoles: entry.topRoles || [],
+      topRole: topRole?.role || "",
+      topChampion: topRole?.champion || "",
       topRoleLabel: topRole ? `${roleLabel(topRole.role)} · ${championDisplayName(topRole.champion)}` : "Rôle non isolé",
       topRoleDetail: topRole ? `${Math.round(topRole.goldShare)}% or · ${Math.round(topRole.damageShare)}% dégâts · KP ${Math.round(topRole.kp)}%` : "Pas assez de données rôle",
     };
@@ -7796,6 +7798,40 @@ function TrendsPage({ data, selectedTeamId }) {
     const matchId = game?.id || game?.match?.id || game?.match?.game_id || "";
     openAppPath(matchId ? `/statistiques?match=${encodeURIComponent(String(matchId))}` : "/statistiques");
   };
+  const sourceModalSummary = (games = []) => {
+    const count = games.length;
+    const winsCount = games.filter((game) => game.result === "Victoire").length;
+    const avgSource = (field) => Math.round(games.reduce((sum, game) => sum + Number(game[field] || 0), 0) / Math.max(1, count));
+    const roleCounts = games.reduce((map, game) => {
+      if (game.topRole) map.set(game.topRole, (map.get(game.topRole) || 0) + 1);
+      return map;
+    }, new Map());
+    const topRoleEntry = Array.from(roleCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+    return {
+      count,
+      wins: winsCount,
+      winrate: Math.round((winsCount / Math.max(1, count)) * 100),
+      gold: avgSource("goldDiff"),
+      damage: avgSource("damageDiff"),
+      vision: avgSource("visionDiff"),
+      deaths: avgSource("deaths"),
+      role: topRoleEntry ? `${roleLabel(topRoleEntry[0])} x${topRoleEntry[1]}` : "Non isolé",
+    };
+  };
+  const sourceGameSignals = (game) => [
+    { label: "Or", value: formatGoldDiff(game.goldDiff), toneName: game.goldDiff >= 0 ? "green" : "red" },
+    { label: "Dégâts", value: `${game.damageDiff >= 0 ? "+" : ""}${formatPoints(game.damageDiff)}`, toneName: game.damageDiff >= 0 ? "green" : "red" },
+    { label: "Vision", value: `${game.visionDiff >= 0 ? "+" : ""}${game.visionDiff}`, toneName: game.visionDiff >= 0 ? "cyan" : "red" },
+    { label: "Morts", value: `${game.deaths}/${game.enemyDeaths}`, toneName: game.deaths <= game.enemyDeaths ? "green" : "orange" },
+    { label: "1er obj", value: game.firstObjective || "--", toneName: game.firstObjective && game.firstObjective !== "--" ? "cyan" : "slate" },
+  ];
+  const sourceGameRead = (game) => {
+    if (game.result === "Victoire" && game.goldDiff >= 0) return "Win avec avantage ressource : preuve forte que le plan peut convertir.";
+    if (game.result === "Victoire" && game.goldDiff < 0) return "Win malgré retard économique : à relire pour les fights ou le scaling.";
+    if (game.result === "Défaite" && game.deaths > game.enemyDeaths) return "Défaite liée à l'exposition : vérifier les morts avant objectif.";
+    if (game.visionDiff < 0) return "Information défavorable : setup objectif ou facecheck à revoir.";
+    return "Game utile pour comparer exécution, tempo objectif et rôle moteur.";
+  };
   const draftTrendModel = buildDraftTrendModel(matches);
   const trendPanelOptions = [
     ["ai-objectives", "Objectif IA", Sparkles, "Cibles mesurables et preuves."],
@@ -8163,7 +8199,7 @@ function TrendsPage({ data, selectedTeamId }) {
     <React.Fragment>
       {trendSourceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="nxt5-sidebar-aware-overlay fixed inset-0 z-[140] flex items-end justify-center bg-slate-950/90 p-3 backdrop-blur-xl sm:items-center">
         <button type="button" aria-label="Fermer les sources" onClick={() => setTrendSourceModal(null)} className="absolute inset-0 cursor-default" />
-        <motion.section initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, scale: 0.98, opacity: 0 }} transition={{ duration: 0.18 }} className="relative z-10 flex max-h-[88vh] w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-2xl border border-cyan-100/18 bg-[#050913] shadow-[0_24px_80px_rgba(0,0,0,.5)]">
+        <motion.section initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, scale: 0.98, opacity: 0 }} transition={{ duration: 0.18 }} className="relative z-10 flex max-h-[88vh] w-full max-w-6xl min-w-0 flex-col overflow-hidden rounded-2xl border border-cyan-100/18 bg-[#050913] shadow-[0_24px_80px_rgba(0,0,0,.5)]">
           <div className="border-b border-white/10 p-4">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
@@ -8179,24 +8215,48 @@ function TrendsPage({ data, selectedTeamId }) {
                 <p className="mt-1 break-words text-sm font-black leading-5 text-white">{metric.value}</p>
               </div>)}
             </div>
+            {(() => {
+              const summary = sourceModalSummary(trendSourceModal.games || []);
+              return <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                {[
+                  ["WR sources", `${summary.winrate}%`, `${summary.wins}W-${Math.max(0, summary.count - summary.wins)}L`, summary.winrate >= 50 ? "green" : "red"],
+                  ["Diff. or", formatGoldDiff(summary.gold), "moyenne/game", summary.gold >= 0 ? "green" : "red"],
+                  ["Diff. dégâts", `${summary.damage >= 0 ? "+" : ""}${formatPoints(summary.damage)}`, "moyenne/game", summary.damage >= 0 ? "green" : "red"],
+                  ["Vision", `${summary.vision >= 0 ? "+" : ""}${summary.vision}`, "moyenne/game", summary.vision >= 0 ? "cyan" : "red"],
+                  ["Rôle répété", summary.role, `${summary.count} source${summary.count > 1 ? "s" : ""}`, "purple"],
+                ].map(([label, value, hint, toneName]) => <div key={label} className={cx("min-w-0 rounded-xl border p-2.5", tone(toneName))}>
+                  <p className="truncate text-[0.54rem] font-black uppercase tracking-[0.14em] opacity-75">{label}</p>
+                  <p className="mt-1 truncate text-sm font-black text-white">{value}</p>
+                  <p className="mt-0.5 truncate text-[0.62rem] font-semibold opacity-75">{hint}</p>
+                </div>)}
+              </div>;
+            })()}
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-3">
-            <div className="grid gap-2">
-              {(trendSourceModal.games || []).map((game, index) => <button key={`${game.id || game.title}-${index}`} type="button" onClick={() => openSourceGame(game)} className="group grid min-w-0 gap-3 rounded-xl border border-white/10 bg-white/[0.028] p-3 text-left transition hover:border-cyan-200/28 hover:bg-cyan-300/[0.06] lg:grid-cols-[minmax(12rem,1fr)_minmax(16rem,1.1fr)_auto] lg:items-center">
-                <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    <Badge tone={game.result === "Victoire" ? "green" : game.result === "Défaite" ? "red" : "slate"}>{game.result}</Badge>
-                    <Badge tone={String(game.side).toLowerCase().includes("red") ? "red" : "cyan"}>{game.side}</Badge>
-                    <Badge tone="slate">{game.patch}</Badge>
+            <div className="grid gap-3">
+              {(trendSourceModal.games || []).map((game, index) => <button key={`${game.id || game.title}-${index}`} type="button" onClick={() => openSourceGame(game)} className="group min-w-0 rounded-2xl border border-white/10 bg-white/[0.028] p-3 text-left transition hover:border-cyan-200/28 hover:bg-cyan-300/[0.06]">
+                <span className="grid min-w-0 gap-3 xl:grid-cols-[minmax(14rem,.9fr)_minmax(0,1.4fr)_minmax(14rem,.8fr)_auto] xl:items-center">
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      <Badge tone={game.result === "Victoire" ? "green" : game.result === "Défaite" ? "red" : "slate"}>{game.result}</Badge>
+                      <Badge tone={String(game.side).toLowerCase().includes("red") ? "red" : "cyan"}>{game.side}</Badge>
+                      <Badge tone="slate">{game.patch}</Badge>
+                    </span>
+                    <span className="mt-2 block truncate text-base font-black text-white">{game.title}</span>
+                    <span className="mt-0.5 block text-[0.68rem] font-semibold text-slate-400">{game.duration} · {game.objectiveCount} objectifs alliés · 1er obj {game.firstObjective}</span>
                   </span>
-                  <span className="mt-2 block truncate text-sm font-black text-white">{game.title}</span>
-                  <span className="mt-0.5 block text-[0.68rem] font-semibold text-slate-400">{game.duration} · {game.objectiveCount} objectifs alliés · 1er obj {game.firstObjective}</span>
+                  <span className="grid min-w-0 grid-cols-2 gap-1.5 md:grid-cols-5">
+                    {sourceGameSignals(game).map((signal) => <span key={signal.label} className={cx("min-w-0 rounded-xl border px-2 py-1.5", tone(signal.toneName))}>
+                      <span className="block truncate text-[0.52rem] font-black uppercase tracking-[0.12em] opacity-75">{signal.label}</span>
+                      <span className="mt-0.5 block truncate text-xs font-black text-white">{signal.value}</span>
+                    </span>)}
+                  </span>
+                  <span className="grid min-w-0 gap-1.5">
+                    <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Ce que ça prouve</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-200">{sourceGameRead(game)}</span></span>
+                    <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Rôle moteur</span><span className="mt-1 block truncate text-xs font-black text-cyan-50">{game.topRoleLabel}</span><span className="mt-0.5 block truncate text-[0.58rem] font-semibold text-slate-400">{game.topRoleDetail}</span></span>
+                  </span>
+                  <span className="inline-flex items-center justify-end gap-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100">Ouvrir<ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
                 </span>
-                <span className="grid min-w-0 gap-1.5 sm:grid-cols-2">
-                  <span className="rounded-lg border border-white/10 bg-black/18 px-2 py-1.5"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Rôle moteur</span><span className="mt-0.5 block truncate text-xs font-black text-cyan-50">{game.topRoleLabel}</span><span className="mt-0.5 block truncate text-[0.58rem] font-semibold text-slate-400">{game.topRoleDetail}</span></span>
-                  <span className="rounded-lg border border-white/10 bg-black/18 px-2 py-1.5"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Écarts</span><span className={cx("mt-0.5 block text-xs font-black", game.goldDiff >= 0 ? "text-emerald-100" : "text-rose-100")}>{formatGoldDiff(game.goldDiff)} or</span><span className={cx("mt-0.5 block text-[0.58rem] font-semibold", game.visionDiff >= 0 ? "text-cyan-100" : "text-rose-100")}>{game.visionDiff >= 0 ? "+" : ""}{game.visionDiff} vision · morts {game.deaths}</span></span>
-                </span>
-                <span className="inline-flex items-center justify-end gap-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100">Ouvrir stats<ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
               </button>)}
               {!trendSourceModal.games?.length && <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game source isolée pour ce signal.</p>}
             </div>
