@@ -10282,12 +10282,12 @@ function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForM
     <div className="border-b border-white/10 p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Tendances draft</Badge><Badge tone={enemyMode ? "red" : "cyan"}>{enemyMode ? "Drafts adverses" : "Nos drafts"}</Badge><Badge tone="slate">{active.games} games</Badge></div>
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Tendances draft</Badge><Badge tone={enemyMode ? "red" : "cyan"}>{enemyMode ? "Leur draft" : "Nos drafts"}</Badge><Badge tone="slate">{active.games} games</Badge></div>
           <h3 className="mt-2 break-words text-xl font-black text-white">Lecture draft du bloc</h3>
           <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">{enemyMode ? "Ce que les équipes posent contre nous, ce qui nous bat, et les réponses à préparer." : "Nos patterns, nos picks fiables, nos pièges, et la structure réelle de nos compos."}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/22 p-1">
-          {[["ally", "Nos drafts", Crown], ["enemy", "Contre nous", Shield]].map(([id, label, Icon]) => <button key={id} type="button" onClick={() => onView(id)} className={cx("inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", view === id ? "bg-cyan-300/16 text-cyan-50 shadow-[inset_0_0_18px_rgba(34,211,238,.08)]" : "text-slate-300 hover:bg-white/[0.05]")}><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{label}</span></button>)}
+          {[["ally", "Nos drafts", Crown], ["enemy", "Leur draft", Shield]].map(([id, label, Icon]) => <button key={id} type="button" onClick={() => onView(id)} className={cx("inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", view === id ? "bg-cyan-300/16 text-cyan-50 shadow-[inset_0_0_18px_rgba(34,211,238,.08)]" : "text-slate-300 hover:bg-white/[0.05]")}><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{label}</span></button>)}
         </div>
       </div>
     </div>
