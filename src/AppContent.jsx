@@ -4332,13 +4332,60 @@ function ChampionLanePanel({ rows, navigate }) {
   </section>;
 }
 
+function ParticipantCompareCard({ title, row, match, toneName = "cyan" }) {
+  const participant = row ? { ...row, match: row.match || match } : null;
+  const items = participant ? finalBuildItems(participant) : [];
+  const spells = participant ? summonerSpellIds(participant) : [];
+  const timeline = participant ? itemBuildTimeline(participant) : [];
+  const champion = participant?.champion || "";
+  return <div className={cx("min-w-0 rounded-2xl border p-3", toneName === "red" ? "border-rose-300/14 bg-rose-500/[0.035]" : "border-cyan-300/14 bg-cyan-400/[0.04]")}>
+    <div className="flex min-w-0 items-start justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {champion ? <ChampionPortrait champion={champion} row={participant} alt={champion} className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover" /> : <span className="h-14 w-14 shrink-0 rounded-xl border border-dashed border-white/10 bg-black/20" />}
+        <div className="min-w-0">
+          <Badge tone={toneName}>{title}</Badge>
+          <p className="mt-2 truncate text-base font-black text-white">{participant?.summoner_name || participant?.riot_id || "Inconnu"}</p>
+          <p className="truncate text-xs font-semibold text-slate-300">{champion ? championDisplayName(champion) : "Champion ?"} - {roleLabel(participant?.role)}</p>
+        </div>
+      </div>
+      {spells.length > 0 && <div className="flex shrink-0 gap-1">{spells.map((spell, index) => <HudIcon key={`${participant?.id || participant?.riot_id || title}-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-8 w-8 rounded-lg" />)}</div>}
+    </div>
+    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <ProfileChampionMini label="KDA" value={participant ? `${participant.kills || 0}/${participant.deaths || 0}/${participant.assists || 0}` : "-"} toneName={toneName} />
+      <ProfileChampionMini label="CS" value={participant ? creepScore(participant) || "-" : "-"} toneName="cyan" />
+      <ProfileChampionMini label="Gold" value={participant ? formatPoints(participant.gold || 0) : "-"} toneName="yellow" />
+      <ProfileChampionMini label="DMG" value={participant ? formatPoints(participant.damage || 0) : "-"} toneName="purple" />
+      <ProfileChampionMini label="Vision" value={participant ? Math.round(Number(participant.vision || 0)) : "-"} toneName="cyan" />
+    </div>
+    <div className="mt-3 rounded-xl border border-white/10 bg-black/24 p-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-300">Stuff final</p>
+        <Badge tone={items.length ? toneName : "slate"}>{items.length || "Aucun"}</Badge>
+      </div>
+      {items.length ? <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">{items.map((item, index) => <HudIcon key={`${participant?.id || participant?.riot_id || title}-final-${index}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : toneName} className="h-10 w-10" />)}</div> : <p className="mt-2 text-xs font-semibold text-slate-400">Aucun item final dans ce JSON.</p>}
+    </div>
+    {timeline.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5 border-t border-white/10 pt-2">
+      {timeline.slice(0, 8).map((event, index) => <span key={`${participant?.id || participant?.riot_id || title}-buy-${index}-${event.timestamp}-${event.itemId}`} className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-black/24 px-2 py-1 text-[0.58rem] font-black text-slate-200"><span className="text-cyan-100">{event.time}</span>{event.label}</span>)}
+    </div>}
+  </div>;
+}
+
+function VersusDeltaStack({ rows }) {
+  return <div className="grid min-w-0 gap-2 sm:grid-cols-3 xl:grid-cols-1">
+    {rows.map(([label, value, toneName]) => <div key={label} className={cx("rounded-xl border px-3 py-2 text-center", tone(toneName))}>
+      <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] opacity-80">{label}</p>
+      <p className="mt-1 text-sm font-black text-white">{value}</p>
+    </div>)}
+  </div>;
+}
+
 function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
   const finalItems = finalBuildItems(row);
   const timeline = itemBuildTimeline(row);
+  const enemyRow = enemy ? { ...enemy, match: row.match } : null;
   const targetMatchId = row.match?.id || row.match?.game_id || "";
   const allyRows = teamRows(row.match, "ALLY");
   const enemyRows = teamRows(row.match, "ENEMY");
-  const spells = summonerSpellIds(row);
   const enemyCs20 = enemy ? csAtMinute({ ...enemy, match: row.match }, 20) : null;
   const diff20 = Number.isFinite(cs20) && Number.isFinite(enemyCs20) ? cs20 - enemyCs20 : null;
   const laneGoldDiff = enemy ? statValue(row, "gold") - statValue(enemy, "gold") : null;
@@ -4370,6 +4417,11 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
     ["Part degats", damageShare ? `${damageShare}%` : "-", "purple"],
     ["Part or", goldShare ? `${goldShare}%` : "-", "yellow"],
   ];
+  const versusDeltas = [
+    ["Gold", laneGoldDiff === null ? "-" : formatGoldDiff(laneGoldDiff), laneGoldDiff === null ? "slate" : laneGoldDiff >= 0 ? "green" : "red"],
+    ["DMG", laneDamageDiff === null ? "-" : `${laneDamageDiff >= 0 ? "+" : ""}${formatPoints(laneDamageDiff)}`, laneDamageDiff === null ? "slate" : laneDamageDiff >= 0 ? "green" : "red"],
+    ["CS20", diff20 === null ? "-" : `${diff20 >= 0 ? "+" : ""}${diff20}`, diff20 === null ? "slate" : diff20 >= 0 ? "green" : "red"],
+  ];
   const openMatch = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -4391,7 +4443,7 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
     </summary>
     <div className="border-t border-white/10 bg-white/[0.025] py-3">
       <div className="rounded-2xl border border-cyan-300/12 bg-black/24 p-3">
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,.36fr)]">
+        <div className="grid gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={row.match?.result === "Victoire" ? "green" : row.match?.result === "Défaite" ? "red" : "slate"}>{row.match?.result || "Game"}</Badge>
@@ -4404,28 +4456,15 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
                 <p className="truncate text-lg font-black text-white">{matchDisplayName(row.match, "Game")}</p>
                 <p className="mt-1 truncate text-xs font-semibold text-slate-300">{row.match?.game_id || "Game ID ?"}{matchDate ? ` - ${matchDate}` : ""}</p>
               </div>
-              <div className="grid min-w-0 gap-2 md:grid-cols-2">
-                <div className="flex min-w-0 items-center gap-2 rounded-xl border border-cyan-300/12 bg-cyan-400/[0.045] p-2">
-                  <ChampionPortrait champion={row.champion} row={row} alt={row.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-black text-white">{row.summoner_name || row.riot_id || "Joueur"}</p>
-                    <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(row.champion)} - {roleLabel(row.role)}</p>
-                  </div>
-                  {spells.length > 0 && <div className="flex shrink-0 gap-1">{spells.map((spell, index) => <HudIcon key={`${row.id || targetMatchId}-lane-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-7 w-7 rounded-lg" />)}</div>}
-                </div>
-                {enemy && <div className="flex min-w-0 items-center gap-2 rounded-xl border border-rose-300/10 bg-rose-500/[0.035] p-2">
-                  <ChampionPortrait champion={enemy.champion} row={enemy} alt={enemy.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-black text-white">{enemy.summoner_name || enemy.riot_id || "Adversaire"}</p>
-                    <p className="truncate text-[0.62rem] font-semibold text-slate-300">{championDisplayName(enemy.champion)} - {roleLabel(enemy.role)}</p>
-                  </div>
-                </div>}
-              </div>
             </div>
           </div>
-          <div className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3">
-            <div className="flex items-center justify-between gap-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Build final</p><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length}</Badge></div>
-            {finalItems.length ? <div className="mt-3 flex min-w-0 flex-wrap gap-1.5">{finalItems.map((item, itemIndex) => <HudIcon key={`champion-lane-final-${row.id || row.match?.id}-${itemIndex}-${item.id}`} sources={itemIconSources(item.id)} label={`${item.type === "trinket" ? "Trinket" : "Item"} ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-10 w-10" />)}</div> : <p className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucun build final importe pour cette game.</p>}
+          <div className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(9rem,.22fr)_minmax(0,1fr)] xl:items-stretch">
+            <ParticipantCompareCard title="Mon stuff" row={row} match={row.match} toneName="cyan" />
+            <div className="flex min-w-0 flex-col justify-center gap-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+              <p className="text-center text-[0.58rem] font-black uppercase tracking-[0.18em] text-slate-300">VS</p>
+              <VersusDeltaStack rows={versusDeltas} />
+            </div>
+            <ParticipantCompareCard title="Son stuff" row={enemyRow} match={row.match} toneName="red" />
           </div>
         </div>
 
