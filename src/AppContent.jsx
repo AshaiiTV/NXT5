@@ -7875,7 +7875,6 @@ function TrendsPage({ data, selectedTeamId }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="slate">{matches.length} games</Badge>
-          <Badge tone={teamAiObjective.toneName}>{teamAiObjective.progress}% prêt</Badge>
         </div>
       </div>
       <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)]">
@@ -7892,20 +7891,11 @@ function TrendsPage({ data, selectedTeamId }) {
             </div>
             <button type="button" onClick={() => openTrendSources({ title: "Sources Objectif IA", subtitle: teamAiObjective.title, games: teamAiObjective.sourceGames })} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Sources</button>
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,.42fr)]">
+          <div className="mt-4 grid gap-3">
             <div className="rounded-xl border border-white/10 bg-black/24 p-3">
               <p className="text-[0.64rem] font-black uppercase tracking-[0.16em] text-slate-400">Cible mesurable</p>
               <p className="mt-2 text-lg font-black text-white">{teamAiObjective.target}</p>
               <p className="mt-1 text-sm font-semibold text-cyan-100">Actuel : {teamAiObjective.current}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/24 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[0.64rem] font-black uppercase tracking-[0.16em] text-slate-400">Progression</p>
-                <p className="text-xl font-black text-white">{teamAiObjective.progress}%</p>
-              </div>
-              <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/[0.07]">
-                <span className={cx("block h-full rounded-full bg-gradient-to-r", teamAiObjective.toneName === "green" ? "from-emerald-300 to-cyan-200" : teamAiObjective.toneName === "orange" ? "from-amber-300 to-fuchsia-300" : "from-rose-300 to-fuchsia-400")} style={{ width: `${teamAiObjective.progress}%` }} />
-              </div>
             </div>
           </div>
         </article>
@@ -7947,9 +7937,6 @@ function TrendsPage({ data, selectedTeamId }) {
           <div className="mt-3 rounded-xl border border-white/10 bg-black/22 p-2.5">
             <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">Cible</p>
             <p className="mt-1 text-xs font-black leading-5 text-cyan-50">{item.target}</p>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-              <span className={cx("block h-full rounded-full bg-gradient-to-r", item.toneName === "green" ? "from-emerald-300 to-cyan-200" : item.toneName === "orange" ? "from-amber-300 to-fuchsia-300" : "from-rose-300 to-fuchsia-400")} style={{ width: `${item.progress}%` }} />
-            </div>
           </div>
         </article>)}
       </div>
@@ -7975,10 +7962,6 @@ function TrendsPage({ data, selectedTeamId }) {
                 <p className="mt-1 break-words text-xs font-semibold text-slate-300">{item.player.riot_id || "Riot ID non lié"}</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <div className="min-w-[5.5rem] rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-right">
-                  <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">Score</p>
-                  <p className="text-lg font-black text-white">{item.progress}%</p>
-                </div>
                 <button type="button" onClick={() => openTrendSources({ title: `Sources ${item.player.name}`, subtitle: item.title, games: item.sourceGames })} className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-50 transition hover:bg-cyan-300/14" title="Voir les sources"><FileText className="h-4 w-4" /></button>
               </div>
             </div>
@@ -7992,9 +7975,6 @@ function TrendsPage({ data, selectedTeamId }) {
                 <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-cyan-100">Objectif</p>
                 <p className="mt-1.5 text-base font-black leading-5 text-white">{item.title}</p>
                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{item.trigger}</p>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-                  <span className={cx("block h-full rounded-full bg-gradient-to-r", item.toneName === "green" ? "from-emerald-300 to-cyan-200" : item.toneName === "orange" ? "from-amber-300 to-fuchsia-300" : "from-rose-300 to-fuchsia-400")} style={{ width: `${item.progress}%` }} />
-                </div>
               </div>
               <div className="rounded-xl border border-white/10 bg-black/22 p-3">
                 <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-fuchsia-100">À faire</p>
