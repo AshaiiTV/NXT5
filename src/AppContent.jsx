@@ -4852,6 +4852,16 @@ function matchImportTitle(match) {
   return matchDisplayName(match, "Import");
 }
 
+function matchImportDateLabel(match) {
+  const value = match?.created_at || match?.createdAt || match?.imported_at || "";
+  if (!value) return "Date d'import inconnue";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
+  const day = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
+  const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return `${day} à ${time}`;
+}
+
 function matchCategoryTone(category) {
   return ["cyan", "purple", "pink", "green", "yellow", "orange", "red", "blue", "slate"].includes(String(category?.color || "")) ? category.color : "slate";
 }
@@ -4955,7 +4965,7 @@ function ImportHistoryCard({ match, categories, roster = [], editing, editForm, 
             {selectedCategories.length ? selectedCategories.map((category) => <Badge key={category.id} tone={matchCategoryTone(category)}>{category.name}</Badge>) : <Badge tone="slate">Non classée</Badge>}
           </div>
           <p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
-          <div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="purple">{match.patch || "Patch ?"}</Badge></div>
+          <div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="slate"><CalendarDays className="h-3.5 w-3.5" /> Importée le {matchImportDateLabel(match)}</Badge><Badge tone="purple">{match.patch || "Patch ?"}</Badge></div>
         </>}
       </div>
       <div className="nxt5-import-card-actions flex flex-wrap gap-2">
