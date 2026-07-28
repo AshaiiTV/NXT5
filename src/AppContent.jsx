@@ -4965,7 +4965,11 @@ function ImportHistoryCard({ match, categories, roster = [], editing, editForm, 
             {selectedCategories.length ? selectedCategories.map((category) => <Badge key={category.id} tone={matchCategoryTone(category)}>{category.name}</Badge>) : <Badge tone="slate">Non classée</Badge>}
           </div>
           <p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
-          <div className="mt-3 flex flex-wrap gap-2">{importer && <Badge tone="cyan">Intégré par {importer}</Badge>}<Badge tone="slate"><CalendarDays className="h-3.5 w-3.5" /> Importée le {matchImportDateLabel(match)}</Badge><Badge tone="purple">{match.patch || "Patch ?"}</Badge></div>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] font-bold uppercase tracking-[0.08em] text-slate-400">
+            <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-cyan-100/80" /> Importée le {matchImportDateLabel(match)}</span>
+            {importer && <span>Par {importer}</span>}
+            <span>{match.patch || "Patch ?"}</span>
+          </div>
         </>}
       </div>
       <div className="nxt5-import-card-actions flex flex-wrap gap-2">
