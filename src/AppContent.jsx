@@ -7904,8 +7904,7 @@ function TrendsPage({ data, selectedTeamId }) {
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <section className="relative mb-3 overflow-hidden rounded-2xl border border-cyan-200/14 bg-[linear-gradient(135deg,rgba(8,18,38,.82),rgba(3,7,18,.72)_58%,rgba(25,10,39,.50))] p-3 shadow-[0_10px_28px_rgba(0,0,0,.20)]">
-      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/65 to-fuchsia-100/40" />
+    <section className="relative mb-3">
       <div className="relative z-10 grid gap-2 xl:grid-cols-[minmax(13rem,.50fr)_minmax(0,1.25fr)_minmax(20rem,.82fr)] xl:items-start">
         <div className="min-w-0 p-2">
           <div className="flex flex-wrap items-center gap-1.5">
