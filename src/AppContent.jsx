@@ -7067,8 +7067,17 @@ function TrendsPage({ data, selectedTeamId }) {
     const ratio = Number(value || 0) / Math.max(1, gamesCount);
     return Number.isInteger(ratio) ? String(ratio) : ratio.toFixed(1);
   };
+  const allySideForMatch = (match) => {
+    const explicitSide = String(match?.side || "").toLowerCase();
+    if (explicitSide.includes("blue")) return "Blue";
+    if (explicitSide.includes("red")) return "Red";
+    const allyTeamId = objectiveTeamId(match, "ALLY");
+    if (allyTeamId === 100) return "Blue";
+    if (allyTeamId === 200) return "Red";
+    return "";
+  };
   const sideStats = ["Blue", "Red"].map((side) => {
-    const sideMatches = matches.filter((match) => objectiveTeamKeyForSide(match, side.toUpperCase()) === "ALLY" || String(match.side || "").toLowerCase().includes(side.toLowerCase()));
+    const sideMatches = matches.filter((match) => allySideForMatch(match) === side);
     const sideWins = sideMatches.filter((match) => match.result === "Victoire").length;
     const objectives = sideMatches.reduce((total, match) => {
       const summary = objectiveTeamSummary(match, "ALLY");
@@ -7938,6 +7947,18 @@ function TrendsPage({ data, selectedTeamId }) {
                 <div className="min-w-0"><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Identité</p><p className="truncate text-xs font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
               </div>
             </div>
+          </div>
+          <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+            {sideStats.map((stat) => {
+              const sideTone = stat.side === "Blue" ? "border-cyan-300/16 bg-cyan-400/[0.06] text-cyan-50" : "border-fuchsia-300/16 bg-fuchsia-400/[0.06] text-fuchsia-50";
+              return <div key={stat.side} className={cx("min-w-0 rounded-xl border p-2", sideTone)}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-[0.56rem] font-black uppercase tracking-[0.12em] text-slate-300">{stat.side} Side</p>
+                  <p className={cx("shrink-0 text-base font-black", stat.games ? stat.wr >= 50 ? "text-emerald-100" : "text-rose-100" : "text-slate-400")}>{stat.games ? `${stat.wr}%` : "-"}</p>
+                </div>
+                <p className="mt-0.5 truncate text-[0.62rem] font-bold text-slate-300">{stat.games ? `${stat.wins}W - ${stat.games - stat.wins}L · ${stat.games}G` : "Aucune game"}</p>
+              </div>;
+            })}
           </div>
           <div className="mt-2 border-t border-white/10 pt-2 [&_button]:px-2 [&_button]:py-1 [&_button]:text-[0.58rem] [&_span]:text-[0.56rem]">
             <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
