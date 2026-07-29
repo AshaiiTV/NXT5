@@ -4429,7 +4429,7 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
     if (targetMatchId) navigate?.(`/statistiques?match=${encodeURIComponent(targetMatchId)}`);
   };
   return <details className="group">
-    <summary className="grid cursor-pointer list-none gap-3 py-3 transition hover:bg-white/[0.025] 2xl:grid-cols-[minmax(0,1fr)_repeat(3,minmax(70px,.18fr))_auto] 2xl:items-center [&::-webkit-details-marker]:hidden">
+    <summary className="grid cursor-pointer list-none gap-3 py-3 transition hover:bg-white/[0.025] 2xl:grid-cols-[minmax(0,1fr)_repeat(4,minmax(70px,.16fr))_auto] 2xl:items-center [&::-webkit-details-marker]:hidden">
       <div className="flex min-w-0 items-center gap-3">
         {enemy?.champion ? <ChampionPortrait champion={enemy.champion} alt={enemy.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /> : <div className="h-10 w-10 shrink-0 rounded-xl bg-white/[0.05]" />}
         <div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">vs {enemy?.champion ? championDisplayName(enemy.champion) : "Matchup inconnu"}</p><p className="truncate text-xs font-semibold text-slate-400">{matchDisplayName(row.match, "Game")} - {row.match?.result || "Resultat ?"}</p></div>
@@ -4440,6 +4440,7 @@ function ChampionLaneGameLine({ row, enemy, cs10, cs20, diff10, navigate }) {
       <ChampionMiniStat label="CS10" value={Number.isFinite(cs10) ? cs10 : "-"} />
       <ChampionMiniStat label="CS20" value={Number.isFinite(cs20) ? cs20 : "-"} />
       <ChampionMiniStat label="Diff10" value={diff10 === null ? "-" : `${diff10 >= 0 ? "+" : ""}${diff10}`} toneName={diff10 === null ? "slate" : diff10 >= 0 ? "green" : "red"} />
+      <ChampionMiniStat label="Diff20" value={diff20 === null ? "-" : `${diff20 >= 0 ? "+" : ""}${diff20}`} toneName={diff20 === null ? "slate" : diff20 >= 0 ? "green" : "red"} />
       <div className="flex min-w-0 items-center justify-between gap-2 2xl:justify-end"><Badge tone={finalItems.length ? "cyan" : "slate"}>{finalItems.length ? "Build" : "Sans build"}</Badge><ChevronDown className="h-4 w-4 shrink-0 text-cyan-100 transition group-open:rotate-180" /></div>
     </summary>
     <div className="border-t border-white/10 bg-white/[0.025] py-3">
