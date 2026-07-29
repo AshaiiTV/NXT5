@@ -5444,12 +5444,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
       </div>
 
       <Surface className="mt-5 p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-300">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""}. Classe-les en Scrim, Match officiel ou catégories custom pour analyser les blocs séparément.</p></div><Badge tone="cyan">Stats synchronisées</Badge></div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-300">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""}. Classe-les en Scrim ou catégories custom pour analyser les blocs séparément.</p></div><Badge tone="cyan">Stats synchronisées</Badge></div>
         <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap gap-2">{matchCategories.length ? matchCategories.map((category) => <span key={category.id} className={cx("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em]", tone(matchCategoryTone(category)))}>{category.name}{!category.is_default && canManageCategories && <button type="button" onClick={() => deleteMatchCategory(category)} disabled={savingCategory} className="rounded-full p-0.5 opacity-70 transition hover:bg-white/10 hover:opacity-100" aria-label={`Supprimer ${category.name}`}><X className="h-3 w-3" /></button>}</span>) : <Badge tone="slate">Catégories en cours de création</Badge>}</div>
-              <p className="mt-2 text-sm font-semibold text-slate-300">Les catégories servent à comparer les performances selon le contexte : scrim, match officiel, bootcamp, ligue, test draft...</p>
+              <p className="mt-2 text-sm font-semibold text-slate-300">Les catégories servent à comparer les performances selon le contexte : scrim, bootcamp, ligue, test draft...</p>
             </div>
             {canManageCategories && <Button type="button" icon={categoryCreatorOpen ? X : Plus} variant={categoryCreatorOpen ? "ghost" : "primary"} onClick={() => { setCategoryCreatorOpen((open) => !open); if (categoryCreatorOpen) setCategoryForm({ name: "", color: "cyan" }); }}>{categoryCreatorOpen ? "Fermer" : "Ajouter une catégorie"}</Button>}
           </div>
@@ -7012,7 +7012,7 @@ function TrendsPage({ data, selectedTeamId }) {
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">Tendances</p></div>
           <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl lg:text-5xl">Cockpit stratégique</h2>
-          <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Lis les patterns de la team par scrim, match officiel ou catégorie custom.</p>
+          <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Lis les patterns de la team par scrim ou catégorie custom.</p>
         </div>
         <Badge tone="slate">{baseMatches.length} game{baseMatches.length > 1 ? "s" : ""} importée{baseMatches.length > 1 ? "s" : ""}</Badge>
       </div>

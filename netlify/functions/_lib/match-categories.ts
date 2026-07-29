@@ -1,8 +1,7 @@
 import { sql } from './db';
 
 export const DEFAULT_MATCH_CATEGORIES = [
-  { name: 'Scrim', color: 'cyan' },
-  { name: 'Match officiel', color: 'purple' }
+  { name: 'Scrim', color: 'cyan' }
 ];
 
 export async function ensureMatchCategoriesSchema() {
@@ -24,19 +23,25 @@ export async function ensureMatchCategoriesSchema() {
   await sql`create unique index if not exists idx_match_categories_team_name on match_categories(team_id, lower(name))`;
   await sql`create index if not exists idx_match_categories_team on match_categories(team_id, created_at asc)`;
   await sql`create index if not exists idx_matches_category on matches(category_id)`;
-  await sql`
-    update match_categories legacy
-    set name = 'Match officiel',
-        updated_at = now()
-    where lower(legacy.name) = 'tournoi'
-      and legacy.is_default = true
-      and not exists (
-        select 1
-        from match_categories current
-        where current.team_id = legacy.team_id
-          and lower(current.name) = 'match officiel'
-      )
+  const legacyOfficialCategories = await sql`
+    select id
+    from match_categories
+    where lower(name) = 'match officiel'
   `;
+  for (const category of legacyOfficialCategories) {
+    await sql`update matches set category_id = null where category_id = ${category.id}`;
+    const matches = await sql`select id, category_ids from matches where category_ids ? ${category.id}`;
+    for (const match of matches) {
+      const nextCategoryIds = (Array.isArray(match.category_ids) ? match.category_ids : []).filter((id) => String(id) !== String(category.id));
+      await sql`
+        update matches
+        set category_ids = ${JSON.stringify(nextCategoryIds)}::jsonb,
+            category_id = ${nextCategoryIds[0] || null}
+        where id = ${match.id}
+      `;
+    }
+    await sql`delete from match_categories where id = ${category.id}`;
+  }
 }
 
 export async function seedDefaultMatchCategories(teamIds: string[], userId: string | null = null): Promise<void> {
