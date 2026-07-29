@@ -7915,17 +7915,19 @@ function TrendsPage({ data, selectedTeamId }) {
           <h2 className="nxt5-metal-text mt-1 break-words text-xl font-black leading-[1.05] tracking-tight lg:text-2xl">Cockpit stratégique</h2>
           <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Lecture équipe du bloc actif.</p>
         </div>
-        <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
-          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.025)]">
-              <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0 rounded-xl bg-white/[0.018] px-2 py-2">
+          <div className="grid min-w-0 gap-y-3 divide-white/10 sm:grid-cols-2 sm:divide-x lg:grid-cols-4">
+            {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 px-3 first:pl-1 last:pr-1">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-lg", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
                 <p className="min-w-0 truncate text-[0.58rem] font-black uppercase tracking-[0.13em] text-slate-300">{label}</p>
-                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/[0.07]", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
               </div>
-              <div className="mt-2 flex min-w-0 items-end justify-between gap-2">
-                <p className="break-words text-xl font-black leading-none text-white">{value}</p>
-                <p className="truncate text-[0.62rem] font-semibold text-slate-400">{hint}</p>
+              <div className="mt-2 flex min-w-0 items-baseline gap-2">
+                <p className="shrink-0 text-2xl font-black leading-none text-white">{value}</p>
+                <p className="min-w-0 truncate text-[0.62rem] font-semibold text-slate-400">{hint}</p>
               </div>
             </div>)}
+          </div>
         </div>
         <aside className="min-w-0 rounded-xl bg-[linear-gradient(135deg,rgba(255,255,255,.035),rgba(168,85,247,.055))] p-3">
           <div className="flex items-center justify-between gap-2">
