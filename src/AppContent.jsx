@@ -7943,9 +7943,8 @@ function TrendsPage({ data, selectedTeamId }) {
               <p className="mt-0.5 text-xs font-black text-white">{wins}W - {losses}L</p>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="grid grid-cols-3 gap-1.5 border-l border-white/10 pl-3">
+              <div className="grid grid-cols-2 gap-1.5 border-l border-white/10 pl-3">
                 <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Games</p><p className="mt-0.5 text-sm font-black text-white">{matches.length}</p></div>
-                <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Timeline</p><p className="mt-0.5 text-sm font-black text-white">{timelineGamesCount}/{matches.length}</p></div>
                 <div className="min-w-0"><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Identité</p><p className="truncate text-xs font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
               </div>
             </div>
