@@ -7904,10 +7904,10 @@ function TrendsPage({ data, selectedTeamId }) {
   ];
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <section className="relative mb-3 overflow-hidden rounded-2xl border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(8,18,38,.82),rgba(3,7,18,.72)_58%,rgba(25,10,39,.50))] p-3 shadow-[0_10px_28px_rgba(0,0,0,.20)]">
+    <section className="relative mb-3 overflow-hidden rounded-2xl border border-cyan-200/14 bg-[linear-gradient(135deg,rgba(8,18,38,.82),rgba(3,7,18,.72)_58%,rgba(25,10,39,.50))] p-3 shadow-[0_10px_28px_rgba(0,0,0,.20)]">
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/65 to-fuchsia-100/40" />
       <div className="relative z-10 grid gap-2 xl:grid-cols-[minmax(13rem,.50fr)_minmax(0,1.25fr)_minmax(20rem,.82fr)] xl:items-start">
-        <div className="min-w-0 rounded-xl border border-cyan-200/12 bg-cyan-400/[0.055] p-3">
+        <div className="min-w-0 p-2">
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge tone="cyan">Tendances</Badge>
             <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes"}</Badge>
@@ -7916,10 +7916,10 @@ function TrendsPage({ data, selectedTeamId }) {
           <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Lecture équipe du bloc actif.</p>
         </div>
         <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 lg:grid-cols-4">
-          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
+          {topMetrics.map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="min-w-0 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.025)]">
               <div className="flex min-w-0 items-start justify-between gap-2">
                 <p className="min-w-0 truncate text-[0.58rem] font-black uppercase tracking-[0.13em] text-slate-300">{label}</p>
-                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-lg border", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
+                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-white/[0.07]", tone(metricTone))}><Icon className="h-3.5 w-3.5" /></span>
               </div>
               <div className="mt-2 flex min-w-0 items-end justify-between gap-2">
                 <p className="break-words text-xl font-black leading-none text-white">{value}</p>
@@ -7927,7 +7927,7 @@ function TrendsPage({ data, selectedTeamId }) {
               </div>
             </div>)}
         </div>
-        <aside className="min-w-0 rounded-xl border border-fuchsia-200/12 bg-[linear-gradient(135deg,rgba(255,255,255,.045),rgba(168,85,247,.06))] p-3">
+        <aside className="min-w-0 rounded-xl bg-[linear-gradient(135deg,rgba(255,255,255,.035),rgba(168,85,247,.055))] p-3">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Bloc actif</p>
             <div className="flex shrink-0 items-center gap-1">
@@ -7941,22 +7941,28 @@ function TrendsPage({ data, selectedTeamId }) {
               <p className="mt-0.5 text-xs font-black text-white">{wins}W - {losses}L</p>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-white/10 bg-black/20 p-2">
+              <div className="grid grid-cols-3 gap-1.5 border-l border-white/10 pl-3">
                 <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Games</p><p className="mt-0.5 text-sm font-black text-white">{matches.length}</p></div>
                 <div><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Timeline</p><p className="mt-0.5 text-sm font-black text-white">{timelineGamesCount}/{matches.length}</p></div>
                 <div className="min-w-0"><p className="text-[0.5rem] font-black uppercase tracking-[0.1em] text-slate-400">Identité</p><p className="truncate text-xs font-black text-cyan-100">{tagLabel(identity.primary)}</p></div>
               </div>
             </div>
           </div>
-          <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+          <div className="mt-3 grid gap-2">
             {sideStats.map((stat) => {
-              const sideTone = stat.side === "Blue" ? "border-cyan-300/16 bg-cyan-400/[0.06] text-cyan-50" : "border-fuchsia-300/16 bg-fuchsia-400/[0.06] text-fuchsia-50";
-              return <div key={stat.side} className={cx("min-w-0 rounded-xl border p-2", sideTone)}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-[0.56rem] font-black uppercase tracking-[0.12em] text-slate-300">{stat.side} Side</p>
-                  <p className={cx("shrink-0 text-base font-black", stat.games ? stat.wr >= 50 ? "text-emerald-100" : "text-rose-100" : "text-slate-400")}>{stat.games ? `${stat.wr}%` : "-"}</p>
+              const sideTone = stat.side === "Blue" ? "bg-cyan-300" : "bg-fuchsia-300";
+              return <div key={stat.side} className="min-w-0">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className={cx("h-2 w-2 shrink-0 rounded-full shadow-[0_0_12px_currentColor]", sideTone)} />
+                    <span className="truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-300">{stat.side} Side</span>
+                  </span>
+                  <span className={cx("shrink-0 text-sm font-black", stat.games ? stat.wr >= 50 ? "text-emerald-100" : "text-rose-100" : "text-slate-400")}>{stat.games ? `${stat.wr}%` : "-"}</span>
                 </div>
-                <p className="mt-0.5 truncate text-[0.62rem] font-bold text-slate-300">{stat.games ? `${stat.wins}W - ${stat.games - stat.wins}L · ${stat.games}G` : "Aucune game"}</p>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                  <span className={cx("block h-full rounded-full", stat.side === "Blue" ? "bg-cyan-300" : "bg-fuchsia-300")} style={{ width: `${stat.games ? Math.max(4, stat.wr) : 0}%` }} />
+                </div>
+                <p className="mt-1 truncate text-[0.62rem] font-bold text-slate-400">{stat.games ? `${stat.wins}W - ${stat.games - stat.wins}L · ${stat.games}G` : "Aucune game"}</p>
               </div>;
             })}
           </div>
