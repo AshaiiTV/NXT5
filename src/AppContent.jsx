@@ -3507,6 +3507,91 @@ function playerIntegratedRows(player, matches = []) {
   });
 }
 
+function profileLinkAuditRows(player, matches = [], players = []) {
+  const playerRole = normalizeProfileRole(player?.role);
+  if (!player?.id || !COMP_ROLES.includes(playerRole)) return [];
+
+  const playerId = String(player.id);
+  const riotKey = normalizeProfileKey(player.riot_id);
+  const riotNameKey = normalizeProfileKey(String(player.riot_id || "").split("#")[0]);
+  const linkedMatchKeys = new Set(playerIntegratedRows(player, matches).map((row) => String(row.match?.id || row.match?.game_id || "")));
+  const playerById = new Map(players.map((item) => [String(item.id || ""), item]));
+
+  return matches.flatMap((match) => {
+    const matchKeyValue = String(match?.id || match?.game_id || "");
+    if (linkedMatchKeys.has(matchKeyValue)) return [];
+
+    const allies = (match?.participants || []).filter((row) => row.team_key === "ALLY");
+    const identityRow = allies.find((row) => String(row.player_id || "") === playerId) || allies.find((row) => {
+      const rowRiotKey = normalizeProfileKey(row.riot_id);
+      const rowSummonerKey = normalizeProfileKey(row.summoner_name);
+      const fullRiotMatch = Boolean(riotKey) && rowRiotKey === riotKey;
+      const gameNameMatch = Boolean(riotNameKey) && (rowSummonerKey === riotNameKey || (!String(row.riot_id || "").includes("#") && rowRiotKey === riotNameKey));
+      return fullRiotMatch || gameNameMatch;
+    });
+    const roleRow = allies.find((row) => normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane) === playerRole);
+    const row = identityRow || roleRow || null;
+    const currentPlayer = row?.player_id ? playerById.get(String(row.player_id)) || null : null;
+    const recordedRole = normalizeProfileRole(row?.role || row?.raw?.teamPosition || row?.raw?.individualPosition || row?.raw?.lane);
+    let issue = "Participant introuvable dans cet import";
+    if (row) {
+      if (identityRow && recordedRole !== playerRole) issue = `Poste enregistré : ${roleLabel(recordedRole || "inconnu")}`;
+      else if (currentPlayer && String(currentPlayer.id) !== playerId) issue = `Actuellement lié à ${currentPlayer.name}`;
+      else if (!row.player_id) issue = "Aucun profil NXT5 lié";
+      else issue = "Liaison à vérifier";
+    }
+
+    return [{
+      match,
+      row,
+      roleRow,
+      currentPlayer,
+      recordedRole,
+      identityMatched: Boolean(identityRow),
+      issue,
+    }];
+  });
+}
+
+function ProfileLinkAuditPanel({ player, matches, issues, open, canRepair, repairingId, onToggle, onRepair }) {
+  if (!player || !COMP_ROLES.includes(normalizeProfileRole(player.role)) || !matches.length) return null;
+  const linkedGames = Math.max(0, matches.length - issues.length);
+  const complete = issues.length === 0;
+  return <section className={cx("mt-4 overflow-hidden border-y", complete ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-amber-300/20 bg-amber-400/[0.055]")}>
+    <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className={cx("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", complete ? "border-emerald-300/24 bg-emerald-400/10 text-emerald-100" : "border-amber-300/24 bg-amber-400/10 text-amber-100")}>
+          {complete ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-black text-white">{complete ? "Toutes les games sont reliées" : `${issues.length} game${issues.length > 1 ? "s" : ""} à vérifier`}</p>
+          <p className="mt-0.5 text-xs font-semibold text-slate-300">{matches.length} games équipe · {linkedGames} reliées à {player.name}</p>
+        </div>
+      </div>
+      {!complete && <Button type="button" variant="ghost" icon={open ? ChevronDown : ChevronRight} onClick={onToggle}>{open ? "Masquer" : "Voir les games"}</Button>}
+    </div>
+    {open && !complete && <div className="border-t border-white/10">
+      {issues.map((item) => {
+        const row = item.row;
+        const account = row?.riot_id || row?.summoner_name || "Compte non identifié";
+        const repairing = repairingId === row?.id;
+        return <div key={item.match.id || item.match.game_id} className="grid gap-3 border-b border-white/[0.07] px-4 py-3 last:border-b-0 lg:grid-cols-[minmax(0,1fr)_minmax(180px,.55fr)_auto] lg:items-center">
+          <div className="flex min-w-0 items-center gap-3">
+            {row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-slate-400"><Swords className="h-4 w-4" /></span>}
+            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{matchDisplayName(item.match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{matchImportDateLabel(item.match)} · {item.match.duration || "--:--"}{row?.champion ? ` · ${championDisplayName(row.champion)}` : ""}</p></div>
+          </div>
+          <div className="min-w-0"><p className="truncate text-xs font-black text-slate-100">{account}</p><p className="mt-1 truncate text-xs font-semibold text-amber-100/80">{item.issue}</p></div>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/statistiques?match=${encodeURIComponent(item.match.id)}`)}>Ouvrir</Button>
+            {canRepair && row && <Button type="button" icon={repairing ? Loader2 : RefreshCw} disabled={Boolean(repairingId)} onClick={() => onRepair(item)}>{repairing ? "Correction..." : `Attribuer à ${player.name}`}</Button>}
+            {!canRepair && <Badge tone="slate">Lecture seule</Badge>}
+          </div>
+        </div>;
+      })}
+    </div>}
+  </section>;
+}
+
 function PlayerProfileStatsPanel({ player, matches = [] }) {
   const rows = playerIntegratedRows(player, matches);
   const wins = rows.filter((row) => row.match?.result === "Victoire").length;
@@ -3543,6 +3628,8 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
   const [coachingContent, setCoachingContent] = useState("");
   const [savingCoaching, setSavingCoaching] = useState(false);
+  const [profileLinkAuditOpen, setProfileLinkAuditOpen] = useState(false);
+  const [repairingProfileLinkId, setRepairingProfileLinkId] = useState("");
   useEffect(() => {
     const requestedPlayerId = new URLSearchParams(window.location.search || "").get("player") || "";
     const requestedPlayer = players.find((player) => String(player.id || "") === String(requestedPlayerId));
@@ -3551,6 +3638,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }, [linkedPlayer?.id, players.map((player) => player.id).join("|"), selectedPlayerId]);
   useEffect(() => {
     setSelectedProfileChampion("");
+    setProfileLinkAuditOpen(false);
   }, [selectedPlayerId, selectedCategoryId]);
   useEffect(() => {
     setSelectedCategoryId("");
@@ -3579,6 +3667,9 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const activeProfileCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const rows = selectedPlayer ? playerIntegratedRows(selectedPlayer, filteredMatches) : [];
   const games = rows.length;
+  const profileLinkIssues = selectedPlayer ? profileLinkAuditRows(selectedPlayer, filteredMatches, players) : [];
+  const selectedTeam = (data.teams || []).find((team) => String(team.id || "") === String(selectedTeamId || ""));
+  const canRepairProfileLinks = selectedTeam?.owner_id === user?.id || canStaffManage(currentMember?.role);
   const wins = rows.filter((row) => row.match?.result === "Victoire").length;
   const losses = Math.max(0, games - wins);
   const sum = (field) => rows.reduce((total, row) => total + Number(row[field] || 0), 0);
@@ -3753,6 +3844,26 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       pushToast?.({ type: "red", title: "Bilan impossible", text: err.message });
     } finally {
       setSavingCoaching(false);
+    }
+  }
+  async function repairProfileLink(item) {
+    if (!selectedPlayer || !item?.row?.id || !item?.match?.id || !canRepairProfileLinks) return;
+    const selectedRole = normalizeProfileRole(selectedPlayer.role);
+    const roles = { [item.row.id]: { role: selectedRole, playerId: selectedPlayer.id } };
+    const swapsRoles = item.identityMatched && item.recordedRole && item.recordedRole !== selectedRole && item.roleRow?.id && item.roleRow.id !== item.row.id;
+    if (swapsRoles) roles[item.roleRow.id] = { role: item.recordedRole, playerId: item.roleRow.player_id || "" };
+    const currentLink = item.currentPlayer && String(item.currentPlayer.id) !== String(selectedPlayer.id) ? ` Cette game est actuellement liée à ${item.currentPlayer.name}.` : "";
+    const roleChange = swapsRoles ? ` Les postes ${roleLabel(selectedRole)} et ${roleLabel(item.recordedRole)} seront aussi remis dans le bon ordre.` : "";
+    if (!window.confirm(`Attribuer ${matchDisplayName(item.match)} à ${selectedPlayer.name} ?${currentLink}${roleChange}`)) return;
+    setRepairingProfileLinkId(item.row.id);
+    try {
+      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "roles", teamId: selectedTeamId, matchId: item.match.id, roles }) });
+      await refreshAll?.();
+      pushToast?.({ type: "green", title: "Game reliée", text: `${matchDisplayName(item.match)} compte maintenant dans le profil de ${selectedPlayer.name}.` });
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Liaison impossible", text: err.message });
+    } finally {
+      setRepairingProfileLinkId("");
     }
   }
   async function exportProfilePng() {
@@ -3990,6 +4101,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         <div className="grid w-full gap-2 sm:grid-cols-2 2xl:grid-cols-4 2xl:w-auto 2xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
       </div>
     </Surface>
+    <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />
     <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
       <div className="nxt5-responsive-nav-grid grid gap-2">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group grid min-h-[5.1rem] min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0 self-center"><span className="block break-words text-sm font-black leading-5">{label}</span><span className="mt-0.5 block break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span><span className="justify-self-end"><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></span></button>; })}</div>
     </div>
