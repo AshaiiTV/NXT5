@@ -2391,66 +2391,6 @@ function TeamCoachDashboard({ team, players = [], matches = [], reports = [], ch
   </Surface>;
 }
 
-function WeeklyStaffPlan({ selectedTeamId, players = [], matches = [], reports = [] }) {
-  const storageKey = `nxt5-weekly-plan-${selectedTeamId || "global"}`;
-  const teamMatches = matches.filter((match) => match.team_id === selectedTeamId);
-  const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)));
-  const alerts = buildStaffAlerts(teamMatches, teamPlayers);
-  const latestReport = reports.filter((report) => report.team_id === selectedTeamId).slice().sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))[0];
-  const defaultPlan = {
-    objective: alerts[0]?.title || "Stabiliser le prochain bloc",
-    review: alerts[0]?.action || "Choisir une game source et isoler une seule erreur répétée.",
-    draft: "Préparer un pick confort, un ban prioritaire et un plan par side.",
-    deadline: "Prochaine session",
-  };
-  const [plan, setPlan] = useState(() => {
-    try {
-      const saved = window.localStorage?.getItem(storageKey);
-      return saved ? { ...defaultPlan, ...JSON.parse(saved) } : defaultPlan;
-    } catch {
-      return defaultPlan;
-    }
-  });
-  useEffect(() => {
-    try {
-      window.localStorage?.setItem(storageKey, JSON.stringify(plan));
-    } catch {}
-  }, [storageKey, plan]);
-  useEffect(() => {
-    try {
-      const saved = window.localStorage?.getItem(storageKey);
-      setPlan(saved ? { ...defaultPlan, ...JSON.parse(saved) } : defaultPlan);
-    } catch {
-      setPlan(defaultPlan);
-    }
-  }, [selectedTeamId]);
-  const fields = [
-    ["objective", "Objectif équipe", Target, "Ex: jouer le premier objectif avec reset annoncé"],
-    ["review", "Review à faire", FileText, "Game source, joueur, moment précis"],
-    ["draft", "Prépa draft", Crown, "Pick à sécuriser, ban, réponse adverse"],
-    ["deadline", "Validation", CalendarDays, "Quand on juge si c'est réussi"],
-  ];
-  return <Surface glow className="p-4">
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-      <div>
-        <Badge tone="cyan">Plan de semaine</Badge>
-        <h3 className="mt-2 text-xl font-black text-white">Transformer les constats en entraînement</h3>
-        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Un objectif, une review source, une préparation draft, une validation courte. Simple à tenir pour le staff.</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge>
-        {latestReport && <Badge tone="purple">Dernière review prête</Badge>}
-      </div>
-    </div>
-    <div className="mt-4 grid gap-3 lg:grid-cols-4">
-      {fields.map(([key, label, Icon, placeholder]) => <label key={key} className="block rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-        <span className="flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400"><Icon className="h-3.5 w-3.5 text-cyan-100" />{label}</span>
-        <textarea value={plan[key]} onChange={(event) => setPlan((current) => ({ ...current, [key]: event.target.value }))} rows={3} placeholder={placeholder} className="mt-2 w-full resize-none bg-transparent text-sm font-semibold leading-5 text-white outline-none placeholder:text-slate-500" />
-      </label>)}
-    </div>
-  </Surface>;
-}
-
 function oppositeSideKey(side) {
   return side === "blue" ? "red" : side === "red" ? "blue" : "";
 }
@@ -10264,7 +10204,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       </div>}
 
       <div className="space-y-5">
-        <WeeklyStaffPlan selectedTeamId={selectedTeamId} players={data.players || []} matches={data.matches || []} reports={data.reports || []} />
         {false && <div className="hidden">
           <Surface glow className="p-3">
             <div className="flex items-start justify-between gap-3">
