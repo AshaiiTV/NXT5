@@ -237,7 +237,6 @@ export default async function handler(request: Request, context: Context): Promi
         left join users on users.id = matches.created_by
         where matches.team_id = any(${teamIds})
         order by matches.created_at desc
-        limit 50
       `,
       sql`select * from champion_pool where team_id = any(${teamIds}) order by games desc, winrate desc`,
       sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`,
