@@ -8017,25 +8017,23 @@ function TrendsPage({ data, selectedTeamId }) {
             </div>
           </div>
         </article>
-        <aside className="grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-black/20 p-3">
+        <aside className="grid min-w-0 content-start gap-3 rounded-2xl border border-cyan-200/14 bg-[linear-gradient(145deg,rgba(8,18,34,.76),rgba(4,8,18,.92))] p-3">
           <div>
-            <Badge tone="cyan">Méthode</Badge>
-            <h4 className="mt-2 text-lg font-black text-white">Ce que je mettrais dedans</h4>
+            <Badge tone="cyan">Lecture staff</Badge>
+            <h4 className="mt-2 text-lg font-black text-white">Prochain bloc</h4>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Une consigne claire, un point de contrôle, puis les games sources pour vérifier en review.</p>
           </div>
-          {[
-            ["1", "Objectif équipe unique", "Le plus gros levier du bloc, pas une liste interminable."],
-            ["2", "Objectif par rôle", "Chaque joueur a une cible liée à son impact réel."],
-            ["3", "Preuves cliquables", "Les games sources restent accessibles pour review."],
-            ["4", "Validation courte", "On juge sur les 3 prochaines games, puis on ajuste."]
-          ].map(([step, title, text]) => <div key={step} className="rounded-xl border border-white/10 bg-white/[0.035] p-2.5">
-            <div className="flex gap-2.5">
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-fuchsia-200/20 bg-fuchsia-300/10 text-xs font-black text-fuchsia-50">{step}</span>
-              <div className="min-w-0">
-                <p className="text-sm font-black text-white">{title}</p>
-                <p className="mt-0.5 text-xs font-semibold leading-5 text-slate-300">{text}</p>
-              </div>
-            </div>
-          </div>)}
+          <div className="grid gap-2">
+            {[
+              ["Décision", teamAiObjective.title, teamAiObjective.toneName],
+              ["Exécution", teamAiObjective.target, "cyan"],
+              ["Contrôle", `À juger sur les ${Math.min(3, Math.max(1, matches.length))} prochaines games`, "slate"]
+            ].map(([label, value, toneName]) => <div key={label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3 border-t border-white/10 pt-2 first:border-t-0 first:pt-0">
+              <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
+              <p className={cx("min-w-0 break-words text-sm font-black leading-5", toneName === "green" ? "text-emerald-100" : toneName === "orange" ? "text-amber-100" : toneName === "red" ? "text-rose-100" : toneName === "cyan" ? "text-cyan-100" : "text-white")}>{value}</p>
+            </div>)}
+          </div>
+          <button type="button" onClick={() => openTrendSources({ title: "Games sources", subtitle: teamAiObjective.title, games: teamAiObjective.sourceGames })} className="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Ouvrir les sources</button>
         </aside>
       </div>
       <div className="mt-3 grid gap-2 lg:grid-cols-5">
