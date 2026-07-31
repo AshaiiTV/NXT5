@@ -4066,7 +4066,29 @@ function MatchupPanel({ title, items, toneName }) {
 function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, issues, strengths, actions, pillars, comparisons, decisions, evidenceRows }) {
   const mainTone = issues.length ? issues[0].toneName : strengths[0]?.toneName || "cyan";
   const readableItems = (issues.length ? issues : strengths).slice(0, 3);
-  const referenceMetrics = [...pillars.slice(0, 4), ...comparisons.slice(0, 2)];
+  const referenceMetrics = [...pillars.slice(0, 4), ...comparisons.slice(0, 2)].map((item) => {
+    const lower = String(item.label || "").toLowerCase();
+    const title = lower.includes("laning") || lower.includes("cs10") ? "Lane et farm" : lower.includes("fight") || lower.includes("kp") ? "Présence en fight" : lower.includes("ressource") || lower.includes("rendement") ? "Ressources" : lower.includes("sécurité") || lower.includes("mort") ? "Sécurité" : item.label;
+    const read = lower.includes("laning") || lower.includes("cs10")
+      ? `CS10 ${item.value}. ${item.detail}.`
+      : lower.includes("fight") || lower.includes("kp")
+        ? `KP ${item.value}. ${item.detail}.`
+        : lower.includes("ressource") || lower.includes("rendement")
+          ? `${item.value} des dégâts pour ${item.detail}.`
+          : lower.includes("sécurité") || lower.includes("mort")
+            ? `${item.value} morts/game. ${item.detail}.`
+            : `${item.value} · ${item.detail}`;
+    const action = lower.includes("laning") || lower.includes("cs10")
+      ? "Regarder waves 1-3, premier reset, puis CS10."
+      : lower.includes("fight") || lower.includes("kp")
+        ? "Regarder le move 30s avant les objectifs."
+        : lower.includes("ressource") || lower.includes("rendement")
+          ? "Vérifier si les ressources donnent une vraie conversion."
+          : lower.includes("sécurité") || lower.includes("mort")
+            ? "Classer les morts : vision, wave, greed ou fight forcé."
+            : "Utiliser ce repère comme point de contrôle.";
+    return { ...item, title, read, action };
+  }).slice(0, 4);
   return <Surface className="p-5 md:p-6">
     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
       <div className="min-w-0">
@@ -4114,19 +4136,31 @@ function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, i
         </div>
       </aside>
     </div>
-    <div className="mt-6 border-t border-white/10 pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Repères utiles</p></div>
-      <div className="mt-3 grid gap-x-6 gap-y-2 lg:grid-cols-2">{referenceMetrics.map((item) => <CoachReferenceMetric key={item.label} item={item} />)}</div>
+    <div className="mt-6 border-t border-white/10 pt-5">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">À vérifier en review</p>
+          <p className="mt-1 text-sm font-semibold text-slate-400">Les contrôles simples à ouvrir dans les games sources.</p>
+        </div>
+        <Badge tone="slate">{referenceMetrics.length} axes</Badge>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">{referenceMetrics.map((item) => <CoachReferenceMetric key={item.label} item={item} />)}</div>
     </div>
   </Surface>;
 }
 
 function CoachReferenceMetric({ item }) {
-  return <div className="grid min-w-0 grid-cols-[minmax(92px,.7fr)_minmax(70px,.35fr)_minmax(0,1fr)] items-center gap-3 border-b border-white/8 py-2">
-    <p className="truncate text-xs font-black uppercase tracking-[0.12em] text-slate-400">{item.label}</p>
-    <p className="truncate text-sm font-black text-white">{item.value}</p>
-    <p className="truncate text-xs font-semibold text-slate-400">{item.detail}</p>
-  </div>;
+  const Icon = item.icon || Activity;
+  return <article className="min-w-0 rounded-2xl bg-white/[0.028] p-3">
+    <div className="flex items-start gap-3">
+      <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl", tone(item.toneName))}><Icon className="h-4 w-4" /></span>
+      <div className="min-w-0">
+        <h4 className="text-sm font-black text-white">{item.title || item.label}</h4>
+        <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{item.read || `${item.value} · ${item.detail}`}</p>
+      </div>
+    </div>
+    <p className="mt-3 border-t border-white/10 pt-3 text-xs font-black leading-5 text-cyan-100">{item.action}</p>
+  </article>;
 }
 
 function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, matchups = [], bestMatchups = [], worstMatchups = [], buildRows = [], buildRowsCount = 0, selectedCategoryId, navigate }) {
