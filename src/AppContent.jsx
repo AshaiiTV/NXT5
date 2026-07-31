@@ -6998,6 +6998,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const [expandedTeamModelId, setExpandedTeamModelId] = useState("win-condition");
   const [draftTrendView, setDraftTrendView] = useState("ally");
   const [trendPanel, setTrendPanel] = useState("coach");
+  const [profileContractsOpen, setProfileContractsOpen] = useState(false);
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
@@ -8047,7 +8048,7 @@ function TrendsPage({ data, selectedTeamId }) {
                 <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-400">{item.current}</span>
               </span>
             </span>
-            <button type="button" onClick={() => openTrendSources({ title: `Sources ${roleLabel(item.role)}`, subtitle: item.title, games: item.sourceGames })} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-cyan-100 transition hover:bg-cyan-300/10" title="Voir les sources"><FileText className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => setProfileContractsOpen(true)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-cyan-100 transition hover:bg-cyan-300/10" title="Voir les contrats joueurs"><FileText className="h-3.5 w-3.5" /></button>
           </div>
           <h5 className="mt-3 break-words text-base font-black leading-5 text-white">{item.title}</h5>
           <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{item.why}</p>
@@ -8057,14 +8058,16 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </article>)}
       </div>
-      <div className="mt-4 rounded-2xl border border-cyan-200/14 bg-black/20 p-3">
+      {profileContractsOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="nxt5-sidebar-aware-overlay fixed inset-0 z-[140] flex items-end justify-center bg-slate-950/88 p-3 backdrop-blur-xl sm:items-center">
+        <div className="w-full max-w-[min(96rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.75),0_0_48px_rgba(34,211,238,.16)]">
+          <div className="max-h-[min(88vh,54rem)] overflow-auto p-3 sm:p-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <Badge tone="cyan">Par profil</Badge>
             <h4 className="mt-2 text-xl font-black text-white">Contrats de progrès joueurs</h4>
             <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-slate-300">Chaque carte donne une cible, un exercice concret, une règle de validation et l'alerte à regarder en review. C'est pensé pour le prochain bloc de 3 games.</p>
           </div>
-          <Badge tone="slate">{profileAiObjectives.length}/5 profils</Badge>
+          <div className="flex items-center gap-2"><Badge tone="slate">{profileAiObjectives.length}/5 profils</Badge><button type="button" onClick={() => setProfileContractsOpen(false)} className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.08]" title="Fermer"><X className="h-4 w-4" /></button></div>
         </div>
         <div className="mt-3 grid gap-3 xl:grid-cols-2">
           {profileAiObjectives.map((item) => <article key={item.player.id} className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-3", item.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : item.toneName === "orange" ? "border-amber-200/18 bg-amber-400/[0.045]" : "border-rose-200/18 bg-rose-400/[0.04]")}>
@@ -8073,7 +8076,6 @@ function TrendsPage({ data, selectedTeamId }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={item.toneName}>{roleLabel(item.role)}</Badge>
                   <Badge tone={item.games ? "green" : "slate"}>{item.games} game{item.games > 1 ? "s" : ""}</Badge>
-                  {item.mainChampion && <Badge tone="purple">{championDisplayName(item.mainChampion.champion)}</Badge>}
                 </div>
                 <h5 className="mt-2 break-words text-xl font-black leading-tight text-white">{item.player.name}</h5>
                 <p className="mt-1 break-words text-xs font-semibold text-slate-300">{item.player.riot_id || "Riot ID non lié"}</p>
@@ -8106,7 +8108,9 @@ function TrendsPage({ data, selectedTeamId }) {
             </div>
           </article>)}
         </div>
-      </div>
+          </div>
+        </div>
+      </motion.div>}
     </Surface>}
     {trendPanel === "coach" && <Surface className="p-2.5">
       <div className="flex flex-col gap-2 xl:flex-row xl:items-end xl:justify-between">
