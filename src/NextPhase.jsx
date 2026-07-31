@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   Activity,
   AlertTriangle,
   ArrowRight,
-  CalendarDays,
   Check,
   ChevronRight,
   CircleDot,
@@ -14,11 +13,9 @@ import {
   Eye,
   FileText,
   Gauge,
-  Minus,
   Plus,
   RefreshCw,
   ShieldCheck,
-  Swords,
   Target,
   Trash2,
   Trophy,
@@ -28,7 +25,6 @@ import {
 import { apiFetch } from "./api/client.js";
 
 const ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
-const STAFF_ROLES = ["owner", "captain", "coach", "assistant", "analyst", "manager", "board"];
 const METRICS = {
   deaths: { label: "Morts / game", unit: "", defaultOperator: "lte", defaultTarget: 3.5 },
   kp: { label: "Kill participation", unit: "%", defaultOperator: "gte", defaultTarget: 60 },
@@ -67,14 +63,6 @@ function formatDate(value, withTime = false) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Date à définir";
   return date.toLocaleString("fr-FR", withTime ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "medium" });
-}
-
-function datetimeLocal(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
 function teamRows(match, teamKey = "ALLY") {
@@ -283,100 +271,6 @@ export function ReviewQueuePanel({ matches = [], reports = [], selectedTeamId, r
   </Panel>;
 }
 
-function championAssetName(name) {
-  const compact = String(name || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
-  return { kaisa: "Kaisa", ksante: "KSante", jarvaniv: "JarvanIV", leesin: "LeeSin", missfortune: "MissFortune", monkeyking: "MonkeyKing", xinzhao: "XinZhao", leblanc: "Leblanc", drmundo: "DrMundo", reksai: "RekSai" }[compact] || String(name || "").replace(/[^a-z0-9]/gi, "");
-}
-
-function ChampionToken({ champion }) {
-  const [failed, setFailed] = useState(false);
-  const asset = championAssetName(champion);
-  return <span className="flex min-w-0 items-center gap-2">{!failed && asset ? <img src={`https://ddragon.leagueoflegends.com/cdn/16.11.1/img/champion/${asset}.png`} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" onError={() => setFailed(true)} /> : <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.06] text-xs font-black text-cyan-100">{String(champion || "?").slice(0, 1)}</span>}<span className="truncate text-sm font-black text-white">{champion || "À définir"}</span></span>;
-}
-
-function tournamentForm(tournament) {
-  return tournament ? { opponent: tournament.opponent || "", format: tournament.format || "BO3", status: tournament.status || "preparation", ourScore: Number(tournament.our_score || 0), opponentScore: Number(tournament.opponent_score || 0), side: tournament.side || "undecided", scheduledAt: datetimeLocal(tournament.scheduled_at), notes: tournament.notes || "", matchIds: Array.isArray(tournament.match_ids) ? tournament.match_ids : [] } : { opponent: "", format: "BO3", status: "preparation", ourScore: 0, opponentScore: 0, side: "undecided", scheduledAt: "", notes: "", matchIds: [] };
-}
-
-export function TournamentPage({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
-  const tournaments = (data.tournaments || []).filter((item) => item.team_id === selectedTeamId);
-  const matches = (data.matches || []).filter((item) => item.team_id === selectedTeamId);
-  const compositions = (data.compositions || []).filter((item) => item.team_id === selectedTeamId);
-  const pool = (data.championPool || []).filter((item) => item.team_id === selectedTeamId);
-  const team = (data.teams || []).find((item) => item.id === selectedTeamId);
-  const canManage = team?.owner_id === user?.id || STAFF_ROLES.includes(String(currentMember?.role || "").toLowerCase());
-  const [selectedId, setSelectedId] = useState(tournaments.find((item) => item.status !== "complete")?.id || tournaments[0]?.id || "new");
-  const selected = tournaments.find((item) => item.id === selectedId) || null;
-  const [form, setForm] = useState(() => tournamentForm(selected));
-  const [saving, setSaving] = useState(false);
-  const [draftView, setDraftView] = useState("ours");
-  useEffect(() => setForm(tournamentForm(selected)), [selected?.id, selected?.updated_at, selectedId]);
-  useEffect(() => { if (selectedId !== "new" && !tournaments.some((item) => item.id === selectedId)) setSelectedId(tournaments[0]?.id || "new"); }, [tournaments.map((item) => item.id).join("|"), selectedId]);
-  const opponentNeedle = String(form.opponent || "").toLowerCase().trim();
-  const opponentMatches = matches.filter((match) => {
-    if (form.matchIds.includes(match.id)) return true;
-    if (!opponentNeedle) return false;
-    return String(matchName(match)).toLowerCase().includes(opponentNeedle) || String(match.opponent || "").toLowerCase().includes(opponentNeedle);
-  });
-  const opponentWins = opponentMatches.filter((match) => match.result === "Victoire").length;
-  const enemyByRole = ROLES.map((role) => {
-    const rows = opponentMatches.flatMap((match) => teamRows(match, "ENEMY")).filter((row) => normalizeRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition) === role);
-    const picks = Array.from(rows.reduce((map, row) => { if (row.champion) map.set(row.champion, (map.get(row.champion) || 0) + 1); return map; }, new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    return { role, picks };
-  });
-  const blueGames = opponentMatches.filter((match) => String(match.side || "").toLowerCase().includes("blue"));
-  const redGames = opponentMatches.filter((match) => String(match.side || "").toLowerCase().includes("red"));
-  const wr = (items) => items.length ? Math.round((items.filter((match) => match.result === "Victoire").length / items.length) * 100) : null;
-  async function save() {
-    if (!form.opponent.trim()) return pushToast?.({ type: "red", title: "Adversaire requis", text: "Donne un nom à la série." });
-    setSaving(true);
-    try {
-      const result = await apiFetch("tournaments-manage", { method: "POST", body: JSON.stringify({ action: selected ? "update" : "create", teamId: selectedTeamId, tournamentId: selected?.id, ...form, scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null }) });
-      await refreshAll();
-      if (result?.tournament?.id) setSelectedId(result.tournament.id);
-      pushToast?.({ type: "green", title: selected ? "Série mise à jour" : "Série créée", text: `${form.format} contre ${form.opponent}` });
-    } catch (error) {
-      pushToast?.({ type: "red", title: "Enregistrement impossible", text: error.message });
-    } finally { setSaving(false); }
-  }
-  async function remove() {
-    if (!selected || !window.confirm(`Supprimer la série contre ${selected.opponent} ?`)) return;
-    setSaving(true);
-    try { await apiFetch("tournaments-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, tournamentId: selected.id }) }); await refreshAll(); setSelectedId("new"); pushToast?.({ type: "green", title: "Série supprimée", text: selected.opponent }); }
-    catch (error) { pushToast?.({ type: "red", title: "Suppression impossible", text: error.message }); }
-    finally { setSaving(false); }
-  }
-  const maxWins = form.format === "BO5" ? 3 : form.format === "BO3" ? 2 : 1;
-  const setScore = (key, delta) => setForm((current) => ({ ...current, [key]: Math.max(0, Math.min(maxWins, current[key] + delta)) }));
-  return <div className="min-w-0">
-    <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><Label>Mode tournoi</Label><h2 className="mt-3 text-4xl font-black text-white">Préparer. Jouer. Ajuster.</h2><p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Un seul espace pour le scouting adverse, le score de série et les drafts à sortir.</p></div>{canManage && <ActionButton icon={Plus} onClick={() => { setSelectedId("new"); setForm(tournamentForm()); }}>Nouvelle série</ActionButton>}</div>
-    {tournaments.length > 0 && <div className="mb-4 flex gap-2 overflow-x-auto pb-1">{tournaments.map((item) => <button key={item.id} type="button" onClick={() => setSelectedId(item.id)} className={cx("min-w-[12rem] shrink-0 rounded-xl border px-3 py-2 text-left transition", item.id === selectedId ? "border-cyan-300/35 bg-cyan-300/10" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/20")}><span className="block truncate text-sm font-black text-white">vs {item.opponent}</span><span className="mt-1 block text-[0.62rem] font-black uppercase tracking-[0.1em] text-slate-400">{item.format} · {item.our_score}-{item.opponent_score} · {item.status === "complete" ? "Terminé" : item.status === "live" ? "En cours" : "Préparation"}</span></button>)}</div>}
-    <Panel>
-      <div className="grid xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,.85fr)]">
-        <div className="min-w-0 p-4 sm:p-6">
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_8rem_8rem]"><label><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Adversaire</span><input value={form.opponent} onChange={(event) => setForm({ ...form, opponent: event.target.value })} disabled={!canManage} placeholder="Nom de l'équipe" className="w-full rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-black text-white outline-none focus:border-cyan-300/35 disabled:opacity-70" /></label><label><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Format</span><select value={form.format} onChange={(event) => setForm({ ...form, format: event.target.value })} disabled={!canManage} className="w-full rounded-lg border border-white/10 bg-[#0a1020] px-3 py-2.5 text-sm font-black text-white outline-none"><option>BO1</option><option>BO3</option><option>BO5</option></select></label><label><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Statut</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} disabled={!canManage} className="w-full rounded-lg border border-white/10 bg-[#0a1020] px-3 py-2.5 text-sm font-black text-white outline-none"><option value="preparation">Préparation</option><option value="live">En cours</option><option value="complete">Terminé</option></select></label></div>
-          <div className="mt-6 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-y border-white/10 py-5"><div className="text-center"><p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">{team?.tag || "Nous"}</p><div className="mt-2 flex items-center justify-center gap-3">{canManage && <IconButton icon={Minus} label="Retirer un point" onClick={() => setScore("ourScore", -1)} />}<span className="min-w-12 text-5xl font-black text-white">{form.ourScore}</span>{canManage && <IconButton icon={Plus} label="Ajouter un point" onClick={() => setScore("ourScore", 1)} />}</div></div><div className="text-2xl font-black text-slate-600">VS</div><div className="text-center"><p className="truncate text-xs font-black uppercase tracking-[0.14em] text-fuchsia-100">{form.opponent || "Adversaire"}</p><div className="mt-2 flex items-center justify-center gap-3">{canManage && <IconButton icon={Minus} label="Retirer un point" onClick={() => setScore("opponentScore", -1)} />}<span className="min-w-12 text-5xl font-black text-white">{form.opponentScore}</span>{canManage && <IconButton icon={Plus} label="Ajouter un point" onClick={() => setScore("opponentScore", 1)} />}</div></div></div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2"><label><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Date et heure</span><input type="datetime-local" value={form.scheduledAt} onChange={(event) => setForm({ ...form, scheduledAt: event.target.value })} disabled={!canManage} className="w-full rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-bold text-white outline-none" /></label><label><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Premier side</span><select value={form.side} onChange={(event) => setForm({ ...form, side: event.target.value })} disabled={!canManage} className="w-full rounded-lg border border-white/10 bg-[#0a1020] px-3 py-2.5 text-sm font-bold text-white outline-none"><option value="undecided">À décider</option><option value="blue">Blue side</option><option value="red">Red side</option></select></label></div>
-          <label className="mt-3 block"><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Plan de série</span><textarea rows="4" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} disabled={!canManage} placeholder="Bans, condition de victoire, adaptation entre les games..." className="w-full resize-y rounded-lg border border-white/10 bg-black/25 px-3 py-2.5 text-sm font-semibold leading-6 text-white outline-none focus:border-cyan-300/35" /></label>
-          {canManage && <div className="mt-4 flex flex-wrap justify-end gap-2">{selected && <ActionButton variant="danger" icon={Trash2} onClick={remove} disabled={saving}>Supprimer</ActionButton>}<ActionButton icon={saving ? RefreshCw : Check} onClick={save} disabled={saving}>{selected ? "Enregistrer" : "Créer la série"}</ActionButton></div>}
-        </div>
-        <aside className="border-t border-white/10 bg-white/[0.025] p-4 sm:p-6 xl:border-l xl:border-t-0">
-          <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Scouting importé</p><p className="mt-1 text-xl font-black text-white">{opponentMatches.length} game{opponentMatches.length > 1 ? "s" : ""}</p></div><Swords className="h-6 w-6 text-fuchsia-100" /></div>
-          <div className="mt-4 grid grid-cols-3 gap-3 border-y border-white/10 py-4"><div><p className="text-[0.58rem] font-black uppercase text-slate-500">Notre WR</p><p className="mt-1 text-xl font-black text-white">{opponentMatches.length ? Math.round((opponentWins / opponentMatches.length) * 100) : "-"}%</p></div><div><p className="text-[0.58rem] font-black uppercase text-slate-500">Blue</p><p className="mt-1 text-xl font-black text-cyan-100">{wr(blueGames) ?? "-"}%</p></div><div><p className="text-[0.58rem] font-black uppercase text-slate-500">Red</p><p className="mt-1 text-xl font-black text-fuchsia-100">{wr(redGames) ?? "-"}%</p></div></div>
-          <div className="mt-4 space-y-3">{enemyByRole.map((entry) => <div key={entry.role} className="grid grid-cols-[3rem_minmax(0,1fr)] items-start gap-3"><span className="pt-2 text-xs font-black text-slate-400">{entry.role}</span><div className="flex flex-wrap gap-2">{entry.picks.length ? entry.picks.map(([champion, count]) => <span key={champion} className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.05] px-2 py-1 text-xs font-bold text-slate-200">{champion} <span className="text-slate-500">×{count}</span></span>) : <span className="pt-2 text-xs font-semibold text-slate-500">Pas de donnée</span>}</div></div>)}</div>
-        </aside>
-      </div>
-    </Panel>
-    <Panel className="mt-5">
-      <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"><div><h3 className="text-xl font-black text-white">Drafts de la série</h3><p className="mt-1 text-sm font-semibold text-slate-400">Nos plans enregistrés face à leurs picks observés.</p></div><div className="flex rounded-lg border border-white/10 bg-black/25 p-1">{[["ours", "Nos drafts"], ["theirs", "Leur draft"]].map(([id, label]) => <button key={id} type="button" onClick={() => setDraftView(id)} className={cx("rounded-md px-3 py-2 text-xs font-black transition", draftView === id ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:text-white")}>{label}</button>)}</div></div>
-      {draftView === "ours" ? <div className="grid gap-px bg-white/[0.07] md:grid-cols-2 xl:grid-cols-3">{compositions.length ? compositions.slice(0, 6).map((composition) => {
-        const slots = composition.slots && typeof composition.slots === "object" ? composition.slots : {};
-        const champions = ROLES.map((role) => pool.find((row) => String(row.id) === String(slots?.[role]?.poolId))?.champion).filter(Boolean);
-        return <button type="button" key={composition.id} onClick={() => openRoute("/compositions-types")} className="min-w-0 bg-[#070b17] p-4 text-left transition hover:bg-cyan-300/[0.05]"><p className="truncate text-base font-black text-white">{composition.title}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{champions.length ? champions.join(" · ") : "Composition à compléter"}</p></button>;
-      }) : <button type="button" onClick={() => openRoute("/compositions-types")} className="p-5 text-left text-sm font-semibold text-cyan-100">Créer une première composition <ArrowRight className="ml-2 inline h-4 w-4" /></button>}</div> : <div className="grid gap-px bg-white/[0.07] sm:grid-cols-2 xl:grid-cols-5">{enemyByRole.map((entry) => <div key={entry.role} className="min-w-0 bg-[#070b17] p-4"><p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{entry.role}</p><div className="mt-3 space-y-2">{entry.picks.length ? entry.picks.map(([champion, count]) => <div key={champion} className="flex items-center justify-between gap-2"><ChampionToken champion={champion} /><span className="text-xs font-black text-slate-500">{count}G</span></div>) : <p className="text-xs font-semibold text-slate-500">À scouter</p>}</div></div>)}</div>}
-    </Panel>
-  </div>;
-}
 
 function goalMetricValue(row, metric) {
   if (metric === "deaths") return Number(row.deaths || 0);
@@ -442,11 +336,11 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
   </Panel>;
 }
 
-export function HomeActionSummary({ tournaments = [], matches = [], alerts = [] }) {
-  const upcoming = [...tournaments].filter((item) => item.status !== "complete").sort((a, b) => new Date(a.scheduled_at || "2999-01-01") - new Date(b.scheduled_at || "2999-01-01"))[0];
+export function HomeActionSummary({ matches = [], alerts = [] }) {
+  const latest = [...matches].sort((a, b) => new Date(b.imported_at || b.created_at || 0) - new Date(a.imported_at || a.created_at || 0))[0];
   const review = matches.find((match) => String(match.review_status || "todo") !== "done" && match.result === "Défaite") || matches.find((match) => String(match.review_status || "todo") !== "done");
   const items = [
-    { label: "Prochaine échéance", value: upcoming ? `${upcoming.format} vs ${upcoming.opponent}` : "Aucune série planifiée", detail: upcoming ? formatDate(upcoming.scheduled_at, true) : "Prépare le prochain tournoi.", icon: CalendarDays, path: "/tournoi" },
+    { label: "Dernier import", value: latest ? matchName(latest) : "Aucune game importée", detail: latest ? `${latest.result || "À analyser"} · ${formatDate(latest.imported_at || latest.created_at)}` : "Commence par intégrer une game.", icon: Clock3, path: latest ? `/statistiques?match=${encodeURIComponent(latest.id)}` : "/integration" },
     { label: "Priorité du bloc", value: alerts[0]?.title || "Choisir un axe", detail: alerts[0]?.action || "Une seule priorité avant le prochain bloc.", icon: Target, path: "/tendances" },
     { label: "Review à ouvrir", value: review ? matchName(review) : "File à jour", detail: review ? reviewReason(review) : "Aucune game en attente.", icon: FileText, path: review ? `/statistiques?match=${encodeURIComponent(review.id)}` : "/rapports" },
   ];

@@ -64,27 +64,6 @@ export async function ensureWorkflowSchema() {
   await sql`create index if not exists idx_matches_team_review_status on matches(team_id, review_status, created_at desc)`;
 
   await sql`
-    create table if not exists tournaments (
-      id uuid primary key default gen_random_uuid(),
-      team_id uuid not null references teams(id) on delete cascade,
-      created_by uuid references users(id) on delete set null,
-      opponent text not null,
-      format text not null default 'BO3',
-      status text not null default 'preparation',
-      our_score integer not null default 0,
-      opponent_score integer not null default 0,
-      side text not null default 'undecided',
-      scheduled_at timestamptz,
-      notes text,
-      match_ids jsonb not null default '[]'::jsonb,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now()
-    )
-  `;
-  await sql`alter table tournaments add column if not exists match_ids jsonb not null default '[]'::jsonb`;
-  await sql`create index if not exists idx_tournaments_team on tournaments(team_id, status, scheduled_at asc)`;
-
-  await sql`
     create table if not exists player_goals (
       id uuid primary key default gen_random_uuid(),
       team_id uuid not null references teams(id) on delete cascade,

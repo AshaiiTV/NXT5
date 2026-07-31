@@ -44,7 +44,7 @@ import {
   X,
 } from "lucide-react";
 import { API_BASE, apiFetch, apiUploadJson } from "./api/client.js";
-import { BlockComparisonPanel, HomeActionSummary, PlayerGoalsPanel, ReviewQueuePanel, TeamDataHealthPanel, TournamentPage } from "./NextPhase.jsx";
+import { BlockComparisonPanel, HomeActionSummary, PlayerGoalsPanel, ReviewQueuePanel, TeamDataHealthPanel } from "./NextPhase.jsx";
 
 const NXT5_IMPORTER_VERSION = "0.2.10";
 const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
@@ -99,7 +99,6 @@ function currentPerformanceMode() {
 const NAV = [
   { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Games", hint: "Importer, lire, review", icon: Swords, shortcut: "G", path: "/integration" },
-  { id: "tournament", label: "Tournoi", hint: "Série et scouting", icon: Trophy, shortcut: "O", path: "/tournoi" },
   { id: "stats", label: "Statistiques", hint: "Lecture détaillée", icon: BarChart3, shortcut: "S", path: "/statistiques" },
   { id: "trends", label: "Tendances", hint: "Comprendre l'équipe", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "champions", label: "Pool équipe", hint: "Picks par joueur", icon: Crown, shortcut: "C", path: "/champion-pool" },
@@ -111,7 +110,7 @@ const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
 
-const PRIMARY_NAV_IDS = ["teams", "matches", "tournament", "planning", "profile"];
+const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
 const MORE_NAV_IDS = ["trends", "champions", "compositions"];
 const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
@@ -283,7 +282,6 @@ const DEFAULT_DATA = {
   matchCategories: [],
   inviteCodes: [],
   profileCoachingNotes: [],
-  tournaments: [],
   playerGoals: [],
 };
 
@@ -2237,7 +2235,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
 
       {selectedTeam && <div className="space-y-5">
-        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} championPool={data.championPool || data.champion_pool || []} tournaments={data.tournaments || []} />
+        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} championPool={data.championPool || data.champion_pool || []} />
         <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} />
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -2334,7 +2332,7 @@ function buildStaffAlerts(matches = [], players = []) {
   ].filter(Boolean).slice(0, 6);
 }
 
-function TeamCoachDashboard({ team, players = [], matches = [], championPool = [], tournaments = [] }) {
+function TeamCoachDashboard({ team, players = [], matches = [], championPool = [] }) {
   const teamMatches = matches.filter((match) => match.team_id === team?.id);
   const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === team?.id && isGameplayRole(player.role)));
   const wins = teamMatches.filter((match) => match.result === "Victoire").length;
@@ -2353,7 +2351,7 @@ function TeamCoachDashboard({ team, players = [], matches = [], championPool = [
         <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Coach cockpit</Badge><Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge></div>
         <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
         <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Une lecture courte : priorité équipe, joueur à review, pick à sécuriser et game source.</p>
-        <HomeActionSummary tournaments={tournaments.filter((item) => item.team_id === team?.id)} matches={teamMatches} alerts={alerts} />
+        <HomeActionSummary matches={teamMatches} alerts={alerts} />
       </div>
       <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 xl:border-l xl:border-t-0">
         <div className="flex items-center justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bloc actif</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length ? `${winrate}% WR` : "--"}</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/tendances")}>Tendances</Button></div>
@@ -11689,7 +11687,6 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "stats" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
-    if (active === "tournament") return <TournamentPage data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;

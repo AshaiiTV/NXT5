@@ -195,7 +195,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     await ensureUserNotificationColumns(sql);
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], inviteCodes: [], availability: [], profileCoachingNotes: [], tournaments: [], playerGoals: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], inviteCodes: [], availability: [], profileCoachingNotes: [], playerGoals: [] });
     }
     await ensureMatchImporterColumn();
     await ensureMatchCategoriesSchema();
@@ -220,7 +220,6 @@ export default async function handler(request: Request, context: Context): Promi
       inviteCodes,
       availability,
       profileCoachingNotes,
-      tournaments,
       playerGoals
     ] = await Promise.all([
       sql`select * from players where team_id = any(${teamIds}) order by created_at asc`,
@@ -265,13 +264,6 @@ export default async function handler(request: Request, context: Context): Promi
       loadAvailability(teamIds),
       loadProfileCoachingNotes(teamIds),
       sql`
-        select tournaments.*, users.name as created_by_name
-        from tournaments
-        left join users on users.id = tournaments.created_by
-        where tournaments.team_id = any(${teamIds})
-        order by (tournaments.status = 'complete') asc, tournaments.scheduled_at asc nulls last, tournaments.created_at desc
-      `,
-      sql`
         select player_goals.*, users.name as created_by_name
         from player_goals
         left join users on users.id = player_goals.created_by
@@ -290,7 +282,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes, tournaments, playerGoals });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals });
   } catch (err) {
     return handleError(err);
   }
