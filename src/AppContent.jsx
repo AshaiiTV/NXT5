@@ -3985,11 +3985,9 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
   const safestPick = enhancedStats.filter((stat) => stat.games >= 2).sort((a, b) => b.winrate - a.winrate || Number(b.kda || 0) - Number(a.kda || 0))[0] || bestPick;
   const urgentPick = enhancedStats.filter((stat) => stat.games >= 1).sort((a, b) => (a.winrate + Number(a.kda || 0) * 8) - (b.winrate + Number(b.kda || 0) * 8))[0];
   const topShare = bestPick ? bestPick.share : 0;
-  const buildCoverage = totalGames ? Math.round((buildRowsCount / Math.max(1, totalGames)) * 100) : 0;
   const nextActions = [
-    bestPick && { title: "Premier choix", text: `${championDisplayName(bestPick.champion)} sort le meilleur mix volume, WR, KDA et builds.`, toneName: "green", icon: ShieldCheck, champion: bestPick.champion },
+    bestPick && { title: "Premier choix", text: `${championDisplayName(bestPick.champion)} sort le meilleur mix volume, WR et KDA.`, toneName: "green", icon: ShieldCheck, champion: bestPick.champion },
     urgentPick && { title: "A verifier", text: `${championDisplayName(urgentPick.champion)} demande une review avant de le remettre en draft.`, toneName: "orange", icon: AlertTriangle, champion: urgentPick.champion },
-    buildCoverage < 65 && { title: "Builds incomplets", text: "Priorite: importer ou relire les games sans build pour rendre la lecture fiable.", toneName: "purple", icon: Gauge },
   ].filter(Boolean).slice(0, 3);
   const sortOptions = [["volume", "Quantité"], ["kda", "KDA"], ["wr", "Winrate"]];
   if (!championStats.length) return <Surface glow className="p-6"><EmptyState icon={Crown} title="Aucun champion importe" text={selectedCategoryId ? "Aucune game de cette categorie pour ce profil." : "Importe une game pour alimenter les champions joues."} /></Surface>;
@@ -4001,11 +3999,10 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
           <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champion cockpit</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge><Badge tone={selectedCategoryId ? "purple" : "green"}>{selectedCategoryId ? "Filtre actif" : "Toutes les games"}</Badge></div>
           <h3 className="mt-4 max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">{bestPick ? `Pick de reference: ${championDisplayName(bestPick.champion)}` : "Champion cockpit"}</h3>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">La page commence par la decision, puis donne les preuves. Tu dois pouvoir choisir un pick, comprendre le risque et ouvrir la review sans fouiller.</p>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <ProfileChampionSignal icon={Crown} label="Pool joue" value={enhancedStats.length} detail={`${totalGames} games`} toneName={enhancedStats.length >= 4 ? "green" : "yellow"} />
-            <ProfileChampionSignal icon={Target} label="Dependance" value={bestPick ? `${topShare}%` : "-"} detail={bestPick ? championDisplayName(bestPick.champion) : "Aucun pick"} toneName={topShare >= 60 ? "orange" : "cyan"} />
+            <ProfileChampionSignal icon={Target} label="Pickrate" value={bestPick ? `${topShare}%` : "-"} detail={bestPick ? championDisplayName(bestPick.champion) : "Aucun pick"} toneName={topShare >= 60 ? "orange" : "cyan"} />
             <ProfileChampionSignal icon={Swords} label="Duels" value={matchups.length} detail="matchups reconnus" toneName={matchups.length ? "purple" : "slate"} />
-            <ProfileChampionSignal icon={Gauge} label="Builds" value={`${buildCoverage}%`} detail={`${buildRowsCount}/${totalGames || 0} games`} toneName={buildCoverage >= 70 ? "green" : buildRowsCount ? "yellow" : "slate"} />
           </div>
         </div>
         <aside className="border-t border-white/10 bg-black/32 p-5 xl:border-l xl:border-t-0">
