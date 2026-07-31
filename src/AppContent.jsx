@@ -5485,6 +5485,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     ["Adversaires", enemyAssignmentsReady],
   ];
   const importProgress = importChecks.filter(([, done]) => done).length;
+  const importFlowSteps = [
+    [Upload, "JSON", "Charge le fichier de la game.", Boolean(importPreview)],
+    [Shield, "Side", "Choisis ton équipe dans la game.", Boolean(allyTeamSide)],
+    [Users, "Roster", "Valide lanes et profils NXT5.", laneAssignmentsReady && enemyAssignmentsReady],
+    [Check, "Résumé", "Nom, catégorie et import final.", importReady],
+  ];
   const latestMatch = teamMatches[0];
   return (
     <div className="nxt5-data-dense nxt5-import-page min-w-0 overflow-hidden">
@@ -5497,12 +5503,8 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
               <h3 className="mt-4 text-2xl font-black text-white">Importer sans friction</h3>
               <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Lance l’app locale sur le PC où le client League possède la partie, génère le JSON, puis finalise ici le side, les profils et les catégories.</p>
               <div className="mt-5 grid gap-2">
-                {[
-                  [Download, "Exporter", "Génère le JSON depuis l’historique LoL."],
-                  [Upload, "Charger", "Dépose le fichier dans NXT5."],
-                  [Check, "Valider", "Confirme side, lanes et profils."],
-                ].map(([Icon, title, text], index) => <div key={title} className="flex gap-3 rounded-2xl border border-white/10 bg-black/22 p-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-400/10 text-cyan-100"><Icon className="h-4 w-4" /></span>
+                {importFlowSteps.map(([Icon, title, text, done], index) => <div key={title} className={cx("flex gap-3 rounded-2xl border p-3", done ? "border-cyan-200/20 bg-cyan-300/[0.08]" : "border-white/10 bg-black/22")}>
+                  <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", done ? "border-cyan-200/35 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300")}><Icon className="h-4 w-4" /></span>
                   <div className="min-w-0"><p className="text-sm font-black text-white">{index + 1}. {title}</p><p className="mt-0.5 text-xs font-semibold leading-5 text-slate-300">{text}</p></div>
                 </div>)}
               </div>
@@ -5536,6 +5538,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
         <Surface className="min-w-0 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Charge un JSON, sélectionne le side de ton équipe, puis valide les lanes et profils. La barre ci-dessous montre ce qui manque avant confirmation.</p></div>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-4">
+            {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("min-w-0 rounded-2xl p-3", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
+              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="text-xs font-black uppercase tracking-[0.14em]">{index + 1}. {title}</span></span>{done && <Check className="h-4 w-4 shrink-0" />}</div>
+              <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{text}</p>
+            </div>)}
           </div>
               {importPreview ? <div className="mt-4 space-y-4">
                 <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
@@ -5594,7 +5602,17 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
+                 {importReady && <div className="rounded-2xl border border-emerald-200/16 bg-emerald-400/[0.055] p-4">
+                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                     <div className="min-w-0">
+                       <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-emerald-100">Résumé avant import</p>
+                       <p className="mt-1 truncate text-lg font-black text-white">{importDetails.label}</p>
+                       <p className="mt-1 text-sm font-semibold text-slate-300">{allyTeamSide} side · {COMP_ROLES.map((role) => gameplayRoster.find((player) => player.id === playerAssignments[role])?.name || role).join(" / ")}</p>
+                     </div>
+                     <Badge tone="green">Prêt</Badge>
+                   </div>
+                 </div>}
+                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
               </div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold leading-6 text-slate-300">Aucun JSON chargé pour le moment.</p>}
         </Surface>
       </div>
@@ -7097,6 +7115,112 @@ function MatchVersusOverview({ match }) {
   </div>;
 }
 
+function teamObjectiveScore(summary = {}) {
+  return Number(summary.dragonCount || 0) + Number(summary.grubs || 0) + Number(summary.heralds || 0) + Number(summary.barons || 0) + Number(summary.towers || 0);
+}
+
+function matchCoachSnapshot(match) {
+  const ally = teamRows(match, "ALLY");
+  const enemy = teamRows(match, "ENEMY");
+  const allyKills = sumRows(ally, "kills");
+  const allyDeaths = sumRows(ally, "deaths");
+  const allyAssists = sumRows(ally, "assists");
+  const enemyKills = sumRows(enemy, "kills");
+  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
+  const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
+  const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
+  const allyObjectives = objectiveTeamSummary(match, "ALLY");
+  const enemyObjectives = objectiveTeamSummary(match, "ENEMY");
+  const objectiveDiff = teamObjectiveScore(allyObjectives) - teamObjectiveScore(enemyObjectives);
+  const fights = fightWindows(match);
+  const allyFights = fights.filter((fight) => fight.teamKey === "ALLY").length;
+  const enemyFights = fights.filter((fight) => fight.teamKey === "ENEMY").length;
+  const roleRows = roleDiffRows(match);
+  const reviewRole = roleRows.slice().sort((a, b) => {
+    const score = (row) => (Number(row.goldDiff || 0) / 450) + (Number(row.damageDiff || 0) / 1400) + (Number(row.cs10Diff || 0) * 1.4) - (Number(row.deathsDiff || 0) * 4);
+    return score(a) - score(b);
+  })[0];
+  const carryRole = roleRows.slice().sort((a, b) => (Number(b.goldDiff || 0) + Number(b.damageDiff || 0) / 3) - (Number(a.goldDiff || 0) + Number(a.damageDiff || 0) / 3))[0];
+  const isWin = match.result === "Victoire";
+  const mainSignal = (() => {
+    if (Math.abs(goldDiff) >= 2500) return { label: "Économie", value: formatGoldDiff(goldDiff), toneName: goldDiff >= 0 ? "green" : "red" };
+    if (Math.abs(damageDiff) >= 7000) return { label: "Fights", value: `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, toneName: damageDiff >= 0 ? "green" : "red" };
+    if (Math.abs(visionDiff) >= 18) return { label: "Vision", value: `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, toneName: visionDiff >= 0 ? "cyan" : "red" };
+    return { label: "Objectifs", value: `${objectiveDiff >= 0 ? "+" : ""}${objectiveDiff}`, toneName: objectiveDiff >= 0 ? "cyan" : "red" };
+  })();
+  const title = isWin
+    ? `Victoire portée par ${mainSignal.label.toLowerCase()}`
+    : `${mainSignal.label} à corriger en priorité`;
+  const summary = isWin
+    ? `La game se gagne avec ${mainSignal.value}. Le replay doit confirmer comment cet avantage a été créé puis converti.`
+    : `La game se perd avec ${mainSignal.value}. La review doit isoler le moment où le plan décroche.`;
+  const roleLabelText = reviewRole ? roleLabel(reviewRole.role) : "Rôle non isolé";
+  const roleText = reviewRole
+    ? `${roleLabelText} vs ${championDisplayName(reviewRole.enemy?.champion)} · CS10 ${Number.isFinite(reviewRole.cs10Diff) ? (reviewRole.cs10Diff >= 0 ? "+" : "") + reviewRole.cs10Diff : "N/A"} · or ${formatGoldDiff(reviewRole.goldDiff)}`
+    : "Pas assez de données par rôle.";
+  const keep = isWin
+    ? (carryRole ? `${roleLabel(carryRole.role)} a donné le meilleur levier de la game.` : "Le plan global a converti.")
+    : (goldDiff > 0 || damageDiff > 0 ? "Il y a un avantage exploitable à conserver." : "Garder uniquement les phases propres identifiées en timeline.");
+  const correct = reviewRole
+    ? `${roleLabelText} est la première lane à revoir.`
+    : "Revoir le premier objectif et les morts avant setup.";
+  const action = isWin
+    ? "Identifier le setup reproductible pour la prochaine game."
+    : "Choisir un seul correctif avant le prochain bloc.";
+  return {
+    title,
+    summary,
+    mainSignal,
+    roleText,
+    keep,
+    correct,
+    action,
+    metrics: [
+      ["KDA", `${allyKills}/${allyDeaths}/${allyAssists}`, `${enemyKills} kills adverses`, "cyan"],
+      ["Or", formatGoldDiff(goldDiff), "écart final", goldDiff >= 0 ? "green" : "red"],
+      ["Dégâts", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "alliés vs adversaires", damageDiff >= 0 ? "green" : "red"],
+      ["Vision", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "score vision", visionDiff >= 0 ? "cyan" : "red"],
+      ["Objectifs", `${teamObjectiveScore(allyObjectives)}-${teamObjectiveScore(enemyObjectives)}`, "tous objectifs", objectiveDiff >= 0 ? "cyan" : "red"],
+      ["Fights", `${allyFights}-${enemyFights}`, "fenêtres détectées", allyFights >= enemyFights ? "green" : "red"],
+    ],
+  };
+}
+
+function MatchCoachBrief({ match }) {
+  const snapshot = matchCoachSnapshot(match);
+  const matchId = match?.id || "";
+  return <section className="mt-5 overflow-hidden rounded-[1.5rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(34,211,238,.095),rgba(5,8,20,.92)_48%,rgba(168,85,247,.09))] p-4">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,.55fr)] xl:items-start">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2"><Badge tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.label}</Badge><Badge tone="cyan">Review prête</Badge></div>
+        <h4 className="mt-3 break-words text-2xl font-black text-white">{snapshot.title}</h4>
+        <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{snapshot.summary}</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {[["À garder", snapshot.keep, "green"], ["À corriger", snapshot.correct, "red"], ["Prochaine action", snapshot.action, "cyan"]].map(([label, value, toneName]) => <div key={label} className="min-w-0 rounded-2xl bg-black/24 p-3">
+            <p className={cx("text-[0.6rem] font-black uppercase tracking-[0.16em]", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{label}</p>
+            <p className="mt-1.5 text-sm font-black leading-5 text-white">{value}</p>
+          </div>)}
+        </div>
+      </div>
+      <div className="grid min-w-0 gap-2">
+        <div className="rounded-2xl bg-black/24 p-3">
+          <p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-400">Lane à review</p>
+          <p className="mt-1.5 text-sm font-black leading-5 text-white">{snapshot.roleText}</p>
+        </div>
+        <Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`)} disabled={!matchId}>Créer la review</Button>
+        <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}`)} disabled={!matchId}>Ouvrir Review</Button>
+      </div>
+    </div>
+    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+      {snapshot.metrics.map(([label, value, detail, toneName]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.035] p-3">
+        <p className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
+        <p className={cx("mt-1 truncate text-lg font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
+        <p className="mt-0.5 truncate text-[0.62rem] font-semibold text-slate-400">{detail}</p>
+      </div>)}
+    </div>
+  </section>;
+}
+
 function MatchDataPanel({ match }) {
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
@@ -7108,7 +7232,7 @@ function MatchDataPanel({ match }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div><MatchVersusOverview match={match} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div><MatchCoachBrief match={match} /><MatchVersusOverview match={match} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -7868,7 +7992,7 @@ function TrendsPage({ data, selectedTeamId }) {
       drill = "Après chaque import : vérifier que le profil NXT5 est bien lié au compte Riot.";
       review = "Pas de review individuelle tant que le profil n'a pas au moins 3 games.";
       validation = "Validé à 3 games exploitables.";
-      danger = "Sans linkage, l'IA ne peut proposer que l'objectif du rôle.";
+      danger = "Sans linkage, NXT5 ne peut proposer que l'objectif du rôle.";
     } else if ((role === "TOP" || role === "MID" || role === "ADC") && Number.isFinite(avgCs10) && avgCs10 < 68) {
       title = "Réparer le plan de lane";
       target = `${role === "ADC" ? "CS10 >= 72" : "CS10 >= 70"} sur 2/3 games`;
@@ -7972,7 +8096,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title: "Conserver le plan fort",
       target: "Reproduire le plan sur 3 games consécutives",
       current: `${winrate}% WR`,
-      why: "Le bloc est plutôt sain : l'objectif IA sert à garder une direction claire, pas à tout changer.",
+      why: "Le bloc est plutôt sain : l'objectif sert à garder une direction claire, pas à tout changer.",
       progress: clampPercent(winrate),
       toneName: objectiveTone(winrate),
       sourceGames,
@@ -7984,7 +8108,7 @@ function TrendsPage({ data, selectedTeamId }) {
     ...roleAiObjectives.map((item) => `${roleLabel(item.role)}: ${item.title} — ${item.target}.`)
   ].slice(0, 10);
   const exportTrendSections = [
-    { title: "Objectif IA", items: aiObjectiveItems, tone: "purple" },
+    { title: "Objectifs", items: aiObjectiveItems, tone: "purple" },
     { title: "Modèle d'équipe", items: teamModelCards.map((card) => `${card.label}: ${card.title}. ${card.text}`), tone: "cyan" },
     { title: "Lecture automatique", items: autoReads, tone: "cyan" },
     { title: "Écarts moyens", items: forceItems, tone: "green" },
@@ -8054,7 +8178,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
   const trendPanelOptions = [
-    ["ai-objectives", "Objectif IA", Sparkles, "Cibles mesurables et preuves."],
+    ["ai-objectives", "Objectifs", Sparkles, "Cibles mesurables et preuves."],
     ["coach", "Vue coach", Gauge, "Synthèse, patterns et actions."],
     ["draft", "Draft", Crown, "Picks, archétypes et menaces."],
     ["details", "Données", BarChart3, "Graphiques et listes secondaires."],
@@ -8138,7 +8262,7 @@ function TrendsPage({ data, selectedTeamId }) {
     {trendPanel === "ai-objectives" && <Surface className="p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <Badge tone="purple">Objectif IA</Badge>
+          <Badge tone="purple">Objectifs</Badge>
           <h3 className="mt-2 text-2xl font-black leading-tight text-white">Plan de progression du bloc</h3>
           <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">NXT5 transforme les tendances en objectifs courts, vérifiables et reliés aux games sources. L'idée : un axe équipe, puis une cible claire par rôle.</p>
         </div>
@@ -8158,7 +8282,7 @@ function TrendsPage({ data, selectedTeamId }) {
               <h4 className="mt-3 break-words text-2xl font-black leading-tight text-white">{teamAiObjective.title}</h4>
               <p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{teamAiObjective.why}</p>
             </div>
-            <button type="button" onClick={() => openTrendSources({ title: "Sources Objectif IA", subtitle: teamAiObjective.title, games: teamAiObjective.sourceGames })} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Sources</button>
+            <button type="button" onClick={() => openTrendSources({ title: "Sources objectif", subtitle: teamAiObjective.title, games: teamAiObjective.sourceGames })} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Sources</button>
           </div>
           <div className="mt-4 grid gap-3">
             <div className="rounded-xl border border-white/10 bg-black/24 p-3">
@@ -8635,7 +8759,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: "nxt5-game-" + (selectedMatch?.game_id || "export") + ".png" })} disabled={!selectedMatch}>Exporter la game</Button>
               <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: scopedMatches.length + " games · " + wins + "W - " + (scopedMatches.length - wins) + "L", matches: scopedMatches, filename: "nxt5-groupe-" + String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".png" })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button>
-              <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => selectedReport ? openAppPath("/rapports?report=" + selectedReport.id + "&match=" + selectedMatch?.id) : openAppPath("/rapports?match=" + selectedMatch?.id)} disabled={!selectedMatch}>Aller vers Review</Button>
+              <Button type="button" icon={Plus} onClick={() => selectedMatch && openAppPath(`/rapports?match=${encodeURIComponent(selectedMatch.id)}&compose=1`)} disabled={!selectedMatch}>Créer review</Button>
+              {selectedReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports?report=" + selectedReport.id + "&match=" + selectedMatch?.id)} disabled={!selectedMatch}>Review existante</Button>}
             </div>
           </div>
           <div className="nxt5-game-list mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <button key={match.id} type="button" aria-pressed={activeGame} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("relative rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", activeGame ? "border-cyan-200/80 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,.32),0_0_34px_rgba(34,211,238,.22)] ring-1 ring-cyan-200/35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", activeGame ? "opacity-100" : "opacity-0")} /><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id}</p></button>; })}</div>
@@ -8697,17 +8822,13 @@ function ReviewSignalPanel({ match, rows }) {
   const enemyVision = sum(enemy, "vision");
   const allyGold = sum(ally, "gold");
   const enemyGold = sum(enemy, "gold");
-  const allyTowerDamage = ally.reduce((total, row) => total + towerDamage(row), 0);
-  const enemyTowerDamage = enemy.reduce((total, row) => total + towerDamage(row), 0);
   const topDamage = ally.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
   const topVision = ally.slice().sort((a, b) => Number(b.vision || 0) - Number(a.vision || 0))[0];
   const goldDiff = allyGold - enemyGold;
   const damageDiff = allyDamage - enemyDamage;
-  const towerDamageDiff = allyTowerDamage - enemyTowerDamage;
   const visionDiff = allyVision - enemyVision;
   const signals = [
     [Target, "Dégâts", (damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff) + " dégâts équipe", damageDiff >= 0 ? "green" : "red"],
-    [Trophy, "Tours", (towerDamageDiff >= 0 ? "+" : "") + formatPoints(towerDamageDiff) + " dégâts tours", towerDamageDiff >= 0 ? "green" : "red"],
     [Eye, "Vision", (visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff) + " vision face aux adversaires", visionDiff >= 0 ? "cyan" : "red"],
     [Gauge, "Économie", formatGoldDiff(goldDiff) + " or équipe", goldDiff >= 0 ? "green" : "red"],
   ];
@@ -8720,11 +8841,10 @@ function ParticipantTable({ rows }) {
   const [query, setQuery] = useState("");
   const [teamFilter, setTeamFilter] = useState("ALLY");
   const maxDamage = Math.max(1, ...rows.map((row) => Number(row.damage || 0)));
-  const maxTowerDamage = Math.max(1, ...rows.map((row) => towerDamage(row)));
   const maxGold = Math.max(1, ...rows.map((row) => Number(row.gold || 0)));
   const filtered = rows.filter((row) => { const rowText = String(row.summoner_name || "") + " " + String(row.champion || "") + " " + String(row.role || ""); return rowText.toLowerCase().includes(query.toLowerCase()) && (teamFilter === "ALL" || row.team_key === teamFilter); });
   if (!rows.length) return <EmptyState icon={BarChart3} title="Participants non calculés" text="Importe une game Riot pour afficher les champions, KDA, dégâts, gold et vision." />;
-  return <div className="nxt5-participant-table"><div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div className="w-full md:max-w-sm"><TextInput label="Rechercher" value={query} onChange={setQuery} placeholder="Champion, joueur, rôle..." icon={Search} /></div><div className="flex gap-2">{[["ALLY", "Nous"], ["ENEMY", "Eux"], ["ALL", "Tous"]].map(([id, label]) => <button key={id} onClick={() => setTeamFilter(id)} className={cx("rounded-2xl border px-4 py-2 text-sm font-black transition", teamFilter === id ?"border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{label}</button>)}</div></div><div className="grid gap-3">{filtered.map((row) => <div key={row.id} className={cx("nxt5-participant-row nxt5-defer-row grid gap-4 rounded-[1.35rem] border p-4 transition xl:grid-cols-[minmax(220px,1.35fr)_minmax(110px,.62fr)_minmax(128px,.72fr)_minmax(128px,.72fr)_minmax(128px,.72fr)_minmax(90px,.5fr)] md:items-center", row.team_key === "ALLY" ?"border-cyan-300/20 bg-cyan-400/8" : "border-rose-300/15 bg-rose-500/7")}><div className="flex min-w-0 items-center gap-3"><div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/30"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ?"cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate text-lg font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-sm font-semibold text-slate-300">{row.summoner_name || row.riot_id || "?"}</p></div></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">KDA</p><p className="mt-1 text-lg font-black text-white">{row.kda}</p><p className="text-xs font-semibold text-slate-300">KP {row.kill_participation}</p></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Dégâts</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.damage)}</p><StatBar value={row.damage} max={maxDamage} tone={row.team_key === "ALLY" ?"cyan" : "red"} /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Dégâts tours</p><p className="mt-1 text-lg font-black text-white">{formatPoints(towerDamage(row))}</p><StatBar value={towerDamage(row)} max={maxTowerDamage} tone="purple" /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Gold / CS</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.gold)}</p><p className="text-xs font-semibold text-slate-300">{row.cs} CS · {row.cs_per_min}/min</p><StatBar value={row.gold} max={maxGold} tone="yellow" /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Vision</p><p className="mt-1 text-lg font-black text-white">{row.vision}</p></div></div>)}</div></div>;
+  return <div className="nxt5-participant-table"><div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div className="w-full md:max-w-sm"><TextInput label="Rechercher" value={query} onChange={setQuery} placeholder="Champion, joueur, rôle..." icon={Search} /></div><div className="flex gap-2">{[["ALLY", "Nous"], ["ENEMY", "Eux"], ["ALL", "Tous"]].map(([id, label]) => <button key={id} onClick={() => setTeamFilter(id)} className={cx("rounded-2xl border px-4 py-2 text-sm font-black transition", teamFilter === id ?"border-cyan-300/30 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{label}</button>)}</div></div><div className="grid gap-3">{filtered.map((row) => <div key={row.id} className={cx("nxt5-participant-row nxt5-defer-row grid gap-4 rounded-[1.35rem] border p-4 transition xl:grid-cols-[minmax(220px,1.35fr)_minmax(110px,.62fr)_minmax(128px,.72fr)_minmax(128px,.72fr)_minmax(90px,.5fr)] md:items-center", row.team_key === "ALLY" ?"border-cyan-300/20 bg-cyan-400/8" : "border-rose-300/15 bg-rose-500/7")}><div className="flex min-w-0 items-center gap-3"><div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black/30"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} /></div><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={row.team_key === "ALLY" ?"cyan" : "red"}>{row.role || "?"}</Badge></div><p className="mt-1 truncate text-lg font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-sm font-semibold text-slate-300">{row.summoner_name || row.riot_id || "?"}</p></div></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">KDA</p><p className="mt-1 text-lg font-black text-white">{row.kda}</p><p className="text-xs font-semibold text-slate-300">KP {row.kill_participation}</p></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Dégâts</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.damage)}</p><StatBar value={row.damage} max={maxDamage} tone={row.team_key === "ALLY" ?"cyan" : "red"} /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Gold / CS</p><p className="mt-1 text-lg font-black text-white">{formatPoints(row.gold)}</p><p className="text-xs font-semibold text-slate-300">{row.cs} CS · {row.cs_per_min}/min</p><StatBar value={row.gold} max={maxGold} tone="yellow" /></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Vision</p><p className="mt-1 text-lg font-black text-white">{row.vision}</p></div></div>)}</div></div>;
 }
 
 function ChampionPoolCard({ row }) {
@@ -10696,13 +10816,12 @@ function reportRawGameLine(match) {
   const deaths = sum("deaths");
   const assists = sum("assists");
   const damage = sum("damage");
-  const towerDmg = rows.reduce((total, row) => total + towerDamage(row), 0);
   const gold = sum("gold");
   const vision = sum("vision");
   const objectives = match.objective_score ? ` · Objectifs: ${match.objective_score}` : "";
   const core = `${matchDisplayName(match, "Adversaire inconnu")} · ${match.game_id || "Game ID"} · ${match.result || "Résultat ?"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`;
   if (!rows.length) return `${core} · Données joueurs absentes`;
-  return `${core} · KDA ${kills}/${deaths}/${assists} · DMG ${formatPoints(damage)} · Tours ${formatPoints(towerDmg)} · Gold ${formatPoints(gold)} · Vision ${vision}${objectives}`;
+  return `${core} · KDA ${kills}/${deaths}/${assists} · DMG ${formatPoints(damage)} · Gold ${formatPoints(gold)} · Vision ${vision}${objectives}`;
 }
 
 function reportRawSummaryLines(matches) {
@@ -10710,14 +10829,45 @@ function reportRawSummaryLines(matches) {
   const rows = matches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY"));
   if (!rows.length) return ["Games liées, mais données joueurs absentes."];
   const sum = (field) => rows.reduce((total, row) => total + Number(row[field] || 0), 0);
-  const towerTotal = rows.reduce((total, row) => total + towerDamage(row), 0);
   const wins = matches.filter((match) => match.result === "Victoire").length;
   const games = matches.length;
   return [
     `Games: ${games} · ${wins}W - ${games - wins}L · WR ${Math.round((wins / Math.max(1, games)) * 100)}%`,
     `KDA équipe: ${sum("kills")}/${sum("deaths")}/${sum("assists")}`,
-    `Moyennes joueur/game: ${formatPoints(sum("damage") / Math.max(1, rows.length))} DMG · ${formatPoints(towerTotal / Math.max(1, rows.length))} Tours · ${formatPoints(sum("gold") / Math.max(1, rows.length))} Gold · ${Math.round(sum("vision") / Math.max(1, rows.length))} Vision`,
+    `Moyennes joueur/game: ${formatPoints(sum("damage") / Math.max(1, rows.length))} DMG · ${formatPoints(sum("gold") / Math.max(1, rows.length))} Gold · ${Math.round(sum("vision") / Math.max(1, rows.length))} Vision`,
   ];
+}
+
+function buildGameReviewContent(match) {
+  if (!match) return "";
+  const snapshot = matchCoachSnapshot(match);
+  return [
+    "Review game",
+    "",
+    `Game: ${matchDisplayName(match, "Game")}`,
+    `Résultat: ${match.result || "Analyse"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`,
+    "",
+    "Résumé coach",
+    `- ${snapshot.title}`,
+    `- ${snapshot.summary}`,
+    `- Lane à review: ${snapshot.roleText}`,
+    "",
+    "À garder",
+    `- ${snapshot.keep}`,
+    "",
+    "À corriger",
+    `- ${snapshot.correct}`,
+    "",
+    "Action prochaine game",
+    `- ${snapshot.action}`,
+    "",
+    "Repères",
+    ...snapshot.metrics.map(([label, value, detail]) => `- ${label}: ${value} (${detail})`),
+    "",
+    REPORT_REWRITE_MARKER,
+    "Notes staff",
+    "",
+  ].join("\n");
 }
 
 function buildArchiveReportContent(name, matches) {
@@ -10762,8 +10912,10 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const reports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
-  const urlReportId = new URLSearchParams(window.location.search).get("report") || "";
-  const urlMatchId = new URLSearchParams(window.location.search).get("match") || "";
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlReportId = urlParams.get("report") || "";
+  const urlMatchId = urlParams.get("match") || "";
+  const urlComposeReview = urlParams.get("compose") === "1";
   const canCaptainDelete = canStaffManage(currentMember?.role);
   const [form, setForm] = useState({ id: null, title: "", content: "", matchIds: [] });
   const [selectedArchiveId, setSelectedArchiveId] = useState("");
@@ -10802,6 +10954,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     setLexiconOpen(false);
   }
 
+  function startReviewFromMatch(match) {
+    if (!match?.id) return;
+    setSelectedArchiveId("");
+    setForm({ id: null, title: matchDisplayName(match, "Review"), content: buildGameReviewContent(match), matchIds: [match.id] });
+    setComposerOpen(true);
+    setLexiconOpen(false);
+  }
+
   function selectReport(report) {
     setSelectedReportId(report.id);
     window.history.replaceState({}, "", "/rapports?report=" + report.id);
@@ -10818,6 +10978,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       if (report) setSelectedReportId(report.id);
     }
   }, [urlReportId, urlMatchId, reports.map((report) => report.id).join("|")]);
+
+  useEffect(() => {
+    if (!urlComposeReview || !urlMatchId) return;
+    const match = matches.find((item) => String(item.id || "") === String(urlMatchId));
+    if (!match) return;
+    startReviewFromMatch(match);
+    window.history.replaceState({}, "", `/rapports?match=${encodeURIComponent(urlMatchId)}`);
+  }, [urlComposeReview, urlMatchId, matches.map((match) => match.id).join("|")]);
 
   function toggleMatch(id) {
     setForm((current) => ({ ...current, matchIds: current.matchIds.includes(id) ? current.matchIds.filter((item) => item !== id) : [...current.matchIds, id] }));
