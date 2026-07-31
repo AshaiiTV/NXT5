@@ -2232,16 +2232,19 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
       </div>}
 
-      {selectedTeam && <Surface glow>
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-300">Roster lisible, champions joués et statistiques de profils.</p></div>
-          <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!gameplayRoster.length}>Multi OP.GG</Button><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
-        </div>
+      {selectedTeam && <div className="space-y-5">
+        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} reports={data.reports || []} championPool={data.championPool || data.champion_pool || []} />
+        <Surface glow>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-300">Roster lisible, champions joués et statistiques de profils.</p></div>
+            <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Clipboard} onClick={copyMultiOpggLink} disabled={!gameplayRoster.length}>Multi OP.GG</Button><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
+          </div>
 
-        <>
-          <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} />
-        </>
-      </Surface>}
+          <>
+            <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} />
+          </>
+        </Surface>
+      </div>}
     </div>
   </div>;
 }
@@ -2270,6 +2273,182 @@ function formatCompactGoldDiff(value) {
   const abs = Math.abs(number);
   if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}k`;
   return `${sign}${abs}`;
+}
+
+function teamMatchRows(matches = [], teamKey = "ALLY") {
+  return (matches || []).flatMap((match) => (match.participants || [])
+    .filter((row) => row.team_key === teamKey)
+    .map((row) => ({ ...row, match, role: normalizeProfileRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition || row.raw?.lane) })));
+}
+
+function playerDisplayFromRow(row, players = []) {
+  const linked = players.find((player) => String(player.id || "") === String(row?.player_id || ""));
+  return linked?.name || row?.summoner_name || row?.riot_id || roleLabel(row?.role || "ROLE");
+}
+
+function buildStaffAlerts(matches = [], players = []) {
+  const rows = teamMatchRows(matches, "ALLY");
+  const wins = matches.filter((match) => match.result === "Victoire").length;
+  const losses = matches.length - wins;
+  const sideGroups = ["Blue", "Red"].map((side) => {
+    const sideMatches = matches.filter((match) => String(match.side || "").toLowerCase().includes(side.toLowerCase()));
+    const sideWins = sideMatches.filter((match) => match.result === "Victoire").length;
+    return { side, games: sideMatches.length, wins: sideWins, wr: Math.round((sideWins / Math.max(1, sideMatches.length)) * 100) };
+  });
+  const roleRows = ROSTER_ROLE_ORDER.map((role) => {
+    const roleItems = rows.filter((row) => row.role === role);
+    const games = roleItems.length;
+    const deaths = roleItems.reduce((sum, row) => sum + Number(row.deaths || 0), 0) / Math.max(1, games);
+    const kp = roleItems.reduce((sum, row) => sum + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, games);
+    const damage = roleItems.reduce((sum, row) => sum + Number(row.damage || 0), 0) / Math.max(1, games);
+    return { role, games, deaths, kp, damage, sample: roleItems.slice().sort((a, b) => Number(b.deaths || 0) - Number(a.deaths || 0))[0] };
+  }).filter((item) => item.games);
+  const playerRows = Array.from(rows.reduce((map, row) => {
+    const key = row.player_id || `${row.role}-${row.riot_id || row.summoner_name || row.champion}`;
+    const current = map.get(key) || { name: playerDisplayFromRow(row, players), role: row.role, games: 0, deaths: 0, kp: 0, champions: new Map(), rows: [] };
+    current.games += 1;
+    current.deaths += Number(row.deaths || 0);
+    current.kp += parsePercent(row.kill_participation || row.kp || 0);
+    current.champions.set(row.champion, (current.champions.get(row.champion) || 0) + 1);
+    current.rows.push(row);
+    map.set(key, current);
+    return map;
+  }, new Map()).values()).map((item) => ({ ...item, avgDeaths: item.deaths / Math.max(1, item.games), avgKp: item.kp / Math.max(1, item.games), mainChampion: Array.from(item.champions.entries()).sort((a, b) => b[1] - a[1])[0] }));
+  const exposed = playerRows.slice().sort((a, b) => b.avgDeaths - a.avgDeaths)[0];
+  const disconnected = playerRows.slice().sort((a, b) => a.avgKp - b.avgKp)[0];
+  const weakRole = roleRows.slice().sort((a, b) => b.deaths - a.deaths || a.kp - b.kp)[0];
+  const sideGap = sideGroups[0]?.games && sideGroups[1]?.games ? Math.abs(sideGroups[0].wr - sideGroups[1].wr) : 0;
+  const worseSide = sideGroups.slice().sort((a, b) => a.wr - b.wr)[0];
+  return [
+    matches.length < 3 && { title: "Pas assez de volume", text: `${matches.length} game${matches.length > 1 ? "s" : ""} importée${matches.length > 1 ? "s" : ""}. Lire les signaux comme des hypothèses.`, action: "Importer le prochain bloc avant de conclure.", toneName: "slate", icon: Upload },
+    losses >= wins && matches.length >= 3 && { title: "Bloc à stabiliser", text: `${wins}W - ${losses}L sur le contexte actif.`, action: "Choisir une seule priorité équipe avant la prochaine session.", toneName: "orange", icon: AlertTriangle },
+    exposed?.games >= 2 && exposed.avgDeaths >= 4 && { title: "Exposition joueur", text: `${exposed.name} est à ${exposed.avgDeaths.toFixed(1)} morts/game.`, action: `Ouvrir ${matchDisplayName(exposed.rows.slice().sort((a, b) => Number(b.deaths || 0) - Number(a.deaths || 0))[0]?.match, "la game source")} et classer les morts.`, toneName: "red", icon: Shield },
+    disconnected?.games >= 2 && disconnected.avgKp < 52 && { title: "Connexion fights", text: `${disconnected.name} descend à ${Math.round(disconnected.avgKp)}% KP moyen.`, action: "Revoir le move 30s avant les deux premiers objectifs.", toneName: "yellow", icon: Swords },
+    weakRole?.games >= 2 && { title: "Rôle à review", text: `${roleLabel(weakRole.role)} ressort comme le rôle le plus fragile du bloc.`, action: weakRole.sample ? `Source : ${matchDisplayName(weakRole.sample.match, "game")} sur ${championDisplayName(weakRole.sample.champion)}.` : "Comparer lane, morts et KP.", toneName: "purple", icon: Target },
+    sideGap >= 20 && worseSide?.games >= 2 && { title: "Side faible", text: `${worseSide.side} side tombe à ${worseSide.wr}% WR.`, action: "Préparer un plan draft et une condition de victoire spécifique à ce side.", toneName: "cyan", icon: BarChart3 },
+  ].filter(Boolean).slice(0, 6);
+}
+
+function TeamCoachDashboard({ team, players = [], matches = [], reports = [], championPool = [] }) {
+  const teamMatches = matches.filter((match) => match.team_id === team?.id);
+  const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === team?.id && isGameplayRole(player.role)));
+  const wins = teamMatches.filter((match) => match.result === "Victoire").length;
+  const winrate = Math.round((wins / Math.max(1, teamMatches.length)) * 100);
+  const alerts = buildStaffAlerts(teamMatches, teamPlayers);
+  const rows = teamMatchRows(teamMatches, "ALLY");
+  const playerSummaries = teamPlayers.map((player) => {
+    const playerRows = rows.filter((row) => String(row.player_id || "") === String(player.id || "") || String(row.role || "") === String(player.role || ""));
+    const games = playerRows.length;
+    const winsCount = playerRows.filter((row) => row.match?.result === "Victoire").length;
+    const kp = Math.round(playerRows.reduce((sum, row) => sum + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, games));
+    const champion = Array.from(playerRows.reduce((map, row) => map.set(row.champion, (map.get(row.champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1])[0];
+    return { player, games, wr: Math.round((winsCount / Math.max(1, games)) * 100), kp, champion: champion?.[0] || "" };
+  });
+  const poolByRole = ROSTER_ROLE_ORDER.map((role) => {
+    const manual = championPool.filter((row) => row.team_id === team?.id && normalizeProfileRole(row.role) === role);
+    const imported = rows.filter((row) => row.role === role);
+    const picks = Array.from([...manual.map((row) => row.champion), ...imported.map((row) => row.champion)].reduce((map, champion) => map.set(champion, (map.get(champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    return { role, picks };
+  });
+  const latestLoss = teamMatches.slice().reverse().find((match) => match.result === "Défaite") || teamMatches.at(-1);
+  const bestPick = poolByRole.flatMap((entry) => entry.picks.map(([champion, count]) => ({ role: entry.role, champion, count }))).sort((a, b) => b.count - a.count)[0];
+  const nextDecision = alerts[0]?.title || (teamMatches.length ? "Consolider le plan" : "Importer une game");
+  return <Surface glow className="mb-5 overflow-hidden p-0">
+    <div className="grid gap-0 xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
+      <div className="min-w-0 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Coach cockpit</Badge><Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge></div>
+        <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
+        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Une lecture courte : priorité équipe, joueur à review, pick à sécuriser et game source.</p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {[
+            ["Priorité", nextDecision, alerts[0]?.action || "Garder un objectif simple pour le prochain bloc.", Target, alerts[0]?.toneName || "cyan"],
+            ["Joueur à review", playerSummaries.slice().sort((a, b) => a.kp - b.kp)[0]?.player?.name || "À définir", "Basé sur KP et volume importé.", Users, "yellow"],
+            ["Pick à sécuriser", bestPick ? `${championDisplayName(bestPick.champion)} ${roleLabel(bestPick.role)}` : "Pool incomplet", "Choix récurrent du bloc.", Crown, "purple"],
+            ["Game à ouvrir", latestLoss ? matchDisplayName(latestLoss, "Game") : "Aucune game", latestLoss?.result || "Importe une game.", FileText, latestLoss?.result === "Défaite" ? "red" : "green"],
+          ].map(([label, value, detail, Icon, toneName]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="flex items-center justify-between gap-2"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><span className={cx("grid h-8 w-8 place-items-center rounded-xl", tone(toneName))}><Icon className="h-4 w-4" /></span></div>
+            <p className="mt-2 break-words text-base font-black text-white">{value}</p>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{detail}</p>
+          </div>)}
+        </div>
+      </div>
+      <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 xl:border-l xl:border-t-0">
+        <div className="flex items-center justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bloc actif</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length ? `${winrate}% WR` : "--"}</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/tendances")}>Tendances</Button></div>
+        <div className="mt-4 grid gap-2">
+          {alerts.length ? alerts.slice(0, 3).map((alert) => <div key={alert.title} className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="flex items-center gap-2"><span className={cx("grid h-7 w-7 place-items-center rounded-lg", tone(alert.toneName))}><alert.icon className="h-3.5 w-3.5" /></span><p className="text-sm font-black text-white">{alert.title}</p></div>
+            <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{alert.text}</p>
+          </div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Importe quelques games pour générer les alertes staff.</p>}
+        </div>
+      </aside>
+    </div>
+    <div className="border-t border-white/10 p-4">
+      <div className="grid gap-2 lg:grid-cols-5">{poolByRole.map((entry) => <div key={entry.role} className="min-w-0 rounded-xl bg-white/[0.025] p-3">
+        <div className="flex items-center gap-2"><RoleIcon role={entry.role} className="h-4 w-4 text-cyan-100" /><p className="text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(entry.role)}</p></div>
+        <p className="mt-2 truncate text-xs font-semibold text-slate-300">{entry.picks.length ? entry.picks.map(([champion]) => championDisplayName(champion)).join(" · ") : "Pool à remplir"}</p>
+      </div>)}</div>
+    </div>
+  </Surface>;
+}
+
+function WeeklyStaffPlan({ selectedTeamId, players = [], matches = [], reports = [] }) {
+  const storageKey = `nxt5-weekly-plan-${selectedTeamId || "global"}`;
+  const teamMatches = matches.filter((match) => match.team_id === selectedTeamId);
+  const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)));
+  const alerts = buildStaffAlerts(teamMatches, teamPlayers);
+  const latestReport = reports.filter((report) => report.team_id === selectedTeamId).slice().sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))[0];
+  const defaultPlan = {
+    objective: alerts[0]?.title || "Stabiliser le prochain bloc",
+    review: alerts[0]?.action || "Choisir une game source et isoler une seule erreur répétée.",
+    draft: "Préparer un pick confort, un ban prioritaire et un plan par side.",
+    deadline: "Prochaine session",
+  };
+  const [plan, setPlan] = useState(() => {
+    try {
+      const saved = window.localStorage?.getItem(storageKey);
+      return saved ? { ...defaultPlan, ...JSON.parse(saved) } : defaultPlan;
+    } catch {
+      return defaultPlan;
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem(storageKey, JSON.stringify(plan));
+    } catch {}
+  }, [storageKey, plan]);
+  useEffect(() => {
+    try {
+      const saved = window.localStorage?.getItem(storageKey);
+      setPlan(saved ? { ...defaultPlan, ...JSON.parse(saved) } : defaultPlan);
+    } catch {
+      setPlan(defaultPlan);
+    }
+  }, [selectedTeamId]);
+  const fields = [
+    ["objective", "Objectif équipe", Target, "Ex: jouer le premier objectif avec reset annoncé"],
+    ["review", "Review à faire", FileText, "Game source, joueur, moment précis"],
+    ["draft", "Prépa draft", Crown, "Pick à sécuriser, ban, réponse adverse"],
+    ["deadline", "Validation", CalendarDays, "Quand on juge si c'est réussi"],
+  ];
+  return <Surface glow className="p-4">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <Badge tone="cyan">Plan de semaine</Badge>
+        <h3 className="mt-2 text-xl font-black text-white">Transformer les constats en entraînement</h3>
+        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Un objectif, une review source, une préparation draft, une validation courte. Simple à tenir pour le staff.</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge>
+        {latestReport && <Badge tone="purple">Dernière review prête</Badge>}
+      </div>
+    </div>
+    <div className="mt-4 grid gap-3 lg:grid-cols-4">
+      {fields.map(([key, label, Icon, placeholder]) => <label key={key} className="block rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+        <span className="flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400"><Icon className="h-3.5 w-3.5 text-cyan-100" />{label}</span>
+        <textarea value={plan[key]} onChange={(event) => setPlan((current) => ({ ...current, [key]: event.target.value }))} rows={3} placeholder={placeholder} className="mt-2 w-full resize-none bg-transparent text-sm font-semibold leading-5 text-white outline-none placeholder:text-slate-500" />
+      </label>)}
+    </div>
+  </Surface>;
 }
 
 function oppositeSideKey(side) {
@@ -7893,6 +8072,7 @@ function TrendsPage({ data, selectedTeamId }) {
     return "Game utile pour comparer exécution, tempo objectif et rôle moteur.";
   };
   const draftTrendModel = buildDraftTrendModel(matches);
+  const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
   const trendPanelOptions = [
     ["ai-objectives", "Objectif IA", Sparkles, "Cibles mesurables et preuves."],
     ["coach", "Vue coach", Gauge, "Synthèse, patterns et actions."],
@@ -7980,6 +8160,31 @@ function TrendsPage({ data, selectedTeamId }) {
         </button>)}
       </div>
     </div>
+    {staffAlerts.length > 0 && <Surface className="mb-3 p-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <Badge tone="orange">Alertes staff</Badge>
+          <h3 className="mt-2 text-xl font-black text-white">Points à surveiller</h3>
+          <p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Signaux automatiques à transformer en review ou en consigne de bloc.</p>
+        </div>
+        <Button type="button" variant="ghost" icon={FileText} onClick={() => openTrendSources({ title: "Games sources des alertes", subtitle: "Bloc actif", games: sourceGames })}>Sources</Button>
+      </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+        {staffAlerts.map((alert) => {
+          const Icon = alert.icon;
+          return <article key={alert.title} className="rounded-2xl border border-white/10 bg-white/[0.028] p-3">
+            <div className="flex items-start gap-3">
+              <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl", tone(alert.toneName))}><Icon className="h-4 w-4" /></span>
+              <div className="min-w-0">
+                <h4 className="text-sm font-black text-white">{alert.title}</h4>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{alert.text}</p>
+                <p className="mt-2 text-xs font-black leading-5 text-cyan-100">{alert.action}</p>
+              </div>
+            </div>
+          </article>;
+        })}
+      </div>
+    </Surface>}
     {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} view={draftTrendView} onView={setDraftTrendView} sourceGamesForMatches={sourceGamesForMatches} />}
     {trendPanel === "ai-objectives" && <Surface className="p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
@@ -10025,6 +10230,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       </div>}
 
       <div className="space-y-5">
+        <WeeklyStaffPlan selectedTeamId={selectedTeamId} players={data.players || []} matches={data.matches || []} reports={data.reports || []} />
         {false && <div className="hidden">
           <Surface glow className="p-3">
             <div className="flex items-start justify-between gap-3">
@@ -10434,6 +10640,11 @@ function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForM
   const sourceFor = (entry) => sourceGamesForMatches?.(entry.matches || []) || [];
   const openSources = (entry, title, subtitle) => onOpenSources?.({ title, subtitle, metrics: [{ label: "Games", value: String(entry.games || entry.matches?.length || active.games) }, { label: "WR", value: `${entry.wr ?? active.wr}%` }], games: sourceFor(entry) });
   const mainPick = enemyMode ? active.threats[0] : active.comfort[0] || active.picks[0];
+  const tournamentCards = [
+    { label: "Notre game 1", title: model.ally.comfort[0] ? `${championDisplayName(model.ally.comfort[0].champion)} ${roleLabel(model.ally.comfort[0].role)}` : "Pick confort à définir", text: model.ally.comfort[0] ? `${model.ally.comfort[0].games} games · ${model.ally.comfort[0].wr}% WR. À sécuriser si la draft le permet.` : "Importer plus de games ou remplir le champion pool.", toneName: "cyan", icon: Crown },
+    { label: "Ban prioritaire", title: model.enemy.threats[0] ? championDisplayName(model.enemy.threats[0].champion) : "Menace inconnue", text: model.enemy.threats[0] ? `${roleLabel(model.enemy.threats[0].role)} adverse · ${model.enemy.threats[0].wr}% contre nous.` : "Pas assez de picks adverses reconnus.", toneName: "red", icon: Shield },
+    { label: "Adaptation G2/G3", title: model.enemy.archetypes[0] ? tagLabel(model.enemy.archetypes[0].tag) : "Lire leur pattern", text: model.enemy.archetypes[0] ? `S'ils reviennent sur ${tagLabel(model.enemy.archetypes[0].tag).toLowerCase()}, préparer une réponse claire.` : "Noter leur condition de victoire après la game 1.", toneName: "purple", icon: RefreshCw },
+  ];
   return <Surface glow className="mt-3 overflow-hidden p-0">
     <div className="border-b border-white/10 p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
@@ -10490,6 +10701,25 @@ function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForM
             <p className="mt-1 truncate text-xs font-semibold text-slate-300">{entry.picks.map((pick) => championDisplayName(pick.champion)).join(" · ")}</p>
           </div>)}
         </div>
+      </div>
+    </div>
+    <div className="border-t border-white/10 p-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <Badge tone="green">Mode tournoi</Badge>
+          <h3 className="mt-2 text-xl font-black text-white">Préparation BO</h3>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Nos drafts, leur draft, puis le plan d’adaptation. Pensé pour préparer game 1 puis ajuster rapidement.</p>
+        </div>
+        <div className="flex flex-wrap gap-2"><Badge tone="cyan">{model.ally.games} drafts NXT5</Badge><Badge tone="red">{model.enemy.games} drafts adverses</Badge></div>
+      </div>
+      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+        {tournamentCards.map((card) => {
+          const Icon = card.icon;
+          return <article key={card.label} className="rounded-2xl border border-white/10 bg-white/[0.028] p-4">
+            <div className="flex items-start justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{card.label}</p><h4 className="mt-2 text-lg font-black text-white">{card.title}</h4></div><span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-xl", tone(card.toneName))}><Icon className="h-4 w-4" /></span></div>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{card.text}</p>
+          </article>;
+        })}
       </div>
     </div>
   </Surface>;
@@ -10797,6 +11027,12 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   }
 
   const commands = [[`/KDA "ADC"`, "KDA moyen d’un rôle."], [`/DAMAGE "MID"`, "Dégâts moyens d’un rôle."], [`/VISION "SUP"`, "Vision moyenne d’un rôle."], [`/GOLD "JGL"`, "Gold moyen d’un rôle."], [`/KP "TOP"`, "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
+  const noteTemplates = [
+    ["À garder", "## À garder\n- "],
+    ["À corriger", "## À corriger\n- "],
+    ["Prochaine game", "## Action prochaine game\n- "],
+    ["Draft", "## Draft\n- Pick à sécuriser :\n- Ban prioritaire :\n- Réponse adverse : "],
+  ];
   return (
     <div className="nxt5-data-dense min-w-0 overflow-hidden">
       <PageHeader
@@ -10903,7 +11139,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
               <div className="min-w-0 space-y-4">
                 <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required rows={18} className="min-h-[22rem] w-full resize-y rounded-2xl xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-xl border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required rows={18} className="min-h-[22rem] w-full resize-y rounded-2xl xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
             </div>
           </form>
