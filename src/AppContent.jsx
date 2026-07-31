@@ -8697,16 +8697,28 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [savingArchive, setSavingArchive] = useState(false);
   const [archivesCollapsed, setArchivesCollapsed] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
+  const [gameSearch, setGameSearch] = useState("");
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
+  const normalizeGameSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr-FR");
+  const normalizedGameSearch = normalizeGameSearch(gameSearch.trim());
+  const searchedMatches = normalizedGameSearch ? scopedMatches.filter((match) => {
+    const categoryNames = matchCategoryIds(match).map((id) => matchCategories.find((category) => String(category.id) === String(id))?.name || "");
+    const participantTerms = (match.participants || []).flatMap((row) => [row.summoner_name, row.riot_id, row.champion, row.role]);
+    return normalizeGameSearch([matchDisplayName(match), match.game_id, match.opponent, match.result, match.duration, match.created_by_name, ...categoryNames, ...participantTerms].filter(Boolean).join(" ")).includes(normalizedGameSearch);
+  }) : scopedMatches;
   const scopedMatchIds = scopedMatches.map((match) => match.id).join("|");
+  const searchedMatchIds = searchedMatches.map((match) => match.id).join("|");
   useEffect(() => {
     if (archives.length && selectedArchiveId && !archives.some((archive) => archive.id === selectedArchiveId)) setSelectedArchiveId("");
   }, [archives, selectedArchiveId]);
   useEffect(() => {
     if (selectedMatchId && !scopedMatches.some((match) => String(match.id || "") === String(selectedMatchId || ""))) setSelectedMatchId("");
   }, [scopedMatchIds, selectedMatchId]);
+  useEffect(() => {
+    if (normalizedGameSearch && selectedMatchId && !searchedMatches.some((match) => String(match.id || "") === String(selectedMatchId || ""))) setSelectedMatchId("");
+  }, [normalizedGameSearch, searchedMatchIds, selectedMatchId]);
   useEffect(() => {
     if (urlMatchId && matches.some((match) => match.id === urlMatchId)) setSelectedMatchId(urlMatchId);
   }, [urlMatchId, matches.map((match) => match.id).join("|")]);
@@ -8852,7 +8864,16 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
               {selectedReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports?report=" + selectedReport.id + "&match=" + selectedMatch?.id)} disabled={!selectedMatch}>Review existante</Button>}
             </div>
           </div>
-          <div className="nxt5-game-list mt-4 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{scopedMatches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <button key={match.id} type="button" aria-pressed={activeGame} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("relative rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", activeGame ? "border-cyan-200/80 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,.32),0_0_34px_rgba(34,211,238,.22)] ring-1 ring-cyan-200/35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", activeGame ? "opacity-100" : "opacity-0")} /><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id}</p></button>; })}</div>
+          <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <label className="relative block w-full sm:max-w-xl">
+              <span className="sr-only">Rechercher une game</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-100/70" />
+              <input type="text" inputMode="search" role="searchbox" value={gameSearch} onChange={(event) => setGameSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setGameSearch(""); }} placeholder="Rechercher par nom, Game ID, adversaire, joueur..." className="h-11 w-full rounded-xl border border-white/10 bg-black/25 pl-10 pr-10 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-300/10" />
+              {gameSearch && <button type="button" onClick={() => setGameSearch("")} aria-label="Effacer la recherche" title="Effacer la recherche" className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-white/[0.07] hover:text-white"><X className="h-4 w-4" /></button>}
+            </label>
+            <p className="shrink-0 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{searchedMatches.length} sur {scopedMatches.length} games</p>
+          </div>
+          {searchedMatches.length ? <div className="nxt5-game-list mt-3 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{searchedMatches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <button key={match.id} type="button" aria-pressed={activeGame} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("relative rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", activeGame ? "border-cyan-200/80 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,.32),0_0_34px_rgba(34,211,238,.22)] ring-1 ring-cyan-200/35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", activeGame ? "opacity-100" : "opacity-0")} /><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id}</p></button>; })}</div> : <div className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center"><Search className="mx-auto h-5 w-5 text-slate-500" /><p className="mt-2 text-sm font-black text-white">Aucune game trouvée</p><p className="mt-1 text-xs font-semibold text-slate-400">Essaie un nom d’équipe, un Game ID, un joueur ou un champion.</p></div>}
         </Surface>}
         {!selectedMatch && <Surface className="mt-5">
           <button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-4 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.035]">
