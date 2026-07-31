@@ -2353,6 +2353,13 @@ function TeamCoachDashboard({ team, players = [], matches = [], reports = [], ch
   const latestLoss = teamMatches.slice().reverse().find((match) => match.result === "Défaite") || teamMatches.at(-1);
   const bestPick = poolByRole.flatMap((entry) => entry.picks.map(([champion, count]) => ({ role: entry.role, champion, count }))).sort((a, b) => b.count - a.count)[0];
   const nextDecision = alerts[0]?.title || (teamMatches.length ? "Consolider le plan" : "Importer une game");
+  const latestLossPath = latestLoss?.id ? `/statistiques?match=${encodeURIComponent(latestLoss.id)}` : "";
+  const coachDecisionCards = [
+    ["Priorité", nextDecision, alerts[0]?.action || "Garder un objectif simple pour le prochain bloc.", Target, alerts[0]?.toneName || "cyan", ""],
+    ["Joueur à review", playerSummaries.slice().sort((a, b) => a.kp - b.kp)[0]?.player?.name || "À définir", "Basé sur KP et volume importé.", Users, "yellow", ""],
+    ["Pick à sécuriser", bestPick ? `${championDisplayName(bestPick.champion)} ${roleLabel(bestPick.role)}` : "Pool incomplet", "Choix récurrent du bloc.", Crown, "purple", ""],
+    ["Game à ouvrir", latestLoss ? matchDisplayName(latestLoss, "Game") : "Aucune game", latestLoss?.result || "Importe une game.", FileText, latestLoss?.result === "Défaite" ? "red" : "green", latestLossPath],
+  ];
   return <Surface glow className="mb-5 overflow-hidden p-0">
     <div className="grid gap-0 xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
       <div className="min-w-0 p-4 sm:p-5">
@@ -2360,16 +2367,15 @@ function TeamCoachDashboard({ team, players = [], matches = [], reports = [], ch
         <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
         <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Une lecture courte : priorité équipe, joueur à review, pick à sécuriser et game source.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {[
-            ["Priorité", nextDecision, alerts[0]?.action || "Garder un objectif simple pour le prochain bloc.", Target, alerts[0]?.toneName || "cyan"],
-            ["Joueur à review", playerSummaries.slice().sort((a, b) => a.kp - b.kp)[0]?.player?.name || "À définir", "Basé sur KP et volume importé.", Users, "yellow"],
-            ["Pick à sécuriser", bestPick ? `${championDisplayName(bestPick.champion)} ${roleLabel(bestPick.role)}` : "Pool incomplet", "Choix récurrent du bloc.", Crown, "purple"],
-            ["Game à ouvrir", latestLoss ? matchDisplayName(latestLoss, "Game") : "Aucune game", latestLoss?.result || "Importe une game.", FileText, latestLoss?.result === "Défaite" ? "red" : "green"],
-          ].map(([label, value, detail, Icon, toneName]) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-            <div className="flex items-center justify-between gap-2"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><span className={cx("grid h-8 w-8 place-items-center rounded-xl", tone(toneName))}><Icon className="h-4 w-4" /></span></div>
-            <p className="mt-2 break-words text-base font-black text-white">{value}</p>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{detail}</p>
-          </div>)}
+          {coachDecisionCards.map(([label, value, detail, Icon, toneName, path]) => {
+            const clickable = Boolean(path);
+            const CardTag = clickable ? "button" : "div";
+            return <CardTag key={label} type={clickable ? "button" : undefined} onClick={clickable ? () => openAppPath(path) : undefined} className={cx("group rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-left transition", clickable && "hover:border-cyan-200/30 hover:bg-cyan-300/[0.07]")}>
+              <div className="flex items-center justify-between gap-2"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><span className={cx("grid h-8 w-8 place-items-center rounded-xl", tone(toneName))}>{clickable ? <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /> : <Icon className="h-4 w-4" />}</span></div>
+              <p className="mt-2 break-words text-base font-black text-white">{value}</p>
+              <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{detail}</p>
+            </CardTag>;
+          })}
         </div>
       </div>
       <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 xl:border-l xl:border-t-0">
