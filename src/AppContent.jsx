@@ -8479,6 +8479,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const maxVision = Math.max(1, ...stats.map((stat) => stat.vision / Math.max(1, stat.games)));
   const maxGold = Math.max(1, ...stats.map((stat) => stat.gold / Math.max(1, stat.games)));
   const wins = scopedMatches.filter((match) => match.result === "Victoire").length;
+  const losses = scopedMatches.length - wins;
+  const winrate = Math.round((wins / Math.max(1, scopedMatches.length)) * 100);
   const activeCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const scopeLabel = selectedMatch ? "Game sélectionnée" : selectedArchive ? "Groupe actif" : activeCategory ? "Catégorie active" : "Vue globale";
   const scopeTitle = selectedMatch ? matchDisplayName(selectedMatch) : selectedArchive ? selectedArchive.name : activeCategory ? activeCategory.name : "Toutes les games";
@@ -8532,24 +8534,38 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   return (
     <div className="nxt5-data-dense nxt5-stats-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Performance" title="Statistiques" subtitle="Choisis un contexte, lis la game ou le bloc, puis ouvre les profils seulement quand tu veux descendre au joueur." />
-      <Surface className="mb-5 p-4">
-        <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(id) => { setSelectedCategoryId(id); setSelectedArchiveId(""); setSelectedMatchId(""); }} label="Type de games" />
-      </Surface>
       {matches.length ? <>
-        <Surface className="mb-5 p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <section className="mb-5 rounded-[1.35rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(6,182,212,.10),rgba(15,23,42,.46)_45%,rgba(168,85,247,.10))] p-4 shadow-[0_18px_60px_rgba(0,0,0,.18)]">
+          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0">
-              <Badge tone={selectedMatch ? "cyan" : selectedArchive ? "purple" : activeCategory ? matchCategoryTone(activeCategory) : "slate"}>{scopeLabel}</Badge>
-              <h3 className="mt-3 truncate text-2xl font-black text-white">{scopeTitle}</h3>
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-cyan-100/70">{scopeLabel}</p>
+              <h3 className="mt-1 truncate text-2xl font-black text-white">{scopeTitle}</h3>
               <p className="mt-1 text-sm font-semibold text-slate-300">{scopeHint}</p>
             </div>
-            <div className="flex flex-wrap gap-2"><Badge tone="green">{wins}W</Badge><Badge tone="red">{scopedMatches.length - wins}L</Badge><Badge tone="cyan">{Math.round((wins / Math.max(1, scopedMatches.length)) * 100)}% WR</Badge></div>
+            <div className="grid min-w-[18rem] grid-cols-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+              <div className="px-4 py-3">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Games</p>
+                <p className="mt-1 text-xl font-black text-white">{scopedMatches.length}</p>
+              </div>
+              <div className="border-x border-white/10 px-4 py-3">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan</p>
+                <p className="mt-1 text-xl font-black text-white">{wins}W - {losses}L</p>
+              </div>
+              <div className="px-4 py-3">
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Winrate</p>
+                <p className="mt-1 text-xl font-black text-cyan-100">{winrate}%</p>
+              </div>
+            </div>
           </div>
-        </Surface>
-        <div className="nxt5-kpi-grid grid gap-3 md:grid-cols-2">
-          <MetricCard compact icon={Swords} label="Volume du contexte" value={scopedMatches.length} hint={scopeLabel} tone="cyan" />
-          <MetricCard compact icon={Trophy} label="Winrate" value={String(Math.round((wins / Math.max(1, scopedMatches.length)) * 100)) + "%"} hint={wins + " victoire" + (wins > 1 ? "s" : "") + " · " + (scopedMatches.length - wins) + " défaite" + (scopedMatches.length - wins > 1 ? "s" : "")} tone="green" />
-        </div>
+          <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 border-t border-white/10 pt-3">
+            <span className="mr-1 text-[0.62rem] font-black uppercase tracking-[0.2em] text-slate-400">Type</span>
+            <button type="button" onClick={() => { setSelectedCategoryId(""); setSelectedArchiveId(""); setSelectedMatchId(""); }} className={cx("rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", !selectedCategoryId ? "bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(103,232,249,.20)]" : "bg-white/[0.055] text-slate-300 hover:bg-white/[0.09]")}>Toutes</button>
+            {(matchCategories || []).map((category) => {
+              const active = String(category.id) === String(selectedCategoryId);
+              return <button key={category.id} type="button" onClick={() => { setSelectedCategoryId(active ? "" : category.id); setSelectedArchiveId(""); setSelectedMatchId(""); }} className={cx("rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? "bg-white text-slate-950 shadow-[0_0_24px_rgba(255,255,255,.16)]" : "bg-white/[0.055] text-slate-300 hover:bg-white/[0.09]")}>{category.name}</button>;
+            })}
+          </div>
+        </section>
         {!selectedArchive && <Surface className="mt-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre la review associée.</p></div>
