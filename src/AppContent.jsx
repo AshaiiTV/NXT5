@@ -8201,58 +8201,45 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </article>)}
       </div>
-      {profileContractsOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="nxt5-sidebar-aware-overlay fixed inset-0 z-[140] flex items-end justify-center bg-slate-950/88 p-3 backdrop-blur-xl sm:items-center">
-        <div className="w-full max-w-[min(96rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.75),0_0_48px_rgba(34,211,238,.16)]">
-          <div className="max-h-[min(88vh,54rem)] overflow-auto p-3 sm:p-4">
-        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Badge tone="cyan">Par profil</Badge>
-            <h4 className="mt-2 text-xl font-black text-white">Contrats de progrès joueurs</h4>
-            <p className="mt-1 max-w-4xl text-xs font-semibold leading-5 text-slate-300">Chaque carte donne une cible, un exercice concret, une règle de validation et l'alerte à regarder en review. C'est pensé pour le prochain bloc de 3 games.</p>
-          </div>
-          <div className="flex items-center gap-2"><Badge tone="slate">{profileAiObjectives.length}/5 profils</Badge><button type="button" onClick={() => setProfileContractsOpen(false)} className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-200 transition hover:bg-white/[0.08]" title="Fermer"><X className="h-4 w-4" /></button></div>
-        </div>
-        <div className="mt-3 grid gap-3 xl:grid-cols-2">
-          {profileAiObjectives.map((item) => <article key={item.player.id} className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-3", item.toneName === "green" ? "border-emerald-200/18 bg-emerald-400/[0.04]" : item.toneName === "orange" ? "border-amber-200/18 bg-amber-400/[0.045]" : "border-rose-200/18 bg-rose-400/[0.04]")}>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      {profileContractsOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="nxt5-sidebar-aware-overlay fixed inset-0 z-[220] flex items-end justify-center bg-[#020612]/95 p-3 backdrop-blur-xl sm:items-center">
+        <button type="button" aria-label="Fermer les contrats" onClick={() => setProfileContractsOpen(false)} className="absolute inset-0 cursor-default" />
+        <motion.section initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, scale: 0.98, opacity: 0 }} transition={{ duration: 0.18 }} className="relative z-10 flex max-h-[88vh] w-full max-w-6xl min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.78),0_0_48px_rgba(34,211,238,.14)]">
+          <div className="border-b border-white/10 p-4 sm:p-5">
+            <div className="flex min-w-0 items-start justify-between gap-4">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone={item.toneName}>{roleLabel(item.role)}</Badge>
-                  <Badge tone={item.games ? "green" : "slate"}>{item.games} game{item.games > 1 ? "s" : ""}</Badge>
-                </div>
-                <h5 className="mt-2 break-words text-xl font-black leading-tight text-white">{item.player.name}</h5>
-                <p className="mt-1 break-words text-xs font-semibold text-slate-300">{item.player.riot_id || "Riot ID non lié"}</p>
+                <Badge tone="cyan">Contrats joueurs</Badge>
+                <h4 className="mt-2 break-words text-2xl font-black leading-tight text-white">Objectifs du prochain bloc</h4>
+                <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Une cible courte par profil. Le détail et les preuves restent accessibles via les sources.</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button type="button" onClick={() => openTrendSources({ title: `Sources ${item.player.name}`, subtitle: item.title, games: item.sourceGames })} className="grid h-10 w-10 place-items-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-50 transition hover:bg-cyan-300/14" title="Voir les sources"><FileText className="h-4 w-4" /></button>
-              </div>
+              <button type="button" onClick={() => setProfileContractsOpen(false)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-slate-200 transition hover:bg-white/[0.08]" title="Fermer"><X className="h-4 w-4" /></button>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-4">
-              {item.stats.map((stat) => <div key={stat} className="min-w-0 rounded-xl border border-white/10 bg-black/22 px-2.5 py-2">
-                <p className="truncate text-xs font-black text-white">{stat}</p>
-              </div>)}
-            </div>
-            <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div className="rounded-xl border border-white/10 bg-black/22 p-3">
-                <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-cyan-100">Objectif</p>
-                <p className="mt-1.5 text-base font-black leading-5 text-white">{item.title}</p>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{item.trigger}</p>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-black/22 p-3">
-                <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-fuchsia-100">À faire</p>
-                <p className="mt-1.5 text-sm font-black leading-5 text-white">{item.target}</p>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{item.drill}</p>
-              </div>
-            </div>
-            <div className="mt-2 grid gap-2 lg:grid-cols-3">
-              <div className="rounded-xl border border-emerald-200/12 bg-emerald-400/[0.045] p-2.5"><p className="text-[0.56rem] font-black uppercase tracking-[0.13em] text-emerald-100">Validation</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{item.validation}</p></div>
-              <div className="rounded-xl border border-cyan-200/12 bg-cyan-400/[0.045] p-2.5"><p className="text-[0.56rem] font-black uppercase tracking-[0.13em] text-cyan-100">Review</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{item.review}</p></div>
-              <div className="rounded-xl border border-amber-200/12 bg-amber-400/[0.045] p-2.5"><p className="text-[0.56rem] font-black uppercase tracking-[0.13em] text-amber-100">Alerte</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{item.danger}</p></div>
-            </div>
-          </article>)}
-        </div>
           </div>
-        </div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
+            <div className="grid gap-3">
+              {profileAiObjectives.map((item) => <article key={item.player.id} className={cx("grid min-w-0 gap-3 rounded-2xl border p-4 lg:grid-cols-[minmax(13rem,.7fr)_minmax(0,1.15fr)_minmax(14rem,.75fr)_auto] lg:items-center", item.toneName === "green" ? "border-emerald-200/16 bg-emerald-400/[0.035]" : item.toneName === "orange" ? "border-amber-200/16 bg-amber-400/[0.04]" : "border-rose-200/16 bg-rose-400/[0.035]")}>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone={item.toneName}>{roleLabel(item.role)}</Badge>
+                    <Badge tone={item.games ? "green" : "slate"}>{item.games} game{item.games > 1 ? "s" : ""}</Badge>
+                  </div>
+                  <h5 className="mt-2 truncate text-xl font-black text-white">{item.player.name}</h5>
+                  <p className="mt-1 truncate text-xs font-semibold text-slate-400">{item.player.riot_id || "Riot ID non lié"}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-cyan-100">Objectif</p>
+                  <p className="mt-1 break-words text-lg font-black leading-6 text-white">{item.title}</p>
+                  <p className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-300">{item.trigger}</p>
+                </div>
+                <div className="min-w-0 rounded-2xl bg-black/24 p-3">
+                  <p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-fuchsia-100">Cible</p>
+                  <p className="mt-1 break-words text-sm font-black leading-5 text-white">{item.target}</p>
+                  <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-400">{item.drill}</p>
+                </div>
+                <button type="button" onClick={() => openTrendSources({ title: `Sources ${item.player.name}`, subtitle: item.title, games: item.sourceGames })} className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-4 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Sources</button>
+              </article>)}
+            </div>
+          </div>
+        </motion.section>
       </motion.div>}
     </Surface>}
     {trendPanel === "coach" && <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,.85fr)]">
