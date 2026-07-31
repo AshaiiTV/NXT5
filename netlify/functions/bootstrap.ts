@@ -3,7 +3,7 @@ import { sql } from './_lib/db';
 import { json, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema, seedDefaultMatchCategories } from './_lib/match-categories';
-import { ensureAuditLogsSchema, ensureCompositionTypesSchema, ensureReportsSchema } from './_lib/schema';
+import { ensureAuditLogsSchema, ensureCompositionTypesSchema, ensureReportsSchema, ensureWorkflowSchema } from './_lib/schema';
 import { ensureUserNotificationColumns } from './_getTeamMembers.js';
 
 function buildDashboard(matches, improvements) {
@@ -195,7 +195,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     await ensureUserNotificationColumns(sql);
     if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], inviteCodes: [], availability: [], profileCoachingNotes: [] });
+      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], inviteCodes: [], availability: [], profileCoachingNotes: [], tournaments: [], playerGoals: [] });
     }
     await ensureMatchImporterColumn();
     await ensureMatchCategoriesSchema();
@@ -204,6 +204,7 @@ export default async function handler(request: Request, context: Context): Promi
     await ensureReportsSchema();
     await ensureCompositionTypesSchema();
     await ensureAuditLogsSchema();
+    await ensureWorkflowSchema();
     await ensureRoleConstraints();
 
     const [
@@ -218,7 +219,9 @@ export default async function handler(request: Request, context: Context): Promi
       matchCategories,
       inviteCodes,
       availability,
-      profileCoachingNotes
+      profileCoachingNotes,
+      tournaments,
+      playerGoals
     ] = await Promise.all([
       sql`select * from players where team_id = any(${teamIds}) order by created_at asc`,
       sql`
@@ -260,7 +263,21 @@ export default async function handler(request: Request, context: Context): Promi
       sql`select * from match_categories where team_id = any(${teamIds}) order by is_default desc, name asc`,
       loadInviteCodes(teamIds),
       loadAvailability(teamIds),
-      loadProfileCoachingNotes(teamIds)
+      loadProfileCoachingNotes(teamIds),
+      sql`
+        select tournaments.*, users.name as created_by_name
+        from tournaments
+        left join users on users.id = tournaments.created_by
+        where tournaments.team_id = any(${teamIds})
+        order by (tournaments.status = 'complete') asc, tournaments.scheduled_at asc nulls last, tournaments.created_at desc
+      `,
+      sql`
+        select player_goals.*, users.name as created_by_name
+        from player_goals
+        left join users on users.id = player_goals.created_by
+        where player_goals.team_id = any(${teamIds})
+        order by (player_goals.status = 'active') desc, player_goals.created_at desc
+      `
     ]);
     const matchIds = matches.map((m) => m.id);
     const participants = matchIds.length ? await sql`select * from match_participants where match_id = any(${matchIds}) order by team_key asc, role asc` : [];
@@ -273,7 +290,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
 
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes });
+    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes, tournaments, playerGoals });
   } catch (err) {
     return handleError(err);
   }

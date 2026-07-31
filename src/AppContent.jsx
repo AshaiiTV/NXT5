@@ -44,6 +44,7 @@ import {
   X,
 } from "lucide-react";
 import { API_BASE, apiFetch, apiUploadJson } from "./api/client.js";
+import { BlockComparisonPanel, HomeActionSummary, PlayerGoalsPanel, ReviewQueuePanel, TeamDataHealthPanel, TournamentPage } from "./NextPhase.jsx";
 
 const NXT5_IMPORTER_VERSION = "0.2.10";
 const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
@@ -98,6 +99,7 @@ function currentPerformanceMode() {
 const NAV = [
   { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Games", hint: "Importer, lire, review", icon: Swords, shortcut: "G", path: "/integration" },
+  { id: "tournament", label: "Tournoi", hint: "Série et scouting", icon: Trophy, shortcut: "O", path: "/tournoi" },
   { id: "stats", label: "Statistiques", hint: "Lecture détaillée", icon: BarChart3, shortcut: "S", path: "/statistiques" },
   { id: "trends", label: "Tendances", hint: "Comprendre l'équipe", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "champions", label: "Pool équipe", hint: "Picks par joueur", icon: Crown, shortcut: "C", path: "/champion-pool" },
@@ -109,7 +111,7 @@ const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },];
 
-const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
+const PRIMARY_NAV_IDS = ["teams", "matches", "tournament", "planning", "profile"];
 const MORE_NAV_IDS = ["trends", "champions", "compositions"];
 const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
@@ -281,6 +283,8 @@ const DEFAULT_DATA = {
   matchCategories: [],
   inviteCodes: [],
   profileCoachingNotes: [],
+  tournaments: [],
+  playerGoals: [],
 };
 
 function formatUploadSize(bytes) {
@@ -2233,7 +2237,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
 
       {selectedTeam && <div className="space-y-5">
-        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} reports={data.reports || []} championPool={data.championPool || data.champion_pool || []} />
+        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} championPool={data.championPool || data.champion_pool || []} tournaments={data.tournaments || []} />
+        <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} />
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-300">Roster lisible, champions joués et statistiques de profils.</p></div>
@@ -2329,54 +2334,26 @@ function buildStaffAlerts(matches = [], players = []) {
   ].filter(Boolean).slice(0, 6);
 }
 
-function TeamCoachDashboard({ team, players = [], matches = [], reports = [], championPool = [] }) {
+function TeamCoachDashboard({ team, players = [], matches = [], championPool = [], tournaments = [] }) {
   const teamMatches = matches.filter((match) => match.team_id === team?.id);
   const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === team?.id && isGameplayRole(player.role)));
   const wins = teamMatches.filter((match) => match.result === "Victoire").length;
   const winrate = Math.round((wins / Math.max(1, teamMatches.length)) * 100);
   const alerts = buildStaffAlerts(teamMatches, teamPlayers);
   const rows = teamMatchRows(teamMatches, "ALLY");
-  const playerSummaries = teamPlayers.map((player) => {
-    const playerRows = rows.filter((row) => String(row.player_id || "") === String(player.id || "") || String(row.role || "") === String(player.role || ""));
-    const games = playerRows.length;
-    const winsCount = playerRows.filter((row) => row.match?.result === "Victoire").length;
-    const kp = Math.round(playerRows.reduce((sum, row) => sum + parsePercent(row.kill_participation || row.kp || 0), 0) / Math.max(1, games));
-    const champion = Array.from(playerRows.reduce((map, row) => map.set(row.champion, (map.get(row.champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1])[0];
-    return { player, games, wr: Math.round((winsCount / Math.max(1, games)) * 100), kp, champion: champion?.[0] || "" };
-  });
   const poolByRole = ROSTER_ROLE_ORDER.map((role) => {
     const manual = championPool.filter((row) => row.team_id === team?.id && normalizeProfileRole(row.role) === role);
     const imported = rows.filter((row) => row.role === role);
     const picks = Array.from([...manual.map((row) => row.champion), ...imported.map((row) => row.champion)].reduce((map, champion) => map.set(champion, (map.get(champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
     return { role, picks };
   });
-  const latestLoss = teamMatches.slice().reverse().find((match) => match.result === "Défaite") || teamMatches.at(-1);
-  const bestPick = poolByRole.flatMap((entry) => entry.picks.map(([champion, count]) => ({ role: entry.role, champion, count }))).sort((a, b) => b.count - a.count)[0];
-  const nextDecision = alerts[0]?.title || (teamMatches.length ? "Consolider le plan" : "Importer une game");
-  const latestLossPath = latestLoss?.id ? `/statistiques?match=${encodeURIComponent(latestLoss.id)}` : "";
-  const coachDecisionCards = [
-    ["Priorité", nextDecision, alerts[0]?.action || "Garder un objectif simple pour le prochain bloc.", Target, alerts[0]?.toneName || "cyan", ""],
-    ["Joueur à review", playerSummaries.slice().sort((a, b) => a.kp - b.kp)[0]?.player?.name || "À définir", "Basé sur KP et volume importé.", Users, "yellow", ""],
-    ["Pick à sécuriser", bestPick ? `${championDisplayName(bestPick.champion)} ${roleLabel(bestPick.role)}` : "Pool incomplet", "Choix récurrent du bloc.", Crown, "purple", ""],
-    ["Game à ouvrir", latestLoss ? matchDisplayName(latestLoss, "Game") : "Aucune game", latestLoss?.result || "Importe une game.", FileText, latestLoss?.result === "Défaite" ? "red" : "green", latestLossPath],
-  ];
   return <Surface glow className="mb-5 overflow-hidden p-0">
     <div className="grid gap-0 xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
       <div className="min-w-0 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Coach cockpit</Badge><Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge></div>
         <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
         <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Une lecture courte : priorité équipe, joueur à review, pick à sécuriser et game source.</p>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {coachDecisionCards.map(([label, value, detail, Icon, toneName, path]) => {
-            const clickable = Boolean(path);
-            const CardTag = clickable ? "button" : "div";
-            return <CardTag key={label} type={clickable ? "button" : undefined} onClick={clickable ? () => openAppPath(path) : undefined} className={cx("group rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-left transition", clickable && "hover:border-cyan-200/30 hover:bg-cyan-300/[0.07]")}>
-              <div className="flex items-center justify-between gap-2"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><span className={cx("grid h-8 w-8 place-items-center rounded-xl", tone(toneName))}>{clickable ? <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /> : <Icon className="h-4 w-4" />}</span></div>
-              <p className="mt-2 break-words text-base font-black text-white">{value}</p>
-              <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{detail}</p>
-            </CardTag>;
-          })}
-        </div>
+        <HomeActionSummary tournaments={tournaments.filter((item) => item.team_id === team?.id)} matches={teamMatches} alerts={alerts} />
       </div>
       <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 xl:border-l xl:border-t-0">
         <div className="flex items-center justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bloc actif</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length ? `${winrate}% WR` : "--"}</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/tendances")}>Tendances</Button></div>
@@ -4107,7 +4084,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     </div>
     <React.Fragment>
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
-        {profileView === "overview" && <CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} />}
+        {profileView === "overview" && <><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /><CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} /></>}
         {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
         {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
@@ -8292,6 +8269,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const trendPanelOptions = [
     ["ai-objectives", "Objectifs", Sparkles, "Cibles mesurables et preuves."],
     ["coach", "Vue coach", Gauge, "Synthèse, patterns et actions."],
+    ["comparison", "Comparer", Activity, "Avant, après et écarts par rôle."],
     ["draft", "Draft", Crown, "Picks, archétypes et menaces."],
     ["details", "Données", BarChart3, "Graphiques et listes secondaires."],
   ];
@@ -8355,7 +8333,7 @@ function TrendsPage({ data, selectedTeamId }) {
       </div>
     </section>
     <div className="sticky top-[5.25rem] z-10 mb-4 rounded-2xl border border-white/10 bg-[#050814]/84 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.22)] backdrop-blur-xl">
-      <div className="grid gap-1.5 md:grid-cols-4">
+      <div className="grid gap-1.5 md:grid-cols-5">
         {trendPanelOptions.map(([id, label, Icon, text]) => <button key={id} type="button" onClick={() => setTrendPanel(id)} className={cx("group flex min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left transition", trendPanel === id ? "bg-cyan-300 text-slate-950 shadow-[0_0_28px_rgba(34,211,238,.18)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>
           <Icon className={cx("h-4 w-4 shrink-0", trendPanel === id ? "text-slate-950" : "text-cyan-100")} />
           <span className="min-w-0"><span className="block truncate text-xs font-black uppercase tracking-[0.12em]">{label}</span><span className={cx("mt-0.5 block truncate text-[0.6rem] font-semibold", trendPanel === id ? "text-slate-800" : "text-slate-500")}>{text}</span></span>
@@ -8370,6 +8348,7 @@ function TrendsPage({ data, selectedTeamId }) {
         </button>;
       })}
     </div>}
+    {trendPanel === "comparison" && <BlockComparisonPanel matches={baseMatches} categories={matchCategories} />}
     {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} view={draftTrendView} onView={setDraftTrendView} sourceGamesForMatches={sourceGamesForMatches} />}
     {trendPanel === "ai-objectives" && <Surface className="p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
@@ -11184,6 +11163,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
       </PageHeader>
 
+      <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} />
+
       <Surface className="mb-5 p-4">
         <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(17rem,21rem)]">
           <div className="min-w-0">
@@ -11708,6 +11689,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "stats" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
+    if (active === "tournament") return <TournamentPage data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;

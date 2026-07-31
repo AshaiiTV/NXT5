@@ -169,6 +169,9 @@ create table if not exists match_categories (
 
 alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null;
 alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb;
+alter table matches add column if not exists review_status text not null default 'todo';
+alter table matches add column if not exists reviewed_at timestamptz;
+alter table matches add column if not exists reviewed_by uuid references users(id) on delete set null;
 update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb);
 
 create table if not exists match_participants (
@@ -286,6 +289,40 @@ create table if not exists player_availability (
   unique(team_id, player_id, week_start)
 );
 
+create table if not exists tournaments (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  created_by uuid references users(id) on delete set null,
+  opponent text not null,
+  format text not null default 'BO3',
+  status text not null default 'preparation',
+  our_score integer not null default 0,
+  opponent_score integer not null default 0,
+  side text not null default 'undecided',
+  scheduled_at timestamptz,
+  notes text,
+  match_ids jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists player_goals (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references teams(id) on delete cascade,
+  player_id uuid not null references players(id) on delete cascade,
+  created_by uuid references users(id) on delete set null,
+  title text not null,
+  metric text not null,
+  operator text not null default 'gte',
+  target_value numeric not null,
+  sample_size integer not null default 3,
+  required_successes integer not null default 2,
+  status text not null default 'active',
+  starts_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists audit_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id) on delete set null,
@@ -309,6 +346,7 @@ create index if not exists idx_team_members_user on team_members(user_id);
 create index if not exists idx_team_members_team on team_members(team_id);
 create index if not exists idx_players_team on players(team_id);
 create index if not exists idx_matches_team on matches(team_id, created_at desc);
+create index if not exists idx_matches_team_review_status on matches(team_id, review_status, created_at desc);
 create unique index if not exists idx_match_categories_team_name on match_categories(team_id, lower(name));
 create index if not exists idx_match_categories_team on match_categories(team_id, created_at asc);
 create index if not exists idx_matches_category on matches(category_id);
@@ -343,6 +381,8 @@ alter table player_availability drop constraint if exists player_availability_te
 create index if not exists idx_composition_types_team on composition_types(team_id, created_at desc);
 create index if not exists idx_player_availability_team on player_availability(team_id);
 create unique index if not exists idx_player_availability_week on player_availability(team_id, player_id, week_start);
+create index if not exists idx_tournaments_team on tournaments(team_id, status, scheduled_at asc);
+create index if not exists idx_player_goals_team_player on player_goals(team_id, player_id, status, created_at desc);
 
 create or replace function set_updated_at()
 returns trigger as $$

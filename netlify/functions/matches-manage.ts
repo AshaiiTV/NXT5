@@ -3,6 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema } from './_lib/match-categories';
+import { ensureWorkflowSchema } from './_lib/schema';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().slice(0, max);
@@ -12,6 +13,7 @@ async function ensureMatchManagementColumns() {
   await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
   await ensureMatchCategoriesSchema();
+  await ensureWorkflowSchema();
 }
 
 function removeIdFromJsonArray(value, id) {
@@ -139,6 +141,25 @@ export default async function handler(request: Request, context: Context): Promi
         values (${user.id}, 'matches.roles', 'match', ${matchId}, ${JSON.stringify({ teamId, roles })}::jsonb)
       `;
       return json({ ok: true });
+    }
+
+    if (action === 'review-status') {
+      const reviewStatus = cleanText(body.status, 20).toLowerCase();
+      if (!['todo', 'done'].includes(reviewStatus)) throw Object.assign(new Error('Statut de review invalide.'), { status: 400 });
+      const rows = await sql`
+        update matches
+        set review_status = ${reviewStatus},
+            reviewed_at = case when ${reviewStatus} = 'done' then now() else null end,
+            reviewed_by = case when ${reviewStatus} = 'done' then ${user.id} else null end
+        where id = ${matchId}
+          and team_id = ${teamId}
+        returning *
+      `;
+      await sql`
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        values (${user.id}, 'matches.review_status', 'match', ${matchId}, ${JSON.stringify({ teamId, reviewStatus })}::jsonb)
+      `;
+      return json({ match: rows[0] });
     }
 
     const validCategoryIds: string[] = [];

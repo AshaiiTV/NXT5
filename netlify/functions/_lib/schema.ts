@@ -56,3 +56,51 @@ export async function ensureAuditLogsSchema() {
     )
   `;
 }
+
+export async function ensureWorkflowSchema() {
+  await sql`alter table matches add column if not exists review_status text not null default 'todo'`;
+  await sql`alter table matches add column if not exists reviewed_at timestamptz`;
+  await sql`alter table matches add column if not exists reviewed_by uuid references users(id) on delete set null`;
+  await sql`create index if not exists idx_matches_team_review_status on matches(team_id, review_status, created_at desc)`;
+
+  await sql`
+    create table if not exists tournaments (
+      id uuid primary key default gen_random_uuid(),
+      team_id uuid not null references teams(id) on delete cascade,
+      created_by uuid references users(id) on delete set null,
+      opponent text not null,
+      format text not null default 'BO3',
+      status text not null default 'preparation',
+      our_score integer not null default 0,
+      opponent_score integer not null default 0,
+      side text not null default 'undecided',
+      scheduled_at timestamptz,
+      notes text,
+      match_ids jsonb not null default '[]'::jsonb,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table tournaments add column if not exists match_ids jsonb not null default '[]'::jsonb`;
+  await sql`create index if not exists idx_tournaments_team on tournaments(team_id, status, scheduled_at asc)`;
+
+  await sql`
+    create table if not exists player_goals (
+      id uuid primary key default gen_random_uuid(),
+      team_id uuid not null references teams(id) on delete cascade,
+      player_id uuid not null references players(id) on delete cascade,
+      created_by uuid references users(id) on delete set null,
+      title text not null,
+      metric text not null,
+      operator text not null default 'gte',
+      target_value numeric not null,
+      sample_size integer not null default 3,
+      required_successes integer not null default 2,
+      status text not null default 'active',
+      starts_at timestamptz not null default now(),
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`create index if not exists idx_player_goals_team_player on player_goals(team_id, player_id, status, created_at desc)`;
+}
