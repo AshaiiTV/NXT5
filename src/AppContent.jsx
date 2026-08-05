@@ -11195,35 +11195,57 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         {[["library", "Bibliothèque", reports.length, FileText], ["queue", "À traiter", pendingReviewCount, Check]].map(([id, label, count, Icon]) => <button key={id} type="button" role="tab" aria-selected={workspaceView === id} onClick={() => setWorkspaceView(id)} className={cx("relative flex min-w-0 items-center gap-2 px-4 py-3 text-sm font-black transition", workspaceView === id ? "text-cyan-50" : "text-slate-400 hover:text-white")}><Icon className="h-4 w-4 shrink-0" /><span>{label}</span><span className={cx("rounded-lg px-2 py-0.5 text-[0.62rem]", workspaceView === id ? "bg-cyan-300/14 text-cyan-100" : "bg-white/[0.05] text-slate-400")}>{count}</span>{workspaceView === id && <span className="absolute inset-x-2 bottom-0 h-0.5 bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)]" />}</button>)}
       </div>
 
-      {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
-        <Surface className="p-4">
-          <div><h3 className="text-xl font-black text-white">Bibliothèque</h3><p className="mt-1 text-sm font-semibold text-slate-400">{filteredReports.length} / {reports.length} review{reports.length > 1 ? "s" : ""}</p></div>
-          <label className="mt-4 block">
-            <span className="mb-1.5 block text-[0.6rem] font-black uppercase tracking-[0.14em] text-slate-400">Contexte</span>
-            <span className="relative block">
-              <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#080d1a] px-3 pr-9 text-sm font-bold text-white outline-none transition focus:border-cyan-200/40">
-                <option value="">Toutes les reviews</option>
-                {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} games</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            </span>
-          </label>
-          <label className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
-            <span className="sr-only">Chercher une review</span>
-            <Search className="h-4 w-4 text-cyan-100/70" />
-            <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Chercher une review..." className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
-          </label>
-          <div className="mt-4 max-h-[min(62vh,42rem)] space-y-2 overflow-auto pr-1">
+      {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
+        <aside className="min-w-0 overflow-hidden rounded-2xl border border-cyan-200/18 bg-[#070b17]/88 shadow-[0_18px_54px_rgba(0,0,0,.32)] backdrop-blur-2xl 2xl:sticky 2xl:top-4 2xl:self-start">
+          <div className="border-b border-white/10 px-4 py-4 sm:px-5">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-100"><FileText className="h-5 w-5" /></span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <h3 className="text-xl font-black text-white">Bibliothèque</h3>
+                  <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length} review{reports.length > 1 ? "s" : ""}</span>
+                </div>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne une review pour ouvrir sa lecture.</p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <label className="flex h-11 items-center gap-2 border-b border-white/12 px-1 transition focus-within:border-cyan-200/55">
+                <span className="sr-only">Chercher une review</span>
+                <Search className="h-4 w-4 shrink-0 text-cyan-100/70" />
+                <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher par game ou auteur" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
+              </label>
+              <label className="relative block">
+                <span className="sr-only">Filtrer par contexte</span>
+                <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="h-10 w-full appearance-none border-0 bg-transparent px-1 pr-8 text-sm font-bold text-slate-200 outline-none transition hover:text-white focus:text-white">
+                  <option value="">Toutes les reviews</option>
+                  {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} games</option>)}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              </label>
+            </div>
+
+            {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-[0.68rem] font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span> résultat{filteredReports.length > 1 ? "s" : ""} sur {reports.length}</p>}
+          </div>
+
+          <div className="max-h-[min(66vh,44rem)] overflow-y-auto overscroll-contain">
             {filteredReports.length ? filteredReports.map((report) => {
               const active = selected?.id === report.id;
               const ids = reportMatchIds(report);
-              return <button key={report.id} type="button" onClick={() => selectReport(report)} className={cx("w-full rounded-xl border p-3 text-left transition", active ? "border-cyan-300/45 bg-cyan-400/12 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/18 hover:bg-white/[0.055]")}>
-                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><p className="min-w-0 break-words font-black text-white">{reportDisplayName(report, matches)}</p><Badge tone={active ? "cyan" : "slate"}>{ids.length} game{ids.length > 1 ? "s" : ""}</Badge></div>
-                <p className="mt-1 truncate text-xs font-semibold text-slate-300">Par {report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</p>
+              return <button key={report.id} type="button" aria-current={active ? "true" : undefined} onClick={() => selectReport(report)} className={cx("group/report relative grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.075] px-4 py-3.5 text-left transition last:border-b-0 sm:px-5", active ? "bg-gradient-to-r from-cyan-400/14 via-cyan-300/[0.055] to-transparent" : "hover:bg-white/[0.045]")}>
+                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.9)]" : "bg-transparent group-hover/report:bg-cyan-200/35")} />
+                <span className="min-w-0">
+                  <span className={cx("block break-words text-sm font-black leading-5 transition", active ? "text-cyan-50" : "text-white group-hover/report:text-cyan-50")}>{reportDisplayName(report, matches)}</span>
+                  <span className="mt-1.5 block truncate text-[0.7rem] font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5 pl-1">
+                  <span className={cx("whitespace-nowrap text-[0.65rem] font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} game{ids.length > 1 ? "s" : ""}</span>
+                  <ChevronRight className={cx("h-4 w-4 transition", active ? "translate-x-0.5 text-cyan-100" : "text-slate-600 group-hover/report:translate-x-0.5 group-hover/report:text-cyan-100")} />
+                </span>
               </button>;
-            }) : <EmptyState icon={FileText} title="Aucune review" text="Crée une review depuis le bouton principal, elle apparaîtra ici." />}
+            }) : <div className="p-4"><EmptyState icon={FileText} title="Aucune review" text="Modifie la recherche ou crée une nouvelle review." /></div>}
           </div>
-        </Surface>
+        </aside>
 
         <Surface glow={Boolean(selected)} className="p-5">
           {selected ? <>
