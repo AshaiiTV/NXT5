@@ -11033,11 +11033,12 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const [lexiconOpen, setLexiconOpen] = useState(false);
   const [reportSearch, setReportSearch] = useState("");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState("library");
   const [saving, setSaving] = useState(false);
-  const selected = reports.find((report) => report.id === selectedReportId) || reports[0];
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const scopedReports = selectedArchive ? reports.filter((report) => reportMatchIds(report).some((id) => archiveMatchIds(selectedArchive).includes(id))) : reports;
+  const selected = scopedReports.find((report) => report.id === selectedReportId) || scopedReports[0] || null;
   const selectedRows = selected ? reportRows(matches, reportMatchIds(selected)) : [];
   const formRows = reportRows(matches, form.matchIds);
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
@@ -11048,7 +11049,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const selectedMatches = selected ? matches.filter((match) => selectedMatchIds.includes(match.id)) : [];
   const reviewWins = reviewMatches.filter((match) => match.result === "Victoire").length;
   const selectedWins = selectedMatches.filter((match) => match.result === "Victoire").length;
-  const newestReview = reports.slice().sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))[0];
+  const pendingReviewCount = matches.filter((match) => String(match.review_status || "todo") !== "done").length;
   const searchNeedle = reportSearch.trim().toLowerCase();
   const filteredReports = scopedReports.filter((report) => {
     if (!searchNeedle) return true;
@@ -11074,6 +11075,13 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
   function selectReport(report) {
     setSelectedReportId(report.id);
+    window.history.replaceState({}, "", "/rapports?report=" + report.id);
+  }
+
+  function openQueuedReview(report) {
+    setSelectedArchiveId("");
+    setSelectedReportId(report.id);
+    setWorkspaceView("library");
     window.history.replaceState({}, "", "/rapports?report=" + report.id);
   }
 
@@ -11140,6 +11148,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       resetReportForm();
       setComposerOpen(false);
       setLexiconOpen(false);
+      setWorkspaceView("library");
       await refreshAll();
       pushToast({ type: "green", title: form.id ? "Review mise à jour" : "Review créée", text: "Le contenu de review est enregistré." });
     } catch (err) {
@@ -11182,41 +11191,25 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
       </PageHeader>
 
-      <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} />
+      <div role="tablist" aria-label="Sections Review" className="mb-5 flex w-full gap-1 border-b border-white/10">
+        {[["library", "Bibliothèque", reports.length, FileText], ["queue", "À traiter", pendingReviewCount, Check]].map(([id, label, count, Icon]) => <button key={id} type="button" role="tab" aria-selected={workspaceView === id} onClick={() => setWorkspaceView(id)} className={cx("relative flex min-w-0 items-center gap-2 px-4 py-3 text-sm font-black transition", workspaceView === id ? "text-cyan-50" : "text-slate-400 hover:text-white")}><Icon className="h-4 w-4 shrink-0" /><span>{label}</span><span className={cx("rounded-lg px-2 py-0.5 text-[0.62rem]", workspaceView === id ? "bg-cyan-300/14 text-cyan-100" : "bg-white/[0.05] text-slate-400")}>{count}</span>{workspaceView === id && <span className="absolute inset-x-2 bottom-0 h-0.5 bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)]" />}</button>)}
+      </div>
 
-      <Surface className="mb-5 p-4">
-        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(17rem,21rem)]">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="cyan">Lecture</Badge>
-              <Badge tone={selectedArchive ? "purple" : "slate"}>{selectedArchive?.name || "Toutes les reviews"}</Badge>
-              <Badge tone="green">{reports.length} review{reports.length > 1 ? "s" : ""}</Badge>
-            </div>
-            <h3 className="mt-3 break-words text-2xl font-black text-white">{selected ? reportDisplayName(selected, matches) : "Aucune review sélectionnée"}</h3>
-            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">La création est rangée dans une fenêtre dédiée. Ici, tu lis, tu retrouves, tu ouvres les stats et tu prends une décision.</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{selectedMatches.length}</p></div>
-            <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-xl font-black text-white">{selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-          <button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-cyan-300/20")}>Toutes</button>
-          {archives.map((archive) => {
-            const ids = archiveMatchIds(archive);
-            const active = selectedArchiveId === archive.id;
-            return <button key={archive.id} type="button" onClick={() => setSelectedArchiveId(active ? "" : archive.id)} className={cx("min-w-[150px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-400">{ids.length} game{ids.length > 1 ? "s" : ""}</p></button>;
-          })}
-        </div>
-      </Surface>
-
-      <div className="grid gap-5 2xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
+      {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
         <Surface className="p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div><h3 className="text-xl font-black text-white">Bibliothèque</h3><p className="mt-1 text-sm font-semibold text-slate-400">{filteredReports.length} / {reports.length} review{reports.length > 1 ? "s" : ""}</p></div>
-            <Badge tone="cyan">Lecture</Badge>
-          </div>
-          <label className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+          <div><h3 className="text-xl font-black text-white">Bibliothèque</h3><p className="mt-1 text-sm font-semibold text-slate-400">{filteredReports.length} / {reports.length} review{reports.length > 1 ? "s" : ""}</p></div>
+          <label className="mt-4 block">
+            <span className="mb-1.5 block text-[0.6rem] font-black uppercase tracking-[0.14em] text-slate-400">Contexte</span>
+            <span className="relative block">
+              <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="h-10 w-full appearance-none rounded-xl border border-white/10 bg-[#080d1a] px-3 pr-9 text-sm font-bold text-white outline-none transition focus:border-cyan-200/40">
+                <option value="">Toutes les reviews</option>
+                {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} games</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            </span>
+          </label>
+          <label className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-black/25 px-3 py-2">
+            <span className="sr-only">Chercher une review</span>
             <Search className="h-4 w-4 text-cyan-100/70" />
             <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Chercher une review..." className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
           </label>
@@ -11257,7 +11250,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             </div>
           </> : <EmptyState icon={FileText} title="Aucune review sélectionnée" text="Choisis une review dans la bibliothèque ou crée-en une nouvelle." />}
         </Surface>
-      </div>
+      </div>}
 
       {composerOpen && <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/72 px-3 py-4 backdrop-blur-xl sm:px-5 lg:py-6">
         <div className="w-full max-w-[min(92rem,calc(100vw-1.5rem))] overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.75),0_0_48px_rgba(34,211,238,.16)]">
