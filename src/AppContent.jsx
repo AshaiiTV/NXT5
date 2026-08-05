@@ -6502,20 +6502,20 @@ function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) 
       </div>
       <p className="shrink-0 text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400"><span className="text-white">{data.dragonCount}</span> drake{data.dragonCount > 1 ? "s" : ""}</p>
     </div>
-    <dl className="mt-3 grid grid-cols-5 border-y border-white/[0.07] py-2">
+    <dl className="mt-3 grid grid-cols-5 border-y border-white/[0.07] py-3">
       {stats.map(([label, value, icon, t], index) => <div key={label} className={cx("min-w-0 px-1 text-center sm:px-2", index > 0 && "border-l border-white/[0.07]")}>
-        <dt className="flex min-w-0 items-center justify-center gap-1.5">
-          <span className={cx("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-4 w-4" /></span>
-          <span className="hidden truncate text-[0.5rem] font-black uppercase tracking-[0.08em] text-slate-400 sm:block">{label}</span>
+        <dt className="flex min-w-0 flex-col items-center justify-center gap-1.5">
+          <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-9 w-9" /></span>
+          <span className="hidden max-w-full truncate text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-400 sm:block">{label}</span>
         </dt>
-        <dd className="mt-1 text-base font-black tabular-nums text-white">{value}</dd>
+        <dd className="mt-1 text-lg font-black tabular-nums text-white">{value}</dd>
       </div>)}
     </dl>
     {data.dragons.length > 0 && <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
       <p className="shrink-0 text-[0.54rem] font-black uppercase tracking-[0.14em] text-slate-400">Dragons</p>
       <div className="flex min-w-0 flex-wrap gap-1.5">
-        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.6rem] font-black text-white", tone(objectiveEventTone(event)))}>
-          <ObjectivePictogram type={objectiveDragonIconType(event)} fallback={objectiveEventIcon(event)} className="h-4 w-4" />
+        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
+          <ObjectivePictogram type={objectiveDragonIconType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
           {objectiveDragonElement(event)}
           <span className="text-white/65">{event.time}</span>
         </span>)}
