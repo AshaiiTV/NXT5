@@ -6484,8 +6484,9 @@ function objectiveSummaryHasData(data) {
   return Boolean(data && (data.dragonCount || data.grubs || data.heralds || data.barons || data.towers || data.dragons?.length));
 }
 
-function ObjectiveTeamCard({ match, teamKey, side, title, toneName, data: providedData }) {
+function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) {
   const data = providedData || objectiveTeamSummary(match, teamKey);
+  const isRed = side === "RED";
   const stats = [
     ["Dragons", data.dragonCount, "dragon", "cyan"],
     ["Grubs", data.grubs, "grub", "green"],
@@ -6493,29 +6494,34 @@ function ObjectiveTeamCard({ match, teamKey, side, title, toneName, data: provid
     ["Nashor", data.barons, "baron", "purple"],
     ["Tours", data.towers, "tower", "blue"],
   ];
-  return <div className={cx("min-w-0 rounded-2xl p-3", side === "BLUE" ? "bg-cyan-400/[0.055]" : "bg-rose-500/[0.055]")}>
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <Badge tone={toneName}>{title}</Badge>
-      <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{data.dragonCount} drake{data.dragonCount > 1 ? "s" : ""}</span>
+  return <section className={cx("min-w-0 px-3 py-3 sm:px-4", isRed ? "bg-rose-500/[0.035]" : "border-b border-white/[0.08] bg-cyan-400/[0.035] xl:border-b-0 xl:border-r")}>
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={cx("h-2 w-2 shrink-0 rounded-full shadow-[0_0_12px_currentColor]", isRed ? "bg-rose-300 text-rose-300" : "bg-cyan-200 text-cyan-200")} />
+        <h4 className="truncate text-[0.68rem] font-black uppercase tracking-[0.12em] text-white">{title}</h4>
+      </div>
+      <p className="shrink-0 text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400"><span className="text-white">{data.dragonCount}</span> drake{data.dragonCount > 1 ? "s" : ""}</p>
     </div>
-    <div className="grid grid-cols-5 gap-1.5">
-      {stats.map(([label, value, icon, t]) => <div key={label} className="min-w-0 rounded-xl bg-black/18 px-1.5 py-2 text-center ring-1 ring-white/[0.045]">
-        <span className={cx("mx-auto flex h-8 w-8 items-center justify-center rounded-lg", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-5 w-5" /></span>
-        <p className="mt-1 text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-300">{label}</p>
-        <p className="text-sm font-black text-white">{value}</p>
+    <dl className="mt-3 grid grid-cols-5 border-y border-white/[0.07] py-2">
+      {stats.map(([label, value, icon, t], index) => <div key={label} className={cx("min-w-0 px-1 text-center sm:px-2", index > 0 && "border-l border-white/[0.07]")}>
+        <dt className="flex min-w-0 items-center justify-center gap-1.5">
+          <span className={cx("flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-4 w-4" /></span>
+          <span className="hidden truncate text-[0.5rem] font-black uppercase tracking-[0.08em] text-slate-400 sm:block">{label}</span>
+        </dt>
+        <dd className="mt-1 text-base font-black tabular-nums text-white">{value}</dd>
       </div>)}
-    </div>
-    {data.dragons.length > 0 && <div className="mt-3 rounded-xl bg-black/18 p-2 ring-1 ring-white/[0.045]">
-      <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] text-slate-300">Éléments dragons</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
+    </dl>
+    {data.dragons.length > 0 && <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+      <p className="shrink-0 text-[0.54rem] font-black uppercase tracking-[0.14em] text-slate-400">Dragons</p>
+      <div className="flex min-w-0 flex-wrap gap-1.5">
+        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[0.6rem] font-black text-white", tone(objectiveEventTone(event)))}>
           <ObjectivePictogram type={objectiveDragonIconType(event)} fallback={objectiveEventIcon(event)} className="h-4 w-4" />
           {objectiveDragonElement(event)}
           <span className="text-white/65">{event.time}</span>
         </span>)}
       </div>
     </div>}
-  </div>;
+  </section>;
 }
 
 function ObjectiveHud({ match, compact = false }) {
@@ -6525,17 +6531,20 @@ function ObjectiveHud({ match, compact = false }) {
   const blueData = objectiveTeamSummary(match, blueTeamKey);
   const redData = objectiveTeamSummary(match, redTeamKey);
   if (!events.length && !objectiveSummaryHasData(blueData) && !objectiveSummaryHasData(redData)) return null;
-  return <div className={cx("rounded-[1.25rem] bg-gradient-to-br from-cyan-400/[0.045] via-black/12 to-fuchsia-400/[0.04] p-3 ring-1 ring-cyan-200/[0.06]", compact ? "mb-3" : "mt-4")}>
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <div className="flex items-center gap-2"><Badge tone="cyan">Objectifs</Badge>{events.length > 0 && <Badge tone="green">{events.length} actions</Badge>}</div>
-      {events.length > 0 && <span className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Dragons détaillés par élément</span>}
+  return <div className={cx("rounded-[1.25rem] bg-gradient-to-br from-cyan-400/[0.035] via-black/12 to-fuchsia-400/[0.03] p-3 ring-1 ring-cyan-200/[0.06]", compact ? "mb-3" : "mt-4")}>
+    <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 px-1">
+      <div className="flex min-w-0 items-center gap-2">
+        <Trophy className="h-4 w-4 shrink-0 text-cyan-200" />
+        <h3 className="text-xs font-black uppercase tracking-[0.14em] text-white">Objectifs</h3>
+      </div>
+      {events.length > 0 && <p className="text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400"><span className="text-white">{events.length}</span> prises enregistrées</p>}
     </div>
-    <div className="grid gap-2 xl:grid-cols-2">
-      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Côté bleu" toneName="cyan" data={blueData} />
-      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Côté rouge" toneName="red" data={redData} />
+    <div className="grid overflow-hidden rounded-2xl border border-white/[0.08] bg-black/10 xl:grid-cols-2">
+      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Côté bleu" data={blueData} />
+      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Côté rouge" data={redData} />
     </div>
     {events.length ? <>
-      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden pb-1">
+      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1">
         <ol className="flex w-max min-w-full items-stretch px-2 py-1">
           {events.map((event, index) => {
             const isRed = event.side === "RED";
