@@ -6535,29 +6535,29 @@ function ObjectiveHud({ match, compact = false }) {
       <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Côté rouge" toneName="red" data={redData} />
     </div>
     {events.length ? <>
-      <div className="nxt5-objective-timeline mt-3 overflow-x-auto overflow-y-hidden pb-2">
-        <div className="relative flex w-max min-w-full items-stretch gap-0 px-4 py-2">
-          <div className="absolute left-8 right-8 top-[2.35rem] h-px bg-gradient-to-r from-cyan-200/18 via-white/18 to-rose-200/18" />
+      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden pb-1">
+        <ol className="flex w-max min-w-full items-stretch px-2 py-1">
           {events.map((event, index) => {
             const isRed = event.side === "RED";
-            return <div key={`${event.timestamp}-${index}`} className="relative z-10 flex shrink-0 items-center">
-              <div className="w-[7.75rem] sm:w-[8.75rem] lg:w-[9.25rem]">
-                <div className="flex flex-col items-center text-center">
-                  <span className={cx("mb-2 rounded-full border px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.14em]", isRed ? "border-rose-200/24 bg-rose-500/10 text-rose-100" : "border-cyan-200/24 bg-cyan-400/10 text-cyan-100")}>{event.time}</span>
-                  <span className={cx("relative flex h-12 w-12 items-center justify-center rounded-2xl ring-2 ring-[#060a18]", tone(objectiveEventTone(event)))}>
-                    <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-8 w-8" />
+            return <li key={`${event.timestamp}-${index}`} className="flex shrink-0 items-center">
+              <div className={cx("relative flex min-h-[4rem] w-[8rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[8.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : "border-cyan-200/12 bg-cyan-400/[0.045]")}>
+                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full", isRed ? "bg-rose-300/70" : "bg-cyan-200/70")} />
+                <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(objectiveEventTone(event)))}>
+                  <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex min-w-0 items-center gap-1">
+                    <time className="shrink-0 text-[0.58rem] font-black tabular-nums text-white">{event.time}</time>
+                    <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-rose-300" : "bg-cyan-200")} />
+                    <span className={cx("whitespace-nowrap text-[0.48rem] font-black uppercase", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Rouge" : "Bleu"}</span>
                   </span>
-                  <p className="mt-2 max-w-[7.2rem] truncate text-[0.68rem] font-black text-white sm:max-w-[8.25rem] sm:text-xs">{event.label}</p>
-                  <p className={cx("mt-0.5 text-[0.58rem] font-black uppercase tracking-[0.12em]", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Côté rouge" : "Côté bleu"}</p>
-                </div>
+                  <span className="mt-0.5 line-clamp-2 block text-[0.68rem] font-black leading-4 text-white">{event.label}</span>
+                </span>
               </div>
-              {index < events.length - 1 && <div className="relative -mx-2 flex w-6 shrink-0 items-center justify-center sm:-mx-1 sm:w-10">
-                <span className="h-px flex-1 bg-gradient-to-r from-white/18 to-white/5" />
-                <ArrowRight className="h-4 w-4 shrink-0 text-slate-300/75" />
-              </div>}
-            </div>;
+              {index < events.length - 1 && <span className="flex w-3 shrink-0 items-center" aria-hidden="true"><span className="h-px flex-1 bg-white/12" /><span className="h-1 w-1 rounded-full bg-white/25" /></span>}
+            </li>;
           })}
-        </div>
+        </ol>
       </div>
     </> : null}
   </div>;

@@ -415,16 +415,18 @@ textarea {
 }
 
 .nxt5-objective-timeline {
-  scroll-padding-inline: 1rem;
+  scroll-padding-inline: 0.5rem;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-inline: contain;
   scrollbar-gutter: stable;
 }
 
-.nxt5-objective-timeline > div > div {
+.nxt5-objective-timeline > ol > li {
   scroll-snap-align: center;
 }
 
 .nxt5-objective-timeline::-webkit-scrollbar {
-  height: 7px;
+  height: 5px;
 }
 
 .nxt5-objective-timeline::-webkit-scrollbar-track {
