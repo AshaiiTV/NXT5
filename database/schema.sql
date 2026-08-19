@@ -120,6 +120,7 @@ create table if not exists players (
   riot_id text,
   opgg_url text,
   role text not null check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD')),
+  roster_status text not null default 'MAIN' check (roster_status in ('MAIN', 'SUB', 'INACTIVE')),
   most_played jsonb not null default '[]'::jsonb,
   performance_score numeric,
   status text default 'Non analysé',
@@ -131,6 +132,37 @@ create table if not exists players (
 alter table players add column if not exists user_id uuid references users(id) on delete set null;
 alter table players alter column riot_id drop not null;
 alter table players add column if not exists most_played jsonb not null default '[]'::jsonb;
+alter table players add column if not exists roster_status text;
+with ranked as (
+  select id, role, row_number() over (partition by team_id, role order by created_at asc, id asc) as role_rank
+  from players
+  where roster_status is null
+)
+update players
+set roster_status = case
+  when ranked.role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP') and ranked.role_rank = 1 then 'MAIN'
+  when ranked.role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB') then 'SUB'
+  else 'INACTIVE'
+end
+from ranked
+where players.id = ranked.id;
+alter table players alter column roster_status set default 'MAIN';
+alter table players alter column roster_status set not null;
+with duplicate_mains as (
+  select id, row_number() over (partition by team_id, role order by created_at asc, id asc) as main_rank
+  from players
+  where roster_status = 'MAIN'
+    and role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP')
+)
+update players
+set roster_status = 'SUB', updated_at = now()
+from duplicate_mains
+where players.id = duplicate_mains.id
+  and duplicate_mains.main_rank > 1;
+alter table players drop constraint if exists players_roster_status_check;
+alter table players add constraint players_roster_status_check check (roster_status in ('MAIN', 'SUB', 'INACTIVE'));
+create index if not exists idx_players_team_roster_status on players(team_id, roster_status, role);
+create unique index if not exists idx_players_one_main_per_role on players(team_id, role) where roster_status = 'MAIN' and role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP');
 alter table players drop constraint if exists players_role_check;
 alter table players add constraint players_role_check check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD'));
 

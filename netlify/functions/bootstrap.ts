@@ -4,6 +4,7 @@ import { json, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema, seedDefaultMatchCategories } from './_lib/match-categories';
 import { ensureAuditLogsSchema, ensureCompositionTypesSchema, ensureReportsSchema, ensureWorkflowSchema } from './_lib/schema';
+import { ensurePlayerRosterSchema } from './_lib/player-roster';
 import { ensureUserNotificationColumns } from './_getTeamMembers.js';
 
 function buildDashboard(matches, improvements) {
@@ -206,6 +207,7 @@ export default async function handler(request: Request, context: Context): Promi
     await ensureAuditLogsSchema();
     await ensureWorkflowSchema();
     await ensureRoleConstraints();
+    await ensurePlayerRosterSchema();
 
     const [
       players,
