@@ -9609,6 +9609,7 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
 
 function CompositionChampionBank({ players, rows, slots, onPick }) {
   const tierOrder = { lock: 0, pocket: 1, work: 2, danger: 3 };
+  const tierShortLabel = { lock: "Confiance", pocket: "Situationnel", work: "Validation", danger: "Training" };
   function dragStart(event, row, role) {
     event.dataTransfer.setData("application/json", JSON.stringify({ role, playerId: row.player_id || "", poolId: row.id }));
     event.dataTransfer.effectAllowed = "copy";
@@ -9634,9 +9635,18 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
             if (tierDiff) return tierDiff;
             return championDisplayName(a.champion).localeCompare(championDisplayName(b.champion));
           });
+        const tierGroups = CHAMPION_TIERS.map((tier) => ({ tier, items: pool.filter((row) => championPoolStatus(row) === tier.id) })).filter((group) => group.items.length);
         return <div key={role} className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-3">
           <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
-          <div className="nxt5-composition-bank-pool grid gap-2">{pool.length ? pool.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />) : <div className="col-span-full rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}</div>
+          {tierGroups.length ? <div className="space-y-3">{tierGroups.map(({ tier, items }) => <section key={tier.id}>
+            <div className="mb-2 flex min-w-0 items-center gap-2">
+              <ChampionTierMark tier={tier} active className="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />
+              <p className="truncate text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200">{tierShortLabel[tier.id]}</p>
+              <span className="h-px min-w-2 flex-1 bg-white/[0.08]" />
+              <span className="text-[0.58rem] font-black tabular-nums text-slate-400">{items.length}</span>
+            </div>
+            <div className="nxt5-composition-bank-pool grid gap-2">{items.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />)}</div>
+          </section>)}</div> : <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}
         </div>;
       })}
     </div>
