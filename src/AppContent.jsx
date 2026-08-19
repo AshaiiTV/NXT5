@@ -1233,8 +1233,8 @@ function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, us
         <button type="button" onClick={() => setCollapsed(!collapsed)} className="absolute -right-4 top-6 hidden h-9 w-9 items-center justify-center rounded-xl border border-cyan-200/18 bg-[#070d1d] text-cyan-100 shadow-xl shadow-black/40 transition hover:border-cyan-300/45 hover:bg-cyan-400/10 lg:flex" title={collapsed ?"Afficher le menu" : "Cacher le menu"}>
           <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
         </button>
-        <div className={cx("relative z-10 mb-5 flex items-center", collapsed ?"justify-center" : "justify-between")}>
-          <div className={cx("flex min-w-0 flex-1 items-center", collapsed ? "gap-0" : "gap-2.5")}><ResponsiveImage src="/apple-touch-icon.png?v=6" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="180" height="180" decoding="async" className={cx("shrink-0 object-contain object-center drop-shadow-[0_0_30px_rgba(34,211,238,.42)]", collapsed ?"h-14 w-14" : "h-[4.35rem] w-[4.35rem]")} /><div className={cx("min-w-0 flex-1 transition lg:block", collapsed && "lg:hidden")}><Nxt5Wordmark className="mx-auto h-10 w-full max-w-[11.75rem] object-contain object-center" /><p className="mt-1 text-center text-[0.55rem] font-black uppercase tracking-[0.2em] text-cyan-100/60">Comprendre l'équipe</p></div></div>
+        <div className={cx("relative z-10 mb-5 flex min-h-20 items-center", collapsed ? "justify-center" : "justify-between")}>
+          <div className="flex min-w-0 flex-1 justify-center"><Nxt5Wordmark className={cx("w-full object-contain object-center transition-all duration-300", collapsed ? "h-[4.75rem] max-w-[15rem] lg:h-8 lg:max-w-[4.25rem]" : "h-[4.75rem] max-w-[15rem]")} /></div>
           <button onClick={() => setOpen(false)} className="rounded-xl p-2 text-slate-300 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
         </div>
         <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">
