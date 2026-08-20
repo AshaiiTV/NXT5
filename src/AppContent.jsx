@@ -65,6 +65,7 @@ import {
   buildLoginRedirect,
   gameWorkspaceSectionFromPath,
   gameWorkspaceSectionLabel,
+  isAppPath,
   isKnownPath,
   isSafeInternalPath,
   normalizePath,
@@ -79,7 +80,7 @@ import {
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "./components/brand/BrandAssets.jsx";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Badge, Button, EmptyState, PageHeader, PremiumToggle, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput, ToastStack } from "./components/ui/Core.jsx";
-import { AuthPage, ForgotPasswordPage, HomeScreen, LegalLinks, LegalPage, NotFoundPage, ResetPasswordPage } from "./pages/public/PublicPages.jsx";
+import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalLinks, LegalPage, NotFoundPage, ResetPasswordPage } from "./pages/public/PublicPages.jsx";
 import { cx, errorToast, formatRetryAfter, formatUploadSize, profileStatusLabel, profileStatusTone, readRememberPreference, tone, writeRememberPreference } from "./app/helpers.js";
 import { assetProxyUrl, matchCategoryIds, matchDisplayName, matchHasCategory, opponentRoleRow } from "./utils/matches.js";
 import { addDays, availabilityEvents, availabilitySlots, compositionSlots, dateFromKey, dateKey, emptyCompositionSlots, formatWeekRange, jsonList, mondayOfWeek, planningEventKey, planningEventMeta, planningEventTypeFromLabel, planningSlotsPayload } from "./utils/planning.js";

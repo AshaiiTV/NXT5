@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Activity, ArrowRight, BarChart3, Check, ChevronRight, Crown, Eye, FileText, Flame, Gauge, Loader2, Lock, Mail, Swords, Target, Upload, Users } from "lucide-react";
+import { Activity, ArrowRight, BarChart3, Check, ChevronRight, Crown, Eye, FileText, Flame, Gauge, Loader2, Lock, Mail, Shield, Swords, Target, Upload, UserPlus, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { DISCORD_INVITE_URL } from "../../app/constants.jsx";
 import { cx, errorToast, readRememberPreference, tone, writeRememberPreference } from "../../app/helpers.js";
 import { isSafeInternalPath } from "../../app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
-import { Badge, Button, Surface, TextInput } from "../../components/ui/Core.jsx";
+import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 function MarketingPreview() {
   const metrics = [
     [Upload, "Intégration", "Importer les games"],
@@ -133,7 +133,7 @@ export function LegalLinks({ navigate }) {
   return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-300">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="border-transparent bg-transparent px-0 py-0 text-xs text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-300">NXT5 n’est pas affilié à Riot Games.</span></footer>;
 }
 
-const LEGAL_PAGES = {
+export const LEGAL_PAGES = {
   "/mentions-legales": {
     eyebrow: "Cadre légal",
     title: "Mentions légales",
