@@ -1337,8 +1337,8 @@ function ChampionMiniCard({ title, item, icon: Icon, tone: t }) {
   return <div className="relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-white/[0.035] p-4"><ChampionBackdrop champion={item?.champion} /><div className="relative z-10 flex items-start justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{title}</p><p className="mt-2 text-xl font-black text-white">{championDisplayName(item?.champion) || "?"}</p><p className="mt-1 text-sm font-semibold text-slate-400">{item?.player_name || "Données insuffisantes"}</p></div><div className={cx("rounded-2xl border p-3", tone(t))}><Icon className="h-5 w-5" /></div></div><div className="relative z-10 mt-4 flex flex-wrap gap-2"><Badge tone="slate">{item?.games ?? 0} games</Badge><Badge tone="purple">{item?.kda ? Number(item.kda).toFixed(1) : "?"} KDA</Badge></div></div>;
 }
 
-const DDRAGON_VERSION = "16.11.1";
-const DDRAGON_FALLBACK_VERSIONS = ["16.11.1", "16.10.1", "16.9.1", "15.24.1", "15.10.1"];
+const DDRAGON_VERSION = "16.16.1";
+const DDRAGON_FALLBACK_VERSIONS = ["16.16.1", "16.15.1", "16.14.1", "16.13.1", "16.11.1", "15.24.1"];
 
 const CHAMPION_STYLE_TAGS = {
   Aatrox: ["bruiser", "teamfight"], Ahri: ["pick", "tempo"], Akali: ["assassin", "side"], Alistar: ["engage", "peel"], Amumu: ["engage", "teamfight"], Anivia: ["control", "scaling"], Annie: ["burst", "engage"], Aphelios: ["scaling", "front-to-back"], Ashe: ["utility", "pick"], AurelionSol: ["scaling", "control"], Azir: ["scaling", "front-to-back"],
@@ -1357,6 +1357,7 @@ const ADDITIONAL_CHAMPION_STYLE_TAGS = {
   Briar: ["dive", "snowball"],
   Illaoi: ["side", "teamfight"],
   Leblanc: ["pick", "poke"],
+  Locke: ["assassin", "burst"],
   Mel: ["control", "poke"],
   Naafiri: ["assassin", "dive"],
   Shaco: ["pick", "assassin"],
@@ -1597,6 +1598,7 @@ const DIRECT_COUNTERS = {
   Leblanc: ["Galio", "Lissandra", "Malzahar", "Vex"],
   LeeSin: ["Ivern", "Poppy", "Rammus", "Sejuani"],
   Lissandra: ["Anivia", "Cassiopeia", "Orianna", "Viktor"],
+  Locke: ["Galio", "Lissandra", "Malzahar", "Vex"],
   Lucian: ["Caitlyn", "Draven", "Varus", "Vayne"],
   Lux: ["Blitzcrank", "Nautilus", "Pyke", "Zyra"],
   Malphite: ["Gwen", "Mordekaiser", "Sylas", "Vladimir"],
@@ -9137,7 +9139,7 @@ const CHAMPION_LANE_POOLS = {
 const ADDITIONAL_CHAMPION_LANE_POOLS = {
   TOP: ["Ambessa", "Aurora", "Illaoi", "Zaahen"],
   JGL: ["Belveth", "Briar", "Shaco", "Zaahen"],
-  MID: ["Akshan", "Aurora", "Mel", "Naafiri"],
+  MID: ["Akshan", "Aurora", "Locke", "Mel", "Naafiri"],
   ADC: ["Mel", "Yunara"],
   SUP: ["Mel"],
 };
