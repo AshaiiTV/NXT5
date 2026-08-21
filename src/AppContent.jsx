@@ -10715,10 +10715,28 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }
 
   async function refreshAll() {
-    setLoading(true); setApiError(""); if (!bootstrapped) setBootstrapReady(false);
-    try { const result = await apiFetch("bootstrap"); setData({ ...DEFAULT_DATA, ...result }); if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id); if (!bootstrapped) { setBootstrapReady(true); await new Promise((resolve) => window.setTimeout(resolve, 980)); } }
-    catch (err) { setApiError(err.message || "Impossible de charger les données."); if (!bootstrapped) setData(DEFAULT_DATA); }
-    finally { setLoading(false); setBootstrapped(true); }
+    setLoading(true);
+    setApiError("");
+    if (!bootstrapped) setBootstrapReady(false);
+    try {
+      const result = await apiFetch("bootstrap", { timeoutMs: bootstrapped ? 20000 : 16000 });
+      setData({ ...DEFAULT_DATA, ...result });
+      if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id);
+      if (!bootstrapped) {
+        setBootstrapReady(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 980));
+      }
+    } catch (err) {
+      setApiError(err.message || "Impossible de charger les données.");
+      if (!bootstrapped) {
+        setData(DEFAULT_DATA);
+        setBootstrapReady(true);
+        await new Promise((resolve) => window.setTimeout(resolve, 320));
+      }
+    } finally {
+      setLoading(false);
+      setBootstrapped(true);
+    }
   }
   async function logout() { try { await apiFetch("auth-logout", { method: "POST" }); } catch {} pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." }); navigate("/connexion", { replace: true }); onLogout(); }
   useEffect(() => { refreshAll(); }, []);
@@ -10745,7 +10763,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
   const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
-  if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
+  if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
   return (
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
@@ -10776,7 +10794,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           onManageTeam={openTeamManagement}
         />
         <main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-8 xl:px-10 2xl:px-12">
-          <ApiBanner error={apiError} />
+          <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
           {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}
           <React.Fragment>
             <motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="min-w-0">

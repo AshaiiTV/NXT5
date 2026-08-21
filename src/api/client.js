@@ -1,4 +1,5 @@
 export const API_BASE = "/.netlify/functions";
+const DEFAULT_API_TIMEOUT_MS = 20000;
 
 function attachApiErrorMetadata(error, payload, status) {
   error.status = status;
@@ -18,18 +19,34 @@ function apiFallbackMessage(status) {
 
 export async function apiFetch(path, options = {}) {
   let response;
+  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, ...fetchOptions } = options;
+  const controller = timeoutMs ? new AbortController() : null;
+  let timeoutId = null;
+  const abortFromCaller = () => controller?.abort(signal?.reason);
+  if (controller && signal) {
+    if (signal.aborted) controller.abort(signal.reason);
+    else signal.addEventListener("abort", abortFromCaller, { once: true });
+  }
+  if (controller && timeoutMs) {
+    timeoutId = globalThis.setTimeout(() => controller.abort(new DOMException("API timeout", "TimeoutError")), timeoutMs);
+  }
   try {
     const url = String(path || "").startsWith("/") ? path : `${API_BASE}/${path}`;
     response = await fetch(url, {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        ...(options.headers || {}),
+        ...(fetchOptions.headers || {}),
       },
-      ...options,
+      ...fetchOptions,
+      signal: controller?.signal || signal,
     });
-  } catch {
-    throw new Error("Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants.");
+  } catch (err) {
+    const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError" || controller?.signal?.aborted;
+    throw new Error(timedOut ? "NXT5 met trop longtemps à répondre. Réessaie dans quelques instants." : "Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants.");
+  } finally {
+    if (timeoutId) globalThis.clearTimeout(timeoutId);
+    if (controller && signal) signal.removeEventListener("abort", abortFromCaller);
   }
 
   let payload = null;
