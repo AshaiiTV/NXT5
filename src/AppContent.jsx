@@ -629,10 +629,9 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
     ctx.strokeStyle = "rgba(103,232,249,.24)";
     ctx.lineWidth = 2;
     ctx.strokeRect(48, 42, W - 96, H - 84);
-    drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 78, 78);
-    drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 220, 58);
-    fitText("Champion Tier List", 452, 106, 660, { font: "900 48px Inter, Arial, sans-serif", color: "#ffffff", min: 28 });
-    fitText(`${player?.name || "Joueur"} - ${roleLabel(player?.role || "")} - ${allRows.length} champion${allRows.length > 1 ? "s" : ""}`, 454, 145, 760, { font: "800 20px Inter, Arial, sans-serif", color: "#c8f7ff", min: 13 });
+    drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 86, 62, 360, 104);
+    fitText("Champion Tier List", 500, 106, 620, { font: "900 48px Inter, Arial, sans-serif", color: "#ffffff", min: 28 });
+    fitText(`${player?.name || "Joueur"} - ${roleLabel(player?.role || "")} - ${allRows.length} champion${allRows.length > 1 ? "s" : ""}`, 502, 145, 720, { font: "800 20px Inter, Arial, sans-serif", color: "#c8f7ff", min: 13 });
     const generated = new Date().toLocaleString("fr-FR");
     fitText(`Export PNG - ${generated}`, W - 90, 112, 390, { font: "900 16px Inter, Arial, sans-serif", color: "#dff8ff", min: 11, align: "right" });
     drawLine(margin, 184, W - margin, 184, "rgba(103,232,249,.55)", 2.5);
