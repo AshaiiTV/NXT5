@@ -458,6 +458,241 @@ function ChampionPortrait({ champion, row, alt, className = "h-full w-full objec
   return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
+function safeExportFilename(value, fallback = "export") {
+  const normalized = String(value || fallback).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return normalized.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || fallback;
+}
+
+function championPoolRowsByTier(rows = []) {
+  const grouped = CHAMPION_TIERS.reduce((map, tier) => ({ ...map, [tier.id]: [] }), {});
+  rows.forEach((row) => {
+    const status = championPoolStatus(row);
+    if (!grouped[status]) grouped[status] = [];
+    grouped[status].push(row);
+  });
+  return grouped;
+}
+
+async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushToast } = {}) {
+  const grouped = rowsByTier || championPoolRowsByTier(rows);
+  const allRows = CHAMPION_TIERS.flatMap((tier) => grouped[tier.id] || []);
+  if (!allRows.length) {
+    pushToast?.({ type: "yellow", title: "Export vide", text: "Ajoute au moins un champion dans la tier list avant d'exporter." });
+    return;
+  }
+
+  try {
+    const canvas = document.createElement("canvas");
+    const W = 1800;
+    const margin = 72;
+    const labelW = 250;
+    const gap = 16;
+    const cardW = 270;
+    const cardH = 112;
+    const tierGap = 24;
+    const contentW = W - margin * 2;
+    const cardsW = contentW - labelW - 28;
+    const columns = Math.max(1, Math.floor((cardsW + gap) / (cardW + gap)));
+    const tierHeights = CHAMPION_TIERS.map((tier) => {
+      const count = (grouped[tier.id] || []).length;
+      const rowsNeeded = Math.max(1, Math.ceil(count / columns));
+      return Math.max(178, 54 + rowsNeeded * cardH + Math.max(0, rowsNeeded - 1) * gap + 36);
+    });
+    const H = 210 + tierHeights.reduce((sum, value) => sum + value, 0) + tierGap * (CHAMPION_TIERS.length - 1) + 96;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    const short = (value, max = 28) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}...` : String(value || "");
+    const accentColor = (accent = "cyan") => accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : accent === "red" ? "#fb7185" : accent === "purple" ? "#c084fc" : "#67e8f9";
+    const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : accent === "red" ? `rgba(251,113,133,${alpha})` : accent === "purple" ? `rgba(192,132,252,${alpha})` : `rgba(103,232,249,${alpha})`;
+    const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 10, align = "left" } = {}) => {
+      const source = String(text || "");
+      let nextFont = font || "800 18px Inter, Arial, sans-serif";
+      const match = nextFont.match(/(\d+)px/);
+      let size = match ? Number(match[1]) : 18;
+      ctx.font = nextFont;
+      while (ctx.measureText(source).width > maxWidth && size > min) {
+        size -= 1;
+        nextFont = nextFont.replace(/\d+px/, `${size}px`);
+        ctx.font = nextFont;
+      }
+      ctx.fillStyle = color;
+      ctx.textAlign = align;
+      ctx.fillText(source, x, y);
+      ctx.textAlign = "left";
+    };
+    const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    };
+    const imageCache = new Map();
+    const loadCanvasImage = (url) => new Promise((resolve) => {
+      if (!url) return resolve(null);
+      if (imageCache.has(url)) return resolve(imageCache.get(url));
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        imageCache.set(url, img);
+        resolve(img);
+      };
+      img.onerror = () => {
+        imageCache.set(url, null);
+        resolve(null);
+      };
+      img.src = url;
+    });
+    const drawImageCover = (img, x, y, w, h, radius = 14) => {
+      if (!img) return false;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, radius);
+      ctx.clip();
+      const ratio = Math.max(w / img.width, h / img.height);
+      const dw = img.width * ratio;
+      const dh = img.height * ratio;
+      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      ctx.restore();
+      return true;
+    };
+    const drawImageContain = (img, x, y, w, h) => {
+      if (!img) return false;
+      const ratio = Math.min(w / img.width, h / img.height);
+      const dw = img.width * ratio;
+      const dh = img.height * ratio;
+      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      return true;
+    };
+    const drawChampionFallback = (row, x, y, size) => {
+      const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
+      gradient.addColorStop(0, "rgba(34,211,238,.22)");
+      gradient.addColorStop(1, "rgba(217,70,239,.18)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(x, y, size, size, 16);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,.14)";
+      ctx.stroke();
+      fitText(short(championDisplayName(row.champion), 2).toUpperCase(), x + size / 2, y + size / 2 + 10, size - 12, { font: "900 28px Inter, Arial, sans-serif", color: "#e0faff", min: 18, align: "center" });
+    };
+    const drawCachedChampion = (row, x, y, size) => {
+      const img = championPortraitSources(row, row?.champion).map((url) => imageCache.get(url)).find(Boolean);
+      if (!drawImageCover(img, x, y, size, size, 16)) drawChampionFallback(row, x, y, size);
+      ctx.strokeStyle = "rgba(255,255,255,.18)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(x, y, size, size, 16);
+      ctx.stroke();
+    };
+    const drawCard = (row, x, y, tier) => {
+      ctx.fillStyle = "rgba(3,7,18,.72)";
+      ctx.strokeStyle = "rgba(255,255,255,.11)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x, y, cardW, cardH, 18);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = accentSoft(tier.tone, 0.22);
+      ctx.fillRect(x, y, 5, cardH);
+      drawCachedChampion(row, x + 14, y + 14, 84);
+      fitText(short(championDisplayName(row.champion), 18), x + 112, y + 42, cardW - 128, { font: "900 22px Inter, Arial, sans-serif", color: "#ffffff", min: 14 });
+      const games = Number(row.games || 0);
+      const winrate = row.winrate !== undefined && row.winrate !== null && row.winrate !== "" ? Number(row.winrate) : games ? Math.round((Number(row.wins || 0) / Math.max(1, games)) * 100) : null;
+      const meta = games ? `${games}G${Number.isFinite(winrate) ? ` - ${Math.round(winrate)}% WR` : ""}` : "Pas encore importé";
+      fitText(short(meta, 22), x + 112, y + 70, cardW - 128, { font: "800 15px Inter, Arial, sans-serif", color: "#c7d4e5", min: 11 });
+      fitText(short(roleLabel(row.role || player?.role || "ROLE"), 16), x + 112, y + 91, cardW - 128, { font: "900 12px Inter, Arial, sans-serif", color: accentColor(tier.tone), min: 9 });
+    };
+
+    const imageUrls = new Set(["/assets/nxt5-wordmark.png", "/assets/nxt5-mark.png"]);
+    allRows.forEach((row) => championPortraitSources(row, row?.champion).forEach((url) => imageUrls.add(url)));
+    await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
+
+    const gradient = ctx.createLinearGradient(0, 0, W, H);
+    gradient.addColorStop(0, "#030914");
+    gradient.addColorStop(0.56, "#020511");
+    gradient.addColorStop(1, "#090416");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, W, H);
+    for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.025)", 1);
+    for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
+    const bg = ctx.createRadialGradient(240, 90, 80, 240, 90, 680);
+    bg.addColorStop(0, "rgba(34,211,238,.22)");
+    bg.addColorStop(1, "rgba(2,5,17,0)");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    const bg2 = ctx.createRadialGradient(W - 260, 120, 90, W - 260, 120, 740);
+    bg2.addColorStop(0, "rgba(217,70,239,.18)");
+    bg2.addColorStop(1, "rgba(2,5,17,0)");
+    ctx.fillStyle = bg2;
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(103,232,249,.24)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(48, 42, W - 96, H - 84);
+    drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 78, 78);
+    drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 220, 58);
+    fitText("Champion Tier List", 452, 106, 660, { font: "900 48px Inter, Arial, sans-serif", color: "#ffffff", min: 28 });
+    fitText(`${player?.name || "Joueur"} - ${roleLabel(player?.role || "")} - ${allRows.length} champion${allRows.length > 1 ? "s" : ""}`, 454, 145, 760, { font: "800 20px Inter, Arial, sans-serif", color: "#c8f7ff", min: 13 });
+    const generated = new Date().toLocaleString("fr-FR");
+    fitText(`Export PNG - ${generated}`, W - 90, 112, 390, { font: "900 16px Inter, Arial, sans-serif", color: "#dff8ff", min: 11, align: "right" });
+    drawLine(margin, 184, W - margin, 184, "rgba(103,232,249,.55)", 2.5);
+    drawLine(margin, 187, W - margin, 187, "rgba(244,114,182,.22)", 1);
+
+    let y = 220;
+    CHAMPION_TIERS.forEach((tier, tierIndex) => {
+      const tierRows = grouped[tier.id] || [];
+      const tierH = tierHeights[tierIndex];
+      const panelGradient = ctx.createLinearGradient(margin, y, W - margin, y + tierH);
+      panelGradient.addColorStop(0, accentSoft(tier.tone, 0.18));
+      panelGradient.addColorStop(0.46, "rgba(5,10,24,.66)");
+      panelGradient.addColorStop(1, "rgba(5,10,24,.44)");
+      ctx.fillStyle = panelGradient;
+      ctx.strokeStyle = accentSoft(tier.tone, 0.34);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(margin, y, contentW, tierH, 24);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = accentColor(tier.tone);
+      ctx.beginPath();
+      ctx.roundRect(margin, y, 8, tierH, 4);
+      ctx.fill();
+      fitText(tier.title, margin + 34, y + 62, labelW - 46, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
+      fitText(`${tierRows.length} champion${tierRows.length > 1 ? "s" : ""}`, margin + 34, y + 96, labelW - 46, { font: "900 17px Inter, Arial, sans-serif", color: accentColor(tier.tone), min: 12 });
+      fitText(short(tier.hint, 52), margin + 34, y + 128, labelW - 46, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+      drawLine(margin + labelW, y + 26, margin + labelW, y + tierH - 26, "rgba(255,255,255,.10)", 1);
+      if (!tierRows.length) {
+        fitText("Aucun champion dans ce tier.", margin + labelW + 34, y + 94, cardsW - 68, { font: "800 22px Inter, Arial, sans-serif", color: "#94a3b8", min: 14 });
+      } else {
+        tierRows.forEach((row, index) => {
+          const col = index % columns;
+          const rowIndex = Math.floor(index / columns);
+          drawCard(row, margin + labelW + 28 + col * (cardW + gap), y + 36 + rowIndex * (cardH + gap), tier);
+        });
+      }
+      y += tierH + tierGap;
+    });
+
+    ctx.fillStyle = "#67e8f9";
+    ctx.font = "800 17px Inter, Arial, sans-serif";
+    ctx.fillText("Généré par NXT5", margin, H - 48);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#dff8ff";
+    ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
+    ctx.fillText("DRAFT - STRATEGIZE - WIN", W - margin, H - 48);
+    ctx.textAlign = "left";
+    const link = document.createElement("a");
+    link.download = `nxt5-tier-list-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    pushToast?.({ type: "cyan", title: "Tier list exportée", text: "Le PNG du Champion Pool a été téléchargé." });
+  } catch (err) {
+    pushToast?.({ type: "red", title: "Export impossible", text: err?.message || "Le navigateur n'a pas pu générer le PNG." });
+  }
+}
+
 function championSplashFocus(champion, focus = "default") {
   if (focus !== "face") return "center center";
   const id = championAssetId(champion);
@@ -2890,7 +3125,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
         {profileView === "overview" && <><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /><CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} /></>}
         {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
-        {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} />}
+        {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} />}
         {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des reviews liees aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
       </motion.div>
@@ -3163,7 +3398,7 @@ function ProfileChampionDecisionCard({ stat, safestPick, urgentPick }) {
   </Surface>;
 }
 
-function ProfileChampionPoolView({ championPool = [], championStats = [], selectedPlayer }) {
+function ProfileChampionPoolView({ championPool = [], championStats = [], selectedPlayer, pushToast }) {
   const tierOrder = Object.fromEntries(CHAMPION_TIERS.map((tier, index) => [tier.id, index]));
   const statsByChampion = championStats.reduce((map, stat) => {
     map.set(championAssetId(stat.champion), stat);
@@ -3182,6 +3417,7 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
   const spotlightRow = rowsByTier.lock[0] || rowsByTier.pocket[0] || orderedRows[0];
   const readiness = !total ? "Pool à remplir" : readyCount >= Math.max(2, Math.ceil(total * 0.55)) ? "Pool prêt" : "Pool à consolider";
   const readinessTone = !total ? "slate" : readyCount >= Math.max(2, Math.ceil(total * 0.55)) ? "green" : "yellow";
+  const exportTierList = () => exportChampionTierListPng({ player: selectedPlayer, rowsByTier, pushToast });
   return <div className="space-y-5">
     <Surface className="relative overflow-hidden p-5 md:p-6">
       {spotlightRow?.champion && <ChampionBackdrop champion={spotlightRow.champion} focus="face" />}
@@ -3190,6 +3426,9 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
           <div className="flex flex-wrap items-center gap-2"><Badge tone="green">Pool dédié</Badge><Badge tone={readinessTone}>{readiness}</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge></div>
           <h3 className="mt-4 text-3xl font-black leading-tight text-white md:text-4xl">Pool de {selectedPlayer?.name || "joueur"}</h3>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Lecture séparée des champions déclarés, classés par catégories de pool. L’objectif est de savoir vite ce qui est fiable, situationnel, en validation ou encore en training.</p>
+          <div className="mt-4">
+            <Button type="button" variant="ghost" icon={Download} onClick={exportTierList} disabled={!total}>Exporter la tier list PNG</Button>
+          </div>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
           <ProfileHudMetric icon={ShieldCheck} label="Confiance" value={rowsByTier.lock.length} detail="Picks fiables" tone="green" />
@@ -8019,6 +8258,10 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     return selectedRows.filter((row) => row.status === status);
   }
 
+  function exportSelectedTierList() {
+    exportChampionTierListPng({ player: selectedPlayer, rowsByTier: championPoolRowsByTier(selectedRows), pushToast });
+  }
+
   function dragPayload(event) {
     try {
       return JSON.parse(event.dataTransfer.getData("application/json") || "{}");
@@ -8122,7 +8365,10 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                 <h3 className="text-xl font-black text-white">Joueur actif</h3>
                 <p className="mt-1 text-sm font-semibold text-slate-300">Le choix du joueur reste en haut pour laisser toute la largeur aux tableaux.</p>
               </div>
-              <ChampionPoolColorSummary />
+              <div className="flex flex-wrap items-center gap-3">
+                <ChampionPoolColorSummary />
+                <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>Exporter PNG</Button>
+              </div>
             </div>
             <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
               {players.map((player) => {
