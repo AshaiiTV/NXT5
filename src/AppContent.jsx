@@ -485,7 +485,7 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
     const canvas = document.createElement("canvas");
     const W = 1800;
     const margin = 72;
-    const labelW = 250;
+    const labelW = 320;
     const gap = 16;
     const cardW = 270;
     const cardH = 112;
@@ -505,8 +505,14 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
     const short = (value, max = 28) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}...` : String(value || "");
     const accentColor = (accent = "cyan") => accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : accent === "red" ? "#fb7185" : accent === "purple" ? "#c084fc" : "#67e8f9";
     const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : accent === "red" ? `rgba(251,113,133,${alpha})` : accent === "purple" ? `rgba(192,132,252,${alpha})` : `rgba(103,232,249,${alpha})`;
+    const exportTierTitle = (tier) => ({
+      lock: "Confiance",
+      pocket: "Situationnel",
+      work: "Validation",
+      danger: "Training",
+    }[tier?.id] || tier?.title || "Tier");
     const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 10, align = "left" } = {}) => {
-      const source = String(text || "");
+      let source = String(text || "");
       let nextFont = font || "800 18px Inter, Arial, sans-serif";
       const match = nextFont.match(/(\d+)px/);
       let size = match ? Number(match[1]) : 18;
@@ -515,6 +521,9 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
         size -= 1;
         nextFont = nextFont.replace(/\d+px/, `${size}px`);
         ctx.font = nextFont;
+      }
+      while (ctx.measureText(source).width > maxWidth && source.length > 1) {
+        source = `${source.slice(0, -2).trimEnd()}...`;
       }
       ctx.fillStyle = color;
       ctx.textAlign = align;
@@ -656,9 +665,9 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
       ctx.beginPath();
       ctx.roundRect(margin, y, 8, tierH, 4);
       ctx.fill();
-      fitText(tier.title, margin + 34, y + 62, labelW - 46, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
+      fitText(exportTierTitle(tier), margin + 34, y + 62, labelW - 46, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
       fitText(`${tierRows.length} champion${tierRows.length > 1 ? "s" : ""}`, margin + 34, y + 96, labelW - 46, { font: "900 17px Inter, Arial, sans-serif", color: accentColor(tier.tone), min: 12 });
-      fitText(short(tier.hint, 52), margin + 34, y + 128, labelW - 46, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
+      fitText(short(tier.hint, 42), margin + 34, y + 128, labelW - 46, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
       drawLine(margin + labelW, y + 26, margin + labelW, y + tierH - 26, "rgba(255,255,255,.10)", 1);
       if (!tierRows.length) {
         fitText("Aucun champion dans ce tier.", margin + labelW + 34, y + 94, cardsW - 68, { font: "800 22px Inter, Arial, sans-serif", color: "#94a3b8", min: 14 });
