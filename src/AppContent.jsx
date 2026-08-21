@@ -602,7 +602,6 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
       const games = Number(row.games || 0);
       const winrate = row.winrate !== undefined && row.winrate !== null && row.winrate !== "" ? Number(row.winrate) : games ? Math.round((Number(row.wins || 0) / Math.max(1, games)) * 100) : null;
       if (games) fitText(short(`${games}G${Number.isFinite(winrate) ? ` - ${Math.round(winrate)}% WR` : ""}`, 22), x + 112, y + 70, cardW - 128, { font: "800 15px Inter, Arial, sans-serif", color: "#c7d4e5", min: 11 });
-      fitText(short(roleLabel(row.role || player?.role || "ROLE"), 16), x + 112, y + (games ? 91 : 74), cardW - 128, { font: "900 12px Inter, Arial, sans-serif", color: accentColor(tier.tone), min: 9 });
     };
 
     const imageUrls = new Set(["/assets/nxt5-wordmark.png", "/assets/nxt5-mark.png"]);
