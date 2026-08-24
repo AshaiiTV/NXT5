@@ -11,6 +11,11 @@ function attachApiErrorMetadata(error, payload, status) {
   return error;
 }
 
+function apiPayloadMessage(payload, status) {
+  if (payload?.code === "SESSION_SECRET_MISCONFIGURED") return "Session serveur mal configurée : SESSION_SECRET manque ou est trop court dans Netlify.";
+  return payload?.error || apiFallbackMessage(status);
+}
+
 function apiFallbackMessage(status) {
   return status === 502 || status === 503
     ? "Service temporairement indisponible. Reessaie quand le site est pret."
@@ -57,7 +62,7 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw attachApiErrorMetadata(new Error(payload?.error || apiFallbackMessage(response.status)), payload, response.status);
+    throw attachApiErrorMetadata(new Error(apiPayloadMessage(payload, response.status)), payload, response.status);
   }
 
   return payload;
@@ -85,7 +90,7 @@ export function apiUploadJson(path, data, onProgress) {
         payload = null;
       }
       if (xhr.status < 200 || xhr.status >= 300) {
-        reject(attachApiErrorMetadata(new Error(payload?.error || apiFallbackMessage(xhr.status)), payload, xhr.status));
+        reject(attachApiErrorMetadata(new Error(apiPayloadMessage(payload, xhr.status)), payload, xhr.status));
         return;
       }
       resolve(payload);
