@@ -8,7 +8,6 @@ export default async function handler(request: Request, context: Context): Promi
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
-    await ensureEmailVerificationColumns();
     await assertRateLimit(request, 'auth-login', { limit: 5, windowSeconds: 60 });
     const body = await readJson(request);
     const accountName = normalizeAccountName(body.accountName);
@@ -16,6 +15,11 @@ export default async function handler(request: Request, context: Context): Promi
     const password = String(body.password || '');
     const remember = body.rememberMe !== false;
 
+    if (!accountName || !password) {
+      throw Object.assign(new Error('Identifiants requis.'), { status: 400 });
+    }
+
+    await ensureEmailVerificationColumns();
     const rows = accountName.includes('@')
       ? await sql`select * from users where lower(email) = ${identifier} limit 1`
       : await sql`select * from users where account_name = ${identifier} limit 1`;

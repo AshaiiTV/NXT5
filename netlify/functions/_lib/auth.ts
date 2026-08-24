@@ -75,7 +75,37 @@ export function isValidEmail(email: unknown): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
 }
 
+export async function ensureAuthUserSchema(): Promise<void> {
+  await sql`create extension if not exists pgcrypto`;
+  await sql`
+    create table if not exists users (
+      id uuid primary key default gen_random_uuid(),
+      account_name text,
+      email text,
+      name text not null default 'Compte NXT5',
+      password_hash text not null default '',
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table users add column if not exists account_name text`;
+  await sql`alter table users add column if not exists email text`;
+  await sql`alter table users add column if not exists name text not null default 'Compte NXT5'`;
+  await sql`alter table users add column if not exists password_hash text not null default ''`;
+  await sql`alter table users add column if not exists created_at timestamptz not null default now()`;
+  await sql`alter table users add column if not exists updated_at timestamptz not null default now()`;
+  await sql`
+    update users
+    set account_name = lower(regexp_replace(coalesce(nullif(name, ''), 'compte') || '-' || substr(id::text, 1, 8), '[^a-z0-9._-]', '', 'g'))
+    where account_name is null or account_name = ''
+  `;
+  await sql`alter table users alter column account_name set not null`;
+  await sql`create unique index if not exists idx_users_account_name on users(account_name)`;
+  await sql`create unique index if not exists idx_users_email_lower on users (lower(email)) where email is not null and email <> ''`;
+}
+
 export async function ensureEmailVerificationColumns(): Promise<void> {
+  await ensureAuthUserSchema();
   await sql`alter table users add column if not exists updated_at timestamptz not null default now()`;
   await sql`alter table users add column if not exists email_verified boolean default false`;
   await sql`alter table users add column if not exists email_verify_token text default null`;
