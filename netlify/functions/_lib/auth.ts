@@ -82,6 +82,27 @@ export async function ensureEmailVerificationColumns(): Promise<void> {
   await sql`alter table users add column if not exists email_verify_expires_at timestamptz default null`;
 }
 
+export async function ensureSessionSchema(): Promise<void> {
+  await sql`
+    create table if not exists sessions (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references users(id) on delete cascade,
+      token_hash text not null unique,
+      expires_at timestamptz not null,
+      revoked_at timestamptz,
+      user_agent text,
+      ip text,
+      created_at timestamptz not null default now()
+    )
+  `;
+  await sql`alter table sessions add column if not exists revoked_at timestamptz`;
+  await sql`alter table sessions add column if not exists user_agent text`;
+  await sql`alter table sessions add column if not exists ip text`;
+  await sql`alter table sessions add column if not exists created_at timestamptz not null default now()`;
+  await sql`create unique index if not exists idx_sessions_token_hash on sessions(token_hash)`;
+  await sql`create index if not exists idx_sessions_user_active on sessions(user_id, expires_at desc) where revoked_at is null`;
+}
+
 export function safeUser(user: Partial<DbUser> | null | undefined) {
   if (!user) return null;
   return {
@@ -97,6 +118,7 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
 }
 
 export async function createSession({ userId, context, request, remember = true }: { userId: string; context: Context; request: Request; remember?: boolean }): Promise<void> {
+  await ensureSessionSchema();
   const rawToken = crypto.randomBytes(48).toString('base64url');
   const tokenHash = sha256(rawToken);
   const maxAge = remember ? REMEMBER_SESSION_DAYS * 24 * 60 * 60 : SHORT_SESSION_HOURS * 60 * 60;
@@ -132,6 +154,7 @@ export async function requireAuth(request: Request, context: Context): Promise<D
     throw Object.assign(new Error('Session absente.'), { status: 401 });
   }
 
+  await ensureSessionSchema();
   const tokenHash = sha256(token);
   const rows = await sql`
     select
@@ -162,6 +185,7 @@ export async function requireAuth(request: Request, context: Context): Promise<D
 export async function revokeSession(context: Context, request: Request | null = null): Promise<void> {
   const token = readSessionCookie(context);
   if (token) {
+    await ensureSessionSchema();
     await sql`update sessions set revoked_at = now() where token_hash = ${sha256(token)}`;
   }
 
