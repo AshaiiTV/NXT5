@@ -3128,7 +3128,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     </div>
     <React.Fragment>
       <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
-        {profileView === "overview" && <><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} />{selectedTeam && <div className="mt-5"><TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} /></div>}<CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} /></>}
+        {profileView === "overview" && <><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /><CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} /></>}
         {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} />}
         {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
@@ -10345,7 +10345,7 @@ function VerifiedPage({ navigate }) {
   return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-4 py-10"><Surface glow className="w-full p-6 text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
 }
 
-function AccountSettings({ user, onUserUpdate, pushToast }) {
+function AccountSettings({ user, onUserUpdate, pushToast, currentTeam, data = {} }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
   const [notificationForm, setNotificationForm] = useState({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false });
@@ -10477,6 +10477,10 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
           })}
         </div>
       </Surface>
+
+      {currentTeam && <div className="xl:col-span-2">
+        <TeamDataHealthPanel team={currentTeam} players={data.players || []} matches={data.matches || []} />
+      </div>}
 
       <Surface className="p-5 xl:col-span-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -10764,7 +10768,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
-    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
+    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
     if (active === "guide") return <GuidePage />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, loading, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate]);
