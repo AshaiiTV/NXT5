@@ -284,76 +284,73 @@ function reportForMatch({ team, summary, participants }) {
 }
 
 async function rebuildChampionPool(teamId) {
-  const rows = await sql`
-    select
-      p.player_id as player_id,
-      coalesce(pl.name, p.summoner_name) as player_name,
-      pl.role as role,
-      p.champion,
-      count(*)::int as games,
-      sum(case when m.result = 'Victoire' then 1 else 0 end)::int as wins,
-      sum(case when m.result = 'Défaite' then 1 else 0 end)::int as losses,
-      avg((p.kills + p.assists)::numeric / greatest(1, p.deaths)) as kda,
-      avg(p.cs_per_min) as cs_per_min
-    from match_participants p
-    join matches m on m.id = p.match_id
-    left join players pl on pl.id = p.player_id
-    where m.team_id = ${teamId}
-      and p.team_key = 'ALLY'
-    group by p.player_id, pl.name, pl.role, p.summoner_name, p.champion
+  await sql`
+    delete from champion_pool
+    where team_id = ${teamId}
+      and coalesce(source, 'riot') not in ('manual', 'riot_manual')
   `;
-
-  for (const r of rows) {
-    const winrate = Math.round((Number(r.wins) / Math.max(1, Number(r.games))) * 100);
-    let verdict = 'Données insuffisantes';
-    if (r.games >= 5 && winrate >= 60) verdict = 'Volume élevé, WR positif';
-    else if (r.games >= 5 && winrate <= 40) verdict = 'Volume élevé, WR faible';
-    else if (r.games >= 3) verdict = 'Situationnel';
-
-    const existing = await sql`
-      select *
-      from champion_pool
-      where team_id = ${teamId}
-        and player_id is not distinct from ${r.player_id}
-        and champion = ${r.champion}
-      limit 1
-    `;
-
-    if (existing[0]) {
-      if (['manual', 'riot_manual'].includes(String(existing[0].source || ''))) {
-        continue;
-      }
-      await sql`
-        update champion_pool
-        set player_name = ${r.player_name},
-            games = ${r.games},
-            wins = ${r.wins},
-            losses = ${r.losses},
-            winrate = ${winrate},
-            kda = ${Number(r.kda || 0).toFixed(2)},
-            cs_per_min = ${Number(r.cs_per_min || 0).toFixed(1)},
-            impact_grade = '—',
-            verdict = ${verdict},
-            status = 'work',
-            notes = notes,
-            source = 'riot',
-            updated_at = now()
-        where id = ${existing[0].id}
-      `;
-    } else {
-      await sql`
-        insert into champion_pool (
-          team_id, player_id, player_name, champion, games, wins, losses,
-          winrate, kda, cs_per_min, impact_grade, verdict, role, status, source, updated_at
-        )
-        values (
-          ${teamId}, ${r.player_id}, ${r.player_name}, ${r.champion}, ${r.games}, ${r.wins}, ${r.losses},
-          ${winrate}, ${Number(r.kda || 0).toFixed(2)}, ${Number(r.cs_per_min || 0).toFixed(1)},
-          '—', ${verdict}, ${r.role}, 'work', 'riot', now()
-        )
-      `;
-    }
-  }
+  await sql`
+    with stats as (
+      select
+        p.player_id as player_id,
+        coalesce(pl.name, p.summoner_name, 'Joueur') as player_name,
+        pl.role as role,
+        p.champion,
+        count(*)::int as games,
+        sum(case when m.result = 'Victoire' then 1 else 0 end)::int as wins,
+        sum(case when m.result = 'Défaite' then 1 else 0 end)::int as losses,
+        avg((p.kills + p.assists)::numeric / greatest(1, p.deaths)) as kda,
+        avg(p.cs_per_min) as cs_per_min
+      from match_participants p
+      join matches m on m.id = p.match_id
+      left join players pl on pl.id = p.player_id
+      where m.team_id = ${teamId}
+        and p.team_key = 'ALLY'
+        and p.champion is not null
+        and p.champion <> ''
+      group by p.player_id, pl.name, pl.role, p.summoner_name, p.champion
+    ),
+    prepared as (
+      select
+        ${teamId}::uuid as team_id,
+        player_id,
+        player_name,
+        champion,
+        games,
+        wins,
+        losses,
+        round((wins::numeric / greatest(1, games)) * 100) as winrate,
+        round(coalesce(kda, 0), 2) as kda,
+        round(coalesce(cs_per_min, 0), 1) as cs_per_min,
+        '—'::text as impact_grade,
+        case
+          when games >= 5 and round((wins::numeric / greatest(1, games)) * 100) >= 60 then 'Volume élevé, WR positif'
+          when games >= 5 and round((wins::numeric / greatest(1, games)) * 100) <= 40 then 'Volume élevé, WR faible'
+          when games >= 3 then 'Situationnel'
+          else 'Données insuffisantes'
+        end as verdict,
+        role,
+        'work'::text as status,
+        'riot'::text as source
+      from stats
+    )
+    insert into champion_pool (
+      team_id, player_id, player_name, champion, games, wins, losses,
+      winrate, kda, cs_per_min, impact_grade, verdict, role, status, source, updated_at
+    )
+    select
+      team_id, player_id, player_name, champion, games, wins, losses,
+      winrate, kda, cs_per_min, impact_grade, verdict, role, status, source, now()
+    from prepared
+    where not exists (
+      select 1
+      from champion_pool existing
+      where existing.team_id = prepared.team_id
+        and existing.player_id is not distinct from prepared.player_id
+        and existing.champion = prepared.champion
+        and coalesce(existing.source, 'riot') in ('manual', 'riot_manual')
+    )
+  `;
 }
 
 async function rebuildImprovements(teamId) {
@@ -510,20 +507,40 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   await archiveRawMatch({ teamId: team.id, matchId: savedMatch.id, gameId, match, source: (match as any)?.metadata?.source || 'import' });
   await sql`delete from match_participants where match_id = ${savedMatch.id}`;
 
-  for (const p of participants) {
-    await sql`
-      insert into match_participants (
-        match_id, player_id, team_key, summoner_name, riot_id, champion, role,
-        kills, deaths, assists, cs, gold, damage, damage_to_turrets, vision, kp, kda,
-        cs_per_min, gold_per_min, kill_participation, grade, raw
-      )
-      values (
-        ${savedMatch.id}, ${p.player_id}, ${p.team_key}, ${p.summoner_name}, ${p.riot_id}, ${p.champion}, ${p.role},
-        ${p.kills}, ${p.deaths}, ${p.assists}, ${p.cs}, ${p.gold}, ${p.damage}, ${p.damage_to_turrets}, ${p.vision}, ${p.kp}, ${p.kda},
-        ${p.cs_per_min}, ${p.gold_per_min}, ${p.kill_participation}, ${p.grade}, ${JSON.stringify(p.raw)}::jsonb
-      )
-    `;
-  }
+  await sql`
+    insert into match_participants (
+      match_id, player_id, team_key, summoner_name, riot_id, champion, role,
+      kills, deaths, assists, cs, gold, damage, damage_to_turrets, vision, kp, kda,
+      cs_per_min, gold_per_min, kill_participation, grade, raw
+    )
+    select
+      ${savedMatch.id}, p.player_id, p.team_key, p.summoner_name, p.riot_id, p.champion, p.role,
+      p.kills, p.deaths, p.assists, p.cs, p.gold, p.damage, p.damage_to_turrets, p.vision, p.kp, p.kda,
+      p.cs_per_min, p.gold_per_min, p.kill_participation, p.grade, p.raw
+    from jsonb_to_recordset(${JSON.stringify(participants)}::jsonb) as p(
+      player_id uuid,
+      team_key text,
+      summoner_name text,
+      riot_id text,
+      champion text,
+      role text,
+      kills integer,
+      deaths integer,
+      assists integer,
+      cs integer,
+      gold integer,
+      damage integer,
+      damage_to_turrets integer,
+      vision integer,
+      kp numeric,
+      kda text,
+      cs_per_min numeric,
+      gold_per_min numeric,
+      kill_participation text,
+      grade text,
+      raw jsonb
+    )
+  `;
 
   await rebuildChampionPool(team.id);
   await rebuildImprovements(team.id);
