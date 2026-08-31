@@ -24,6 +24,7 @@ import {
   LogOut,
   Mail,
   Menu,
+  MessageCircleQuestion,
   Pencil,
   Plus,
   RefreshCw,
@@ -78,6 +79,7 @@ import {
   readRoute,
 } from "./app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "./components/brand/BrandAssets.jsx";
+import AssistantPanel from "./components/assistant/AssistantPanel.jsx";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Badge, Button, EmptyState, PageHeader, PremiumToggle, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput, ToastStack } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalLinks, LegalPage, NotFoundPage, ResetPasswordPage } from "./pages/public/PublicPages.jsx";
@@ -10693,6 +10695,33 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
   );
 }
 
+function assistantEntityForRoute(route, data, selectedTeamId) {
+  const params = new URLSearchParams(route?.search || "");
+  const teamMatches = (data.matches || []).filter((item) => String(item.team_id || "") === String(selectedTeamId || ""));
+  const teamReports = (data.reports || []).filter((item) => String(item.team_id || "") === String(selectedTeamId || ""));
+  const teamPlayers = (data.players || []).filter((item) => String(item.team_id || "") === String(selectedTeamId || ""));
+  const matchId = params.get("match");
+  const reportId = params.get("report");
+  const playerId = params.get("player");
+  const candidates = route?.path === "/rapports"
+    ? [
+        { type: "report", id: reportId, items: teamReports, label: (item) => item.title || "Review sélectionnée" },
+        { type: "match", id: matchId, items: teamMatches, label: matchDisplayName },
+        { type: "player", id: playerId, items: teamPlayers, label: (item) => item.name || "Profil sélectionné" },
+      ]
+    : [
+        { type: "match", id: matchId, items: teamMatches, label: matchDisplayName },
+        { type: "player", id: playerId, items: teamPlayers, label: (item) => item.name || "Profil sélectionné" },
+        { type: "report", id: reportId, items: teamReports, label: (item) => item.title || "Review sélectionnée" },
+      ];
+  for (const candidate of candidates) {
+    if (!candidate.id) continue;
+    const item = candidate.items.find((entry) => String(entry.id || "") === String(candidate.id));
+    if (item) return { type: candidate.type, id: String(item.id), label: String(candidate.label(item) || "").slice(0, 120) };
+  }
+  return null;
+}
+
 function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
@@ -10704,6 +10733,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const [bootstrapped, setBootstrapped] = useState(false);
   const [bootstrapReady, setBootstrapReady] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
     try { return window.localStorage.getItem("nxt5_beginner_compass_hidden") === "1"; }
     catch { return false; }
@@ -10758,6 +10788,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
   const currentMember = currentTeam ?(data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
+  const assistantSelectedEntity = assistantEntityForRoute(route, data, currentTeam?.id || selectedTeamId);
 
   const page = useMemo(() => {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
@@ -10777,7 +10808,29 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
   const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
-  if (!data.teams.length) return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8"><div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" /><div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div></div><Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button></div><ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} /><Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} /></main><LegalLinks navigate={navigate} />{!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}{user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}</div>;
+  if (!data.teams.length) return <>
+    <div className="relative min-h-screen text-white">
+      <AmbientBackground />
+      <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
+            <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" icon={MessageCircleQuestion} onClick={() => setAssistantOpen(true)} className="px-3 sm:px-4"><span className="hidden sm:inline">Assistant</span></Button>
+            <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
+          </div>
+        </div>
+        <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
+        <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />
+      </main>
+      <LegalLinks navigate={navigate} />
+      {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
+      {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
+    </div>
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={null} selectedEntity={null} navigate={navigate} />
+  </>;
   return (
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
@@ -10793,6 +10846,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         linkedPlayer={linkedPlayer}
         onLogout={logout}
         roleLabel={roleLabel}
+        assistantOpen={assistantOpen}
+        onAssistantOpen={() => setAssistantOpen(true)}
       />
       <div
         className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ? "is-sidebar-collapsed" : "is-sidebar-expanded")}
@@ -10818,6 +10873,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         </main>
         <LegalLinks navigate={navigate} />
       </div>
+      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId} selectedEntity={assistantSelectedEntity} navigate={navigate} />
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}
     </div>
