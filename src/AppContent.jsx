@@ -2120,241 +2120,234 @@ function InviteCodesPanel({ inviteCodes = [], nowTick }) {
 
 function GuidePage({ onOpenAssistant }) {
   const [guideTab, setGuideTab] = useState("guide");
-  const newFeatureBlocks = [
-    [Upload, "Import plus sûr", "Upload avec progression, assignation side/lane/profil, rôles lisibles, catégories de contexte et corrections possibles depuis l’historique."],
-    [BarChart3, "Stats game et groupe", "Lecture instantanée, sélection visuelle, groupes de games, exports PNG game/groupe et comparaisons par side sans inverser les équipes."],
-    [Activity, "Cockpit stratégique", "Tendances compactes, identité d’équipe, patterns automatiques, écarts CS10/CS20, timings objectifs et export stratégique."],
-    [Crown, "Profil et Pool", "Mon Profil regroupe synthèse, champions/builds, pool avec tiers de maîtrise, historique, coaching et export PNG individuel."],
-    [FileText, "Review room", "Bibliothèque orientée lecture, reviews liées aux games/groupes, commandes de stats et fenêtre dédiée pour créer ou éditer."],
-    [CalendarDays, "Planning équipe", "Disponibilités plus denses, semaines courante/suivante, marqueurs Scrim/Match/Review, notes et disponibilités staff."],
+  const [guideSection, setGuideSection] = useState("start");
+
+  const guideSections = [
+    {
+      id: "start",
+      label: "Premiers pas",
+      icon: Users,
+      title: "Mettre l’équipe en place",
+      intro: "Commence ici avant le premier import. Un roster bien lié évite les profils vides et les compteurs de games incohérents.",
+      assistantQuestion: "Comment bien préparer mon équipe avant le premier import ?",
+      actions: [
+        { label: "Voir l’équipe", path: "/equipes", icon: Users },
+        { label: "Gérer le roster", path: "/gestion-equipe", icon: Settings },
+      ],
+      steps: [
+        ["Créer ou rejoindre l’équipe", "Crée la structure ou utilise le code temporaire transmis par le capitaine."],
+        ["Classer les joueurs", "Place les titulaires dans Main Team, les remplaçants dans Subs et garde le staff dans sa section."],
+        ["Lier les comptes", "Associe chaque compte NXT5 au bon profil et vérifie le Riot ID affiché."],
+        ["Régler les accès", "Attribue le rôle adapté à chacun avant de partager une invitation."],
+      ],
+    },
+    {
+      id: "games",
+      label: "Games",
+      icon: Upload,
+      title: "Importer une game proprement",
+      intro: "L’import repose sur le JSON de NXT5 Importer et sur une assignation correcte des joueurs.",
+      assistantQuestion: "Aide-moi à importer et assigner correctement une game.",
+      actions: [{ label: "Ouvrir Games", path: "/integration", icon: Swords }],
+      steps: [
+        ["Générer le JSON", "Utilise la dernière version de NXT5 Importer sur le PC où la game apparaît dans le client League of Legends."],
+        ["Charger le fichier", "Dépose le JSON dans Games et attends la fin de l’analyse serveur."],
+        ["Nommer et classer", "Donne un nom reconnaissable et choisis le contexte utilisé par les filtres."],
+        ["Confirmer les assignations", "Vérifie le side, les cinq lanes, les profils alliés et les champions adverses."],
+        ["Corriger si nécessaire", "Depuis l’historique, modifie les lanes ou profils erronés ; les autres pages se recalculent ensuite."],
+      ],
+    },
+    {
+      id: "analysis",
+      label: "Analyse",
+      icon: BarChart3,
+      title: "Lire une game ou un bloc",
+      intro: "Pars des chiffres, puis replace-les dans le déroulé de la partie avant d’en tirer une conclusion.",
+      assistantQuestion: "Comment lire les statistiques d’une game sans sortir les chiffres de leur contexte ?",
+      actions: [
+        { label: "Voir les statistiques", path: "/statistiques", icon: BarChart3 },
+        { label: "Voir les tendances", path: "/tendances", icon: Activity },
+      ],
+      steps: [
+        ["Choisir le bon contexte", "Recherche une game précise ou sélectionne le groupe correspondant au bloc joué."],
+        ["Comparer les rôles", "Lis KDA, KP, farm, or et vision, puis les écarts à 10 et 20 minutes face au même poste."],
+        ["Replacer dans le temps", "Utilise les objectifs et la timeline pour comprendre quand l’avantage s’est créé ou perdu."],
+        ["Contrôler les répétitions", "Dans Tendances, filtre le même contexte et ouvre les games sources avant de conclure."],
+      ],
+    },
+    {
+      id: "prepare",
+      label: "Préparation",
+      icon: Crown,
+      title: "Préparer le prochain bloc",
+      intro: "Pool, drafts et planning servent à transformer la lecture du bloc précédent en préparation concrète.",
+      assistantQuestion: "Par quoi commencer pour préparer le prochain bloc de mon équipe ?",
+      actions: [
+        { label: "Champion Pool", path: "/champion-pool", icon: Crown },
+        { label: "Compositions", path: "/compositions-types", icon: Sparkles },
+        { label: "Planning", path: "/planning", icon: CalendarDays },
+      ],
+      steps: [
+        ["Mettre les pools à jour", "Classe les champions par tier et distingue confiance, situationnel, validation et développement."],
+        ["Préparer les drafts", "Construis Nos drafts et Leurs drafts à partir des picks réellement disponibles par rôle."],
+        ["Fixer une intention", "Note la condition de jeu et les réponses attendues, sans multiplier les scénarios."],
+        ["Confirmer les présences", "Vérifie les disponibilités et place les sessions Scrim, Match ou Review dans le planning."],
+      ],
+    },
+    {
+      id: "review",
+      label: "Review",
+      icon: FileText,
+      title: "Passer des données à la décision",
+      intro: "Une review utile reste courte et conserve toujours un lien vers les games qui justifient la décision.",
+      assistantQuestion: "Comment écrire une review courte et exploitable par le staff ?",
+      actions: [{ label: "Ouvrir Review", path: "/rapports", icon: FileText }],
+      steps: [
+        ["Partir d’une source", "Crée la review depuis une game ou un groupe afin de garder les données accessibles."],
+        ["Écrire trois décisions", "Indique ce qu’on garde, ce qu’on corrige et l’action attendue lors de la prochaine game."],
+        ["Rester vérifiable", "Évite les constats vagues et rattache chaque point important à une situation visible."],
+        ["Revenir après le bloc", "Rouvre la review pour vérifier si l’action a été appliquée et ajuste seulement ce qui doit l’être."],
+      ],
+    },
+    {
+      id: "help",
+      label: "Dépannage",
+      icon: AlertTriangle,
+      title: "Résoudre les problèmes courants",
+      intro: "Contrôle d’abord la source, l’assignation et les droits. Ce sont les trois causes les plus fréquentes.",
+      assistantQuestion: "Aide-moi à résoudre un problème sur NXT5.",
+      actions: [
+        { label: "Ouvrir les paramètres", path: "/parametres", icon: Settings },
+        { label: "Demander à l’assistant", assistant: true, icon: MessageCircleQuestion },
+      ],
+      steps: [
+        ["Import refusé", "Vérifie la version de l’importer, la région du Game ID et la présence de la partie dans l’historique du client."],
+        ["Timeline incomplète", "Réexporte la game. Si Riot ne fournit pas les événements, NXT5 conserve les statistiques finales sans inventer les timings."],
+        ["Profil ou compteur incorrect", "Contrôle le compte lié, le Riot ID, les doublons et l’assignation du participant dans les imports concernés."],
+        ["Action bloquée", "Vérifie ton rôle dans l’équipe ; certaines modifications restent réservées au staff autorisé."],
+        ["Chargement interrompu", "Recharge la page puis utilise Réessayer. Conserve le message affiché si le problème revient."],
+      ],
+    },
   ];
-  const starterSteps = [
-    ["Créer ou rejoindre une team", "Au premier lancement, crée ta team ou colle le code temporaire donné par le capitaine. Sans team active, NXT5 garde les modules verrouillés."],
-    ["Vérifier le compte", "Confirme ton e-mail depuis le lien reçu. Les notifications et actions sensibles reposent sur un compte vérifié."],
-    ["Construire le roster", "Dans Gestion équipe, ajoute les joueurs et le staff. Les joueurs utilisent TOP, JGL, MID, ADC et SUP ; le staff reste hors draft, OP.GG et imports."],
-    ["Relier comptes et profils", "Associe chaque compte NXT5 au bon profil joueur. C’est ce lien qui alimente Mon Profil, Planning, Champion Pool et permissions personnelles."],
-    ["Gérer les accès", "Capitaine, coach et manager peuvent gérer la structure. Les joueurs gardent leurs données personnelles et leur planning, avec édition encadrée selon leur rôle."],
-  ];
-  const importSteps = [
-    ["Télécharger NXT5 Importer", "Dans Intégration, télécharge l’importer Windows ou Mac sur le PC où le client League of Legends possède la game dans son historique."],
-    ["Générer le JSON", "Dans l’importer, colle le Game ID du client LoL, choisis la région, puis génère le fichier. Les timelines, builds, summoners, wards et objectifs sont conservés si le client les fournit."],
-    ["Importer dans NXT5", "Dans Intégration, clique sur Importer un JSON. La barre de progression indique l’upload puis l’analyse serveur."],
-    ["Nommer et catégoriser", "Donne un nom clair à la game et coche Scrim, Tournoi, BO, test draft ou toute catégorie custom. Ces tags servent ensuite aux filtres Stats, Profil, Tendances et Review."],
-    ["Assigner proprement", "Choisis ton side, puis vérifie champions, lanes, profils alliés et champions adverses. Les cartes de rôles sont séparées par poste pour éviter les confusions ADC/SUP."],
-    ["Corriger après coup", "Dans l’historique des imports, renomme, supprime ou corrige lanes/profils. Les pages Statistiques, Mon Profil, Tendances et Review se recalculent ensuite."],
-  ];
-  const analysisSteps = [
-    ["Lecture instantanée", "Sélectionne une game importée pour lire les deux sides, les 10 joueurs, champions, KDA, KP, dégâts, gold, vision, summoners, builds, objectifs et écarts par poste."],
-    ["Sides conservés", "Dans les vues de game, les équipes restent du côté réel Blue/Red. Les avantages sont signalés par side pour éviter de croire que NXT5 est toujours à gauche."],
-    ["Déroulé coach", "Quand la timeline est disponible, NXT5 extrait objectifs, fights, tours, phases early/mid/late, écarts d’or à 10/15/20 et contexte des morts."],
-    ["Objectifs neutres", "Dragons par élément, grubs, Herald, Nashor et tours sont affichés par side. La frise montre l’ordre, le timing et le side qui sécurise chaque objectif."],
-    ["Groupes de games", "Crée un groupe pour analyser un scrim complet. La sélection est surlignée, le groupe peut être rouvert, et la review de groupe est générée avec les games liées."],
-    ["Exports PNG", "Utilise Exporter la game ou Exporter le groupe pour produire un visuel NXT5 avec picks alliés, champions adverses, résultat, patch, side, durée, objectifs et stats clés."],
-    ["Cockpit Tendances", "Lis l’identité de l’équipe, les patterns ADC centrique, JGL+MID, frontline, early objectifs, scaling, les écarts CS10/CS20 et les priorités draft."],
-    ["Mon Profil", "Chaque joueur a une synthèse coach, un onglet Champions qui fusionne stats et builds, un onglet Pool, un historique, des notes coaching et un export PNG."],
-    ["Pool par tiers", "L’onglet Pool détaille les champions par tiers de maîtrise, confort, priorité, pocket, test ou à travailler. Les pictos restent hors image pour garder les champions lisibles."],
-    ["Champion Pool global", "La page Champion Pool reste la vue équipe : elle aide à organiser les picks par joueur et à préparer les Compos Types."],
-    ["Compos Types", "Glisse les champions issus des pools dans les rôles, filtre Blue/Red side, duplique une compo et lis les tags, catégories, résumé et counters probables."],
-    ["Review", "La Review est maintenant orientée lecture : bibliothèque, recherche, filtres par groupe, lien direct vers Stats, preview live et commandes /KDA, /DAMAGE, /VISION, /GOLD, /KP."],
-    ["Planning", "Chaque profil renseigne ses dispos. Le staff peut annoter Scrim, Match ou Review, basculer semaine courante/suivante et suivre les disponibilités sans vue trop lourde."],
-  ];
-  const troubleshooting = [
-    ["Images manquantes", "Recharge la page après un deploy. Les champions, items, summoners et objectifs utilisent DDragon/CommunityDragon avec fallbacks, mais le cache navigateur peut garder une vieille version."],
-    ["Items ou summoners absents", "Le JSON doit venir d’un importer récent. Si l’ancien fichier ne contient pas ces données, NXT5 masque ou vide les zones concernées au lieu d’inventer."],
-    ["Import introuvable", "Vérifie la région du Game ID, attends quelques minutes après la fin de la game, puis réessaie sur le PC où le client LoL possède la game dans son historique."],
-    ["Timeline limitée", "Certaines lectures coach disparaissent si Riot ne renvoie pas la timeline complète. La fiche reste exploitable avec les stats finales, mais les timings seront moins riches."],
-    ["Mauvais joueur au mauvais poste", "Va dans Intégration, ouvre la game importée et corrige lanes/profils. Les pages Stats, Mon Profil, Tendances et Review se mettent ensuite à jour."],
-    ["Groupe incomplet", "Vérifie que toutes les games du bloc sont importées, catégorisées et cochées dans le groupe. Une review de groupe reprend uniquement les IDs liés au groupe."],
-    ["Permissions bloquées", "Vérifie le rôle dans Gestion équipe. Capitaine, coach et manager ont des droits étendus, mais certaines actions personnelles restent réservées au profil concerné."],
-    ["E-mail non vérifié", "Utilise Paramètres ou l’écran de vérification pour renvoyer le lien. Les notifications restent bloquées tant que l’adresse n’est pas confirmée."],
-  ];
-  const quickLinks = [
-    ["Intégration", "/integration", Download, "Importer JSON, catégoriser, corriger lanes, profils et champions adverses."],
-    ["Statistiques", "/statistiques", BarChart3, "Analyser une game, un groupe, le déroulé coach et les exports PNG."],
-    ["Tendances", "/tendances", Activity, "Lire cockpit stratégique, patterns, timings, écarts et identité d’équipe."],
-    ["Mon Profil", "/mon-profil", Activity, "Synthèse, Champions+Builds, Pool, Historique, Coaching et export PNG."],
-    ["Champion Pool", "/champion-pool", Crown, "Organiser les picks par joueur et préparer les tiers de maîtrise."],
-    ["Compos Types", "/compositions-types", Sparkles, "Créer des compos depuis les pools et lire les counters."],
-    ["Planning", "/planning", CalendarDays, "Dispos, semaines, événements Scrim/Match/Review et notes."],
-    ["Review", "/rapports", FileText, "Lire, chercher, lier des games/groupes et écrire les décisions staff."],
-    ["Gestion", "/gestion-equipe", Settings, "Roster, invitations temporaires, liaisons, permissions et staff."],
-    ["Paramètres", "/parametres", ShieldCheck, "Compte, e-mail vérifié, session et sécurité personnelle."],
-  ];
-  const routineItems = [
-    "Avant scrim : vérifier roster, planning, champion pools, compos types, catégories et objectifs de test.",
-    "Après chaque game : générer le JSON, importer, nommer, catégoriser, confirmer side, lanes, profils alliés et champions adverses.",
-    "Après le bloc : créer un groupe, ouvrir les stats de groupe, exporter le PNG si besoin, puis générer ou écrire la review liée.",
-    "Avant la prochaine session : consulter Tendances, mettre à jour Pool, Compos Types, bilan coaching et corrections de profil.",
-  ];
-  const expressSteps = [
-    [Users, "1. Équipe", "Crée la team ou rejoins-la avec un code."],
-    [Upload, "2. Games", "Importe une game ou un bloc de scrim."],
-    [Activity, "3. Tendances", "Lis comment l'équipe fonctionne."],
-    [FileText, "4. Review", "Transforme la lecture en décisions simples."],
-  ];
+
   const assistantExamples = [
     "Comment corriger un mauvais profil dans une game ?",
     "Où comparer les performances par rôle ?",
     "Pourquoi mon import peut-il échouer ?",
     "Comment créer une review depuis cette game ?",
   ];
-  const assistantPrinciples = [
-    [Activity, "Contexte de page", "Il adapte ses réponses à la page ouverte pour éviter les explications génériques."],
-    [ArrowRight, "Chemins directs", "Quand une action existe, il propose un bouton vers la bonne page NXT5."],
-    [ShieldCheck, "Lecture seule", "Il explique et oriente, mais ne modifie, ne supprime et n’importe aucune donnée."],
-    [RefreshCw, "Aide toujours disponible", "Si le service IA ne répond pas, le guide local prend automatiquement le relais."],
+
+  const assistantUses = [
+    [Search, "Trouver une fonction", "Indique ce que tu veux faire ; il te renvoie vers la page concernée."],
+    [BookOpen, "Comprendre un écran", "Il explique les contrôles et l’ordre des étapes de la page ouverte."],
+    [AlertTriangle, "Débloquer une action", "Il reprend les vérifications utiles quand un import, un profil ou un accès pose problème."],
+    [ArrowRight, "Ouvrir la destination", "Ses boutons restent limités aux pages internes de NXT5."],
   ];
 
-  const StepList = ({ items }) => <div className="grid gap-3">{items.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-cyan-300/10 text-sm font-black text-cyan-100">{index + 1}</span><div><h4 className="text-base font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div></div>)}</div>;
+  const currentSection = guideSections.find((section) => section.id === guideSection) || guideSections[0];
+  const currentSectionIndex = guideSections.findIndex((section) => section.id === currentSection.id);
+  const CurrentSectionIcon = currentSection.icon;
+
+  function runGuideAction(action) {
+    if (action.assistant) {
+      onOpenAssistant?.(currentSection.assistantQuestion);
+      return;
+    }
+    openAppPath(action.path);
+  }
 
   return <div>
-    <PageHeader eyebrow="Guide NXT5" title={guideTab === "assistant" ? "Assistant NXT5" : "Guide complet d’utilisation"} subtitle={guideTab === "assistant" ? "Une aide contextuelle pour trouver une fonction, comprendre une page ou résoudre un blocage sans quitter ton travail." : "Le parcours à jour pour configurer ta team, importer les games, lire les nouveautés, créer des groupes, suivre les profils et produire des reviews propres."}>
-      {guideTab === "assistant" ? <Button icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")}>Ouvrir l’assistant</Button> : <>
-        <Button icon={Swords} onClick={() => openAppPath("/integration")}>Importer une game</Button>
-        <Button variant="ghost" icon={Settings} onClick={() => openAppPath("/gestion-equipe")}>Gestion équipe</Button>
-      </>}
+    <PageHeader
+      eyebrow="Guide"
+      title={guideTab === "assistant" ? "Assistant NXT5" : "Guide d’utilisation"}
+      subtitle={guideTab === "assistant" ? "Pour retrouver une page, comprendre un écran ou débloquer une action." : "Choisis une tâche dans le sommaire et suis les étapes utiles, sans parcourir toute la documentation."}
+    >
+      {guideTab === "assistant"
+        ? <Button icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")}>Ouvrir l’assistant</Button>
+        : <Button icon={currentSection.actions[0].icon} onClick={() => runGuideAction(currentSection.actions[0])}>{currentSection.actions[0].label}</Button>}
     </PageHeader>
 
     <div role="tablist" aria-label="Sections du guide" className="mb-5 flex gap-6 border-b border-white/12 px-1">
-      <button id="guide-tab-main" type="button" role="tab" aria-selected={guideTab === "guide"} aria-controls="guide-panel-main" onClick={() => setGuideTab("guide")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "guide" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><BookOpen className="h-4 w-4" />Guide complet</button>
-      <button id="guide-tab-assistant" type="button" role="tab" aria-selected={guideTab === "assistant"} aria-controls="guide-panel-assistant" onClick={() => setGuideTab("assistant")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "assistant" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><MessageCircleQuestion className="h-4 w-4" />Assistant NXT5</button>
+      <button id="guide-tab-main" type="button" role="tab" aria-selected={guideTab === "guide"} aria-controls="guide-panel-main" onClick={() => setGuideTab("guide")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "guide" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><BookOpen className="h-4 w-4" />Guide</button>
+      <button id="guide-tab-assistant" type="button" role="tab" aria-selected={guideTab === "assistant"} aria-controls="guide-panel-assistant" onClick={() => setGuideTab("assistant")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "assistant" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><MessageCircleQuestion className="h-4 w-4" />Assistant</button>
     </div>
 
-    {guideTab === "guide" ? <div id="guide-panel-main" role="tabpanel" aria-labelledby="guide-tab-main">
-
-    <Surface glow className="mb-5 p-5 md:p-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Badge tone="cyan">Guide express</Badge>
-          <h3 className="mt-3 text-2xl font-black text-white">Si tu découvres NXT5, commence ici</h3>
-          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Le site est puissant, mais tu n'as pas besoin de tout maîtriser au départ. Ce parcours suffit pour rendre la plateforme utile.</p>
-        </div>
-        <Button type="button" icon={Activity} onClick={() => openAppPath("/tendances")}>Voir Tendances</Button>
-      </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-4">
-        {expressSteps.map(([Icon, title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-300/10 text-cyan-100"><Icon className="h-5 w-5" /></div>
-          <h4 className="mt-3 text-sm font-black text-white">{title}</h4>
-          <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{text}</p>
-        </div>)}
-      </div>
-    </Surface>
-
-    <Surface glow className="mb-5 p-5 md:p-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <Badge tone="cyan">Navigation rapide</Badge>
-          <h3 className="mt-3 text-2xl font-black text-white">Commence par l’action dont tu as besoin</h3>
-          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Le guide suit le workflow complet, mais ces raccourcis ouvrent directement les pages importantes.</p>
-        </div>
-      </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">{quickLinks.map(([title, path, Icon, text]) => <button key={title} type="button" onClick={() => openAppPath(path)} className="group rounded-2xl border border-white/10 bg-black/24 p-4 text-left transition hover:-translate-y-0.5 hover:border-cyan-300/30 hover:bg-cyan-400/[0.07]">
-        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></span><h4 className="font-black text-white">{title}</h4></div>
-        <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p>
-      </button>)}</div>
-    </Surface>
-
-    <Surface glow className="mb-5 p-5 md:p-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Badge tone="green">Nouveautés clés</Badge>
-          <h3 className="mt-3 text-2xl font-black text-white">Ce que le site sait faire maintenant</h3>
-          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Ces blocs résument les dernières évolutions produit : lecture plus claire, exports plus complets, profils mieux séparés et planning moins lourd.</p>
-        </div>
-        <Badge tone="cyan">Guide mis à jour</Badge>
-      </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-        {newFeatureBlocks.map(([Icon, title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4">
-          <div className="flex items-center gap-3"><span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", tone(index % 3 === 0 ? "cyan" : index % 3 === 1 ? "purple" : "green"))}><Icon className="h-5 w-5" /></span><h4 className="font-black text-white">{title}</h4></div>
-          <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p>
-        </div>)}
-      </div>
-    </Surface>
-
-    <div className="grid gap-5 xl:grid-cols-[.9fr_1.1fr]">
-      <Surface glow className="p-5 md:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <Badge tone="cyan">Démarrage</Badge>
-            <h3 className="mt-3 text-2xl font-black text-white">1. Mettre la structure en place</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Cette étape évite 90% des erreurs d’import, parce que les games doivent pouvoir être reliées aux bons profils.</p>
+    {guideTab === "guide" ? <div id="guide-panel-main" role="tabpanel" aria-labelledby="guide-tab-main" className="overflow-hidden border-y border-white/12 bg-black/10">
+      <div className="grid xl:grid-cols-[16rem_minmax(0,1fr)]">
+        <nav aria-label="Sommaire du guide" className="border-b border-white/10 bg-[#050916]/70 xl:border-b-0 xl:border-r">
+          <p className="hidden px-5 pb-2 pt-6 text-[0.65rem] font-black uppercase tracking-[0.18em] text-slate-500 xl:block">Sommaire</p>
+          <div className="flex overflow-x-auto xl:block xl:pb-5">
+            {guideSections.map((section, index) => {
+              const Icon = section.icon;
+              const selected = currentSection.id === section.id;
+              return <button key={section.id} type="button" aria-current={selected ? "page" : undefined} onClick={() => setGuideSection(section.id)} className={cx("group flex min-h-14 shrink-0 items-center gap-3 border-b-2 px-4 text-left text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 xl:w-full xl:border-b-0 xl:border-l-2 xl:py-3", selected ? "border-cyan-200 bg-cyan-300/[0.065] text-white" : "border-transparent text-slate-400 hover:bg-white/[0.035] hover:text-white")}>
+                <span className={cx("text-[0.62rem] font-black tabular-nums", selected ? "text-cyan-100" : "text-slate-600")}>{String(index + 1).padStart(2, "0")}</span>
+                <Icon className={cx("h-4 w-4 shrink-0", selected ? "text-cyan-100" : "text-slate-500 group-hover:text-slate-300")} />
+                <span className="whitespace-nowrap">{section.label}</span>
+              </button>;
+            })}
           </div>
-          <Users className="h-8 w-8 shrink-0 text-cyan-100" />
-        </div>
-        <div className="mt-5"><StepList items={starterSteps} /></div>
-      </Surface>
+        </nav>
 
-      <Surface glow className="p-5 md:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <Badge tone="purple">Import</Badge>
-            <h3 className="mt-3 text-2xl font-black text-white">2. Transformer une game LoL en données</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Le fichier local garde les informations utiles de la partie et permet à NXT5 de construire les stats de manière fiable.</p>
-          </div>
-          <Download className="h-8 w-8 shrink-0 text-fuchsia-100" />
-        </div>
-        <div className="mt-5"><StepList items={importSteps} /></div>
-      </Surface>
-    </div>
+        <section className="min-w-0 px-4 py-6 sm:px-6 md:py-8 xl:px-10 xl:py-10">
+          <div className="mx-auto max-w-5xl">
+            <div className="flex items-start gap-4">
+              <CurrentSectionIcon className="mt-1 h-6 w-6 shrink-0 text-cyan-100" />
+              <div>
+                <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100/60">Étape {String(currentSectionIndex + 1).padStart(2, "0")}</p>
+                <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">{currentSection.title}</h2>
+                <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{currentSection.intro}</p>
+              </div>
+            </div>
 
-    <Surface glow className="mt-5 p-5 md:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Badge tone="orange">Workflow</Badge>
-          <h3 className="mt-3 text-2xl font-black text-white">3. Exploiter les données sans remplacer le coach</h3>
-          <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-300">NXT5 donne les chiffres, les filtres et les chemins rapides. L’interprétation reste dans les mains du coach, du capitaine et des joueurs.</p>
-        </div>
-        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Ouvrir les stats</Button>
-      </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{analysisSteps.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><div className="flex items-center gap-2"><Badge tone={index < 5 ? "cyan" : index < 8 ? "purple" : "green"}>{String(index + 1).padStart(2, "0")}</Badge><h4 className="font-black text-white">{title}</h4></div><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div>
-    </Surface>
+            <ol className="mt-8 divide-y divide-white/10 border-y border-white/12">
+              {currentSection.steps.map(([title, text], index) => <li key={title} className="grid gap-3 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)] sm:py-5">
+                <span className="text-sm font-black tabular-nums text-cyan-100/70">{String(index + 1).padStart(2, "0")}</span>
+                <div><h3 className="font-black text-white">{title}</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>
+              </li>)}
+            </ol>
 
-    <div className="mt-5 grid gap-5 xl:grid-cols-[1.05fr_.95fr]">
-      <Surface className="p-5 md:p-6">
-        <Badge tone="green">Routine recommandée</Badge>
-        <div className="mt-4 grid gap-3">
-          {routineItems.map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/24 p-4"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-200" /><p className="text-sm font-semibold leading-6 text-slate-200">{item}</p></div>)}
-        </div>
-      </Surface>
-      <Surface className="p-5 md:p-6">
-        <Badge tone="red">Dépannage</Badge>
-        <div className="mt-4 space-y-3">{troubleshooting.map(([title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><h4 className="font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div>
-      </Surface>
-    </div>
-    </div> : <div id="guide-panel-assistant" role="tabpanel" aria-labelledby="guide-tab-assistant">
-      <Surface glow className="overflow-hidden p-0">
-        <div className="grid lg:grid-cols-[1.15fr_.85fr]">
-          <div className="p-5 md:p-7 lg:border-r lg:border-white/10">
-            <Badge tone="cyan">Aide contextuelle</Badge>
-            <h2 className="mt-4 max-w-2xl text-2xl font-black text-white md:text-3xl">Pose ta question là où le problème apparaît</h2>
-            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300">L’assistant connaît la page ouverte et s’appuie sur le guide NXT5. Il répond avec une marche à suivre courte et peut ouvrir directement la destination utile.</p>
-            <Button type="button" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")} className="mt-6">Démarrer une conversation</Button>
-          </div>
-          <div className="bg-[#070b18] p-5 md:p-7">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/65">Exemples de questions</p>
-            <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
-              {assistantExamples.map((example) => <button key={example} type="button" onClick={() => onOpenAssistant?.(example)} className="group flex w-full items-center justify-between gap-3 py-3 text-left text-sm font-bold leading-5 text-slate-200 transition hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{example}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></button>)}
+            <div className="mt-6 flex flex-wrap gap-2">
+              {currentSection.actions.map((action) => <Button key={action.label} type="button" variant={action.assistant ? "ghost" : "primary"} icon={action.icon} onClick={() => runGuideAction(action)}>{action.label}</Button>)}
+              {!currentSection.actions.some((action) => action.assistant) && <Button type="button" variant="ghost" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.(currentSection.assistantQuestion)}>Poser une question</Button>}
             </div>
           </div>
-        </div>
-      </Surface>
+        </section>
+      </div>
+    </div> : <div id="guide-panel-assistant" role="tabpanel" aria-labelledby="guide-tab-assistant" className="overflow-hidden border-y border-white/12 bg-black/10">
+      <div className="grid lg:grid-cols-[1.1fr_.9fr]">
+        <section className="p-5 md:p-8 lg:border-r lg:border-white/10 xl:p-10">
+          <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100/60">Assistant NXT5</p>
+          <h2 className="mt-3 max-w-2xl text-2xl font-black text-white md:text-3xl">Une question, une réponse courte</h2>
+          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Utilise-le quand tu ne trouves pas une fonction ou qu’une étape bloque. Il répond à partir du guide et peut ouvrir la page utile.</p>
+          <Button type="button" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")} className="mt-6">Démarrer une conversation</Button>
+        </section>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
-        <Surface className="p-5 md:p-6">
-          <div className="flex items-center gap-3"><MessageCircleQuestion className="h-6 w-6 text-cyan-100" /><h3 className="text-xl font-black text-white">Ce qu’il fait</h3></div>
-          <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
-            {assistantPrinciples.map(([Icon, title, text]) => <div key={title} className="grid gap-2 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]"><span className="flex h-9 w-9 items-center justify-center text-cyan-100"><Icon className="h-5 w-5" /></span><div><h4 className="font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div>)}
+        <section className="bg-[#050916]/70 p-5 md:p-8 xl:p-10">
+          <h3 className="text-sm font-black text-white">Questions courantes</h3>
+          <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
+            {assistantExamples.map((example) => <button key={example} type="button" onClick={() => onOpenAssistant?.(example)} className="group flex w-full items-center justify-between gap-3 py-3 text-left text-sm font-bold leading-5 text-slate-300 transition hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{example}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></button>)}
           </div>
-        </Surface>
-        <Surface className="p-5 md:p-6">
-          <div className="flex items-center gap-3"><ShieldCheck className="h-6 w-6 text-emerald-200" /><h3 className="text-xl font-black text-white">Données et limites</h3></div>
-          <div className="mt-4 space-y-4 text-sm font-semibold leading-6 text-slate-300">
-            <p>L’assistant ne reçoit automatiquement ni statistiques de match, ni contenu de review, ni identité du roster.</p>
-            <p>La conversation reste dans ton navigateur pendant la session. Le bouton corbeille permet de l’effacer immédiatement.</p>
-            <p>Pour analyser une performance ou décider d’un plan de jeu, utilise les données sources et le jugement du staff.</p>
+        </section>
+      </div>
+
+      <div className="grid border-t border-white/10 lg:grid-cols-2">
+        <section className="p-5 md:p-8 lg:border-r lg:border-white/10 xl:p-10">
+          <h3 className="text-xl font-black text-white">Pour quoi l’utiliser</h3>
+          <div className="mt-4 divide-y divide-white/10">
+            {assistantUses.map(([Icon, title, text]) => <div key={title} className="grid gap-3 py-4 sm:grid-cols-[2rem_minmax(0,1fr)]"><Icon className="mt-0.5 h-4 w-4 text-cyan-100" /><div><h4 className="font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div>)}
           </div>
-          <Button type="button" variant="ghost" icon={BookOpen} onClick={() => setGuideTab("guide")} className="mt-6">Revenir au guide complet</Button>
-        </Surface>
+        </section>
+
+        <section className="p-5 md:p-8 xl:p-10">
+          <h3 className="text-xl font-black text-white">Ce qu’il ne fait pas</h3>
+          <div className="mt-4 divide-y divide-white/10 border-y border-white/10 text-sm font-semibold leading-6 text-slate-300">
+            <p className="py-4">Il ne lit pas automatiquement les statistiques, les reviews ou l’identité du roster.</p>
+            <p className="py-4">Il ne modifie, ne supprime et n’importe aucune donnée.</p>
+            <p className="py-4">La conversation reste temporaire dans le navigateur et peut être effacée avec la corbeille.</p>
+            <p className="py-4">Les décisions de jeu restent à vérifier dans les sources et avec le staff.</p>
+          </div>
+        </section>
       </div>
     </div>}
   </div>;
