@@ -224,10 +224,10 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[90]">
-      <button type="button" aria-label="Fermer l'assistant" onClick={onClose} className="absolute inset-0 cursor-default bg-black/60 backdrop-blur-[2px] lg:bg-black/25" />
-      <aside ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="nxt5-assistant-title" className="absolute inset-y-0 right-0 flex h-[100dvh] w-full flex-col border-l border-cyan-200/24 bg-[#040817]/98 text-white shadow-[-24px_0_80px_rgba(0,0,0,.58)] sm:w-[min(32rem,100vw)]">
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-cyan-100/12 px-4 py-4 sm:px-5">
+    <div className="fixed inset-0 z-[90] isolate">
+      <button type="button" aria-label="Fermer l'assistant" onClick={onClose} className="absolute inset-0 cursor-default bg-black/70 backdrop-blur-[3px] lg:bg-black/55" />
+      <aside ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="nxt5-assistant-title" className="absolute inset-y-0 right-0 isolate flex h-[100dvh] w-full flex-col overflow-hidden border-l border-cyan-200/24 bg-[#030611] text-white shadow-[-24px_0_80px_rgba(0,0,0,.82)] ring-1 ring-white/10 sm:w-[min(32rem,100vw)]">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-cyan-100/12 bg-[#060a18] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
@@ -241,7 +241,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5" aria-live="polite" aria-busy={loading}>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#040817] px-4 py-5 sm:px-5" aria-live="polite" aria-busy={loading}>
           {!messages.length && !loading && (
             <div className="flex min-h-full flex-col justify-center py-6">
               <MessageCircleQuestion className="h-8 w-8 text-cyan-100" />
