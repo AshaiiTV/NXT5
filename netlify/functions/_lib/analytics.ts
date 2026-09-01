@@ -357,6 +357,14 @@ async function rebuildImprovements(teamId) {
   await sql`delete from improvements where team_id = ${teamId}`;
 }
 
+async function runImportSideEffect(label: string, task: () => Promise<unknown>) {
+  try {
+    await task();
+  } catch (err) {
+    console.error(`[match-import] ${label} failed after match persistence.`, err);
+  }
+}
+
 async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'import' }) {
   await sql`
     create table if not exists match_raw_archives (
@@ -542,14 +550,14 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
     )
   `;
 
-  await rebuildChampionPool(team.id);
-  await rebuildImprovements(team.id);
+  await runImportSideEffect('champion pool rebuild', () => rebuildChampionPool(team.id));
+  await runImportSideEffect('improvements rebuild', () => rebuildImprovements(team.id));
 
   const report = reportForMatch({ team, summary, participants });
-  await sql`
-    insert into reports (team_id, match_id, match_ids, created_by, title, content)
-    values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report})
-  `;
+  await runImportSideEffect('auto report creation', () => sql`
+      insert into reports (team_id, match_id, match_ids, created_by, title, content)
+      values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report})
+    `);
 
   return savedMatch;
 }

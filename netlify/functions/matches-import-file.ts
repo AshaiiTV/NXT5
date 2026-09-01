@@ -62,6 +62,14 @@ async function notifyMatchImport({ request, teamId, matchId, gameId }) {
   })));
 }
 
+async function runOptionalImportTask(label: string, task: () => Promise<unknown>) {
+  try {
+    await task();
+  } catch (err) {
+    console.error(`[match-import-file] ${label} failed after match persistence.`, err);
+  }
+}
+
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -148,12 +156,12 @@ export default async function handler(request: Request, context: Context): Promi
       savedMatch = named[0] || savedMatch;
     }
 
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'match.import_file', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId: resolvedGameId, teamId, label, categoryIds: validCategoryIds })}::jsonb)
-    `;
+    await runOptionalImportTask('audit log', () => sql`
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        values (${user.id}, 'match.import_file', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId: resolvedGameId, teamId, label, categoryIds: validCategoryIds })}::jsonb)
+      `);
 
-    const notificationTask = notifyMatchImport({ request, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId });
+    const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ request, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId }));
     if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
     else await notificationTask;
 
