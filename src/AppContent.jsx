@@ -2118,7 +2118,8 @@ function InviteCodesPanel({ inviteCodes = [], nowTick }) {
   return <div className="rounded-3xl border border-cyan-300/15 bg-cyan-400/8 p-4"><div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/70">Codes actifs</p><h4 className="mt-1 text-xl font-black text-white">Invitations temporaires</h4></div><Badge tone="cyan">Valables 1h</Badge></div><div className="mt-4 space-y-2">{activeCodes.length ? activeCodes.map((code) => { const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000)); return <div key={code.id} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 md:flex-row md:items-center md:justify-between"><div><p className="font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><p className="mt-1 text-xs font-semibold text-slate-300">Créé par {code.created_by_name || "staff"} · suppression automatique à expiration</p></div><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-slate-300">Aucun code actif. Génère un code pour inviter quelqu’un pendant 1h.</p>}</div></div>;
 }
 
-function GuidePage() {
+function GuidePage({ onOpenAssistant }) {
+  const [guideTab, setGuideTab] = useState("guide");
   const newFeatureBlocks = [
     [Upload, "Import plus sûr", "Upload avec progression, assignation side/lane/profil, rôles lisibles, catégories de contexte et corrections possibles depuis l’historique."],
     [BarChart3, "Stats game et groupe", "Lecture instantanée, sélection visuelle, groupes de games, exports PNG game/groupe et comparaisons par side sans inverser les équipes."],
@@ -2191,14 +2192,35 @@ function GuidePage() {
     [Activity, "3. Tendances", "Lis comment l'équipe fonctionne."],
     [FileText, "4. Review", "Transforme la lecture en décisions simples."],
   ];
+  const assistantExamples = [
+    "Comment corriger un mauvais profil dans une game ?",
+    "Où comparer les performances par rôle ?",
+    "Pourquoi mon import peut-il échouer ?",
+    "Comment créer une review depuis cette game ?",
+  ];
+  const assistantPrinciples = [
+    [Activity, "Contexte de page", "Il adapte ses réponses à la page ouverte pour éviter les explications génériques."],
+    [ArrowRight, "Chemins directs", "Quand une action existe, il propose un bouton vers la bonne page NXT5."],
+    [ShieldCheck, "Lecture seule", "Il explique et oriente, mais ne modifie, ne supprime et n’importe aucune donnée."],
+    [RefreshCw, "Aide toujours disponible", "Si le service IA ne répond pas, le guide local prend automatiquement le relais."],
+  ];
 
   const StepList = ({ items }) => <div className="grid gap-3">{items.map(([title, text], index) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><div className="flex items-start gap-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-200/25 bg-cyan-300/10 text-sm font-black text-cyan-100">{index + 1}</span><div><h4 className="text-base font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div></div>)}</div>;
 
   return <div>
-    <PageHeader eyebrow="Guide NXT5" title="Guide complet d’utilisation" subtitle="Le parcours à jour pour configurer ta team, importer les games, lire les nouveautés, créer des groupes, suivre les profils et produire des reviews propres.">
-      <Button icon={Swords} onClick={() => openAppPath("/integration")}>Importer une game</Button>
-      <Button variant="ghost" icon={Settings} onClick={() => openAppPath("/gestion-equipe")}>Gestion équipe</Button>
+    <PageHeader eyebrow="Guide NXT5" title={guideTab === "assistant" ? "Assistant NXT5" : "Guide complet d’utilisation"} subtitle={guideTab === "assistant" ? "Une aide contextuelle pour trouver une fonction, comprendre une page ou résoudre un blocage sans quitter ton travail." : "Le parcours à jour pour configurer ta team, importer les games, lire les nouveautés, créer des groupes, suivre les profils et produire des reviews propres."}>
+      {guideTab === "assistant" ? <Button icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")}>Ouvrir l’assistant</Button> : <>
+        <Button icon={Swords} onClick={() => openAppPath("/integration")}>Importer une game</Button>
+        <Button variant="ghost" icon={Settings} onClick={() => openAppPath("/gestion-equipe")}>Gestion équipe</Button>
+      </>}
     </PageHeader>
+
+    <div role="tablist" aria-label="Sections du guide" className="mb-5 flex gap-6 border-b border-white/12 px-1">
+      <button id="guide-tab-main" type="button" role="tab" aria-selected={guideTab === "guide"} aria-controls="guide-panel-main" onClick={() => setGuideTab("guide")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "guide" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><BookOpen className="h-4 w-4" />Guide complet</button>
+      <button id="guide-tab-assistant" type="button" role="tab" aria-selected={guideTab === "assistant"} aria-controls="guide-panel-assistant" onClick={() => setGuideTab("assistant")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "assistant" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><MessageCircleQuestion className="h-4 w-4" />Assistant NXT5</button>
+    </div>
+
+    {guideTab === "guide" ? <div id="guide-panel-main" role="tabpanel" aria-labelledby="guide-tab-main">
 
     <Surface glow className="mb-5 p-5 md:p-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -2299,6 +2321,42 @@ function GuidePage() {
         <div className="mt-4 space-y-3">{troubleshooting.map(([title, text]) => <div key={title} className="rounded-2xl border border-white/10 bg-black/24 p-4"><h4 className="font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}</div>
       </Surface>
     </div>
+    </div> : <div id="guide-panel-assistant" role="tabpanel" aria-labelledby="guide-tab-assistant">
+      <Surface glow className="overflow-hidden p-0">
+        <div className="grid lg:grid-cols-[1.15fr_.85fr]">
+          <div className="p-5 md:p-7 lg:border-r lg:border-white/10">
+            <Badge tone="cyan">Aide contextuelle</Badge>
+            <h2 className="mt-4 max-w-2xl text-2xl font-black text-white md:text-3xl">Pose ta question là où le problème apparaît</h2>
+            <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300">L’assistant connaît la page ouverte et s’appuie sur le guide NXT5. Il répond avec une marche à suivre courte et peut ouvrir directement la destination utile.</p>
+            <Button type="button" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")} className="mt-6">Démarrer une conversation</Button>
+          </div>
+          <div className="bg-[#070b18] p-5 md:p-7">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/65">Exemples de questions</p>
+            <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
+              {assistantExamples.map((example) => <button key={example} type="button" onClick={() => onOpenAssistant?.(example)} className="group flex w-full items-center justify-between gap-3 py-3 text-left text-sm font-bold leading-5 text-slate-200 transition hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{example}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></button>)}
+            </div>
+          </div>
+        </div>
+      </Surface>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+        <Surface className="p-5 md:p-6">
+          <div className="flex items-center gap-3"><MessageCircleQuestion className="h-6 w-6 text-cyan-100" /><h3 className="text-xl font-black text-white">Ce qu’il fait</h3></div>
+          <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
+            {assistantPrinciples.map(([Icon, title, text]) => <div key={title} className="grid gap-2 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]"><span className="flex h-9 w-9 items-center justify-center text-cyan-100"><Icon className="h-5 w-5" /></span><div><h4 className="font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div>)}
+          </div>
+        </Surface>
+        <Surface className="p-5 md:p-6">
+          <div className="flex items-center gap-3"><ShieldCheck className="h-6 w-6 text-emerald-200" /><h3 className="text-xl font-black text-white">Données et limites</h3></div>
+          <div className="mt-4 space-y-4 text-sm font-semibold leading-6 text-slate-300">
+            <p>L’assistant ne reçoit automatiquement ni statistiques de match, ni contenu de review, ni identité du roster.</p>
+            <p>La conversation reste dans ton navigateur pendant la session. Le bouton corbeille permet de l’effacer immédiatement.</p>
+            <p>Pour analyser une performance ou décider d’un plan de jeu, utilise les données sources et le jugement du staff.</p>
+          </div>
+          <Button type="button" variant="ghost" icon={BookOpen} onClick={() => setGuideTab("guide")} className="mt-6">Revenir au guide complet</Button>
+        </Surface>
+      </div>
+    </div>}
   </div>;
 }
 
@@ -10734,6 +10792,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const [bootstrapReady, setBootstrapReady] = useState(false);
   const [apiError, setApiError] = useState("");
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState("");
   const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
     try { return window.localStorage.getItem("nxt5_beginner_compass_hidden") === "1"; }
     catch { return false; }
@@ -10751,6 +10810,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   function openTeamManagement() {
     navigate("/gestion-equipe");
+  }
+
+  function openAssistant(prompt = "") {
+    setAssistantPrompt(typeof prompt === "string" ? prompt : "");
+    setAssistantOpen(true);
   }
 
   function hideBeginnerCompass() {
@@ -10800,7 +10864,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
-    if (active === "guide") return <GuidePage />;
+    if (active === "guide") return <GuidePage onOpenAssistant={openAssistant} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, loading, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate]);
 
@@ -10818,7 +10882,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
             <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" icon={MessageCircleQuestion} onClick={() => setAssistantOpen(true)} className="px-3 sm:px-4"><span className="hidden sm:inline">Assistant</span></Button>
+            <Button variant="ghost" icon={MessageCircleQuestion} onClick={() => openAssistant()} className="px-3 sm:px-4"><span className="hidden sm:inline">Assistant</span></Button>
             <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
           </div>
         </div>
@@ -10829,7 +10893,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
     </div>
-    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={null} selectedEntity={null} navigate={navigate} />
+    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={null} selectedEntity={null} initialPrompt={assistantPrompt} navigate={navigate} />
   </>;
   return (
     <div className="relative min-h-screen text-white">
@@ -10847,7 +10911,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         onLogout={logout}
         roleLabel={roleLabel}
         assistantOpen={assistantOpen}
-        onAssistantOpen={() => setAssistantOpen(true)}
+        onAssistantOpen={() => openAssistant()}
       />
       <div
         className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ? "is-sidebar-collapsed" : "is-sidebar-expanded")}
@@ -10873,7 +10937,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         </main>
         <LegalLinks navigate={navigate} />
       </div>
-      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId} selectedEntity={assistantSelectedEntity} navigate={navigate} />
+      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} />
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}
     </div>

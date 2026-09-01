@@ -80,7 +80,7 @@ function historyPayload(messages) {
     .map((message) => ({ role: message.role, content: message.content }));
 }
 
-export default function AssistantPanel({ open, onClose, route, selectedTeamId, selectedEntity = null, navigate }) {
+export default function AssistantPanel({ open, onClose, route, selectedTeamId, selectedEntity = null, initialPrompt = "", navigate }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
@@ -98,6 +98,10 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    if (open && initialPrompt) setDraft(String(initialPrompt).slice(0, 800));
+  }, [open, initialPrompt]);
 
   useEffect(() => {
     if (!open) return undefined;
