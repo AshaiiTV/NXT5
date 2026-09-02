@@ -5,7 +5,48 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema, seedDefaultMatchCategories } from './_lib/match-categories';
 import { ensureAuditLogsSchema, ensureCompositionTypesSchema, ensureReportsSchema, ensureWorkflowSchema } from './_lib/schema';
 import { ensurePlayerRosterSchema } from './_lib/player-roster';
+import { ensureMigration } from './_lib/migrations';
 import { ensureUserNotificationColumns } from './_getTeamMembers.js';
+
+async function ensureBootstrapSchema() {
+  return ensureMigration('bootstrap-performance-2026-09-02-v1', async () => {
+    await ensureUserNotificationColumns(sql);
+    await ensureMatchImporterColumn();
+    await ensureMatchCategoriesSchema();
+    await ensureChampionPoolSchema();
+    await ensureReportsSchema();
+    await ensureCompositionTypesSchema();
+    await ensureAuditLogsSchema();
+    await ensureWorkflowSchema();
+    await ensureRoleConstraints();
+    await ensurePlayerRosterSchema();
+    await sql`
+      create table if not exists player_coaching_notes (
+        id uuid primary key default gen_random_uuid(),
+        team_id uuid not null references teams(id) on delete cascade,
+        player_id uuid not null references players(id) on delete cascade,
+        content text not null default '',
+        updated_by uuid references users(id) on delete set null,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now(),
+        unique(team_id, player_id)
+      )
+    `;
+    await sql`
+      create table if not exists match_archives (
+        id uuid primary key default gen_random_uuid(),
+        team_id uuid not null references teams(id) on delete cascade,
+        created_by uuid references users(id) on delete set null,
+        name text not null,
+        description text,
+        match_ids jsonb not null default '[]'::jsonb,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      )
+    `;
+    await sql`create index if not exists idx_match_archives_team on match_archives(team_id, created_at desc)`;
+  });
+}
 
 function buildDashboard(matches, improvements) {
   const recent = matches.slice(0, 10);
@@ -42,18 +83,6 @@ async function loadAvailability(teamIds) {
 
 async function loadProfileCoachingNotes(teamIds) {
   try {
-    await sql`
-      create table if not exists player_coaching_notes (
-        id uuid primary key default gen_random_uuid(),
-        team_id uuid not null references teams(id) on delete cascade,
-        player_id uuid not null references players(id) on delete cascade,
-        content text not null default '',
-        updated_by uuid references users(id) on delete set null,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now(),
-        unique(team_id, player_id)
-      )
-    `;
     return await sql`
       select player_coaching_notes.*, users.name as updated_by_name
       from player_coaching_notes
@@ -69,7 +98,6 @@ async function loadProfileCoachingNotes(teamIds) {
 
 async function loadInviteCodes(teamIds) {
   try {
-    await sql`delete from team_invite_codes where expires_at <= now()`;
     return await sql`
       select team_invite_codes.*, users.name as created_by_name
       from team_invite_codes
@@ -86,18 +114,6 @@ async function loadInviteCodes(teamIds) {
 
 async function loadMatchArchives(teamIds) {
   try {
-    await sql`
-      create table if not exists match_archives (
-        id uuid primary key default gen_random_uuid(),
-        team_id uuid not null references teams(id) on delete cascade,
-        created_by uuid references users(id) on delete set null,
-        name text not null,
-        description text,
-        match_ids jsonb not null default '[]'::jsonb,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now()
-      )
-    `;
     return await sql`
       select match_archives.*, users.name as created_by_name
       from match_archives
@@ -194,25 +210,16 @@ export default async function handler(request: Request, context: Context): Promi
     `;
     const teamIds = teams.map((t) => t.id);
 
-    await ensureUserNotificationColumns(sql);
     if (!teamIds.length) {
       return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], inviteCodes: [], availability: [], profileCoachingNotes: [], playerGoals: [] });
     }
-    await ensureMatchImporterColumn();
-    await ensureMatchCategoriesSchema();
+    await ensureBootstrapSchema();
     await seedDefaultMatchCategories(teamIds, user.id);
-    await ensureChampionPoolSchema();
-    await ensureReportsSchema();
-    await ensureCompositionTypesSchema();
-    await ensureAuditLogsSchema();
-    await ensureWorkflowSchema();
-    await ensureRoleConstraints();
-    await ensurePlayerRosterSchema();
 
     const [
       players,
       teamMembers,
-      matches,
+      matchSummaries,
       championPool,
       improvements,
       compositions,
@@ -236,7 +243,33 @@ export default async function handler(request: Request, context: Context): Promi
         order by team_members.created_at asc
       `,
       sql`
-        select matches.*, users.name as created_by_name, users.account_name as created_by_account
+        select
+          to_jsonb(matches) - 'raw' as summary,
+          jsonb_strip_nulls(jsonb_build_object(
+            'nxt5Label', matches.raw -> 'nxt5Label',
+            'nxt5',
+              case when jsonb_typeof(matches.raw -> 'nxt5') = 'object' then matches.raw -> 'nxt5' else '{}'::jsonb end
+              || jsonb_build_object(
+                'timelineEvents', case
+                  when jsonb_typeof(matches.raw #> '{nxt5,timelineEvents}') = 'array' then matches.raw #> '{nxt5,timelineEvents}'
+                  else jsonb_path_query_array(
+                    coalesce(
+                      matches.raw #> '{timeline,info,frames}',
+                      matches.raw #> '{metadata,timeline,info,frames}',
+                      matches.raw #> '{timeline,frames}',
+                      '[]'::jsonb
+                    ),
+                    '$[*].events[*] ? (@.type == "ELITE_MONSTER_KILL" || @.type == "CHAMPION_KILL" || @.type == "BUILDING_KILL" || @.type == "ITEM_PURCHASED" || @.type == "ITEM_SOLD" || @.type == "ITEM_DESTROYED" || @.type == "ITEM_UNDO")'
+                  )
+                end
+              ),
+            'info', jsonb_build_object(
+              'gameCreation', matches.raw #> '{info,gameCreation}',
+              'teams', matches.raw #> '{info,teams}'
+            )
+          )) as raw,
+          users.name as created_by_name,
+          users.account_name as created_by_account
         from matches
         left join users on users.id = matches.created_by
         where matches.team_id = any(${teamIds})
@@ -272,8 +305,50 @@ export default async function handler(request: Request, context: Context): Promi
         order by (player_goals.status = 'active') desc, player_goals.created_at desc
       `
     ]);
+    const matches = matchSummaries.map((row) => ({
+      ...(row.summary || {}),
+      raw: row.raw || {},
+      created_by_name: row.created_by_name,
+      created_by_account: row.created_by_account
+    }));
     const matchIds = matches.map((m) => m.id);
-    const participants = matchIds.length ? await sql`select * from match_participants where match_id = any(${matchIds}) order by team_key asc, role asc` : [];
+    const participantSummaries = matchIds.length ? await sql`
+      select
+        to_jsonb(match_participants) - 'raw' as summary,
+        jsonb_strip_nulls(jsonb_build_object(
+          'participantId', coalesce(match_participants.raw -> 'participantId', match_participants.raw #> '{participant,participantId}'),
+          'teamId', coalesce(match_participants.raw -> 'teamId', match_participants.raw #> '{participant,teamId}'),
+          'championId', coalesce(match_participants.raw -> 'championId', match_participants.raw #> '{participant,championId}'),
+          'teamPosition', coalesce(match_participants.raw -> 'teamPosition', match_participants.raw #> '{participant,teamPosition}'),
+          'individualPosition', coalesce(match_participants.raw -> 'individualPosition', match_participants.raw #> '{participant,individualPosition}'),
+          'lane', coalesce(match_participants.raw -> 'lane', match_participants.raw #> '{participant,lane}'),
+          'summoner1Id', coalesce(match_participants.raw -> 'summoner1Id', match_participants.raw #> '{participant,summoner1Id}'),
+          'summoner2Id', coalesce(match_participants.raw -> 'summoner2Id', match_participants.raw #> '{participant,summoner2Id}'),
+          'item0', coalesce(match_participants.raw -> 'item0', match_participants.raw #> '{participant,item0}'),
+          'item1', coalesce(match_participants.raw -> 'item1', match_participants.raw #> '{participant,item1}'),
+          'item2', coalesce(match_participants.raw -> 'item2', match_participants.raw #> '{participant,item2}'),
+          'item3', coalesce(match_participants.raw -> 'item3', match_participants.raw #> '{participant,item3}'),
+          'item4', coalesce(match_participants.raw -> 'item4', match_participants.raw #> '{participant,item4}'),
+          'item5', coalesce(match_participants.raw -> 'item5', match_participants.raw #> '{participant,item5}'),
+          'item6', coalesce(match_participants.raw -> 'item6', match_participants.raw #> '{participant,item6}'),
+          'physicalDamageDealtToChampions', coalesce(match_participants.raw -> 'physicalDamageDealtToChampions', match_participants.raw #> '{participant,physicalDamageDealtToChampions}'),
+          'magicDamageDealtToChampions', coalesce(match_participants.raw -> 'magicDamageDealtToChampions', match_participants.raw #> '{participant,magicDamageDealtToChampions}'),
+          'trueDamageDealtToChampions', coalesce(match_participants.raw -> 'trueDamageDealtToChampions', match_participants.raw #> '{participant,trueDamageDealtToChampions}'),
+          'totalMinionsKilled', coalesce(match_participants.raw -> 'totalMinionsKilled', match_participants.raw #> '{participant,totalMinionsKilled}'),
+          'neutralMinionsKilled', coalesce(match_participants.raw -> 'neutralMinionsKilled', match_participants.raw #> '{participant,neutralMinionsKilled}'),
+          'timePlayed', coalesce(match_participants.raw -> 'timePlayed', match_participants.raw #> '{participant,timePlayed}'),
+          'challenges', jsonb_strip_nulls(jsonb_build_object(
+            'laneMinionsFirst10Minutes', coalesce(match_participants.raw #> '{challenges,laneMinionsFirst10Minutes}', match_participants.raw #> '{participant,challenges,laneMinionsFirst10Minutes}')
+          )),
+          'timeline', jsonb_strip_nulls(jsonb_build_object(
+            'creepsPerMinDeltas', coalesce(match_participants.raw #> '{timeline,creepsPerMinDeltas}', match_participants.raw #> '{participant,timeline,creepsPerMinDeltas}')
+          ))
+        )) as raw
+      from match_participants
+      where match_id = any(${matchIds})
+      order by team_key asc, role asc
+    ` : [];
+    const participants = participantSummaries.map((row) => ({ ...(row.summary || {}), raw: row.raw || {} }));
 
     const byMatch = new Map();
     for (const p of participants) {

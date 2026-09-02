@@ -5215,13 +5215,25 @@ function finalBuildItems(row) {
   ];
 }
 
-function matchTimelineFrames(match) {
+function storedTimelineFrames(match) {
   return match?.raw?.timeline?.info?.frames
     || match?.raw?.metadata?.timeline?.info?.frames
     || match?.raw?.timeline?.frames
     || match?.raw?.timeline?.timeline?.info?.frames
     || match?.raw?.timeline?.timeline?.frames
     || [];
+}
+
+function compactTimelineEvents(match) {
+  const events = match?.raw?.nxt5?.timelineEvents;
+  return Array.isArray(events) ? events : [];
+}
+
+function matchTimelineFrames(match) {
+  const frames = storedTimelineFrames(match);
+  if (frames.length) return frames;
+  const events = compactTimelineEvents(match);
+  return events.length ? [{ timestamp: 0, events }] : [];
 }
 
 function itemEventMeta(type) {
@@ -5413,9 +5425,8 @@ function objectivePictogramType(event) {
 }
 
 function objectiveEvents(match) {
-  const frames = match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || [];
-  const participants = match?.raw?.info?.participants || [];
-  const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
+  const frames = matchTimelineFrames(match);
+  const participantTeam = participantTeamMap(match);
   const allyTeamId = Number(teamRows(match, "ALLY")[0]?.raw?.teamId || 0);
   return frames.flatMap((frame) => (frame.events || []).filter((event) => event.type === "ELITE_MONSTER_KILL").map((event) => {
     const killerTeamId = Number(event.killerTeamId || participantTeam.get(Number(event.killerId)) || 0);
@@ -5694,11 +5705,16 @@ function diffTone(value) {
 }
 
 function timelineFrames(match) {
-  return match?.raw?.timeline?.info?.frames || match?.raw?.metadata?.timeline?.info?.frames || match?.raw?.timeline?.frames || [];
+  return matchTimelineFrames(match);
 }
 
 function participantTeamMap(match) {
-  return new Map((match?.raw?.info?.participants || []).map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
+  const storedParticipants = match?.raw?.info?.participants || [];
+  const participants = storedParticipants.length ? storedParticipants : (match?.participants || []).map((row) => ({
+    participantId: rowParticipantId(row),
+    teamId: Number(row?.raw?.teamId || 0),
+  }));
+  return new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
 }
 
 function teamKeyFromTeamId(match, teamId) {
@@ -5744,8 +5760,12 @@ function teamGoldAtMinute(match, teamKey, minute) {
 }
 
 function timelineStatus(match) {
-  const frames = timelineFrames(match);
-  return frames.length ? { label: "Timeline fiable", toneName: "green", detail: `${frames.length} frames Riot` } : { label: "Timeline absente", toneName: "yellow", detail: "Lecture limitée aux stats finales" };
+  const frames = storedTimelineFrames(match);
+  if (frames.length) return { label: "Timeline fiable", toneName: "green", detail: `${frames.length} frames Riot` };
+  const events = compactTimelineEvents(match);
+  const summaryAvailable = Boolean(match?.raw?.nxt5?.timelineSummary?.available);
+  if (events.length || summaryAvailable) return { label: "Timeline résumée", toneName: "cyan", detail: events.length ? `${events.length} événements indexés` : "Repères CS et vision disponibles" };
+  return { label: "Timeline absente", toneName: "yellow", detail: "Lecture limitée aux stats finales" };
 }
 
 function deathContext(match) {
@@ -7819,6 +7839,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [archivesCollapsed, setArchivesCollapsed] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
   const [gameSearch, setGameSearch] = useState("");
+  const [matchDetailsById, setMatchDetailsById] = useState({});
+  const [loadingMatchDetailId, setLoadingMatchDetailId] = useState("");
+  const detailRequestsRef = useRef(new Set());
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
@@ -7843,7 +7866,36 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   useEffect(() => {
     if (urlMatchId && matches.some((match) => match.id === urlMatchId)) setSelectedMatchId(urlMatchId);
   }, [urlMatchId, matches.map((match) => match.id).join("|")]);
-  const selectedMatch = scopedMatches.find((match) => String(match.id || "") === String(selectedMatchId || "")) || null;
+  useEffect(() => {
+    setMatchDetailsById({});
+    setLoadingMatchDetailId("");
+    detailRequestsRef.current.clear();
+  }, [selectedTeamId]);
+  useEffect(() => {
+    const matchId = String(selectedMatchId || "");
+    if (!matchId || matchDetailsById[matchId] || detailRequestsRef.current.has(matchId)) return undefined;
+    let cancelled = false;
+    detailRequestsRef.current.add(matchId);
+    setLoadingMatchDetailId(matchId);
+    apiFetch("match-details", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, matchIds: [matchId] }) })
+      .then((result) => {
+        const detail = result?.matches?.[0];
+        if (!cancelled && detail?.id) setMatchDetailsById((current) => ({ ...current, [detail.id]: detail }));
+      })
+      .catch((error) => {
+        if (!cancelled) pushToast?.({ type: "red", title: "Détail de game indisponible", text: error.message });
+      })
+      .finally(() => {
+        detailRequestsRef.current.delete(matchId);
+        if (!cancelled) setLoadingMatchDetailId((current) => current === matchId ? "" : current);
+      });
+    return () => { cancelled = true; };
+  }, [selectedMatchId, selectedTeamId, matchDetailsById, pushToast]);
+  const selectedMatchSummary = scopedMatches.find((match) => String(match.id || "") === String(selectedMatchId || "")) || null;
+  const selectedMatchDetail = selectedMatchSummary ? matchDetailsById[selectedMatchSummary.id] : null;
+  const selectedMatch = selectedMatchSummary && selectedMatchDetail
+    ? { ...selectedMatchSummary, ...selectedMatchDetail, participants: selectedMatchDetail.participants || selectedMatchSummary.participants || [] }
+    : selectedMatchSummary;
   const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && reportMatchIds(report).includes(selectedMatch?.id));
   const selectedArchiveReport = selectedArchive ? (data.reports || []).find((report) => {
     const reportIds = reportMatchIds(report);
@@ -8037,7 +8089,10 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
           </div>}
         </Surface>}
         {selectedArchive && <ScrimArchiveSummary matches={scopedMatches} selectedMatchId={selectedMatchId} onSelectMatch={setSelectedMatchId} />}
-        {selectedMatch && <MatchDataPanel match={selectedMatch} />}
+        {selectedMatch && <>
+          {loadingMatchDetailId === selectedMatch.id && <div className="mt-5 flex items-center gap-2 border-y border-cyan-200/15 bg-cyan-300/[0.045] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-100"><Loader2 className="h-4 w-4 animate-spin" />Chargement du détail de la game</div>}
+          <MatchDataPanel match={selectedMatch} />
+        </>}
       </> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}
     </div>
   );
@@ -10823,16 +10878,12 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       const result = await apiFetch("bootstrap", { timeoutMs: bootstrapped ? 20000 : 16000 });
       setData({ ...DEFAULT_DATA, ...result });
       if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id);
-      if (!bootstrapped) {
-        setBootstrapReady(true);
-        await new Promise((resolve) => window.setTimeout(resolve, 980));
-      }
+      if (!bootstrapped) setBootstrapReady(true);
     } catch (err) {
       setApiError(err.message || "Impossible de charger les données.");
       if (!bootstrapped) {
         setData(DEFAULT_DATA);
         setBootstrapReady(true);
-        await new Promise((resolve) => window.setTimeout(resolve, 320));
       }
     } finally {
       setLoading(false);

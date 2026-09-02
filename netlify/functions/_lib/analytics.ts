@@ -146,6 +146,22 @@ function buildNxt5TimelineSummary(match) {
   return { available: true, frameCount: frames.length, csMilestones, wards, wardCount: wards.length };
 }
 
+function buildNxt5TimelineEvents(match) {
+  const timeline = match?.timeline || match?.metadata?.timeline || match?.nxt5?.timeline || null;
+  const usefulTypes = new Set([
+    'ELITE_MONSTER_KILL',
+    'CHAMPION_KILL',
+    'BUILDING_KILL',
+    'ITEM_PURCHASED',
+    'ITEM_SOLD',
+    'ITEM_DESTROYED',
+    'ITEM_UNDO'
+  ]);
+  return timelineFrames(timeline).flatMap((frame) => (frame?.events || [])
+    .filter((event) => usefulTypes.has(String(event?.type || '').toUpperCase()))
+    .map((event) => ({ ...event, timestamp: Number(event?.timestamp || frame?.timestamp || 0) })));
+}
+
 function manualRoleForParticipant(p, laneAssignments) {
   const champion = normalizeLoose(p.championName);
   const summoner = normalizeLoose(p.summonerName);
@@ -441,7 +457,8 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   await ensureMatchImporterColumn();
   match.nxt5 = {
     ...(match.nxt5 || {}),
-    timelineSummary: buildNxt5TimelineSummary(match)
+    timelineSummary: buildNxt5TimelineSummary(match),
+    timelineEvents: buildNxt5TimelineEvents(match)
   };
   const allyTeamId = detectAllyTeam(match, roster, allyTeamSide);
   const normalizedLaneAssignments = normalizeLaneAssignments(laneAssignments);

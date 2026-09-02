@@ -126,7 +126,7 @@ export default async function handler(request: Request, context: Context): Promi
             category_ids = ${JSON.stringify(validCategoryIds)}::jsonb,
             raw = jsonb_set(coalesce(raw, '{}'::jsonb), '{nxt5Label}', to_jsonb(${label || savedMatch.opponent || savedMatch.game_id}::text), true)
         where id = ${savedMatch.id}
-        returning *
+        returning id, game_id, team_id, opponent, result, created_at
       `;
       savedMatch = named[0] || savedMatch;
     }
@@ -140,7 +140,16 @@ export default async function handler(request: Request, context: Context): Promi
     if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
     else await notificationTask;
 
-    return json({ match: savedMatch });
+    return json({
+      match: {
+        id: savedMatch.id,
+        game_id: savedMatch.game_id,
+        team_id: savedMatch.team_id,
+        opponent: savedMatch.opponent,
+        result: savedMatch.result,
+        created_at: savedMatch.created_at
+      }
+    });
   } catch (err) {
     return handleError(err);
   }

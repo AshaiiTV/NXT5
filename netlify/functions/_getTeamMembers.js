@@ -1,11 +1,9 @@
+import { ensureAuthUserSchema } from './_lib/auth';
+
 const PREFERENCE_COLUMNS = new Set(['notif_match', 'notif_report']);
 
-export async function ensureUserNotificationColumns(db) {
-  await db`alter table users add column if not exists notif_match boolean default true`;
-  await db`alter table users add column if not exists notif_report boolean default true`;
-  await db`alter table users add column if not exists email_verified boolean default false`;
-  await db`alter table users add column if not exists email_verify_token text default null`;
-  await db`alter table users add column if not exists email_verify_expires_at timestamptz default null`;
+export async function ensureUserNotificationColumns(_db) {
+  await ensureAuthUserSchema();
 }
 
 function isValidEmail(email) {

@@ -80,7 +80,9 @@ function matchDiff(match, key) {
 function hasTimeline(match) {
   const raw = match?.raw || {};
   const candidates = [raw.timeline?.info?.frames, raw.metadata?.timeline?.info?.frames, raw.timeline?.frames, raw.timelineFrames, raw.info?.timeline?.frames, raw.frames];
-  return candidates.some((frames) => Array.isArray(frames) && frames.length > 0);
+  return candidates.some((frames) => Array.isArray(frames) && frames.length > 0)
+    || Boolean(raw.nxt5?.timelineSummary?.available)
+    || Boolean(raw.nxt5?.timelineEvents?.length);
 }
 
 function toneForDelta(value, inverse = false) {
