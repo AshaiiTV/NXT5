@@ -6196,7 +6196,7 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
   </div>;
 }
 
-function LaneComparisonPanel({ match, role, allyRow, enemyRow }) {
+function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const blueTeamKey = objectiveTeamKeyForSide(match, "BLUE");
@@ -6226,7 +6226,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow }) {
     ["Part vision", shareOfTeam(blueRow, blueTeam, "vision"), shareOfTeam(redRow, redTeam, "vision"), "higher"],
     ["Part des morts", shareOfTeam(blueRow, blueTeam, "deaths"), shareOfTeam(redRow, redTeam, "deaths"), "lower"],
   ];
-  const teamBadge = (teamKey) => teamKey === "ALLY" ? "NXT5" : "En face";
+  const teamBadge = (teamKey) => teamKey === "ALLY" ? String(teamName || "Notre équipe").trim() : "En face";
   const formatSideDiff = (diff) => {
     if (diff === null) return "-";
     const value = Number.isInteger(diff) ? String(diff) : diff.toFixed(1);
@@ -6239,7 +6239,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow }) {
     const items = row ? [...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })), ...(trinket ? [{ id: trinket, type: "trinket" }] : [])] : [];
     const isBlue = side === "blue";
     return <div className={cx("rounded-2xl border p-3", isBlue ? "border-cyan-300/14 bg-cyan-400/[0.055]" : "border-rose-300/14 bg-rose-500/[0.055]")}>
-      <div className={cx("mb-3 flex flex-wrap items-center gap-2", align === "right" && "justify-end")}><Badge tone={isBlue ? "cyan" : "red"}>{isBlue ? "Côté bleu" : "Côté rouge"}</Badge><Badge tone={teamKey === "ALLY" ? "green" : "slate"}>{teamBadge(teamKey)}</Badge></div>
+      <div className={cx("mb-3 flex flex-wrap items-center gap-2", align === "right" && "justify-end")}><Badge tone={isBlue ? "cyan" : "red"}>{isBlue ? "Côté bleu" : "Côté rouge"}</Badge><Badge tone={teamKey === "ALLY" ? "green" : "slate"}><span className="block max-w-48 truncate" title={teamBadge(teamKey)}>{teamBadge(teamKey)}</span></Badge></div>
       <div className={cx("flex min-w-0 items-center gap-3", align === "right" && "justify-end text-right")}>
         <ChampionPortrait row={row} champion={row?.champion} alt={row?.champion || role} className="h-12 w-12 rounded-xl object-cover" />
         <div className="min-w-0">
@@ -6299,7 +6299,7 @@ function SideColumnHeader({ side, align = "left" }) {
   </div>;
 }
 
-function MatchVersusOverview({ match }) {
+function MatchVersusOverview({ match, teamName }) {
   const [openRole, setOpenRole] = useState("");
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -6343,7 +6343,7 @@ function MatchVersusOverview({ match }) {
                 </div>
                 <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
               </button>
-              <React.Fragment>{open && <div className="mt-2"><LaneComparisonPanel match={match} role={role} allyRow={allyRow} enemyRow={enemyRow} /></div>}</React.Fragment>
+              <React.Fragment>{open && <div className="mt-2"><LaneComparisonPanel match={match} role={role} allyRow={allyRow} enemyRow={enemyRow} teamName={teamName} /></div>}</React.Fragment>
             </div>;
           })}
         </div>
@@ -6458,7 +6458,7 @@ function MatchCoachBrief({ match }) {
   </section>;
 }
 
-function MatchDataPanel({ match }) {
+function MatchDataPanel({ match, teamName }) {
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -6469,7 +6469,7 @@ function MatchDataPanel({ match }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div><MatchCoachBrief match={match} /><MatchVersusOverview match={match} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div><MatchCoachBrief match={match} /><MatchVersusOverview match={match} teamName={teamName} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -7838,6 +7838,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
+  const selectedTeamName = (data.teams || []).find((team) => String(team.id || "") === String(selectedTeamId || ""))?.name || "Notre équipe";
   const urlMatchId = new URLSearchParams(window.location.search).get("match") || "";
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId || "");
@@ -8119,7 +8120,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
               });
             }}>Réessayer</Button>
           </div>}
-          <MatchDataPanel match={selectedMatch} />
+          <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} />
         </>}
       </> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}
     </div>
