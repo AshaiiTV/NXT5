@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
 import { AlertTriangle, BarChart3, Check, ChevronDown, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { cx, tone } from "../../app/helpers.js";
 
@@ -14,10 +13,7 @@ export function Badge({ children, tone: t = "slate", pulse = false, className = 
 
 export function Surface({ children, className = "", delay = 0, glow = false }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14, scale: 0.985 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.34, delay, ease: "easeOut" }}
+    <div
       className={cx(
         "nxt5-panel nxt5-premium-panel group relative max-w-full overflow-hidden border border-cyan-200/18 p-4 backdrop-blur-2xl transition duration-300 sm:p-4",
         glow && "border-cyan-200/24 shadow-[0_0_26px_rgba(34,211,238,.075),0_18px_54px_rgba(0,0,0,.38)] hover:border-cyan-200/34",
@@ -27,7 +23,7 @@ export function Surface({ children, className = "", delay = 0, glow = false }) {
       <div className="pointer-events-none absolute inset-x-5 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-cyan-100/70 to-fuchsia-100/45" />
       <div className="pointer-events-none absolute bottom-0 left-5 z-[1] h-px w-20 bg-gradient-to-r from-cyan-300/55 to-transparent" />
       <div className="relative z-10">{children}</div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -120,13 +116,13 @@ export function ToastStack({ toasts, removeToast }) {
     <div className="fixed bottom-5 right-5 z-[80] space-y-3">
       <React.Fragment>
         {toasts.map((toast) => (
-          <motion.div key={toast.id} initial={{ opacity: 0, y: 20, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.96 }} className={cx("w-[min(92vw,380px)] rounded-3xl border p-4 shadow-2xl backdrop-blur-xl", tone(toast.type || "cyan"))}>
+          <div key={toast.id} className={cx("nxt5-enter-fast w-[min(92vw,380px)] rounded-3xl border p-4 shadow-2xl backdrop-blur-xl", tone(toast.type || "cyan"))}>
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-2xl bg-white/10 p-2">{toast.type === "red" ? <AlertTriangle className="h-4 w-4" /> : <Check className="h-4 w-4" />}</div>
               <div className="min-w-0 flex-1"><p className="font-black">{toast.title}</p>{toast.text && <p className="mt-1 whitespace-pre-line text-sm leading-5 opacity-80">{toast.text}</p>}</div>
               <button onClick={() => removeToast(toast.id)} className="rounded-xl p-1.5 opacity-70 hover:bg-white/10 hover:opacity-100"><X className="h-4 w-4" /></button>
             </div>
-          </motion.div>
+          </div>
         ))}
       </React.Fragment>
     </div>

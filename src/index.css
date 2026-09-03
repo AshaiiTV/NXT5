@@ -119,6 +119,52 @@ textarea {
   white-space: normal;
 }
 
+@keyframes nxt5-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes nxt5-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes nxt5-beam-forward {
+  0% { opacity: 0.15; translate: -14vw 0; }
+  8% { opacity: 0.85; }
+  72% { opacity: 0.85; translate: 118vw 0; }
+  73%, 100% { opacity: 0.15; translate: 118vw 0; }
+}
+
+@keyframes nxt5-beam-reverse {
+  0% { opacity: 0.15; translate: 118vw 0; }
+  8% { opacity: 0.8; }
+  70% { opacity: 0.8; translate: -18vw 0; }
+  71%, 100% { opacity: 0.15; translate: -18vw 0; }
+}
+
+.nxt5-enter {
+  animation: nxt5-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nxt5-enter-fast {
+  animation: nxt5-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nxt5-fade-in {
+  animation: nxt5-fade-in 160ms ease-out both;
+}
+
+.nxt5-beam-forward {
+  animation: nxt5-beam-forward 10s ease-in-out infinite;
+  will-change: translate, opacity;
+}
+
+.nxt5-beam-reverse {
+  animation: nxt5-beam-reverse 12.2s ease-in-out infinite;
+  will-change: translate, opacity;
+}
+
 @supports (content-visibility: auto) {
   .nxt5-defer-render {
     content-visibility: auto;
@@ -128,6 +174,13 @@ textarea {
   .nxt5-defer-row {
     content-visibility: auto;
     contain-intrinsic-size: 1px 112px;
+  }
+
+  .nxt5-game-list > *,
+  .nxt5-import-history-list > *,
+  .nxt5-review-list > * {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 104px;
   }
 }
 
@@ -143,6 +196,11 @@ textarea {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .nxt5-beam-forward,
+  .nxt5-beam-reverse {
+    animation: none !important;
   }
 }
 

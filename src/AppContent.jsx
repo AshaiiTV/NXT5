@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, lazy, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
 import {
   Activity,
   ArrowRight,
@@ -79,7 +78,6 @@ import {
   readRoute,
 } from "./app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "./components/brand/BrandAssets.jsx";
-import AssistantPanel from "./components/assistant/AssistantPanel.jsx";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Badge, Button, EmptyState, PageHeader, PremiumToggle, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput, ToastStack } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalLinks, LegalPage, NotFoundPage, ResetPasswordPage } from "./pages/public/PublicPages.jsx";
@@ -87,7 +85,18 @@ import { cx, errorToast, formatRetryAfter, formatUploadSize, profileStatusLabel,
 import { assetProxyUrl, matchCategoryIds, matchDisplayName, matchHasCategory, opponentRoleRow } from "./utils/matches.js";
 import { addDays, availabilityEvents, availabilitySlots, compositionSlots, dateFromKey, dateKey, emptyCompositionSlots, formatWeekRange, jsonList, mondayOfWeek, planningEventKey, planningEventMeta, planningEventTypeFromLabel, planningSlotsPayload } from "./utils/planning.js";
 import { ROSTER_STATUS_OPTIONS, multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta } from "./utils/roster.js";
-import { BlockComparisonPanel, HomeActionSummary, PlayerGoalsPanel, ReviewQueuePanel, TeamDataHealthPanel } from "./NextPhase.jsx";
+const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
+
+function lazyNamed(importer, name) {
+  return lazy(() => importer().then((module) => ({ default: module[name] })));
+}
+
+const loadNextPhase = () => import("./NextPhase.jsx");
+const BlockComparisonPanel = lazyNamed(loadNextPhase, "BlockComparisonPanel");
+const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
+const PlayerGoalsPanel = lazyNamed(loadNextPhase, "PlayerGoalsPanel");
+const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
+const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
 
 function metricSideMarkerMeta(marker) {
   const key = String(marker || "").toLowerCase();
@@ -3180,13 +3189,13 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       <div className="nxt5-responsive-nav-grid grid gap-2">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group grid min-h-[5.1rem] min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0 self-center"><span className="block break-words text-sm font-black leading-5">{label}</span><span className="mt-0.5 block break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span><span className="justify-self-end"><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></span></button>; })}</div>
     </div>
     <React.Fragment>
-      <motion.div key={profileView} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="mt-5">
+      <div key={profileView} className="nxt5-enter-fast mt-5">
         {profileView === "overview" && <><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /><CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} /></>}
         {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} matchups={matchups} bestMatchups={bestMatchups} worstMatchups={worstMatchups} buildRows={buildRows} buildRowsCount={buildRowsCount} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} />}
         {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
         {profileView === "coaching" && <ProfileFold title="Bilan coaching global" badge="Staff notes" icon={Clipboard} toneName="cyan"><div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,.35fr)]"><div className="min-w-0"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes globales du joueur</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={14} placeholder={canEditCoaching ? "Bilan global, axes de travail, suivi hors game, remarques staff..." : "Aucun bilan coaching renseigné pour ce profil."} className={cx("w-full resize-y rounded-2xl border px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-300", canEditCoaching ? "border-cyan-300/18 bg-black/[0.24] focus:border-cyan-300/45" : "border-white/10 bg-black/[0.18] text-slate-200")}/></label><div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-bold text-slate-300">{coachingContent.length}/4000 caractères</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent.length > 4000} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement..." : "Enregistrer le bilan"}</Button>}</div></div><div className="rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4"><Badge tone={canEditCoaching ? "green" : "slate"}>{canEditCoaching ? "Édition staff" : "Lecture seule"}</Badge><h4 className="mt-4 text-xl font-black text-white">Suivi global</h4><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">Cet espace sert au bilan longue durée du joueur. Il reste indépendant des reviews liees aux games pour éviter de mélanger review ponctuelle et suivi global.</p><div className="mt-4 rounded-xl border border-white/10 bg-black/24 p-3 text-xs font-semibold leading-5 text-slate-300">Dernière mise à jour : {coachingNote?.updated_at ? new Date(coachingNote.updated_at).toLocaleString("fr-FR") : "jamais"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</div></div></div></ProfileFold>}
-      </motion.div>
+      </div>
     </React.Fragment>
   </div>;
 }
@@ -4047,7 +4056,7 @@ function ProfileBuildGameCard({ row }) {
 
 function ProfileFold({ title, badge, icon: Icon = Activity, toneName = "cyan", children }) {
   const [open, setOpen] = useState(true);
-  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><React.Fragment>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: "easeOut" }} className="overflow-hidden"><div className="pt-4">{children}</div></motion.div>}</React.Fragment></Surface>;
+  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><React.Fragment>{open && <div className="nxt5-enter-fast overflow-hidden"><div className="pt-4">{children}</div></div>}</React.Fragment></Surface>;
 }
 
 function MatchupList({ items, toneName }) {
@@ -4067,7 +4076,7 @@ function MatchupList({ items, toneName }) {
           <ChevronDown className={cx("h-4 w-4 text-cyan-100 transition", open && "rotate-180")} />
         </div>
       </button>
-      <React.Fragment>{open && <motion.div initial={{ height: 0, opacity: 0, y: -6 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: "easeOut" }} className="overflow-hidden">
+      <React.Fragment>{open && <div className="nxt5-enter-fast overflow-hidden">
         <div className="border-t border-white/10 p-3 pt-2">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100">Tes games dans ce matchup</p>
@@ -4075,7 +4084,7 @@ function MatchupList({ items, toneName }) {
           </div>
           <div className="grid gap-2">{gameRows.length ? gameRows.map(({ row, enemy }, index) => <MatchupGameDetailCard key={`${row?.id || row?.match?.id || row?.match?.game_id || item.champion}-${index}`} row={row} enemy={enemy} />) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-xs font-semibold text-slate-300">Aucune game détaillée disponible.</p>}</div>
         </div>
-      </motion.div>}</React.Fragment>
+      </div>}</React.Fragment>
     </div>;
   }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Pas encore assez de games pour afficher ce bloc.</p>}</div>;
 }
@@ -5025,7 +5034,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
       </div> : <div className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/25 p-4 text-sm font-semibold text-slate-300">Pas encore de champion sur les games importées.</div>)}
     </div>
 
-    <React.Fragment>{!championsCollapsed && selectedChampionStats && <motion.div key={selectedChampionStats.champion} initial={{ height: 0, opacity: 0, y: -8 }} animate={{ height: "auto", opacity: 1, y: 0 }} exit={{ height: 0, opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: "easeOut" }} className="overflow-hidden">
+    <React.Fragment>{!championsCollapsed && selectedChampionStats && <div key={selectedChampionStats.champion} className="nxt5-enter-fast overflow-hidden">
       <div className="mt-4 rounded-3xl border border-fuchsia-300/16 bg-fuchsia-400/[0.045] p-4 shadow-[0_0_35px_rgba(217,70,239,.06)]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div><Badge tone="purple">Games du champion</Badge><h4 className="mt-3 text-xl font-black text-white">{championDisplayName(selectedChampionStats.champion)}</h4></div>
@@ -5050,7 +5059,7 @@ function PlayerStatCard({ stat, maxDamage, maxVision, maxGold }) {
           })}
         </div>
       </div>
-    </motion.div>}</React.Fragment>
+    </div>}</React.Fragment>
   </Surface>;
 }
 
@@ -6244,7 +6253,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow }) {
       </div>
     </div>;
   };
-  return <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="rounded-[1.35rem] border border-white/10 bg-black/28 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
+  return <div className="nxt5-enter-fast rounded-[1.35rem] border border-white/10 bg-black/28 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2"><Badge tone="cyan">{roleLabel(role)}</Badge><h5 className="text-base font-black text-white">Comparatif direct de la game</h5></div>
       <Badge tone="slate">Clique la ligne pour refermer</Badge>
@@ -6276,7 +6285,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow }) {
       const leader = !diff ? "Égal" : blueWins ? "Côté bleu" : "Côté rouge";
       return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
     })}</div>
-  </motion.div>;
+  </div>;
 }
 
 function SideColumnHeader({ side, align = "left" }) {
@@ -6498,8 +6507,8 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
 }
 
 function TrendsPage({ data, selectedTeamId }) {
-  const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
-  const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
+  const baseMatches = useMemo(() => (data.matches || []).filter((match) => match.team_id === selectedTeamId), [data.matches, selectedTeamId]);
+  const matchCategories = useMemo(() => (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId), [data.matchCategories, selectedTeamId]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [trendSourceModal, setTrendSourceModal] = useState(null);
   const [expandedTrendPatternId, setExpandedTrendPatternId] = useState("");
@@ -6507,14 +6516,72 @@ function TrendsPage({ data, selectedTeamId }) {
   const [draftTrendView, setDraftTrendView] = useState("ally");
   const [trendPanel, setTrendPanel] = useState("coach");
   const [profileContractsOpen, setProfileContractsOpen] = useState(false);
-  const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
+  const matches = useMemo(() => selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches, [baseMatches, selectedCategoryId]);
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
-  const rows = matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match })));
-  const ally = rows.filter((row) => row.team_key === "ALLY");
-  const enemy = rows.filter((row) => row.team_key === "ENEMY");
+  const rows = useMemo(() => matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match }))), [matches]);
+  const ally = useMemo(() => rows.filter((row) => row.team_key === "ALLY"), [rows]);
+  const enemy = useMemo(() => rows.filter((row) => row.team_key === "ENEMY"), [rows]);
   const wins = matches.filter((match) => match.result === "Victoire").length;
   const losses = matches.length - wins;
   const winrate = Math.round((wins / Math.max(1, matches.length)) * 100);
+  const roleFromRow = (row) => normalizeProfileRole(row?.role || row?.raw?.teamPosition || row?.raw?.individualPosition || row?.raw?.lane);
+  const minuteFromTimestamp = (timestamp) => {
+    const value = Number(timestamp || 0);
+    return value > 0 ? value / 60000 : null;
+  };
+  const formatMinute = (value) => Number.isFinite(value) ? formatCountdown(Math.round(value * 60)) : "--";
+  const averageValues = (values) => {
+    const valid = values.filter((value) => Number.isFinite(value));
+    return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
+  };
+  const matchInsights = useMemo(() => matches.map((match) => {
+    const allyRows = teamRows(match, "ALLY");
+    const enemyRows = teamRows(match, "ENEMY");
+    const totalGold = Math.max(1, sumRows(allyRows, "gold"));
+    const totalDamage = Math.max(1, sumRows(allyRows, "damage"));
+    const roleStats = ROSTER_ROLE_ORDER.map((role) => {
+      const row = allyRows.find((item) => roleFromRow(item) === role);
+      const enemyRow = enemyRows.find((item) => roleFromRow(item) === role);
+      const gold = statValue(row, "gold");
+      const damage = statValue(row, "damage");
+      const goldShare = (gold / totalGold) * 100;
+      const damageShare = (damage / totalDamage) * 100;
+      const kp = parsePercent(row?.kill_participation || row?.kp || 0);
+      const cs10 = row ? csAtMinute({ ...row, match }, 10) : null;
+      const cs20 = row ? csAtMinute({ ...row, match }, 20) : null;
+      const enemyCs10 = enemyRow ? csAtMinute({ ...enemyRow, match }, 10) : null;
+      const enemyCs20 = enemyRow ? csAtMinute({ ...enemyRow, match }, 20) : null;
+      return {
+        role,
+        row,
+        champion: row?.champion || "",
+        tags: championStyleTags(row?.champion),
+        goldShare,
+        damageShare,
+        kp,
+        score: goldShare + damageShare * 1.1 + kp * 0.16,
+        cs10Diff: Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null,
+        cs20Diff: Number.isFinite(cs20) && Number.isFinite(enemyCs20) ? cs20 - enemyCs20 : null,
+      };
+    }).filter((stat) => stat.row);
+    const sortedRoles = roleStats.slice().sort((a, b) => b.score - a.score);
+    const events = objectiveEvents(match);
+    const allyEvents = events.filter((event) => event.teamKey === "ALLY");
+    const firstByType = (type) => minuteFromTimestamp(allyEvents.find((event) => objectiveEventType(event) === type)?.timestamp);
+    return {
+      match,
+      win: match.result === "Victoire",
+      roleStats,
+      sortedRoles,
+      topRoles: sortedRoles.slice(0, 2).map((stat) => stat.role),
+      firstObjectiveMinute: minuteFromTimestamp(allyEvents[0]?.timestamp),
+      firstDragonMinute: firstByType("dragon"),
+      firstGrubMinute: firstByType("grub"),
+      firstHeraldMinute: firstByType("herald"),
+      firstBaronMinute: firstByType("baron"),
+      allyObjectiveCount: allyEvents.length,
+    };
+  }), [matches]);
   if (!matches.length) return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <div className="mb-5 border-b border-cyan-100/10 pb-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -6597,65 +6664,6 @@ function TrendsPage({ data, selectedTeamId }) {
       return total;
     }, { dragons: 0, grubs: 0, heralds: 0, barons: 0, towers: 0 });
     return { side, games: sideMatches.length, wins: sideWins, wr: Math.round((sideWins / Math.max(1, sideMatches.length)) * 100), objectives };
-  });
-  const roleFromRow = (row) => normalizeProfileRole(row?.role || row?.raw?.teamPosition || row?.raw?.individualPosition || row?.raw?.lane);
-  const minuteFromTimestamp = (timestamp) => {
-    const value = Number(timestamp || 0);
-    return value > 0 ? value / 60000 : null;
-  };
-  const formatMinute = (value) => Number.isFinite(value) ? formatCountdown(Math.round(value * 60)) : "--";
-  const averageValues = (values) => {
-    const valid = values.filter((value) => Number.isFinite(value));
-    return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
-  };
-  const matchInsights = matches.map((match) => {
-    const allyRows = teamRows(match, "ALLY");
-    const enemyRows = teamRows(match, "ENEMY");
-    const totalGold = Math.max(1, sumRows(allyRows, "gold"));
-    const totalDamage = Math.max(1, sumRows(allyRows, "damage"));
-    const roleStats = ROSTER_ROLE_ORDER.map((role) => {
-      const row = allyRows.find((item) => roleFromRow(item) === role);
-      const enemyRow = enemyRows.find((item) => roleFromRow(item) === role);
-      const gold = statValue(row, "gold");
-      const damage = statValue(row, "damage");
-      const goldShare = (gold / totalGold) * 100;
-      const damageShare = (damage / totalDamage) * 100;
-      const kp = parsePercent(row?.kill_participation || row?.kp || 0);
-      const cs10 = row ? csAtMinute({ ...row, match }, 10) : null;
-      const cs20 = row ? csAtMinute({ ...row, match }, 20) : null;
-      const enemyCs10 = enemyRow ? csAtMinute({ ...enemyRow, match }, 10) : null;
-      const enemyCs20 = enemyRow ? csAtMinute({ ...enemyRow, match }, 20) : null;
-      return {
-        role,
-        row,
-        champion: row?.champion || "",
-        tags: championStyleTags(row?.champion),
-        goldShare,
-        damageShare,
-        kp,
-        score: goldShare + damageShare * 1.1 + kp * 0.16,
-        cs10Diff: Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null,
-        cs20Diff: Number.isFinite(cs20) && Number.isFinite(enemyCs20) ? cs20 - enemyCs20 : null,
-      };
-    }).filter((stat) => stat.row);
-    const sortedRoles = roleStats.slice().sort((a, b) => b.score - a.score);
-    const events = objectiveEvents(match);
-    const allyEvents = events.filter((event) => event.teamKey === "ALLY");
-    const firstByType = (type) => minuteFromTimestamp(allyEvents.find((event) => objectiveEventType(event) === type)?.timestamp);
-    const firstObjectiveMinute = minuteFromTimestamp(allyEvents[0]?.timestamp);
-    return {
-      match,
-      win: match.result === "Victoire",
-      roleStats,
-      sortedRoles,
-      topRoles: sortedRoles.slice(0, 2).map((stat) => stat.role),
-      firstObjectiveMinute,
-      firstDragonMinute: firstByType("dragon"),
-      firstGrubMinute: firstByType("grub"),
-      firstHeraldMinute: firstByType("herald"),
-      firstBaronMinute: firstByType("baron"),
-      allyObjectiveCount: allyEvents.length,
-    };
   });
   const matchKey = (match) => String(match?.id || match?.game_id || match?.match_id || matchDisplayName(match, "Game"));
   const sourceGameFromInsight = (entry) => {
@@ -7561,9 +7569,9 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </article>)}
       </div>
-      {profileContractsOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="nxt5-sidebar-aware-overlay fixed inset-0 z-[220] flex items-end justify-center bg-[#020612]/95 p-3 backdrop-blur-xl sm:items-center">
+      {profileContractsOpen && <div className="nxt5-fade-in nxt5-sidebar-aware-overlay fixed inset-0 z-[220] flex items-end justify-center bg-[#020612]/95 p-3 backdrop-blur-xl sm:items-center">
         <button type="button" aria-label="Fermer les contrats" onClick={() => setProfileContractsOpen(false)} className="absolute inset-0 cursor-default" />
-        <motion.section initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, scale: 0.98, opacity: 0 }} transition={{ duration: 0.18 }} className="relative z-10 flex max-h-[88vh] w-full max-w-6xl min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.78),0_0_48px_rgba(34,211,238,.14)]">
+        <section className="nxt5-enter-fast relative z-10 flex max-h-[88vh] w-full max-w-6xl min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.78),0_0_48px_rgba(34,211,238,.14)]">
           <div className="border-b border-white/10 p-4 sm:p-5">
             <div className="flex min-w-0 items-start justify-between gap-4">
               <div className="min-w-0">
@@ -7599,8 +7607,8 @@ function TrendsPage({ data, selectedTeamId }) {
               </article>)}
             </div>
           </div>
-        </motion.section>
-      </motion.div>}
+        </section>
+      </div>}
     </Surface>}
     {trendPanel === "coach" && <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,.85fr)]">
       <Surface glow className="relative min-w-0 overflow-hidden p-0">
@@ -7697,9 +7705,9 @@ function TrendsPage({ data, selectedTeamId }) {
     </div>
     </>}
     <React.Fragment>
-      {trendSourceModal && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="nxt5-sidebar-aware-overlay fixed inset-0 z-[140] flex items-end justify-center bg-slate-950/90 p-3 backdrop-blur-xl sm:items-center">
+      {trendSourceModal && <div className="nxt5-fade-in nxt5-sidebar-aware-overlay fixed inset-0 z-[140] flex items-end justify-center bg-slate-950/90 p-3 backdrop-blur-xl sm:items-center">
         <button type="button" aria-label="Fermer les sources" onClick={() => setTrendSourceModal(null)} className="absolute inset-0 cursor-default" />
-        <motion.section initial={{ y: 24, scale: 0.98, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} exit={{ y: 16, scale: 0.98, opacity: 0 }} transition={{ duration: 0.18 }} className="relative z-10 flex max-h-[88vh] w-full max-w-6xl min-w-0 flex-col overflow-hidden rounded-2xl border border-cyan-100/18 bg-[#050913] shadow-[0_24px_80px_rgba(0,0,0,.5)]">
+        <section className="nxt5-enter-fast relative z-10 flex max-h-[88vh] w-full max-w-6xl min-w-0 flex-col overflow-hidden rounded-2xl border border-cyan-100/18 bg-[#050913] shadow-[0_24px_80px_rgba(0,0,0,.5)]">
           <div className="border-b border-white/10 p-4">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="min-w-0">
@@ -7761,8 +7769,8 @@ function TrendsPage({ data, selectedTeamId }) {
               {!trendSourceModal.games?.length && <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucune game source isolée pour ce signal.</p>}
             </div>
           </div>
-        </motion.section>
-      </motion.div>}
+        </section>
+      </div>}
     </React.Fragment>
   </div>;
 }
@@ -7817,11 +7825,11 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
       </div>
     </Surface>
     <React.Fragment>
-      <motion.div key={section} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+      <div key={section} className="nxt5-enter-fast">
         {section === "import" && <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} currentMember={currentMember} user={user} />}
         {section === "stats" && <Statistics data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} />}
         {section === "review" && <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
-      </motion.div>
+      </div>
     </React.Fragment>
   </div>;
 }
@@ -7839,14 +7847,16 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [archivesCollapsed, setArchivesCollapsed] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
   const [gameSearch, setGameSearch] = useState("");
+  const deferredGameSearch = useDeferredValue(gameSearch);
   const [matchDetailsById, setMatchDetailsById] = useState({});
   const [loadingMatchDetailId, setLoadingMatchDetailId] = useState("");
+  const [matchDetailErrorsById, setMatchDetailErrorsById] = useState({});
   const detailRequestsRef = useRef(new Set());
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const normalizeGameSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr-FR");
-  const normalizedGameSearch = normalizeGameSearch(gameSearch.trim());
+  const normalizedGameSearch = normalizeGameSearch(deferredGameSearch.trim());
   const searchedMatches = normalizedGameSearch ? scopedMatches.filter((match) => {
     const categoryNames = matchCategoryIds(match).map((id) => matchCategories.find((category) => String(category.id) === String(id))?.name || "");
     const participantTerms = (match.participants || []).flatMap((row) => [row.summoner_name, row.riot_id, row.champion, row.role]);
@@ -7868,12 +7878,13 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   }, [urlMatchId, matches.map((match) => match.id).join("|")]);
   useEffect(() => {
     setMatchDetailsById({});
+    setMatchDetailErrorsById({});
     setLoadingMatchDetailId("");
     detailRequestsRef.current.clear();
   }, [selectedTeamId]);
   useEffect(() => {
     const matchId = String(selectedMatchId || "");
-    if (!matchId || matchDetailsById[matchId] || detailRequestsRef.current.has(matchId)) return undefined;
+    if (!matchId || matchDetailsById[matchId] || matchDetailErrorsById[matchId] || detailRequestsRef.current.has(matchId)) return undefined;
     let cancelled = false;
     detailRequestsRef.current.add(matchId);
     setLoadingMatchDetailId(matchId);
@@ -7881,18 +7892,24 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
       .then((result) => {
         const detail = result?.matches?.[0];
         if (!cancelled && detail?.id) setMatchDetailsById((current) => ({ ...current, [detail.id]: detail }));
+        else if (!cancelled) setMatchDetailErrorsById((current) => ({ ...current, [matchId]: "Détail introuvable pour cette game." }));
       })
       .catch((error) => {
-        if (!cancelled) pushToast?.({ type: "red", title: "Détail de game indisponible", text: error.message });
+        if (!cancelled) {
+          const message = error.message || "Impossible de charger le détail complet.";
+          setMatchDetailErrorsById((current) => ({ ...current, [matchId]: message }));
+          pushToast?.({ type: "red", title: "Détail de game indisponible", text: message });
+        }
       })
       .finally(() => {
         detailRequestsRef.current.delete(matchId);
         if (!cancelled) setLoadingMatchDetailId((current) => current === matchId ? "" : current);
       });
     return () => { cancelled = true; };
-  }, [selectedMatchId, selectedTeamId, matchDetailsById, pushToast]);
+  }, [selectedMatchId, selectedTeamId, matchDetailsById, matchDetailErrorsById, pushToast]);
   const selectedMatchSummary = scopedMatches.find((match) => String(match.id || "") === String(selectedMatchId || "")) || null;
   const selectedMatchDetail = selectedMatchSummary ? matchDetailsById[selectedMatchSummary.id] : null;
+  const selectedMatchDetailError = selectedMatchSummary ? matchDetailErrorsById[selectedMatchSummary.id] : "";
   const selectedMatch = selectedMatchSummary && selectedMatchDetail
     ? { ...selectedMatchSummary, ...selectedMatchDetail, participants: selectedMatchDetail.participants || selectedMatchSummary.participants || [] }
     : selectedMatchSummary;
@@ -8090,7 +8107,18 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
         </Surface>}
         {selectedArchive && <ScrimArchiveSummary matches={scopedMatches} selectedMatchId={selectedMatchId} onSelectMatch={setSelectedMatchId} />}
         {selectedMatch && <>
-          {loadingMatchDetailId === selectedMatch.id && <div className="mt-5 flex items-center gap-2 border-y border-cyan-200/15 bg-cyan-300/[0.045] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-100"><Loader2 className="h-4 w-4 animate-spin" />Chargement du détail de la game</div>}
+          {loadingMatchDetailId === selectedMatch.id && <div className="mt-5 flex flex-wrap items-center gap-2 border-y border-cyan-200/15 bg-cyan-300/[0.045] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-100"><Loader2 className="h-4 w-4 animate-spin" />Chargement des données avancées de la game</div>}
+          {selectedMatchDetailError && loadingMatchDetailId !== selectedMatch.id && <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200/18 bg-amber-400/[0.065] px-4 py-3 text-sm font-semibold text-amber-50 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">Détail avancé indisponible</p><p className="mt-1 text-xs leading-5 text-amber-50/85">{selectedMatchDetailError} Les stats déjà chargées restent affichées.</p></div>
+            <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => {
+              detailRequestsRef.current.delete(selectedMatch.id);
+              setMatchDetailErrorsById((current) => {
+                const next = { ...current };
+                delete next[selectedMatch.id];
+                return next;
+              });
+            }}>Réessayer</Button>
+          </div>}
           <MatchDataPanel match={selectedMatch} />
         </>}
       </> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}
@@ -8806,11 +8834,11 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
 
 function CompositionTagLexicon({ open }) {
   if (!open) return null;
-  return <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }} className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-200/16 bg-[#050914]/82 p-4 shadow-[0_0_34px_rgba(34,211,238,.08)] backdrop-blur-xl">
+  return <div className="nxt5-enter-fast mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-200/16 bg-[#050914]/82 p-4 shadow-[0_0_34px_rgba(34,211,238,.08)] backdrop-blur-xl">
     <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between"><div><Badge tone="cyan">Sommaire</Badge><h3 className="mt-3 text-xl font-black text-white">Lexique des tags champions</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Ces tags décrivent l'identité d'un champion dans une Compo Type. Ils servent à lire rapidement le plan de draft, pas à juger automatiquement la compo.</p></div><div className="hidden rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100 md:block">NXT5 Draft</div></div>
     <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{CHAMPION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge></div><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{definition}</p></div>)}</div>
     <div className="mt-4 rounded-2xl border border-violet-300/14 bg-violet-400/[0.055] p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-violet-100">Tags de classement</p><div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">{COMPOSITION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag} className="rounded-xl border border-white/10 bg-black/20 p-3"><Badge tone="purple">{tagLabel(tag)}</Badge><p className="mt-2 text-xs font-semibold leading-5 text-slate-200">{definition}</p></div>)}</div></div>
-  </motion.div>;
+  </div>;
 }
 
 function ChampionPoolColorSummary() {
@@ -10124,6 +10152,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const [selectedReportId, setSelectedReportId] = useState(urlReportId || null);
   const [lexiconOpen, setLexiconOpen] = useState(false);
   const [reportSearch, setReportSearch] = useState("");
+  const deferredReportSearch = useDeferredValue(reportSearch);
   const [composerOpen, setComposerOpen] = useState(false);
   const [workspaceView, setWorkspaceView] = useState("library");
   const [saving, setSaving] = useState(false);
@@ -10162,7 +10191,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const reviewWins = reviewMatches.filter((match) => match.result === "Victoire").length;
   const selectedWins = selectedMatches.filter((match) => match.result === "Victoire").length;
   const pendingReviewCount = matches.filter((match) => String(match.review_status || "todo") !== "done").length;
-  const searchNeedle = reportSearch.trim().toLowerCase();
+  const searchNeedle = deferredReportSearch.trim().toLowerCase();
   const filteredReports = scopedReports.filter((report) => {
     if (!searchNeedle) return true;
     const title = reportDisplayName(report, matches).toLowerCase();
@@ -10346,7 +10375,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-[0.68rem] font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span> résultat{filteredReports.length > 1 ? "s" : ""} sur {reports.length}</p>}
           </div>
 
-          <div className="max-h-[min(66vh,44rem)] overflow-y-auto overscroll-contain">
+          <div className="nxt5-review-list max-h-[min(66vh,44rem)] overflow-y-auto overscroll-contain">
             {filteredReports.length ? filteredReports.map((report) => {
               const active = selected?.id === report.id;
               const ids = reportMatchIds(report);
@@ -10393,8 +10422,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       </div>}
 
       {composerOpen && createPortal(
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.16 }} className="fixed inset-0 z-[300] isolate flex items-end justify-center bg-[#020511]/94 backdrop-blur-xl sm:items-center sm:p-3 lg:p-5">
-          <motion.section initial={{ opacity: 0, y: 18, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.2, ease: "easeOut" }} role="dialog" aria-modal="true" aria-labelledby="review-composer-title" className="relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.82),0_0_54px_rgba(34,211,238,.16)] sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
+        <div className="nxt5-fade-in fixed inset-0 z-[300] isolate flex items-end justify-center bg-[#020511]/94 backdrop-blur-xl sm:items-center sm:p-3 lg:p-5">
+          <section role="dialog" aria-modal="true" aria-labelledby="review-composer-title" className="nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.82),0_0_54px_rgba(34,211,238,.16)] sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
             <div className="pointer-events-none absolute inset-x-8 top-0 z-20 h-px bg-gradient-to-r from-transparent via-cyan-100/75 to-fuchsia-100/55" />
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
@@ -10422,8 +10451,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                 </div>
               </div>
             </form>
-          </motion.section>
-        </motion.div>,
+          </section>
+        </div>,
         document.body
       )}
     </div>
@@ -10630,7 +10659,7 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/72 px-4 text-white backdrop-blur-xl">
-      <motion.div initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-xl overflow-hidden rounded-[1.65rem] border border-cyan-300/25 bg-[#090d1a]/95 p-6 shadow-2xl shadow-black/50">
+      <div className="nxt5-enter w-full max-w-xl overflow-hidden rounded-[1.65rem] border border-cyan-300/25 bg-[#090d1a]/95 p-6 shadow-2xl shadow-black/50">
         <Badge tone="orange">Action requise</Badge>
         <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Ajoute ton e-mail de récupération</h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">Les anciens comptes n’avaient pas d’e-mail. Ajoute le tien maintenant pour recevoir les liens de mot de passe oublié.</p>
@@ -10639,7 +10668,7 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
           {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
           <Button type="submit" disabled={saving || !email.trim()} icon={saving ?Loader2 : Mail} className="w-full py-4">{saving ?"Enregistrement..." : "Enregistrer l’e-mail"}</Button>
         </form>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -10685,7 +10714,7 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
 
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/78 px-4 text-white backdrop-blur-2xl">
-      <motion.div initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} className="w-full max-w-xl overflow-hidden rounded-[1.65rem] border border-amber-300/28 bg-[#090d1a]/96 p-6 shadow-2xl shadow-black/55">
+      <div className="nxt5-enter w-full max-w-xl overflow-hidden rounded-[1.65rem] border border-amber-300/28 bg-[#090d1a]/96 p-6 shadow-2xl shadow-black/55">
         <Badge tone="orange">Vérification obligatoire</Badge>
         <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton profil</h2>
         <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">Ton compte utilise l'adresse <span className="font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
@@ -10699,7 +10728,7 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
           <Button type="button" icon={sending ? Loader2 : Mail} onClick={resend} disabled={sending || checking} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
           <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={sending || checking} className="w-full py-4">{checking ? "Vérification..." : "J'ai vérifié mon email"}</Button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -10750,7 +10779,7 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-6 text-white sm:px-6">
       <AmbientBackground />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(103,232,249,.14),transparent_34%),radial-gradient(circle_at_74%_30%,rgba(217,70,239,.10),transparent_30%),linear-gradient(90deg,rgba(2,5,17,.86),transparent_42%,rgba(2,5,17,.84))]" />
-      <motion.div initial={false} animate={{ opacity: 1, y: 0, scale: 1 }} className="nxt5-warroom relative z-10 w-full">
+      <div className="nxt5-warroom relative z-10 w-full">
         <div className="nxt5-warroom-header">
           <Nxt5Wordmark className="nxt5-loader-wordmark h-12 w-48 object-left sm:h-14 sm:w-56" />
         </div>
@@ -10796,7 +10825,7 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -10847,7 +10876,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   });
 
   function setActive(pageId) {
-    setActiveState(pageId);
+    startTransition(() => setActiveState(pageId));
     const keepInvite = pageId === "teams" && new URLSearchParams(window.location.search).has("invite");
     navigate(`${pathFromPage(pageId)}${keepInvite ?window.location.search : ""}`);
   }
@@ -10892,7 +10921,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }
   async function logout() { try { await apiFetch("auth-logout", { method: "POST" }); } catch {} pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." }); navigate("/connexion", { replace: true }); onLogout(); }
   useEffect(() => { refreshAll(); }, []);
-  useEffect(() => { setActiveState(new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path)); }, [route.path, route.search]);
+  useEffect(() => { startTransition(() => setActiveState(new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path))); }, [route.path, route.search]);
 
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
   const currentMember = currentTeam ?(data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
@@ -10910,7 +10939,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
     if (active === "guide") return <GuidePage onOpenAssistant={openAssistant} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, loading, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
@@ -10937,7 +10966,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
     </div>
-    <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={null} selectedEntity={null} initialPrompt={assistantPrompt} navigate={navigate} />
+    {assistantOpen && <Suspense fallback={null}><AssistantPanel open onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={null} selectedEntity={null} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>}
   </>;
   return (
     <div className="relative min-h-screen text-white">
@@ -10974,14 +11003,14 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
           {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}
           <React.Fragment>
-            <motion.div key={active} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }} className="min-w-0">
-              {page}
-            </motion.div>
+            <div key={active} className="nxt5-fade-in min-w-0">
+              <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{page}</Suspense>
+            </div>
           </React.Fragment>
         </main>
         <LegalLinks navigate={navigate} />
       </div>
-      <AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} />
+      {assistantOpen && <Suspense fallback={null}><AssistantPanel open onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>}
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}
     </div>
@@ -10994,22 +11023,22 @@ export default function NXT5() {
   const [toasts, setToasts] = useState([]);
   const [route, setRoute] = useState(readRoute);
 
-  function navigate(path, options = {}) {
+  const navigate = useCallback((path, options = {}) => {
     const method = options.replace ?"replaceState" : "pushState";
     window.history[method]({}, "", path);
-    setRoute(readRoute());
+    startTransition(() => setRoute(readRoute()));
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  }, []);
 
-  function pushToast(toast) {
+  const pushToast = useCallback((toast) => {
     const id = crypto.randomUUID ?crypto.randomUUID() : String(Date.now() + Math.random());
     setToasts((current) => [...current, { ...toast, id }]);
     window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== id)), 4500);
-  }
-  function removeToast(id) { setToasts((current) => current.filter((item) => item.id !== id)); }
-  function handleAuth(nextUser) {
+  }, []);
+  const removeToast = useCallback((id) => { setToasts((current) => current.filter((item) => item.id !== id)); }, []);
+  const handleAuth = useCallback((nextUser) => {
     setUser(nextUser);
-  }
+  }, []);
 
   useEffect(() => {
     configurePerformanceMode();
