@@ -25,15 +25,17 @@ function KpiCard({ icon: Icon, label, value, growth7, growth30, tone = "cyan" })
 function DailyChart({ rows = [] }) {
   const points = rows.slice(-30);
   const max = Math.max(1, ...points.map((row) => Number(row.users || 0) + Number(row.teams || 0) + Number(row.matches || 0)));
+  const [hovered, setHovered] = useState(null);
   if (!points.length) return <EmptyState icon={BarChart3} title="Pas encore de tendance" text="Les données quotidiennes apparaîtront ici dès la première activité." />;
   return <div>
-    <div className="flex h-52 items-end gap-1 sm:gap-1.5" aria-label="Activité quotidienne sur 30 jours">
-      {points.map((row, index) => {
+    <div className="mb-3 flex min-h-14 items-center rounded-xl border border-cyan-100/15 bg-[#030712]/80 px-4 py-2 text-xs shadow-inner shadow-black/30">
+      {hovered ? <div className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-1"><strong className="text-cyan-50">{formatDate(hovered.date)}</strong><span className="font-semibold text-slate-100">{hovered.users || 0} comptes · {hovered.teams || 0} équipes · {hovered.matches || 0} games</span></div> : <span className="font-semibold text-slate-400">Survole une barre pour afficher le détail de la journée.</span>}
+    </div>
+    <div className="flex h-44 items-end gap-1 sm:gap-1.5" aria-label="Activité quotidienne sur 30 jours" onMouseLeave={() => setHovered(null)}>
+      {points.map((row) => {
         const total = Number(row.users || 0) + Number(row.teams || 0) + Number(row.matches || 0);
         const height = Math.max(2, (total / max) * 100);
-        const verticalPosition = height > 62 ? "top-2" : "bottom-[calc(100%+8px)]";
-        const horizontalPosition = index === 0 ? "left-0" : index === points.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2";
-        return <div key={row.date} className="group relative flex min-w-0 flex-1 items-end" style={{ height: `${height}%` }} title={`${formatDate(row.date)} : ${total} événements`}><div className="h-full min-h-[3px] w-full rounded-t-sm bg-gradient-to-t from-cyan-500 via-blue-500 to-fuchsia-400 opacity-75 transition group-hover:opacity-100 group-focus-within:opacity-100" /><div className={cx("pointer-events-none absolute z-30 hidden w-40 rounded-xl border border-cyan-100/25 bg-[#030712]/[0.98] p-3 text-xs leading-5 text-white shadow-[0_16px_45px_rgba(0,0,0,.8),0_0_22px_rgba(34,211,238,.16)] backdrop-blur-xl group-hover:block", verticalPosition, horizontalPosition)}><p className="font-black text-cyan-50">{formatDate(row.date)}</p><p className="mt-1 font-semibold text-slate-100">{row.users || 0} comptes · {row.teams || 0} équipes · {row.matches || 0} games</p></div></div>;
+        return <button type="button" key={row.date} className="group relative flex min-w-0 flex-1 items-end focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/80" style={{ height: `${height}%` }} aria-label={`${formatDate(row.date)} : ${total} événements`} onMouseEnter={() => setHovered(row)} onFocus={() => setHovered(row)}><span className="h-full min-h-[3px] w-full rounded-t-sm bg-gradient-to-t from-cyan-500 via-blue-500 to-fuchsia-400 opacity-75 transition group-hover:opacity-100 group-focus-visible:opacity-100" /></button>;
       })}
     </div>
     <div className="mt-3 flex justify-between text-[0.62rem] font-bold uppercase tracking-wider text-slate-500"><span>{formatDate(points[0]?.date)}</span><span>{formatDate(points.at(-1)?.date)}</span></div>
