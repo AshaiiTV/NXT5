@@ -1,6 +1,6 @@
 # NXT5 — Netlify + Neon
 
-Dashboard premium d'analyse LoL pour équipes semi-pro.
+Outil de suivi LoL pour équipes et coachs.
 
 ## Stack
 

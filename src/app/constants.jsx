@@ -19,7 +19,7 @@ export const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer
 export const NAV = [
   { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Games", hint: "Importer, lire, review", icon: Swords, shortcut: "G", path: "/integration" },
-  { id: "stats", label: "Statistiques", hint: "Lecture détaillée", icon: BarChart3, shortcut: "S", path: "/statistiques" },
+  { id: "stats", label: "Statistiques", hint: "Games et tendances", icon: BarChart3, shortcut: "S", path: "/statistiques" },
   { id: "trends", label: "Tendances", hint: "Comprendre l'équipe", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "planning", label: "Planning", hint: "Dispos et sessions", icon: CalendarDays, shortcut: "L", path: "/planning" },
   { id: "draft", label: "Draft", hint: "Pools et compositions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },

@@ -39,7 +39,7 @@ function MarketingPreview() {
         </div>
         <div className="relative z-10 mt-4 grid grid-cols-[.86fr_1.14fr] gap-4">
           <div className="nxt5-panel border border-white/10 bg-black/[0.20] p-4">
-            <p className="font-black text-white">Lecture 5v5</p>
+            <p className="font-black text-white">Suivi 5v5</p>
             <p className="text-xs font-semibold text-slate-300">Blue side à gauche, red side à droite.</p>
             <div className="mt-4 space-y-2">
               {lanes.map(([role, focus], i) => (
@@ -316,7 +316,7 @@ export function HomeScreen({ navigate }) {
             <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl">
               Comprends ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">équipe</span> sans te perdre dans les <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">stats</span>.
             </h1>
-            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-200 md:text-lg">NXT5 transforme tes games en une lecture claire : qui porte l'équipe, comment vous gagnez, ce qui vous fait perdre et quoi corriger au prochain bloc.</p>
+            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-200 md:text-lg">Importe tes games, prépare les reviews et suis le travail de l’équipe au même endroit.</p>
             <div className="mt-4 grid max-w-2xl gap-3 sm:grid-cols-3">
               {["Crée la team", "Importe les games", "Lis les tendances"].map((label, index) => <div key={label} className="nxt5-panel border border-cyan-200/14 bg-white/[0.035] px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">0{index + 1}</p><p className="mt-1 text-sm font-black text-white">{label}</p></div>)}
             </div>
@@ -332,7 +332,7 @@ export function HomeScreen({ navigate }) {
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <Badge tone="purple">Ce que tu fais avec NXT5</Badge>
-              <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Un parcours simple, puis des outils puissants</h2>
+              <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Tout le suivi de l’équipe au même endroit</h2>
             </div>
             <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-300">Le premier usage reste guidé. Les analyses avancées arrivent ensuite, quand la team a assez de games.</p>
           </div>
@@ -340,15 +340,15 @@ export function HomeScreen({ navigate }) {
           {[
             { icon: Users, title: "Pose le roster", text: "Crée la team, ajoute les joueurs et relie les profils. NXT5 sait ensuite à qui appartient chaque donnée.", t: "cyan" },
             { icon: Swords, title: "Ajoute les games", text: "Importe une game ou un bloc de scrim. Le site garde le side, les champions, les objectifs et les stats importantes.", t: "purple" },
-            { icon: Activity, title: "Comprends le collectif", text: "Tendances explique comment l'équipe fonctionne : condition de victoire, rôles moteurs, tempo et fail states.", t: "green" },
+            { icon: Activity, title: "Compare les blocs", text: "Retrouve les résultats, les écarts par rôle et les games à revoir.", t: "green" },
           ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
           </div>
         </section>
 
         <section id="analytics" className="nxt5-panel nxt5-premium-panel relative mt-14 overflow-hidden border border-cyan-200/18 p-6 shadow-2xl shadow-black/25 md:p-9">
-          <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">Du match à la review</h2><p className="mt-3 text-base font-semibold text-slate-300">NXT5 met les données au clair pour que joueurs, coachs et capitaines fassent leur propre lecture.</p></div>
+          <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">De la game à la review</h2><p className="mt-3 text-base font-semibold text-slate-300">Les données de la game restent accessibles pendant la review.</p></div>
           <div className="grid gap-5 md:grid-cols-4">
-            {[["1", Swords, "Importe la game", "Le match devient une fiche lisible avec champions, side, patch et objectifs."], ["2", Eye, "Lis les signaux", "Vision, dégâts, gold, KDA, KP et morts exposées ressortent sans fouiller."], ["3", Crown, "Trie les picks", "Le Champion Pool révèle les picks fiables, situationnels et dangereux."], ["4", Target, "Prépare le prochain match", "La review reste un support de lecture pour le coach et les joueurs."]].map(([n, Icon, title, text]) => <div key={n} className="nxt5-panel relative border border-cyan-100/14 bg-black/[0.24] p-5 transition hover:-translate-y-1 hover:border-cyan-200/28"><Badge tone={n === "1" ?"cyan" : "purple"}>{n}</Badge><div className="mt-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></div><h3 className="mt-5 text-lg font-black text-white">{title}</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}
+            {[["1", Swords, "Importe la game", "Retrouve les champions, le side, le patch et les objectifs."], ["2", Eye, "Vérifie les stats", "Compare la vision, les dégâts, l’or, le KDA et le KP."], ["3", Crown, "Mets les pools à jour", "Classe les picks de chaque joueur selon leur niveau de maîtrise."], ["4", Target, "Prépare la review", "Note ce qui doit être gardé ou corrigé."]].map(([n, Icon, title, text]) => <div key={n} className="nxt5-panel relative border border-cyan-100/14 bg-black/[0.24] p-5 transition hover:-translate-y-1 hover:border-cyan-200/28"><Badge tone={n === "1" ?"cyan" : "purple"}>{n}</Badge><div className="mt-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></div><h3 className="mt-5 text-lg font-black text-white">{title}</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}
           </div>
           <div className="mt-8 flex justify-center"><LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight} className="px-7 py-4">Créer l’espace équipe</LinkButton></div>
         </section>
@@ -360,12 +360,12 @@ export function HomeScreen({ navigate }) {
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <Badge tone="cyan">Review ready</Badge>
-                <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Pensé pour les reviews qui changent quelque chose</h2>
+                <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Prépare une review claire</h2>
               </div>
               <Nxt5Wordmark className="h-12 w-48 object-right opacity-90" />
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {["Comparer les champions joués et leur volume.", "Lire rapidement les écarts de stats d’équipe.", "Générer une review exploitable par le staff.", "Préparer la prochaine session avec les données visibles."].map((item, index) => <div key={item} className="nxt5-panel flex items-center gap-3 border border-white/10 bg-white/[0.035] p-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-400/10 text-xs font-black text-cyan-100">0{index + 1}</span><Check className="h-5 w-5 shrink-0 text-emerald-300" /><span className="font-bold text-slate-200">{item}</span></div>)}
+              {["Comparer les champions joués et leur volume.", "Voir les écarts de stats de l’équipe.", "Préparer une review pour le staff.", "Préparer la prochaine session avec les données disponibles."].map((item, index) => <div key={item} className="nxt5-panel flex items-center gap-3 border border-white/10 bg-white/[0.035] p-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-400/10 text-xs font-black text-cyan-100">0{index + 1}</span><Check className="h-5 w-5 shrink-0 text-emerald-300" /><span className="font-bold text-slate-200">{item}</span></div>)}
             </div>
           </Surface>
         </section>

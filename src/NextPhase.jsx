@@ -212,7 +212,7 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   return <Panel>
     <div className="border-b border-white/10 p-4 sm:p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div><Label>Comparaison</Label><h3 className="mt-3 text-2xl font-black text-white">Ce qui a réellement changé</h3><p className="mt-1 text-sm font-semibold text-slate-400">Deux blocs, les mêmes repères, aucun score opaque.</p></div>
+        <div><Label>Comparaison</Label><h3 className="mt-3 text-2xl font-black text-white">Évolution entre les deux blocs</h3><p className="mt-1 text-sm font-semibold text-slate-400">Les mêmes statistiques sur deux périodes.</p></div>
         <div className="grid gap-2 sm:grid-cols-[minmax(0,14rem)_auto_minmax(0,14rem)] sm:items-end">
           <label className="block"><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Avant</span><select value={leftKey} onChange={(event) => setLeftKey(event.target.value)} className="w-full rounded-lg border border-white/10 bg-[#0a1020] px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-cyan-300/35">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           <ArrowRight className="mb-3 hidden h-4 w-4 text-slate-500 sm:block" />
@@ -243,7 +243,7 @@ function reviewReason(match) {
   if (match.result === "Défaite" && gold < -3000) return `Défaite · ${Math.abs(Math.round(gold / 100) * 100).toLocaleString("fr-FR")} or de retard`;
   if (deaths >= 20) return `${deaths} morts alliées à classer`;
   if (!hasTimeline(match)) return "Timeline absente · lecture finale uniquement";
-  return match.result === "Défaite" ? "Défaite à transformer en décision" : "Game à consolider dans le plan";
+  return match.result === "Défaite" ? "Défaite à revoir" : "Victoire à revoir";
 }
 
 export function ReviewQueuePanel({ matches = [], reports = [], selectedTeamId, refreshAll, pushToast, onStartReview, onOpenReview }) {

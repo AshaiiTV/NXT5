@@ -1408,9 +1408,9 @@ function TeamCoachDashboard({ team, players = [], matches = [], championPool = [
   return <Surface glow className="mb-5 overflow-hidden p-0">
     <div className="grid gap-0 2xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
       <div className="min-w-0 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Coach cockpit</Badge><Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge></div>
+        <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Résumé équipe</Badge><Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge></div>
         <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
-        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Une lecture courte : priorité équipe, joueur à review, pick à sécuriser et game source.</p>
+        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Priorité de l’équipe, joueur à revoir, pick à garder et game associée.</p>
         <HomeActionSummary matches={teamMatches} alerts={alerts} />
       </div>
       <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 2xl:border-l 2xl:border-t-0">
@@ -1993,7 +1993,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
 	    avgDamageShare >= avgGoldShare + 3 && { kind: "strength", priority: 78, title: "Impact rentable", text: `${avgDamageShare.toFixed(1)}% dégâts pour ${avgGoldShare.toFixed(1)}% gold : le joueur convertit bien les ressources reçues.`, action: `À maintenir : continuer à lui donner les mêmes timings de ressources quand la draft demande du carry ${roleLabel(roleKey)}.`, toneName: "green", icon: Flame },
 	    avgKp >= 65 && { kind: "strength", priority: 74, title: "Présence fights solide", text: `${Math.round(avgKp)}% KP moyen : le joueur est connecté aux kills utiles et participe aux conversions.`, action: `À pousser : utiliser cette présence pour caller plus tôt le prochain objectif après kill, surtout quand ${championName(topChampion)} est joué.`, toneName: "cyan", icon: Swords },
 	    avgDeathShare <= 18 && games >= 3 && { kind: "strength", priority: 70, title: "Profil stable sous pression", text: `${avgDeaths.toFixed(1)} morts moy. et faible exposition relative. Il garde assez souvent la game jouable.`, action: `À conserver : ne pas le forcer dans des engages sans information ; construire autour de sa capacité à rester vivant jusqu'au fight clé.`, toneName: "green", icon: Shield },
-	    avgVisionShare >= 22 && { kind: "strength", priority: 64, title: "Présence map exploitable", text: `${avgVisionShare.toFixed(1)}% de la vision équipe : le profil participe déjà au contrôle de zone.`, action: `À préciser : transformer cette vision en call clair "on entre / on trade / on abandonne" avant les objectifs.`, toneName: "cyan", icon: Eye },
+	    avgVisionShare >= 22 && { kind: "strength", priority: 64, title: "Bonne présence sur la map", text: `${avgVisionShare.toFixed(1)}% de la vision de l’équipe.`, action: `À préciser : annoncer "on entre / on trade / on abandonne" avant les objectifs.`, toneName: "cyan", icon: Eye },
 	    topChampion && topChampion.winrate >= 55 && { kind: "strength", priority: 62, title: "Pick de confiance identifié", text: `${championDisplayName(topChampion.champion)} : ${topChampion.winrate}% WR sur ${topChampion.games} game${topChampion.games > 1 ? "s" : ""}, KDA ${topChampion.kda}.`, action: `Draft : garder ${championDisplayName(topChampion.champion)} comme référence, mais noter dans quelles lanes/matchups il gagne vraiment son avantage.`, toneName: "green", icon: Crown },
 	  ].filter(Boolean).sort((a, b) => b.priority - a.priority);
 	  const coachIssues = coachSignals.filter((item) => item.kind === "issue").slice(0, 4);
@@ -2017,7 +2017,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     { label: "Pool", value: championStats.length, detail: topChampion ? `${topChampionShare}% sur ${championDisplayName(topChampion.champion)}` : "aucun champion", toneName: topChampionShare >= 60 ? "yellow" : "cyan", icon: Crown },
   ];
   const coachVerdict = coachIssues[0]?.title || coachStrengths[0]?.title || "Données à enrichir";
-  const coachSummary = coachIssues.length ? coachIssues[0].text : coachStrengths[0]?.text || "Importe quelques games supplémentaires pour construire un diagnostic fiable.";
+  const coachSummary = coachIssues.length ? coachIssues[0].text : coachStrengths[0]?.text || "Importe quelques games supplémentaires pour obtenir un bilan.";
   const profileSignals = [
     { title: "Impact dégâts", value: `${avgDamageShare.toFixed(1)}%`, detail: `${formatPoints(sum("damage") / Math.max(1, games))} dégâts moyens · ${avgGoldShare.toFixed(1)}% gold équipe`, toneName: avgDamageShare >= avgGoldShare ? "purple" : "orange", icon: Flame },
     { title: "Rendement ressources", value: `${avgDamageShare.toFixed(1)}%`, detail: `${avgGoldShare.toFixed(1)}% de l'or équipe reçu.`, toneName: damageResourceDelta >= 0 ? "green" : "red", icon: Gauge },
@@ -2239,7 +2239,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     if (!championStats.length) fitText("Aucun champion importé.", 126, 508, 560, { font: "800 18px Inter, Arial, sans-serif", color: "#c7d4e5", min: 12 });
 
     drawPanel(1010, 356, 820, 364, "green", 0.50);
-    fitText("Lecture coach", 1046, 414, 420, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 22 });
+    fitText("Notes du coach", 1046, 414, 420, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 22 });
     fitText(shortCanvas(coachVerdict, 54), 1046, 454, 700, { font: "900 23px Inter, Arial, sans-serif", color: "#ffffff", min: 15 });
     fitText(shortCanvas(coachSummary, 112), 1046, 488, 720, { font: "800 15px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
     drawLine(1046, 520, 1794, 520, "rgba(52,211,153,.24)", 1.5);
@@ -2279,7 +2279,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   ];
   if (!selectedPlayer) return <Surface glow><EmptyState icon={Activity} title="Profil introuvable" text="Lie ton compte à un profil joueur dans Gestion équipe pour alimenter cette page." /></Surface>;
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
-    <PageHeader eyebrow="Player Lab" title="Mon profil" subtitle={"Diagnostic coach complet, axes de travail et d\u00e9tails exploitables sans perdre le fil de la review."} />
+    <PageHeader eyebrow="Joueur" title="Mon profil" subtitle="Stats, historique, pool et notes du coach." />
     <Surface className="relative overflow-hidden p-5">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(34,211,238,.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(217,70,239,.13),transparent_34%)]" />
       <div className="relative z-10 mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 2xl:flex-row 2xl:items-end 2xl:justify-between">
@@ -2341,20 +2341,20 @@ function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, i
   return <Surface className="p-5 md:p-6">
     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2"><Badge tone={mainTone}>Diagnostic coach</Badge><Badge tone="slate">{games} game{games > 1 ? "s" : ""}</Badge><Badge tone={wins >= losses ? "green" : "orange"}>{wins}W - {losses}L</Badge></div>
+        <div className="flex flex-wrap items-center gap-2"><Badge tone={mainTone}>Bilan du joueur</Badge><Badge tone="slate">{games} game{games > 1 ? "s" : ""}</Badge><Badge tone={wins >= losses ? "green" : "orange"}>{wins}W - {losses}L</Badge></div>
         <h3 className="mt-4 max-w-4xl text-3xl font-black leading-tight text-white md:text-4xl">{verdict}</h3>
         <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{summary}</p>
       </div>
       <div className="grid shrink-0 grid-cols-3 gap-4 border-y border-white/10 py-3 text-center sm:min-w-[340px] xl:border-y-0 xl:border-l xl:py-0 xl:pl-5">
         <div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{games}</p></div>
         <div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Winrate</p><p className="mt-1 text-xl font-black text-white">{Math.round((wins / Math.max(1, games)) * 100)}%</p></div>
-        <div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Lecture</p><p className="mt-1 truncate text-sm font-black text-white">{issues.length ? "À corriger" : "Stable"}</p></div>
+        <div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">Bilan</p><p className="mt-1 truncate text-sm font-black text-white">{issues.length ? "À corriger" : "Stable"}</p></div>
       </div>
     </div>
     <div className="mt-6 grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(290px,.38fr)]">
       <div className="min-w-0">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Lecture prioritaire</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Point à revoir</p>
           <span className="text-xs font-bold text-slate-400">Détails dans les onglets dédiés</span>
         </div>
         <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
@@ -2364,7 +2364,7 @@ function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, i
               <span className={cx("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(item.toneName))}><Icon className="h-4 w-4" /></span>
               <div className="min-w-0"><p className="font-black text-white">{item.title}</p><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{item.text}</p>{item.action && <p className="mt-2 rounded-xl border border-cyan-300/12 bg-cyan-400/[0.055] px-3 py-2 text-xs font-black leading-5 text-cyan-50">{item.action}</p>}</div>
             </div>;
-          }) : <p className="py-4 text-sm font-semibold text-slate-300">Importe plus de games pour produire une lecture fiable.</p>}
+          }) : <p className="py-4 text-sm font-semibold text-slate-300">Importe plus de games pour obtenir un bilan.</p>}
         </div>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {decisions.map((item) => <div key={item.label} className={cx("min-w-0 border-l-2 pl-3", item.toneName === "green" ? "border-emerald-300/60" : item.toneName === "red" ? "border-rose-300/60" : item.toneName === "orange" ? "border-amber-300/60" : item.toneName === "purple" ? "border-fuchsia-300/60" : "border-cyan-300/60")}>
@@ -2458,8 +2458,8 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
       {bestPick?.champion && <ChampionBackdrop champion={bestPick.champion} focus="face" />}
       <div className="relative z-10 grid gap-0 xl:grid-cols-[minmax(0,1fr)_minmax(360px,.36fr)]">
         <div className="min-w-0 p-5 md:p-6">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champion cockpit</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge><Badge tone={selectedCategoryId ? "purple" : "green"}>{selectedCategoryId ? "Filtre actif" : "Toutes les games"}</Badge></div>
-          <h3 className="mt-4 max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">{bestPick ? `Pick de reference: ${championDisplayName(bestPick.champion)}` : "Champion cockpit"}</h3>
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Champions joués</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge><Badge tone={selectedCategoryId ? "purple" : "green"}>{selectedCategoryId ? "Filtre actif" : "Toutes les games"}</Badge></div>
+          <h3 className="mt-4 max-w-4xl text-3xl font-black leading-tight text-white md:text-5xl">{bestPick ? `Pick de référence : ${championDisplayName(bestPick.champion)}` : "Champions joués"}</h3>
           <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">La page commence par la decision, puis donne les preuves. Tu dois pouvoir choisir un pick, comprendre le risque et ouvrir la review sans fouiller.</p>
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <ProfileChampionSignal icon={Crown} label="Pool joue" value={enhancedStats.length} detail={`${totalGames} games`} toneName={enhancedStats.length >= 4 ? "green" : "yellow"} />
@@ -2488,7 +2488,7 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
           <div className="grid grid-cols-3 gap-1">{sortOptions.map(([id, label]) => <button key={id} type="button" onClick={() => setSortMode(id)} className={cx("rounded-xl px-2 py-2 text-[0.66rem] font-black uppercase tracking-[0.08em] transition", sortMode === id ? "bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,.16)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>{label}</button>)}</div>
         </div>
         <div className="mt-4 grid max-h-[64rem] gap-2 overflow-auto pr-1 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr))] 2xl:grid-cols-1">
-          {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} active={activeStat?.champion === stat.champion} onClick={() => onSelectChampion(stat.champion)} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion ne correspond a cette lecture.</p>}
+          {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} active={activeStat?.champion === stat.champion} onClick={() => onSelectChampion(stat.champion)} />) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun champion ne correspond à ce filtre.</p>}
         </div>
       </Surface>
 
@@ -2564,7 +2564,7 @@ function ProfileChampionDecisionCard({ stat, safestPick, urgentPick }) {
       <div className="min-w-0">
         <div className="flex items-center justify-between gap-3"><Badge tone={meta.toneName}>{meta.label}</Badge><Target className="h-5 w-5 text-cyan-100" /></div>
         <h4 className="mt-4 text-2xl font-black text-white">Decision rapide</h4>
-        <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{championDisplayName(stat.champion)} est classe selon volume, WR, KDA, builds et lecture lane. Le but est de savoir si tu le drafts maintenant ou si tu l'ouvres en review.</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{championDisplayName(stat.champion)} est classé selon son volume, son WR, son KDA, ses builds et ses stats de lane.</p>
       </div>
     <div className="divide-y divide-white/10 border-y border-white/10">
       {recommendations.map((item) => <div key={item.label} className="grid grid-cols-[minmax(0,1fr)_minmax(92px,.42fr)] items-center gap-3 py-3"><p className="truncate text-xs font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</p><p className={cx("truncate text-right text-sm font-black", item.toneName === "green" ? "text-emerald-100" : item.toneName === "red" ? "text-rose-100" : item.toneName === "orange" ? "text-amber-100" : "text-cyan-100")}>{item.value}</p></div>)}
@@ -2600,7 +2600,7 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><Badge tone="green">Pool dédié</Badge><Badge tone={readinessTone}>{readiness}</Badge><Badge tone="slate">{roleLabel(selectedPlayer?.role)}</Badge></div>
           <h3 className="mt-4 text-3xl font-black leading-tight text-white md:text-4xl">Pool de {selectedPlayer?.name || "joueur"}</h3>
-          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Lecture séparée des champions déclarés, classés par catégories de pool. L’objectif est de savoir vite ce qui est fiable, situationnel, en validation ou encore en training.</p>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Les champions déclarés sont classés par statut : confiance, situationnel, validation ou entraînement.</p>
           <div className="mt-4">
             <Button type="button" variant="ghost" icon={Download} onClick={exportTierList} disabled={!total}>Exporter la tier list PNG</Button>
           </div>
@@ -2655,7 +2655,7 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
       <aside className="space-y-4">
         <div className="rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
           <div className="flex items-center justify-between gap-3"><Badge tone={readinessTone}>{readiness}</Badge><Target className="h-5 w-5 text-cyan-100" /></div>
-          <h4 className="mt-4 text-xl font-black text-white">Lecture draft</h4>
+          <h4 className="mt-4 text-xl font-black text-white">Pour la draft</h4>
           <div className="mt-4 divide-y divide-white/10 border-y border-white/10">
             <ProfilePoolReadLine label="Prêts à sortir" value={readyCount} detail="Confiance + situationnels" toneName={readyCount ? "green" : "slate"} />
             <ProfilePoolReadLine label="À travailler" value={workCount} detail="Validation + training" toneName={workCount ? "yellow" : "green"} />
@@ -2792,7 +2792,7 @@ function ChampionLanePanel({ rows, navigate }) {
       const enemyCs10 = enemy ? csAtMinute({ ...enemy, match: row.match }, 10) : null;
       const diff10 = Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null;
       return <ChampionLaneGameLine key={`${row.match?.id || row.match?.game_id || index}-lane`} row={row} enemy={enemy} cs10={cs10} cs20={cs20} diff10={diff10} navigate={navigate} />;
-    }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune lane exploitable sur ce champion.</p>}</div>
+    }) : <p className="py-4 text-sm font-semibold text-slate-400">Aucune donnée de lane pour ce champion.</p>}</div>
   </section>;
 }
 
@@ -5419,7 +5419,7 @@ function MatchVersusOverview({ match, teamName }) {
   const redKey = allyIsBlue ? "ENEMY" : "ALLY";
   return <div className="mt-5 rounded-[1.5rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.07] via-black/25 to-rose-500/[0.055] p-3 sm:p-4">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Lecture instantanée de la game</h4></div>
+      <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Résumé de la game</h4></div>
     </div>
     <ObjectiveHud match={match} compact />
     <div className="nxt5-responsive-scroll">
@@ -5462,6 +5462,80 @@ function MatchVersusOverview({ match, teamName }) {
 
 function teamObjectiveScore(summary = {}) {
   return Number(summary.dragonCount || 0) + Number(summary.grubs || 0) + Number(summary.heralds || 0) + Number(summary.barons || 0) + Number(summary.towers || 0);
+}
+
+function playerReviewName(row) {
+  return row?.player_name || row?.summoner_name || row?.riot_id || championDisplayName(row?.champion) || roleLabel(row?.role) || "Joueur";
+}
+
+function playerSideTimings(match, role) {
+  const objectives = objectiveEvents(match);
+  const firstDragon = objectives.find((event) => objectiveEventType(event) === "dragon");
+  const firstTopObjective = objectives.find((event) => ["grub", "herald"].includes(objectiveEventType(event)));
+  const timingWindow = (event, fallback) => event
+    ? `${formatCountdown(Math.floor(Math.max(0, Number(event.timestamp || 0) - 90000) / 1000))} → ${event.time}`
+    : fallback;
+  const dragonWindow = timingWindow(firstDragon, "T-90 avant le prochain dragon");
+  const topWindow = timingWindow(firstTopObjective, "T-90 avant les Grubs/Herald");
+  const key = normalizeProfileRole(role);
+  if (key === "TOP") return {
+    weakside: `${dragonWindow} si le plan engage bot : sécuriser la wave, garder la sortie et ne pas contester sans couverture.`,
+    strongside: `${topWindow} quand l'équipe joue top : préparer le crash, conserver les ressources et demander le move jungle/support.`,
+  };
+  if (key === "ADC" || key === "SUP") return {
+    weakside: `${topWindow} si jungle et mid jouent le haut de carte : refuser la pression, protéger la wave et signaler le dive avant qu'il commence.`,
+    strongside: `${dragonWindow} quand le dragon est la priorité : crash, reset synchronisé puis contrôle de rivière avant le contact.`,
+  };
+  if (key === "MID") return {
+    weakside: `Pendant la fenêtre opposée au prochain objectif si la prio est perdue : absorber la wave sans forcer le move en retard.`,
+    strongside: `${firstDragon ? dragonWindow : topWindow} avec prio : pousser, disparaître de la vision puis créer le surnombre sur le side choisi.`,
+  };
+  if (key === "JGL") return {
+    weakside: `Le side opposé à l'objectif annoncé à T-90 : prévenir qu'il n'y aura pas de couverture et échanger immédiatement une ressource.`,
+    strongside: `${firstDragon ? dragonWindow : topWindow} : annoncer le path, confirmer les priorités et arriver avant l'adversaire dans la zone.`,
+  };
+  return {
+    weakside: "Quand les ressources de l'équipe sont engagées sur l'autre side : céder proprement et annoncer le risque.",
+    strongside: "Quand le prochain objectif correspond à son side : créer la priorité avant le setup.",
+  };
+}
+
+function matchPlayerCoachReads(match) {
+  const allies = teamRows(match, "ALLY");
+  const kills = championKillEvents(match);
+  const objectives = objectiveEvents(match);
+  const roleDiffs = roleDiffRows(match);
+  return allies.map((row) => {
+    const participantId = rowParticipantId(row);
+    const deaths = kills.filter((event) => event.victimTeam === "ALLY" && event.victimId === participantId);
+    const catches = deaths.filter((death) => {
+      const traded = kills.some((event) => event.killerTeam === "ALLY" && Math.abs(event.timestamp - death.timestamp) <= 15000);
+      const beforeObjective = objectives.some((event) => event.timestamp > death.timestamp && event.timestamp - death.timestamp <= 90000);
+      return !traded || beforeObjective || (death.assistingParticipantIds || []).length <= 1;
+    });
+    const positiveEvents = kills.filter((event) => {
+      if (event.killerTeam !== "ALLY") return false;
+      const involved = event.killerId === participantId || (event.assistingParticipantIds || []).map(Number).includes(participantId);
+      if (!involved) return false;
+      const alliedDeathsNearby = kills.filter((item) => item.victimTeam === "ALLY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
+      const enemyDeathsNearby = kills.filter((item) => item.victimTeam === "ENEMY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
+      return enemyDeathsNearby > alliedDeathsNearby;
+    });
+    const diff = roleDiffs.find((item) => item.ally === row || normalizeProfileRole(item.role) === normalizeProfileRole(row.role));
+    const side = playerSideTimings(match, row.role);
+    const catchText = catches.length
+      ? `${catches.length} catch${catches.length > 1 ? "s" : ""} détecté${catches.length > 1 ? "s" : ""} : ${catches.slice(0, 3).map((event) => event.time).join(" · ")}${catches.length > 3 ? "…" : ""}. Revoir information disponible, position des alliés et objectif suivant.`
+      : deaths.length
+        ? `Aucun catch net détecté : ${deaths.length} mort${deaths.length > 1 ? "s" : ""}, mais échangée${deaths.length > 1 ? "s" : ""} ou hors fenêtre critique.`
+        : "Aucune mort : vérifier que cette discipline n'a pas sacrifié une fenêtre d'impact utile.";
+    const goodText = positiveEvents.length
+      ? `${positiveEvents.length} bonne${positiveEvents.length > 1 ? "s" : ""} fenêtre${positiveEvents.length > 1 ? "s" : ""} d'impact, dès ${positiveEvents[0].time} : participation à une séquence gagnée sans rendre autant de kills.`
+      : "Aucune séquence positive nette détectée dans la timeline : chercher si le joueur arrive trop tard, trop tôt ou sans ressources.";
+    const laneText = diff
+      ? `Lane : CS10 ${Number.isFinite(diff.cs10Diff) ? `${diff.cs10Diff >= 0 ? "+" : ""}${diff.cs10Diff}` : "N/A"} · or final ${formatGoldDiff(diff.goldDiff)} · ${diff.goldDiff >= 0 ? "levier à convertir" : "coût à stabiliser"}.`
+      : "Lane : données comparatives insuffisantes.";
+    return { name: playerReviewName(row), role: normalizeProfileRole(row.role) || row.role || "ROLE", catchText, goodText, laneText, ...side };
+  });
 }
 
 function matchCoachSnapshot(match) {
@@ -5512,6 +5586,42 @@ function matchCoachSnapshot(match) {
   const action = isWin
     ? "Identifier le setup reproductible pour la prochaine game."
     : "Choisir un seul correctif avant le prochain bloc.";
+  const roleName = reviewRole ? roleLabel(reviewRole.role) : "l'équipe";
+  const isEconomyIssue = goldDiff < -2500;
+  const isFightIssue = damageDiff < -7000 || enemyFights > allyFights;
+  const isVisionIssue = visionDiff < -18;
+  const isObjectiveIssue = objectiveDiff < 0;
+  const verdict = isWin
+    ? `Cette victoire compte seulement si l'équipe sait reproduire le setup qui a créé ${mainSignal.value} en ${mainSignal.label.toLowerCase()}.`
+    : `${roleName} est le premier point de rupture visible, mais la review doit remonter à la décision collective qui l'a exposé.`;
+  const standard = isVisionIssue
+    ? "Aucun objectif joué sans zone préparée, information jungle et chemin de sortie annoncé."
+    : isObjectiveIssue
+      ? "Chaque objectif est appelé 60 secondes avant avec priorité de lane, reset et responsabilité de setup."
+      : isEconomyIssue
+        ? "Une lane sous pression ne donne pas une deuxième ressource : wave, camp ou plaque sont cédés consciemment, jamais par défaut."
+        : isFightIssue
+          ? "Le fight ne démarre qu'avec la cible, les cooldowns clés et la condition de sortie compris par les cinq joueurs."
+          : "Le plan de jeu doit être formulé avant la draft puis confirmé par un call simple à chaque transition.";
+  const vodCheckpoints = [
+    `Premier moment où l'écart d'or change de sens : qui avait l'information, quel call a été fait, quelle option sûre existait ?`,
+    isObjectiveIssue ? "60 secondes avant le premier objectif perdu : waves, resets, vision et position du jungler." : "Premier objectif contesté : avantage réel, ressources disponibles et condition de renoncement.",
+    reviewRole ? `Première séquence où ${roleName} perd le contrôle : état de wave, couverture, communication et coût collectif.` : "Première mort évitable : information disponible, décision prise et conséquence sur la carte.",
+  ];
+  const executionPlan = [
+    `Avant la game : annoncer la win condition et le risque numéro 1 en une phrase.`,
+    isVisionIssue || isObjectiveIssue ? "En game : lancer le setup objectif à T-60, confirmer les priorités à T-40 et décider go/no-go à T-20." : "En game : verbaliser la prochaine ressource jouée avant chaque transition de map.",
+    `Après la game : vérifier ce standard sur 3 séquences, sans juger uniquement le résultat final.`,
+  ];
+  const validation = isWin
+    ? "Validé si le même setup crée un avantage exploitable sur 2 des 3 prochaines games."
+    : `Validé si ${roleName} ne subit plus le même point de rupture sur 3 games consécutives et si le call collectif arrive avant l'action.`;
+  const coachQuestions = [
+    "Qu'est-ce que tu savais au moment de décider — pas après coup ?",
+    "Quel call simple aurait permis aux cinq joueurs de prendre la même décision ?",
+    "Quel comportement précis remplace l'erreur dès la prochaine game ?",
+  ];
+  const playerReads = matchPlayerCoachReads(match);
   return {
     title,
     summary,
@@ -5520,6 +5630,13 @@ function matchCoachSnapshot(match) {
     keep,
     correct,
     action,
+    verdict,
+    standard,
+    vodCheckpoints,
+    executionPlan,
+    validation,
+    coachQuestions,
+    playerReads,
     metrics: [
       ["KDA", `${allyKills}/${allyDeaths}/${allyAssists}`, `${enemyKills} kills adverses`, "cyan"],
       ["Or", formatGoldDiff(goldDiff), "écart final", goldDiff >= 0 ? "green" : "red"],
@@ -5600,7 +5717,7 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Analyse de groupe</Badge><Badge tone="slate">{matches.length} game{matches.length > 1 ? "s" : ""}</Badge></div>
-        <h3 className="mt-3 text-2xl font-black text-white">Lecture scrim complète</h3>
+        <h3 className="mt-3 text-2xl font-black text-white">Résultats du groupe</h3>
         <p className="mt-1 text-sm font-semibold text-slate-300">Agrégation des games sélectionnées : série, volume, écarts et signaux communs.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -5692,7 +5809,7 @@ function TrendsPage({ data, selectedTeamId }) {
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">Tendances</p></div>
-          <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl lg:text-5xl">Cockpit stratégique</h2>
+          <h2 className="nxt5-metal-text max-w-4xl break-words py-1 text-3xl font-black leading-[1.14] tracking-tight sm:text-4xl lg:text-5xl">Bilan du bloc</h2>
           <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-slate-300 sm:text-base sm:leading-7">Lis les patterns de la team par scrim ou catégorie custom.</p>
         </div>
         <Badge tone="slate">{baseMatches.length} game{baseMatches.length > 1 ? "s" : ""} importée{baseMatches.length > 1 ? "s" : ""}</Badge>
@@ -6054,9 +6171,9 @@ function TrendsPage({ data, selectedTeamId }) {
   const coachBriefs = [
     {
       toneName: winrate >= 55 ? "green" : winrate >= 45 ? "orange" : "red",
-      label: "Diagnostic",
+      label: "Bilan",
       title: `${winrate >= 55 ? "Bloc favorable" : winrate >= 45 ? "Bloc compétitif mais instable" : "Bloc défavorable"}`,
-      text: `${matches.length} games analysées, ${wins}W-${losses}L. Écarts moyens : ${formatGoldDiff(avgInt(goldDiff))} or, ${signedAvg(damageDiff)} dégâts, ${signedAvg(visionDiff)} vision. Le volume ${matches.length >= 5 ? "permet une lecture exploitable" : "reste court : priorité à la validation sur le prochain bloc"}.`,
+      text: `${matches.length} games, ${wins}W-${losses}L. Écarts moyens : ${formatGoldDiff(avgInt(goldDiff))} or, ${signedAvg(damageDiff)} dégâts, ${signedAvg(visionDiff)} vision.${matches.length < 5 ? " L’échantillon reste limité." : ""}`,
       evidence: [`WR ${winrate}%`, `morts ${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/game`, `KP équipe ${teamKpAverage}%`],
       sourceGames,
     },
@@ -6079,7 +6196,7 @@ function TrendsPage({ data, selectedTeamId }) {
     {
       toneName: worstLaneTiming && worstLaneTiming.cs10 < -5 ? "red" : bestLaneTiming && bestLaneTiming.cs10 > 5 ? "green" : "orange",
       label: "Laning",
-      title: worstLaneTiming && worstLaneTiming.cs10 < -5 ? `${roleLabel(worstLaneTiming.role)} sous pression` : bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} crée la priorité` : "Lecture lane limitée",
+      title: worstLaneTiming && worstLaneTiming.cs10 < -5 ? `${roleLabel(worstLaneTiming.role)} sous pression` : bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} crée la priorité` : "Peu de données de lane",
       text: `${bestLaneTiming ? `${roleLabel(bestLaneTiming.role)} meilleur CS10 (${bestLaneTiming.cs10 >= 0 ? "+" : ""}${bestLaneTiming.cs10.toFixed(1)})` : "Pas de CS10 fiable"}.${worstLaneTiming ? ` Point de contrôle : ${roleLabel(worstLaneTiming.role)} au CS10 (${worstLaneTiming.cs10 >= 0 ? "+" : ""}${worstLaneTiming.cs10.toFixed(1)}), CS20 ${Number.isFinite(worstLaneTiming.cs20) ? `${worstLaneTiming.cs20 >= 0 ? "+" : ""}${worstLaneTiming.cs20.toFixed(1)}` : "n/a"}.` : ""} À revoir : wave 1-3, premier reset et move river associé.`,
       evidence: [bestLaneTiming && `${roleLabel(bestLaneTiming.role)} ${bestLaneTiming.samples} sample(s)`, worstLaneTiming && `${roleLabel(worstLaneTiming.role)} ${worstLaneTiming.samples} sample(s)`, `CS/min ${teamCsAverage}`].filter(Boolean),
       sourceGames: sourceGamesForInsights(matchInsights.filter((entry) => entry.roleStats.some((stat) => [bestLaneTiming?.role, worstLaneTiming?.role].filter(Boolean).includes(stat.role)))),
@@ -6521,7 +6638,7 @@ function TrendsPage({ data, selectedTeamId }) {
             <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
             <Badge tone={matches.length >= 5 ? "green" : "orange"}>{matches.length} games</Badge>
           </div>
-          <p className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.28em] text-cyan-100/75">Lecture du bloc actif</p>
+          <p className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.28em] text-cyan-100/75">Bilan du bloc</p>
           <h2 className="mt-2 max-w-5xl break-words text-4xl font-black leading-[.95] tracking-tight text-white sm:text-5xl xl:text-6xl">{trendHero.title}</h2>
           <p className="mt-4 max-w-4xl text-base font-semibold leading-7 text-slate-200">{trendHero.text}</p>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -6575,7 +6692,7 @@ function TrendsPage({ data, selectedTeamId }) {
         <div className="min-w-0">
           <Badge tone="purple">Objectifs</Badge>
           <h3 className="mt-2 text-2xl font-black leading-tight text-white">Plan de progression du bloc</h3>
-          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">NXT5 transforme les tendances en objectifs courts, vérifiables et reliés aux games sources. L'idée : un axe équipe, puis une cible claire par rôle.</p>
+          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Choisis un objectif d’équipe et une cible par rôle pour les prochaines games.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="slate">{matches.length} games</Badge>
@@ -6605,7 +6722,7 @@ function TrendsPage({ data, selectedTeamId }) {
         </article>
         <aside className="grid min-w-0 content-start gap-3 rounded-2xl border border-cyan-200/14 bg-[linear-gradient(145deg,rgba(8,18,34,.76),rgba(4,8,18,.92))] p-3">
           <div>
-            <Badge tone="cyan">Lecture staff</Badge>
+            <Badge tone="cyan">Pour le staff</Badge>
             <h4 className="mt-2 text-lg font-black text-white">Prochain bloc</h4>
             <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Une consigne claire, un point de contrôle, puis les games sources pour vérifier en review.</p>
           </div>
@@ -6722,7 +6839,7 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </Surface>
         <Surface className="p-4">
-          <div className="flex items-center justify-between gap-3"><div><Badge tone="cyan">Lecture coach</Badge><h3 className="mt-2 text-xl font-black text-white">Pourquoi</h3></div><Badge tone={winrate >= 50 ? "green" : "red"}>{coachBriefs.length} axes</Badge></div>
+          <div className="flex items-center justify-between gap-3"><div><Badge tone="cyan">Notes du coach</Badge><h3 className="mt-2 text-xl font-black text-white">À revoir</h3></div><Badge tone={winrate >= 50 ? "green" : "red"}>{coachBriefs.length} axes</Badge></div>
           <div className="mt-4 grid gap-2">
             {coachBriefs.slice(0, 4).map((brief) => <button type="button" onClick={() => openTrendSources({ title: brief.label, subtitle: brief.title, games: brief.sourceGames })} key={brief.label} className="min-w-0 rounded-xl bg-white/[0.035] p-3 text-left transition hover:bg-white/[0.06]">
               <div className="flex flex-wrap items-center justify-between gap-2"><Badge tone={brief.toneName}>{brief.label}</Badge><span className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-400">{brief.sourceGames?.length || matches.length} games</span></div>
@@ -6789,7 +6906,7 @@ function TrendsPage({ data, selectedTeamId }) {
                     </span>)}
                   </span>
                   <span className="grid min-w-0 gap-1.5">
-                    <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Lecture rapide</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-200">{sourceGameRead(game)}</span></span>
+                    <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Résumé</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-200">{sourceGameRead(game)}</span></span>
                     <span className="rounded-xl border border-white/10 bg-black/18 px-2.5 py-2"><span className="block text-[0.52rem] font-black uppercase tracking-[0.12em] text-slate-400">Rôle moteur</span><span className="mt-1 block truncate text-xs font-black text-cyan-50">{game.topRoleLabel}</span><span className="mt-0.5 block truncate text-[0.58rem] font-semibold text-slate-400">{game.topRoleDetail}</span></span>
                   </span>
                   <span className="inline-flex items-center justify-end gap-2 text-[0.62rem] font-black uppercase tracking-[0.12em] text-cyan-100">Ouvrir<ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" /></span>
@@ -6828,9 +6945,9 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
 
   return <div className="nxt5-data-dense nxt5-game-workspace min-w-0 overflow-hidden">
     <PageHeader
-      eyebrow="Review room"
+      eyebrow="Games"
       title="Games, stats et review"
-      subtitle="Importe une game, repère les signaux utiles, puis garde la review dans le même espace."
+      subtitle="Importe les games, consulte les stats et prépare les reviews."
     />
     <Surface glow className="nxt5-workspace-tabs sticky top-3 z-20 mb-5 overflow-hidden p-3 sm:p-4">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
@@ -7029,7 +7146,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const clearArchiveMatches = () => setArchiveForm((current) => ({ ...current, matchIds: [] }));
   return (
     <div className="nxt5-data-dense nxt5-stats-page min-w-0 overflow-hidden">
-      <PageHeader eyebrow="Performance" title="Statistiques" subtitle="Choisis un contexte, lis la game ou le bloc, puis ouvre les profils seulement quand tu veux descendre au joueur." />
+      <PageHeader eyebrow="Games" title="Statistiques" subtitle="Choisis une game ou un groupe pour consulter les résultats." />
       {matches.length ? <>
         <section className="mb-5 rounded-[1.35rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(6,182,212,.10),rgba(15,23,42,.46)_45%,rgba(168,85,247,.10))] p-4 shadow-[0_18px_60px_rgba(0,0,0,.18)]">
           <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -7514,7 +7631,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
 
   return (
     <div>
-      <PageHeader eyebrow="Champion Path" title="Champion Pool par joueur" />
+      <PageHeader eyebrow="Draft" title="Champion Pool par joueur" />
       {players.length ? (
         <>
           <Surface glow className="mb-5">
@@ -7775,7 +7892,7 @@ function CompositionCounterPanel({ slots, rows, compact = false }) {
   </div>;
   return <div className="mt-4 rounded-xl border border-rose-300/14 bg-black/18 p-3">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div><Badge tone="red">Counter system</Badge><h3 className="mt-3 text-xl font-black text-white">Counters probables à anticiper</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Lecture inspirée matchup/tag : les picks ci-dessous sont ceux qui peuvent rendre cette compo pénible à jouer.</p></div>
+      <div><Badge tone="red">Matchups</Badge><h3 className="mt-3 text-xl font-black text-white">Picks à vérifier</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Ces champions peuvent poser problème à la compo selon leurs rôles et leurs styles.</p></div>
     </div>
     <div className="mt-4 grid gap-3 xl:grid-cols-5">
       {groups.map((group) => <div key={group.role} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
@@ -7957,7 +8074,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   const formIdentity = compositionIdentity(formPicks);
   return (
     <div className="nxt5-data-dense nxt5-compositions-page min-w-0 overflow-hidden">
-      <PageHeader eyebrow="Draft Room" title="Compos Types" subtitle="Construis des Compos a partir des Champion Pools reels, avec une lecture immediate des categories poste par poste.">
+      <PageHeader eyebrow="Draft" title="Compositions" subtitle="Prépare les picks de chaque rôle à partir des Champion Pools.">
         <button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-400/16">
           <BookOpen className="h-4 w-4" />
           Tags
@@ -8423,7 +8540,7 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   return (
     <div>
-      <PageHeader eyebrow="Organisation" title="Planning" subtitle="Dispos joueurs et présence Coaching Staff groupée, en vue compacte.">
+      <PageHeader eyebrow="Équipe" title="Planning" subtitle="Disponibilités des joueurs, du coach et du staff.">
         <div className="flex flex-wrap gap-2">
           {weekOptions.map((week) => (
             <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} className={cx("rounded-lg border px-2.5 py-1.5 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
@@ -8612,7 +8729,7 @@ function DraftSlot({ pick, index, side = "blue" }) {
 function DraftBoard({ comfort, risk }) {
   const blue = [comfort[0], comfort[2], comfort[4], comfort[6], comfort[8]];
   const red = [comfort[1], comfort[3], comfort[5], risk[0], risk[1]];
-  return <Surface glow className="nxt5-hud-lines"><div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="nxt5-metal-text text-2xl font-black">Draft Protocol</h3><p className="mt-1 text-sm font-semibold text-slate-400">Une table tactique pour discuter ordre de Pick, sécurisation et réponses.</p></div><Badge tone="purple">Five-stack prep</Badge></div><div className="grid gap-4 lg:grid-cols-2"><div><div className="mb-3 flex items-center gap-2"><Badge tone="cyan">Blue Side</Badge><span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Priorité confiance</span></div><div className="space-y-2">{blue.map((pick, index) => <DraftSlot key={"blue-" + index} pick={pick} index={index} side="blue" />)}</div></div><div><div className="mb-3 flex items-center gap-2"><Badge tone="pink">Red Side</Badge><span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Réponse Et Flex</span></div><div className="space-y-2">{red.map((pick, index) => <DraftSlot key={"red-" + index} pick={pick} index={index} side="red" />)}</div></div></div></Surface>;
+  return <Surface glow className="nxt5-hud-lines"><div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"><div><h3 className="nxt5-metal-text text-2xl font-black">Ordre de draft</h3><p className="mt-1 text-sm font-semibold text-slate-400">Ordre des picks et réponses prévues pour chaque side.</p></div><Badge tone="purple">Équipe</Badge></div><div className="grid gap-4 lg:grid-cols-2"><div><div className="mb-3 flex items-center gap-2"><Badge tone="cyan">Blue Side</Badge><span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Picks prioritaires</span></div><div className="space-y-2">{blue.map((pick, index) => <DraftSlot key={"blue-" + index} pick={pick} index={index} side="blue" />)}</div></div><div><div className="mb-3 flex items-center gap-2"><Badge tone="pink">Red Side</Badge><span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Réponses et flex</span></div><div className="space-y-2">{red.map((pick, index) => <DraftSlot key={"red-" + index} pick={pick} index={index} side="red" />)}</div></div></div></Surface>;
 }
 
 function BanRecommendations({ risk, comfort }) {
@@ -8627,7 +8744,7 @@ function RolePrepMatrix({ players, championPool }) {
 
 function CompositionIdentityPanel({ picks }) {
   const identity = compositionIdentity(picks);
-  return <Surface><div className="flex items-start justify-between gap-3"><div><h3 className="text-2xl font-black text-white">Identité de Compo</h3><p className="mt-1 text-sm font-semibold text-slate-300">La tendance de Draft selon les champions conforts actuels.</p></div><Badge tone={championStyleTone(identity.primary)}>{tagLabel(identity.primary)}</Badge></div><p className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-bold leading-6 text-white">{identity.text}</p><div className="mt-4 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Pas assez de Picks</Badge>}</div></Surface>;
+  return <Surface><div className="flex items-start justify-between gap-3"><div><h3 className="text-2xl font-black text-white">Style de la compo</h3><p className="mt-1 text-sm font-semibold text-slate-300">Tendance calculée à partir des champions sélectionnés.</p></div><Badge tone={championStyleTone(identity.primary)}>{tagLabel(identity.primary)}</Badge></div><p className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-sm font-bold leading-6 text-white">{identity.text}</p><div className="mt-4 flex flex-wrap gap-2">{identity.tags.length ? identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Pas assez de picks</Badge>}</div></Surface>;
 }
 
 const DRAFT_SCORE_TAGS = [
@@ -8855,8 +8972,8 @@ function DraftTrendsModule({ model, onOpenSources, sourceGamesForMatches }) {
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Tendances draft</Badge><Badge tone="cyan">Nos drafts</Badge><Badge tone="slate">{active.games} games</Badge></div>
-          <h3 className="mt-2 break-words text-xl font-black text-white">Lecture draft du bloc</h3>
-          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Nos patterns, nos picks fiables, nos pièges, et la structure réelle de nos compos.</p>
+          <h3 className="mt-2 break-words text-xl font-black text-white">Drafts du bloc</h3>
+          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Picks joués, résultats et compositions utilisées.</p>
         </div>
       </div>
     </div>
@@ -8983,11 +9100,25 @@ function commandResult(command, rows) {
 }
 
 function renderReportContent(content, rows) {
-  const blockedSections = [/points?\s+forts?/i, /points?\s+à?\s*corriger/i, /focus/i, /objectif\s+principal/i, /axes?\s+de\s+travail/i];
-  return String(content || "").split("\n").filter((line) => !blockedSections.some((pattern) => pattern.test(line))).map((line, index) => {
+  const blockedSections = [/^points?\s+forts?\s*:$/i, /^focus\s*:$/i, /^objectif\s+principal\s*:$/i, /^axes?\s+de\s+travail\s*:$/i];
+  const sectionTone = (line) => {
+    const value = String(line || "").replace(/^#+\s*/, "").toLowerCase();
+    if (/verdict|cause racine|à corriger|non négociable/.test(value)) return "border-rose-300/25 bg-rose-400/[0.08] text-rose-100";
+    if (/à garder|standard attendu|validation/.test(value)) return "border-emerald-300/20 bg-emerald-400/[0.07] text-emerald-100";
+    if (/plan d'exécution|action prochaine|checkpoints? vod|questions? coach/.test(value)) return "border-cyan-300/22 bg-cyan-400/[0.07] text-cyan-100";
+    return "border-purple-300/20 bg-purple-400/[0.07] text-purple-100";
+  };
+  return <div className="space-y-1.5">{String(content || "").split("\n").filter((line) => !blockedSections.some((pattern) => pattern.test(line))).map((line, index) => {
     const result = commandResult(line, rows);
-    return result ? <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap font-mono text-[0.76rem] font-bold leading-6 text-cyan-50 sm:text-[0.82rem]">{result}</p> : <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap">{line}</p>;
-  });
+    const trimmed = String(line || "").trim();
+    if (result) return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap rounded-lg bg-cyan-300/[0.055] px-2.5 py-1 font-mono text-[0.76rem] font-bold leading-6 text-cyan-50 sm:text-[0.82rem]">{result}</p>;
+    if (!trimmed) return <div key={index} className="h-2" />;
+    if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|REPÈRES)$/i.test(trimmed)) {
+      return <h4 key={index} className={cx("mt-4 rounded-xl border px-3 py-2 text-[0.67rem] font-black uppercase tracking-[0.18em]", sectionTone(trimmed))}>{trimmed.replace(/^#{1,3}\s+/, "")}</h4>;
+    }
+    if (/^[-•]\s+/.test(trimmed)) return <p key={index} className="relative min-h-[1.5rem] break-words whitespace-pre-wrap pl-5 text-slate-100 before:absolute before:left-1 before:top-[0.65rem] before:h-1.5 before:w-1.5 before:rounded-full before:bg-cyan-300">{trimmed.replace(/^[-•]\s+/, "")}</p>;
+    return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap">{line}</p>;
+  })}</div>;
 }
 
 function ReportObjectivePanel({ matches, matchIds }) {
@@ -9009,7 +9140,7 @@ function stripGeneratedReportContent(content) {
   const text = String(content || "").trim();
   if (!text) return "";
   const preserved = text.split(REPORT_REWRITE_MARKER).pop().trim();
-  return preserved.replace(/^Notes (précédentes|conservées)\s*:?\s*/i, "").trim();
+  return preserved.replace(/^Notes (précédentes|conservées|staff(?: conservées)?)\s*:?\s*/i, "").trim();
 }
 
 function reportRawGameLine(match) {
@@ -9045,24 +9176,47 @@ function buildGameReviewContent(match) {
   if (!match) return "";
   const snapshot = matchCoachSnapshot(match);
   return [
-    "Review game",
+    "VERDICT COACH",
+    `- ${snapshot.verdict}`,
     "",
     `Game: ${matchDisplayName(match, "Game")}`,
     `Résultat: ${match.result || "Analyse"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`,
     "",
-    "Résumé coach",
+    "CAUSE RACINE",
     `- ${snapshot.title}`,
     `- ${snapshot.summary}`,
     `- Lane à review: ${snapshot.roleText}`,
     "",
-    "À garder",
+    "STANDARD ATTENDU",
+    `- ${snapshot.standard}`,
+    "",
+    "À GARDER",
     `- ${snapshot.keep}`,
     "",
-    "À corriger",
+    "À CORRIGER",
     `- ${snapshot.correct}`,
     "",
-    "Action prochaine game",
-    `- ${snapshot.action}`,
+    "CHECKPOINTS VOD",
+    ...snapshot.vodCheckpoints.map((item) => `- ${item}`),
+    "",
+    "LECTURE PAR JOUEUR",
+    ...snapshot.playerReads.flatMap((player) => [
+      `### ${player.role} · ${player.name}`,
+      `- Catch : ${player.catchText}`,
+      `- Exécution juste : ${player.goodText}`,
+      `- ${player.laneText}`,
+      `- WEAKSIDE : ${player.weakside}`,
+      `- STRONGSIDE : ${player.strongside}`,
+      "",
+    ]),
+    "PLAN D'EXÉCUTION",
+    ...snapshot.executionPlan.map((item, index) => `- ${index + 1}. ${item}`),
+    "",
+    "VALIDATION",
+    `- ${snapshot.validation}`,
+    "",
+    "QUESTIONS COACH",
+    ...snapshot.coachQuestions.map((item) => `- ${item}`),
     "",
     "Repères",
     ...snapshot.metrics.map(([label, value, detail]) => `- ${label}: ${value} (${detail})`),
@@ -9076,15 +9230,31 @@ function buildGameReviewContent(match) {
 function buildArchiveReportContent(name, matches) {
   const linked = Array.isArray(matches) ? matches.filter(Boolean) : [];
   const gameLines = linked.length ? linked.map((match, index) => `${index + 1}. ${reportRawGameLine(match)}`).join("\n") : "Aucune game liée.";
+  const wins = linked.filter((match) => match.result === "Victoire").length;
+  const losses = linked.length - wins;
   return [
-    "Review de groupe",
+    "VERDICT COACH",
+    `- Ce bloc affiche ${wins} victoire${wins > 1 ? "s" : ""} et ${losses} défaite${losses > 1 ? "s" : ""}. Le score ne suffit pas : la review doit isoler le pattern qui se répète et la décision qui l'alimente.`,
     "",
     `Groupe: ${name || "Groupe"}`,
     "",
-    "Résumé",
+    "CAUSE RACINE",
     ...reportRawSummaryLines(linked),
     "",
-    "Games",
+    "CHECKPOINTS VOD",
+    "- Comparer la première transition de map des games : information disponible, call et coût de la décision.",
+    "- Comparer les 60 secondes avant chaque objectif décisif : waves, resets, vision et responsabilité du setup.",
+    "- Isoler une séquence gagnée et une séquence perdue sur le même thème pour séparer exécution et résultat.",
+    "",
+    "PLAN D'EXÉCUTION",
+    "- 1. Nommer un seul standard collectif pour le prochain bloc.",
+    "- 2. Désigner le joueur qui déclenche le call et celui qui le confirme.",
+    "- 3. Revoir exactement le même indicateur après 3 games.",
+    "",
+    "VALIDATION",
+    "- Validé si le call arrive avant l'action et si le même défaut ne se répète pas sur 3 games consécutives.",
+    "",
+    "REPÈRES",
     gameLines,
     "",
     REPORT_REWRITE_MARKER,
@@ -9111,6 +9281,25 @@ function buildReportRewriteContent(report, matches) {
   return body.join("\n");
 }
 
+function buildRetroactiveCoachContent(report, matches) {
+  const ids = reportMatchIds(report);
+  const linked = matches.filter((match) => ids.includes(match.id));
+  if (!linked.length) return String(report?.content || "");
+  const staffNotes = stripGeneratedReportContent(report?.content);
+  const generated = linked.length === 1
+    ? buildGameReviewContent(linked[0])
+    : buildArchiveReportContent(reportDisplayName(report, matches, "Review de groupe"), linked);
+  const coachingBlock = generated.split(REPORT_REWRITE_MARKER)[0].trim();
+  return [
+    coachingBlock,
+    "",
+    REPORT_REWRITE_MARKER,
+    staffNotes ? "Notes staff conservées" : "Notes staff",
+    staffNotes,
+    "",
+  ].join("\n");
+}
+
 function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const reports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
   const matches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
@@ -9129,6 +9318,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const [composerOpen, setComposerOpen] = useState(false);
   const [workspaceView, setWorkspaceView] = useState("library");
   const [saving, setSaving] = useState(false);
+  const [retrofitProgress, setRetrofitProgress] = useState(null);
 
   useEffect(() => {
     if (!composerOpen) return undefined;
@@ -9172,6 +9362,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     return title.includes(searchNeedle) || author.includes(searchNeedle) || String(report.content || "").toLowerCase().includes(searchNeedle);
   });
   const selectionLabel = reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% WR` : "Aucune game sélectionnée";
+  const retrofittableReports = reports.filter((report) => reportMatchIds(report).some((id) => matches.some((match) => match.id === id)) && (canCaptainDelete || report.created_by === user?.id));
 
   function startBlankReview() {
     resetReportForm();
@@ -9293,21 +9484,60 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     }
   }
 
+  async function retrofitExistingReports() {
+    if (!retrofittableReports.length || saving) return;
+    const confirmed = window.confirm(`Re-coacher ${retrofittableReports.length} ancienne${retrofittableReports.length > 1 ? "s" : ""} review${retrofittableReports.length > 1 ? "s" : ""} ? Les notes staff seront conservées à l'identique.`);
+    if (!confirmed) return;
+    setSaving(true);
+    setRetrofitProgress({ done: 0, total: retrofittableReports.length });
+    const failures = [];
+    for (const [index, report] of retrofittableReports.entries()) {
+      try {
+        await apiFetch("reports-manage", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "update",
+            teamId: selectedTeamId,
+            reportId: report.id,
+            title: report.title || reportDisplayName(report, matches),
+            content: buildRetroactiveCoachContent(report, matches),
+            matchIds: reportMatchIds(report),
+          }),
+        });
+      } catch (err) {
+        failures.push({ report, err });
+      }
+      setRetrofitProgress({ done: index + 1, total: retrofittableReports.length });
+    }
+    await refreshAll();
+    setSaving(false);
+    setRetrofitProgress(null);
+    if (failures.length) {
+      pushToast({ type: "red", title: "Historique partiellement mis à jour", text: `${retrofittableReports.length - failures.length} review(s) renforcée(s), ${failures.length} en échec.` });
+      return;
+    }
+    pushToast({ type: "green", title: "Historique re-coaché", text: `${retrofittableReports.length} review${retrofittableReports.length > 1 ? "s" : ""} enrichie${retrofittableReports.length > 1 ? "s" : ""}, notes staff conservées.` });
+  }
+
   const commands = [[`/KDA "ADC"`, "KDA moyen d’un rôle."], [`/DAMAGE "MID"`, "Dégâts moyens d’un rôle."], [`/VISION "SUP"`, "Vision moyenne d’un rôle."], [`/GOLD "JGL"`, "Gold moyen d’un rôle."], [`/KP "TOP"`, "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
   const noteTemplates = [
-    ["À garder", "## À garder\n- "],
-    ["À corriger", "## À corriger\n- "],
-    ["Prochaine game", "## Action prochaine game\n- "],
+    ["Verdict", "## VERDICT COACH\n- Le fait décisif : \n- La décision attendue : "],
+    ["Cause racine", "## CAUSE RACINE\n- Symptôme observé : \n- Décision qui crée le problème : \n- Information manquante : "],
+    ["VOD", "## CHECKPOINTS VOD\n- Timestamp : contexte → décision → conséquence\n- Timestamp : contexte → décision → conséquence"],
+    ["Joueur", "## LECTURE PAR JOUEUR\n### RÔLE · Joueur\n- Catch : timestamp + information disponible\n- Exécution juste : timestamp + décision à reproduire\n- WEAKSIDE : fenêtre + comportement attendu\n- STRONGSIDE : fenêtre + ressource à convertir"],
+    ["Plan", "## PLAN D'EXÉCUTION\n- 1. Avant la game : \n- 2. En game : \n- 3. Après la game : "],
+    ["Validation", "## VALIDATION\n- Réussi si : \n- Échec si : \n- Mesuré sur : 3 games"],
     ["Draft", "## Draft\n- Pick à sécuriser :\n- Ban prioritaire :\n- Réponse adverse : "],
   ];
   return (
     <div className="nxt5-data-dense min-w-0 overflow-hidden">
       <PageHeader
-        eyebrow="Review room"
+        eyebrow="Reviews"
         title="Review"
-        subtitle="Lecture d'abord : retrouve une review, lis les décisions, puis crée ou édite seulement quand tu en as besoin."
+        subtitle="Retrouve les reviews ou prépare celle du prochain bloc."
       >
         <Button icon={Plus} onClick={startBlankReview}>Créer une review</Button>
+        <Button variant="ghost" icon={saving ? Loader2 : RefreshCw} onClick={retrofitExistingReports} disabled={saving || !retrofittableReports.length}>{retrofitProgress ? `${retrofitProgress.done}/${retrofitProgress.total}` : "Re-coacher l’historique"}</Button>
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
       </PageHeader>
 
@@ -9326,7 +9556,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                   <h3 className="text-xl font-black text-white">Bibliothèque</h3>
                   <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length} review{reports.length > 1 ? "s" : ""}</span>
                 </div>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne une review pour ouvrir sa lecture.</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne une review pour l’ouvrir.</p>
               </div>
             </div>
 
@@ -9402,7 +9632,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne les games, écris les décisions puis enregistre la review.</p></div>
+                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Note ce qu’il faut garder, corriger et tester à la prochaine session.</p></div>
                   <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !formDisplayTitle.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
                 </div>
               </div>

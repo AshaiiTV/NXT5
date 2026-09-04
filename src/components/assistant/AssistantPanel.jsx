@@ -235,7 +235,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
               <h2 id="nxt5-assistant-title" className="truncate text-lg font-black text-white">Assistant NXT5</h2>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">Aide contextuelle · lecture seule</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">Aide sur NXT5</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">

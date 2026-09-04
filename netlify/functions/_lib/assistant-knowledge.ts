@@ -54,13 +54,13 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: 'Démarrer sur NXT5',
     path: '/equipes',
     actionLabel: 'Voir l’équipe',
-    summary: 'Le parcours le plus simple est de créer ou rejoindre une équipe, préparer le roster, importer une game, lire les tendances puis transformer les constats en review.',
+    summary: 'Commence par créer ou rejoindre une équipe, prépare le roster, importe une game, puis note les points à revoir.',
     keywords: ['commencer', 'débuter', 'première fois', 'guide', 'parcours', 'aide', 'utiliser le site'],
     steps: [
       'Crée une équipe ou rejoins-la avec un code temporaire.',
       'Ajoute les joueurs, lie leurs comptes et vérifie leurs rôles.',
       'Importe une première game depuis la page Games.',
-      'Ouvre Statistiques ou Tendances, puis crée une review avec une décision claire.'
+      'Ouvre Statistiques ou Tendances, puis crée une review courte.'
     ],
     suggestions: ['Comment importer ma première game ?', 'Comment préparer correctement le roster ?', 'Comment créer une review utile ?']
   },
@@ -120,10 +120,10 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
   },
   {
     id: 'statistics',
-    title: 'Statistiques et lecture de game',
+    title: 'Statistiques des games',
     path: '/statistiques',
     actionLabel: 'Voir les statistiques',
-    summary: 'Statistiques donne une lecture de game ou de groupe : joueurs, KDA, KP, farm, or, vision, builds, écarts à 10 et 20 minutes, objectifs et déroulé de la partie.',
+    summary: 'Statistiques regroupe les données d’une game ou d’un groupe : KDA, KP, farm, or, vision, builds, écarts à 10 et 20 minutes, objectifs et timeline.',
     keywords: ['statistiques', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'or', 'vision', 'build', 'objectif', 'timeline', 'groupe'],
     steps: [
       'Recherche puis sélectionne une game dans la bibliothèque.',
@@ -136,16 +136,16 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       {
         question: 'Comment lire les écarts de lane ?',
         triggers: ['diff10', 'diff20', 'écart lane', 'cs10', 'cs20', 'matchup'],
-        answer: 'Dans la lecture par rôle, CS10 et CS20 montrent le farm du joueur ; DIFF10 et DIFF20 comparent ce farm à son adversaire direct. Un écart positif indique une avance, mais il faut le relire avec l’or, les morts et les objectifs pris autour de la lane.'
+        answer: 'CS10 et CS20 montrent le farm du joueur. DIFF10 et DIFF20 le comparent à son adversaire direct. Regarde aussi l’or, les morts et les objectifs pris autour de la lane.'
       }
     ]
   },
   {
     id: 'reviews',
-    title: 'Créer et exploiter une review',
+    title: 'Créer une review',
     path: '/rapports',
     actionLabel: 'Ouvrir Review',
-    summary: 'Review transforme une ou plusieurs games en décisions staff. La bibliothèque sert à rechercher, ouvrir, modifier et relier les reviews à leurs games sources.',
+    summary: 'Une review garde les notes et les actions décidées après une ou plusieurs games. La bibliothèque permet de les retrouver et de les modifier.',
     keywords: ['review', 'rapport', 'décision', 'notes', 'game source', 'bibliothèque', 'staff', 'groupe', 'créer review', 'modifier review'],
     steps: [
       'Sélectionne une game ou un groupe depuis Games ou Statistiques.',
@@ -167,13 +167,13 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: 'Tendances d’équipe',
     path: '/tendances',
     actionLabel: 'Ouvrir Tendances',
-    summary: 'Tendances agrège toutes les games du contexte choisi pour montrer winrate global et par side, identité de jeu, rôles moteurs, écarts récurrents et games à revoir.',
+    summary: 'Tendances regroupe les games du contexte choisi : winrate global et par side, résultats par rôle, écarts récurrents et games à revoir.',
     keywords: ['tendances', 'winrate', 'blue side', 'red side', 'identité', 'pattern', 'rôle moteur', 'bloc', 'contexte', 'filtre', 'game à review'],
     steps: [
       'Choisis le contexte de games à analyser.',
       'Compare le winrate Blue Side et Red Side avec le volume joué.',
       'Lis les rôles moteurs et les écarts récurrents.',
-      'Ouvre une game source avant de transformer un signal en décision.'
+      'Ouvre la game associée avant de noter une conclusion.'
     ],
     suggestions: ['Comment interpréter le winrate par side ?', 'Comment changer le contexte ?', 'Comment ouvrir une game à review ?']
   },
