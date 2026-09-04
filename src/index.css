@@ -56,8 +56,8 @@ form,
   }
 
   .nxt5-app-shell.is-sidebar-expanded {
-    margin-left: 22rem;
-    width: calc(100% - 22rem);
+    margin-left: 19rem;
+    width: calc(100% - 19rem);
   }
 
   .nxt5-app-shell.is-sidebar-collapsed {
@@ -66,8 +66,8 @@ form,
   }
 
   .nxt5-sidebar-aware-overlay {
-    left: var(--nxt5-sidebar-space, 22rem) !important;
-    width: calc(100% - var(--nxt5-sidebar-space, 22rem)) !important;
+    left: var(--nxt5-sidebar-space, 19rem) !important;
+    width: calc(100% - var(--nxt5-sidebar-space, 19rem)) !important;
   }
 }
 
@@ -1064,17 +1064,6 @@ html.nxt5-low-gpu .nxt5-loader-core {
   }
 }
 
-@media (max-width: 1535px) {
-  .nxt5-data-dense .grid[class*="2xl:grid-cols-"]:not(.nxt5-keep-grid),
-  .nxt5-data-dense .grid[class*="2xl:grid-cols-["]:not(.nxt5-keep-grid) {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  .nxt5-data-dense :where(.\32xl\:col-span-2, .\32xl\:col-span-3) {
-    grid-column: auto !important;
-  }
-}
-
 @media (min-width: 1024px) and (max-width: 1439px) {
   .nxt5-data-dense :where(.p-4, .p-5, .p-6) {
     padding: 0.8rem !important;
@@ -1084,19 +1073,16 @@ html.nxt5-low-gpu .nxt5-loader-core {
     gap: 0.75rem !important;
   }
 
-  .nxt5-data-dense .grid[class*="xl:grid-cols-["]:not(.nxt5-keep-grid),
+  .nxt5-data-dense :where(.text-4xl, .text-5xl) {
+    font-size: clamp(2rem, 3vw, 2.55rem);
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1535px) {
   .nxt5-data-dense .grid[class*="xl:grid-cols-3"]:not(.nxt5-keep-grid),
   .nxt5-data-dense .grid[class*="xl:grid-cols-4"]:not(.nxt5-keep-grid),
   .nxt5-data-dense .grid[class*="xl:grid-cols-5"]:not(.nxt5-keep-grid) {
-    grid-template-columns: minmax(0, 1fr) !important;
-  }
-
-  .nxt5-data-dense :where(.xl\:col-span-2, .xl\:col-span-3) {
-    grid-column: auto !important;
-  }
-
-  .nxt5-data-dense :where(.text-4xl, .text-5xl) {
-    font-size: clamp(2rem, 3vw, 2.55rem);
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 

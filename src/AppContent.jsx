@@ -1402,14 +1402,14 @@ function TeamCoachDashboard({ team, players = [], matches = [], championPool = [
     return { role, picks };
   });
   return <Surface glow className="mb-5 overflow-hidden p-0">
-    <div className="grid gap-0 xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
+    <div className="grid gap-0 2xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
       <div className="min-w-0 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Coach cockpit</Badge><Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge></div>
         <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
         <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Une lecture courte : priorité équipe, joueur à review, pick à sécuriser et game source.</p>
         <HomeActionSummary matches={teamMatches} alerts={alerts} />
       </div>
-      <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 xl:border-l xl:border-t-0">
+      <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 2xl:border-l 2xl:border-t-0">
         <div className="flex items-center justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bloc actif</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length ? `${winrate}% WR` : "--"}</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/tendances")}>Tendances</Button></div>
         <div className="mt-4 grid gap-2">
           {alerts.length ? alerts.slice(0, 3).map((alert) => <div key={alert.title} className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
@@ -10989,7 +10989,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       />
       <div
         className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ? "is-sidebar-collapsed" : "is-sidebar-expanded")}
-        style={{ "--nxt5-sidebar-space": sidebarCollapsed ? "8.5rem" : "22rem" }}
+        style={{ "--nxt5-sidebar-space": sidebarCollapsed ? "8.5rem" : "19rem" }}
       >
         <Topbar
           active={active}
@@ -11018,6 +11018,27 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   );
 }
 
+const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate }) {
+  const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
+  const mode = authModeFromPath(route.path) || inviteMode;
+  const routeIsPrivate = isAppPath(route.path);
+  const unknownRoute = !isKnownPath(route.path);
+
+  // Public pages do not depend on the session check and should render immediately.
+  // Keep the full-screen loader only when opening the authenticated workspace.
+  if (checkingSession && routeIsPrivate) return <AppLoadingScreen />;
+  if (unknownRoute) return <NotFoundPage navigate={navigate} />;
+  if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
+  if (route.path === "/verify-email") return <VerifyEmailPage />;
+  if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
+  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+  if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
+  if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} />;
+  if (mode) return <AuthPage mode={mode} onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
+  if (routeIsPrivate) return <AuthPage mode="login" onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
+  return <HomeScreen navigate={navigate} />;
+});
+
 export default function NXT5() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
@@ -11040,6 +11061,7 @@ export default function NXT5() {
   const handleAuth = useCallback((nextUser) => {
     setUser(nextUser);
   }, []);
+  const handleLogout = useCallback(() => setUser(null), []);
 
   useEffect(() => {
     configurePerformanceMode();
@@ -11101,31 +11123,5 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  if (checkingSession) return <AppLoadingScreen />;
-
-  const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
-  const mode = authModeFromPath(route.path) || inviteMode;
-  const routeIsPrivate = isAppPath(route.path);
-  const unknownRoute = !isKnownPath(route.path);
-  const view = unknownRoute
-    ?<NotFoundPage navigate={navigate} />
-      : LEGAL_PAGES[route.path]
-      ?<LegalPage route={route} navigate={navigate} user={user} />
-      : route.path === "/verify-email"
-        ?<VerifyEmailPage />
-      : route.path === "/verified"
-        ?<VerifiedPage navigate={navigate} />
-      : user
-      ?<MainApp user={user} onLogout={() => setUser(null)} onUserUpdate={setUser} pushToast={pushToast} navigate={navigate} route={route} />
-      : route.path === "/mot-de-passe-oublie"
-        ?<ForgotPasswordPage navigate={navigate} />
-      : route.path === "/reinitialiser-mot-de-passe"
-        ?<ResetPasswordPage navigate={navigate} />
-      : mode
-        ?<AuthPage mode={mode} onAuth={handleAuth} pushToast={pushToast} navigate={navigate} />
-        : routeIsPrivate
-          ?<AuthPage mode="login" onAuth={handleAuth} pushToast={pushToast} navigate={navigate} />
-          : <HomeScreen navigate={navigate} />;
-
-  return <>{view}<ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }
