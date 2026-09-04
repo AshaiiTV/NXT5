@@ -15,7 +15,7 @@ function count(value: unknown): number {
  * email addresses, session/IP data, invite codes and imported match raw data.
  */
 async function loadDashboard() {
-  const [summaryRows, recentTeamRows, recentUserRows, teamSizeRows, regionRows, dailyRows, featureRows, matchHealthRows, accountFunnelRows, rosterRows, weeklyRows] = await Promise.all([
+  const [summaryRows, recentTeamRows, recentUserRows, teamSizeRows, regionRows, dailyRows, featureRows, matchHealthRows, accountFunnelRows, rosterRows, weeklyRows, teamDirectoryRows] = await Promise.all([
     sql`
       select
         (select count(*) from teams) as teams,
@@ -168,6 +168,15 @@ async function loadDashboard() {
         (select count(distinct user_id) from sessions where sessions.last_seen_at >= weeks.week and sessions.last_seen_at < weeks.week + interval '1 week') as active_users
       from weeks
       order by weeks.week asc
+    `,
+    sql`
+      select teams.id, teams.name, teams.tag, teams.region, teams.created_at,
+        (select count(*) from players where players.team_id = teams.id) as players,
+        (select count(*) from matches where matches.team_id = teams.id) as matches,
+        (select max(matches.created_at) from matches where matches.team_id = teams.id) as last_activity_at
+      from teams
+      order by coalesce((select max(matches.created_at) from matches where matches.team_id = teams.id), teams.created_at) desc
+      limit 500
     `
   ]);
 
@@ -230,6 +239,10 @@ async function loadDashboard() {
     teamsByRegion: regionRows.map((row: any) => ({ region: row.region || 'Non renseignée', count: count(row.team_count) })),
     daily: dailyRows.map((row: any) => ({ date: row.date, users: count(row.users), teams: count(row.teams), matches: count(row.matches) })),
     weekly: weeklyRows.map((row: any) => ({ date: row.date, users: count(row.users), teams: count(row.teams), matches: count(row.matches), activeUsers: count(row.active_users) })),
+    teamDirectory: teamDirectoryRows.map((row: any) => ({
+      id: row.id, name: row.name, tag: row.tag, region: row.region, createdAt: row.created_at,
+      players: count(row.players), matches: count(row.matches), lastActivityAt: row.last_activity_at || null
+    })),
     recentTeams: recentTeamRows.map((row: any) => ({
       id: row.id, name: row.name, tag: row.tag, region: row.region,
       ownerName: row.owner_name, createdAt: row.created_at,
@@ -244,10 +257,84 @@ async function loadDashboard() {
   };
 }
 
+async function loadTeamDetail(teamId: string) {
+  const [teamRows, rosterRows, matchRows, dailyRows] = await Promise.all([
+    sql`
+      select teams.id, teams.name, teams.tag, teams.region, teams.created_at,
+        (select count(*) from team_members where team_id = teams.id) as members,
+        (select count(*) from players where team_id = teams.id) as players,
+        (select count(*) from matches where team_id = teams.id) as matches,
+        (select count(*) from reports where team_id = teams.id) as reports,
+        (select count(*) from composition_types where team_id = teams.id) as compositions,
+        (select count(*) from player_availability where team_id = teams.id) as availability_entries,
+        (select count(*) from player_goals where team_id = teams.id) as goals,
+        (select count(*) from champion_pool where team_id = teams.id) as champion_pool_entries,
+        (select count(*) from match_archives where team_id = teams.id) as archives,
+        (select max(created_at) from matches where team_id = teams.id) as last_match_at
+      from teams where teams.id = ${teamId} limit 1
+    `,
+    sql`
+      select role, roster_status, count(*) as count,
+        count(*) filter (where user_id is not null) as linked,
+        count(*) filter (where riot_id is not null and riot_id <> '') as riot_configured
+      from players where team_id = ${teamId}
+      group by role, roster_status order by role, roster_status
+    `,
+    sql`
+      select
+        count(*) filter (where result = 'Victoire') as wins,
+        count(*) filter (where result = 'Défaite') as losses,
+        count(*) filter (where result = 'Analyse') as analyses,
+        count(*) filter (where created_at >= now() - interval '7 days') as last_7d,
+        count(*) filter (where created_at >= now() - interval '30 days') as last_30d,
+        coalesce(avg(duration_seconds) filter (where duration_seconds > 0), 0) as average_duration_seconds,
+        count(*) filter (where patch is not null and patch <> '') as with_patch,
+        count(*) filter (where duration_seconds is not null and duration_seconds > 0) as with_duration
+      from matches where team_id = ${teamId}
+    `,
+    sql`
+      with days as (
+        select generate_series(date_trunc('day', now()) - interval '29 days', date_trunc('day', now()), interval '1 day') as day
+      )
+      select to_char(days.day, 'YYYY-MM-DD') as date,
+        (select count(*) from matches where team_id = ${teamId} and created_at >= days.day and created_at < days.day + interval '1 day') as matches
+      from days order by days.day asc
+    `
+  ]);
+  const team: any = teamRows[0];
+  if (!team) return null;
+  const matches: any = matchRows[0] || {};
+  return {
+    team: { id: team.id, name: team.name, tag: team.tag, region: team.region, createdAt: team.created_at, lastMatchAt: team.last_match_at || null },
+    totals: {
+      members: count(team.members), players: count(team.players), matches: count(team.matches), reports: count(team.reports),
+      compositions: count(team.compositions), availabilityEntries: count(team.availability_entries), goals: count(team.goals),
+      championPoolEntries: count(team.champion_pool_entries), archives: count(team.archives)
+    },
+    matches: {
+      wins: count(matches.wins), losses: count(matches.losses), analyses: count(matches.analyses), last7d: count(matches.last_7d),
+      last30d: count(matches.last_30d), averageDurationSeconds: count(matches.average_duration_seconds),
+      withPatch: count(matches.with_patch), withDuration: count(matches.with_duration)
+    },
+    roster: rosterRows.map((row: any) => ({ role: row.role, status: row.roster_status, count: count(row.count), linked: count(row.linked), riotConfigured: count(row.riot_configured) })),
+    daily: dailyRows.map((row: any) => ({ date: row.date, matches: count(row.matches) }))
+  };
+}
+
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertMethod(request, 'GET');
     await requirePlatformAdmin(request, context);
+    const url = new URL(request.url);
+    const teamId = String(url.searchParams.get('teamId') || '').trim();
+    if (url.searchParams.get('view') === 'team') {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(teamId)) {
+        throw Object.assign(new Error('Identifiant équipe invalide.'), { status: 400 });
+      }
+      const detail = await loadTeamDetail(teamId);
+      if (!detail) throw Object.assign(new Error('Équipe introuvable.'), { status: 404 });
+      return json(detail);
+    }
     return json(await loadDashboard());
   } catch (err) {
     return handleError(err);

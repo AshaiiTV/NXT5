@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, BarChart3, Check, Clock3, Gamepad2, Loader2, RefreshCw, ShieldCheck, UserCheck, Users } from "lucide-react";
+import { Activity, AlertTriangle, BarChart3, Check, Clock3, Gamepad2, Loader2, RefreshCw, Search, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { cx } from "../../app/helpers.js";
 import { Badge, Button, EmptyState, PageHeader, SkeletonRows, Surface } from "../../components/ui/Core.jsx";
@@ -60,10 +60,20 @@ function WeeklyChart({ rows = [] }) {
   return <div className="mt-4 grid grid-cols-12 items-end gap-1.5" aria-label="Volume hebdomadaire des games">{rows.map((row) => <div key={row.date} className="flex min-w-0 flex-col items-center gap-2"><span className="text-[0.58rem] font-black text-slate-500">{row.matches || 0}</span><div className="h-24 w-full rounded-t-md bg-white/[0.05] flex items-end overflow-hidden" title={`${formatDate(row.date)} · ${row.matches || 0} games · ${row.activeUsers || 0} utilisateurs actifs`}><div className="w-full rounded-t-md bg-gradient-to-t from-cyan-500 to-fuchsia-400" style={{ height: `${Math.max(3, (Number(row.matches || 0) / max) * 100)}%` }} /></div></div>)}</div>;
 }
 
+function TeamMatchChart({ rows = [] }) {
+  const max = Math.max(1, ...rows.map((row) => Number(row.matches || 0)));
+  return <div className="flex h-24 items-end gap-1" aria-label="Imports de cette équipe sur 30 jours">{rows.map((row) => <div key={row.date} className="min-w-0 flex-1 rounded-t-sm bg-gradient-to-t from-cyan-500 to-fuchsia-400" title={`${formatDate(row.date)} · ${row.matches || 0} games`} style={{ height: `${Math.max(3, (Number(row.matches || 0) / max) * 100)}%` }} />)}</div>;
+}
+
 export default function AdminDashboard() {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [teamDetail, setTeamDetail] = useState(null);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [teamError, setTeamError] = useState("");
+  const [teamSearch, setTeamSearch] = useState("");
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try { setDashboard(await apiFetch("admin-dashboard", { timeoutMs: 20000 })); }
@@ -71,6 +81,19 @@ export default function AdminDashboard() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!selectedTeamId) return undefined;
+    let mounted = true;
+    setTeamLoading(true); setTeamError("");
+    apiFetch(`admin-dashboard?view=team&teamId=${encodeURIComponent(selectedTeamId)}`, { timeoutMs: 20000 })
+      .then((result) => { if (mounted) setTeamDetail(result); })
+      .catch((err) => { if (mounted) { setTeamDetail(null); setTeamError(err.message || "Impossible de charger cette équipe."); } })
+      .finally(() => { if (mounted) setTeamLoading(false); });
+    return () => { mounted = false; };
+  }, [selectedTeamId]);
+  useEffect(() => {
+    if (!selectedTeamId && dashboard?.teamDirectory?.[0]?.id) setSelectedTeamId(dashboard.teamDirectory[0].id);
+  }, [dashboard, selectedTeamId]);
 
   const kpis = useMemo(() => [
     [Users, "Équipes", dashboard?.totals?.teams, dashboard?.growth?.days7?.teams, dashboard?.growth?.days30?.teams, "cyan"],
@@ -93,10 +116,27 @@ export default function AdminDashboard() {
   const totalUsers = Number(dashboard?.totals?.users || 0);
   const totalPlayers = Number(dashboard?.totals?.players || 0);
   const totalMatches = Number(dashboard?.totals?.matches || 0);
+  const filteredTeams = (dashboard?.teamDirectory || []).filter((team) => `${team.name} ${team.tag} ${team.region}`.toLowerCase().includes(teamSearch.trim().toLowerCase()));
+  const teamTotals = teamDetail?.totals || {};
+  const teamMatches = teamDetail?.matches || {};
+  const teamPlayers = Number(teamTotals.players || 0);
   return <div>
     <PageHeader eyebrow="Administration privée" title="Vue d’ensemble plateforme" subtitle="Indicateurs globaux NXT5 en lecture seule. Cet espace est réservé à l’administrateur plateforme."><Button variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></PageHeader>
     {error && <div className="mb-4 rounded-xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm font-semibold text-amber-100">{error}</div>}
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{kpis.map(([icon, label, value, g7, g30, tone]) => <KpiCard key={label} icon={icon} label={label} value={value} growth7={g7} growth30={g30} tone={tone} />)}</div>
+
+    <Surface className="mt-4" glow>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/70">Analyse par équipe</p><h3 className="mt-1 text-2xl font-black text-white">Données détaillées et anonymisées</h3><p className="mt-2 text-sm font-semibold text-slate-400">Volumes et usage produit sans afficher les joueurs, leurs identifiants ou les contenus du staff.</p></div><div className="grid w-full gap-2 sm:grid-cols-[1fr_1.2fr] lg:max-w-2xl"><label className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={teamSearch} onChange={(event) => setTeamSearch(event.target.value)} placeholder="Rechercher une équipe" className="nxt5-input-shell w-full rounded-xl border border-white/10 bg-black/25 py-3 pl-10 pr-3 text-sm font-semibold text-white outline-none focus:border-cyan-300/50" /></label><select value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)} className="nxt5-input-shell w-full rounded-xl border border-white/10 bg-[#071221] px-3 py-3 text-sm font-black text-white outline-none focus:border-cyan-300/50">{filteredTeams.map((team) => <option key={team.id} value={team.id}>{team.name} [{team.tag}] · {team.players} joueurs · {team.matches} games</option>)}</select></div></div>
+      {teamLoading ? <div className="py-8"><SkeletonRows count={3} /></div> : teamError ? <div className="mt-5 rounded-xl border border-amber-300/25 bg-amber-400/10 p-4 text-sm font-semibold text-amber-100">{teamError}</div> : teamDetail && <div className="mt-6 border-t border-white/10 pt-5">
+        <div className="flex flex-wrap items-start justify-between gap-3"><div><h4 className="text-2xl font-black text-white">{teamDetail.team.name} <span className="text-cyan-200">[{teamDetail.team.tag}]</span></h4><p className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-400">{teamDetail.team.region} · créée le {formatDate(teamDetail.team.createdAt)} · dernière game {formatDate(teamDetail.team.lastMatchAt)}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">{teamTotals.members || 0} membres</Badge><Badge tone="purple">{teamTotals.players || 0} joueurs</Badge><Badge tone="green">{teamTotals.matches || 0} games</Badge></div></div>
+        <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1fr_.8fr]">
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs font-black uppercase tracking-wider text-slate-400">Activité · 30 jours</p><div className="mt-4"><TeamMatchChart rows={teamDetail.daily || []} /></div><div className="mt-3 flex justify-between text-xs font-semibold text-slate-400"><span>{teamMatches.last7d || 0} games sur 7 j</span><span>{teamMatches.last30d || 0} sur 30 j</span></div></div>
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs font-black uppercase tracking-wider text-slate-400">Utilisation des outils</p><div className="mt-3 grid grid-cols-2 gap-2">{[["Reviews",teamTotals.reports],["Compositions",teamTotals.compositions],["Planning",teamTotals.availabilityEntries],["Objectifs",teamTotals.goals],["Champion pool",teamTotals.championPoolEntries],["Archives",teamTotals.archives]].map(([label,value]) => <div key={label} className="rounded-lg bg-white/[0.04] p-2.5"><strong className="text-lg text-white">{value || 0}</strong><p className="text-[0.62rem] font-bold uppercase text-slate-400">{label}</p></div>)}</div></div>
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs font-black uppercase tracking-wider text-slate-400">Résultats et qualité</p><div className="mt-3 flex flex-wrap gap-2"><Badge tone="green">{teamMatches.wins || 0} V</Badge><Badge tone="red">{teamMatches.losses || 0} D</Badge><Badge tone="slate">{teamMatches.analyses || 0} analyses</Badge></div><div className="mt-4 space-y-3"><ProgressRow label="Patch renseigné" value={teamMatches.withPatch} total={Number(teamTotals.matches || 0)} suffix="games" /><ProgressRow label="Durée exploitable" value={teamMatches.withDuration} total={Number(teamTotals.matches || 0)} suffix="games" /><ProgressRow label="Profils liés" value={(teamDetail.roster || []).reduce((sum,row) => sum + Number(row.linked || 0), 0)} total={teamPlayers} suffix="joueurs" /><ProgressRow label="Riot ID configurés" value={(teamDetail.roster || []).reduce((sum,row) => sum + Number(row.riotConfigured || 0), 0)} total={teamPlayers} suffix="joueurs" /></div></div>
+        </div>
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-4"><p className="text-xs font-black uppercase tracking-wider text-slate-400">Répartition du roster</p><div className="mt-3 flex flex-wrap gap-2">{(teamDetail.roster || []).map((row) => <Badge key={`${row.role}-${row.status}`} tone={row.status === "MAIN" ? "green" : row.status === "SUB" ? "cyan" : "slate"}>{row.role} · {row.status} · {row.count}</Badge>)}</div></div>
+      </div>}
+    </Surface>
 
     <div className="mt-4 grid gap-4 xl:grid-cols-[1.45fr_.75fr]">
       <Surface glow><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">30 derniers jours</p><h3 className="mt-1 text-xl font-black text-white">Activité quotidienne</h3></div><Activity className="h-5 w-5 text-cyan-200" /></div><div className="mt-5"><DailyChart rows={dashboard?.daily} /></div></Surface>
