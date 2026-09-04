@@ -85,7 +85,6 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [failedMessage, setFailedMessage] = useState("");
-  const panelRef = useRef(null);
   const inputRef = useRef(null);
   const endRef = useRef(null);
   const messagesRef = useRef(messages);
@@ -110,19 +109,6 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current?.();
-        return;
-      }
-      if (event.key !== "Tab" || !panelRef.current) return;
-      const focusable = Array.from(panelRef.current.querySelectorAll('button:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
-      if (!focusable.length) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
       }
     };
     document.addEventListener("keydown", handleKeyDown);
@@ -215,7 +201,6 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
 
   function openInternalPath(path) {
     if (!isSafeInternalPath(path)) return;
-    onCloseRef.current?.();
     navigate?.(path);
   }
 
@@ -227,15 +212,15 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] isolate">
-      <button type="button" aria-label="Fermer l'assistant" onClick={onClose} className="absolute inset-0 cursor-default bg-black/70 backdrop-blur-[3px] lg:bg-black/55" />
-      <aside ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="nxt5-assistant-title" className="absolute inset-y-0 right-0 isolate flex h-[100dvh] w-full flex-col overflow-hidden border-l border-cyan-200/24 bg-[#030611] text-white shadow-[-24px_0_80px_rgba(0,0,0,.82)] ring-1 ring-white/10 sm:w-[min(32rem,100vw)]">
+    <div className="pointer-events-none fixed inset-0 z-[90] isolate">
+      <button type="button" aria-label="Fermer l'assistant" onClick={onClose} className="pointer-events-auto absolute inset-0 cursor-default bg-black/65 backdrop-blur-[3px] sm:hidden" />
+      <aside role="dialog" aria-modal="false" aria-labelledby="nxt5-assistant-title" className="nxt5-enter-fast nxt5-panel nxt5-premium-panel pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[#030611]/98 text-white shadow-[0_28px_90px_rgba(0,0,0,.82),0_0_42px_rgba(34,211,238,.12)] ring-1 ring-white/10 sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-cyan-100/12 bg-[#060a18] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
               <h2 id="nxt5-assistant-title" className="truncate text-lg font-black text-white">Assistant NXT5</h2>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">Aide sur NXT5</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">Disponible sur toutes les pages</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">

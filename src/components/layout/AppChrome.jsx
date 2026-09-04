@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, AlertTriangle, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, MessageCircleQuestion, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
+import { Activity, AlertTriangle, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
 import { draftViewFromPath, draftViewLabel, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
 import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
@@ -72,17 +72,13 @@ export function ApiBanner({ error, onRetry, retrying = false }) {
   return <div className="nxt5-enter-fast mb-5 rounded-3xl border border-amber-300/25 bg-amber-500/10 p-4 text-amber-100 shadow-xl shadow-amber-950/10"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex items-start gap-3"><div className="rounded-2xl bg-amber-200/10 p-2"><AlertTriangle className="h-5 w-5" /></div><div><p className="font-black">Endpoint/API non disponible</p><p className="mt-1 text-sm leading-6 text-amber-100/75">{error}</p></div></div>{onRetry && <Button type="button" variant="ghost" icon={retrying ? Upload : RefreshCw} disabled={retrying} onClick={onRetry} className="shrink-0 border-amber-200/20 bg-amber-200/10 text-amber-50 hover:border-amber-200/45 hover:bg-amber-200/15">{retrying ? "Chargement..." : "Réessayer"}</Button>}</div></div>;
 }
 
-export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer, roleLabel, assistantOpen = false, onAssistantOpen, isPlatformAdmin = false }) {
+export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer, roleLabel, isPlatformAdmin = false }) {
   const status = profileStatusLabel(currentMember);
   const navItems = NAV.filter((item) => PRIMARY_NAV_IDS.includes(item.id) && !item.hidden);
   const moreItems = NAV.filter((item) => MORE_NAV_IDS.includes(item.id) && !item.hidden);
   const profileRole = linkedPlayer?.role || currentMember?.role || "";
   const go = (pageId) => {
     setActive(pageId);
-    setOpen(false);
-  };
-  const openAssistant = () => {
-    onAssistantOpen?.();
     setOpen(false);
   };
   return (
@@ -125,7 +121,6 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
         </nav>
         <div className="relative z-10 shrink-0 space-y-3 pt-3">
           {isPlatformAdmin && <button type="button" onClick={() => go("admin")} title="Administration" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ? "justify-center px-2 lg:justify-center" : "px-3", active === "admin" ? "border-fuchsia-300/35 bg-fuchsia-400/[0.10] text-white shadow-[0_0_22px_rgba(217,70,239,.12)]" : "border-fuchsia-200/15 bg-fuchsia-400/[0.035] text-slate-300 hover:border-fuchsia-300/30 hover:bg-fuchsia-400/[0.08] hover:text-white")}><ShieldCheck className={cx("h-5 w-5 shrink-0 transition", active === "admin" ? "text-fuchsia-100" : "text-slate-300 group-hover:text-fuchsia-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Administration</span></button>}
-          <button type="button" onClick={openAssistant} title="Assistant NXT5" aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", collapsed ? "justify-center px-2 lg:justify-center" : "px-3", assistantOpen ? "border-cyan-300/35 bg-cyan-400/[0.10] text-white shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><MessageCircleQuestion className={cx("h-5 w-5 shrink-0 transition", assistantOpen ? "text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Assistant</span></button>
           <div className={cx("nxt5-panel nxt5-premium-panel relative w-full max-w-full overflow-hidden border border-cyan-200/16 text-left backdrop-blur-2xl", collapsed ? "p-2" : "p-2.5")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-2 flex flex-wrap gap-1.5", collapsed && "lg:hidden")}><Badge tone={profileStatusTone(currentMember)}>{status}</Badge>{linkedPlayer && <Badge tone="cyan">Profil lié</Badge>}</div></div></div>
           <button type="button" onClick={() => go("account-settings")} title="Paramètres" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ? "justify-center px-2 lg:justify-center" : "px-3", active === "account-settings" ? "border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Settings className={cx("h-5 w-5 shrink-0 transition", active === "account-settings" ? "text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Paramètres</span></button>
           <Button variant="ghost" icon={LogOut} onClick={onLogout} className={cx("w-full", collapsed ? "justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button>

@@ -10163,6 +10163,13 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
   const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
+  const assistantWidget = <>
+    <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("group fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-[80] h-14 items-center gap-2 rounded-2xl border border-cyan-200/30 bg-[#071120]/95 px-4 text-sm font-black text-white shadow-[0_18px_50px_rgba(0,0,0,.55),0_0_28px_rgba(34,211,238,.16)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-100/55 hover:bg-[#0a1a2d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/75 sm:right-5 lg:right-6", assistantOpen ? "hidden sm:inline-flex" : "inline-flex")}>
+      <span className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/12 text-cyan-100 transition group-hover:bg-cyan-300/18">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
+      <span className="hidden sm:inline">{assistantOpen ? "Fermer" : "Assistant"}</span>
+    </button>
+    <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
+  </>;
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
   if (!data.teams.length && !(active === "admin" && isPlatformAdmin)) return <>
     <div className="relative min-h-screen text-white">
@@ -10173,10 +10180,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
             <ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
             <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" icon={MessageCircleQuestion} onClick={() => openAssistant()} className="px-3 sm:px-4"><span className="hidden sm:inline">Assistant</span></Button>
-            <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
-          </div>
+          <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
         </div>
         <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
         <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />
@@ -10185,7 +10189,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
     </div>
-    {assistantOpen && <Suspense fallback={null}><AssistantPanel open onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={null} selectedEntity={null} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>}
+    {assistantWidget}
   </>;
   return (
     <div className="relative min-h-screen text-white">
@@ -10202,8 +10206,6 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         linkedPlayer={linkedPlayer}
         onLogout={logout}
         roleLabel={roleLabel}
-        assistantOpen={assistantOpen}
-        onAssistantOpen={() => openAssistant()}
         isPlatformAdmin={isPlatformAdmin}
       />
       <div
@@ -10230,7 +10232,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         </main>
         <LegalLinks navigate={navigate} />
       </div>
-      {assistantOpen && <Suspense fallback={null}><AssistantPanel open onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>}
+      {assistantWidget}
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}
     </div>
