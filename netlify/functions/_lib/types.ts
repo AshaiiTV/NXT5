@@ -10,6 +10,7 @@ export type DbUser = {
   name?: string | null;
   notif_match?: boolean | null;
   notif_report?: boolean | null;
+  is_platform_admin?: boolean;
   created_at?: string | Date;
 };
 

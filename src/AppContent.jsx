@@ -86,6 +86,7 @@ import { assetProxyUrl, matchCategoryIds, matchDisplayName, matchHasCategory, op
 import { addDays, availabilityEvents, availabilitySlots, compositionSlots, dateFromKey, dateKey, emptyCompositionSlots, formatWeekRange, jsonList, mondayOfWeek, planningEventKey, planningEventMeta, planningEventTypeFromLabel, planningSlotsPayload } from "./utils/planning.js";
 import { ROSTER_STATUS_OPTIONS, multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta } from "./utils/roster.js";
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 
 function lazyNamed(importer, name) {
   return lazy(() => importer().then((module) => ({ default: module[name] })));
@@ -10859,6 +10860,7 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
 }
 
 function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+  const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -10939,14 +10941,15 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
     if (active === "guide") return <GuidePage onOpenAssistant={openAssistant} />;
+    if (active === "admin" && isPlatformAdmin) return <AdminDashboard />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
   const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
-  if (!data.teams.length) return <>
+  if (!data.teams.length && !(active === "admin" && isPlatformAdmin)) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
@@ -10986,6 +10989,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         roleLabel={roleLabel}
         assistantOpen={assistantOpen}
         onAssistantOpen={() => openAssistant()}
+        isPlatformAdmin={isPlatformAdmin}
       />
       <div
         className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ? "is-sidebar-collapsed" : "is-sidebar-expanded")}
@@ -11023,11 +11027,13 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
   const unknownRoute = !isKnownPath(route.path);
+  const forbiddenAdminRoute = route.path === "/admin" && (!user || user.is_platform_admin !== true);
 
   // Public pages do not depend on the session check and should render immediately.
   // Keep the full-screen loader only when opening the authenticated workspace.
   if (checkingSession && routeIsPrivate) return <AppLoadingScreen />;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
+  if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;

@@ -1,12 +1,63 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { hashPassword, sha256, verifyPassword } from '../../netlify/functions/_lib/auth';
+import { assertPlatformAdmin, isPlatformAdmin } from '../../netlify/functions/_lib/platform-admin';
 import { assertMethod, assertTrustedMutation, readJson } from '../../netlify/functions/_lib/http';
 
 const originalSiteUrl = process.env.PUBLIC_SITE_URL;
+const originalAdminUserId = process.env.PLATFORM_ADMIN_USER_ID;
+const originalAdminEmail = process.env.PLATFORM_ADMIN_EMAIL;
 
 afterEach(() => {
   if (originalSiteUrl === undefined) delete process.env.PUBLIC_SITE_URL;
   else process.env.PUBLIC_SITE_URL = originalSiteUrl;
+  if (originalAdminUserId === undefined) delete process.env.PLATFORM_ADMIN_USER_ID;
+  else process.env.PLATFORM_ADMIN_USER_ID = originalAdminUserId;
+  if (originalAdminEmail === undefined) delete process.env.PLATFORM_ADMIN_EMAIL;
+  else process.env.PLATFORM_ADMIN_EMAIL = originalAdminEmail;
+});
+
+describe('unique platform administrator', () => {
+  it('fails closed when no server-side administrator is configured', () => {
+    delete process.env.PLATFORM_ADMIN_USER_ID;
+    delete process.env.PLATFORM_ADMIN_EMAIL;
+    expect(() => assertPlatformAdmin({ id: 'user-1' })).toThrowError(
+      expect.objectContaining({ status: 500, code: 'PLATFORM_ADMIN_MISCONFIGURED' })
+    );
+  });
+
+  it('authorizes only the configured immutable user id', () => {
+    process.env.PLATFORM_ADMIN_USER_ID = '937C2D84-025C-4C3B-9216-8027AE6DDF2B';
+    delete process.env.PLATFORM_ADMIN_EMAIL;
+    expect(() => assertPlatformAdmin({ id: '937c2d84-025c-4c3b-9216-8027ae6ddf2b' })).not.toThrow();
+    expect(() => assertPlatformAdmin({ id: 'another-user' })).toThrowError(
+      expect.objectContaining({ status: 403, code: 'PLATFORM_ADMIN_FORBIDDEN' })
+    );
+  });
+
+  it('requires a verified matching email when email configuration is used', () => {
+    delete process.env.PLATFORM_ADMIN_USER_ID;
+    process.env.PLATFORM_ADMIN_EMAIL = 'Owner@NXT5.org';
+    expect(() => assertPlatformAdmin({ id: 'user-1', email: 'owner@nxt5.org', email_verified: true })).not.toThrow();
+    expect(() => assertPlatformAdmin({ id: 'user-1', email: 'owner@nxt5.org', email_verified: false })).toThrowError(
+      expect.objectContaining({ status: 403 })
+    );
+  });
+
+  it('requires both configured identifiers to match the same account', () => {
+    process.env.PLATFORM_ADMIN_USER_ID = 'user-1';
+    process.env.PLATFORM_ADMIN_EMAIL = 'owner@nxt5.org';
+    expect(() => assertPlatformAdmin({ id: 'user-1', email: 'owner@nxt5.org', email_verified: true })).not.toThrow();
+    expect(() => assertPlatformAdmin({ id: 'user-1', email: 'other@nxt5.org', email_verified: true })).toThrowError(
+      expect.objectContaining({ status: 403 })
+    );
+  });
+
+  it('exposes only a boolean role signal for authenticated response shaping', () => {
+    process.env.PLATFORM_ADMIN_USER_ID = 'user-1';
+    delete process.env.PLATFORM_ADMIN_EMAIL;
+    expect(isPlatformAdmin({ id: 'user-1' })).toBe(true);
+    expect(isPlatformAdmin({ id: 'user-2' })).toBe(false);
+  });
 });
 
 describe('mutation origin protection', () => {

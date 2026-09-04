@@ -3,6 +3,7 @@ import { json, assertMethod, handleError } from './_lib/http';
 import { COOKIE_NAME, assertSessionSecret, ensureEmailVerificationColumns, readSessionCookie, requireAuth, safeUser } from './_lib/auth';
 import { sql } from './_lib/db';
 import { ensureUserNotificationColumns } from './_getTeamMembers.js';
+import { isPlatformAdmin } from './_lib/platform-admin';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
@@ -16,7 +17,13 @@ export default async function handler(request: Request, context: Context): Promi
     const user = await requireAuth(request, context);
     await ensureUserNotificationColumns(sql);
     const rows = await sql`select notif_match, notif_report from users where id = ${user.id} limit 1`;
-    return json({ user: safeUser({ ...user, ...(rows[0] || {}) }) });
+    return json({
+      user: safeUser({
+        ...user,
+        ...(rows[0] || {}),
+        is_platform_admin: isPlatformAdmin(user)
+      })
+    });
   } catch (err) {
     return handleError(err);
   }

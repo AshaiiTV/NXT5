@@ -6,6 +6,7 @@ import {
   Crown,
   FileText,
   Settings,
+  ShieldCheck,
   Sparkles,
   Swords,
   Users,
@@ -30,6 +31,7 @@ export const NAV = [
   { id: "profile", label: "Profil", hint: "Ton espace joueur", icon: Activity, shortcut: "P", path: "/mon-profil" },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
+  { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
 ];
 
 export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];

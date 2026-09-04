@@ -16,6 +16,12 @@ function getEnv(name: string): string {
   return (globalThis as any).Netlify?.env?.get?.(name) || process.env[name] || '';
 }
 
+function timingSafeStringEqual(left: string, right: string): boolean {
+  const leftBuffer = Buffer.from(left, 'utf8');
+  const rightBuffer = Buffer.from(right, 'utf8');
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
 function isSecureRequest(request: SessionRequest = null): boolean {
   if (process.env.URL?.startsWith('https://') || process.env.DEPLOY_PRIME_URL?.startsWith('https://')) return true;
   if (!request) return process.env.APP_ENV === 'production';
@@ -85,6 +91,21 @@ export function normalizeEmail(email: unknown): string {
   return String(email || '').trim().toLowerCase();
 }
 
+/** Returns false when platform administration has not been configured. */
+export function isPlatformAdmin(user: Partial<DbUser> | null | undefined): boolean {
+  const configuredUserId = getEnv('PLATFORM_ADMIN_USER_ID').trim().toLowerCase();
+  const configuredEmail = normalizeEmail(getEnv('PLATFORM_ADMIN_EMAIL'));
+  if (!user || (!configuredUserId && !configuredEmail)) return false;
+
+  const userId = String(user.id || '').trim().toLowerCase();
+  const email = normalizeEmail(user.email);
+  const idMatches = !configuredUserId || timingSafeStringEqual(userId, configuredUserId);
+  const emailMatches = !configuredEmail || (
+    Boolean(user.email_verified) && timingSafeStringEqual(email, configuredEmail)
+  );
+  return idMatches && emailMatches;
+}
+
 export function isValidEmail(email: unknown): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
 }
@@ -152,7 +173,11 @@ export async function ensureEmailVerificationColumns(): Promise<void> {
 }
 
 export async function ensureSessionSchema(): Promise<void> {
-  return ensureAuthUserSchema();
+  await ensureAuthUserSchema();
+  await ensureMigration('session-activity-2026-09-04-v1', async () => {
+    await sql`alter table sessions add column if not exists last_seen_at timestamptz`;
+    await sql`create index if not exists idx_sessions_last_seen_at on sessions(last_seen_at desc)`;
+  });
 }
 
 export async function purgeExpiredAuthData(): Promise<void> {
@@ -196,6 +221,9 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
     name: user.name || user.account_name,
     notif_match: user.notif_match ?? true,
     notif_report: user.notif_report ?? true,
+    // Recompute this server-side for every user response. This prevents a
+    // login/profile update response from temporarily dropping the admin UI.
+    is_platform_admin: isPlatformAdmin(user),
     created_at: user.created_at
   };
 }
@@ -265,6 +293,15 @@ export async function requireAuth(request: Request, context: Context): Promise<D
     context.cookies.set({ name: COOKIE_NAME, value: '', ...sessionCookieOptions(request), maxAge: 0 });
     throw Object.assign(new Error('Session invalide ou expirée.'), { status: 401 });
   }
+
+  // Keep platform activity metrics useful without writing on every request.
+  // A session is refreshed at most once every five minutes.
+  await sql`
+    update sessions
+    set last_seen_at = now()
+    where id = ${(rows[0] as any).session_id}
+      and (last_seen_at is null or last_seen_at < now() - interval '5 minutes')
+  `;
 
   return user;
 }
