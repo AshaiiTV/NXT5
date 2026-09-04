@@ -28,9 +28,12 @@ function DailyChart({ rows = [] }) {
   if (!points.length) return <EmptyState icon={BarChart3} title="Pas encore de tendance" text="Les données quotidiennes apparaîtront ici dès la première activité." />;
   return <div>
     <div className="flex h-52 items-end gap-1 sm:gap-1.5" aria-label="Activité quotidienne sur 30 jours">
-      {points.map((row) => {
+      {points.map((row, index) => {
         const total = Number(row.users || 0) + Number(row.teams || 0) + Number(row.matches || 0);
-        return <div key={row.date} className="group relative flex h-full min-w-0 flex-1 items-end" title={`${formatDate(row.date)} : ${total} événements`}><div className="w-full min-h-[3px] rounded-t-sm bg-gradient-to-t from-cyan-500 via-blue-500 to-fuchsia-400 opacity-75 transition group-hover:opacity-100" style={{ height: `${Math.max(2, (total / max) * 100)}%` }} /><div className="pointer-events-none absolute bottom-[calc(100%+6px)] left-1/2 z-20 hidden w-32 -translate-x-1/2 rounded-lg border border-white/10 bg-[#050917] p-2 text-[0.62rem] shadow-xl group-hover:block"><p className="font-black text-white">{formatDate(row.date)}</p><p className="mt-1 text-slate-300">{row.users || 0} comptes · {row.teams || 0} équipes · {row.matches || 0} games</p></div></div>;
+        const height = Math.max(2, (total / max) * 100);
+        const verticalPosition = height > 62 ? "top-2" : "bottom-[calc(100%+8px)]";
+        const horizontalPosition = index === 0 ? "left-0" : index === points.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2";
+        return <div key={row.date} className="group relative flex min-w-0 flex-1 items-end" style={{ height: `${height}%` }} title={`${formatDate(row.date)} : ${total} événements`}><div className="h-full min-h-[3px] w-full rounded-t-sm bg-gradient-to-t from-cyan-500 via-blue-500 to-fuchsia-400 opacity-75 transition group-hover:opacity-100 group-focus-within:opacity-100" /><div className={cx("pointer-events-none absolute z-30 hidden w-40 rounded-xl border border-cyan-100/25 bg-[#030712]/[0.98] p-3 text-xs leading-5 text-white shadow-[0_16px_45px_rgba(0,0,0,.8),0_0_22px_rgba(34,211,238,.16)] backdrop-blur-xl group-hover:block", verticalPosition, horizontalPosition)}><p className="font-black text-cyan-50">{formatDate(row.date)}</p><p className="mt-1 font-semibold text-slate-100">{row.users || 0} comptes · {row.teams || 0} équipes · {row.matches || 0} games</p></div></div>;
       })}
     </div>
     <div className="mt-3 flex justify-between text-[0.62rem] font-bold uppercase tracking-wider text-slate-500"><span>{formatDate(points[0]?.date)}</span><span>{formatDate(points.at(-1)?.date)}</span></div>
