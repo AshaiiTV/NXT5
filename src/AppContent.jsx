@@ -82,7 +82,7 @@ import {
 } from "./app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "./components/brand/BrandAssets.jsx";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
-import { Badge, Button, EmptyState, PageHeader, PremiumToggle, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput, ToastStack } from "./components/ui/Core.jsx";
+import { Badge, Button, EmptyState, PageHeader, PremiumToggle, SelectInput, SkeletonRows, Surface, TabNav, TextAreaInput, TextInput, ToastStack } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalLinks, LegalPage, NotFoundPage, ResetPasswordPage } from "./pages/public/PublicPages.jsx";
 import { cx, errorToast, formatRetryAfter, formatUploadSize, profileStatusLabel, profileStatusTone, readRememberPreference, tone, writeRememberPreference } from "./app/helpers.js";
 import { assetProxyUrl, matchCategoryIds, matchDisplayName, matchHasCategory, opponentRoleRow } from "./utils/matches.js";
@@ -2295,9 +2295,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       </div>
     </Surface>
     <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />
-    <div className="mt-5 rounded-[1.45rem] border border-cyan-300/14 bg-black/22 p-2 shadow-[0_0_34px_rgba(34,211,238,.08)]">
-      <div className="nxt5-responsive-nav-grid grid gap-2">{profileViews.map(([id, label, Icon, count]) => { const active = profileView === id; return <button key={id} type="button" onClick={() => openProfileView(id)} className={cx("group grid min-h-[5.1rem] min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border px-3 py-3 text-left transition hover:-translate-y-0.5", active ? "border-cyan-300/38 bg-cyan-400/12 text-white shadow-[0_0_24px_rgba(34,211,238,.14)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-300/20 hover:bg-white/[0.065]")}><span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/14 text-cyan-100" : "border-white/10 bg-black/22 text-slate-400")}><Icon className="h-5 w-5" /></span><span className="min-w-0 self-center"><span className="block break-words text-sm font-black leading-5">{label}</span><span className="mt-0.5 block break-words text-[0.62rem] font-black uppercase leading-4 tracking-[0.14em] text-slate-400">{active ? "Ouvert" : "Cliquer"}</span></span><span className="justify-self-end"><Badge tone={active ? "cyan" : "slate"}>{count}</Badge></span></button>; })}</div>
-    </div>
+    <TabNav className="mt-5" label="Sections du profil" items={profileViews.map(([id, label, icon, meta]) => ({ id, label, icon, meta }))} activeId={profileView} onChange={openProfileView} columns="sm:grid-cols-2 xl:grid-cols-5" />
     <React.Fragment>
       <div key={profileView} className="nxt5-enter-fast mt-5">
         {profileView === "overview" && <><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /><CoachDiagnosticPanel player={selectedPlayer} games={games} wins={wins} losses={losses} verdict={coachVerdict} summary={coachSummary} issues={coachIssues} strengths={coachStrengths} actions={coachActions} pillars={coachPillars} comparisons={coachComparisons} decisions={coachDecisions} evidenceRows={reviewRows} /></>}
@@ -6561,14 +6559,7 @@ function TrendsPage({ data, selectedTeamId }) {
         </aside>
       </div>
     </section>
-    <div className="sticky top-[5.25rem] z-10 mb-4 rounded-2xl border border-white/10 bg-[#050814]/84 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.22)] backdrop-blur-xl">
-      <div className="grid gap-1.5 md:grid-cols-5">
-        {trendPanelOptions.map(([id, label, Icon, text]) => <button key={id} type="button" onClick={() => setTrendPanel(id)} className={cx("group flex min-w-0 items-center gap-3 rounded-xl px-3 py-3 text-left transition", trendPanel === id ? "bg-cyan-300 text-slate-950 shadow-[0_0_28px_rgba(34,211,238,.18)]" : "text-slate-300 hover:bg-white/[0.055] hover:text-white")}>
-          <Icon className={cx("h-4 w-4 shrink-0", trendPanel === id ? "text-slate-950" : "text-cyan-100")} />
-          <span className="min-w-0"><span className="block truncate text-xs font-black uppercase tracking-[0.12em]">{label}</span><span className={cx("mt-0.5 block truncate text-[0.6rem] font-semibold", trendPanel === id ? "text-slate-800" : "text-slate-500")}>{text}</span></span>
-        </button>)}
-      </div>
-    </div>
+    <TabNav className="sticky top-[5.25rem] z-10 mb-4" label="Sections Tendances" items={trendPanelOptions.map(([id, label, icon, description]) => ({ id, label, icon, description }))} activeId={trendPanel} onChange={setTrendPanel} columns="md:grid-cols-5" />
     {staffAlerts.length > 0 && <div className="mb-4 grid gap-2 lg:grid-cols-3">
       {staffAlerts.slice(0, 3).map((alert) => {
         const Icon = alert.icon;
@@ -6843,19 +6834,7 @@ function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMem
     />
     <Surface glow className="nxt5-workspace-tabs sticky top-3 z-20 mb-5 overflow-hidden p-3 sm:p-4">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-        <div className="nxt5-workspace-tab-grid grid gap-2 sm:grid-cols-3">
-          {GAME_WORKSPACE_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const active = section === tab.id;
-            return <button key={tab.id} type="button" onClick={() => selectSection(tab)} className={cx("group flex min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition", active ? "border-cyan-200/55 bg-cyan-400/18 text-white shadow-[0_0_28px_rgba(34,211,238,.16)]" : "border-white/10 bg-white/[0.035] text-slate-300 hover:border-cyan-200/22 hover:bg-white/[0.06] hover:text-white")}>
-              <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border", active ? "border-cyan-200/35 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-black/22 text-slate-300")}><Icon className="h-5 w-5" /></span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-black uppercase tracking-[0.12em]">{tab.label}</span>
-                <span className="mt-1 block truncate text-xs font-semibold text-slate-400">{tab.hint}</span>
-              </span>
-            </button>;
-          })}
-        </div>
+        <TabNav label="Sections Games" items={GAME_WORKSPACE_TABS.map((tab) => ({ ...tab, description: tab.hint }))} activeId={section} onChange={(id) => selectSection(GAME_WORKSPACE_TABS.find((tab) => tab.id === id))} columns="sm:grid-cols-3" />
         <div className="nxt5-workspace-kpis grid grid-cols-2 gap-2 xl:min-w-[14rem]">
           <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{teamMatches.length}</p></div>
           <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-xl font-black text-white">{Math.round((wins / Math.max(1, teamMatches.length)) * 100)}%</p></div>
@@ -7112,9 +7091,10 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
             <div className="flex shrink-0 items-center gap-2"><Badge tone={selectedArchive ? "cyan" : "slate"}>{selectedArchive ? "Groupe actif" : "Aucun actif"}</Badge><ChevronDown className={cx("h-5 w-5 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></div>
           </button>
           {!archivesCollapsed && <div className="mt-5 min-w-0">
-            <div className="mb-4 flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-black/20 p-1.5">
-              {[["select", "Sélection groupe", archives.length + " groupe" + (archives.length > 1 ? "s" : "")], ["create", "Créer un groupe", archiveFormMatchCount ? archiveFormMatchCount + " game" + (archiveFormMatchCount > 1 ? "s" : "") : "Masqué"]].map(([id, label, meta]) => <button key={id} type="button" onClick={() => setArchiveWorkspaceTab(id)} className={cx("flex min-w-[12rem] flex-1 items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left transition", archiveWorkspaceTab === id ? "border-cyan-200/35 bg-cyan-400/12 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent text-slate-300 hover:border-white/10 hover:bg-white/[0.045]")}><span className="text-xs font-black uppercase tracking-[0.14em]">{label}</span><span className="text-[0.58rem] font-black uppercase tracking-[0.1em] opacity-75">{meta}</span></button>)}
-            </div>
+            <TabNav className="mb-4" label="Gestion des groupes" items={[
+              { id: "select", label: "Sélection groupe", meta: archives.length + " groupe" + (archives.length > 1 ? "s" : "") },
+              { id: "create", label: "Créer un groupe", meta: archiveFormMatchCount ? archiveFormMatchCount + " game" + (archiveFormMatchCount > 1 ? "s" : "") : "Masqué" },
+            ]} activeId={archiveWorkspaceTab} onChange={setArchiveWorkspaceTab} columns="sm:grid-cols-2" />
             {archiveWorkspaceTab === "select" ? <>
             <section className="min-w-0">
               <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-3">
@@ -9331,9 +9311,10 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
       </PageHeader>
 
-      <div role="tablist" aria-label="Sections Review" className="mb-5 flex w-full gap-1 border-b border-white/10">
-        {[["library", "Bibliothèque", reports.length, FileText], ["queue", "À traiter", pendingReviewCount, Check]].map(([id, label, count, Icon]) => <button key={id} type="button" role="tab" aria-selected={workspaceView === id} onClick={() => setWorkspaceView(id)} className={cx("relative flex min-w-0 items-center gap-2 px-4 py-3 text-sm font-black transition", workspaceView === id ? "text-cyan-50" : "text-slate-400 hover:text-white")}><Icon className="h-4 w-4 shrink-0" /><span>{label}</span><span className={cx("rounded-lg px-2 py-0.5 text-[0.62rem]", workspaceView === id ? "bg-cyan-300/14 text-cyan-100" : "bg-white/[0.05] text-slate-400")}>{count}</span>{workspaceView === id && <span className="absolute inset-x-2 bottom-0 h-0.5 bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)]" />}</button>)}
-      </div>
+      <TabNav className="mb-5" label="Sections Review" items={[
+        { id: "library", label: "Bibliothèque", meta: reports.length, icon: FileText },
+        { id: "queue", label: "À traiter", meta: pendingReviewCount, icon: Check },
+      ]} activeId={workspaceView} onChange={setWorkspaceView} columns="sm:grid-cols-2" />
 
       {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
         <aside className="min-w-0 overflow-hidden rounded-2xl border border-cyan-200/18 bg-[#070b17]/88 shadow-[0_18px_54px_rgba(0,0,0,.32)] backdrop-blur-2xl 2xl:sticky 2xl:top-4 2xl:self-start">
@@ -9827,15 +9808,7 @@ function DraftWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
   const view = draftViewFromPath(route?.path);
   const icons = { pool: Crown, compositions: Sparkles };
   return <div>
-    <div className="mb-5 flex flex-wrap gap-2 border-b border-white/10 pb-3" role="tablist" aria-label="Espace Draft">
-      {DRAFT_VIEW_ROUTES.map((item) => {
-        const Icon = icons[item.id];
-        const selected = view === item.id;
-        return <button key={item.id} type="button" role="tab" aria-selected={selected} onClick={() => navigate(draftPathFromView(item.id))} className={cx("inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition", selected ? "border-cyan-200/35 bg-cyan-300/12 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-400 hover:border-cyan-200/20 hover:bg-white/[0.05] hover:text-white")}>
-          <Icon className={cx("h-4 w-4", selected ? "text-cyan-100" : "text-slate-400")} />{item.label}
-        </button>;
-      })}
-    </div>
+    <TabNav className="mb-5" label="Espace Draft" items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-2" />
     {view === "compositions"
       ? <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />
       : <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}

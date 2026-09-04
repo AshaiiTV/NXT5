@@ -42,6 +42,25 @@ export function Button({ children, icon: Icon, variant = "primary", className = 
   );
 }
 
+export function TabNav({ items, activeId, onChange, label = "Sous-navigation", className = "", columns = "" }) {
+  return (
+    <div role="tablist" aria-label={label} className={cx("nxt5-tab-nav overflow-x-auto rounded-2xl border border-white/10 bg-[#050814]/84 p-1.5 shadow-[0_14px_38px_rgba(0,0,0,.20)] backdrop-blur-xl", className)}>
+      <div className={cx("grid min-w-max grid-flow-col auto-cols-fr gap-1.5 sm:min-w-0", columns)}>
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = activeId === item.id;
+          return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => onChange(item.id)} className={cx("group relative flex min-h-12 min-w-[9rem] items-center justify-center gap-2 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:min-w-0", active ? "border-cyan-200/35 bg-gradient-to-r from-cyan-400/18 via-blue-500/12 to-fuchsia-500/14 text-white shadow-[0_0_24px_rgba(34,211,238,.12)]" : "border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.055] hover:text-white")}>
+            <span className={cx("pointer-events-none absolute inset-x-4 bottom-0 h-0.5 origin-center bg-gradient-to-r from-cyan-200 via-blue-300 to-fuchsia-300 transition-transform duration-300", active ? "scale-x-100" : "scale-x-0")} />
+            {Icon && <Icon className={cx("h-4 w-4 shrink-0 transition-colors duration-300", active ? "text-cyan-100" : "text-slate-500 group-hover:text-cyan-200")} />}
+            <span className="min-w-0"><span className="block truncate text-xs font-black uppercase tracking-[0.1em]">{item.label}</span>{item.description && <span className={cx("mt-0.5 block truncate text-[0.6rem] font-semibold normal-case tracking-normal transition-colors", active ? "text-cyan-50/70" : "text-slate-500 group-hover:text-slate-300")}>{item.description}</span>}</span>
+            {item.meta !== undefined && <span className={cx("ml-auto shrink-0 rounded-lg px-2 py-0.5 text-[0.6rem] font-black transition-colors", active ? "bg-cyan-300/14 text-cyan-100" : "bg-white/[0.05] text-slate-500")}>{item.meta}</span>}
+          </button>;
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function TextInput({ label, value, onChange, placeholder, type = "text", required = false, icon: Icon, disabled = false }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const isPassword = type === "password";
