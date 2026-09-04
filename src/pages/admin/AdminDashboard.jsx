@@ -131,7 +131,7 @@ export default function AdminDashboard() {
   const teamTotals = teamDetail?.totals || {};
   const teamMatches = teamDetail?.matches || {};
   const teamPlayers = Number(teamTotals.players || 0);
-  return <div>
+  return <div className="nxt5-data-dense min-w-0">
     <PageHeader eyebrow="Administration" title="Vue d’ensemble" subtitle="Données générales de NXT5. Cet espace est réservé à l’administrateur."><Button variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></PageHeader>
     {error && <div className="mb-4 rounded-xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm font-semibold text-amber-100">{error}</div>}
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{kpis.map(([icon, label, value, g7, g30, tone]) => <KpiCard key={label} icon={icon} label={label} value={value} growth7={g7} growth30={g30} tone={tone} />)}</div>

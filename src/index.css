@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --nxt5-bg: #020611;
+  --nxt5-surface: rgba(7, 14, 29, 0.88);
+  --nxt5-surface-raised: rgba(10, 20, 39, 0.94);
+  --nxt5-surface-soft: rgba(255, 255, 255, 0.035);
+  --nxt5-border: rgba(207, 250, 254, 0.13);
+  --nxt5-border-strong: rgba(165, 243, 252, 0.24);
+  --nxt5-text: #f8fafc;
+  --nxt5-muted: #94a3b8;
+  --nxt5-accent: #67e8f9;
+  --nxt5-accent-2: #a78bfa;
+  --nxt5-danger: #fda4af;
+  --nxt5-radius-panel: 1.25rem;
+  --nxt5-radius-control: 0.75rem;
+  --nxt5-shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -201,6 +218,183 @@ textarea {
   .nxt5-beam-forward,
   .nxt5-beam-reverse {
     animation: none !important;
+  }
+}
+
+/* Canonical NXT5 visual system ------------------------------------------------
+   This final layer deliberately wins over page-specific experiments. Pages may
+   vary in content density, but surfaces, controls and hierarchy stay constant. */
+body {
+  background-color: var(--nxt5-bg);
+  color: var(--nxt5-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.nxt5-panel {
+  clip-path: none !important;
+  border-radius: var(--nxt5-radius-panel) !important;
+  border-color: var(--nxt5-border) !important;
+}
+
+.nxt5-premium-panel,
+.nxt5-surface {
+  background:
+    linear-gradient(145deg, rgba(10, 22, 42, 0.94), rgba(5, 11, 24, 0.92) 62%, rgba(12, 9, 28, 0.9)),
+    var(--nxt5-surface) !important;
+  box-shadow: var(--nxt5-shadow-panel) !important;
+  backdrop-filter: blur(18px);
+}
+
+.nxt5-premium-panel::before {
+  background: linear-gradient(115deg, rgba(103, 232, 249, 0.055), transparent 34%, transparent 68%, rgba(167, 139, 250, 0.04)) !important;
+  opacity: 1 !important;
+}
+
+.nxt5-premium-panel::after,
+.nxt5-cyber-button::after {
+  display: none !important;
+}
+
+.nxt5-panel .nxt5-panel,
+.nxt5-panel :where(div, section, article, li)[class*="rounded"][class*="border"]:not(.nxt5-panel):not([class*="nxt5-cyber-button"]) {
+  border-color: rgba(207, 250, 254, 0.085) !important;
+  background-color: var(--nxt5-surface-soft) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.nxt5-panel .nxt5-panel {
+  border-radius: 0.95rem !important;
+  backdrop-filter: none;
+}
+
+.nxt5-data-dense :where(section, article, form)[class*="rounded"][class*="border"],
+.nxt5-panel :where(button, a)[class*="rounded"][class*="border"] {
+  border-radius: var(--nxt5-radius-control) !important;
+}
+
+.nxt5-cyber-button,
+.nxt5-control {
+  clip-path: none !important;
+  border-radius: var(--nxt5-radius-control) !important;
+  box-shadow: none !important;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease !important;
+}
+
+.nxt5-cyber-button:hover {
+  transform: translateY(-1px);
+}
+
+.nxt5-input-shell,
+input.nxt5-control,
+select.nxt5-control,
+textarea.nxt5-control {
+  border-color: var(--nxt5-border) !important;
+  border-radius: var(--nxt5-radius-control) !important;
+  background: rgba(3, 9, 21, 0.78) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+.nxt5-panel :where(input, select, textarea)[class*="border"] {
+  border-color: var(--nxt5-border) !important;
+  border-radius: var(--nxt5-radius-control) !important;
+  background-color: rgba(3, 9, 21, 0.78) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+.nxt5-input-shell:focus,
+input.nxt5-control:focus,
+select.nxt5-control:focus,
+textarea.nxt5-control:focus {
+  border-color: rgba(103, 232, 249, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1) !important;
+}
+
+.nxt5-tab-nav {
+  border-color: var(--nxt5-border) !important;
+  border-radius: 1rem !important;
+  background: rgba(4, 10, 22, 0.86) !important;
+  box-shadow: var(--nxt5-shadow-panel) !important;
+}
+
+.nxt5-tab-nav [role="tab"] {
+  border-radius: 0.7rem !important;
+}
+
+.nxt5-sidebar,
+.nxt5-topbar {
+  border-color: var(--nxt5-border) !important;
+  background: rgba(3, 9, 21, 0.92) !important;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.28) !important;
+  backdrop-filter: blur(20px);
+}
+
+.nxt5-sidebar > .pointer-events-none,
+.nxt5-topbar > .pointer-events-none {
+  opacity: 0.42;
+}
+
+.nxt5-sidebar nav button,
+.nxt5-sidebar > div > button {
+  border-radius: var(--nxt5-radius-control) !important;
+}
+
+.nxt5-page-header {
+  border-color: var(--nxt5-border) !important;
+  padding-bottom: 1.15rem;
+}
+
+.nxt5-page-header::before {
+  left: -0.65rem;
+  width: 2px;
+  background: linear-gradient(180deg, var(--nxt5-accent), var(--nxt5-accent-2));
+  box-shadow: none;
+}
+
+.nxt5-page-header::after {
+  display: none;
+}
+
+.nxt5-metal-text {
+  background: none;
+  color: var(--nxt5-text);
+  text-shadow: none;
+}
+
+.nxt5-panel table thead {
+  background: rgba(255, 255, 255, 0.035) !important;
+}
+
+.nxt5-panel table tbody tr {
+  border-color: var(--nxt5-border) !important;
+  transition: background-color 140ms ease;
+}
+
+.nxt5-panel table tbody tr:hover {
+  background: rgba(103, 232, 249, 0.035);
+}
+
+.nxt5-panel :where(h2, h3, h4) {
+  letter-spacing: -0.018em;
+}
+
+.nxt5-panel :where(p, li) {
+  text-wrap: pretty;
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid rgba(103, 232, 249, 0.75);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --nxt5-radius-panel: 1rem;
+  }
+
+  .nxt5-panel {
+    clip-path: none !important;
   }
 }
 

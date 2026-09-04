@@ -4,7 +4,7 @@ import { cx, tone } from "../../app/helpers.js";
 
 export function Badge({ children, tone: t = "slate", pulse = false, className = "", ...props }) {
   return (
-    <span {...props} className={cx("inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border px-2.5 py-1 text-left text-[0.64rem] font-black uppercase leading-4 tracking-[0.08em] whitespace-normal", tone(t), className)}>
+    <span {...props} className={cx("nxt5-badge inline-flex max-w-full min-w-0 items-center gap-1 rounded-full border px-2.5 py-1 text-left text-[0.64rem] font-black uppercase leading-4 tracking-[0.08em] whitespace-normal", tone(t), className)}>
       {pulse && <span className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_12px_currentColor]" />}
       <span className="min-w-0 break-words">{children}</span>
     </span>
@@ -15,7 +15,7 @@ export function Surface({ children, className = "", delay = 0, glow = false }) {
   return (
     <div
       className={cx(
-        "nxt5-panel nxt5-premium-panel group relative max-w-full overflow-hidden border border-cyan-200/18 p-4 backdrop-blur-2xl transition duration-300 sm:p-4",
+        "nxt5-panel nxt5-premium-panel nxt5-surface group relative max-w-full overflow-hidden border border-cyan-200/18 p-4 backdrop-blur-2xl transition duration-300 sm:p-4",
         glow && "border-cyan-200/24 shadow-[0_0_26px_rgba(34,211,238,.075),0_18px_54px_rgba(0,0,0,.38)] hover:border-cyan-200/34",
         className
       )}
@@ -28,7 +28,7 @@ export function Surface({ children, className = "", delay = 0, glow = false }) {
 }
 
 export function Button({ children, icon: Icon, variant = "primary", className = "", disabled = false, ...props }) {
-  const base = "nxt5-cyber-button inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
+  const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
     primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
     ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11] hover:text-white hover:shadow-[0_0_28px_rgba(34,211,238,.14)]",
@@ -70,7 +70,7 @@ export function TextInput({ label, value, onChange, placeholder, type = "text", 
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
         {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-200/75" />}
-        <input type={inputType} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("nxt5-input-shell w-full rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:bg-[#050914]/88 focus:ring-4 focus:ring-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10", isPassword && "pr-12")} />
+        <input type={inputType} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("nxt5-input-shell nxt5-control w-full rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:bg-[#050914]/88 focus:ring-4 focus:ring-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10", isPassword && "pr-12")} />
         {isPassword && <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} disabled={disabled} aria-label={passwordVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute right-2.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-slate-300 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>}
       </div>
     </label>
@@ -83,7 +83,7 @@ export function TextAreaInput({ label, value, onChange, placeholder, icon: Icon,
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
         {Icon && <Icon className="pointer-events-none absolute left-3.5 top-4 h-4 w-4 text-cyan-200/75" />}
-        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("nxt5-input-shell w-full resize-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:bg-[#050914]/88 focus:ring-4 focus:ring-cyan-300/12", Icon && "pl-10")} />
+        <textarea value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} rows={rows} className={cx("nxt5-input-shell nxt5-control w-full resize-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:bg-[#050914]/88 focus:ring-4 focus:ring-cyan-300/12", Icon && "pl-10")} />
       </div>
     </label>
   );
@@ -94,7 +94,7 @@ export function SelectInput({ label, value, onChange, children, disabled = false
     <label className="block">
       <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">{label}</span>
       <div className="relative">
-        <select value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} className="nxt5-input-shell w-full appearance-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-45">
+        <select value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} className="nxt5-input-shell nxt5-control w-full appearance-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 pr-10 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-45">
           {children}
         </select>
         <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-300" />

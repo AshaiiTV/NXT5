@@ -97,7 +97,7 @@ function signed(value, suffix = "") {
 }
 
 function Panel({ children, className = "" }) {
-  return <section className={cx("overflow-hidden rounded-2xl border border-white/10 bg-[#070b17]/88 shadow-[0_22px_70px_rgba(0,0,0,.22)]", className)}>{children}</section>;
+  return <section className={cx("nxt5-panel nxt5-premium-panel nxt5-surface overflow-hidden border p-0", className)}>{children}</section>;
 }
 
 function Label({ children, tone = "cyan" }) {
@@ -106,12 +106,12 @@ function Label({ children, tone = "cyan" }) {
 }
 
 function IconButton({ icon: Icon, label, onClick, danger = false, disabled = false }) {
-  return <button type="button" title={label} aria-label={label} onClick={onClick} disabled={disabled} className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-40", danger ? "border-rose-300/20 bg-rose-300/[0.07] text-rose-100 hover:bg-rose-300/15" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-cyan-300/25 hover:text-cyan-100")}><Icon className="h-4 w-4" /></button>;
+  return <button type="button" title={label} aria-label={label} onClick={onClick} disabled={disabled} className={cx("nxt5-control grid h-9 w-9 shrink-0 place-items-center border transition disabled:cursor-not-allowed disabled:opacity-40", danger ? "border-rose-300/20 bg-rose-300/[0.07] text-rose-100 hover:bg-rose-300/15" : "border-white/10 bg-white/[0.04] text-slate-200 hover:border-cyan-300/25 hover:text-cyan-100")}><Icon className="h-4 w-4" /></button>;
 }
 
 function ActionButton({ children, onClick, icon: Icon = ArrowRight, variant = "primary", disabled = false, type = "button", className = "" }) {
-  const styles = variant === "ghost" ? "border-white/10 bg-white/[0.04] text-slate-100 hover:border-cyan-300/25 hover:bg-cyan-300/[0.07]" : variant === "danger" ? "border-rose-300/25 bg-rose-300/10 text-rose-50 hover:bg-rose-300/18" : "border-cyan-200/30 bg-cyan-300 text-slate-950 hover:bg-cyan-200";
-  return <button type={type} onClick={onClick} disabled={disabled} className={cx("inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45", styles, className)}>{Icon && <Icon className="h-4 w-4" />}{children}</button>;
+  const styles = variant === "ghost" ? "border-cyan-100/16 bg-[#071221]/72 text-slate-100 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11]" : variant === "danger" ? "border-rose-300/28 bg-rose-500/12 text-rose-100 hover:bg-rose-500/18" : "border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white";
+  return <button type={type} onClick={onClick} disabled={disabled} className={cx("nxt5-cyber-button nxt5-control inline-flex min-h-10 items-center justify-center gap-2 border px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45", styles, className)}>{Icon && <Icon className="h-4 w-4" />}{children}</button>;
 }
 
 export function TeamDataHealthPanel({ team, players = [], matches = [] }) {
