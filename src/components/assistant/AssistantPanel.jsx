@@ -11,8 +11,8 @@ const ROUTE_SUGGESTIONS = [
   { matches: ["/rapports"], prompts: ["Comment créer une review ?", "Comment lier plusieurs games à une review ?", "Où retrouver mes anciennes reviews ?"] },
   { matches: ["/tendances"], prompts: ["Comment filtrer les tendances ?", "Comment interpréter les indicateurs d'équipe ?", "Comment ouvrir une game source ?"] },
   { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une session d'équipe ?"] },
-  { matches: ["/champion-pool"], prompts: ["Comment modifier le pool d'un joueur ?", "Comment classer un champion par tier ?", "À quoi servent les statuts des picks ?"] },
-  { matches: ["/compositions-types"], prompts: ["Comment créer une composition ?", "Comment utiliser les tiers du Champion Pool ?", "Comment distinguer nos drafts des leurs ?"] },
+  { matches: ["/draft/pool"], prompts: ["Comment modifier le pool d'un joueur ?", "Comment classer un champion par tier ?", "À quoi servent les statuts des picks ?"] },
+  { matches: ["/draft/compositions"], prompts: ["Comment créer une composition ?", "Comment utiliser les tiers du Champion Pool ?", "Comment préparer nos drafts ?"] },
   { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment choisir le profil observé ?", "Comment lire l'historique d'un joueur ?", "Où retrouver ses champions et matchups ?"] },
 ];
 

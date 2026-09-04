@@ -1,4 +1,4 @@
-import { AUTH_PATHS, AUTH_ROUTES, NAV, PROFILE_VIEW_ROUTES, PUBLIC_ROUTES } from "./constants.jsx";
+import { AUTH_PATHS, AUTH_ROUTES, DRAFT_VIEW_ROUTES, NAV, PROFILE_VIEW_ROUTES, PUBLIC_ROUTES } from "./constants.jsx";
 
 export function normalizePath(pathname = "/") {
   if (!pathname || pathname === "/") return "/";
@@ -8,6 +8,7 @@ export function normalizePath(pathname = "/") {
 export function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path === "/statistiques" || path === "/rapports") return "matches";
+  if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return "draft";
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
   return NAV.find((item) => item.path === path)?.id || "teams";
 }
@@ -33,6 +34,21 @@ export function profileViewLabel(viewId = "overview") {
   return PROFILE_VIEW_ROUTES.find((item) => item.id === viewId)?.label || PROFILE_VIEW_ROUTES[0].label;
 }
 
+export function draftViewFromPath(pathname = window.location.pathname) {
+  const path = normalizePath(pathname);
+  if (path === "/compositions-types" || path === "/draft/compositions") return "compositions";
+  return "pool";
+}
+
+export function draftPathFromView(viewId = "pool") {
+  const view = DRAFT_VIEW_ROUTES.find((item) => item.id === viewId) || DRAFT_VIEW_ROUTES[0];
+  return `/draft/${view.path}`;
+}
+
+export function draftViewLabel(viewId = "pool") {
+  return DRAFT_VIEW_ROUTES.find((item) => item.id === viewId)?.label || DRAFT_VIEW_ROUTES[0].label;
+}
+
 export function gameWorkspaceSectionFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path === "/statistiques") return "stats";
@@ -51,6 +67,7 @@ export function authModeFromPath(pathname = window.location.pathname) {
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
+  if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return true;
   return NAV.some((item) => item.path === path);
 }
 

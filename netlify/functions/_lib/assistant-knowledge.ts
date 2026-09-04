@@ -35,8 +35,8 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/statistiques',
   '/rapports',
   '/tendances',
-  '/champion-pool',
-  '/compositions-types',
+  '/draft/pool',
+  '/draft/compositions',
   '/planning',
   '/mon-profil',
   '/mon-profil/champions',
@@ -180,7 +180,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
   {
     id: 'champion-pool',
     title: 'Champion Pool',
-    path: '/champion-pool',
+    path: '/draft/pool',
     actionLabel: 'Ouvrir le Champion Pool',
     summary: 'Champion Pool organise les picks de chaque joueur par tier de maîtrise et statut : confiance, situationnel, validation ou développement.',
     keywords: ['champion pool', 'pool', 'champion', 'tier', 'maîtrise', 'confiance', 'situationnel', 'validation', 'développement', 'locke', 'pick'],
@@ -195,7 +195,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
   {
     id: 'compositions',
     title: 'Compositions et drafts',
-    path: '/compositions-types',
+    path: '/draft/compositions',
     actionLabel: 'Ouvrir Compos',
     summary: 'Compos permet de préparer Nos drafts et Leurs drafts à partir des Champion Pools, avec rôles, side, tags, conditions de jeu et réponses possibles.',
     keywords: ['compo', 'composition', 'draft', 'nos drafts', 'leur draft', 'leurs drafts', 'pick', 'ban', 'side', 'counter', 'drag drop'],

@@ -2,7 +2,6 @@ import {
   Activity,
   BarChart3,
   CalendarDays,
-  Crown,
   FileText,
   Settings,
   ShieldCheck,
@@ -22,9 +21,8 @@ export const NAV = [
   { id: "matches", label: "Games", hint: "Importer, lire, review", icon: Swords, shortcut: "G", path: "/integration" },
   { id: "stats", label: "Statistiques", hint: "Lecture détaillée", icon: BarChart3, shortcut: "S", path: "/statistiques" },
   { id: "trends", label: "Tendances", hint: "Comprendre l'équipe", icon: Activity, shortcut: "N", path: "/tendances" },
-  { id: "champions", label: "Pool équipe", hint: "Picks par joueur", icon: Crown, shortcut: "C", path: "/champion-pool" },
   { id: "planning", label: "Planning", hint: "Dispos et sessions", icon: CalendarDays, shortcut: "L", path: "/planning" },
-  { id: "compositions", label: "Compos", hint: "Drafts préparées", icon: Sparkles, shortcut: "V", path: "/compositions-types" },
+  { id: "draft", label: "Draft", hint: "Pools et compositions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
   { id: "reports", label: "Review", hint: "Décisions staff", icon: FileText, shortcut: "R", path: "/rapports" },
   { id: "profile", label: "Profil", hint: "Ton espace joueur", icon: Activity, shortcut: "P", path: "/mon-profil" },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
@@ -33,7 +31,12 @@ export const NAV = [
 ];
 
 export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
-export const MORE_NAV_IDS = ["trends", "champions", "compositions"];
+export const MORE_NAV_IDS = ["trends", "draft"];
+
+export const DRAFT_VIEW_ROUTES = [
+  { id: "pool", label: "Champion Pool", path: "pool" },
+  { id: "compositions", label: "Compositions", path: "compositions" },
+];
 
 export const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },

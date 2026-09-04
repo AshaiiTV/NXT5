@@ -6,11 +6,11 @@
 
 ## Champion Pool
 
-`/champion-pool` classe les champions de chaque joueur par tier de maîtrise. Les statuts distinguent les picks de confiance, situationnels, en validation et en développement.
+`/draft/pool` classe les champions de chaque joueur par tier de maîtrise. Les statuts distinguent les picks de confiance, situationnels, en validation et en développement.
 
 ## Compositions
 
-`/compositions-types` sépare Nos drafts et Leurs drafts. Les champions sont glissés depuis le pool vers leur rôle. Le side, les tags et la condition de jeu rendent la composition exploitable par le staff.
+`/draft/compositions` permet de préparer les compositions de l’équipe. Les champions sont glissés depuis le pool vers leur rôle. Le side, les tags et la condition de jeu rendent la composition exploitable par le staff.
 
 ## Planning
 

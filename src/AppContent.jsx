@@ -49,6 +49,7 @@ import {
   AUTH_PATHS,
   DEFAULT_DATA,
   DISCORD_INVITE_URL,
+  DRAFT_VIEW_ROUTES,
   MORE_NAV_IDS,
   NAV,
   NXT5_IMPORTER_MAC_URL,
@@ -63,6 +64,8 @@ import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode, currentPerforma
 import {
   authModeFromPath,
   buildLoginRedirect,
+  draftPathFromView,
+  draftViewFromPath,
   gameWorkspaceSectionFromPath,
   gameWorkspaceSectionLabel,
   isAppPath,
@@ -9820,6 +9823,25 @@ function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = fals
   );
 }
 
+function DraftWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route, navigate }) {
+  const view = draftViewFromPath(route?.path);
+  const icons = { pool: Crown, compositions: Sparkles };
+  return <div>
+    <div className="mb-5 flex flex-wrap gap-2 border-b border-white/10 pb-3" role="tablist" aria-label="Espace Draft">
+      {DRAFT_VIEW_ROUTES.map((item) => {
+        const Icon = icons[item.id];
+        const selected = view === item.id;
+        return <button key={item.id} type="button" role="tab" aria-selected={selected} onClick={() => navigate(draftPathFromView(item.id))} className={cx("inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-black transition", selected ? "border-cyan-200/35 bg-cyan-300/12 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-400 hover:border-cyan-200/20 hover:bg-white/[0.05] hover:text-white")}>
+          <Icon className={cx("h-4 w-4", selected ? "text-cyan-100" : "text-slate-400")} />{item.label}
+        </button>;
+      })}
+    </div>
+    {view === "compositions"
+      ? <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />
+      : <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+  </div>;
+}
+
 function assistantEntityForRoute(route, data, selectedTeamId) {
   const params = new URLSearchParams(route?.search || "");
   const teamMatches = (data.matches || []).filter((item) => String(item.team_id || "") === String(selectedTeamId || ""));
@@ -9913,6 +9935,10 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   async function logout() { try { await apiFetch("auth-logout", { method: "POST" }); } catch {} pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." }); navigate("/connexion", { replace: true }); onLogout(); }
   useEffect(() => { refreshAll(); }, []);
   useEffect(() => { startTransition(() => setActiveState(new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path))); }, [route.path, route.search]);
+  useEffect(() => {
+    if (route.path === "/champion-pool" || route.path === "/draft") navigate("/draft/pool", { replace: true });
+    if (route.path === "/compositions-types") navigate("/draft/compositions", { replace: true });
+  }, [route.path, navigate]);
 
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
   const currentMember = currentTeam ?(data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
@@ -9923,9 +9949,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "stats" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
-    if (active === "champions") return <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
-    if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
+    if (active === "draft") return <DraftWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
     if (active === "admin" && isPlatformAdmin) return <AdminDashboard />;
