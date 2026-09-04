@@ -11101,7 +11101,9 @@ export default function NXT5() {
       "/verified": "E-mail vérifié — NXT5",
       "/mentions-legales": "Mentions légales — NXT5",
       "/confidentialite": "Confidentialité — NXT5",
-      "/conditions": "Conditions — NXT5",
+      "/cookies": "Cookies — NXT5",
+      "/conditions": "Conditions générales d’utilisation — NXT5",
+      "/reglement": "Règlement — NXT5",
       "/contact": "Contact — NXT5",
     };
     document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");

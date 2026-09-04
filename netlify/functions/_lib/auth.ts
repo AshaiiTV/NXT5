@@ -77,7 +77,7 @@ export function isValidEmail(email: unknown): boolean {
 }
 
 export async function ensureAuthUserSchema(): Promise<void> {
-  return ensureMigration('auth-runtime-2026-09-02-v1', async () => {
+  await ensureMigration('auth-runtime-2026-09-02-v1', async () => {
     await sql`create extension if not exists pgcrypto`;
     await sql`
       create table if not exists users (
@@ -128,6 +128,10 @@ export async function ensureAuthUserSchema(): Promise<void> {
     await sql`create unique index if not exists idx_sessions_token_hash on sessions(token_hash)`;
     await sql`create index if not exists idx_sessions_user_active on sessions(user_id, expires_at desc) where revoked_at is null`;
   });
+  await ensureMigration('legal-acceptance-2026-09-04-v1', async () => {
+    await sql`alter table users add column if not exists legal_accepted_at timestamptz`;
+    await sql`alter table users add column if not exists legal_version text`;
+  });
 }
 
 export async function ensureEmailVerificationColumns(): Promise<void> {
@@ -136,6 +140,37 @@ export async function ensureEmailVerificationColumns(): Promise<void> {
 
 export async function ensureSessionSchema(): Promise<void> {
   return ensureAuthUserSchema();
+}
+
+export async function purgeExpiredAuthData(): Promise<void> {
+  const cleanup = async (label: string, operation: () => Promise<unknown>) => {
+    try {
+      await operation();
+    } catch (err: any) {
+      if (err?.code !== '42P01') console.warn(`Auth retention cleanup failed: ${label}`, { code: err?.code || null });
+    }
+  };
+
+  await cleanup('sessions', () => sql`
+    delete from sessions
+    where expires_at < now() - interval '30 days'
+       or (revoked_at is not null and revoked_at < now() - interval '30 days')
+  `);
+  await cleanup('password-reset-tokens', () => sql`
+    delete from password_reset_tokens
+    where expires_at < now() - interval '30 days'
+       or (used_at is not null and used_at < now() - interval '30 days')
+  `);
+  await cleanup('email-verification-tokens', () => sql`
+    update users
+    set email_verify_token = null,
+        email_verify_expires_at = null
+    where email_verify_expires_at < now() - interval '30 days'
+  `);
+  await cleanup('audit-logs', () => sql`
+    delete from audit_logs
+    where created_at < now() - interval '12 months'
+  `);
 }
 
 export function safeUser(user: Partial<DbUser> | null | undefined) {
@@ -154,6 +189,7 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
 
 export async function createSession({ userId, context, request, remember = true }: { userId: string; context: Context; request: Request; remember?: boolean }): Promise<void> {
   await ensureSessionSchema();
+  await purgeExpiredAuthData();
   const rawToken = crypto.randomBytes(48).toString('base64url');
   const tokenHash = sha256(rawToken);
   const maxAge = remember ? REMEMBER_SESSION_DAYS * 24 * 60 * 60 : SHORT_SESSION_HOURS * 60 * 60;

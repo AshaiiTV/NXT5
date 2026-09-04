@@ -6,6 +6,8 @@ import { assertSessionSecret, createSession, ensureEmailVerificationColumns, has
 import { sendEmailVerificationEmail } from './_lib/email';
 import { assertRateLimit } from './_lib/rate-limit';
 
+const LEGAL_VERSION = '2026-09-04';
+
 function accountNameFromEmail(email) {
   const base = normalizeAccountName(email.split('@')[0]).replace(/[^a-z0-9._-]/g, '').slice(0, 18) || 'compte';
   return `${base}-${Math.random().toString(36).slice(2, 8)}`;
@@ -21,6 +23,8 @@ export default async function handler(request: Request, context: Context): Promi
     const displayName = String(body.displayName || '').trim().replace(/\s+/g, ' ');
     const password = String(body.password || '');
     const remember = body.rememberMe !== false;
+    const acceptLegal = body.acceptLegal === true;
+    const legalVersion = String(body.legalVersion || '');
 
     if (!email || !displayName || !password) {
       throw Object.assign(new Error('E-mail, pseudo et mot de passe requis.'), { status: 400 });
@@ -33,6 +37,9 @@ export default async function handler(request: Request, context: Context): Promi
     }
     if (password.length < 8) {
       throw Object.assign(new Error('Mot de passe trop court : 8 caractères minimum.'), { status: 400 });
+    }
+    if (!acceptLegal || legalVersion !== LEGAL_VERSION) {
+      throw Object.assign(new Error('Tu dois accepter les CGU, le règlement et la politique de confidentialité en vigueur.'), { status: 400, code: 'LEGAL_ACCEPTANCE_REQUIRED' });
     }
 
     const accountName = accountNameFromEmail(email);
@@ -47,6 +54,11 @@ export default async function handler(request: Request, context: Context): Promi
     `;
 
     const user = users[0];
+    await sql`
+      update users
+      set legal_accepted_at = now(), legal_version = ${LEGAL_VERSION}
+      where id = ${user.id}
+    `;
     await sendEmailVerificationEmail({ to: email, token: verifyToken });
 
     await sql`

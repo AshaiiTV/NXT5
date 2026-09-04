@@ -126,60 +126,115 @@ export function LegalLinks({ navigate }) {
   const links = [
     ["/mentions-legales", "Mentions légales"],
     ["/confidentialite", "Confidentialité"],
-    ["/conditions", "Conditions"],
+    ["/cookies", "Cookies"],
+    ["/conditions", "CGU"],
+    ["/reglement", "Règlement"],
     ["/contact", "Contact"],
   ];
   return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-300">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="border-transparent bg-transparent px-0 py-0 text-xs text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-300">NXT5 n’est pas affilié à Riot Games.</span></footer>;
 }
 
+export const LEGAL_VERSION = "2026-09-04";
+const LEGAL_UPDATED_LABEL = "4 septembre 2026";
+
 export const LEGAL_PAGES = {
   "/mentions-legales": {
     eyebrow: "Cadre légal",
     title: "Mentions légales",
-    intro: "NXT5 est une plateforme indépendante destinée aux équipes League of Legends souhaitant organiser leurs profils, matchs, compositions, données d’import et reviews.",
+    intro: "Informations relatives à l’édition, à l’hébergement et à l’utilisation du site nxt5.org, conformément au cadre français applicable aux services en ligne.",
     sections: [
-      ["Éditeur du service", "Le service NXT5 est édité et maintenu par l’exploitant du projet NXT5. Les demandes relatives au service peuvent être adressées via les moyens de contact mis à disposition dans l’application ou sur les canaux officiels du projet."],
+      ["Éditeur du service", "NXT5 est édité à titre non professionnel. L’éditeur fait usage de la faculté d’anonymat prévue à l’article 1-1, II de la loi n° 2004-575 du 21 juin 2004. Les demandes peuvent être adressées par le canal privé indiqué sur la page Contact. L’identité de l’éditeur peut être communiquée par l’hébergeur aux autorités compétentes dans les conditions prévues par la loi."],
       ["Objet du site", "NXT5 propose des outils de gestion d’équipe, d’import de matchs, de consultation statistique, de préparation de compositions, de champion pool, de planning et de rédaction de reviews. Le service est réservé à un usage d’organisation, d’analyse et de suivi sportif par les utilisateurs autorisés."],
-      ["Hébergement", "Le site est hébergé par Netlify, Inc., 44 Montgomery Street, Suite 300, San Francisco, California 94104, États-Unis. Certains services techniques nécessaires au fonctionnement de l’application peuvent être opérés par des prestataires tiers spécialisés dans l’hébergement, la base de données, l’envoi d’e-mails transactionnels ou l’accès aux API utilisées par le service."],
+      ["Hébergement", "Le site et ses fonctions sont hébergés par Netlify, Inc., 101 2nd Street, San Francisco, CA 94105, États-Unis — support@netlify.com. La base de données est opérée avec Neon (Neon, Inc.)."],
       ["Propriété intellectuelle", "L’interface, l’identité NXT5, les textes, structures de pages et éléments propres au service sont protégés par les règles applicables à la propriété intellectuelle. Toute reproduction, extraction ou réutilisation substantielle sans autorisation préalable est interdite, sauf usage strictement personnel dans le cadre normal du service."],
       ["Riot Games", "NXT5 n’est pas approuvé, sponsorisé, validé ni affilié à Riot Games. League of Legends, Riot Games et les éléments associés appartiennent à Riot Games, Inc. Les données issues de l’écosystème Riot sont utilisées dans le respect des conditions applicables aux développeurs et uniquement pour les fonctionnalités proposées aux équipes."],
+      ["Signalement et droit de réponse", "Toute personne estimant qu’un contenu porte atteinte à ses droits peut demander sa correction, son retrait ou exercer un droit de réponse par le canal privé de la page Contact. La demande doit permettre d’identifier précisément le contenu concerné, son emplacement et le motif du signalement."],
       ["Responsabilité", "NXT5 met à disposition des outils de consultation et d’organisation. Les décisions sportives, choix de draft, interprétations de données, reviews, contenus et usages effectués par les équipes relèvent de la responsabilité exclusive des utilisateurs concernés."],
-      ["Mise à jour", "Les présentes mentions peuvent être modifiées afin de tenir compte de l’évolution du service, de ses fonctionnalités ou du cadre réglementaire applicable. Dernière mise à jour : 27 mai 2026."],
+      ["Mise à jour", `Version ${LEGAL_VERSION}. Dernière mise à jour : ${LEGAL_UPDATED_LABEL}.`],
+    ],
+    resources: [
+      ["Article 1-1 de la LCEN", "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000049568614"],
+      ["Informations légales Netlify", "https://www.netlify.com/legal/terms-of-use/"],
     ],
   },
   "/confidentialite": {
     eyebrow: "Données",
     title: "Politique de confidentialité",
-    intro: "Cette politique explique comment NXT5 traite les données nécessaires au fonctionnement du service. Elle vise à fournir une information claire, accessible et proportionnée aux usages réels de la plateforme.",
+    intro: "Cette politique décrit précisément les données utilisées par NXT5, leurs finalités, leur durée de conservation, les prestataires concernés et les droits des personnes.",
     sections: [
-      ["Responsable du traitement", "Le responsable du traitement est l’exploitant du service NXT5. Les demandes relatives aux données personnelles peuvent être adressées via les moyens de contact disponibles dans l’application ou sur les canaux officiels du projet."],
-      ["Données traitées", "NXT5 peut traiter les informations de compte, les adresses e-mail, les pseudonymes, les rôles, les équipes, les profils joueurs, les Riot IDs, les liens de profil, les disponibilités, les compositions, les champion pools, les reviews, les matchs importés et les statistiques associées."],
-      ["Finalités", "Ces données sont utilisées pour créer et sécuriser les comptes, gérer les équipes, permettre la collaboration entre membres, importer et consulter des matchs, produire des tableaux statistiques, préparer des compositions, organiser les disponibilités et conserver un historique utile aux reviews."],
-      ["Base juridique", "Les traitements reposent principalement sur l’exécution du service demandé par l’utilisateur, l’intérêt légitime à maintenir un outil fiable et sécurisé, ainsi que le consentement lorsque l’utilisateur fournit volontairement certaines informations ou active certaines fonctionnalités."],
-      ["Données de jeu", "Les données liées à League of Legends peuvent provenir d’informations saisies par les utilisateurs, de fichiers importés, de profils publics, d’OP.GG ou des API Riot lorsque l’accès est disponible. Elles sont utilisées pour alimenter les fonctionnalités NXT5 et ne constituent pas une notation officielle des joueurs."],
-      ["Destinataires", "Les données sont accessibles aux membres autorisés d’une équipe selon leur rôle. Elles peuvent également être traitées par les prestataires techniques nécessaires au fonctionnement du service, dans la limite de leurs missions respectives."],
-      ["Sécurité", "NXT5 applique des mesures techniques et organisationnelles raisonnables afin de limiter les accès non autorisés, les pertes de données et les usages détournés. Aucune page publique ne détaille les mécanismes internes afin de ne pas affaiblir la protection du service."],
-      ["Cookies et sessions", "NXT5 utilise des cookies strictement nécessaires à la connexion, au maintien de session et au fonctionnement normal de l’application. Ces cookies ne sont pas destinés au suivi publicitaire."],
-      ["Conservation", "Les données sont conservées tant qu’elles sont utiles au fonctionnement de l’équipe ou du compte concerné. Les utilisateurs autorisés peuvent supprimer certains contenus depuis l’interface. Des journaux techniques limités peuvent être conservés pour assurer la stabilité, la sécurité et la traçabilité du service."],
-      ["Droits des personnes", "Conformément au RGPD, les utilisateurs peuvent demander l’accès, la rectification, l’effacement ou la limitation du traitement de leurs données lorsque ces droits sont applicables. Une demande peut être formulée via les moyens de contact disponibles pour le service."],
-      ["Réclamation", "Si un utilisateur estime que ses droits ne sont pas respectés, il peut contacter l’exploitant du service. Il peut également saisir l’autorité de contrôle compétente en matière de protection des données personnelles."],
+      ["Responsable du traitement", "Le responsable du traitement est l’éditeur non professionnel de NXT5. Les demandes relatives aux données personnelles s’effectuent par message privé via le canal indiqué sur la page Contact. N’envoyez aucune donnée sensible dans un salon Discord public."],
+      ["Données de compte et de sécurité", "NXT5 traite l’adresse e-mail, le pseudonyme, le mot de passe sous forme hachée, les préférences de notification et la date de création du compte. Pour sécuriser les connexions, le service traite aussi un identifiant de session haché, l’adresse IP, le navigateur utilisé, les tentatives récentes et des journaux d’actions."],
+      ["Données d’équipe et de jeu", "Le service peut traiter les équipes, rôles et invitations, profils joueurs, Riot IDs, disponibilités, objectifs, notes de coaching, compositions, champion pools, reviews, Game IDs, fichiers de match importés, chronologies de partie, statistiques et pseudonymes publics des participants. Certaines notes peuvent contenir des appréciations rédigées par le staff de l’équipe."],
+      ["Origine des données", "Les données proviennent de l’utilisateur, des autres membres autorisés de son équipe, des fichiers de match importés, de profils de jeu accessibles au public et des API Riot. Une personne peut donc apparaître dans un roster ou un match sans avoir elle-même créé de compte NXT5."],
+      ["Finalités et bases juridiques", "La création du compte, l’accès aux équipes, l’import et l’analyse des matchs reposent sur l’exécution des CGU. La sécurisation du service, la prévention des abus, la traçabilité et l’amélioration de sa fiabilité reposent sur l’intérêt légitime de NXT5 et de ses utilisateurs. Les notifications facultatives reposent sur le choix de l’utilisateur et peuvent être désactivées dans les paramètres."],
+      ["Données obligatoires ou facultatives", "L’e-mail, le pseudonyme et le mot de passe sont nécessaires à la création et à la récupération du compte. Sans eux, NXT5 ne peut pas fournir l’accès personnel au service. Les données d’équipe, Riot IDs, disponibilités, imports, notes et réglages de notification sont facultatifs, mais certaines fonctions resteront incomplètes s’ils ne sont pas renseignés."],
+      ["Accès et destinataires", "Les données d’une équipe sont accessibles aux membres qui y sont autorisés, selon leur rôle. Elles sont aussi traitées, uniquement pour leurs missions techniques, par Netlify (hébergement et fonctions), Neon (base PostgreSQL), Resend (e-mails transactionnels), Riot Games (données de jeu demandées) et OpenAI lorsque l’assistant est utilisé. NXT5 ne vend pas les données et ne les utilise pas pour de la publicité ciblée."],
+      ["Assistant NXT5 et intelligence artificielle", "Lorsque l’utilisateur interroge l’assistant, sa question, les six derniers messages au maximum, la page courante et une documentation NXT5 pertinente sont transmis à l’API OpenAI. Les statistiques détaillées de l’équipe ne sont pas envoyées par cette fonction. NXT5 ne conserve pas l’historique de l’assistant dans sa base ; il reste seulement en mémoire dans la page ouverte. OpenAI indique ne pas utiliser par défaut les données de son API pour entraîner ses modèles et peut conserver des journaux de contrôle des abus jusqu’à 30 jours."],
+      ["Transferts hors Union européenne", "Netlify, Resend et OpenAI sont établis aux États-Unis et peuvent y traiter des données. Ces transferts sont encadrés, selon le prestataire et le service, par le Data Privacy Framework UE–États-Unis et/ou les clauses contractuelles types de la Commission européenne. La région d’hébergement Neon dépend de la configuration du projet. Des informations complémentaires sur les garanties peuvent être demandées à NXT5."],
+      ["Durées de conservation", "Les données de compte et d’équipe sont conservées jusqu’à la suppression du compte, de l’équipe ou du contenu concerné. Les sessions expirent après 12 heures, ou 30 jours lorsque « Rester connecté » est activé, puis leurs traces sont supprimées sous 30 jours. Les limites de tentative liées à l’IP sont purgées après 24 heures. Les journaux d’actions sont conservés 12 mois. Les liens de vérification et de réinitialisation expirent respectivement après 24 heures et 30 minutes, puis leurs données sont supprimées sous 30 jours. Les sauvegardes techniques de Neon peuvent subsister jusqu’à 30 jours après une suppression."],
+      ["Droits des personnes", "Toute personne peut demander l’accès, la rectification, l’effacement ou la limitation de ses données. Selon la base juridique, elle peut aussi demander la portabilité des données fournies ou s’opposer à un traitement fondé sur l’intérêt légitime. Elle peut retirer à tout moment un choix facultatif, notamment les notifications. NXT5 répond en principe sous un mois et peut demander des éléments raisonnables pour vérifier l’identité du demandeur."],
+      ["Décision automatisée et profilage", "Les statistiques et indicateurs NXT5 sont des aides à la lecture. Aucune décision produisant un effet juridique ou un effet significatif similaire n’est prise automatiquement à partir de ces données."],
+      ["Sécurité", "NXT5 applique des mesures adaptées au risque : connexion chiffrée, mots de passe hachés, cookies de session HttpOnly et Secure en production, contrôle des rôles, limitation des tentatives et journalisation des actions sensibles. Aucun service en ligne ne peut toutefois garantir une sécurité absolue."],
+      ["Réclamation et mise à jour", `Une réclamation peut être déposée auprès de la CNIL sur cnil.fr. Version ${LEGAL_VERSION}, mise à jour le ${LEGAL_UPDATED_LABEL}. Toute modification importante sera portée à la connaissance des utilisateurs par un moyen adapté.`],
+    ],
+    resources: [
+      ["Transparence RGPD — CNIL", "https://www.cnil.fr/fr/conformite-rgpd-information-des-personnes-et-transparence"],
+      ["Exercer ses droits — CNIL", "https://www.cnil.fr/fr/passer-laction/les-droits-des-personnes-sur-leurs-donnees"],
+      ["Confidentialité Netlify", "https://www.netlify.com/privacy/"],
+      ["DPA Neon", "https://neon.com/pdf/DPA.pdf"],
+      ["Confidentialité Resend", "https://resend.com/legal/privacy-policy"],
+      ["Données de l’API OpenAI", "https://platform.openai.com/docs/models/default-usage-policies-by-endpoint"],
+    ],
+  },
+  "/cookies": {
+    eyebrow: "Traceurs",
+    title: "Politique relative aux cookies",
+    intro: "NXT5 n’utilise actuellement aucun cookie publicitaire ni outil de mesure d’audience. Seuls des traceurs indispensables à la connexion et des préférences locales sont utilisés.",
+    sections: [
+      ["Cookie de session rb_session", "Ce cookie interne permet de reconnaître une session authentifiée et de protéger l’accès au compte. Il contient un jeton aléatoire ; seule son empreinte est conservée en base. Il est HttpOnly, Secure en production et SameSite=Lax. Sa durée est de 12 heures, ou de 30 jours lorsque l’option « Rester connecté » est activée."],
+      ["Préférences locales", "Le navigateur peut conserver localement le choix « Rester connecté », le mode de performance graphique et le masquage du guide débutant. Ces valeurs ne servent pas à suivre la navigation et restent sur l’appareil jusqu’à leur remplacement ou leur suppression dans les réglages du navigateur."],
+      ["Consentement", "Ces traceurs sont strictement nécessaires au service demandé ou à la mémorisation d’un réglage attendu. Ils sont donc exemptés de consentement préalable. Aucun bandeau d’acceptation n’est affiché tant que NXT5 n’ajoute pas de traceur soumis au consentement."],
+      ["Gestion dans le navigateur", "L’utilisateur peut effacer les cookies et le stockage local depuis les paramètres de son navigateur. La suppression du cookie de session déconnecte le compte ; la suppression des préférences rétablit les réglages par défaut."],
+      ["Évolution", `Si un outil d’audience, publicitaire ou un autre traceur non indispensable est ajouté, cette page et le mécanisme de consentement seront adaptés avant son activation. Version ${LEGAL_VERSION}, mise à jour le ${LEGAL_UPDATED_LABEL}.`],
+    ],
+    resources: [
+      ["Règles applicables aux traceurs — CNIL", "https://www.cnil.fr/fr/cookies-et-autres-traceurs/que-dit-la-loi"],
     ],
   },
   "/conditions": {
     eyebrow: "Utilisation",
-    title: "Conditions d’utilisation",
-    intro: "Les présentes conditions encadrent l’utilisation de NXT5. En accédant au service, l’utilisateur accepte de l’utiliser de manière loyale, raisonnable et conforme à sa finalité esportive.",
+    title: "Conditions générales d’utilisation",
+    intro: "Les présentes CGU constituent le contrat d’utilisation du service NXT5. Leur acceptation est requise lors de la création d’un compte.",
     sections: [
-      ["Accès au service", "NXT5 est accessible aux utilisateurs disposant d’un compte et, pour certaines fonctionnalités, d’une équipe active. Les droits d’accès varient selon le rôle attribué au sein de l’équipe : joueur, capitaine, coach, manager, analyste ou autre rôle autorisé."],
-      ["Usage autorisé", "Le service doit être utilisé pour organiser une équipe, importer des matchs, consulter des statistiques, préparer des champion pools, construire des compositions, gérer les disponibilités et rédiger des reviews liees à League of Legends."],
+      ["Objet et accès au service", "NXT5 fournit gratuitement, dans sa version actuelle, des outils d’organisation et d’analyse pour les équipes League of Legends. Un compte et, selon la fonction, l’accès à une équipe active sont nécessaires. Les droits varient selon le rôle attribué : joueur, capitaine, coach, manager, analyste ou autre rôle autorisé."],
+      ["Acceptation et capacité", "En créant un compte, l’utilisateur accepte la version des CGU et du règlement indiquée lors de son inscription. Il déclare avoir la capacité de s’engager ou, s’il est mineur, disposer de l’autorisation de son représentant légal lorsque celle-ci est requise. La personne qui agit pour une équipe garantit être autorisée à le faire."],
+      ["Usage autorisé", "Le service doit être utilisé pour organiser une équipe, importer des matchs, consulter des statistiques, préparer des champion pools, construire des compositions, gérer les disponibilités et rédiger des reviews liées à League of Legends."],
       ["Comptes et responsabilités", "Chaque utilisateur est responsable de l’exactitude des informations qu’il renseigne, de la confidentialité de ses identifiants et des actions réalisées depuis son compte. Les administrateurs d’équipe doivent attribuer les accès avec prudence."],
-      ["Contenus d’équipe", "Les reviews, notes, noms de groupes, compositions, profils et autres contenus ajoutés dans NXT5 sont créés par les utilisateurs. L’équipe reste responsable de leur exactitude, de leur pertinence et de leur conformité aux règles applicables."],
+      ["Contenus et licence technique", "Les utilisateurs conservent leurs droits sur les reviews, notes, compositions et autres contenus qu’ils ajoutent. Ils accordent à NXT5 une autorisation non exclusive, gratuite et limitée à l’hébergement, la reproduction technique et l’affichage de ces contenus uniquement pour fournir le service. Cette autorisation prend fin avec la suppression du contenu, sous réserve des sauvegardes temporaires et obligations légales."],
       ["Imports de matchs", "Les Game IDs, fichiers JSON et imports de matchs doivent correspondre à des parties réelles ou légitimement accessibles par l’équipe. L’utilisateur s’engage à ne pas importer de données dans le but de nuire, d’usurper, de surveiller abusivement ou de détourner le service."],
-      ["Comportements interdits", "Il est interdit de tenter de contourner les droits d’accès, de perturber le service, d’extraire massivement des données, de publier des contenus illicites, injurieux ou discriminatoires, ou d’utiliser NXT5 pour harceler, cibler ou porter atteinte à d’autres joueurs."],
+      ["Règles de conduite", "Le règlement NXT5 fait partie intégrante des présentes CGU. Il interdit notamment le contournement des accès, les attaques, l’extraction massive, l’usurpation, le harcèlement, les contenus illicites ou discriminatoires et l’exploitation abusive de données relatives à d’autres joueurs."],
       ["Données et API tierces", "Certaines fonctionnalités dépendent de données ou services tiers, notamment l’écosystème Riot, des profils publics ou des outils d’import. NXT5 ne garantit pas l’exhaustivité, la disponibilité permanente ou l’absence d’erreur de ces sources externes."],
-      ["Disponibilité", "Le service est fourni en l’état et peut évoluer, être interrompu, limité ou modifié pour des raisons techniques, de maintenance, de sécurité, de conformité ou de dépendance à des prestataires externes."],
-      ["Limitation de responsabilité", "NXT5 est un outil d’aide à la lecture et à l’organisation. Il ne remplace pas le jugement d’un coach, d’un capitaine ou d’un joueur. Les choix sportifs, décisions d’équipe et interprétations des données restent sous la responsabilité des utilisateurs."],
-      ["Évolution des conditions", "Les présentes conditions peuvent être mises à jour afin de suivre l’évolution du service. Dernière mise à jour : 27 mai 2026."],
+      ["Modération, suspension et suppression", "NXT5 peut retirer un contenu manifestement illicite ou dangereux, limiter une fonction, suspendre ou supprimer un compte en cas de violation grave ou répétée des CGU, d’atteinte à la sécurité ou de risque pour autrui. Sauf urgence ou obligation légale, l’utilisateur est informé du motif et peut présenter ses observations via la page Contact."],
+      ["Disponibilité et évolution", "Le service est fourni en l’état et peut évoluer, être interrompu, limité ou modifié pour des raisons techniques, de maintenance, de sécurité, de conformité ou de dépendance à des prestataires externes. NXT5 s’efforce de préserver les fonctions essentielles mais ne garantit pas une disponibilité continue."],
+      ["Responsabilité", "NXT5 est un outil d’aide à la lecture et à l’organisation. Il ne remplace pas le jugement d’un coach, d’un capitaine ou d’un joueur. Dans les limites autorisées par la loi, NXT5 n’est pas responsable des décisions sportives, des données tierces inexactes ni des dommages indirects résultant d’un usage non conforme. Cette clause ne limite pas une responsabilité qui ne peut légalement être exclue."],
+      ["Fin d’utilisation", "L’utilisateur peut cesser d’utiliser NXT5 à tout moment et demander la suppression de son compte par le canal privé de la page Contact. Un propriétaire ou capitaine peut supprimer une équipe depuis l’application. Certaines traces peuvent être conservées temporairement pour la sécurité, les sauvegardes et la défense de droits."],
+      ["Droit applicable et différends", "Les CGU sont soumises au droit français, sous réserve des règles impératives protégeant l’utilisateur dans son pays de résidence. En cas de différend, les parties cherchent d’abord une solution amiable par la page Contact avant de saisir la juridiction compétente."],
+      ["Évolution des CGU", `NXT5 peut modifier les CGU pour adapter le service, la sécurité ou le cadre légal. Une modification importante sera signalée par un moyen adapté et pourra nécessiter une nouvelle acceptation. Version ${LEGAL_VERSION}, mise à jour le ${LEGAL_UPDATED_LABEL}.`],
+    ],
+  },
+  "/reglement": {
+    eyebrow: "Communauté",
+    title: "Règlement NXT5",
+    intro: "Ce règlement protège les joueurs, les équipes et le service. Il s’applique aux comptes, contenus, imports et espaces collaboratifs NXT5.",
+    sections: [
+      ["Respect des personnes", "Les insultes, menaces, discriminations, humiliations, propos haineux, divulgations d’informations privées et toute forme de harcèlement sont interdits. Une review sportive doit rester factuelle, proportionnée et utile à la progression."],
+      ["Données et vie privée", "N’ajoutez que les données nécessaires à l’activité légitime de l’équipe. N’importez pas de conversations privées, coordonnées personnelles, données sensibles ou contenus obtenus sans droit. Les notes de coaching ne doivent pas servir à surveiller, exposer ou nuire à un joueur."],
+      ["Accès aux équipes", "Un code d’invitation et un rôle sont personnels. Il est interdit de rejoindre une équipe sans autorisation, de partager un accès avec une personne non autorisée ou de conserver des données après la fin légitime de son accès."],
+      ["Intégrité du service", "Sont interdits : contourner les permissions, tester une faille sans autorisation, automatiser des requêtes abusives, perturber le service, introduire un logiciel malveillant, extraire massivement les données ou tenter d’accéder aux secrets et données d’autres équipes."],
+      ["Imports et propriété intellectuelle", "Les fichiers, Game IDs, logos, textes et autres contenus doivent pouvoir être utilisés légitimement. Ne publiez pas de contenu contrefaisant, trompeur ou attribué à tort à Riot Games, à NXT5 ou à une autre personne."],
+      ["Signalement", "Un contenu, un compte ou un accès problématique peut être signalé par message privé via la page Contact. Indiquez les faits, la page ou l’équipe concernée et les éléments utiles, sans republier inutilement des données privées."],
+      ["Mesures applicables", "Selon la gravité et la répétition des faits, NXT5 peut avertir l’utilisateur, retirer un contenu, réduire des droits, suspendre un accès ou supprimer un compte. Une mesure immédiate peut être prise pour protéger le service, une personne ou respecter une obligation légale."],
+      ["Version", `Ce règlement fait partie des CGU. Version ${LEGAL_VERSION}, mise à jour le ${LEGAL_UPDATED_LABEL}.`],
     ],
   },
   "/contact": {
@@ -189,7 +244,8 @@ export const LEGAL_PAGES = {
     sections: [
       ["Discord NXT5", "Le serveur Discord permet de centraliser les retours, les bugs, les idées de fonctionnalités et les demandes d’aide autour de NXT5. C’est le canal à privilégier pour obtenir une réponse rapide."],
       ["Support produit", "Pour un problème technique, indique la page concernée, l’action réalisée, le message d’erreur affiché et, si possible, le contexte de l’équipe ou de l’import. Plus le signalement est précis, plus il peut être corrigé vite."],
-      ["Sécurité et données", "Pour une demande sensible liée à un compte, une équipe, des données ou un accès, évite de publier des informations privées dans un salon public. Utilise un canal privé ou un échange direct avec l’équipe NXT5 lorsque c’est nécessaire."],
+      ["Sécurité et données", "Pour une demande sensible liée à un compte, une équipe, des données ou un accès, ne publie aucune information privée dans un salon public. Utilise exclusivement un message privé à l’équipe NXT5. Précise s’il s’agit d’une demande d’accès, de rectification, d’effacement, de limitation, de portabilité ou d’opposition."],
+      ["Délai de réponse", "Les demandes relatives aux données personnelles sont traitées en principe sous un mois. Pour protéger le compte, NXT5 peut demander des éléments raisonnables permettant de vérifier l’identité du demandeur."],
     ],
     contact: true,
   },
@@ -218,6 +274,7 @@ export function LegalPage({ route, navigate, user }) {
           <div className="mt-8 grid gap-4">
             {page.sections.map(([title, text]) => <section key={title} className="rounded-2xl border border-white/12 bg-black/[0.24] p-5 md:p-6"><h2 className="text-2xl font-black text-white">{title}</h2><p className="mt-3 text-base font-semibold leading-8 text-slate-200">{text}</p></section>)}
           </div>
+          {!!page.resources?.length && <section className="mt-8 rounded-2xl border border-cyan-200/15 bg-cyan-300/[0.055] p-5 md:p-6"><h2 className="text-xl font-black text-white">Références et garanties</h2><div className="mt-4 flex flex-wrap gap-2">{page.resources.map(([label, href]) => <a key={href} href={href} target="_blank" rel="noreferrer" className="rounded-xl border border-cyan-200/20 bg-black/20 px-3 py-2 text-sm font-black text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">{label}</a>)}</div></section>}
           {page.contact && <div className="mt-8 rounded-[1.35rem] border border-cyan-300/18 bg-cyan-400/[0.07] p-5 shadow-[0_0_34px_rgba(34,211,238,.10)]">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div><Badge tone="purple">Discord</Badge><h2 className="mt-3 text-2xl font-black text-white">Rejoindre le serveur NXT5</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{DISCORD_INVITE_URL ? "Ouvre Discord pour contacter le support ou rejoindre la communauté." : "Le bouton est prêt. Il manque juste le lien d’invitation Discord final."}</p></div>
@@ -460,6 +517,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
   const isRegister = mode === "register";
   const [form, setForm] = useState({ email: "", displayName: "", password: "" });
   const [rememberMe, setRememberMe] = useState(readRememberPreference);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const querySuffix = window.location.search || "";
@@ -472,7 +530,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
     setError("");
     try {
       const endpoint = isRegister ?"auth-register" : "auth-login";
-      const body = { accountName: form.email, email: form.email, displayName: form.displayName, password: form.password, rememberMe };
+      const body = { accountName: form.email, email: form.email, displayName: form.displayName, password: form.password, rememberMe, acceptLegal: isRegister ? legalAccepted : undefined, legalVersion: isRegister ? LEGAL_VERSION : undefined };
       const result = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(body) });
       writeRememberPreference(rememberMe);
       pushToast({ type: "green", title: isRegister ?"Compte créé" : "Connexion réussie", text: "Bienvenue sur NXT5." });
@@ -537,8 +595,9 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
             {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" required icon={UserPlus} />}
             <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
             <PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Garde cette session active plus longtemps sur cet appareil." />
+            {isRegister && <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-left"><input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required className="mt-1 h-4 w-4 shrink-0 accent-cyan-300" /><span className="text-sm font-semibold leading-6 text-slate-300">J’accepte les <a href="/conditions" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">conditions générales d’utilisation</a>, le <a href="/reglement" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">règlement NXT5</a> et reconnais avoir lu la <a href="/confidentialite" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">politique de confidentialité</a> (version {LEGAL_VERSION}).</span></label>}
             {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
-            <Button type="submit" disabled={loading} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
+            <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
           </form>
           {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-cyan-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
           <p className="mt-4 text-center text-sm font-semibold text-slate-300">
@@ -551,4 +610,3 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
     </div>
   );
 }
-
