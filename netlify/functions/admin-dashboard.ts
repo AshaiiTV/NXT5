@@ -258,7 +258,7 @@ async function loadDashboard() {
 }
 
 async function loadTeamDetail(teamId: string) {
-  const [teamRows, rosterRows, matchRows, dailyRows] = await Promise.all([
+  const [teamRows, rosterRows, matchRows, dailyRows, benchmarkRows] = await Promise.all([
     sql`
       select teams.id, teams.name, teams.tag, teams.region, teams.created_at,
         (select count(*) from team_members where team_id = teams.id) as members,
@@ -267,9 +267,12 @@ async function loadTeamDetail(teamId: string) {
         (select count(*) from reports where team_id = teams.id) as reports,
         (select count(*) from composition_types where team_id = teams.id) as compositions,
         (select count(*) from player_availability where team_id = teams.id) as availability_entries,
+        (select count(distinct player_id) from player_availability where team_id = teams.id and week_start = date_trunc('week', current_date)::date) as players_planned_current_week,
         (select count(*) from player_goals where team_id = teams.id) as goals,
         (select count(*) from champion_pool where team_id = teams.id) as champion_pool_entries,
         (select count(*) from match_archives where team_id = teams.id) as archives,
+        (select count(distinct role) from players where team_id = teams.id and roster_status = 'MAIN' and role in ('TOP','JGL','MID','ADC','SUP')) as main_roles_covered,
+        (select count(*) from players where team_id = teams.id and user_id is not null) as linked_players,
         (select max(created_at) from matches where team_id = teams.id) as last_match_at
       from teams where teams.id = ${teamId} limit 1
     `,
@@ -299,17 +302,59 @@ async function loadTeamDetail(teamId: string) {
       select to_char(days.day, 'YYYY-MM-DD') as date,
         (select count(*) from matches where team_id = ${teamId} and created_at >= days.day and created_at < days.day + interval '1 day') as matches
       from days order by days.day asc
+    `,
+    sql`
+      with per_team as (
+        select teams.id,
+          (select count(*) from players where team_id = teams.id) as players,
+          (select count(*) from matches where team_id = teams.id) as matches,
+          (select count(*) from matches where team_id = teams.id and created_at >= now() - interval '30 days') as matches_30d,
+          (select count(*) from reports where team_id = teams.id) as reports,
+          (select count(*) from composition_types where team_id = teams.id) as compositions
+        from teams
+      )
+      select
+        coalesce(percentile_cont(0.5) within group (order by players), 0) as median_players,
+        coalesce(percentile_cont(0.5) within group (order by matches), 0) as median_matches,
+        coalesce(percentile_cont(0.5) within group (order by matches_30d), 0) as median_matches_30d,
+        coalesce(percentile_cont(0.5) within group (order by reports), 0) as median_reports,
+        coalesce(percentile_cont(0.5) within group (order by compositions), 0) as median_compositions
+      from per_team
     `
   ]);
   const team: any = teamRows[0];
   if (!team) return null;
   const matches: any = matchRows[0] || {};
+  const benchmark: any = benchmarkRows[0] || {};
+  const playerTotal = count(team.players);
+  const matchTotal = count(team.matches);
+  const mainRolesCovered = count(team.main_roles_covered);
+  const linkedPlayers = count(team.linked_players);
+  const matches30d = count(matches.last_30d);
+  const dataQualityRate = matchTotal ? (count(matches.with_patch) + count(matches.with_duration)) / (matchTotal * 2) : 0;
+  const workflowSignals = [count(team.reports) > 0, count(team.compositions) > 0, count(team.players_planned_current_week) > 0, count(team.goals) > 0];
+  const healthScore = Math.round(
+    (mainRolesCovered / 5) * 25 +
+    (playerTotal ? linkedPlayers / playerTotal : 0) * 15 +
+    Math.min(1, matches30d / 8) * 25 +
+    workflowSignals.filter(Boolean).length * 5 +
+    dataQualityRate * 15
+  );
+  const signals = [
+    matches30d === 0 ? { level: 'critical', title: 'Aucune activité récente', detail: 'Aucune game importée sur les 30 derniers jours.' } : null,
+    mainRolesCovered < 5 ? { level: 'warning', title: 'Roster compétitif incomplet', detail: `${mainRolesCovered}/5 rôles titulaires sont couverts.` } : null,
+    playerTotal > 0 && linkedPlayers / playerTotal < 0.6 ? { level: 'warning', title: 'Peu de profils liés', detail: `${linkedPlayers}/${playerTotal} joueurs sont reliés à un compte.` } : null,
+    matches30d >= 3 && count(team.reports) === 0 ? { level: 'opportunity', title: 'Games sans boucle de review', detail: 'Du volume est importé mais aucune review structurée n’est enregistrée.' } : null,
+    matches30d >= 3 && count(team.compositions) === 0 ? { level: 'opportunity', title: 'Préparation draft absente', detail: 'L’équipe joue régulièrement sans composition préparée.' } : null,
+    mainRolesCovered === 5 && matches30d >= 4 ? { level: 'positive', title: 'Socle opérationnel', detail: 'Roster complet et activité régulière sur les 30 derniers jours.' } : null
+  ].filter(Boolean);
   return {
     team: { id: team.id, name: team.name, tag: team.tag, region: team.region, createdAt: team.created_at, lastMatchAt: team.last_match_at || null },
     totals: {
       members: count(team.members), players: count(team.players), matches: count(team.matches), reports: count(team.reports),
       compositions: count(team.compositions), availabilityEntries: count(team.availability_entries), goals: count(team.goals),
-      championPoolEntries: count(team.champion_pool_entries), archives: count(team.archives)
+      championPoolEntries: count(team.champion_pool_entries), archives: count(team.archives),
+      playersPlannedCurrentWeek: count(team.players_planned_current_week), mainRolesCovered, linkedPlayers
     },
     matches: {
       wins: count(matches.wins), losses: count(matches.losses), analyses: count(matches.analyses), last7d: count(matches.last_7d),
@@ -317,7 +362,13 @@ async function loadTeamDetail(teamId: string) {
       withPatch: count(matches.with_patch), withDuration: count(matches.with_duration)
     },
     roster: rosterRows.map((row: any) => ({ role: row.role, status: row.roster_status, count: count(row.count), linked: count(row.linked), riotConfigured: count(row.riot_configured) })),
-    daily: dailyRows.map((row: any) => ({ date: row.date, matches: count(row.matches) }))
+    daily: dailyRows.map((row: any) => ({ date: row.date, matches: count(row.matches) })),
+    health: { score: healthScore, signals },
+    benchmark: {
+      medianPlayers: count(benchmark.median_players), medianMatches: count(benchmark.median_matches),
+      medianMatches30d: count(benchmark.median_matches_30d), medianReports: count(benchmark.median_reports),
+      medianCompositions: count(benchmark.median_compositions)
+    }
   };
 }
 
