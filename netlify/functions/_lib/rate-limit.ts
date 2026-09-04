@@ -85,6 +85,11 @@ export async function assertRateLimit(request: Request, endpoint: string, option
     }
   } catch (err: any) {
     if (err?.status === 429) throw err;
-    console.error('Rate limit unavailable; continuing without blocking auth.', err);
+    console.error('Rate limit unavailable; blocking the protected endpoint.', err);
+    throw Object.assign(new Error('Protection anti-abus temporairement indisponible.'), {
+      status: 503,
+      code: 'RATE_LIMIT_UNAVAILABLE',
+      publicMessage: 'Service temporairement indisponible.'
+    });
   }
 }

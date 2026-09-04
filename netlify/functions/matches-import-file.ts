@@ -76,9 +76,23 @@ export default async function handler(request: Request, context: Context): Promi
     assertMethod(request, 'POST');
     await assertRateLimit(request, 'match-import-file', { limit: 20, windowSeconds: 60 });
     const user = await requireAuth(request, context);
-    const body = await readJson(request);
+    const body = await readJson(request, 5 * 1024 * 1024);
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
+
+    const teams = await sql`
+      select distinct teams.*
+      from teams
+      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
+      where teams.id = ${teamId}
+        and (
+          teams.owner_id = ${user.id}
+          or team_members.role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board')
+        )
+      limit 1
+    `;
+    const team = teams[0];
+    if (!team) throw Object.assign(new Error('Import non autorisé pour cette team.'), { status: 403 });
 
     let { match, timeline, gameId, label, categoryIds, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide } = unwrapImportPayload(body);
     let resolvedGameId = matchGameId(match) || gameId;
@@ -115,17 +129,6 @@ export default async function handler(request: Request, context: Context): Promi
         }
       });
     }
-
-    const teams = await sql`
-      select distinct teams.*
-      from teams
-      left join team_members on team_members.team_id = teams.id
-      where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
-      limit 1
-    `;
-    const team = teams[0];
-    if (!team) throw Object.assign(new Error('Team introuvable ou non autorisée.'), { status: 403 });
 
     const roster = await sql`select * from players where team_id = ${teamId}`;
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });

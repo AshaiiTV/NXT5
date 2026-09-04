@@ -2,18 +2,19 @@ import type { Context } from "@netlify/functions";
 import crypto from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, assertMethod } from './_lib/http';
-import { assertSessionSecret, ensureEmailVerificationColumns, requireAuth, safeUser } from './_lib/auth';
+import { assertSessionSecret, ensureEmailVerificationColumns, requireAuth, safeUser, sha256 } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
 
 function verificationErrorResponse(err: any, stage: string): Response {
   console.error('Email verification resend failed', { stage, err });
   const status = err?.status || 500;
   const code = err?.code || 'EMAIL_VERIFY_FAILED';
-  const message = String(err?.publicMessage || err?.message || 'Erreur serveur.').trim();
+  const message = status >= 500
+    ? String(err?.publicMessage || 'Erreur serveur.').trim()
+    : String(err?.message || 'Erreur serveur.').trim();
   const payload: Record<string, unknown> = {
-    error: status >= 500 ? `${message} Étape: ${stage}. Code: ${code}.` : message,
-    code,
-    stage
+    error: message,
+    code
   };
   if (err?.retryAfter) payload.retryAfter = err.retryAfter;
   return json(payload, status);
@@ -52,13 +53,14 @@ export default async function handler(request: Request, context: Context): Promi
       });
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString('base64url');
+    const tokenHash = sha256(token);
     const nextExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     stage = 'store-token';
     const updated = await sql`
       update users
       set email_verified = false,
-          email_verify_token = ${token},
+          email_verify_token = ${tokenHash},
           email_verify_expires_at = ${nextExpiresAt},
           updated_at = now()
       where id = ${current.id}

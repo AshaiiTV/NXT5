@@ -1,7 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, hashPassword, requireAuth, verifyPassword } from './_lib/auth';
+import { assertSessionSecret, hashPassword, readSessionCookie, requireAuth, sha256, verifyPassword } from './_lib/auth';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
@@ -17,6 +17,9 @@ export default async function handler(request: Request, context: Context): Promi
     }
     if (nextPassword.length < 8) {
       throw Object.assign(new Error('Le nouveau mot de passe doit faire au moins 8 caractères.'), { status: 400 });
+    }
+    if (currentPassword.length > 128 || nextPassword.length > 128) {
+      throw Object.assign(new Error('Mot de passe invalide.'), { status: 400 });
     }
     if (currentPassword === nextPassword) {
       throw Object.assign(new Error('Le nouveau mot de passe doit être différent de l’ancien.'), { status: 400 });
@@ -35,6 +38,16 @@ export default async function handler(request: Request, context: Context): Promi
       set password_hash = ${nextPasswordHash},
           updated_at = now()
       where id = ${user.id}
+    `;
+
+    const currentToken = readSessionCookie(context);
+    const currentTokenHash = currentToken ? sha256(currentToken) : '';
+    await sql`
+      update sessions
+      set revoked_at = now()
+      where user_id = ${user.id}
+        and revoked_at is null
+        and token_hash <> ${currentTokenHash}
     `;
 
     await sql`

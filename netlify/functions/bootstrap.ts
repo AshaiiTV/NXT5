@@ -1,6 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
-import { json, handleError } from './_lib/http';
+import { json, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema, seedDefaultMatchCategories } from './_lib/match-categories';
 import { ensureAuditLogsSchema, ensureCompositionTypesSchema, ensureReportsSchema, ensureWorkflowSchema } from './_lib/schema';
@@ -96,14 +96,17 @@ async function loadProfileCoachingNotes(teamIds) {
   }
 }
 
-async function loadInviteCodes(teamIds) {
+async function loadInviteCodes(teamIds, userId) {
   try {
     return await sql`
       select team_invite_codes.*, users.name as created_by_name
       from team_invite_codes
+      join teams on teams.id = team_invite_codes.team_id
+      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${userId}
       left join users on users.id = team_invite_codes.created_by
       where team_invite_codes.team_id = any(${teamIds})
         and team_invite_codes.expires_at > now()
+        and (teams.owner_id = ${userId} or team_members.role in ('captain', 'manager'))
       order by team_invite_codes.expires_at asc
     `;
   } catch (err) {
@@ -199,6 +202,7 @@ async function ensureRoleConstraints() {
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
+    assertMethod(request, 'GET');
     assertSessionSecret();
     const user = await requireAuth(request, context);
     const teams = await sql`
@@ -294,7 +298,7 @@ export default async function handler(request: Request, context: Context): Promi
       `,
       loadMatchArchives(teamIds),
       sql`select * from match_categories where team_id = any(${teamIds}) order by is_default desc, name asc`,
-      loadInviteCodes(teamIds),
+      loadInviteCodes(teamIds, user.id),
       loadAvailability(teamIds),
       loadProfileCoachingNotes(teamIds),
       sql`

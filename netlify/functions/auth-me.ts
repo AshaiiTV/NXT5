@@ -1,11 +1,12 @@
 import type { Context } from "@netlify/functions";
-import { json, handleError } from './_lib/http';
+import { json, assertMethod, handleError } from './_lib/http';
 import { COOKIE_NAME, assertSessionSecret, ensureEmailVerificationColumns, readSessionCookie, requireAuth, safeUser } from './_lib/auth';
 import { sql } from './_lib/db';
 import { ensureUserNotificationColumns } from './_getTeamMembers.js';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
+    assertMethod(request, 'GET');
     if (!readSessionCookie(context)) {
       context.cookies.set({ name: COOKIE_NAME, value: '', httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 0 });
       throw Object.assign(new Error('Session absente.'), { status: 401 });

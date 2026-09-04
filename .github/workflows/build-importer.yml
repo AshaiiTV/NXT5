@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build-windows:
@@ -20,21 +20,23 @@ jobs:
         working-directory: importer-app
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
 
       - name: Build Windows app
-        run: npm run dist:win
+        run: pnpm run dist:win
 
       - name: Upload Windows app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: NXT5-Importer-Windows
           path: importer-app/release/*.exe
@@ -47,22 +49,24 @@ jobs:
         working-directory: importer-app
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
 
       - name: Build mac app
         run: |
-          npm run dist:mac
-          npm run dist:mac:arm
+          pnpm run dist:mac
+          pnpm run dist:mac:arm
 
-      - name: Repack mac apps with opener
+      - name: Package mac apps
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
@@ -73,27 +77,14 @@ jobs:
               APP_DIR="release/mac-arm64"
             fi
             APP_PATH="$APP_DIR/NXT5 Importer.app"
-            BUNDLE_DIR="release/NXT5 Importer Mac ${ARCH}"
-            rm -rf "$BUNDLE_DIR"
-            mkdir -p "$BUNDLE_DIR"
-            cp -R "$APP_PATH" "$BUNDLE_DIR/"
-            printf '%s\n' \
-              '#!/bin/bash' \
-              'set -e' \
-              'DIR="$(cd "$(dirname "$0")" && pwd)"' \
-              'APP="$DIR/NXT5 Importer.app"' \
-              'xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true' \
-              'open "$APP"' \
-              > "$BUNDLE_DIR/Ouvrir NXT5 Importer.command"
-            chmod +x "$BUNDLE_DIR/Ouvrir NXT5 Importer.command"
             rm -f "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
-            ditto -c -k --sequesterRsrc --keepParent "$BUNDLE_DIR" "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
+            ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
           }
           make_zip x64
           make_zip arm64
 
       - name: Upload mac app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: NXT5-Importer-macOS
           path: importer-app/release/*.zip
@@ -102,14 +93,16 @@ jobs:
     name: Publish latest importer release
     runs-on: ubuntu-latest
     needs: [build-windows, build-mac]
+    permissions:
+      contents: write
     steps:
       - name: Download built apps
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: release-artifacts
 
       - name: Publish latest importer release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: nxt5-match-exporter-latest
           name: NXT5 Importer latest

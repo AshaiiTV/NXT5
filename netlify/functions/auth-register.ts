@@ -2,7 +2,7 @@ import type { Context } from "@netlify/functions";
 import crypto from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, createSession, ensureEmailVerificationColumns, hashPassword, isValidEmail, normalizeAccountName, normalizeEmail, safeUser } from './_lib/auth';
+import { assertSessionSecret, createSession, ensureEmailVerificationColumns, hashPassword, isValidEmail, normalizeAccountName, normalizeEmail, safeUser, sha256 } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
 import { assertRateLimit } from './_lib/rate-limit';
 
@@ -38,18 +38,22 @@ export default async function handler(request: Request, context: Context): Promi
     if (password.length < 8) {
       throw Object.assign(new Error('Mot de passe trop court : 8 caractères minimum.'), { status: 400 });
     }
+    if (password.length > 128) {
+      throw Object.assign(new Error('Mot de passe trop long : 128 caractères maximum.'), { status: 400 });
+    }
     if (!acceptLegal || legalVersion !== LEGAL_VERSION) {
       throw Object.assign(new Error('Tu dois accepter les CGU, le règlement et la politique de confidentialité en vigueur.'), { status: 400, code: 'LEGAL_ACCEPTANCE_REQUIRED' });
     }
 
     const accountName = accountNameFromEmail(email);
     const passwordHash = await hashPassword(password);
-    const verifyToken = crypto.randomBytes(32).toString('hex');
+    const verifyToken = crypto.randomBytes(32).toString('base64url');
+    const verifyTokenHash = sha256(verifyToken);
     const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     await ensureEmailVerificationColumns();
     const users = await sql`
       insert into users (account_name, email, name, password_hash, email_verified, email_verify_token, email_verify_expires_at)
-      values (${accountName}, ${email}, ${displayName}, ${passwordHash}, false, ${verifyToken}, ${verifyExpiresAt})
+      values (${accountName}, ${email}, ${displayName}, ${passwordHash}, false, ${verifyTokenHash}, ${verifyExpiresAt})
       returning id, account_name, email, coalesce(email_verified, false) as email_verified, name, created_at
     `;
 

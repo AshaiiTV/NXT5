@@ -4,7 +4,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 
 const ROLES = new Set(['captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player']);
-const STAFF_ACCESS_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
+const ROLE_MANAGEMENT_ROLES = ['captain'];
 
 async function ensureTeamMemberRoleConstraint() {
   await sql`alter table team_members drop constraint if exists team_members_role_check`;
@@ -33,10 +33,10 @@ export default async function handler(request: Request, context: Context): Promi
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role = any(${STAFF_ACCESS_ROLES}))
+        and (teams.owner_id = ${user.id} or team_members.role = any(${ROLE_MANAGEMENT_ROLES}))
       limit 1
     `;
-    if (!allowed[0]) throw Object.assign(new Error('Seul l’owner ou un staff autorisé peut modifier les statuts.'), { status: 403 });
+    if (!allowed[0]) throw Object.assign(new Error('Seul le propriétaire ou un capitaine peut modifier les statuts.'), { status: 403 });
 
     const target = await sql`
       select role

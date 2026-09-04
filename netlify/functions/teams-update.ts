@@ -28,7 +28,7 @@ export default async function handler(request: Request, context: Context): Promi
     const avatarY = Math.min(100, Math.max(0, cleanNumber(body.avatarY, 50)));
 
     if (!teamId || !name || !tag) throw Object.assign(new Error('Nom, tag et team requis.'), { status: 400 });
-    if (avatarDataUrl && !avatarDataUrl.startsWith('data:image/')) {
+    if (avatarDataUrl && !/^data:image\/(?:png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(avatarDataUrl)) {
       throw Object.assign(new Error('Avatar invalide.'), { status: 400 });
     }
 
@@ -37,7 +37,7 @@ export default async function handler(request: Request, context: Context): Promi
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board'))
+        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'manager'))
       limit 1
     `;
     if (!allowed[0]) throw Object.assign(new Error('Tu ne peux pas modifier cette team.'), { status: 403 });

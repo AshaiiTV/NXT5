@@ -1,6 +1,6 @@
 import { sql } from './_lib/db';
 import { handleError } from './_lib/http';
-import { ensureEmailVerificationColumns } from './_lib/auth';
+import { ensureEmailVerificationColumns, sha256 } from './_lib/auth';
 
 function redirectToVerified(params: Record<string, string>): Response {
   const siteUrl = String(process.env.PUBLIC_SITE_URL || 'https://nxt5.org').replace(/\/+$/, '');
@@ -16,13 +16,14 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const token = String(new URL(request.url).searchParams.get('token') || '').trim();
-    if (!token) return redirectToVerified({ error: 'invalid' });
+    if (!token || token.length > 128 || !/^[A-Za-z0-9_-]+$/.test(token)) return redirectToVerified({ error: 'invalid' });
+    const tokenHash = sha256(token);
     await ensureEmailVerificationColumns();
 
     const rows = await sql`
       select id, email_verify_expires_at
       from users
-      where email_verify_token = ${token}
+      where email_verify_token in (${tokenHash}, ${token})
       limit 1
     `;
     const user = rows[0];

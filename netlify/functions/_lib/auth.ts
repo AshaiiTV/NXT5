@@ -48,6 +48,19 @@ export function assertSessionSecret(): void {
 }
 
 export async function hashPassword(password: string): Promise<string> {
+  const moduleName = 'argon2';
+  const argon2 = await import(moduleName).catch(() => null) as any;
+  if (argon2) {
+    return argon2.hash(password, {
+      type: argon2.argon2id,
+      memoryCost: 19_456,
+      timeCost: 2,
+      parallelism: 1
+    });
+  }
+  if (Buffer.byteLength(password, 'utf8') > 72) {
+    throw Object.assign(new Error('Le mot de passe est trop long.'), { status: 400 });
+  }
   return bcrypt.hash(password, 12);
 }
 
@@ -194,8 +207,11 @@ export async function createSession({ userId, context, request, remember = true 
   const tokenHash = sha256(rawToken);
   const maxAge = remember ? REMEMBER_SESSION_DAYS * 24 * 60 * 60 : SHORT_SESSION_HOURS * 60 * 60;
   const expiresAt = new Date(Date.now() + maxAge * 1000);
-  const userAgent = request.headers.get('user-agent') || '';
-  const ip = request.headers.get('x-nf-client-connection-ip') || request.headers.get('x-forwarded-for') || '';
+  const userAgent = String(request.headers.get('user-agent') || '').slice(0, 512);
+  const ip = String(request.headers.get('x-nf-client-connection-ip') || request.headers.get('x-forwarded-for') || '')
+    .split(',')[0]
+    .trim()
+    .slice(0, 64);
 
   await sql`
     insert into sessions (user_id, token_hash, expires_at, user_agent, ip)

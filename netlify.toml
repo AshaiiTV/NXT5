@@ -11,7 +11,11 @@
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    X-Permitted-Cross-Domain-Policies = "none"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
     Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://*.api.riotgames.com https://ddragon.leagueoflegends.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
 
@@ -20,7 +24,9 @@
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
+    X-Permitted-Cross-Domain-Policies = "none"
     Referrer-Policy = "no-referrer"
+    Cross-Origin-Resource-Policy = "same-origin"
     Cache-Control = "no-store"
 
 [[headers]]

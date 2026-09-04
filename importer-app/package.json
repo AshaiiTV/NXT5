@@ -12,10 +12,11 @@
     "dist:mac:arm": "electron-builder --mac zip --arm64"
   },
   "devDependencies": {
-    "electron": "^31.7.7",
-    "electron-builder": "^24.13.3"
+    "electron": "44.2.0",
+    "electron-builder": "26.15.3"
   },
   "type": "module",
+  "packageManager": "pnpm@11.19.0",
   "build": {
     "appId": "app.nxt5.importer",
     "productName": "NXT5 Importer",
@@ -65,8 +66,7 @@
         }
       ],
       "artifactName": "NXT5-Importer-Mac-${arch}-${version}.${ext}",
-      "identity": "-",
-      "hardenedRuntime": false
+      "hardenedRuntime": true
     }
   }
 }

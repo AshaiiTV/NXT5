@@ -69,13 +69,16 @@ export default async function handler(request: Request, context: Context): Promi
     const teams = await sql`
       select distinct teams.*
       from teams
-      left join team_members on team_members.team_id = teams.id
+      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
+        and (
+          teams.owner_id = ${user.id}
+          or team_members.role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board')
+        )
       limit 1
     `;
     const team = teams[0];
-    if (!team) throw Object.assign(new Error('Team introuvable ou non autorisée.'), { status: 403 });
+    if (!team) throw Object.assign(new Error('Import non autorisé pour cette team.'), { status: 403 });
 
     const roster = await sql`select * from players where team_id = ${teamId}`;
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });

@@ -16,6 +16,9 @@ export default async function handler(request: Request): Promise<Response> {
     if (nextPassword.length < 8) {
       throw Object.assign(new Error('Le nouveau mot de passe doit faire au moins 8 caractères.'), { status: 400 });
     }
+    if (nextPassword.length > 128 || token.length > 128) {
+      throw Object.assign(new Error('Lien ou mot de passe invalide.'), { status: 400 });
+    }
 
     const tokenHash = sha256(token);
     const rows = await sql`

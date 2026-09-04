@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import os from 'node:os';
@@ -15,6 +15,24 @@ const CURRENT_VERSION = String(PACKAGE_META.version || '0.0.0');
 const REMOTE_TIMEOUT_MS = 12000;
 const LOCAL_TIMEOUT_MS = 8000;
 const championNameCache = new Map();
+const RENDERER_FILE = path.join(__dirname, 'renderer.html');
+const RENDERER_URL = pathToFileURL(RENDERER_FILE).toString();
+
+function assertTrustedIpcSender(event) {
+  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || '';
+  if (senderUrl !== RENDERER_URL) throw new Error('IPC sender refused');
+}
+
+function safeExternalUrl(value) {
+  try {
+    const url = new URL(String(value || ''));
+    const siteHost = new URL(NXT5_SITE_URL).hostname;
+    const allowedHosts = new Set([siteHost, 'github.com']);
+    return url.protocol === 'https:' && allowedHosts.has(url.hostname) ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
 
 function compareVersions(a, b) {
   const left = String(a || '0').split('.').map((part) => Number(part) || 0);
@@ -400,19 +418,23 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
-      sandbox: false,
+      sandbox: true,
       nodeIntegration: false
     }
   });
   win.removeMenu();
+  win.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+    const target = safeExternalUrl(url);
+    if (target) shell.openExternal(target);
     return { action: 'deny' };
   });
-  win.loadFile(path.join(__dirname, 'renderer.html'));
+  win.webContents.on('will-navigate', (event) => event.preventDefault());
+  win.loadFile(RENDERER_FILE);
 }
 
-ipcMain.handle('generate-import', async (_event, form) => {
+ipcMain.handle('generate-import', async (event, form) => {
+  assertTrustedIpcSender(event);
   const extractedInput = extractGameInput(form?.gameId);
   const gameId = normalizeGameId(extractedInput, form?.platform);
   const numericOnly = isNumericGameId(extractedInput);
@@ -482,10 +504,14 @@ ipcMain.handle('generate-import', async (_event, form) => {
   return { canceled: false, filePath, gameId: actualGameId };
 });
 
-ipcMain.handle('check-update', async () => checkImporterUpdate());
-ipcMain.handle('open-external', async (_event, url) => {
-  const target = String(url || '');
-  if (!/^https?:\/\//i.test(target)) return false;
+ipcMain.handle('check-update', async (event) => {
+  assertTrustedIpcSender(event);
+  return checkImporterUpdate();
+});
+ipcMain.handle('open-external', async (event, url) => {
+  assertTrustedIpcSender(event);
+  const target = safeExternalUrl(url);
+  if (!target) return false;
   await shell.openExternal(target);
   return true;
 });

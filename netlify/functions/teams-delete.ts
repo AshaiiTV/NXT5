@@ -16,13 +16,12 @@ export default async function handler(request: Request, context: Context): Promi
     const teams = await sql`
       select teams.*
       from teams
-      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role = 'captain')
+        and teams.owner_id = ${user.id}
       limit 1
     `;
     const team = teams[0];
-    if (!team) throw Object.assign(new Error('Seul l’owner ou un capitaine peut supprimer cette team.'), { status: 403 });
+    if (!team) throw Object.assign(new Error('Seul le propriétaire peut supprimer définitivement cette team.'), { status: 403 });
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

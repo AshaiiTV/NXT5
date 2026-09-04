@@ -18,6 +18,9 @@ export default async function handler(request: Request, context: Context): Promi
     if (!accountName || !password) {
       throw Object.assign(new Error('Identifiants requis.'), { status: 400 });
     }
+    if (password.length > 128) {
+      throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
+    }
 
     await ensureEmailVerificationColumns();
     const rows = accountName.includes('@')

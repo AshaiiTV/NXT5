@@ -13,7 +13,7 @@ export default async function handler(request: Request): Promise<Response> {
     const body = await readJson(request);
     const email = normalizeEmail(body.email);
 
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(email) || email.length > 160) {
       throw Object.assign(new Error('Adresse e-mail invalide.'), { status: 400 });
     }
     if (!isPasswordEmailConfigured()) {

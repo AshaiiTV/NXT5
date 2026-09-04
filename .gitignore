@@ -13,6 +13,7 @@ pnpm-debug.log*
 vite-*.log
 
 responsive-audit-shots/
+importer-app/release/
 
 .DS_Store
 Thumbs.db

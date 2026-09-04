@@ -2,7 +2,7 @@ import type { Context } from "@netlify/functions";
 import crypto from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, ensureEmailVerificationColumns, isValidEmail, normalizeEmail, requireAuth, safeUser } from './_lib/auth';
+import { assertSessionSecret, ensureEmailVerificationColumns, isValidEmail, normalizeEmail, requireAuth, safeUser, sha256 } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
 import { ensureUserNotificationColumns } from './_getTeamMembers.js';
 
@@ -31,7 +31,8 @@ export default async function handler(request: Request, context: Context): Promi
       limit 1
     `;
     const emailChanged = normalizeEmail(currentRows[0]?.email) !== email;
-    const verifyToken = emailChanged ? crypto.randomBytes(32).toString('hex') : null;
+    const verifyToken = emailChanged ? crypto.randomBytes(32).toString('base64url') : null;
+    const verifyTokenHash = verifyToken ? sha256(verifyToken) : null;
     const verifyExpiresAt = emailChanged ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
 
     const rows = emailChanged ? await sql`
@@ -39,7 +40,7 @@ export default async function handler(request: Request, context: Context): Promi
       set name = ${name},
           email = ${email},
           email_verified = false,
-          email_verify_token = ${verifyToken},
+          email_verify_token = ${verifyTokenHash},
           email_verify_expires_at = ${verifyExpiresAt},
           updated_at = now()
       where id = ${user.id}
