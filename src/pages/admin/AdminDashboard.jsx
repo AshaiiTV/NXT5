@@ -46,6 +46,20 @@ function TableShell({ children }) {
   return <div className="mt-4 overflow-x-auto rounded-xl border border-white/10"><table className="w-full min-w-[720px] text-left text-sm">{children}</table></div>;
 }
 
+function percent(value, total) {
+  return total > 0 ? Math.round((Number(value || 0) / total) * 100) : 0;
+}
+
+function ProgressRow({ label, value, total, suffix = "équipes" }) {
+  const rate = percent(value, total);
+  return <div><div className="mb-1.5 flex items-center justify-between gap-3 text-xs"><span className="font-semibold text-slate-300">{label}</span><strong className="text-white">{number.format(Number(value || 0))} <span className="font-semibold text-slate-500">{suffix} · {rate}%</span></strong></div><div className="h-2 overflow-hidden rounded-full bg-white/[0.07]"><div className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-fuchsia-400" style={{ width: `${Math.min(100, rate)}%` }} /></div></div>;
+}
+
+function WeeklyChart({ rows = [] }) {
+  const max = Math.max(1, ...rows.map((row) => Number(row.matches || 0)));
+  return <div className="mt-4 grid grid-cols-12 items-end gap-1.5" aria-label="Volume hebdomadaire des games">{rows.map((row) => <div key={row.date} className="flex min-w-0 flex-col items-center gap-2"><span className="text-[0.58rem] font-black text-slate-500">{row.matches || 0}</span><div className="h-24 w-full rounded-t-md bg-white/[0.05] flex items-end overflow-hidden" title={`${formatDate(row.date)} · ${row.matches || 0} games · ${row.activeUsers || 0} utilisateurs actifs`}><div className="w-full rounded-t-md bg-gradient-to-t from-cyan-500 to-fuchsia-400" style={{ height: `${Math.max(3, (Number(row.matches || 0) / max) * 100)}%` }} /></div></div>)}</div>;
+}
+
 export default function AdminDashboard() {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,6 +85,14 @@ export default function AdminDashboard() {
   const activity = dashboard?.activity || {};
   const averages = dashboard?.averages || {};
   const attention = dashboard?.attention || {};
+  const adoption = dashboard?.adoption || {};
+  const accountFunnel = dashboard?.accountFunnel || {};
+  const matchHealth = dashboard?.matchHealth || {};
+  const rosterHealth = dashboard?.rosterHealth || {};
+  const totalTeams = Number(dashboard?.totals?.teams || 0);
+  const totalUsers = Number(dashboard?.totals?.users || 0);
+  const totalPlayers = Number(dashboard?.totals?.players || 0);
+  const totalMatches = Number(dashboard?.totals?.matches || 0);
   return <div>
     <PageHeader eyebrow="Administration privée" title="Vue d’ensemble plateforme" subtitle="Indicateurs globaux NXT5 en lecture seule. Cet espace est réservé à l’administrateur plateforme."><Button variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></PageHeader>
     {error && <div className="mb-4 rounded-xl border border-amber-300/25 bg-amber-500/10 p-3 text-sm font-semibold text-amber-100">{error}</div>}
@@ -83,6 +105,18 @@ export default function AdminDashboard() {
         <Surface><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Moyennes par équipe</p><div className="mt-4 space-y-3">{[["Membres", averages.membersPerTeam],["Joueurs", averages.playersPerTeam],["Games", averages.matchesPerTeam]].map(([label,value]) => <div key={label} className="flex items-center justify-between gap-3 border-b border-white/10 pb-2 last:border-0 last:pb-0"><span className="text-sm font-semibold text-slate-300">{label}</span><strong className="text-lg text-white">{decimal.format(Number(value || 0))}</strong></div>)}</div>{dashboard?.teamsByRegion?.length > 0 && <div className="mt-4 border-t border-white/10 pt-3"><p className="text-[0.62rem] font-black uppercase tracking-wider text-slate-500">Régions principales</p><div className="mt-2 flex flex-wrap gap-2">{dashboard.teamsByRegion.slice(0, 5).map((row) => <Badge key={row.region} tone="slate">{row.region || "Autre"} · {number.format(Number(row.count || 0))}</Badge>)}</div></div>}</Surface>
       </div>
     </div>
+
+    <div className="mt-4 grid gap-4 xl:grid-cols-2">
+      <Surface><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100/70">Adoption produit</p><h3 className="mt-1 text-xl font-black text-white">Fonctionnalités utilisées</h3></div><BarChart3 className="h-5 w-5 text-cyan-200" /></div><div className="mt-5 space-y-4">{[["Roster", adoption.roster],["Import de games", adoption.matches],["Champion pool", adoption.championPool],["Compositions", adoption.compositions],["Reviews", adoption.reports],["Planning", adoption.planning],["Objectifs joueurs", adoption.goals],["Archives", adoption.archives]].map(([label,value]) => <ProgressRow key={label} label={label} value={value} total={totalTeams} />)}</div></Surface>
+      <Surface><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100/70">Parcours compte</p><h3 className="mt-1 text-xl font-black text-white">Activation et fidélité</h3></div><UserCheck className="h-5 w-5 text-fuchsia-200" /></div><div className="mt-5 space-y-4">{[["Emails vérifiés", accountFunnel.verified],["Membres d’une équipe", accountFunnel.usersInTeam],["Profils joueur liés", accountFunnel.usersLinkedToPlayer],["Vus sur 30 jours", accountFunnel.seen30d],["Anciens comptes revenus", accountFunnel.returning30d]].map(([label,value]) => <ProgressRow key={label} label={label} value={value} total={totalUsers} suffix="comptes" />)}</div><p className="mt-5 text-xs font-semibold leading-5 text-slate-500">Mesures agrégées uniquement : aucune adresse email, IP ou donnée de session n’est affichée.</p></Surface>
+    </div>
+
+    <div className="mt-4 grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+      <Surface><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">12 dernières semaines</p><h3 className="mt-1 text-xl font-black text-white">Rythme des imports</h3></div><Gamepad2 className="h-5 w-5 text-cyan-200" /></div><WeeklyChart rows={dashboard?.weekly || []} /><div className="mt-3 flex justify-between text-[0.62rem] font-bold uppercase tracking-wider text-slate-500"><span>{formatDate(dashboard?.weekly?.[0]?.date)}</span><span>{formatDate(dashboard?.weekly?.at(-1)?.date)}</span></div></Surface>
+      <Surface><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Santé des données de game</p><div className="mt-4 grid grid-cols-2 gap-3">{[["Imports · 24 h", matchHealth.imports24h],["Imports · 7 j", matchHealth.imports7d],["Équipes actives · 30 j", matchHealth.importingTeams30d],["Durée moyenne", matchHealth.averageDurationSeconds ? `${Math.round(matchHealth.averageDurationSeconds / 60)} min` : "—"]].map(([label,value]) => <div key={label} className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-xl font-black text-white">{typeof value === "number" ? number.format(value) : value}</p><p className="mt-1 text-[0.62rem] font-bold uppercase tracking-wider text-slate-400">{label}</p></div>)}</div><div className="mt-4 space-y-3"><ProgressRow label="Patch renseigné" value={matchHealth.matchesWithPatch} total={totalMatches} suffix="games" /><ProgressRow label="Durée exploitable" value={matchHealth.matchesWithDuration} total={totalMatches} suffix="games" /></div><div className="mt-4 flex flex-wrap gap-2"><Badge tone="green">{matchHealth.wins || 0} victoires</Badge><Badge tone="red">{matchHealth.losses || 0} défaites</Badge><Badge tone="slate">{matchHealth.analyses || 0} analyses</Badge></div></Surface>
+    </div>
+
+    <Surface className="mt-4"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Structure des effectifs</p><h3 className="mt-1 text-xl font-black text-white">Qualité des rosters</h3></div><Users className="h-5 w-5 text-cyan-200" /></div><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{[["Compétiteurs", rosterHealth.competitors],["Staff", rosterHealth.staff],["Profils liés", rosterHealth.linked],["Riot ID configurés", rosterHealth.riotConfigured]].map(([label,value]) => <div key={label} className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-2xl font-black text-white">{number.format(Number(value || 0))}</p><p className="mt-1 text-xs font-bold text-slate-300">{label} · {percent(value, totalPlayers)}%</p></div>)}</div><div className="mt-4 flex flex-wrap gap-2"><Badge tone="green">{rosterHealth.main || 0} titulaires</Badge><Badge tone="cyan">{rosterHealth.substitutes || 0} remplaçants</Badge><Badge tone="slate">{rosterHealth.inactive || 0} inactifs</Badge></div></Surface>
 
     <Surface className="mt-4"><div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-amber-200" /><h3 className="text-lg font-black text-white">Points d’attention</h3></div><div className="mt-4 grid gap-3 sm:grid-cols-3">{[["Sans membre", attention.teamsWithoutMembers],["Sans joueur", attention.teamsWithoutPlayers],["Sans game", attention.teamsWithoutMatches]].map(([label,value]) => <div key={label} className={cx("rounded-xl border p-3", Number(value) ? "border-amber-300/20 bg-amber-400/[0.07]" : "border-emerald-300/15 bg-emerald-400/[0.05]")}><p className="text-2xl font-black text-white">{number.format(Number(value || 0))}</p><p className="mt-1 text-xs font-bold text-slate-300">Équipes {label.toLowerCase()}</p></div>)}</div></Surface>
 

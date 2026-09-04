@@ -15,7 +15,7 @@ function count(value: unknown): number {
  * email addresses, session/IP data, invite codes and imported match raw data.
  */
 async function loadDashboard() {
-  const [summaryRows, recentTeamRows, recentUserRows, teamSizeRows, regionRows, dailyRows] = await Promise.all([
+  const [summaryRows, recentTeamRows, recentUserRows, teamSizeRows, regionRows, dailyRows, featureRows, matchHealthRows, accountFunnelRows, rosterRows, weeklyRows] = await Promise.all([
     sql`
       select
         (select count(*) from teams) as teams,
@@ -105,11 +105,78 @@ async function loadDashboard() {
         (select count(*) from matches where matches.created_at >= days.day and matches.created_at < days.day + interval '1 day') as matches
       from days
       order by days.day asc
+    `,
+    sql`
+      select
+        (select count(distinct team_id) from players) as roster,
+        (select count(distinct team_id) from matches) as matches,
+        (select count(distinct team_id) from champion_pool) as champion_pool,
+        (select count(distinct team_id) from composition_types) as compositions,
+        (select count(distinct team_id) from reports) as reports,
+        (select count(distinct team_id) from player_availability) as planning,
+        (select count(distinct team_id) from player_goals) as goals,
+        (select count(distinct team_id) from match_archives) as archives
+    `,
+    sql`
+      select
+        count(*) filter (where result = 'Victoire') as wins,
+        count(*) filter (where result = 'Défaite') as losses,
+        count(*) filter (where result = 'Analyse') as analyses,
+        count(*) filter (where created_at >= now() - interval '24 hours') as imports_24h,
+        count(*) filter (where created_at >= now() - interval '7 days') as imports_7d,
+        count(distinct team_id) filter (where created_at >= now() - interval '30 days') as importing_teams_30d,
+        coalesce(avg(duration_seconds) filter (where duration_seconds > 0), 0) as average_duration_seconds,
+        count(*) filter (where patch is not null and patch <> '') as matches_with_patch,
+        count(*) filter (where duration_seconds is not null and duration_seconds > 0) as matches_with_duration
+      from matches
+    `,
+    sql`
+      select
+        (select count(distinct user_id) from team_members) as users_in_team,
+        (select count(distinct user_id) from players where user_id is not null) as users_linked_to_player,
+        (select count(*) from users where coalesce(email_verified, false)) as verified,
+        (select count(distinct user_id) from sessions where last_seen_at >= now() - interval '30 days') as seen_30d,
+        (select count(distinct sessions.user_id)
+          from sessions join users on users.id = sessions.user_id
+          where users.created_at < now() - interval '30 days'
+            and sessions.last_seen_at >= now() - interval '30 days') as returning_30d
+    `,
+    sql`
+      select
+        count(*) filter (where roster_status = 'MAIN') as main,
+        count(*) filter (where roster_status = 'SUB') as substitutes,
+        count(*) filter (where roster_status = 'INACTIVE') as inactive,
+        count(*) filter (where role in ('COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD')) as staff,
+        count(*) filter (where role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB')) as competitors,
+        count(*) filter (where user_id is not null) as linked,
+        count(*) filter (where riot_id is not null and riot_id <> '') as riot_configured
+      from players
+    `,
+    sql`
+      with weeks as (
+        select generate_series(
+          date_trunc('week', now()) - interval '11 weeks',
+          date_trunc('week', now()),
+          interval '1 week'
+        ) as week
+      )
+      select
+        to_char(weeks.week, 'YYYY-MM-DD') as date,
+        (select count(*) from users where users.created_at >= weeks.week and users.created_at < weeks.week + interval '1 week') as users,
+        (select count(*) from teams where teams.created_at >= weeks.week and teams.created_at < weeks.week + interval '1 week') as teams,
+        (select count(*) from matches where matches.created_at >= weeks.week and matches.created_at < weeks.week + interval '1 week') as matches,
+        (select count(distinct user_id) from sessions where sessions.last_seen_at >= weeks.week and sessions.last_seen_at < weeks.week + interval '1 week') as active_users
+      from weeks
+      order by weeks.week asc
     `
   ]);
 
   const summary: any = summaryRows[0] || {};
   const averages: any = teamSizeRows[0] || {};
+  const features: any = featureRows[0] || {};
+  const matchHealth: any = matchHealthRows[0] || {};
+  const accountFunnel: any = accountFunnelRows[0] || {};
+  const roster: any = rosterRows[0] || {};
 
   return {
     generatedAt: new Date().toISOString(),
@@ -138,8 +205,31 @@ async function loadDashboard() {
       teamsWithoutPlayers: count(averages.teams_without_players),
       teamsWithoutMatches: count(averages.teams_without_matches)
     },
+    adoption: {
+      roster: count(features.roster), matches: count(features.matches), championPool: count(features.champion_pool),
+      compositions: count(features.compositions), reports: count(features.reports), planning: count(features.planning),
+      goals: count(features.goals), archives: count(features.archives)
+    },
+    matchHealth: {
+      wins: count(matchHealth.wins), losses: count(matchHealth.losses), analyses: count(matchHealth.analyses),
+      imports24h: count(matchHealth.imports_24h), imports7d: count(matchHealth.imports_7d),
+      importingTeams30d: count(matchHealth.importing_teams_30d),
+      averageDurationSeconds: count(matchHealth.average_duration_seconds),
+      matchesWithPatch: count(matchHealth.matches_with_patch), matchesWithDuration: count(matchHealth.matches_with_duration)
+    },
+    accountFunnel: {
+      registered: count(summary.users), verified: count(accountFunnel.verified), usersInTeam: count(accountFunnel.users_in_team),
+      usersLinkedToPlayer: count(accountFunnel.users_linked_to_player), seen30d: count(accountFunnel.seen_30d),
+      returning30d: count(accountFunnel.returning_30d)
+    },
+    rosterHealth: {
+      main: count(roster.main), substitutes: count(roster.substitutes), inactive: count(roster.inactive),
+      staff: count(roster.staff), competitors: count(roster.competitors), linked: count(roster.linked),
+      riotConfigured: count(roster.riot_configured)
+    },
     teamsByRegion: regionRows.map((row: any) => ({ region: row.region || 'Non renseignée', count: count(row.team_count) })),
     daily: dailyRows.map((row: any) => ({ date: row.date, users: count(row.users), teams: count(row.teams), matches: count(row.matches) })),
+    weekly: weeklyRows.map((row: any) => ({ date: row.date, users: count(row.users), teams: count(row.teams), matches: count(row.matches), activeUsers: count(row.active_users) })),
     recentTeams: recentTeamRows.map((row: any) => ({
       id: row.id, name: row.name, tag: row.tag, region: row.region,
       ownerName: row.owner_name, createdAt: row.created_at,
