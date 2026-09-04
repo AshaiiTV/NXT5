@@ -14,7 +14,6 @@ const ROUTE_SUGGESTIONS = [
   { matches: ["/champion-pool"], prompts: ["Comment modifier le pool d'un joueur ?", "Comment classer un champion par tier ?", "À quoi servent les statuts des picks ?"] },
   { matches: ["/compositions-types"], prompts: ["Comment créer une composition ?", "Comment utiliser les tiers du Champion Pool ?", "Comment distinguer nos drafts des leurs ?"] },
   { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment choisir le profil observé ?", "Comment lire l'historique d'un joueur ?", "Où retrouver ses champions et matchups ?"] },
-  { matches: ["/guide"], prompts: ["Par quoi commencer sur NXT5 ?", "Comment préparer ma première review ?", "Quel est le parcours conseillé pour une équipe ?"] },
 ];
 
 const DEFAULT_SUGGESTIONS = [

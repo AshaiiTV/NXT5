@@ -43,8 +43,7 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/mon-profil/pool',
   '/mon-profil/historique',
   '/mon-profil/coaching',
-  '/parametres',
-  '/guide'
+  '/parametres'
 ] as const;
 
 const ALLOWED_PATH_SET = new Set<string>(ALLOWED_ASSISTANT_PATHS);
@@ -53,8 +52,8 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
   {
     id: 'getting-started',
     title: 'Démarrer sur NXT5',
-    path: '/guide',
-    actionLabel: 'Ouvrir le guide',
+    path: '/equipes',
+    actionLabel: 'Voir l’équipe',
     summary: 'Le parcours le plus simple est de créer ou rejoindre une équipe, préparer le roster, importer une game, lire les tendances puis transformer les constats en review.',
     keywords: ['commencer', 'débuter', 'première fois', 'guide', 'parcours', 'aide', 'utiliser le site'],
     steps: [
@@ -263,8 +262,8 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
   {
     id: 'troubleshooting',
     title: 'Résoudre un problème courant',
-    path: '/guide',
-    actionLabel: 'Voir le dépannage',
+    path: '/parametres',
+    actionLabel: 'Ouvrir les paramètres',
     summary: 'Les problèmes les plus fréquents viennent d’un ancien JSON, d’une timeline Riot incomplète, d’un mauvais profil assigné, d’un rôle insuffisant ou d’un cache navigateur ancien.',
     keywords: ['problème', 'erreur', 'bloqué', 'ne marche pas', 'cassé', 'figé', 'chargement', 'timeline', 'image', 'permission', 'cache', 'dépannage'],
     steps: [
@@ -319,7 +318,7 @@ export function safeAssistantRoute(value: unknown): string {
   const route = String(value || '').trim().split('?')[0];
   if (ALLOWED_PATH_SET.has(route)) return route;
   if (route.startsWith('/mon-profil/') && ALLOWED_PATH_SET.has(route)) return route;
-  return '/guide';
+  return '/equipes';
 }
 
 export function retrieveAssistantKnowledge(message: unknown, route: unknown, limit = 4): AssistantKnowledgeMatch[] {
@@ -373,7 +372,7 @@ function bestFaq(message: unknown, matches: AssistantKnowledgeMatch[]): { faq: A
 }
 
 export function buildFallbackAssistantResponse(message: unknown, matches: AssistantKnowledgeMatch[]) {
-  const selected = matches.length ? matches : retrieveAssistantKnowledge(message, '/guide', 3);
+  const selected = matches.length ? matches : retrieveAssistantKnowledge(message, '/equipes', 3);
   const primary = selected[0] || ASSISTANT_KNOWLEDGE[0];
   const faq = bestFaq(message, selected);
   const answer = faq

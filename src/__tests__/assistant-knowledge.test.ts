@@ -36,9 +36,9 @@ describe('assistant knowledge', () => {
     ]);
   });
 
-  it('falls back to the guide for an unknown route', () => {
-    expect(safeAssistantRoute('/secret')).toBe('/guide');
-    expect(safeAssistantRoute('https://example.com')).toBe('/guide');
+  it('falls back to the team page for an unknown route', () => {
+    expect(safeAssistantRoute('/secret')).toBe('/equipes');
+    expect(safeAssistantRoute('https://example.com')).toBe('/equipes');
     expect(safeAssistantRoute('/mon-profil/coaching')).toBe('/mon-profil/coaching');
   });
 

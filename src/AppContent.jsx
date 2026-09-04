@@ -1457,665 +1457,6 @@ function winningTeamForDiff(value) {
   return diff > 0 ? "ally" : "enemy";
 }
 
-async function exportStatsPng({ title, subtitle, matches, filename }) {
-  const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
-  const rows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
-  const enemyRows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ENEMY"));
-  const sum = (items, key) => items.reduce((total, row) => total + Number(row[key] || 0), 0);
-  const roleOrder = ["TOP", "JGL", "MID", "ADC", "SUP"];
-  const rowName = (row) => row?.summoner_name || row?.riot_id || row?.player_name || "Inconnu";
-  const short = (value, max = 28) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}…` : String(value || "");
-  const kdaRatio = (row) => ((Number(row?.kills || 0) + Number(row?.assists || 0)) / Math.max(1, Number(row?.deaths || 0)));
-  const sideName = (match, teamKey) => {
-    const teamId = objectiveTeamId(match, teamKey);
-    if (teamId === 100) return "Côté bleu";
-    if (teamId === 200) return "Côté rouge";
-    return teamKey === "ALLY" ? "Alliés" : "Adversaires";
-  };
-  const wins = scoped.filter((match) => match.result === "Victoire").length;
-  const games = scoped.length;
-  const kills = sum(rows, "kills");
-  const deaths = sum(rows, "deaths");
-  const assists = sum(rows, "assists");
-  const damageDiff = sum(rows, "damage") - sum(enemyRows, "damage");
-  const goldDiff = sum(rows, "gold") - sum(enemyRows, "gold");
-  const visionDiff = sum(rows, "vision") - sum(enemyRows, "vision");
-  const topDamage = rows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
-  const topVision = rows.slice().sort((a, b) => Number(b.vision || 0) - Number(a.vision || 0))[0];
-  const topKda = rows.slice().sort((a, b) => kdaRatio(b) - kdaRatio(a))[0];
-  const buildChampionCounts = (items) => Array.from(items.reduce((map, row) => {
-    const champion = row?.champion;
-    if (champion) map.set(champion, (map.get(champion) || 0) + 1);
-    return map;
-  }, new Map()).entries()).sort((a, b) => b[1] - a[1] || championDisplayName(a[0]).localeCompare(championDisplayName(b[0])));
-  const allyChampionCounts = buildChampionCounts(rows);
-  const enemyChampionCounts = buildChampionCounts(enemyRows);
-  const allChampionCounts = [...allyChampionCounts, ...enemyChampionCounts];
-  const firstMatch = scoped[0];
-  const singleGame = scoped.length === 1;
-  const allyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ALLY") : null;
-  const enemyObjectives = firstMatch ? objectiveTeamSummary(firstMatch, "ENEMY") : null;
-  const canvas = document.createElement("canvas");
-  canvas.width = 1920;
-  canvas.height = 1080;
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width;
-  const H = canvas.height;
-  const rounded = (x, y, w, h, r = 28) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
-  const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 12, align = "left" } = {}) => {
-    const source = String(text || "");
-    const match = String(font || "800 20px Inter, Arial, sans-serif").match(/(\d+)px/);
-    const baseSize = match ? Number(match[1]) : 20;
-    let size = baseSize;
-    let nextFont = font || "800 20px Inter, Arial, sans-serif";
-    ctx.font = nextFont;
-    while (ctx.measureText(source).width > maxWidth && size > min) {
-      size -= 1;
-      nextFont = nextFont.replace(/\d+px/, `${size}px`);
-      ctx.font = nextFont;
-    }
-    ctx.fillStyle = color;
-    ctx.textAlign = align;
-    ctx.fillText(source, x, y);
-    ctx.textAlign = "left";
-  };
-  const imageCache = new Map();
-  const loadCanvasImage = (url) => new Promise((resolve) => {
-    if (!url) return resolve(null);
-    if (imageCache.has(url)) return resolve(imageCache.get(url));
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      imageCache.set(url, img);
-      resolve(img);
-    };
-    img.onerror = () => {
-      imageCache.set(url, null);
-      resolve(null);
-    };
-    img.src = url;
-  });
-  const drawImageCover = (img, x, y, w, h, radius = 18) => {
-    if (!img) return false;
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, radius);
-    ctx.clip();
-    const ratio = Math.max(w / img.width, h / img.height);
-    const dw = img.width * ratio;
-    const dh = img.height * ratio;
-    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-    ctx.restore();
-    return true;
-  };
-  const drawImageContain = (img, x, y, w, h) => {
-    if (!img) return false;
-    const ratio = Math.min(w / img.width, h / img.height);
-    const dw = img.width * ratio;
-    const dh = img.height * ratio;
-    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-    return true;
-  };
-  const drawCachedImage = (sourceOrSources, x, y, w, h, radius = 14) => {
-    const sources = Array.isArray(sourceOrSources) ? sourceOrSources : [sourceOrSources];
-    const img = sources.map((url) => imageCache.get(url)).find(Boolean);
-    if (drawImageCover(img, x, y, w, h, radius)) return;
-    ctx.fillStyle = "rgba(255,255,255,.06)";
-    ctx.strokeStyle = "rgba(255,255,255,.14)";
-    ctx.lineWidth = 1;
-    rounded(x, y, w, h, radius);
-  };
-  const drawHeraldObjectiveIcon = (x, y, size = 28) => {
-    const cx = x + size / 2;
-    const cy = y + size / 2;
-    const r = size / 2;
-    const gradient = ctx.createRadialGradient(cx - r * 0.28, cy - r * 0.32, r * 0.2, cx, cy, r);
-    gradient.addColorStop(0, "#f0abfc");
-    gradient.addColorStop(0.48, "#7c3aed");
-    gradient.addColorStop(1, "#251047");
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = gradient;
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,.34)";
-    ctx.lineWidth = Math.max(1, size * 0.055);
-    ctx.stroke();
-    ctx.fillStyle = "#67e8f9";
-    ctx.beginPath();
-    ctx.moveTo(cx, y + size * 0.2);
-    ctx.lineTo(x + size * 0.64, y + size * 0.48);
-    ctx.lineTo(cx, y + size * 0.8);
-    ctx.lineTo(x + size * 0.36, y + size * 0.48);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "rgba(2,5,17,.72)";
-    ctx.lineWidth = Math.max(1, size * 0.04);
-    ctx.stroke();
-    ctx.fillStyle = "#fdf4ff";
-    ctx.beginPath();
-    ctx.arc(cx, y + size * 0.48, size * 0.095, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  };
-  const drawObjectiveIcon = (type, x, y, size = 28, radius = 8) => {
-    if (type === "herald") return drawHeraldObjectiveIcon(x, y, size);
-    drawCachedImage(OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon, x, y, size, size, radius);
-  };
-  const accentColor = (accent = "cyan") => accent === "pink" ? "#f472b6" : accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : "#67e8f9";
-  const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "pink" ? `rgba(244,114,182,${alpha})` : accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : `rgba(103,232,249,${alpha})`;
-  const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-  };
-  const drawPill = (text, x, y, fill = "rgba(34,211,238,.10)", stroke = "rgba(34,211,238,.22)", color = "#e8fbff") => {
-    ctx.font = "900 16px Inter, Arial, sans-serif";
-    const width = Math.min(300, Math.max(82, ctx.measureText(text).width + 30));
-    ctx.fillStyle = fill;
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.5;
-    rounded(x, y, width, 32, 16);
-    ctx.fillStyle = color;
-    ctx.fillText(text, x + 15, y + 22);
-    return width;
-  };
-  const drawPanel = (x, y, w, h, accent = "cyan", alpha = 0.72) => {
-    const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-    gradient.addColorStop(0, accentSoft(accent, 0.12));
-    gradient.addColorStop(0.38, `rgba(5,10,24,${alpha})`);
-    gradient.addColorStop(1, "rgba(5,10,24,.48)");
-    ctx.fillStyle = gradient;
-    ctx.strokeStyle = accentSoft(accent, 0.34);
-    ctx.lineWidth = 1.5;
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = accentColor(accent);
-    ctx.fillRect(x, y, 4, h);
-  };
-  const drawMetric = (label, value, detail, x, y, w, accent = "cyan", marker = "") => {
-    const markerMeta = metricSideMarkerMeta(marker);
-    ctx.fillStyle = accentColor(accent);
-    ctx.font = "900 13px Inter, Arial, sans-serif";
-    ctx.fillText(label.toUpperCase(), x + 22, y + 31);
-    if (markerMeta) {
-      const markerText = markerMeta.text.toUpperCase();
-      ctx.font = "900 11px Inter, Arial, sans-serif";
-      const markerW = Math.min(86, Math.max(54, ctx.measureText(markerText).width + 18));
-      const markerX = x + w - markerW - 18;
-      ctx.fillStyle = accentSoft(markerMeta.canvasAccent, 0.18);
-      ctx.strokeStyle = accentSoft(markerMeta.canvasAccent, 0.42);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(markerX, y + 16, markerW, 20, 10);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = accentColor(markerMeta.canvasAccent);
-      fitText(markerText, markerX + markerW / 2, y + 30, markerW - 10, { font: "900 11px Inter, Arial, sans-serif", color: accentColor(markerMeta.canvasAccent), min: 8, align: "center" });
-    }
-    fitText(short(value, 16), x + 22, y + 66, w - 44, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
-    fitText(short(detail, 28), x + 22, y + 84, w - 44, { font: "800 13px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-  };
-  const drawPlayerRow = (row, x, y, w, align = "left") => {
-    const right = align === "right";
-    const kda = `${row?.kills || 0}/${row?.deaths || 0}/${row?.assists || 0}`;
-    const spells = row ? summonerSpellIds(row).filter(Boolean) : [];
-    const build = row ? finalBuildItems(row).slice(0, 6) : [];
-    const portraitSources = championPortraitSources(row, row?.champion);
-    ctx.fillStyle = right ? "rgba(244,114,182,.045)" : "rgba(34,211,238,.045)";
-    ctx.fillRect(x, y, w, 62);
-    drawLine(x, y + 62, x + w, y + 62, "rgba(255,255,255,.09)", 1);
-    const portraitX = x + 14;
-    drawCachedImage(portraitSources, portraitX, y + 10, 42, 42, 8);
-    ctx.strokeStyle = right ? "rgba(244,114,182,.28)" : "rgba(103,232,249,.28)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(portraitX, y + 10, 42, 42, 8);
-    ctx.stroke();
-    ctx.textAlign = "left";
-    fitText(short(rowName(row), 24), x + 70, y + 24, 192, { font: "900 16px Inter, Arial, sans-serif", color: "#ffffff", min: 12 });
-    fitText(short(`${row?.role || "ROLE"} · ${championDisplayName(row?.champion || "Champion ?")}`, 32), x + 70, y + 45, 230, { font: "800 12px Inter, Arial, sans-serif", color: right ? "#fbcfe8" : "#bffaff", min: 10 });
-    fitText(kda, x + 312, y + 24, 70, { font: "900 16px Inter, Arial, sans-serif", color: "#ffffff", min: 11 });
-    fitText(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP`, x + 386, y + 24, 70, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    fitText(`${creepScore(row)} CS`, x + 312, y + 45, 70, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    fitText(`${formatPoints(row?.gold)} G`, x + 458, y + 24, 88, { font: "900 13px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
-    fitText(`${formatPoints(row?.damage)} D`, x + 548, y + 24, 96, { font: "900 13px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
-    fitText(`${row?.vision || 0} VS`, x + 458, y + 45, 86, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    const iconY = y + 36;
-    const iconStart = x + w - 178;
-    spells.slice(0, 2).forEach((spell, index) => drawCachedImage(summonerSpellIconSources(spell), iconStart + index * 21, iconY, 18, 18, 4));
-    build.forEach((item, index) => drawCachedImage(itemIconSources(item.id), iconStart + 48 + index * 21, iconY, 18, 18, 4));
-    ctx.textAlign = "left";
-  };
-  const drawObjectiveSide = (label, data, x, y, w, accent = "cyan") => {
-    ctx.fillStyle = accentColor(accent);
-    ctx.font = "900 14px Inter, Arial, sans-serif";
-    ctx.fillText(label.toUpperCase(), x, y + 22);
-    const objectiveCells = [
-      ["Drakes", data?.dragonCount || 0, "dragon"],
-      ["Grubs", data?.grubs || 0, "grub"],
-      ["Herald", data?.heralds || 0, "herald"],
-      ["Nashor", data?.barons || 0, "baron"],
-      ["Tours", data?.towers || 0, "tower"],
-    ];
-    objectiveCells.forEach(([name, value, type], index) => {
-      const cx = x + index * (w / 5);
-      drawObjectiveIcon(type, cx, y + 40, 28, 8);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 22px Inter, Arial, sans-serif";
-      ctx.fillText(String(value), cx + 36, y + 62);
-      ctx.fillStyle = "#c7d4e5";
-      ctx.font = "800 10px Inter, Arial, sans-serif";
-      ctx.fillText(name.toUpperCase(), cx, y + 88);
-    });
-    const dragons = (data?.dragons || []).map((dragon) => objectiveDragonElement(dragon)).filter(Boolean);
-    if (dragons.length) {
-      ctx.fillStyle = "#d8f8ff";
-      ctx.font = "800 12px Inter, Arial, sans-serif";
-      ctx.fillText(short(dragons.join(" · "), 58), x, y + 108);
-    }
-  };
-  const drawTeamTable = (label, rowsByRole, x, y, w, accent = "cyan") => {
-    drawPanel(x, y, w, 430, accent, 0.68);
-    fitText(label, x + 28, y + 48, w - 260, { font: "900 26px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
-    ctx.fillStyle = accentColor(accent);
-    ctx.font = "900 12px Inter, Arial, sans-serif";
-    ctx.fillText("JOUEUR", x + 28, y + 88);
-    ctx.fillText("KDA", x + 326, y + 88);
-    ctx.fillText("RESS.", x + 472, y + 88);
-    ctx.fillText("BUILD", x + w - 178, y + 88);
-    drawLine(x + 24, y + 104, x + w - 24, y + 104, accentSoft(accent, 0.26), 1.5);
-    rowsByRole.forEach((row, index) => drawPlayerRow(row, x + 14, y + 116 + index * 62, w - 28, accent === "pink" ? "right" : "left"));
-  };
-  const drawChampionMosaic = (label, counts, x, y, w, h, accent = "cyan") => {
-    const totalPicks = counts.reduce((total, [, count]) => total + count, 0);
-    ctx.fillStyle = accentSoft(accent, 0.10);
-    ctx.strokeStyle = accentSoft(accent, 0.26);
-    ctx.lineWidth = 1;
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = accentColor(accent);
-    ctx.font = "900 12px Inter, Arial, sans-serif";
-    ctx.fillText(label.toUpperCase(), x + 14, y + 22);
-    fitText(`${counts.length} champion${counts.length > 1 ? "s" : ""} · ${totalPicks} picks`, x + 14, y + 40, w - 28, { font: "800 10px Inter, Arial, sans-serif", color: "#c7d4e5", min: 8 });
-    if (!counts.length) {
-      fitText("Aucun champion détecté.", x + 14, y + 72, w - 28, { font: "800 14px Inter, Arial, sans-serif", color: "#94a3b8", min: 10 });
-      return;
-    }
-    const listY = y + 52;
-    const listH = h - 62;
-    const columns = Math.max(1, Math.min(6, Math.ceil(counts.length / Math.max(1, Math.floor(listH / 22)))));
-    const rowsNeeded = Math.max(1, Math.ceil(counts.length / columns));
-    const gap = counts.length > 20 ? 4 : 6;
-    const cellW = (w - 28 - gap * (columns - 1)) / columns;
-    const cellH = Math.max(10, Math.min(38, (listH - gap * (rowsNeeded - 1)) / rowsNeeded));
-    const compact = cellH < 18 || cellW < 54;
-    const iconSize = Math.max(compact ? 9 : 14, Math.min(compact ? 18 : 30, cellH - 4));
-    counts.forEach(([champion, count], index) => {
-      const col = index % columns;
-      const row = Math.floor(index / columns);
-      const cellX = x + 14 + col * (cellW + gap);
-      const cellY = listY + row * (cellH + gap);
-      ctx.fillStyle = "rgba(0,0,0,.24)";
-      ctx.strokeStyle = "rgba(255,255,255,.08)";
-      ctx.lineWidth = 1;
-      rounded(cellX, cellY, cellW, cellH, compact ? 7 : 10);
-      drawCachedImage(championPortraitSources(champion, champion), cellX + 3, cellY + Math.max(1, (cellH - iconSize) / 2), iconSize, iconSize, compact ? 5 : 7);
-      if (!compact) fitText(short(championDisplayName(champion), cellW > 92 ? 13 : 9), cellX + iconSize + 9, cellY + Math.max(14, cellH * 0.48), cellW - iconSize - 34, { font: "900 10px Inter, Arial, sans-serif", color: "#ffffff", min: 7 });
-      ctx.fillStyle = accentColor(accent);
-      ctx.font = compact ? "900 8px Inter, Arial, sans-serif" : "900 9px Inter, Arial, sans-serif";
-      ctx.textAlign = "right";
-      ctx.fillText(`x${count}`, cellX + cellW - 7, compact ? cellY + cellH - 2 : cellY + Math.max(14, cellH * 0.50));
-      ctx.textAlign = "left";
-    });
-  };
-  const groupMatchColumns = (x, w) => ({
-    titleW: w - 410,
-    resultX: x + w - 338,
-    resultW: 88,
-    durationX: x + w - 230,
-    durationW: 58,
-    sideX: x + w - 158,
-    sideW: 46,
-    patchRightX: x + w - 12,
-    patchW: 86,
-  });
-  const compactSideLabel = (side) => {
-    const raw = String(side || "").trim();
-    const upper = raw.toUpperCase();
-    if (upper.includes("BLUE") || upper.includes("BLEU")) return "BLUE";
-    if (upper.includes("RED") || upper.includes("ROUGE")) return "RED";
-    return short(upper || "SIDE", 5);
-  };
-  const drawGroupMatchRow = (match, x, y, w, index) => {
-    const resultAccent = match?.result === "Victoire" ? "green" : match?.result === "Défaite" ? "pink" : "cyan";
-    const cols = groupMatchColumns(x, w);
-    ctx.fillStyle = index % 2 ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.018)";
-    ctx.fillRect(x, y, w, 42);
-    ctx.fillStyle = accentColor(resultAccent);
-    ctx.fillRect(x, y, 3, 42);
-    fitText(matchDisplayName(match, "Game"), x + 16, y + 18, cols.titleW, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
-    fitText(match?.game_id || "Game ID", x + 16, y + 35, cols.titleW, { font: "800 10px Inter, Arial, sans-serif", color: "#94a3b8", min: 9 });
-    fitText(match?.result || "Analyse", cols.resultX, y + 25, cols.resultW, { font: "900 12px Inter, Arial, sans-serif", color: accentColor(resultAccent), min: 9 });
-    fitText(match?.duration || "--:--", cols.durationX, y + 25, cols.durationW, { font: "800 12px Inter, Arial, sans-serif", color: "#e2e8f0", min: 9 });
-    fitText(compactSideLabel(match?.side), cols.sideX, y + 25, cols.sideW, { font: "900 11px Inter, Arial, sans-serif", color: "#e2e8f0", min: 9 });
-    fitText(short(match?.patch || "Patch ?", 9), cols.patchRightX, y + 25, cols.patchW, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 9, align: "right" });
-  };
-  const imageUrls = new Set();
-  imageUrls.add("/assets/nxt5-wordmark.png");
-  imageUrls.add("/assets/nxt5-mark.png");
-  Object.values(OBJECTIVE_ICON_SOURCES).flat().forEach((url) => imageUrls.add(url));
-  const exportRows = [...rows, ...enemyRows];
-  exportRows.forEach((row) => {
-    championPortraitSources(row, row?.champion).forEach((url) => imageUrls.add(url));
-    summonerSpellIds(row).forEach((spell) => summonerSpellIconSources(spell).forEach((url) => imageUrls.add(url)));
-    finalBuildItems(row).forEach((item) => itemIconSources(item.id).forEach((url) => imageUrls.add(url)));
-  });
-  allChampionCounts.forEach(([champion]) => championPortraitSources(champion, champion).forEach((url) => imageUrls.add(url)));
-  await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
-  const pageGradient = ctx.createLinearGradient(0, 0, W, H);
-  pageGradient.addColorStop(0, "#030914");
-  pageGradient.addColorStop(0.52, "#020511");
-  pageGradient.addColorStop(1, "#090416");
-  ctx.fillStyle = pageGradient;
-  ctx.fillRect(0, 0, W, H);
-  for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.026)", 1);
-  for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
-  const bg = ctx.createRadialGradient(240, 90, 80, 240, 90, 680);
-  bg.addColorStop(0, "rgba(34,211,238,.22)");
-  bg.addColorStop(0.48, "rgba(30,64,175,.08)");
-  bg.addColorStop(1, "rgba(2,5,17,0)");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-  const bg2 = ctx.createRadialGradient(W - 220, 120, 90, W - 220, 120, 700);
-  bg2.addColorStop(0, "rgba(217,70,239,.18)");
-  bg2.addColorStop(1, "rgba(2,5,17,0)");
-  ctx.fillStyle = bg2;
-  ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(103,232,249,.24)";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(48, 42, W - 96, H - 84);
-  drawLine(72, 188, W - 72, 188, "rgba(103,232,249,.55)", 2.5);
-  drawLine(72, 190, W - 72, 190, "rgba(244,114,182,.22)", 1);
-  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 82, 82);
-  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 236, 62);
-  fitText(short(title || "Export NXT5", 46), 464, 105, W - 860, { font: "900 42px Inter, Arial, sans-serif", color: "#ffffff", min: 24 });
-  fitText(short(subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, 90), 466, 142, W - 870, { font: "800 18px Inter, Arial, sans-serif", color: "#c8f7ff", min: 12 });
-  drawPill(singleGame ? "FICHE GAME" : "EXPORT BLOC SCRIM", W - 360, 86, "rgba(217,70,239,.14)", "rgba(217,70,239,.34)", "#fff");
-  const metricMarker = (value) => singleGame && firstMatch ? winningSideForDiff(firstMatch, value) : winningTeamForDiff(value);
-  const metrics = [
-    ["Games", String(games), `${wins}W - ${games - wins}L`, "cyan", ""],
-    ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Sélection", wins >= games - wins ? "cyan" : "pink", ""],
-    ["KDA équipe", `${kills}/${deaths}/${assists}`, "Alliés", "cyan", ""],
-    ["Écart or", formatGoldDiff(goldDiff), "Économie", goldDiff >= 0 ? "cyan" : "pink", metricMarker(goldDiff)],
-    ["Écart dégâts", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "Dégâts", damageDiff >= 0 ? "cyan" : "pink", metricMarker(damageDiff)],
-    ["Écart vision", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "Vision", visionDiff >= 0 ? "cyan" : "pink", metricMarker(visionDiff)],
-  ];
-  drawPanel(90, 220, 1740, 96, "cyan", 0.54);
-  metrics.forEach(([label, value, detail, accent, marker], index) => {
-    const x = 90 + index * 290;
-    if (index) drawLine(x, 236, x, 300, "rgba(255,255,255,.10)", 1);
-    drawMetric(label, value, detail, x + 2, 220, 286, accent, marker);
-  });
-
-  if (singleGame && firstMatch) {
-    const allyByRole = roleOrder.map((role) => rows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ALLY" });
-    const enemyByRole = roleOrder.map((role) => enemyRows.find((row) => String(row.role || "").toUpperCase() === role) || { role, team_key: "ENEMY" });
-    drawPanel(90, 346, 1740, 126, "green", 0.42);
-    drawObjectiveSide("Côté bleu", objectiveTeamKeyForSide(firstMatch, "BLUE") === "ALLY" ? allyObjectives : enemyObjectives, 122, 360, 720, "cyan");
-    drawLine(960, 364, 960, 452, "rgba(255,255,255,.13)", 1.5);
-    drawObjectiveSide("Côté rouge", objectiveTeamKeyForSide(firstMatch, "RED") === "ALLY" ? allyObjectives : enemyObjectives, 1018, 360, 720, "pink");
-    drawTeamTable(`Alliés · ${sideName(firstMatch, "ALLY")}`, allyByRole, 90, 512, 820, "cyan");
-    drawTeamTable(`Adversaires · ${sideName(firstMatch, "ENEMY")}`, enemyByRole, 1010, 512, 820, "pink");
-    ctx.fillStyle = "rgba(255,255,255,.07)";
-    ctx.fillRect(936, 538, 48, 376);
-    drawLine(960, 538, 960, 914, "rgba(103,232,249,.32)", 1);
-    ctx.textAlign = "center";
-    roleOrder.forEach((role, index) => {
-      ctx.fillStyle = index % 2 ? "#fbcfe8" : "#bffaff";
-      ctx.font = "900 13px Inter, Arial, sans-serif";
-      ctx.fillText(role, 960, 668 + index * 62);
-    });
-    ctx.textAlign = "left";
-    const statusAccent = firstMatch.result === "Victoire" ? "green" : firstMatch.result === "Défaite" ? "pink" : "cyan";
-    drawPill(firstMatch.result || "Analyse", 122, 480, accentSoft(statusAccent, 0.16), accentSoft(statusAccent, 0.38), "#fff");
-    drawPill(firstMatch.duration || "--:--", 254, 480, "rgba(103,232,249,.12)", "rgba(103,232,249,.30)", "#e8fbff");
-    drawPill(firstMatch.patch || "Patch ?", 356, 480, "rgba(103,232,249,.12)", "rgba(103,232,249,.30)", "#e8fbff");
-  } else {
-    const leaderRows = [
-      ["Meilleur KDA", topKda ? `${rowName(topKda)} · ${championDisplayName(topKda.champion)} · ${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "N/A"],
-      ["Plus de dégâts", topDamage ? `${rowName(topDamage)} · ${championDisplayName(topDamage.champion)} · ${formatPoints(topDamage.damage)}` : "N/A"],
-      ["Plus de vision", topVision ? `${rowName(topVision)} · ${championDisplayName(topVision.champion)} · ${topVision.vision || 0} VS` : "N/A"],
-    ];
-    drawPanel(90, 356, 1740, 150, "cyan", 0.48);
-    fitText("Signaux du bloc", 126, 402, 360, { font: "900 28px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
-    leaderRows.forEach(([label, value], index) => {
-      const x = 126 + index * 560;
-      if (index) drawLine(x - 34, 392, x - 34, 478, "rgba(255,255,255,.10)", 1);
-      ctx.fillStyle = index === 2 ? "#fbcfe8" : "#bffaff";
-      ctx.font = "900 18px Inter, Arial, sans-serif";
-      ctx.fillText(label.toUpperCase(), x, 442);
-      fitText(short(value, 52), x, 474, 500, { font: "900 22px Inter, Arial, sans-serif", color: "#ffffff", min: 14 });
-    });
-    drawPanel(90, 548, 820, 330, "pink", 0.50);
-    fitText("Champions joués", 126, 606, 420, { font: "900 32px Inter, Arial, sans-serif", color: "#ffffff", min: 20 });
-    fitText("Nos picks et les champions adverses du groupe, en un seul visuel.", 126, 632, 650, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    drawChampionMosaic("Nous", allyChampionCounts, 126, 658, 368, 188, "cyan");
-    drawChampionMosaic("Eux", enemyChampionCounts, 514, 658, 360, 188, "pink");
-    fitText(`${rows.length} picks NXT5 · ${enemyRows.length} picks adverses`, 126, 862, 650, { font: "800 12px Inter, Arial, sans-serif", color: "#94a3b8", min: 9 });
-    drawPanel(1010, 548, 820, 330, "green", 0.50);
-    fitText("Games du groupe", 1046, 606, 420, { font: "900 32px Inter, Arial, sans-serif", color: "#ffffff", min: 20 });
-    fitText(`${scoped.length} game${scoped.length > 1 ? "s" : ""} · ${wins}W - ${scoped.length - wins}L`, 1046, 632, 500, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    const groupListCols = groupMatchColumns(1046, 748);
-    ctx.fillStyle = "#34d399";
-    ctx.font = "900 11px Inter, Arial, sans-serif";
-    ctx.fillText("GAME", 1046, 666);
-    ctx.fillText("RESULT", groupListCols.resultX, 666);
-    ctx.fillText("DUR.", groupListCols.durationX, 666);
-    ctx.fillText("SIDE", groupListCols.sideX, 666);
-    ctx.textAlign = "right";
-    ctx.fillText("PATCH", groupListCols.patchRightX, 666);
-    ctx.textAlign = "left";
-    drawLine(1046, 680, groupListCols.patchRightX, 680, "rgba(52,211,153,.24)", 1.5);
-    scoped.slice(0, 5).forEach((match, index) => drawGroupMatchRow(match, 1046, 694 + index * 42, 748, index));
-    if (scoped.length > 5) fitText(`+ ${scoped.length - 5} game${scoped.length - 5 > 1 ? "s" : ""} dans le groupe`, 1046, 930, 520, { font: "800 13px Inter, Arial, sans-serif", color: "#94a3b8", min: 10 });
-  }
-  ctx.fillStyle = "#67e8f9";
-  ctx.font = "800 17px Inter, Arial, sans-serif";
-  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 42);
-  ctx.textAlign = "right";
-  ctx.fillStyle = "#dff8ff";
-  ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
-  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 42);
-  ctx.textAlign = "left";
-  const link = document.createElement("a");
-  link.download = filename || "nxt5-stats-export.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
-
-async function exportTrendsPng({ title, subtitle, metrics = [], sections = [], champions = [], filename }) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1920;
-  canvas.height = 1080;
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width;
-  const H = canvas.height;
-  const short = (value, max = 38) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}…` : String(value || "");
-  const rounded = (x, y, w, h, r = 24) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); ctx.stroke(); };
-  const accentColor = (accent = "cyan") => accent === "red" ? "#fb7185" : accent === "green" ? "#34d399" : accent === "orange" ? "#fbbf24" : accent === "purple" ? "#e879f9" : "#67e8f9";
-  const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "red" ? `rgba(251,113,133,${alpha})` : accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "orange" ? `rgba(251,191,36,${alpha})` : accent === "purple" ? `rgba(232,121,249,${alpha})` : `rgba(103,232,249,${alpha})`;
-  const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 12, align = "left" } = {}) => {
-    const source = String(text || "");
-    let nextFont = font || "800 20px Inter, Arial, sans-serif";
-    const match = nextFont.match(/(\d+)px/);
-    let size = match ? Number(match[1]) : 20;
-    ctx.font = nextFont;
-    while (ctx.measureText(source).width > maxWidth && size > min) {
-      size -= 1;
-      nextFont = nextFont.replace(/\d+px/, `${size}px`);
-      ctx.font = nextFont;
-    }
-    ctx.fillStyle = color;
-    ctx.textAlign = align;
-    ctx.fillText(source, x, y);
-    ctx.textAlign = "left";
-  };
-  const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-  };
-  const drawPanel = (x, y, w, h, accent = "cyan", alpha = 0.72) => {
-    const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-    gradient.addColorStop(0, accentSoft(accent, 0.13));
-    gradient.addColorStop(0.42, `rgba(5,10,24,${alpha})`);
-    gradient.addColorStop(1, "rgba(5,10,24,.50)");
-    ctx.fillStyle = gradient;
-    ctx.strokeStyle = accentSoft(accent, 0.36);
-    ctx.lineWidth = 1.5;
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = accentColor(accent);
-    ctx.fillRect(x, y, 4, h);
-  };
-  const imageCache = new Map();
-  const loadCanvasImage = (url) => new Promise((resolve) => {
-    if (!url) return resolve(null);
-    if (imageCache.has(url)) return resolve(imageCache.get(url));
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      imageCache.set(url, img);
-      resolve(img);
-    };
-    img.onerror = () => {
-      imageCache.set(url, null);
-      resolve(null);
-    };
-    img.src = url;
-  });
-  const drawImageContain = (img, x, y, w, h) => {
-    if (!img) return false;
-    const ratio = Math.min(w / img.width, h / img.height);
-    const dw = img.width * ratio;
-    const dh = img.height * ratio;
-    ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-    return true;
-  };
-  const imageUrls = new Set(["/assets/nxt5-wordmark.png", "/assets/nxt5-mark.png"]);
-  champions.slice(0, 6).forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
-  await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
-
-  const pageGradient = ctx.createLinearGradient(0, 0, W, H);
-  pageGradient.addColorStop(0, "#030914");
-  pageGradient.addColorStop(0.54, "#020511");
-  pageGradient.addColorStop(1, "#10051a");
-  ctx.fillStyle = pageGradient;
-  ctx.fillRect(0, 0, W, H);
-  for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.026)", 1);
-  for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
-  const bg = ctx.createRadialGradient(250, 70, 80, 250, 70, 680);
-  bg.addColorStop(0, "rgba(34,211,238,.23)");
-  bg.addColorStop(0.48, "rgba(30,64,175,.08)");
-  bg.addColorStop(1, "rgba(2,5,17,0)");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-  const bg2 = ctx.createRadialGradient(W - 230, 120, 90, W - 230, 120, 720);
-  bg2.addColorStop(0, "rgba(217,70,239,.18)");
-  bg2.addColorStop(1, "rgba(2,5,17,0)");
-  ctx.fillStyle = bg2;
-  ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = "rgba(103,232,249,.24)";
-  ctx.lineWidth = 2;
-  ctx.strokeRect(48, 42, W - 96, H - 84);
-  drawLine(72, 188, W - 72, 188, "rgba(103,232,249,.55)", 2.5);
-  drawLine(72, 190, W - 72, 190, "rgba(244,114,182,.22)", 1);
-  drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 82, 82);
-  drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 236, 62);
-  fitText(short(title || "Tendances NXT5", 44), 464, 105, W - 860, { font: "900 42px Inter, Arial, sans-serif", color: "#ffffff", min: 24 });
-  fitText(short(subtitle || "Export stratégique", 92), 466, 142, W - 870, { font: "800 18px Inter, Arial, sans-serif", color: "#c8f7ff", min: 12 });
-  ctx.font = "900 16px Inter, Arial, sans-serif";
-  ctx.fillStyle = "rgba(217,70,239,.14)";
-  ctx.strokeStyle = "rgba(217,70,239,.34)";
-  ctx.lineWidth = 1.5;
-  rounded(W - 330, 86, 240, 32, 16);
-  ctx.fillStyle = "#fff";
-  ctx.fillText("EXPORT TENDANCES", W - 312, 108);
-
-  const metricItems = metrics.slice(0, 4);
-  drawPanel(90, 220, 1740, 118, "cyan", 0.54);
-  metricItems.forEach((metric, index) => {
-    const x = 90 + index * 435;
-    if (index) drawLine(x, 238, x, 318, "rgba(255,255,255,.10)", 1);
-    const metricTone = metric.tone === "red" ? "red" : metric.tone === "green" ? "green" : metric.tone === "orange" ? "orange" : metric.tone === "purple" ? "purple" : "cyan";
-    ctx.fillStyle = accentColor(metricTone);
-    ctx.font = "900 13px Inter, Arial, sans-serif";
-    ctx.fillText(String(metric.label || "").toUpperCase(), x + 24, 252);
-    fitText(short(metric.value, 18), x + 24, 292, 380, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
-    fitText(short(metric.hint, 34), x + 24, 315, 380, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-  });
-
-  sections.slice(0, 6).forEach((section, index) => {
-    const col = index % 2;
-    const row = Math.floor(index / 2);
-    const x = col ? 990 : 90;
-    const y = 360 + row * 172;
-    const sectionTone = section.tone || "cyan";
-    drawPanel(x, y, 840, 142, sectionTone, 0.56);
-    ctx.fillStyle = accentColor(sectionTone);
-    ctx.font = "900 16px Inter, Arial, sans-serif";
-    ctx.fillText(String(section.title || "").toUpperCase(), x + 26, y + 34);
-    (section.items || []).slice(0, 3).forEach((item, itemIndex) => {
-      const itemY = y + 62 + itemIndex * 28;
-      ctx.fillStyle = accentColor(sectionTone);
-      ctx.beginPath();
-      ctx.arc(x + 28, itemY - 5, 4, 0, Math.PI * 2);
-      ctx.fill();
-      fitText(short(item, 96), x + 44, itemY, 760, { font: itemIndex === 0 ? "900 17px Inter, Arial, sans-serif" : "800 15px Inter, Arial, sans-serif", color: itemIndex === 0 ? "#ffffff" : "#dbeafe", min: 11 });
-    });
-  });
-
-  drawPanel(90, 878, 1740, 92, "purple", 0.48);
-  ctx.fillStyle = accentColor("purple");
-  ctx.font = "900 13px Inter, Arial, sans-serif";
-  ctx.fillText("CHAMPIONS RÉCURRENTS", 118, 910);
-  champions.slice(0, 6).forEach((stat, index) => {
-    const x = 118 + index * 280;
-    const img = championPortraitSources(stat.champion, stat.champion).map((url) => imageCache.get(url)).find(Boolean);
-    if (img) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(x, 924, 40, 40, 10);
-      ctx.clip();
-      const ratio = Math.max(40 / img.width, 40 / img.height);
-      ctx.drawImage(img, x + (40 - img.width * ratio) / 2, 924 + (40 - img.height * ratio) / 2, img.width * ratio, img.height * ratio);
-      ctx.restore();
-    }
-    fitText(short(championDisplayName(stat.champion), 18), x + 50, 942, 200, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
-    fitText(`${stat.games}G · ${Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR`, x + 50, 962, 200, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 9 });
-  });
-
-  ctx.fillStyle = "#67e8f9";
-  ctx.font = "800 17px Inter, Arial, sans-serif";
-  ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 58);
-  ctx.textAlign = "right";
-  ctx.fillStyle = "#dff8ff";
-  ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
-  ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 58);
-  ctx.textAlign = "left";
-  const link = document.createElement("a");
-  link.download = filename || "nxt5-tendances.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
-
 function formatCountdown(seconds) {
   const safe = Math.max(0, Math.ceil(Number(seconds || 0)));
   const minutes = Math.floor(safe / 60);
@@ -2126,241 +1467,6 @@ function formatCountdown(seconds) {
 function InviteCodesPanel({ inviteCodes = [], nowTick }) {
   const activeCodes = inviteCodes.filter((code) => new Date(code.expires_at).getTime() > nowTick);
   return <div className="rounded-3xl border border-cyan-300/15 bg-cyan-400/8 p-4"><div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/70">Codes actifs</p><h4 className="mt-1 text-xl font-black text-white">Invitations temporaires</h4></div><Badge tone="cyan">Valables 1h</Badge></div><div className="mt-4 space-y-2">{activeCodes.length ? activeCodes.map((code) => { const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000)); return <div key={code.id} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 md:flex-row md:items-center md:justify-between"><div><p className="font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><p className="mt-1 text-xs font-semibold text-slate-300">Créé par {code.created_by_name || "staff"} · suppression automatique à expiration</p></div><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>; }) : <p className="rounded-2xl border border-dashed border-white/10 bg-white/[0.035] p-4 text-sm font-semibold text-slate-300">Aucun code actif. Génère un code pour inviter quelqu’un pendant 1h.</p>}</div></div>;
-}
-
-function GuidePage({ onOpenAssistant }) {
-  const [guideTab, setGuideTab] = useState("guide");
-  const [guideSection, setGuideSection] = useState("start");
-
-  const guideSections = [
-    {
-      id: "start",
-      label: "Premiers pas",
-      icon: Users,
-      title: "Mettre l’équipe en place",
-      intro: "Commence ici avant le premier import. Un roster bien lié évite les profils vides et les compteurs de games incohérents.",
-      assistantQuestion: "Comment bien préparer mon équipe avant le premier import ?",
-      actions: [
-        { label: "Voir l’équipe", path: "/equipes", icon: Users },
-        { label: "Gérer le roster", path: "/gestion-equipe", icon: Settings },
-      ],
-      steps: [
-        ["Créer ou rejoindre l’équipe", "Crée la structure ou utilise le code temporaire transmis par le capitaine."],
-        ["Classer les joueurs", "Place les titulaires dans Main Team, les remplaçants dans Subs et garde le staff dans sa section."],
-        ["Lier les comptes", "Associe chaque compte NXT5 au bon profil et vérifie le Riot ID affiché."],
-        ["Régler les accès", "Attribue le rôle adapté à chacun avant de partager une invitation."],
-      ],
-    },
-    {
-      id: "games",
-      label: "Games",
-      icon: Upload,
-      title: "Importer une game proprement",
-      intro: "L’import repose sur le JSON de NXT5 Importer et sur une assignation correcte des joueurs.",
-      assistantQuestion: "Aide-moi à importer et assigner correctement une game.",
-      actions: [{ label: "Ouvrir Games", path: "/integration", icon: Swords }],
-      steps: [
-        ["Générer le JSON", "Utilise la dernière version de NXT5 Importer sur le PC où la game apparaît dans le client League of Legends."],
-        ["Charger le fichier", "Dépose le JSON dans Games et attends la fin de l’analyse serveur."],
-        ["Nommer et classer", "Donne un nom reconnaissable et choisis le contexte utilisé par les filtres."],
-        ["Confirmer les assignations", "Vérifie le side, les cinq lanes, les profils alliés et les champions adverses."],
-        ["Corriger si nécessaire", "Depuis l’historique, modifie les lanes ou profils erronés ; les autres pages se recalculent ensuite."],
-      ],
-    },
-    {
-      id: "analysis",
-      label: "Analyse",
-      icon: BarChart3,
-      title: "Lire une game ou un bloc",
-      intro: "Pars des chiffres, puis replace-les dans le déroulé de la partie avant d’en tirer une conclusion.",
-      assistantQuestion: "Comment lire les statistiques d’une game sans sortir les chiffres de leur contexte ?",
-      actions: [
-        { label: "Voir les statistiques", path: "/statistiques", icon: BarChart3 },
-        { label: "Voir les tendances", path: "/tendances", icon: Activity },
-      ],
-      steps: [
-        ["Choisir le bon contexte", "Recherche une game précise ou sélectionne le groupe correspondant au bloc joué."],
-        ["Comparer les rôles", "Lis KDA, KP, farm, or et vision, puis les écarts à 10 et 20 minutes face au même poste."],
-        ["Replacer dans le temps", "Utilise les objectifs et la timeline pour comprendre quand l’avantage s’est créé ou perdu."],
-        ["Contrôler les répétitions", "Dans Tendances, filtre le même contexte et ouvre les games sources avant de conclure."],
-      ],
-    },
-    {
-      id: "prepare",
-      label: "Préparation",
-      icon: Crown,
-      title: "Préparer le prochain bloc",
-      intro: "Pool, drafts et planning servent à transformer la lecture du bloc précédent en préparation concrète.",
-      assistantQuestion: "Par quoi commencer pour préparer le prochain bloc de mon équipe ?",
-      actions: [
-        { label: "Champion Pool", path: "/champion-pool", icon: Crown },
-        { label: "Compositions", path: "/compositions-types", icon: Sparkles },
-        { label: "Planning", path: "/planning", icon: CalendarDays },
-      ],
-      steps: [
-        ["Mettre les pools à jour", "Classe les champions par tier et distingue confiance, situationnel, validation et développement."],
-        ["Préparer les drafts", "Construis Nos drafts et Leurs drafts à partir des picks réellement disponibles par rôle."],
-        ["Fixer une intention", "Note la condition de jeu et les réponses attendues, sans multiplier les scénarios."],
-        ["Confirmer les présences", "Vérifie les disponibilités et place les sessions Scrim, Match ou Review dans le planning."],
-      ],
-    },
-    {
-      id: "review",
-      label: "Review",
-      icon: FileText,
-      title: "Passer des données à la décision",
-      intro: "Une review utile reste courte et conserve toujours un lien vers les games qui justifient la décision.",
-      assistantQuestion: "Comment écrire une review courte et exploitable par le staff ?",
-      actions: [{ label: "Ouvrir Review", path: "/rapports", icon: FileText }],
-      steps: [
-        ["Partir d’une source", "Crée la review depuis une game ou un groupe afin de garder les données accessibles."],
-        ["Écrire trois décisions", "Indique ce qu’on garde, ce qu’on corrige et l’action attendue lors de la prochaine game."],
-        ["Rester vérifiable", "Évite les constats vagues et rattache chaque point important à une situation visible."],
-        ["Revenir après le bloc", "Rouvre la review pour vérifier si l’action a été appliquée et ajuste seulement ce qui doit l’être."],
-      ],
-    },
-    {
-      id: "help",
-      label: "Dépannage",
-      icon: AlertTriangle,
-      title: "Résoudre les problèmes courants",
-      intro: "Contrôle d’abord la source, l’assignation et les droits. Ce sont les trois causes les plus fréquentes.",
-      assistantQuestion: "Aide-moi à résoudre un problème sur NXT5.",
-      actions: [
-        { label: "Ouvrir les paramètres", path: "/parametres", icon: Settings },
-        { label: "Demander à l’assistant", assistant: true, icon: MessageCircleQuestion },
-      ],
-      steps: [
-        ["Import refusé", "Vérifie la version de l’importer, la région du Game ID et la présence de la partie dans l’historique du client."],
-        ["Timeline incomplète", "Réexporte la game. Si Riot ne fournit pas les événements, NXT5 conserve les statistiques finales sans inventer les timings."],
-        ["Profil ou compteur incorrect", "Contrôle le compte lié, le Riot ID, les doublons et l’assignation du participant dans les imports concernés."],
-        ["Action bloquée", "Vérifie ton rôle dans l’équipe ; certaines modifications restent réservées au staff autorisé."],
-        ["Chargement interrompu", "Recharge la page puis utilise Réessayer. Conserve le message affiché si le problème revient."],
-      ],
-    },
-  ];
-
-  const assistantExamples = [
-    "Comment corriger un mauvais profil dans une game ?",
-    "Où comparer les performances par rôle ?",
-    "Pourquoi mon import peut-il échouer ?",
-    "Comment créer une review depuis cette game ?",
-  ];
-
-  const assistantUses = [
-    [Search, "Trouver une fonction", "Indique ce que tu veux faire ; il te renvoie vers la page concernée."],
-    [BookOpen, "Comprendre un écran", "Il explique les contrôles et l’ordre des étapes de la page ouverte."],
-    [AlertTriangle, "Débloquer une action", "Il reprend les vérifications utiles quand un import, un profil ou un accès pose problème."],
-    [ArrowRight, "Ouvrir la destination", "Ses boutons restent limités aux pages internes de NXT5."],
-  ];
-
-  const currentSection = guideSections.find((section) => section.id === guideSection) || guideSections[0];
-  const currentSectionIndex = guideSections.findIndex((section) => section.id === currentSection.id);
-  const CurrentSectionIcon = currentSection.icon;
-
-  function runGuideAction(action) {
-    if (action.assistant) {
-      onOpenAssistant?.(currentSection.assistantQuestion);
-      return;
-    }
-    openAppPath(action.path);
-  }
-
-  return <div>
-    <PageHeader
-      eyebrow="Guide"
-      title={guideTab === "assistant" ? "Assistant NXT5" : "Guide d’utilisation"}
-      subtitle={guideTab === "assistant" ? "Pour retrouver une page, comprendre un écran ou débloquer une action." : "Choisis une tâche dans le sommaire et suis les étapes utiles, sans parcourir toute la documentation."}
-    >
-      {guideTab === "assistant"
-        ? <Button icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")}>Ouvrir l’assistant</Button>
-        : <Button icon={currentSection.actions[0].icon} onClick={() => runGuideAction(currentSection.actions[0])}>{currentSection.actions[0].label}</Button>}
-    </PageHeader>
-
-    <div role="tablist" aria-label="Sections du guide" className="mb-5 flex gap-6 border-b border-white/12 px-1">
-      <button id="guide-tab-main" type="button" role="tab" aria-selected={guideTab === "guide"} aria-controls="guide-panel-main" onClick={() => setGuideTab("guide")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "guide" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><BookOpen className="h-4 w-4" />Guide</button>
-      <button id="guide-tab-assistant" type="button" role="tab" aria-selected={guideTab === "assistant"} aria-controls="guide-panel-assistant" onClick={() => setGuideTab("assistant")} className={cx("flex min-h-12 items-center gap-2 border-b-2 px-1 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70", guideTab === "assistant" ? "border-cyan-200 text-white" : "border-transparent text-slate-400 hover:text-white")}><MessageCircleQuestion className="h-4 w-4" />Assistant</button>
-    </div>
-
-    {guideTab === "guide" ? <div id="guide-panel-main" role="tabpanel" aria-labelledby="guide-tab-main" className="overflow-hidden border-y border-white/12 bg-black/10">
-      <div className="grid xl:grid-cols-[16rem_minmax(0,1fr)]">
-        <nav aria-label="Sommaire du guide" className="border-b border-white/10 bg-[#050916]/70 xl:border-b-0 xl:border-r">
-          <p className="hidden px-5 pb-2 pt-6 text-[0.65rem] font-black uppercase tracking-[0.18em] text-slate-500 xl:block">Sommaire</p>
-          <div className="flex overflow-x-auto xl:block xl:pb-5">
-            {guideSections.map((section, index) => {
-              const Icon = section.icon;
-              const selected = currentSection.id === section.id;
-              return <button key={section.id} type="button" aria-current={selected ? "page" : undefined} onClick={() => setGuideSection(section.id)} className={cx("group flex min-h-14 shrink-0 items-center gap-3 border-b-2 px-4 text-left text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 xl:w-full xl:border-b-0 xl:border-l-2 xl:py-3", selected ? "border-cyan-200 bg-cyan-300/[0.065] text-white" : "border-transparent text-slate-400 hover:bg-white/[0.035] hover:text-white")}>
-                <span className={cx("text-[0.62rem] font-black tabular-nums", selected ? "text-cyan-100" : "text-slate-600")}>{String(index + 1).padStart(2, "0")}</span>
-                <Icon className={cx("h-4 w-4 shrink-0", selected ? "text-cyan-100" : "text-slate-500 group-hover:text-slate-300")} />
-                <span className="whitespace-nowrap">{section.label}</span>
-              </button>;
-            })}
-          </div>
-        </nav>
-
-        <section className="min-w-0 px-4 py-6 sm:px-6 md:py-8 xl:px-10 xl:py-10">
-          <div className="mx-auto max-w-5xl">
-            <div className="flex items-start gap-4">
-              <CurrentSectionIcon className="mt-1 h-6 w-6 shrink-0 text-cyan-100" />
-              <div>
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100/60">Étape {String(currentSectionIndex + 1).padStart(2, "0")}</p>
-                <h2 className="mt-2 text-2xl font-black text-white md:text-3xl">{currentSection.title}</h2>
-                <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{currentSection.intro}</p>
-              </div>
-            </div>
-
-            <ol className="mt-8 divide-y divide-white/10 border-y border-white/12">
-              {currentSection.steps.map(([title, text], index) => <li key={title} className="grid gap-3 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)] sm:py-5">
-                <span className="text-sm font-black tabular-nums text-cyan-100/70">{String(index + 1).padStart(2, "0")}</span>
-                <div><h3 className="font-black text-white">{title}</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>
-              </li>)}
-            </ol>
-
-            <div className="mt-6 flex flex-wrap gap-2">
-              {currentSection.actions.map((action) => <Button key={action.label} type="button" variant={action.assistant ? "ghost" : "primary"} icon={action.icon} onClick={() => runGuideAction(action)}>{action.label}</Button>)}
-              {!currentSection.actions.some((action) => action.assistant) && <Button type="button" variant="ghost" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.(currentSection.assistantQuestion)}>Poser une question</Button>}
-            </div>
-          </div>
-        </section>
-      </div>
-    </div> : <div id="guide-panel-assistant" role="tabpanel" aria-labelledby="guide-tab-assistant" className="overflow-hidden border-y border-white/12 bg-black/10">
-      <div className="grid lg:grid-cols-[1.1fr_.9fr]">
-        <section className="p-5 md:p-8 lg:border-r lg:border-white/10 xl:p-10">
-          <p className="text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100/60">Assistant NXT5</p>
-          <h2 className="mt-3 max-w-2xl text-2xl font-black text-white md:text-3xl">Une question, une réponse courte</h2>
-          <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Utilise-le quand tu ne trouves pas une fonction ou qu’une étape bloque. Il répond à partir du guide et peut ouvrir la page utile.</p>
-          <Button type="button" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.("")} className="mt-6">Démarrer une conversation</Button>
-        </section>
-
-        <section className="bg-[#050916]/70 p-5 md:p-8 xl:p-10">
-          <h3 className="text-sm font-black text-white">Questions courantes</h3>
-          <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
-            {assistantExamples.map((example) => <button key={example} type="button" onClick={() => onOpenAssistant?.(example)} className="group flex w-full items-center justify-between gap-3 py-3 text-left text-sm font-bold leading-5 text-slate-300 transition hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{example}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" /></button>)}
-          </div>
-        </section>
-      </div>
-
-      <div className="grid border-t border-white/10 lg:grid-cols-2">
-        <section className="p-5 md:p-8 lg:border-r lg:border-white/10 xl:p-10">
-          <h3 className="text-xl font-black text-white">Pour quoi l’utiliser</h3>
-          <div className="mt-4 divide-y divide-white/10">
-            {assistantUses.map(([Icon, title, text]) => <div key={title} className="grid gap-3 py-4 sm:grid-cols-[2rem_minmax(0,1fr)]"><Icon className="mt-0.5 h-4 w-4 text-cyan-100" /><div><h4 className="font-black text-white">{title}</h4><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">{text}</p></div></div>)}
-          </div>
-        </section>
-
-        <section className="p-5 md:p-8 xl:p-10">
-          <h3 className="text-xl font-black text-white">Ce qu’il ne fait pas</h3>
-          <div className="mt-4 divide-y divide-white/10 border-y border-white/10 text-sm font-semibold leading-6 text-slate-300">
-            <p className="py-4">Il ne lit pas automatiquement les statistiques, les reviews ou l’identité du roster.</p>
-            <p className="py-4">Il ne modifie, ne supprime et n’importe aucune donnée.</p>
-            <p className="py-4">La conversation reste temporaire dans le navigateur et peut être effacée avec la corbeille.</p>
-            <p className="py-4">Les décisions de jeu restent à vérifier dans les sources et avec le staff.</p>
-          </div>
-        </section>
-      </div>
-    </div>}
-  </div>;
 }
 
 function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer }) {
@@ -6470,7 +5576,7 @@ function MatchDataPanel({ match, teamName }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div><MatchCoachBrief match={match} /><MatchVersusOverview match={match} teamName={teamName} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button></div></div><MatchCoachBrief match={match} /><MatchVersusOverview match={match} teamName={teamName} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -6497,13 +5603,11 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
         <p className="mt-1 text-sm font-semibold text-slate-300">Agrégation des games sélectionnées : série, volume, écarts et signaux communs.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: `nxt5-game-${selectedMatch?.game_id || "export"}.png` })} disabled={!selectedMatch}>Exporter la game</Button>
-        <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: "Groupe NXT5", subtitle: `${matches.length} games · ${wins}W - ${matches.length - wins}L`, matches, filename: "nxt5-groupe-stats.png" })}>Exporter le groupe</Button>
         <Badge tone={wins >= matches.length / 2 ? "green" : "red"}>{wins}W / {matches.length - wins}L</Badge>
       </div>
     </div>
     <div className="nxt5-kpi-grid mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
-    <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button><div className="mt-3 flex justify-end"><Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: matchDisplayName(match), subtitle: match?.game_id || "Export game", matches: [match], filename: `nxt5-game-${match?.game_id || "export"}.png` })}>Exporter la game</Button></div></div>; })}</div>
+    <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>
   </Surface>;
 }
 
@@ -6514,7 +5618,6 @@ function TrendsPage({ data, selectedTeamId }) {
   const [trendSourceModal, setTrendSourceModal] = useState(null);
   const [expandedTrendPatternId, setExpandedTrendPatternId] = useState("");
   const [expandedTeamModelId, setExpandedTeamModelId] = useState("win-condition");
-  const [draftTrendView, setDraftTrendView] = useState("ally");
   const [trendPanel, setTrendPanel] = useState("coach");
   const [profileContractsOpen, setProfileContractsOpen] = useState(false);
   const matches = useMemo(() => selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches, [baseMatches, selectedCategoryId]);
@@ -7339,29 +6442,6 @@ function TrendsPage({ data, selectedTeamId }) {
       sourceGames,
     };
   })();
-  const aiObjectiveItems = [
-    `Équipe: ${teamAiObjective.title} — ${teamAiObjective.target}.`,
-    ...profileAiObjectives.map((item) => `${item.player.name}: ${item.title} — ${item.target}.`),
-    ...roleAiObjectives.map((item) => `${roleLabel(item.role)}: ${item.title} — ${item.target}.`)
-  ].slice(0, 10);
-  const exportTrendSections = [
-    { title: "Objectifs", items: aiObjectiveItems, tone: "purple" },
-    { title: "Modèle d'équipe", items: teamModelCards.map((card) => `${card.label}: ${card.title}. ${card.text}`), tone: "cyan" },
-    { title: "Lecture automatique", items: autoReads, tone: "cyan" },
-    { title: "Écarts moyens", items: forceItems, tone: "green" },
-    { title: "Pression et exposition", items: riskItems, tone: "red" },
-    { title: "Objectifs / game", items: timingItems, tone: "cyan" },
-    { title: "Identité draft", items: draftNeeds, tone: "purple" },
-    { title: "Lecture collective", items: recommendations, tone: "orange" },
-  ];
-  const exportTrends = () => exportTrendsPng({
-    title: "Cockpit stratégique",
-    subtitle: `${activeTrendCategory?.name || "Toutes les games"} · ${matches.length} game${matches.length > 1 ? "s" : ""} · ${wins}W - ${losses}L`,
-    metrics: topMetrics,
-    sections: exportTrendSections,
-    champions: championCounts,
-    filename: `nxt5-tendances-${String(activeTrendCategory?.name || "global").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`
-  });
   const sourceScopeMetrics = [
     { label: "Contexte", value: activeTrendCategory?.name || "Toutes" },
     { label: "Games", value: String(matches.length) },
@@ -7418,8 +6498,7 @@ function TrendsPage({ data, selectedTeamId }) {
     ["ai-objectives", "Objectifs", Sparkles, "Cibles mesurables et preuves."],
     ["coach", "Vue coach", Gauge, "Synthèse, patterns et actions."],
     ["comparison", "Comparer", Activity, "Avant, après et écarts par rôle."],
-    ["draft", "Draft", Crown, "Picks, archétypes et menaces."],
-    ["details", "Données", BarChart3, "Graphiques et listes secondaires."],
+    ["draft", "Draft", Crown, "Picks, archétypes et plans."],
   ];
   const trendHero = coachPriorityCards[0] || {
     label: "Lecture",
@@ -7446,7 +6525,6 @@ function TrendsPage({ data, selectedTeamId }) {
           <p className="mt-4 max-w-4xl text-base font-semibold leading-7 text-slate-200">{trendHero.text}</p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Button type="button" icon={FileText} onClick={() => openTrendSources({ title: trendHero.label, subtitle: trendHero.title, games: trendHero.sourceGames })}>Voir les games sources</Button>
-            <Button type="button" variant="ghost" icon={ImageIcon} onClick={exportTrends}>Exporter PNG</Button>
           </div>
         </div>
         <aside className="relative min-w-0 border-t border-white/10 bg-black/24 p-5 sm:p-6 xl:border-l xl:border-t-0">
@@ -7497,7 +6575,7 @@ function TrendsPage({ data, selectedTeamId }) {
       })}
     </div>}
     {trendPanel === "comparison" && <BlockComparisonPanel matches={baseMatches} categories={matchCategories} />}
-    {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} view={draftTrendView} onView={setDraftTrendView} sourceGamesForMatches={sourceGamesForMatches} />}
+    {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} sourceGamesForMatches={sourceGamesForMatches} />}
     {trendPanel === "ai-objectives" && <Surface className="p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
@@ -7661,50 +6739,6 @@ function TrendsPage({ data, selectedTeamId }) {
         </Surface>
       </div>
     </div>}
-    {trendPanel === "details" && <>
-    <Surface className="p-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Badge tone="purple">Graphiques clés</Badge>
-          <h3 className="mt-2 text-xl font-black text-white">Lecture visuelle</h3>
-          <p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Les écarts, les objectifs et les rôles qui portent le plus de ressources.</p>
-        </div>
-        <Badge tone={winrate >= 50 ? "green" : "red"}>{matches.length} games · {winrate}% WR</Badge>
-      </div>
-      <div className="mt-3 grid items-stretch gap-3 xl:grid-cols-3">
-        <div className="flex min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.025] p-3">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Écarts moyens</h4>
-            <Badge tone="slate">Par game</Badge>
-          </div>
-          <div className="mt-3 grid flex-1 content-start gap-2">
-            {diffChartItems.map((item) => <SignedBar key={item.label} item={item} />)}
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.025] p-3">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Objectifs</h4>
-            <Badge tone="cyan">/ game</Badge>
-          </div>
-          <div className="mt-3 grid flex-1 grid-cols-5 gap-2">
-            {objectiveChartItems.map((item) => <VerticalBar key={item.label} item={item} max={maxObjectiveChart} />)}
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-col rounded-2xl border border-white/10 bg-white/[0.025] p-3">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-black uppercase tracking-[0.16em] text-white">Ressources par rôle</h4>
-            <Badge tone="purple">Top {roleResourceChartItems.length || 0}</Badge>
-          </div>
-          <div className="mt-3 grid flex-1 content-start gap-2">
-            {roleResourceChartItems.length ? roleResourceChartItems.map((item) => <RoleResourceBar key={item.role} item={item} />) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Pas assez de volume pour tracer les rôles.</p>}
-          </div>
-        </div>
-      </div>
-    </Surface>
-    <div className="mt-3">
-      <Surface className="p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone="cyan">Lecture du bloc</Badge><h3 className="mt-2 text-lg font-black text-white">Résumé équipe</h3><p className="mt-1 text-xs font-semibold leading-5 text-slate-200">{selectedCategoryId ? `Filtre actif : ${matchCategories.find((category) => category.id === selectedCategoryId)?.name || "cette catégorie"}.` : "Vue globale."} Écarts moyennés par game.</p></div><Badge tone={winrate >= 50 ? "green" : "red"}>{wins}W - {losses}L</Badge></div><div className="mt-3 grid gap-2 md:grid-cols-3">{[["KP équipe", `${teamKpAverage}%`, "green"], ["Vision équipe", signedAvg(visionDiff), "cyan"], ["Morts équipe", `${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/G`, "red"]].map(([label, value, t]) => <div key={label} className="nxt5-flat-block min-w-0 rounded-xl border p-2.5"><p className="text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-300">{label}</p><p className={cx("mt-1.5 break-words text-xs font-black leading-5", t === "red" ? "text-rose-100" : t === "green" ? "text-emerald-100" : "text-cyan-100")}>{value || "Pas assez de volume"}</p></div>)}</div></Surface>
-    </div>
-    </>}
     <React.Fragment>
       {trendSourceModal && <div className="nxt5-fade-in nxt5-sidebar-aware-overlay fixed inset-0 z-[140] flex items-end justify-center bg-slate-950/90 p-3 backdrop-blur-xl sm:items-center">
         <button type="button" aria-label="Fermer les sources" onClick={() => setTrendSourceModal(null)} className="absolute inset-0 cursor-default" />
@@ -8048,10 +7082,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
         </section>
         {!selectedArchive && <Surface className="mt-5">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis exporte ou ouvre la review associée.</p></div>
+            <div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis crée ou ouvre la review associée.</p></div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedMatch ? matchDisplayName(selectedMatch) : "Game NXT5", subtitle: selectedMatch?.game_id || "Export game", matches: selectedMatch ? [selectedMatch] : [], filename: "nxt5-game-" + (selectedMatch?.game_id || "export") + ".png" })} disabled={!selectedMatch}>Exporter la game</Button>
-              <Button type="button" variant="ghost" icon={ImageIcon} onClick={() => exportStatsPng({ title: selectedArchive?.name || "Groupe NXT5", subtitle: scopedMatches.length + " games · " + wins + "W - " + (scopedMatches.length - wins) + "L", matches: scopedMatches, filename: "nxt5-groupe-" + String(selectedArchive?.name || "stats").toLowerCase().replace(/[^a-z0-9]+/g, "-") + ".png" })} disabled={!selectedArchive || !scopedMatches.length}>Exporter le groupe</Button>
               <Button type="button" icon={Plus} onClick={() => selectedMatch && openAppPath(`/rapports?match=${encodeURIComponent(selectedMatch.id)}&compose=1`)} disabled={!selectedMatch}>Créer review</Button>
               {selectedReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports?report=" + selectedReport.id + "&match=" + selectedMatch?.id)} disabled={!selectedMatch}>Review existante</Button>}
             </div>
@@ -9716,30 +8748,18 @@ function buildDraftTrendModel(matches) {
     const latestIdentity = draftIdentityForRows(rows);
     const comfort = picks.filter((pick) => pick.games >= 2 && pick.wr >= 50).slice(0, 5);
     const traps = picks.filter((pick) => pick.games >= 2 && pick.wr < 50).slice().sort((a, b) => a.wr - b.wr || b.games - a.games).slice(0, 5);
-    const threats = teamKey === "ENEMY" ? picks.filter((pick) => pick.games >= 1).slice().sort((a, b) => (b.wr * 2 + b.games * 5 + b.avgDamage / 1200) - (a.wr * 2 + a.games * 5 + a.avgDamage / 1200)).slice(0, 6) : [];
     const wins = matchDrafts.filter((entry) => entry.win).length;
-    return { rows, matchDrafts, picks, rolePicks, archetypes, duos, identity: latestIdentity, comfort, traps, threats, games: matchDrafts.length, wins, wr: Math.round((wins / Math.max(1, matchDrafts.length)) * 100) };
+    return { rows, matchDrafts, picks, rolePicks, archetypes, duos, identity: latestIdentity, comfort, traps, games: matchDrafts.length, wins, wr: Math.round((wins / Math.max(1, matchDrafts.length)) * 100) };
   };
   const ally = buildSide("ALLY");
-  const enemy = buildSide("ENEMY");
-  const allyBest = ally.archetypes[0];
-  const enemyBest = enemy.archetypes[0];
   const warnings = [
     ally.identity.gaps[0] && `Nos drafts : ${ally.identity.gaps[0].toLowerCase()}.`,
     ally.traps[0] && `${championDisplayName(ally.traps[0].champion)} revient souvent avec ${ally.traps[0].wr}% WR.`,
-    enemy.threats[0] && `${championDisplayName(enemy.threats[0].champion)} est le pick adverse le plus pénible (${enemy.threats[0].wr}% contre nous).`,
-    enemyBest && enemyBest.wr >= 55 && `Les drafts adverses ${tagLabel(enemyBest.tag).toLowerCase()} nous battent souvent (${enemyBest.wr}%).`,
   ].filter(Boolean).slice(0, 4);
-  const recommendations = [
-    allyBest && `Conserver le noyau ${tagLabel(allyBest.tag).toLowerCase()} quand il sort : ${allyBest.wr}% WR sur ${allyBest.games} game${allyBest.games > 1 ? "s" : ""}.`,
-    ally.comfort[0] && `Pick équipe à sécuriser : ${championDisplayName(ally.comfort[0].champion)} ${roleLabel(ally.comfort[0].role)} (${ally.comfort[0].wr}% WR).`,
-    enemy.threats[0] && `Préparer une réponse claire contre ${championDisplayName(enemy.threats[0].champion)} ${roleLabel(enemy.threats[0].role)}.`,
-    ally.identity.scores.find((score) => score.id === "frontline")?.count === 0 && "Ajouter une vraie première ligne ou assumer un plan poke/side sans front-to-back.",
-  ].filter(Boolean).slice(0, 4);
-  return { ally, enemy, warnings, recommendations };
+  return { ally, warnings };
 }
 
-function DraftMiniChampion({ item, variant = "ally", onSources }) {
+function DraftMiniChampion({ item, onSources }) {
   const toneName = item.wr >= 55 ? "green" : item.wr < 45 ? "red" : "orange";
   const className = cx("grid min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] p-2 text-left", onSources && "transition hover:border-cyan-200/26 hover:bg-cyan-300/[0.06]");
   const content = <>
@@ -9748,7 +8768,7 @@ function DraftMiniChampion({ item, variant = "ally", onSources }) {
       <span className="block truncate text-sm font-black text-white">{championDisplayName(item.champion)}</span>
       <span className="mt-0.5 block truncate text-[0.66rem] font-semibold text-slate-300">{roleLabel(item.role)} · {item.games}G · KDA {item.kda}</span>
     </span>
-    <span className={cx("rounded-lg border px-2 py-1 text-xs font-black", tone(toneName))}>{variant === "enemy" ? `${item.wr}% vs` : `${item.wr}%`}</span>
+    <span className={cx("rounded-lg border px-2 py-1 text-xs font-black", tone(toneName))}>{item.wr}%</span>
   </>;
   return onSources ? <button type="button" onClick={onSources} className={className}>{content}</button> : <div className={className}>{content}</div>;
 }
@@ -9762,7 +8782,7 @@ function draftScoreTone(scoreId) {
   return "from-violet-300 via-sky-300 to-cyan-300 text-violet-100 border-violet-200/20 bg-violet-400/[0.05]";
 }
 
-function DraftScoreBoard({ identity, games = 0, enemyMode = false }) {
+function DraftScoreBoard({ identity, games = 0 }) {
   const scores = [...(identity?.scores || [])].sort((a, b) => b.count - a.count);
   const maxCount = Math.max(1, ...scores.map((score) => score.count));
   const primary = scores[0] || null;
@@ -9770,9 +8790,7 @@ function DraftScoreBoard({ identity, games = 0, enemyMode = false }) {
   const weak = scores.filter((score) => score.count <= Math.max(1, Math.round(maxCount * 0.28))).slice(0, 2);
   const avgPerDraft = (score) => (Number(score?.count || 0) / Math.max(1, games)).toFixed(1);
   const read = primary
-    ? enemyMode
-      ? `Les adversaires nous imposent surtout ${primary.label.toLowerCase()}. Préparer une réponse claire avant la review draft.`
-      : `Notre draft penche vers ${primary.label.toLowerCase()}. Le plan doit assumer cette identité dès les deux premiers picks.`
+    ? `Notre draft penche vers ${primary.label.toLowerCase()}. Le plan doit assumer cette identité dès les deux premiers picks.`
     : "Pas assez de volume pour isoler une identité de draft.";
   const next = secondary
     ? `Second signal : ${secondary.label.toLowerCase()} (${avgPerDraft(secondary)} marqueur/draft).`
@@ -9812,61 +8830,50 @@ function DraftScoreBoard({ identity, games = 0, enemyMode = false }) {
   </div>;
 }
 
-function DraftTrendTable({ title, rows, empty, onSources, enemy = false, variant = "archetypes" }) {
+function DraftTrendTable({ title, rows, empty, onSources, variant = "archetypes" }) {
   const isDuos = variant === "duos";
   const shell = isDuos
     ? "border-fuchsia-200/16 bg-[linear-gradient(135deg,rgba(30,14,42,.42),rgba(4,8,18,.54))]"
-    : enemy
-      ? "border-rose-200/16 bg-[linear-gradient(135deg,rgba(45,13,23,.38),rgba(4,8,18,.54))]"
-      : "border-cyan-200/16 bg-[linear-gradient(135deg,rgba(8,32,42,.40),rgba(4,8,18,.55))]";
-  const rail = isDuos ? "via-fuchsia-100/70" : enemy ? "via-rose-100/70" : "via-cyan-100/70";
-  const label = isDuos ? "Combinaisons" : enemy ? "Risques draft" : "Structures";
-  const description = isDuos ? "Les paires qui reviennent le plus souvent dans les drafts du bloc." : enemy ? "Les archétypes adverses qui performent contre nous." : "Les formes de compo qui convertissent le mieux.";
+    : "border-cyan-200/16 bg-[linear-gradient(135deg,rgba(8,32,42,.40),rgba(4,8,18,.55))]";
+  const rail = isDuos ? "via-fuchsia-100/70" : "via-cyan-100/70";
+  const label = isDuos ? "Combinaisons" : "Structures";
+  const description = isDuos ? "Les paires qui reviennent le plus souvent dans les drafts du bloc." : "Les formes de compo qui convertissent le mieux.";
   return <section className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.045)]", shell)}>
     <div className={cx("pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent to-transparent", rail)} />
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <Badge tone={isDuos ? "purple" : enemy ? "red" : "cyan"}>{label}</Badge>
+        <Badge tone={isDuos ? "purple" : "cyan"}>{label}</Badge>
         <h4 className="mt-2 truncate text-sm font-black uppercase tracking-[0.14em] text-white">{title}</h4>
         <p className="mt-1 text-[0.68rem] font-semibold leading-4 text-slate-400">{description}</p>
       </div>
-      <Badge tone={isDuos ? "purple" : enemy ? "red" : "cyan"}>{rows.length}</Badge>
+      <Badge tone={isDuos ? "purple" : "cyan"}>{rows.length}</Badge>
     </div>
     <div className="mt-2 grid gap-2">{rows.length ? rows.slice(0, 5).map((row, index) => {
-      const className = cx("grid min-w-0 gap-2 rounded-xl border bg-black/18 p-2 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center", isDuos ? "border-fuchsia-100/12" : enemy ? "border-rose-100/12" : "border-cyan-100/12", onSources && "transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]");
+      const className = cx("grid min-w-0 gap-2 rounded-xl border bg-black/18 p-2 text-left sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center", isDuos ? "border-fuchsia-100/12" : "border-cyan-100/12", onSources && "transition hover:border-cyan-200/24 hover:bg-cyan-300/[0.055]");
       const content = <>
         <span className="min-w-0">
           <span className="block truncate text-sm font-black text-white">{row.tag ? tagLabel(row.tag) : row.champions}</span>
           <span className="mt-0.5 block truncate text-[0.66rem] font-semibold text-slate-300">{row.pair || `${row.games} game${row.games > 1 ? "s" : ""}`} · {row.wins}W - {row.games - row.wins}L</span>
         </span>
-        <span className={cx("w-fit rounded-lg border px-2 py-1 text-xs font-black sm:justify-self-end", tone(row.wr >= 55 ? enemy ? "red" : "green" : row.wr < 45 ? enemy ? "green" : "red" : "orange"))}>{row.wr}%</span>
+        <span className={cx("w-fit rounded-lg border px-2 py-1 text-xs font-black sm:justify-self-end", tone(row.wr >= 55 ? "green" : row.wr < 45 ? "red" : "orange"))}>{row.wr}%</span>
       </>;
       return onSources ? <button key={`${title}-${row.tag || row.champions || row.champion}-${index}`} type="button" onClick={() => onSources(row)} className={className}>{content}</button> : <div key={`${title}-${row.tag || row.champions || row.champion}-${index}`} className={className}>{content}</div>;
     }) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">{empty}</p>}</div>
   </section>;
 }
 
-function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForMatches }) {
-  const active = view === "enemy" ? model.enemy : model.ally;
-  const enemyMode = view === "enemy";
+function DraftTrendsModule({ model, onOpenSources, sourceGamesForMatches }) {
+  const active = model.ally;
   const sourceFor = (entry) => sourceGamesForMatches?.(entry.matches || []) || [];
   const openSources = (entry, title, subtitle) => onOpenSources?.({ title, subtitle, metrics: [{ label: "Games", value: String(entry.games || entry.matches?.length || active.games) }, { label: "WR", value: `${entry.wr ?? active.wr}%` }], games: sourceFor(entry) });
-  const mainPick = enemyMode ? active.threats[0] : active.comfort[0] || active.picks[0];
-  const tournamentCards = [
-    { label: "Notre game 1", title: model.ally.comfort[0] ? `${championDisplayName(model.ally.comfort[0].champion)} ${roleLabel(model.ally.comfort[0].role)}` : "Pick confort à définir", text: model.ally.comfort[0] ? `${model.ally.comfort[0].games} games · ${model.ally.comfort[0].wr}% WR. À sécuriser si la draft le permet.` : "Importer plus de games ou remplir le champion pool.", toneName: "cyan", icon: Crown },
-    { label: "Ban prioritaire", title: model.enemy.threats[0] ? championDisplayName(model.enemy.threats[0].champion) : "Menace inconnue", text: model.enemy.threats[0] ? `${roleLabel(model.enemy.threats[0].role)} adverse · ${model.enemy.threats[0].wr}% contre nous.` : "Pas assez de picks adverses reconnus.", toneName: "red", icon: Shield },
-    { label: "Adaptation G2/G3", title: model.enemy.archetypes[0] ? tagLabel(model.enemy.archetypes[0].tag) : "Lire leur pattern", text: model.enemy.archetypes[0] ? `S'ils reviennent sur ${tagLabel(model.enemy.archetypes[0].tag).toLowerCase()}, préparer une réponse claire.` : "Noter leur condition de victoire après la game 1.", toneName: "purple", icon: RefreshCw },
-  ];
+  const mainPick = active.comfort[0] || active.picks[0];
   return <Surface glow className="mt-3 overflow-hidden p-0">
     <div className="border-b border-white/10 p-3">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Tendances draft</Badge><Badge tone={enemyMode ? "red" : "cyan"}>{enemyMode ? "Leur draft" : "Nos drafts"}</Badge><Badge tone="slate">{active.games} games</Badge></div>
+          <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Tendances draft</Badge><Badge tone="cyan">Nos drafts</Badge><Badge tone="slate">{active.games} games</Badge></div>
           <h3 className="mt-2 break-words text-xl font-black text-white">Lecture draft du bloc</h3>
-          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">{enemyMode ? "Ce que les équipes posent contre nous, ce qui nous bat, et les réponses à préparer." : "Nos patterns, nos picks fiables, nos pièges, et la structure réelle de nos compos."}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/22 p-1">
-          {[["ally", "Nos drafts", Crown], ["enemy", "Leur draft", Shield]].map(([id, label, Icon]) => <button key={id} type="button" onClick={() => onView(id)} className={cx("inline-flex min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", view === id ? "bg-cyan-300/16 text-cyan-50 shadow-[inset_0_0_18px_rgba(34,211,238,.08)]" : "text-slate-300 hover:bg-white/[0.05]")}><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{label}</span></button>)}
+          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Nos patterns, nos picks fiables, nos pièges, et la structure réelle de nos compos.</p>
         </div>
       </div>
     </div>
@@ -9878,9 +8885,9 @@ function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForM
             <div className="absolute inset-0 bg-gradient-to-t from-[#050711] via-[#050711]/78 to-[#050711]/22" />
             <div className="relative z-10 flex h-full min-h-[14rem] flex-col justify-between">
               <div>
-                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">{enemyMode ? "Menace draft adverse" : "Pick équipe à sécuriser"}</p>
+                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">Pick équipe à sécuriser</p>
                 <h4 className="mt-3 break-words text-3xl font-black leading-none text-white">{mainPick ? championDisplayName(mainPick.champion) : "À confirmer"}</h4>
-                <p className="mt-2 text-sm font-bold text-slate-300">{mainPick ? `${roleLabel(mainPick.role)} · ${mainPick.games} games · ${mainPick.wr}% ${enemyMode ? "contre nous" : "WR"}` : "Importe plus de games pour stabiliser la lecture."}</p>
+                <p className="mt-2 text-sm font-bold text-slate-300">{mainPick ? `${roleLabel(mainPick.role)} · ${mainPick.games} games · ${mainPick.wr}% WR` : "Importe plus de games pour stabiliser la lecture."}</p>
               </div>
               <div className="mt-5 grid grid-cols-3 gap-2">
                 <div className="rounded-xl border border-white/10 bg-black/34 p-2"><p className="text-[0.56rem] font-black uppercase tracking-[0.1em] text-slate-400">WR</p><p className="mt-1 text-lg font-black text-white">{active.wr}%</p></div>
@@ -9889,21 +8896,21 @@ function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForM
               </div>
             </div>
           </div>
-          <DraftScoreBoard identity={active.identity} games={active.games} enemyMode={enemyMode} />
+          <DraftScoreBoard identity={active.identity} games={active.games} />
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-          {(enemyMode ? active.threats : active.comfort).slice(0, 6).map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} variant={enemyMode ? "enemy" : "ally"} onSources={() => openSources(item, enemyMode ? `Menace adverse : ${championDisplayName(item.champion)}` : `Pick NXT5 : ${championDisplayName(item.champion)}`, `${item.games} games · ${item.wr}% ${enemyMode ? "contre nous" : "WR"} · ${roleLabel(item.role)}`)} />)}
+          {active.comfort.slice(0, 6).map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} onSources={() => openSources(item, `Pick NXT5 : ${championDisplayName(item.champion)}`, `${item.games} games · ${item.wr}% WR · ${roleLabel(item.role)}`)} />)}
         </div>
       </div>
       <div className="grid min-w-0 items-start gap-3">
-        <DraftTrendTable title={enemyMode ? "Archétypes qui nous battent" : "Archétypes rentables"} rows={active.archetypes} empty="Pas encore assez de drafts complètes." enemy={enemyMode} variant="archetypes" onSources={(row) => openSources(row, enemyMode ? `Archétype adverse : ${tagLabel(row.tag)}` : `Archétype NXT5 : ${tagLabel(row.tag)}`, `${row.games} games · ${row.wr}%`)} />
-        <DraftTrendTable title={enemyMode ? "Duos ennemis fréquents" : "Duos NXT5 fréquents"} rows={active.duos} empty="Les duos apparaîtront avec plus de games." enemy={enemyMode} variant="duos" onSources={(row) => openSources(row, row.champions, `${row.pair} · ${row.games} games · ${row.wr}%`)} />
+        <DraftTrendTable title="Archétypes rentables" rows={active.archetypes} empty="Pas encore assez de drafts complètes." variant="archetypes" onSources={(row) => openSources(row, `Archétype NXT5 : ${tagLabel(row.tag)}`, `${row.games} games · ${row.wr}%`)} />
+        <DraftTrendTable title="Duos NXT5 fréquents" rows={active.duos} empty="Les duos apparaîtront avec plus de games." variant="duos" onSources={(row) => openSources(row, row.champions, `${row.pair} · ${row.games} games · ${row.wr}%`)} />
       </div>
     </div>
     <div className="grid gap-3 border-t border-white/10 p-3 xl:grid-cols-2">
       <div className="min-w-0">
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">{enemyMode ? "À préparer" : "Alertes draft"}</p>
-        <div className="mt-2 grid gap-2">{(enemyMode ? model.recommendations : model.warnings).slice(0, 4).map((item) => <p key={item} className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm font-semibold leading-6 text-slate-200">{item}</p>)}</div>
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Alertes draft</p>
+        <div className="mt-2 grid gap-2">{model.warnings.slice(0, 4).map((item) => <p key={item} className="rounded-xl border border-white/10 bg-black/20 p-2.5 text-sm font-semibold leading-6 text-slate-200">{item}</p>)}</div>
       </div>
       <div className="min-w-0">
         <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Picks équipe par rôle</p>
@@ -9913,25 +8920,6 @@ function DraftTrendsModule({ model, view, onView, onOpenSources, sourceGamesForM
             <p className="mt-1 truncate text-xs font-semibold text-slate-300">{entry.picks.map((pick) => championDisplayName(pick.champion)).join(" · ")}</p>
           </div>)}
         </div>
-      </div>
-    </div>
-    <div className="border-t border-white/10 p-3">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <Badge tone="green">Mode tournoi</Badge>
-          <h3 className="mt-2 text-xl font-black text-white">Préparation BO</h3>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Nos drafts, leur draft, puis le plan d’adaptation. Pensé pour préparer game 1 puis ajuster rapidement.</p>
-        </div>
-        <div className="flex flex-wrap gap-2"><Badge tone="cyan">{model.ally.games} drafts NXT5</Badge><Badge tone="red">{model.enemy.games} drafts adverses</Badge></div>
-      </div>
-      <div className="mt-3 grid gap-3 lg:grid-cols-3">
-        {tournamentCards.map((card) => {
-          const Icon = card.icon;
-          return <article key={card.label} className="rounded-2xl border border-white/10 bg-white/[0.028] p-4">
-            <div className="flex items-start justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{card.label}</p><h4 className="mt-2 text-lg font-black text-white">{card.title}</h4></div><span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-xl", tone(card.toneName))}><Icon className="h-4 w-4" /></span></div>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{card.text}</p>
-          </article>;
-        })}
       </div>
     </div>
   </Surface>;
@@ -10940,7 +9928,6 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "compositions") return <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
-    if (active === "guide") return <GuidePage onOpenAssistant={openAssistant} />;
     if (active === "admin" && isPlatformAdmin) return <AdminDashboard />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin]);
