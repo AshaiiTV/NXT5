@@ -40,11 +40,17 @@ export default async function handler(_request: Request): Promise<Response> {
     try {
       await sendInactivityReminderEmail({ to: candidate.email, name: candidate.name });
       await sql`
+        with delivery as (
+          insert into inactivity_reminder_deliveries (user_id, recipient_email, inactive_since_at)
+          values (${candidate.id}, ${String(candidate.email).trim().toLowerCase()}, ${candidate.last_active_at})
+          returning user_id, sent_at
+        )
         update users
-        set inactivity_email_sent_at = now(),
+        set inactivity_email_sent_at = delivery.sent_at,
             inactivity_email_claimed_at = null,
             inactivity_notice_pending = true
-        where id = ${candidate.id}
+        from delivery
+        where users.id = delivery.user_id
       `;
       sent += 1;
     } catch (error: any) {

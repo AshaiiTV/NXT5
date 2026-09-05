@@ -11,11 +11,12 @@ function count(value: unknown): number {
 }
 
 /**
- * Read-only, platform-wide statistics. Keep this payload deliberately free of
- * email addresses, session/IP data, invite codes and imported match raw data.
+ * Read-only, platform-wide statistics. Sensitive recipient addresses are
+ * confined to the inactivityReminders audit block, behind platform-admin auth.
+ * Session/IP data, invite codes and imported match raw data are never returned.
  */
 async function loadDashboard() {
-  const [summaryRows, recentTeamRows, recentUserRows, teamSizeRows, regionRows, dailyRows, featureRows, matchHealthRows, accountFunnelRows, rosterRows, weeklyRows, teamDirectoryRows] = await Promise.all([
+  const [summaryRows, recentTeamRows, recentUserRows, teamSizeRows, regionRows, dailyRows, featureRows, matchHealthRows, accountFunnelRows, rosterRows, weeklyRows, teamDirectoryRows, inactivityDeliveryRows, inactivityReminderSummaryRows] = await Promise.all([
     sql`
       select
         (select count(*) from teams) as teams,
@@ -177,6 +178,39 @@ async function loadDashboard() {
       from teams
       order by coalesce((select max(matches.created_at) from matches where matches.team_id = teams.id), teams.created_at) desc
       limit 500
+    `,
+    sql`
+      select
+        inactivity_reminder_deliveries.id,
+        inactivity_reminder_deliveries.user_id,
+        inactivity_reminder_deliveries.recipient_email,
+        inactivity_reminder_deliveries.inactive_since_at,
+        inactivity_reminder_deliveries.sent_at,
+        users.account_name,
+        users.name,
+        coalesce(users.inactivity_notice_pending, false) as inactivity_notice_pending,
+        users.last_active_at > inactivity_reminder_deliveries.sent_at as returned_after_reminder
+      from inactivity_reminder_deliveries
+      join users on users.id = inactivity_reminder_deliveries.user_id
+      order by inactivity_reminder_deliveries.sent_at desc
+      limit 100
+    `,
+    sql`
+      select
+        count(*) as deliveries,
+        count(distinct user_id) as recipients,
+        count(*) filter (where sent_at >= now() - interval '30 days') as deliveries_30d,
+        (
+          select count(*)
+          from users
+          where last_active_at <= now() - interval '90 days'
+            and coalesce(email_verified, false) = true
+            and coalesce(notif_inactivity, true) = true
+            and email is not null
+            and email <> ''
+            and (inactivity_email_sent_at is null or inactivity_email_sent_at < last_active_at)
+        ) as awaiting_delivery
+      from inactivity_reminder_deliveries
     `
   ]);
 
@@ -186,6 +220,7 @@ async function loadDashboard() {
   const matchHealth: any = matchHealthRows[0] || {};
   const accountFunnel: any = accountFunnelRows[0] || {};
   const roster: any = rosterRows[0] || {};
+  const inactivityReminderSummary: any = inactivityReminderSummaryRows[0] || {};
 
   return {
     generatedAt: new Date().toISOString(),
@@ -235,6 +270,23 @@ async function loadDashboard() {
       main: count(roster.main), substitutes: count(roster.substitutes), inactive: count(roster.inactive),
       staff: count(roster.staff), competitors: count(roster.competitors), linked: count(roster.linked),
       riotConfigured: count(roster.riot_configured)
+    },
+    inactivityReminders: {
+      deliveries: count(inactivityReminderSummary.deliveries),
+      recipients: count(inactivityReminderSummary.recipients),
+      deliveries30d: count(inactivityReminderSummary.deliveries_30d),
+      awaitingDelivery: count(inactivityReminderSummary.awaiting_delivery),
+      recent: inactivityDeliveryRows.map((row: any) => ({
+        id: row.id,
+        userId: row.user_id,
+        accountName: row.account_name,
+        name: row.name,
+        recipientEmail: row.recipient_email,
+        inactiveSinceAt: row.inactive_since_at,
+        sentAt: row.sent_at,
+        returnedAfterReminder: Boolean(row.returned_after_reminder),
+        noticePending: Boolean(row.inactivity_notice_pending)
+      }))
     },
     teamsByRegion: regionRows.map((row: any) => ({ region: row.region || 'Non renseignée', count: count(row.team_count) })),
     daily: dailyRows.map((row: any) => ({ date: row.date, users: count(row.users), teams: count(row.teams), matches: count(row.matches) })),

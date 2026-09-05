@@ -211,6 +211,10 @@ export async function purgeExpiredAuthData(): Promise<void> {
     delete from audit_logs
     where created_at < now() - interval '12 months'
   `);
+  await cleanup('inactivity-reminder-deliveries', () => sql`
+    delete from inactivity_reminder_deliveries
+    where sent_at < now() - interval '12 months'
+  `);
 }
 
 export function safeUser(user: Partial<DbUser> | null | undefined) {

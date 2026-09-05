@@ -38,6 +38,28 @@ export async function ensureUserEngagementSchema(): Promise<void> {
       where email_verified is true and notif_inactivity is true
     `;
   });
+  await ensureMigration('inactivity-deliveries-2026-09-05-v1', async () => {
+    await sql`
+      create table if not exists inactivity_reminder_deliveries (
+        id uuid primary key default gen_random_uuid(),
+        user_id uuid not null references users(id) on delete cascade,
+        recipient_email text not null,
+        inactive_since_at timestamptz not null,
+        sent_at timestamptz not null default now(),
+        unique(user_id, sent_at)
+      )
+    `;
+    await sql`create index if not exists idx_inactivity_deliveries_sent_at on inactivity_reminder_deliveries(sent_at desc)`;
+    await sql`
+      insert into inactivity_reminder_deliveries (user_id, recipient_email, inactive_since_at, sent_at)
+      select id, lower(email), last_active_at, inactivity_email_sent_at
+      from users
+      where inactivity_email_sent_at is not null
+        and email is not null
+        and email <> ''
+      on conflict (user_id, sent_at) do nothing
+    `;
+  });
 }
 
 export async function recordUserActivity<T extends DbUser>(user: T): Promise<T> {
