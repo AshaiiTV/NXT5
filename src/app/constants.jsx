@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  BookOpen,
   CalendarDays,
   FileText,
   Settings,
@@ -25,6 +26,7 @@ export const NAV = [
   { id: "draft", label: "Draft", hint: "Pools et compositions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
   { id: "reports", label: "Review", hint: "Décisions staff", icon: FileText, shortcut: "R", path: "/rapports" },
   { id: "profile", label: "Profil", hint: "Ton espace joueur", icon: Activity, shortcut: "P", path: "/mon-profil" },
+  { id: "guide", label: "Guide", hint: "Mode d’emploi", icon: BookOpen, shortcut: "A", path: "/guide", hidden: true },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },

@@ -40,6 +40,7 @@ describe('assistant knowledge', () => {
     expect(safeAssistantRoute('/secret')).toBe('/equipes');
     expect(safeAssistantRoute('https://example.com')).toBe('/equipes');
     expect(safeAssistantRoute('/mon-profil/coaching')).toBe('/mon-profil/coaching');
+    expect(safeAssistantRoute('/guide')).toBe('/guide');
   });
 
   it('bounds and deduplicates follow-up suggestions', () => {

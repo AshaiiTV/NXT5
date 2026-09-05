@@ -66,9 +66,10 @@ function assistantSources(payload) {
   if (!Array.isArray(sources)) return [];
   return sources.flatMap((source) => {
     const title = String(source?.title || "").trim().slice(0, 80);
+    const id = String(source?.id || "").trim().replace(/[^a-z0-9-]/gi, "").slice(0, 64);
     const path = String(source?.path || "").trim();
     if (!title || !isSafeInternalPath(path)) return [];
-    return [{ title, path }];
+    return [{ id, title, path }];
   }).slice(0, 3);
 }
 
@@ -204,6 +205,12 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
     navigate?.(path);
   }
 
+  function openGuide(sectionId = "") {
+    const query = sectionId ? `?section=${encodeURIComponent(sectionId)}` : "";
+    navigate?.(`/guide${query}`);
+    onClose?.();
+  }
+
   function submit(event) {
     event?.preventDefault?.();
     requestAnswer(draft);
@@ -224,6 +231,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
+            <button type="button" onClick={() => openGuide()} aria-label="Ouvrir le guide NXT5" title="Guide NXT5" className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-400/[0.07] px-3 text-xs font-black text-cyan-50 transition hover:border-cyan-200/40 hover:bg-cyan-300/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><BookOpen className="h-4 w-4" /><span className="hidden min-[390px]:inline">Guide</span></button>
             <button type="button" onClick={clearHistory} disabled={!messages.length && !error && !loading} aria-label="Effacer la conversation" title="Effacer la conversation" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button>
             <button type="button" onClick={onClose} aria-label="Fermer l'assistant" title="Fermer" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><X className="h-5 w-5" /></button>
           </div>
@@ -255,7 +263,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
                 </div>}
                 {message.role === "assistant" && (!!message.sources?.length || message.fallback) && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-4 text-[0.65rem] font-bold text-slate-500">
                   {message.fallback && <span className="inline-flex items-center gap-1.5 text-amber-100/70"><WifiOff className="h-3 w-3" />Guide local</span>}
-                  {!!message.sources?.length && <span className="inline-flex min-w-0 items-center gap-1.5"><BookOpen className="h-3 w-3 shrink-0" /><span className="truncate">{message.sources.map((source) => source.title).join(" · ")}</span></span>}
+                  {!!message.sources?.length && <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5"><BookOpen className="h-3 w-3 shrink-0" />{message.sources.map((source, sourceIndex) => <React.Fragment key={`${message.id}-${source.id || source.title}`}>{sourceIndex > 0 && <span aria-hidden="true">·</span>}<button type="button" onClick={() => openGuide(source.id)} className="underline decoration-slate-600 underline-offset-2 transition hover:text-cyan-100 hover:decoration-cyan-200">{source.title}</button></React.Fragment>)}</span>}
                 </div>}
                 {message.role === "assistant" && index === messages.length - 1 && !!message.suggestions?.length && <div className="mt-4 border-t border-white/[0.08] pl-4 pt-2">
                   {message.suggestions.map((suggestion) => <button key={`${message.id}-${suggestion}`} type="button" onClick={() => requestAnswer(suggestion)} className="group flex w-full items-center justify-between gap-3 py-2 text-left text-xs font-bold leading-5 text-slate-400 transition hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{suggestion}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 transition group-hover:translate-x-0.5" /></button>)}

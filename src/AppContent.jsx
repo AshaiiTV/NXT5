@@ -90,6 +90,7 @@ import { addDays, availabilityEvents, availabilitySlots, compositionSlots, dateF
 import { ROSTER_STATUS_OPTIONS, multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta } from "./utils/roster.js";
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
+const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
 
 function lazyNamed(importer, name) {
   return lazy(() => importer().then((module) => ({ default: module[name] })));
@@ -10155,6 +10156,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
     if (active === "draft") return <DraftWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
+    if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
     if (active === "admin" && isPlatformAdmin) return <AdminDashboard />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
@@ -10171,7 +10173,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
   </>;
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
-  if (!data.teams.length && !(active === "admin" && isPlatformAdmin)) return <>
+  if (!data.teams.length && active !== "guide" && !(active === "admin" && isPlatformAdmin)) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">

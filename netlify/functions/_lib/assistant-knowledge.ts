@@ -43,6 +43,7 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/mon-profil/pool',
   '/mon-profil/historique',
   '/mon-profil/coaching',
+  '/guide',
   '/parametres'
 ] as const;
 
