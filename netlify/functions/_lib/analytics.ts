@@ -1,6 +1,7 @@
 import { sql } from './db';
 import { ensureMatchCategoriesSchema } from './match-categories';
 import type { RiotMatch } from './types';
+import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
 
 const ROLE_ORDER = { TOP: 1, JUNGLE: 2, JGL: 2, MIDDLE: 3, MID: 3, BOTTOM: 4, ADC: 4, UTILITY: 5, SUP: 5, SUPPORT: 5 };
 
@@ -278,7 +279,7 @@ function buildMatchSummary(match, allyTeamId, participants) {
   return {
     result: allyTeam?.win ? 'Victoire' : 'Défaite',
     side: allyTeamId === 100 ? 'Blue Side' : 'Red Side',
-    duration_seconds: match.info.gameDuration,
+    duration_seconds: Number(match.info.gameDuration),
     duration,
     patch,
     objective_score: `Dragons ${dragons} · Barons ${barons} · Tours ${towers}`,
@@ -381,7 +382,7 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
   }
 }
 
-async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'import' }) {
+async function ensureMatchArchiveSchema() {
   await sql`
     create table if not exists match_raw_archives (
       id uuid primary key default gen_random_uuid(),
@@ -394,19 +395,10 @@ async function archiveRawMatch({ teamId, matchId, gameId, match, source = 'impor
       unique(team_id, game_id)
     )
   `;
-  await sql`
-    delete from match_raw_archives
-    where team_id = ${teamId}
-      and game_id = ${gameId}
-  `;
-  await sql`
-    insert into match_raw_archives (team_id, match_id, game_id, source, payload)
-    values (${teamId}, ${matchId}, ${gameId}, ${source}, ${JSON.stringify(match)}::jsonb)
-  `;
 }
 
 async function ensureMatchImporterColumn() {
-  await ensureMatchCategoriesSchema();
+  await ensureMatchCategoriesSchema({ migrateLegacy: false });
   await sql`alter table matches add column if not exists region text not null default 'EUROPE'`;
   await sql`alter table matches add column if not exists opponent text`;
   await sql`alter table matches add column if not exists result text`;
@@ -453,8 +445,9 @@ async function ensureMatchImporterColumn() {
   await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '' }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId?: string | null; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string }) {
-  await ensureMatchImporterColumn();
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId?: string | null; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[] }) {
+  assertImportMatch(match);
+  const validCategoryIds = normalizeImportCategoryIds(categoryIds);
   match.nxt5 = {
     ...(match.nxt5 || {}),
     timelineSummary: buildNxt5TimelineSummary(match),
@@ -473,6 +466,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   if (missingProfiles.length) {
     throw Object.assign(new Error(`Liaison profil requise : associe ${missingProfiles.join(', ')} à un profil de l’équipe avant d’importer.`), { status: 400 });
   }
+  assertImportPlayerAssignments(normalizedPlayerAssignments, roster);
   const missingEnemyInputs = requiredRoles.filter((role) => !normalizedEnemyLaneAssignments[role]);
   if (missingEnemyInputs.length) {
     throw Object.assign(new Error(`Assignation adverse requise : indique ${missingEnemyInputs.join(', ')} avant d’importer. Cela évite les adversaires non reconnus dans les reviews et statistiques.`), { status: 400 });
@@ -489,60 +483,70 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
     throw Object.assign(new Error(`Assignation adverse incomplète : ${missingEnemyRoles.join(', ')} non reconnu(s). Choisis les champions adverses visibles dans la game.`), { status: 400 });
   }
   const summary = buildMatchSummary(match, allyTeamId, participants);
+  // Validate references before schema helpers or any match write. Repeat under
+  // transaction locks so a deletion between this read and commit also fails safely.
+  if (validCategoryIds.length) {
+    const categories = await sql`select id from match_categories where team_id = ${team.id} and id = any(${validCategoryIds}::uuid[])`;
+    if (categories.length !== validCategoryIds.length) {
+      throw Object.assign(new Error('Une catégorie sélectionnée est introuvable pour cette team.'), { status: 404 });
+    }
+  }
+  const cleanLabel = String(label || '').trim().slice(0, 120);
+  const replaceCategories = Boolean(cleanLabel || validCategoryIds.length);
+  if (replaceCategories) match.nxt5Label = cleanLabel || summary.opponent || gameId;
+  const raw = JSON.stringify(match);
+  const serializedParticipants = JSON.stringify(participants);
+  const assignedPlayerIds = [...new Set(Object.values(normalizedPlayerAssignments))];
+  await ensureMatchImporterColumn();
+  await ensureMatchArchiveSchema();
 
-  const existingMatches = await sql`
-    select *
-    from matches
-    where team_id = ${team.id}
-      and game_id = ${gameId}
-    limit 1
-  `;
-  const inserted = existingMatches[0] ? await sql`
-    update matches
-    set opponent = ${summary.opponent},
-        result = ${summary.result},
-        side = ${summary.side},
-        duration_seconds = ${summary.duration_seconds},
-        duration = ${summary.duration},
-        patch = ${summary.patch},
-        objective_score = ${summary.objective_score},
-        vision_score = ${summary.vision_score},
-        impact_score = ${summary.impact_score},
-        primary_focus = ${summary.primary_focus},
-        main_issue = ${summary.main_issue},
-        created_by = coalesce(created_by, ${userId}),
-        raw = ${JSON.stringify(match)}::jsonb
-    where id = ${existingMatches[0].id}
-    returning *
-  ` : await sql`
-    insert into matches (
-      team_id, game_id, region, opponent, result, side,
-      duration_seconds, duration, patch, objective_score, vision_score,
-      impact_score, primary_focus, main_issue, created_by, raw
-    )
-    values (
-      ${team.id}, ${gameId}, 'EUROPE', ${summary.opponent}, ${summary.result}, ${summary.side},
-      ${summary.duration_seconds}, ${summary.duration}, ${summary.patch}, ${summary.objective_score}, ${summary.vision_score},
-      ${summary.impact_score}, ${summary.primary_focus}, ${summary.main_issue}, ${userId}, ${JSON.stringify(match)}::jsonb
-    )
-    returning *
-  `;
-
-  const savedMatch = inserted[0];
-  await archiveRawMatch({ teamId: team.id, matchId: savedMatch.id, gameId, match, source: (match as any)?.metadata?.source || 'import' });
-  await sql`delete from match_participants where match_id = ${savedMatch.id}`;
-
-  await sql`
-    insert into match_participants (
+  let savedMatch;
+  try {
+    const results = await sql.transaction(tx => [
+      // Same ordering is used by category deletion; imports of one team cannot
+      // interleave their delete/insert sequences, including first-time imports.
+      tx`select id from teams where id = ${team.id} for update`,
+      // HTTP transactions are non-interactive. The guard deliberately raises
+      // 22012 if a reference disappeared, aborting the whole batch before writes.
+      tx`select 1 / case when count(*) = ${validCategoryIds.length} then 1 else 0 end as categories_valid
+         from (select id from match_categories where team_id = ${team.id} and id = any(${validCategoryIds}::uuid[]) for key share) locked_categories`,
+      tx`select 1 / case when count(*) = ${assignedPlayerIds.length} then 1 else 0 end as players_valid
+         from (select id from players where team_id = ${team.id} and id = any(${assignedPlayerIds}::uuid[]) for key share) locked_players`,
+      tx`insert into matches (
+          team_id, game_id, region, opponent, result, side,
+          duration_seconds, duration, patch, objective_score, vision_score,
+          impact_score, primary_focus, main_issue, created_by, raw, category_id, category_ids
+        ) values (
+          ${team.id}, ${gameId}, 'EUROPE', ${cleanLabel || summary.opponent}, ${summary.result}, ${summary.side},
+          ${summary.duration_seconds}, ${summary.duration}, ${summary.patch}, ${summary.objective_score}, ${summary.vision_score},
+          ${summary.impact_score}, ${summary.primary_focus}, ${summary.main_issue}, ${userId}, ${raw}::jsonb,
+          ${validCategoryIds[0] || null}, ${JSON.stringify(validCategoryIds)}::jsonb
+        )
+        on conflict (team_id, game_id) do update set
+          opponent = excluded.opponent, result = excluded.result, side = excluded.side,
+          duration_seconds = excluded.duration_seconds, duration = excluded.duration,
+          patch = excluded.patch, objective_score = excluded.objective_score, vision_score = excluded.vision_score,
+          impact_score = excluded.impact_score, primary_focus = excluded.primary_focus, main_issue = excluded.main_issue,
+          created_by = coalesce(matches.created_by, excluded.created_by), raw = excluded.raw,
+          category_id = case when ${replaceCategories} then excluded.category_id else matches.category_id end,
+          category_ids = case when ${replaceCategories} then excluded.category_ids else matches.category_ids end`,
+      tx`insert into match_raw_archives (team_id, match_id, game_id, source, payload)
+         select team_id, id, game_id, ${(match as any)?.metadata?.source || 'import'}, raw
+         from matches where team_id = ${team.id} and game_id = ${gameId}
+         on conflict (team_id, game_id) do update set
+           match_id = excluded.match_id, source = excluded.source, payload = excluded.payload, created_at = now()`,
+      tx`delete from match_participants
+         where match_id = (select id from matches where team_id = ${team.id} and game_id = ${gameId})`,
+      tx`insert into match_participants (
       match_id, player_id, team_key, summoner_name, riot_id, champion, role,
       kills, deaths, assists, cs, gold, damage, damage_to_turrets, vision, kp, kda,
       cs_per_min, gold_per_min, kill_participation, grade, raw
     )
     select
-      ${savedMatch.id}, p.player_id, p.team_key, p.summoner_name, p.riot_id, p.champion, p.role,
+      m.id, p.player_id, p.team_key, p.summoner_name, p.riot_id, p.champion, p.role,
       p.kills, p.deaths, p.assists, p.cs, p.gold, p.damage, p.damage_to_turrets, p.vision, p.kp, p.kda,
       p.cs_per_min, p.gold_per_min, p.kill_participation, p.grade, p.raw
-    from jsonb_to_recordset(${JSON.stringify(participants)}::jsonb) as p(
+    from matches m cross join jsonb_to_recordset(${serializedParticipants}::jsonb) as p(
       player_id uuid,
       team_key text,
       summoner_name text,
@@ -565,7 +569,18 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       grade text,
       raw jsonb
     )
-  `;
+    where m.team_id = ${team.id} and m.game_id = ${gameId}`,
+      tx`select * from matches where team_id = ${team.id} and game_id = ${gameId}`
+    ]);
+    savedMatch = results[results.length - 1][0];
+  } catch (error: any) {
+    if (error?.code === '22012' || error?.code === '23503') {
+      throw Object.assign(new Error('Les profils ou catégories ont changé pendant l’import. Recharge l’équipe puis réessaie.'), {
+        status: 409, code: 'NXT5_IMPORT_REFERENCE_CHANGED'
+      });
+    }
+    throw error;
+  }
 
   await runImportSideEffect('champion pool rebuild', () => rebuildChampionPool(team.id));
   await runImportSideEffect('improvements rebuild', () => rebuildImprovements(team.id));

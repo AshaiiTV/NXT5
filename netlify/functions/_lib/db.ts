@@ -1,4 +1,4 @@
-import { neon } from '@neondatabase/serverless';
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless';
 
 function configurationError() {
   return Object.assign(
@@ -7,8 +7,10 @@ function configurationError() {
   );
 }
 
+const unavailable = Object.assign(() => { throw configurationError(); }, {
+  transaction: () => { throw configurationError(); }
+}) as unknown as NeonQueryFunction<false, false>;
+
 export const sql = process.env.DATABASE_URL
   ? neon(process.env.DATABASE_URL)
-  : async () => {
-      throw configurationError();
-    };
+  : unavailable;

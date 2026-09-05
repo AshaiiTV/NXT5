@@ -4,7 +4,7 @@ export const DEFAULT_MATCH_CATEGORIES = [
   { name: 'Scrim', color: 'cyan' }
 ];
 
-export async function ensureMatchCategoriesSchema() {
+export async function ensureMatchCategoriesSchema({ migrateLegacy = true }: { migrateLegacy?: boolean } = {}) {
   await sql`
     create table if not exists match_categories (
       id uuid primary key default gen_random_uuid(),
@@ -19,10 +19,15 @@ export async function ensureMatchCategoriesSchema() {
   `;
   await sql`alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null`;
   await sql`alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb`;
-  await sql`update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb)`;
+  if (migrateLegacy) {
+    await sql`update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb)`;
+  }
   await sql`create unique index if not exists idx_match_categories_team_name on match_categories(team_id, lower(name))`;
   await sql`create index if not exists idx_match_categories_team on match_categories(team_id, created_at asc)`;
   await sql`create index if not exists idx_matches_category on matches(category_id)`;
+  // Imports only need the schema. Legacy data migrations must not commit
+  // unrelated match/category changes before their atomic import transaction.
+  if (!migrateLegacy) return;
   const legacyOfficialCategories = await sql`
     select id
     from match_categories

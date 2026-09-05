@@ -108,35 +108,11 @@ export default async function handler(request: Request, context: Context): Promi
         }
       });
     }
-    let savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, playerAssignments, allyTeamSide });
-    const validCategoryIds: string[] = [];
-    if (categoryIds.length) {
-      const categories = await sql`
-        select id
-        from match_categories
-        where team_id = ${teamId}
-          and id = any(${categoryIds})
-      `;
-      const validSet = new Set(categories.map((category) => String(category.id)));
-      validCategoryIds.push(...categoryIds.filter((id) => validSet.has(String(id))));
-      if (validCategoryIds.length !== categoryIds.length) throw Object.assign(new Error('Une catégorie sélectionnée est introuvable pour cette team.'), { status: 404 });
-    }
-    if (label || validCategoryIds.length) {
-      const named = await sql`
-        update matches
-        set opponent = ${label || savedMatch.opponent || savedMatch.game_id},
-            category_id = ${validCategoryIds[0] || null},
-            category_ids = ${JSON.stringify(validCategoryIds)}::jsonb,
-            raw = jsonb_set(coalesce(raw, '{}'::jsonb), '{nxt5Label}', to_jsonb(${label || savedMatch.opponent || savedMatch.game_id}::text), true)
-        where id = ${savedMatch.id}
-        returning id, game_id, team_id, opponent, result, created_at
-      `;
-      savedMatch = named[0] || savedMatch;
-    }
+    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, playerAssignments, allyTeamSide, label, categoryIds });
 
     await runOptionalImportTask('audit log', () => sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'match.import', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId, teamId, label, categoryIds: validCategoryIds })}::jsonb)
+        values (${user.id}, 'match.import', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId, teamId, label, categoryIds })}::jsonb)
       `);
 
     const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ request, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || gameId }));

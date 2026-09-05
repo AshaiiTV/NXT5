@@ -62,20 +62,18 @@ export default async function handler(request: Request, context: Context): Promi
 
     if (action === 'delete') {
       if (category.is_default) throw Object.assign(new Error('Scrim est une catégorie de base et ne peut pas être supprimée.'), { status: 400 });
-      await sql`update matches set category_id = null where team_id = ${teamId} and category_id = ${categoryId}`;
-      const matches = await sql`select id, category_ids from matches where team_id = ${teamId}`;
-      for (const match of matches) {
-        const nextCategoryIds = (Array.isArray(match.category_ids) ? match.category_ids : []).filter((id) => String(id) !== String(categoryId));
-        if (nextCategoryIds.length !== (Array.isArray(match.category_ids) ? match.category_ids.length : 0)) {
-          await sql`
-            update matches
-            set category_ids = ${JSON.stringify(nextCategoryIds)}::jsonb,
-                category_id = ${nextCategoryIds[0] || null}
-            where id = ${match.id}
-          `;
-        }
-      }
-      await sql`delete from match_categories where id = ${categoryId} and team_id = ${teamId}`;
+      // Imports use the same team lock. Cleanup must happen after taking it,
+      // otherwise an in-flight import can reintroduce this ID between cleanup
+      // and deletion, leaving category_ids pointing to a deleted category.
+      await sql.transaction(tx => [
+        tx`select id from teams where id = ${teamId} for update`,
+        tx`update matches
+           set category_ids = coalesce(category_ids, '[]'::jsonb) - ${categoryId}::text,
+               category_id = ((coalesce(category_ids, '[]'::jsonb) - ${categoryId}::text) ->> 0)::uuid
+           where team_id = ${teamId}
+             and (category_id = ${categoryId}::uuid or category_ids ? ${categoryId})`,
+        tx`delete from match_categories where id = ${categoryId} and team_id = ${teamId}`
+      ]);
       await sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'match_categories.delete', 'match_category', ${categoryId}, ${JSON.stringify({ teamId, name: category.name })}::jsonb)

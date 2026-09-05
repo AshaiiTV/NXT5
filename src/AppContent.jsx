@@ -86,8 +86,10 @@ import { Badge, Button, EmptyState, PageHeader, PremiumToggle, SelectInput, Skel
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalLinks, LegalPage, NotFoundPage, ResetPasswordPage } from "./pages/public/PublicPages.jsx";
 import { cx, errorToast, formatRetryAfter, formatUploadSize, profileStatusLabel, profileStatusTone, readRememberPreference, tone, writeRememberPreference } from "./app/helpers.js";
 import { assetProxyUrl, matchCategoryIds, matchDisplayName, matchHasCategory, opponentRoleRow } from "./utils/matches.js";
-import { addDays, availabilityEvents, availabilitySlots, compositionSlots, dateFromKey, dateKey, emptyCompositionSlots, formatWeekRange, jsonList, mondayOfWeek, planningEventKey, planningEventMeta, planningEventTypeFromLabel, planningSlotsPayload } from "./utils/planning.js";
+import { addDays, availabilityEvents, availabilitySlots, compositionSlots, dateFromKey, dateKey, emptyCompositionSlots, formatWeekRange, jsonList, mondayOfWeek, planningEventKey, planningEventMeta, planningEventTypeFromLabel } from "./utils/planning.js";
 import { ROSTER_STATUS_OPTIONS, multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta } from "./utils/roster.js";
+import { createPlanningStore, upsertAvailability } from "./utils/planning-store.js";
+import { usePlanningDraft } from "./hooks/usePlanningDraft.js";
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
@@ -8166,7 +8168,7 @@ function formatPlanningDate(date) {
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
 
-function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
+function Planning({ data, selectedTeamId, planningStore, currentMember, user }) {
   const gameplayPlayers = useMemo(() => sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role))), [data.players, selectedTeamId]);
   const staffProfiles = useMemo(() => (data.players || []).filter((player) => player.team_id === selectedTeamId && isStaffRole(player.role)).sort((a, b) => String(roleLabel(a.role)).localeCompare(String(roleLabel(b.role))) || String(a.name || "").localeCompare(String(b.name || ""))), [data.players, selectedTeamId]);
   const players = useMemo(() => [...gameplayPlayers, ...staffProfiles], [gameplayPlayers, staffProfiles]);
@@ -8217,45 +8219,24 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
   const staffPlanningPlayerId = String(staffPlanningPlayer?.id || "");
   const canManagePlanningStaff = canStaffManage(currentMember?.role);
   const linkedPlayer = linkedGameplayPlayer || (staffPlanningPlayer && canManagePlanningStaff ? staffPlanningPlayer : linkedStaffProfile) || (currentMember ? { teamOnly: true } : null);
-  const [draftSlots, setDraftSlots] = useState({});
-  const [slotEvents, setSlotEvents] = useState({});
   const [eventMenu, setEventMenu] = useState(null);
-  const [notes, setNotes] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [planningDirty, setPlanningDirty] = useState(false);
-  const [saveStatus, setSaveStatus] = useState("idle");
-  const changeSeqRef = useRef(0);
 
   const selectedPlayer = linkedPlayer?.teamOnly ? null : linkedPlayer || null;
   const selectedIsStaff = selectedPlayer ? isStaffRole(selectedPlayer.role) : false;
   const selectedDisplayName = selectedIsStaff ? "Coaching Staff" : selectedPlayer?.name || "Profil non lié";
   const selectedDisplayRole = selectedIsStaff ? "Coaching Staff" : selectedPlayer ? roleLabel(selectedPlayer.role) : "Aucun profil";
   const staffPlanningAvailabilityExists = Boolean(staffPlanningPlayerId && availability.some((item) => String(item.player_id || "") === staffPlanningPlayerId));
-  const selectedAvailability = availability.find((item) => item.player_id === selectedPlayer?.id) || null;
   const eventStoreRow = availability.find((item) => Object.keys(availabilityEvents(item?.slots)).length);
   const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || gameplayPlayers[0] || staffProfiles[0] || null;
   const eventStoreAvailability = availability.find((item) => item.player_id === eventStorePlayer?.id) || null;
   const canEditSelected = Boolean(selectedPlayer && (String(selectedPlayer.user_id || "") === String(user?.id || "") || (selectedIsStaff && canManagePlanningStaff)));
   const canEditEvents = Boolean(currentMember && eventStorePlayer);
+  const planningDraft = usePlanningDraft(planningStore, { teamId: selectedTeamId, playerId: eventStorePlayer?.id, weekStart: selectedWeek.start }, eventStoreAvailability);
+  const { slots: draftSlots, events: slotEvents, notes, status: saveStatus, saving, setSlots: setDraftSlots, setEvents: setSlotEvents, setNotes } = planningDraft;
 
   useEffect(() => {
-    setDraftSlots(availabilitySlots(selectedAvailability?.slots));
     setEventMenu(null);
-    setNotes(selectedAvailability?.notes || "");
-    setPlanningDirty(false);
-    setSaveStatus("idle");
-  }, [selectedAvailability?.id, selectedAvailability?.updated_at, selectedPlayer?.id, selectedWeek.start]);
-
-  useEffect(() => {
-    setSlotEvents(availabilityEvents(eventStoreAvailability?.slots));
-    setEventMenu(null);
-  }, [eventStoreAvailability?.id, eventStoreAvailability?.updated_at, eventStorePlayer?.id, selectedWeek.start]);
-
-  function markPlanningDirty() {
-    changeSeqRef.current += 1;
-    setPlanningDirty(true);
-    setSaveStatus("dirty");
-  }
+  }, [selectedTeamId, eventStorePlayer?.id, selectedWeek.start]);
 
   useEffect(() => {
     if (!eventMenu) return undefined;
@@ -8279,7 +8260,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function toggleSlot(day, time) {
     if (!canEditSelected) return;
-    markPlanningDirty();
     setDraftSlots((current) => {
       const list = Array.isArray(current[day]) ? current[day] : [];
       const nextList = list.includes(time) ? list.filter((item) => item !== time) : PLANNING_TIMES.filter((item) => [...list, time].includes(item));
@@ -8296,7 +8276,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function setDaySlots(day, times) {
     if (!canEditSelected) return;
-    markPlanningDirty();
     const nextTimes = PLANNING_TIMES.filter((time) => times.includes(time));
     setDraftSlots((current) => ({ ...current, [day]: nextTimes }));
     setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
@@ -8307,7 +8286,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function setTimeForWeek(time) {
     if (!canEditSelected) return;
-    markPlanningDirty();
     const allActive = weekDays.every(([day]) => (draftSlots[day] || []).includes(time));
     setDraftSlots((current) => {
       return Object.fromEntries(weekDays.map(([day]) => {
@@ -8323,7 +8301,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function applyAvailabilityPreset(kind) {
     if (!canEditSelected) return;
-    markPlanningDirty();
     const presets = {
       evenings: ["20:00", "21:00", "22:00", "23:00"],
       scrim: ["19:00", "20:00", "21:00", "22:00"],
@@ -8365,7 +8342,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function applyPlanningEventType(type) {
     if (!eventMenu || !canEditEvents) return;
-    markPlanningDirty();
     const { day, time } = eventMenu;
     const key = planningEventKey(day, time);
     const meta = planningEventMeta(type);
@@ -8379,7 +8355,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
 
   function removePlanningEvent() {
     if (!eventMenu || !canEditEvents) return;
-    markPlanningDirty();
     const key = planningEventKey(eventMenu.day, eventMenu.time);
     setSlotEvents((current) => {
       const next = { ...current };
@@ -8396,39 +8371,6 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
       return event?.label ? { ...event, playerId: row.player_id } : null;
     }).find(Boolean) || null;
   }
-
-  async function saveAvailability({ silent = false } = {}) {
-    if (!eventStorePlayer || !selectedTeamId || (!canEditSelected && !canEditEvents)) return;
-    const changeVersion = changeSeqRef.current;
-    const baseSlots = canEditSelected ? draftSlots : availabilitySlots(eventStoreAvailability?.slots);
-    const baseNotes = canEditSelected ? notes : eventStoreAvailability?.notes || "";
-    setSaving(true);
-    setSaveStatus("saving");
-    try {
-      await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: eventStorePlayer.id, weekStart: selectedWeek.start, slots: planningSlotsPayload(baseSlots, slotEvents), notes: baseNotes }) });
-      if (changeSeqRef.current === changeVersion) {
-        setPlanningDirty(false);
-        setSaveStatus("saved");
-      }
-      if (!silent) {
-        await refreshAll();
-        pushToast({ type: "green", title: "Planning mis a jour", text: "Planning enregistre." });
-      }
-    } catch (err) {
-      setSaveStatus("error");
-      pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  useEffect(() => {
-    if (!planningDirty || saving) return undefined;
-    const timer = window.setTimeout(() => {
-      saveAvailability({ silent: true });
-    }, 650);
-    return () => window.clearTimeout(timer);
-  }, [planningDirty, saving, draftSlots, slotEvents, notes, eventStorePlayer?.id, selectedTeamId, selectedWeek.start, canEditSelected, canEditEvents]);
 
   const selectedPlayerId = String(selectedPlayer?.id || "");
   const effectivePlayerIdsByCell = useMemo(() => {
@@ -8699,11 +8641,11 @@ function Planning({ data, selectedTeamId, refreshAll, pushToast, currentMember, 
             </div>
             <div className="mt-5">
               <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Note planning</label>
-              <textarea value={notes} onChange={(event) => { setNotes(event.target.value); markPlanningDirty(); }} disabled={!canEditSelected} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
             </div>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold text-slate-400">Chaque clic est sauvegardé automatiquement. Clic droit sur un créneau = type de session.</p>
-              <Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>
+              <div className="flex items-center gap-2"><Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>Réessayer</Button>}</div>
             </div>
           </Surface>
 
@@ -10122,6 +10064,15 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [data, setData] = useState(DEFAULT_DATA);
+  const [planningStore] = useState(() => createPlanningStore({
+    save: async (body) => {
+      const result = await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify(body) });
+      return result?.availability;
+    },
+    onSaved: (row) => setData((current) => ({ ...current, availability: upsertAvailability(current.availability || [], row) })),
+    onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
+  }));
+  useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
@@ -10164,7 +10115,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (!bootstrapped) setBootstrapReady(false);
     try {
       const result = await apiFetch("bootstrap", { timeoutMs: bootstrapped ? 20000 : 16000 });
-      setData({ ...DEFAULT_DATA, ...result });
+      setData({ ...DEFAULT_DATA, ...result, availability: planningStore.mergeAvailability(result.availability || [], result.players || []) });
       if (!selectedTeamId && result.teams?.[0]?.id) setSelectedTeamId(result.teams[0].id);
       if (!bootstrapped) setBootstrapReady(true);
     } catch (err) {
@@ -10195,14 +10146,14 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "stats" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
-    if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />;
+    if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} />;
     if (active === "draft") return <DraftWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} currentTeam={currentTeam} data={data} />;
     if (active === "admin" && isPlatformAdmin) return <AdminDashboard />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
