@@ -10,6 +10,11 @@ export type DbUser = {
   name?: string | null;
   notif_match?: boolean | null;
   notif_report?: boolean | null;
+  notif_inactivity?: boolean | null;
+  inactivity_notice_pending?: boolean | null;
+  last_active_at?: string | Date | null;
+  inactivity_email_sent_at?: string | Date | null;
+  inactivity_email_claimed_at?: string | Date | null;
   is_platform_admin?: boolean;
   created_at?: string | Date;
 };

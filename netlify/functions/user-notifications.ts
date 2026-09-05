@@ -16,23 +16,26 @@ export default async function handler(request: Request, context: Context): Promi
     const body = await readJson(request);
 
     await ensureUserNotificationColumns(sql);
-    const currentRows = await sql`select notif_match, notif_report from users where id = ${user.id} limit 1`;
+    const currentRows = await sql`select notif_match, notif_report, notif_inactivity from users where id = ${user.id} limit 1`;
     const current = currentRows[0] || {};
     const notifMatch = asBoolean(body.notif_match, current.notif_match ?? true);
     const notifReport = asBoolean(body.notif_report, current.notif_report ?? true);
+    const notifInactivity = asBoolean(body.notif_inactivity, current.notif_inactivity ?? true);
 
     const rows = await sql`
       update users
       set notif_match = ${notifMatch},
           notif_report = ${notifReport},
+          notif_inactivity = ${notifInactivity},
           updated_at = now()
       where id = ${user.id}
-      returning id, account_name, email, email_verified, name, notif_match, notif_report, created_at
+      returning id, account_name, email, email_verified, name, notif_match, notif_report,
+                notif_inactivity, inactivity_notice_pending, created_at
     `;
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, metadata)
-      values (${user.id}, 'auth.notification_preferences', 'user', ${JSON.stringify({ notif_match: notifMatch, notif_report: notifReport })}::jsonb)
+      values (${user.id}, 'auth.notification_preferences', 'user', ${JSON.stringify({ notif_match: notifMatch, notif_report: notifReport, notif_inactivity: notifInactivity })}::jsonb)
     `;
 
     return json({ user: safeUser(rows[0]) });

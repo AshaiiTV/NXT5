@@ -44,13 +44,15 @@ export default async function handler(request: Request, context: Context): Promi
           email_verify_expires_at = ${verifyExpiresAt},
           updated_at = now()
       where id = ${user.id}
-      returning id, account_name, email, email_verified, name, notif_match, notif_report, created_at
+      returning id, account_name, email, email_verified, name, notif_match, notif_report,
+                notif_inactivity, inactivity_notice_pending, created_at
     ` : await sql`
       update users
       set name = ${name},
           updated_at = now()
       where id = ${user.id}
-      returning id, account_name, email, email_verified, name, notif_match, notif_report, created_at
+      returning id, account_name, email, email_verified, name, notif_match, notif_report,
+                notif_inactivity, inactivity_notice_pending, created_at
     `;
 
     if (emailChanged) {

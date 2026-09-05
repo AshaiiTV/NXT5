@@ -16,7 +16,12 @@ export default async function handler(request: Request, context: Context): Promi
     await ensureEmailVerificationColumns();
     const user = await requireAuth(request, context);
     await ensureUserNotificationColumns(sql);
-    const rows = await sql`select notif_match, notif_report from users where id = ${user.id} limit 1`;
+    const rows = await sql`
+      select notif_match, notif_report, notif_inactivity, inactivity_notice_pending
+      from users
+      where id = ${user.id}
+      limit 1
+    `;
     return json({
       user: safeUser({
         ...user,

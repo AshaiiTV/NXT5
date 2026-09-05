@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import type { Context } from '@netlify/functions';
 import { sql } from './db';
 import { ensureMigration } from './migrations';
+import { INACTIVITY_DAYS, ensureUserEngagementSchema, recordUserActivity } from './engagement';
 import type { DbUser } from './types';
 
 export const COOKIE_NAME = 'rb_session';
@@ -166,6 +167,7 @@ export async function ensureAuthUserSchema(): Promise<void> {
     await sql`alter table users add column if not exists legal_accepted_at timestamptz`;
     await sql`alter table users add column if not exists legal_version text`;
   });
+  await ensureUserEngagementSchema();
 }
 
 export async function ensureEmailVerificationColumns(): Promise<void> {
@@ -221,6 +223,10 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
     name: user.name || user.account_name,
     notif_match: user.notif_match ?? true,
     notif_report: user.notif_report ?? true,
+    notif_inactivity: user.notif_inactivity ?? true,
+    inactivity_notice: user.inactivity_notice_pending
+      ? { type: 'welcome_back', inactiveDays: INACTIVITY_DAYS }
+      : null,
     // Recompute this server-side for every user response. This prevents a
     // login/profile update response from temporarily dropping the admin UI.
     is_platform_admin: isPlatformAdmin(user),
@@ -279,6 +285,13 @@ export async function requireAuth(request: Request, context: Context): Promise<D
       users.email,
       coalesce(users.email_verified, false) as email_verified,
       users.name,
+      users.notif_match,
+      users.notif_report,
+      users.notif_inactivity,
+      users.inactivity_notice_pending,
+      users.last_active_at,
+      users.inactivity_email_sent_at,
+      users.inactivity_email_claimed_at,
       users.created_at
     from sessions
     join users on users.id = sessions.user_id
@@ -303,7 +316,7 @@ export async function requireAuth(request: Request, context: Context): Promise<D
       and (last_seen_at is null or last_seen_at < now() - interval '5 minutes')
   `;
 
-  return user;
+  return recordUserActivity(user);
 }
 
 export async function revokeSession(context: Context, request: Request | null = null): Promise<void> {

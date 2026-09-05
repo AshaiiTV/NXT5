@@ -6,7 +6,7 @@ import { assertSessionSecret, createSession, ensureEmailVerificationColumns, has
 import { sendEmailVerificationEmail } from './_lib/email';
 import { assertRateLimit } from './_lib/rate-limit';
 
-const LEGAL_VERSION = '2026-09-04';
+const LEGAL_VERSION = '2026-09-05';
 
 function accountNameFromEmail(email) {
   const base = normalizeAccountName(email.split('@')[0]).replace(/[^a-z0-9._-]/g, '').slice(0, 18) || 'compte';

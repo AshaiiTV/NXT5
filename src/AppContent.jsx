@@ -9690,7 +9690,7 @@ function VerifiedPage({ navigate }) {
 function AccountSettings({ user, onUserUpdate, pushToast, currentTeam, data = {} }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
-  const [notificationForm, setNotificationForm] = useState({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false });
+  const [notificationForm, setNotificationForm] = useState({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false, notif_inactivity: user?.notif_inactivity !== false });
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
@@ -9702,8 +9702,8 @@ function AccountSettings({ user, onUserUpdate, pushToast, currentTeam, data = {}
   }, [user?.id, user?.name, user?.email, user?.account_name]);
 
   useEffect(() => {
-    setNotificationForm({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false });
-  }, [user?.id, user?.notif_match, user?.notif_report]);
+    setNotificationForm({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false, notif_inactivity: user?.notif_inactivity !== false });
+  }, [user?.id, user?.notif_match, user?.notif_report, user?.notif_inactivity]);
 
   async function saveProfile(event) {
     event.preventDefault();
@@ -9828,14 +9828,15 @@ function AccountSettings({ user, onUserUpdate, pushToast, currentTeam, data = {}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <Badge tone="purple">Notifications</Badge>
-            <h3 className="mt-3 text-2xl font-black text-white">E-mails d'équipe</h3>
+            <h3 className="mt-3 text-2xl font-black text-white">E-mails NXT5</h3>
             <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis les alertes envoyées sur ton adresse vérifiée.</p>
           </div>
           {savingNotifications && <Badge tone="cyan">Enregistrement...</Badge>}
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <PremiumToggle checked={notificationForm.notif_match} onChange={(checked) => updateNotifications({ ...notificationForm, notif_match: checked })} title="Recevoir un email à chaque import de match" text="Pratique pour suivre les nouvelles games ajoutées à ta team." />
           <PremiumToggle checked={notificationForm.notif_report} onChange={(checked) => updateNotifications({ ...notificationForm, notif_report: checked })} title="Recevoir un email a chaque review generee" text="Tu es prevenu des qu'une nouvelle review d'equipe est disponible." />
+          <PremiumToggle checked={notificationForm.notif_inactivity} onChange={(checked) => updateNotifications({ ...notificationForm, notif_inactivity: checked })} title="Recevoir le rappel après 3 mois" text="Un seul e-mail par période d'inactivité, sans donnée d'équipe ou de jeu." />
         </div>
       </Surface>
     </div>
@@ -9936,6 +9937,47 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
       </div>
     </div>
   );
+}
+
+function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function acknowledge(destination = "") {
+    if (saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const result = await apiFetch("/api/user/inactivity-notice", { method: "POST" });
+      onUserUpdate?.(result.user);
+      if (destination) navigate(destination);
+    } catch (requestError) {
+      setError(requestError?.message || "Impossible de fermer ce message pour le moment.");
+      pushToast?.({ type: "red", title: "Action non enregistrée", text: "Réessaie dans quelques instants." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!user?.inactivity_notice) return null;
+  return <div className="nxt5-fade-in fixed inset-0 z-[210] flex items-end justify-center bg-[#020511]/82 p-3 text-white backdrop-blur-xl sm:items-center sm:p-5">
+    <section role="dialog" aria-modal="true" aria-labelledby="inactivity-return-title" className="nxt5-enter nxt5-panel nxt5-premium-panel relative w-full max-w-2xl overflow-hidden border border-cyan-200/26 bg-[#050814]/98 p-5 shadow-[0_32px_110px_rgba(0,0,0,.78),0_0_46px_rgba(34,211,238,.15)] sm:p-7">
+      <button type="button" onClick={() => acknowledge()} disabled={saving} aria-label="Fermer le message" className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
+      <div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-200/28 bg-gradient-to-br from-cyan-400/18 to-fuchsia-400/14 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,.15)]"><Sparkles className="h-7 w-7" /></div>
+      <Badge tone="cyan" className="mt-5">Bon retour</Badge>
+      <h2 id="inactivity-return-title" className="mt-3 pr-12 text-3xl font-black tracking-tight text-white sm:text-4xl">Content de te revoir sur NXT5</h2>
+      <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Ton compte n'avait pas été actif depuis au moins trois mois. Tes équipes et tes données sont toujours disponibles : tu peux reprendre exactement là où tu t'étais arrêté.</p>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-emerald-200/16 bg-emerald-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-emerald-100"><ShieldCheck className="h-4 w-4" />Données préservées</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">Ce message n'affiche aucun détail sur tes équipes, tes games ou leurs membres.</p></div>
+        <div className="rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-cyan-100"><Mail className="h-4 w-4" />Rappel maîtrisé</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">L'e-mail de retour peut être désactivé à tout moment dans les paramètres.</p></div>
+      </div>
+      {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/24 bg-rose-400/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <Button type="button" variant="ghost" onClick={() => acknowledge()} disabled={saving} className="sm:min-w-36">Rester ici</Button>
+        <Button type="button" icon={saving ? Loader2 : ArrowRight} onClick={() => acknowledge("/equipes")} disabled={saving} className="sm:min-w-48">{saving ? "Ouverture..." : "Voir mes équipes"}</Button>
+      </div>
+    </section>
+  </div>;
 }
 
 function loadingStepState(done, active) {
@@ -10172,6 +10214,9 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     </button>
     <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
   </>;
+  const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
+    ? <InactivityReturnModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} />
+    : null;
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
   if (!data.teams.length && active !== "guide" && !(active === "admin" && isPlatformAdmin)) return <>
     <div className="relative min-h-screen text-white">
@@ -10192,6 +10237,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
     </div>
     {assistantWidget}
+    {inactivityReturnModal}
   </>;
   return (
     <div className="relative min-h-screen text-white">
@@ -10235,6 +10281,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         <LegalLinks navigate={navigate} />
       </div>
       {assistantWidget}
+      {inactivityReturnModal}
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
       {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}
     </div>

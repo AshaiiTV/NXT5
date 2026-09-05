@@ -158,3 +158,48 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
       `
   });
 }
+
+export async function sendInactivityReminderEmail({ to, name }) {
+  const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
+  const workspaceUrl = `${siteUrl}/equipes`;
+  const settingsUrl = `${siteUrl}/parametres`;
+  const safeName = String(name || 'joueur').trim().slice(0, 80) || 'joueur';
+  const htmlName = escapeHtml(safeName);
+  const htmlWorkspaceUrl = escapeHtml(workspaceUrl);
+  const htmlSettingsUrl = escapeHtml(settingsUrl);
+
+  await sendResendEmail({
+    to,
+    subject: 'Ton espace NXT5 est toujours prêt',
+    text: `Salut ${safeName},\n\nCela fait environ trois mois que ton compte NXT5 n'a pas été actif. Ton espace et tes données sont toujours disponibles.\n\nReprendre sur NXT5 : ${workspaceUrl}\n\nTu peux désactiver ce rappel dans tes paramètres : ${settingsUrl}`,
+    html: `
+      <div style="margin:0;padding:0;background:#f4f7fb;font-family:Inter,Arial,sans-serif;color:#e5eefb">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#f4f7fb">
+          <tr>
+            <td align="center" style="padding:32px 14px">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:28px;background:#070b16;box-shadow:0 24px 70px rgba(7,11,22,.22)">
+                <tr>
+                  <td style="padding:0;background:linear-gradient(135deg,#07111f 0%,#050814 55%,#170b2b 100%)">
+                    <div style="height:6px;background:linear-gradient(90deg,#00d8ff,#7c3aed,#ec4899)"></div>
+                    <div style="padding:34px 34px 30px">
+                      <div style="display:inline-block;margin:0 0 22px;padding:7px 11px;border:1px solid rgba(103,232,249,.30);border-radius:999px;background:rgba(8,145,178,.14);color:#9beafe;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">Ton espace NXT5</div>
+                      <h1 style="margin:0;color:#ffffff;font-size:30px;line-height:1.12;font-weight:900">Content de te revoir, ${htmlName}</h1>
+                      <p style="margin:18px 0 0;color:#e2e8f0;font-size:16px;line-height:1.65">Cela fait environ trois mois que ton compte n'a pas été actif. Tes équipes et tes données sont toujours disponibles, exactement là où tu les as laissées.</p>
+                      <div style="margin:28px 0 26px">
+                        <a href="${htmlWorkspaceUrl}" style="display:inline-block;border-radius:16px;background:linear-gradient(135deg,#22d3ee,#3b82f6 52%,#d946ef);color:#ffffff;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:0 16px 38px rgba(34,211,238,.22)">Retrouver mon espace</a>
+                      </div>
+                      <div style="border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(15,23,42,.56);padding:17px 18px">
+                        <p style="margin:0;color:#cbd5e1;font-size:13px;line-height:1.65">Ce rappel n'inclut aucune donnée d'équipe ou de jeu. Il est envoyé une seule fois par période d'inactivité.</p>
+                      </div>
+                      <p style="margin:22px 0 0;color:#64748b;font-size:12px;line-height:1.7">Tu ne souhaites plus recevoir ce rappel ? <a href="${htmlSettingsUrl}" style="color:#67e8f9;text-decoration:none;font-weight:800">Modifie tes préférences d'e-mail</a>.</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `
+  });
+}
