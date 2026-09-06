@@ -30,7 +30,7 @@ Lorsque `CONTEXT` est défini et différent de `production`, les pages de prévi
 
 ## Vérifications et suivi après publication
 
-La validation locale comprend **165 tests réussis**, le contrôle TypeScript et le build, ainsi que **22 routes vérifiées en HTTP** et un contrôle dans le navigateur à **390 pixels de largeur**. Ces vérifications ne remplacent pas les contrôles sur Netlify après déploiement. L’API PageSpeed a répondu avec une erreur de quota 429 : aucun score réel ni résultat Core Web Vitals certifié n’est disponible dans cet audit.
+La validation locale comprend **175 tests réussis** après intégration de la dernière correction de la branche principale, le contrôle TypeScript et le build, ainsi que **22 routes vérifiées en HTTP** et un contrôle dans le navigateur à **390 pixels de largeur**. Ces vérifications ne remplacent pas les contrôles sur Netlify après déploiement. L’API PageSpeed a répondu avec une erreur de quota 429 : aucun score réel ni résultat Core Web Vitals certifié n’est disponible dans cet audit.
 
 Après publication :
 
