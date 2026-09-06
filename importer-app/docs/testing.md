@@ -27,6 +27,6 @@ node scripts/smoke-electron.mjs
 
 Le parcours vérifie l’export et son JSON enregistré, l’absence de timeline dupliquée, les CS10/20, les erreurs suivies d’un nouvel essai, les deux annulations, la conversion LCU hors ligne, le rejet des ID/régions incohérents, les paramètres, la persistance, l’historique, les raccourcis clavier et l’absence d’erreurs console. Les JSON produits sont également passés au vrai validateur d’import du site, sans appel à la base de données.
 
-Le dossier annoncé en fin d’exécution contient `results.json`, les exports synthétiques et trois captures : accueil vide, taille minimale et historique de test. L’historique et la connexion LCU visibles sur ces captures sont simulés. Un code de sortie non nul indique une erreur.
+Le dossier annoncé en fin d’exécution contient `results.json`, les exports synthétiques et des captures : accueil vide, taille minimale, progression, résultat et historique de test. La progression, le résultat et leurs actions sont vérifiés dans la fenêtre minimale sans défilement effectué par le test. L’historique et la connexion LCU visibles sur ces captures sont simulés. Un code de sortie non nul indique une erreur.
 
 Ces tests prouvent le fonctionnement local et la compatibilité du format dans les scénarios simulés. Ils ne valident pas la disponibilité actuelle des services Riot, les données d’une partie réelle, la signature macOS ni le téléchargement d’une release publiée.

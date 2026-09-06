@@ -1,6 +1,15 @@
-# NXT5 Importer 0.3.0
+# NXT5 Importer 0.3.1
 
 ![Nouvelle interface de NXT5 Importer](docs/images/exporter.png)
+
+*Aperçu Electron avec connexion client simulée pour la validation.*
+
+- Nouvelle composition esport premium : navigation horizontale, noir profond et accents violet/cyan.
+- Titres Space Grotesk et texte Inter, avec polices embarquées pour un affichage cohérent hors ligne.
+- États de connexion et d’export plus lisibles, confirmations et erreurs visibles dans le contexte de l’action.
+- Interface et états adaptés à la taille minimale de fenêtre, avec navigation clavier et animations réduites selon les préférences système.
+
+# NXT5 Importer 0.3.0
 
 *Aperçu de l’interface, avec un client LoL simulé pour la vérification.*
 
