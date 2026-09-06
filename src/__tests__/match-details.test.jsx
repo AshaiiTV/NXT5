@@ -77,10 +77,10 @@ describe("match detail lifecycle in React", () => {
 });
 
 describe("CS milestone availability", () => {
-  it("does not use a 15-minute final frame for CS20", () => {
+  it("does not use a 15-minute final frame for CS10 or CS20", () => {
     const row = { participantId: 1, match: { duration: "15:00", raw: { timeline: { info: { frames: [{ timestamp: 900000, participantFrames: { 1: { minionsKilled: 114 } } }] } } } } };
     expect(csAtMinute(row, 20)).toBeNull();
-    expect(csAtMinute(row, 10)).toBe(114);
+    expect(csAtMinute(row, 10)).toBeNull();
   });
   it("preserves absent milestone values rather than converting null to zero", () => {
     const row = { participantId: 1, match: { raw: { info: { gameDuration: 900 }, nxt5: { timelineSummary: { csMilestones: { 1: { cs10: null, cs20: 114 } } } } } } };

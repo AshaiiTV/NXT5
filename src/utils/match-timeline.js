@@ -11,7 +11,7 @@ export function csAtMinute(row, minute) {
     const value = match?.raw?.nxt5?.timelineSummary?.csMilestones?.[String(participantId)]?.[`cs${minute}`];
     return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)) ? Number(value) : null;
   }
-  const frame = frames.find((item) => Number(item.timestamp || 0) >= target);
+  const frame = frames.find((item) => Number(item.timestamp || 0) >= target && Number(item.timestamp || 0) <= target + 60000);
   const participant = frame?.participantFrames?.[String(participantId)];
   return participant ? Number(participant.minionsKilled || 0) + Number(participant.jungleMinionsKilled || 0) : null;
 }

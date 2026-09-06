@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { apiFetch } from "./api/client.js";
+import { sortTrendMatches, trendMatchTimestamp } from "./utils/trends.js";
 
 const ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
 const METRICS = {
@@ -157,7 +158,7 @@ export function TeamDataHealthPanel({ team, players = [], matches = [] }) {
 }
 
 function blockMatches(allMatches, categories, key) {
-  const sorted = [...allMatches].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  const sorted = sortTrendMatches(allMatches);
   if (key === "recent") return sorted.slice(0, 5);
   if (key === "previous") return sorted.slice(5, 10);
   if (key === "all") return sorted;
@@ -171,7 +172,10 @@ function blockMatches(allMatches, categories, key) {
 function blockSnapshot(matches) {
   const wins = matches.filter((match) => match.result === "Victoire").length;
   const allyRows = matches.flatMap((match) => teamRows(match));
-  const average = (values) => values.reduce((total, value) => total + Number(value || 0), 0) / Math.max(1, values.length);
+  const average = (values) => {
+    const available = values.filter((value) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)));
+    return available.length ? available.reduce((total, value) => total + Number(value), 0) / available.length : null;
+  };
   const side = (name) => {
     const scoped = matches.filter((match) => String(match.side || "").toLowerCase().includes(name));
     const sideWins = scoped.filter((match) => match.result === "Victoire").length;
@@ -179,11 +183,14 @@ function blockSnapshot(matches) {
   };
   const roles = ROLES.map((role) => {
     const rows = allyRows.filter((row) => normalizeRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition) === role);
-    return { role, games: rows.length, kp: average(rows.map((row) => parsePercent(row.kill_participation ?? row.kp))), deaths: average(rows.map((row) => row.deaths)), cs: average(rows.map((row) => row.cs)) };
+    return { role, games: rows.length, kp: average(rows.map((row) => {
+      const value = row.kill_participation ?? row.kp;
+      return value === null || value === undefined || value === "" ? null : parsePercent(value);
+    })), deaths: average(rows.map((row) => row.deaths)), cs: average(rows.map((row) => row.cs)) };
   });
   return {
     games: matches.length,
-    wr: matches.length ? Math.round((wins / matches.length) * 100) : 0,
+    wr: matches.length ? Math.round((wins / matches.length) * 100) : null,
     blue: side("blue"),
     red: side("red"),
     gold: average(matches.map((match) => matchDiff(match, "gold"))),
@@ -194,6 +201,30 @@ function blockSnapshot(matches) {
   };
 }
 
+function blockOverlapCount(leftMatches, rightMatches) {
+  const key = (match) => String(match.game_id || match.match_id || match.id || "") || match;
+  const leftKeys = new Set(leftMatches.map(key));
+  return new Set(rightMatches.map(key).filter((id) => leftKeys.has(id))).size;
+}
+
+function blockDateRange(matches) {
+  const timestamps = matches.map(trendMatchTimestamp).filter(Number.isFinite);
+  if (!timestamps.length) return "Dates indisponibles";
+  const first = formatDate(Math.min(...timestamps));
+  const last = formatDate(Math.max(...timestamps));
+  const range = first === last ? first : `${first} → ${last}`;
+  const missing = matches.length - timestamps.length;
+  return missing ? `${range} · ${missing} date${missing > 1 ? "s" : ""} inconnue${missing > 1 ? "s" : ""}` : range;
+}
+
+function blockMetric(value, suffix = "", digits = 0) {
+  return Number.isFinite(value) ? `${Number(value.toFixed(digits)).toLocaleString("fr-FR")}${suffix}` : "—";
+}
+
+function blockDelta(before, after) {
+  return Number.isFinite(before) && Number.isFinite(after) ? after - before : null;
+}
+
 export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const [leftKey, setLeftKey] = useState("previous");
   const [rightKey, setRightKey] = useState("recent");
@@ -202,36 +233,48 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const rightMatches = blockMatches(matches, categories, rightKey);
   const left = blockSnapshot(leftMatches);
   const right = blockSnapshot(rightMatches);
+  const overlap = blockOverlapCount(leftMatches, rightMatches);
   const metrics = [
-    ["Winrate", left.wr, right.wr, "%", false],
-    ["Écart d'or moyen", Math.round(left.gold), Math.round(right.gold), "", false],
-    ["Écart dégâts moyen", Math.round(left.damage), Math.round(right.damage), "", false],
-    ["Écart vision moyen", Math.round(left.vision), Math.round(right.vision), "", false],
-    ["Morts équipe", Number(left.deaths.toFixed(1)), Number(right.deaths.toFixed(1)), "", true],
+    ["Winrate", left.wr, right.wr, "%", false, 0, " pts"],
+    ["Écart d'or moyen", left.gold, right.gold, "", false, 0, ""],
+    ["Écart dégâts moyen", left.damage, right.damage, "", false, 0, ""],
+    ["Écart vision moyen", left.vision, right.vision, "", false, 0, ""],
+    ["Morts équipe / game", left.deaths, right.deaths, "", true, 1, ""],
   ];
   return <Panel>
     <div className="border-b border-white/10 p-4 sm:p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div><Label>Comparaison</Label><h3 className="mt-3 text-2xl font-black text-white">Évolution entre les deux blocs</h3><p className="mt-1 text-sm font-semibold text-slate-400">Les mêmes statistiques sur deux périodes.</p></div>
+        <div><Label>Comparaison</Label><h3 className="mt-3 text-2xl font-black text-white">Ce qui change entre vos blocs</h3><p className="mt-1 text-sm font-semibold text-slate-400">Les mêmes repères, du bloc de référence au bloc observé.</p></div>
         <div className="grid gap-2 sm:grid-cols-[minmax(0,14rem)_auto_minmax(0,14rem)] sm:items-end">
           <label className="block"><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Avant</span><select value={leftKey} onChange={(event) => setLeftKey(event.target.value)} className="w-full rounded-lg border border-white/10 bg-[#0a1020] px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-cyan-300/35">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           <ArrowRight className="mb-3 hidden h-4 w-4 text-slate-500 sm:block" />
           <label className="block"><span className="mb-1 block text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400">Après</span><select value={rightKey} onChange={(event) => setRightKey(event.target.value)} className="w-full rounded-lg border border-white/10 bg-[#0a1020] px-3 py-2.5 text-sm font-bold text-white outline-none focus:border-cyan-300/35">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         </div>
       </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {[["Avant", leftMatches, left], ["Après", rightMatches, right]].map(([label, games, snapshot]) => <div key={label} className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+          <div className="flex items-center justify-between gap-3"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><span className="text-sm font-black text-white">{snapshot.games} game{snapshot.games > 1 ? "s" : ""}</span></div>
+          <p className="mt-1 text-xs font-semibold text-slate-300">{games.length ? blockDateRange(games) : "Aucune game dans ce bloc"}</p>
+        </div>)}
+      </div>
+      {(!left.games || !right.games) ? <p className="mt-3 text-xs font-semibold leading-5 text-amber-100">Sélectionne deux blocs non vides pour calculer les écarts.{leftKey === "previous" && !left.games ? " Le bloc précédent apparaît à partir de la 6e game." : ""}</p> : overlap > 0 ? <p className="mt-3 flex items-start gap-2 text-xs font-semibold leading-5 text-amber-100"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{overlap} game{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</p> : <p className="mt-3 text-xs font-semibold text-slate-400">Aucune game commune aux deux blocs.</p>}
     </div>
     <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(21rem,.8fr)]">
-      <div className="min-w-0 p-4 sm:p-5">
-        <div className="grid grid-cols-[minmax(8rem,1fr)_5rem_5rem_5rem] gap-2 border-b border-white/10 pb-2 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-500"><span>Repère</span><span className="text-right">Avant</span><span className="text-right">Après</span><span className="text-right">Écart</span></div>
-        {metrics.map(([label, before, after, suffix, inverse]) => {
-          const delta = Number(after) - Number(before);
-          return <div key={label} className="grid grid-cols-[minmax(8rem,1fr)_5rem_5rem_5rem] items-center gap-2 border-b border-white/[0.07] py-3 last:border-b-0"><span className="text-sm font-bold text-slate-200">{label}</span><span className="text-right text-sm font-black text-slate-400">{before}{suffix}</span><span className="text-right text-sm font-black text-white">{after}{suffix}</span><span className={cx("text-right text-sm font-black", toneForDelta(delta, inverse))}>{signed(delta, suffix)}</span></div>;
+      <div className="min-w-0 overflow-x-auto p-4 sm:p-5">
+        <div className="min-w-[26rem]">
+        <div className="nxt5-keep-grid grid grid-cols-[minmax(8rem,1fr)_5rem_5rem_5rem] gap-2 border-b border-white/10 pb-2 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-500"><span>Repère</span><span className="text-right">Avant</span><span className="text-right">Après</span><span className="text-right">Écart</span></div>
+        {metrics.map(([label, before, after, suffix, inverse, digits, deltaSuffix]) => {
+          const roundedBefore = Number.isFinite(before) ? Number(before.toFixed(digits)) : null;
+          const roundedAfter = Number.isFinite(after) ? Number(after.toFixed(digits)) : null;
+          const delta = blockDelta(roundedBefore, roundedAfter);
+          return <div key={label} className="nxt5-keep-grid grid grid-cols-[minmax(8rem,1fr)_5rem_5rem_5rem] items-center gap-2 border-b border-white/[0.07] py-3 last:border-b-0"><span className="text-sm font-bold text-slate-200">{label}</span><span className="text-right text-sm font-black text-slate-400">{blockMetric(before, suffix, digits)}</span><span className="text-right text-sm font-black text-white">{blockMetric(after, suffix, digits)}</span><span className={cx("text-right text-sm font-black", toneForDelta(delta, inverse))}>{Number.isFinite(delta) ? signed(delta, deltaSuffix) : "—"}</span></div>;
         })}
+        </div>
       </div>
       <div className="border-t border-white/10 bg-white/[0.025] p-4 sm:p-5 lg:border-l lg:border-t-0">
         <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Sides</p><p className="mt-1 text-sm font-semibold text-slate-300">WR du bloc après</p></div><Trophy className="h-5 w-5 text-cyan-100" /></div>
         <div className="mt-4 grid grid-cols-2 gap-3"><div><p className="text-xs font-black text-cyan-100">Blue side</p><p className="mt-1 text-2xl font-black text-white">{right.blue ?? "-"}{right.blue !== null ? "%" : ""}</p></div><div><p className="text-xs font-black text-fuchsia-100">Red side</p><p className="mt-1 text-2xl font-black text-white">{right.red ?? "-"}{right.red !== null ? "%" : ""}</p></div></div>
-        <div className="mt-5 border-t border-white/10 pt-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Par rôle</p>{right.roles.map((role) => { const previous = left.roles.find((item) => item.role === role.role); const delta = role.kp - Number(previous?.kp || 0); return <div key={role.role} className="mt-3 grid grid-cols-[3rem_1fr_auto] items-center gap-3"><span className="text-xs font-black text-white">{role.role}</span><span className="h-1.5 overflow-hidden rounded-full bg-white/[0.07]"><span className="block h-full rounded-full bg-cyan-300" style={{ width: `${Math.min(100, Math.max(0, role.kp))}%` }} /></span><span className={cx("text-xs font-black", toneForDelta(delta))}>{signed(delta, "% KP")}</span></div>; })}</div>
+        <div className="mt-5 border-t border-white/10 pt-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Participation aux kills par rôle</p><p className="mt-1 text-xs font-semibold text-slate-500">Écart en points · avant → après</p>{right.roles.map((role) => { const previous = left.roles.find((item) => item.role === role.role); const delta = blockDelta(previous?.kp, role.kp); return <div key={role.role} className="nxt5-keep-grid mt-3 grid grid-cols-[3rem_1fr_auto] items-center gap-3"><span className="text-xs font-black text-white">{role.role}</span><span className="min-w-0"><span className="block text-xs font-semibold text-slate-400">{blockMetric(previous?.kp, "%", 1)} → {blockMetric(role.kp, "%", 1)}</span><span className="mt-1 block text-[0.6rem] font-semibold text-slate-500">{previous?.games || 0} → {role.games} games</span></span><span className={cx("text-xs font-black", toneForDelta(delta))}>{Number.isFinite(delta) ? signed(delta, " pts") : "—"}</span></div>; })}</div>
       </div>
     </div>
   </Panel>;
@@ -349,4 +392,4 @@ export function HomeActionSummary({ matches = [], alerts = [] }) {
   return <div className="mt-4 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10">{items.map((item) => <button key={item.label} type="button" onClick={() => openRoute(item.path)} className="group relative grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-3 bg-[#080d1a] p-4 pr-11 text-left transition hover:bg-cyan-300/[0.06]"><span className="grid h-9 w-9 place-items-center rounded-lg bg-white/[0.05] text-cyan-100"><item.icon className="h-4 w-4" /></span><span className="min-w-0"><span className="block text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-500">{item.label}</span><span className="mt-1 block line-clamp-2 break-words text-sm font-black leading-5 text-white">{item.value}</span><span className="mt-1 block line-clamp-2 text-xs font-semibold leading-5 text-slate-400">{item.detail}</span></span><ArrowRight className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-100" /></button>)}</div>;
 }
 
-export const workflowTestables = { blockSnapshot, evaluateGoal, hasTimeline, reviewReason };
+export const workflowTestables = { blockMatches, blockSnapshot, blockOverlapCount, blockDateRange, blockDelta, evaluateGoal, hasTimeline, reviewReason };

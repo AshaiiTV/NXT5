@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { workflowTestables } from "../NextPhase.jsx";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { BlockComparisonPanel, workflowTestables } from "../NextPhase.jsx";
 
-const { blockSnapshot, evaluateGoal, hasTimeline, reviewReason } = workflowTestables;
+const { blockMatches, blockSnapshot, blockOverlapCount, blockDateRange, blockDelta, evaluateGoal, hasTimeline, reviewReason } = workflowTestables;
 
 function match(id, result, allyGold, enemyGold, createdAt = "2026-07-31T12:00:00.000Z") {
   return {
@@ -24,6 +26,61 @@ describe("workflow calculations", () => {
     expect(snapshot.wr).toBe(50);
     expect(snapshot.gold).toBe(500);
     expect(snapshot.roles.find((row) => row.role === "ADC")?.kp).toBe(65);
+  });
+
+  it("keeps empty blocks and missing role observations unavailable", () => {
+    const empty = blockSnapshot([]);
+    expect(empty).toMatchObject({ games: 0, wr: null, gold: null, damage: null, vision: null, deaths: null });
+    expect(empty.roles.every((role) => role.kp === null)).toBe(true);
+    expect(blockDelta(empty.wr, 60)).toBeNull();
+    const game = match("a", "Victoire", 12000, 10000);
+    delete game.participants[0].kp;
+    const missing = blockSnapshot([game]);
+    expect(missing.roles.find((role) => role.role === "ADC").kp).toBeNull();
+    game.participants[0].kp = 0;
+    expect(blockSnapshot([game]).roles.find((role) => role.role === "ADC").kp).toBe(0);
+  });
+
+  it("compares recent games by play time even when an old game was imported last", () => {
+    const games = Array.from({ length: 10 }, (_, index) => ({
+      ...match(`game-${index + 1}`, "Victoire", 12000, 10000),
+      created_at: index === 0 ? "2026-09-01T12:00:00Z" : "2026-08-01T12:00:00Z",
+      raw: { info: { gameStartTimestamp: Date.UTC(2026, 6, index + 1, 12) } },
+    }));
+    expect(blockMatches(games, [], "recent").map((game) => game.id)).toEqual(["game-10", "game-9", "game-8", "game-7", "game-6"]);
+    expect(blockMatches(games, [], "previous").map((game) => game.id)).toEqual(["game-5", "game-4", "game-3", "game-2", "game-1"]);
+    expect(blockDateRange(blockMatches(games, [], "recent"))).toContain("2026");
+    expect(blockDateRange([{}])).toBe("Dates indisponibles");
+  });
+
+  it("counts distinct shared games across overlapping category blocks", () => {
+    const shared = { ...match("a", "Victoire", 12000, 10000), category_ids: ["scrim", "bootcamp"] };
+    const separate = { ...match("b", "Défaite", 9000, 10000), category_id: "scrim" };
+    const games = [shared, separate];
+    const left = blockMatches(games, [], "category:scrim");
+    const right = blockMatches(games, [], "category:bootcamp");
+    expect(left).toHaveLength(2);
+    expect(right).toHaveLength(1);
+    expect(blockOverlapCount(left, [...right, ...right])).toBe(1);
+    expect(blockOverlapCount(left, [])).toBe(0);
+  });
+
+  it("shows an unavailable comparison when the previous block is empty", () => {
+    const html = renderToStaticMarkup(<BlockComparisonPanel matches={[match("a", "Victoire", 12000, 10000)]} />);
+    expect(html).toContain("Aucune game dans ce bloc");
+    expect(html).toContain("deux blocs non vides");
+    expect(html).toContain("31 juil. 2026");
+    expect(html).not.toContain("+100 pts");
+    expect(html).not.toContain("+65 pts");
+  });
+
+  it("renders percentage changes as points and shows both sample sizes", () => {
+    const games = Array.from({ length: 10 }, (_, index) => match(`game-${index}`, index < 5 ? "Victoire" : "Défaite", 12000, 10000, new Date(Date.UTC(2026, 6, 31 - index, 12)).toISOString()));
+    const html = renderToStaticMarkup(<BlockComparisonPanel matches={games} />);
+    expect(html).toContain("+100 pts");
+    expect(html).not.toContain("+100%");
+    expect(html).toContain("Aucune game commune");
+    expect(html).toContain("5 games");
   });
 
   it("recognizes every supported timeline storage shape", () => {
