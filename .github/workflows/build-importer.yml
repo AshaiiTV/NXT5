@@ -40,6 +40,9 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm audit --audit-level=moderate
 
+      - name: Test importer
+        run: pnpm test
+
       - name: Build Windows app
         run: pnpm run dist:win
 
@@ -69,6 +72,9 @@ jobs:
           npm install --global pnpm@11.19.0
           pnpm install --frozen-lockfile
           pnpm audit --audit-level=moderate
+
+      - name: Test importer
+        run: pnpm test
 
       - name: Build mac app
         run: |

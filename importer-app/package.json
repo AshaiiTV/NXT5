@@ -1,12 +1,13 @@
 {
   "name": "nxt5-importer",
-  "version": "0.2.11",
+  "version": "0.3.0",
   "private": true,
   "author": "NXT5",
   "description": "NXT5 local League of Legends match importer",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "test": "node --test test/*.test.mjs",
     "dist:win": "electron-builder --win portable --x64",
     "dist:mac": "electron-builder --mac zip --x64",
     "dist:mac:arm": "electron-builder --mac zip --arm64"

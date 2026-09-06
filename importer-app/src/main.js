@@ -1,212 +1,115 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
-import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import fs from 'node:fs/promises';
-import fsSync from 'node:fs';
-import os from 'node:os';
-import https from 'node:https';
+import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import fs from "node:fs/promises";
+import fsSync from "node:fs";
+import {
+  StateStore,
+  atomicWrite,
+  createImportService,
+  normalizeTimelinePayload,
+  safeExternalUrl,
+  selectUpdate,
+  throwIfAborted,
+  validateLocalIdentity,
+} from "./core.js";
+import {
+  fetchJson,
+  readLeagueLockfile,
+  lcuRequest,
+  createChampionCatalog,
+} from "./network.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const NXT5_SITE_URL = String(process.env.NXT5_SITE_URL || 'https://nxt5.netlify.app').replace(/\/+$/, '');
-const APP_NAME = 'NXT5 Importer';
-const RELEASE_API = 'https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest';
-const PACKAGE_META = JSON.parse(fsSync.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
-const CURRENT_VERSION = String(PACKAGE_META.version || '0.0.0');
-const REMOTE_TIMEOUT_MS = 12000;
-const LOCAL_TIMEOUT_MS = 8000;
-const championNameCache = new Map();
-const RENDERER_FILE = path.join(__dirname, 'renderer.html');
+const APP_NAME = "NXT5 Importer";
+const RELEASE_API =
+  "https://api.github.com/repos/AshaiiTV/NXT5/releases/tags/nxt5-match-exporter-latest";
+const PACKAGE_META = JSON.parse(
+  fsSync.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"),
+);
+const CURRENT_VERSION = String(PACKAGE_META.version || "0.0.0");
+const RENDERER_FILE = path.join(__dirname, "renderer.html");
 const RENDERER_URL = pathToFileURL(RENDERER_FILE).toString();
+const NXT5_SITE_URL = (() => {
+  try {
+    const url = new URL(process.env.NXT5_SITE_URL || "https://nxt5.org");
+    if (url.protocol === "https:" && !url.username && !url.password)
+      return url.origin;
+  } catch {
+    /* use production */
+  }
+  return "https://nxt5.org";
+})();
+const catalog = createChampionCatalog();
+let store;
+let mainWindow;
 
 function assertTrustedIpcSender(event) {
-  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || '';
-  if (senderUrl !== RENDERER_URL) throw new Error('IPC sender refused');
-}
-
-function safeExternalUrl(value) {
-  try {
-    const url = new URL(String(value || ''));
-    const siteHost = new URL(NXT5_SITE_URL).hostname;
-    const allowedHosts = new Set([siteHost, 'github.com']);
-    return url.protocol === 'https:' && allowedHosts.has(url.hostname) ? url.toString() : '';
-  } catch {
-    return '';
-  }
-}
-
-function compareVersions(a, b) {
-  const left = String(a || '0').split('.').map((part) => Number(part) || 0);
-  const right = String(b || '0').split('.').map((part) => Number(part) || 0);
-  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
-    const diff = (left[i] || 0) - (right[i] || 0);
-    if (diff) return diff;
-  }
-  return 0;
-}
-
-function parseAssetVersion(name) {
-  const match = String(name || '').match(/-(\d+\.\d+\.\d+)\.(?:exe|zip)$/i);
-  return match?.[1] || '';
-}
-
-function importerPlatform() {
-  return process.platform === 'darwin' ? 'mac' : 'windows';
+  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || "";
+  if (senderUrl !== RENDERER_URL || event.sender !== mainWindow?.webContents)
+    throw new Error("IPC sender refused");
 }
 
 async function checkImporterUpdate() {
-  const platform = importerPlatform();
-  const { response, payload } = await fetchJsonWithTimeout(RELEASE_API, 8000);
-  if (!response.ok) throw new Error(`Release NXT5 introuvable (${response.status}).`);
-  const candidates = (payload?.assets || [])
-    .filter((asset) => {
-      const name = String(asset?.name || '').toLowerCase();
-      if (!name.includes('nxt5-importer')) return false;
-      if (platform === 'windows') return name.includes('windows') && name.endsWith('.exe');
-      return name.includes('mac') && name.endsWith('.zip');
-    })
-    .map((asset) => ({ asset, version: parseAssetVersion(asset.name) }))
-    .filter((item) => item.version)
-    .sort((a, b) => compareVersions(b.version, a.version));
-  const latest = candidates[0];
-  const latestVersion = latest?.version || CURRENT_VERSION;
-  return {
-    currentVersion: CURRENT_VERSION,
-    latestVersion,
-    updateAvailable: compareVersions(latestVersion, CURRENT_VERSION) > 0,
-    downloadUrl: `${NXT5_SITE_URL}/.netlify/functions/importer-download?platform=${platform}&version=${encodeURIComponent(latestVersion)}`,
-    platform
-  };
-}
-
-function normalizeGameId(value, platform = 'EUW1') {
-  const raw = String(value || '').trim().toUpperCase();
-  const normalizedPlatform = String(platform || 'EUW1').trim().toUpperCase();
-  const gameId = raw.includes('_') ? raw : `${normalizedPlatform}_${raw}`;
-  if (!/^([A-Z0-9]+)_\d+$/.test(gameId)) {
-    throw new Error('Game ID invalide. Mets un ID numerique comme 7861632138, ou complet comme EUW1_7861632138.');
-  }
-  return gameId;
-}
-
-function canonicalMatchId(match, fallback = '') {
-  const raw = match?.metadata?.matchId || match?.metadata?.gameId || fallback;
-  return String(raw || '').trim().toUpperCase();
-}
-
-function isNumericGameId(value) {
-  return /^\d+$/.test(String(value || '').trim());
-}
-
-function extractGameInput(value) {
-  const raw = String(value || '').trim().toUpperCase();
-  const full = raw.match(/\b([A-Z0-9]{2,5})[_-](\d{6,})\b/);
-  if (full) return `${full[1]}_${full[2]}`;
-  const numeric = raw.match(/\b(\d{6,})\b/);
-  return numeric ? numeric[1] : raw;
-}
-
-function lockfileCandidates() {
-  const home = os.homedir();
-  const candidates = [
-    process.env.LEAGUE_LOCKFILE,
-    '/Applications/League of Legends.app/Contents/LoL/lockfile',
-    path.join(home, 'Applications/League of Legends.app/Contents/LoL/lockfile'),
-    'C:\\Riot Games\\League of Legends\\lockfile',
-    'C:\\Program Files\\Riot Games\\League of Legends\\lockfile',
-    'C:\\Program Files (x86)\\Riot Games\\League of Legends\\lockfile'
-  ];
-  return candidates.filter(Boolean);
-}
-
-async function readLeagueLockfile() {
-  for (const filePath of lockfileCandidates()) {
-    try {
-      const content = await fs.readFile(filePath, 'utf8');
-      const [, , port, password, protocol] = content.trim().split(':');
-      if (port && password) return { port, password, protocol: protocol || 'https' };
-    } catch {
-      // Try next common install path.
-    }
-  }
-  throw new Error('Client LoL local introuvable. Ouvre League of Legends, puis relance l’import.');
-}
-
-async function lcuGet(endpoint) {
-  const lockfile = await readLeagueLockfile();
-  return new Promise((resolve, reject) => {
-    const request = https.request({
-      hostname: '127.0.0.1',
-      port: lockfile.port,
-      path: endpoint,
-      method: 'GET',
-      rejectUnauthorized: false,
-      headers: {
-        Authorization: `Basic ${Buffer.from(`riot:${lockfile.password}`).toString('base64')}`
-      }
-    }, (response) => {
-      let body = '';
-      response.setEncoding('utf8');
-      response.on('data', (chunk) => { body += chunk; });
-      response.on('end', () => {
-        let payload = null;
-        try {
-          payload = body ? JSON.parse(body) : null;
-        } catch {
-          payload = body;
-        }
-        if (response.statusCode >= 200 && response.statusCode < 300) resolve(payload);
-        else reject(new Error(`Client LoL: ${response.statusCode} sur ${endpoint}`));
-      });
-    });
-    request.setTimeout(LOCAL_TIMEOUT_MS, () => {
-      request.destroy(new Error(`Client LoL trop lent sur ${endpoint}. Ouvre l'historique de match dans le client, puis reessaie.`));
-    });
-    request.on('error', reject);
-    request.end();
-  });
-}
-
-async function fetchJsonWithTimeout(url, timeoutMs = REMOTE_TIMEOUT_MS) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { signal: controller.signal });
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
-    return { response, payload };
-  } catch (err) {
-    if (err?.name === 'AbortError') {
-      throw new Error(`NXT5 ne repond pas apres ${Math.round(timeoutMs / 1000)} secondes. Verifie ta connexion, puis reessaie.`);
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeout);
+    const { response, payload } = await fetchJson(RELEASE_API, {
+      timeoutMs: 8000,
+      maxBytes: 2000000,
+    });
+    if (!response.ok)
+      throw new Error(`Vérification indisponible (${response.status}).`);
+    return selectUpdate(
+      payload,
+      CURRENT_VERSION,
+      process.platform,
+      process.arch,
+    );
+  } catch (error) {
+    return {
+      currentVersion: CURRENT_VERSION,
+      latestVersion: CURRENT_VERSION,
+      updateAvailable: false,
+      downloadUrl: "",
+      platform: process.platform === "darwin" ? "mac" : "windows",
+      arch: process.arch,
+      checked: false,
+      message: error.message,
+    };
   }
 }
 
-async function championNameById(championId) {
-  const key = String(championId || '');
-  if (!key) return 'Unknown';
-  if (championNameCache.has(key)) return championNameCache.get(key);
-  const versions = await fetch('https://ddragon.leagueoflegends.com/api/versions.json').then((res) => res.json());
-  const version = versions?.[0];
-  const data = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`).then((res) => res.json());
-  for (const champion of Object.values(data?.data || {})) {
-    championNameCache.set(String(champion.key), champion.name);
-  }
-  return championNameCache.get(key) || `Champion ${key}`;
+function localPosition(participant) {
+  const explicit = String(
+    participant.teamPosition || participant.individualPosition || "",
+  ).toUpperCase();
+  const role = String(participant.timeline?.role || "").toUpperCase();
+  const lane = String(
+    participant.timeline?.lane || participant.lane || "",
+  ).toUpperCase();
+  const positions = {
+    MID: "MIDDLE",
+    MIDDLE: "MIDDLE",
+    TOP: "TOP",
+    JUNGLE: "JUNGLE",
+    JGL: "JUNGLE",
+    BOT: "BOTTOM",
+    BOTTOM: "BOTTOM",
+    ADC: "BOTTOM",
+    SUPPORT: "UTILITY",
+    UTILITY: "UTILITY",
+  };
+  if (positions[explicit]) return positions[explicit];
+  if (role === "DUO_SUPPORT" || role === "SUPPORT") return "UTILITY";
+  if (role === "DUO_CARRY") return "BOTTOM";
+  return positions[lane] || "";
 }
 
 function lcuWinValue(team) {
-  if (typeof team?.win === 'boolean') return team.win;
-  return String(team?.win || '').toLowerCase() === 'win';
+  if (typeof team?.win === "boolean") return team.win;
+  return ["win", "true", "1"].includes(String(team?.win || "").toLowerCase());
 }
 
-async function lcuToRiotMatch(lcuGame, fallbackGameId) {
+async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
   const statNumber = (stats, ...keys) => {
     for (const key of keys) {
       const value = Number(stats?.[key] ?? 0);
@@ -214,119 +117,117 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId) {
     }
     return 0;
   };
-  const participants = await Promise.all((lcuGame.participants || []).map(async (participant, index) => {
-    const identity = (lcuGame.participantIdentities || []).find((item) => item.participantId === participant.participantId);
-    const player = identity?.player || {};
-    const stats = participant.stats || {};
-    const timeline = participant.timeline || {};
-    const championName = participant.championName || await championNameById(participant.championId);
-    const riotName = player.gameName || player.summonerName || player.displayName || `Player ${index + 1}`;
-    const riotTag = player.tagLine || player.tagline || '';
-    return {
-      participantId: participant.participantId,
-      teamId: participant.teamId,
-      summonerName: player.summonerName || riotName,
-      riotIdGameName: riotName,
-      riotIdTagline: riotTag,
-      championId: participant.championId,
-      championName,
-      teamPosition: String(timeline.lane || participant.teamPosition || '').toUpperCase(),
-      individualPosition: String(timeline.lane || participant.individualPosition || '').toUpperCase(),
-      lane: String(timeline.lane || participant.lane || 'UNKNOWN').toUpperCase(),
-      kills: Number(stats.kills || 0),
-      deaths: Number(stats.deaths || 0),
-      assists: Number(stats.assists || 0),
-      totalMinionsKilled: Number(stats.totalMinionsKilled || stats.minionsKilled || 0),
-      neutralMinionsKilled: Number(stats.neutralMinionsKilled || 0),
-      goldEarned: Number(stats.goldEarned || 0),
-      totalDamageDealtToChampions: Number(stats.totalDamageDealtToChampions || 0),
-      visionScore: Number(stats.visionScore || 0),
-      item0: statNumber(stats, 'item0', 'item0Id'),
-      item1: statNumber(stats, 'item1', 'item1Id'),
-      item2: statNumber(stats, 'item2', 'item2Id'),
-      item3: statNumber(stats, 'item3', 'item3Id'),
-      item4: statNumber(stats, 'item4', 'item4Id'),
-      item5: statNumber(stats, 'item5', 'item5Id'),
-      item6: statNumber(stats, 'item6', 'item6Id', 'trinket', 'trinketItemId'),
-      summoner1Id: statNumber(participant, 'summoner1Id', 'spell1Id') || statNumber(stats, 'summoner1Id', 'spell1Id'),
-      summoner2Id: statNumber(participant, 'summoner2Id', 'spell2Id') || statNumber(stats, 'summoner2Id', 'spell2Id'),
-      win: Boolean(stats.win)
-    };
-  }));
+  const participants = await Promise.all(
+    (lcuGame.participants || []).map(async (participant, index) => {
+      const identity = (lcuGame.participantIdentities || []).find(
+        (item) => item.participantId === participant.participantId,
+      );
+      const player = identity?.player || {};
+      const stats = participant.stats || {};
+      const timeline = participant.timeline || {};
+      const championName =
+        participant.championName ||
+        (await catalog.name(participant.championId, signal));
+      const riotName =
+        player.gameName ||
+        player.summonerName ||
+        player.displayName ||
+        `Player ${index + 1}`;
+      const riotTag = player.tagLine || player.tagline || "";
+      return {
+        ...stats,
+        participantId: Number(participant.participantId),
+        teamId: Number(participant.teamId),
+        summonerName: player.summonerName || riotName,
+        riotIdGameName: riotName,
+        riotIdTagline: riotTag,
+        championId: participant.championId,
+        championName,
+        teamPosition: localPosition(participant),
+        individualPosition: localPosition(participant),
+        lane: String(
+          timeline.lane || participant.lane || "UNKNOWN",
+        ).toUpperCase(),
+        kills: Number(stats.kills || 0),
+        deaths: Number(stats.deaths || 0),
+        assists: Number(stats.assists || 0),
+        totalMinionsKilled: Number(
+          stats.totalMinionsKilled || stats.minionsKilled || 0,
+        ),
+        neutralMinionsKilled: Number(stats.neutralMinionsKilled || 0),
+        goldEarned: Number(stats.goldEarned || 0),
+        totalDamageDealtToChampions: Number(
+          stats.totalDamageDealtToChampions || 0,
+        ),
+        visionScore: Number(stats.visionScore || 0),
+        item0: statNumber(stats, "item0", "item0Id"),
+        item1: statNumber(stats, "item1", "item1Id"),
+        item2: statNumber(stats, "item2", "item2Id"),
+        item3: statNumber(stats, "item3", "item3Id"),
+        item4: statNumber(stats, "item4", "item4Id"),
+        item5: statNumber(stats, "item5", "item5Id"),
+        item6: statNumber(
+          stats,
+          "item6",
+          "item6Id",
+          "trinket",
+          "trinketItemId",
+        ),
+        summoner1Id:
+          statNumber(participant, "summoner1Id", "spell1Id") ||
+          statNumber(stats, "summoner1Id", "spell1Id"),
+        summoner2Id:
+          statNumber(participant, "summoner2Id", "spell2Id") ||
+          statNumber(stats, "summoner2Id", "spell2Id"),
+        win: lcuWinValue(stats),
+      };
+    }),
+  );
 
   return {
     metadata: {
       matchId: fallbackGameId,
-      source: 'lcu-match-history'
+      source: "lcu-match-history",
     },
     info: {
-      gameCreation: lcuGame.gameCreation || lcuGame.gameCreationDate || 0,
-      gameDuration: Math.round(Number(lcuGame.gameDuration || 0) / (Number(lcuGame.gameDuration || 0) > 10000 ? 1000 : 1)),
+      gameCreation:
+        Number(lcuGame.gameCreation) ||
+        Date.parse(lcuGame.gameCreationDate) ||
+        0,
+      gameDuration: Math.round(
+        Number(lcuGame.gameDuration || 0) /
+          (Number(lcuGame.gameDuration || 0) > 10000 ? 1000 : 1),
+      ),
       gameId: lcuGame.gameId || fallbackGameId,
-      gameMode: lcuGame.gameMode || 'CLASSIC',
-      gameType: lcuGame.gameType || 'CUSTOM_GAME',
-      gameVersion: lcuGame.gameVersion || '',
+      gameMode: lcuGame.gameMode || "CLASSIC",
+      gameType: lcuGame.gameType || "CUSTOM_GAME",
+      gameVersion: lcuGame.gameVersion || "",
       mapId: lcuGame.mapId || 11,
       participants,
       teams: (lcuGame.teams || []).map((team) => ({
-        teamId: team.teamId,
+        teamId: Number(team.teamId),
+        bans: Array.isArray(team.bans) ? team.bans : [],
         win: lcuWinValue(team),
         objectives: {
           baron: { kills: Number(team.baronKills || 0) },
-          champion: { kills: Number(team.championKills || 0) },
+          champion: {
+            kills: Number(
+              team.championKills ??
+                participants
+                  .filter(
+                    (participant) => participant.teamId === Number(team.teamId),
+                  )
+                  .reduce((sum, participant) => sum + participant.kills, 0),
+            ),
+          },
           dragon: { kills: Number(team.dragonKills || 0) },
+          riftHerald: { kills: Number(team.riftHeraldKills || 0) },
           inhibitor: { kills: Number(team.inhibitorKills || 0) },
-          tower: { kills: Number(team.towerKills || 0) }
-        }
-      }))
-    }
+          tower: { kills: Number(team.towerKills || 0) },
+        },
+      })),
+    },
   };
-}
-
-async function fetchLocalClientMatch(numericGameId, fullGameId) {
-  const endpoints = [
-    `/lol-match-history/v1/games/${encodeURIComponent(numericGameId)}`,
-    `/lol-match-history/v1/game/${encodeURIComponent(numericGameId)}`
-  ];
-  const errors = [];
-  for (const endpoint of endpoints) {
-    try {
-      const game = await lcuGet(endpoint);
-      if (game?.participants?.length) return lcuToRiotMatch(game, fullGameId);
-      errors.push(`${endpoint}: réponse sans participants`);
-    } catch (err) {
-      errors.push(`${endpoint}: ${err.message}`);
-    }
-  }
-  throw new Error(`Impossible de lire cette partie dans le client LoL local. Ouvre l’historique de match dans le client, puis réessaie. Détails: ${errors.join(' | ')}`);
-}
-
-function normalizeTimelinePayload(value) {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value.frames)) return { info: { frames: value.frames } };
-  if (Array.isArray(value.info?.frames)) return value;
-  if (Array.isArray(value.timeline?.frames)) return { info: { frames: value.timeline.frames } };
-  if (Array.isArray(value.timeline?.info?.frames)) return value.timeline;
-  if (Array.isArray(value.gameTimeline?.frames)) return { info: { frames: value.gameTimeline.frames } };
-  return null;
-}
-
-async function fetchLocalClientTimeline(numericGameId) {
-  const endpoints = [
-    `/lol-match-history/v1/game-timelines/${encodeURIComponent(numericGameId)}`,
-    `/lol-match-history/v1/games/${encodeURIComponent(numericGameId)}/timeline`,
-    `/lol-match-history/v1/game/${encodeURIComponent(numericGameId)}/timeline`
-  ];
-  for (const endpoint of endpoints) {
-    try {
-      const payload = await lcuGet(endpoint);
-      const timeline = normalizeTimelinePayload(payload);
-      if (timeline?.info?.frames?.length) return timeline;
-    } catch {
-      // The client exposes timeline differently depending on patch/platform.
-    }
-  }
-  return null;
 }
 
 function timelineFrames(timeline) {
@@ -336,50 +237,76 @@ function timelineFrames(timeline) {
 function csAtMinuteFromTimeline(timeline, participantId, minute, gameDuration) {
   const frames = timelineFrames(timeline);
   const target = Number(minute || 0) * 60 * 1000;
-  if (!participantId || !frames.length || Number(gameDuration || 0) < minute * 60) return null;
+  if (
+    !participantId ||
+    !frames.length ||
+    Number(gameDuration || 0) < minute * 60
+  )
+    return null;
   const frame = frames.find((item) => Number(item.timestamp || 0) >= target);
-  const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
-  if (!participantFrame) return null;
-  return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
+  const participantFrame =
+    frame?.participantFrames?.[String(participantId)] ||
+    frame?.participantFrames?.[participantId];
+  if (!participantFrame || Number(frame.timestamp) - target > 5000) return null;
+  return (
+    Number(participantFrame.minionsKilled || 0) +
+    Number(participantFrame.jungleMinionsKilled || 0)
+  );
 }
 
 function wardPositionFromEvent(frame, event, creatorId) {
   const direct = event.position || event;
   const directX = Number(direct.x || direct.positionX || 0);
   const directY = Number(direct.y || direct.positionY || 0);
-  if (directX && directY) return { x: directX, y: directY, source: 'event' };
-  const participantFrame = frame?.participantFrames?.[String(creatorId)] || frame?.participantFrames?.[creatorId];
+  if (directX && directY) return { x: directX, y: directY, source: "event" };
+  const participantFrame =
+    frame?.participantFrames?.[String(creatorId)] ||
+    frame?.participantFrames?.[creatorId];
   const framePosition = participantFrame?.position || {};
   const frameX = Number(framePosition.x || 0);
   const frameY = Number(framePosition.y || 0);
-  if (frameX && frameY) return { x: frameX, y: frameY, source: 'participant_frame' };
+  if (frameX && frameY)
+    return { x: frameX, y: frameY, source: "participant_frame" };
   return null;
 }
 
 function wardEventsFromTimeline(match, timeline) {
   const participants = match?.info?.participants || [];
-  const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
-  return timelineFrames(timeline).flatMap((frame) => (frame.events || [])
-    .filter((event) => String(event.type || '') === 'WARD_PLACED')
-    .map((event) => {
-      const creatorId = Number(event.creatorId || event.participantId || event.killerId || 0);
-      const position = wardPositionFromEvent(frame, event, creatorId);
-      if (!position) return null;
-      const { x, y } = position;
-      return {
-        timestamp: Number(event.timestamp || frame.timestamp || 0),
-        minute: Number((Number(event.timestamp || frame.timestamp || 0) / 60000).toFixed(1)),
-        creatorId,
-        teamId: Number(event.teamId || participantTeam.get(creatorId) || 0),
-        wardType: String(event.wardType || event.type || 'WARD'),
-        positionSource: position.source,
-        x,
-        y,
-        normalizedX: Number(Math.max(0, Math.min(1, x / 15000)).toFixed(4)),
-        normalizedY: Number(Math.max(0, Math.min(1, y / 15000)).toFixed(4))
-      };
-    })
-    .filter(Boolean));
+  const participantTeam = new Map(
+    participants.map((participant) => [
+      Number(participant.participantId),
+      Number(participant.teamId),
+    ]),
+  );
+  return timelineFrames(timeline).flatMap((frame) =>
+    (frame.events || [])
+      .filter((event) => String(event.type || "") === "WARD_PLACED")
+      .map((event) => {
+        const creatorId = Number(
+          event.creatorId || event.participantId || event.killerId || 0,
+        );
+        const position = wardPositionFromEvent(frame, event, creatorId);
+        if (!position) return null;
+        const { x, y } = position;
+        return {
+          timestamp: Number(event.timestamp || frame.timestamp || 0),
+          minute: Number(
+            (Number(event.timestamp || frame.timestamp || 0) / 60000).toFixed(
+              1,
+            ),
+          ),
+          creatorId,
+          teamId: Number(event.teamId || participantTeam.get(creatorId) || 0),
+          wardType: String(event.wardType || event.type || "WARD"),
+          positionSource: position.source,
+          x,
+          y,
+          normalizedX: Number(Math.max(0, Math.min(1, x / 15000)).toFixed(4)),
+          normalizedY: Number(Math.max(0, Math.min(1, y / 15000)).toFixed(4)),
+        };
+      })
+      .filter(Boolean),
+  );
 }
 
 function buildTimelineSummary(match, timeline) {
@@ -390,10 +317,21 @@ function buildTimelineSummary(match, timeline) {
   for (const participant of match?.info?.participants || []) {
     csMilestones[String(participant.participantId)] = {
       participantId: Number(participant.participantId || 0),
-      champion: participant.championName || '',
-      summonerName: participant.summonerName || participant.riotIdGameName || '',
-      cs10: csAtMinuteFromTimeline(timeline, participant.participantId, 10, match?.info?.gameDuration),
-      cs20: csAtMinuteFromTimeline(timeline, participant.participantId, 20, match?.info?.gameDuration)
+      champion: participant.championName || "",
+      summonerName:
+        participant.summonerName || participant.riotIdGameName || "",
+      cs10: csAtMinuteFromTimeline(
+        timeline,
+        participant.participantId,
+        10,
+        match?.info?.gameDuration,
+      ),
+      cs20: csAtMinuteFromTimeline(
+        timeline,
+        participant.participantId,
+        20,
+        match?.info?.gameDuration,
+      ),
     };
   }
   const wards = wardEventsFromTimeline(match, timeline);
@@ -402,125 +340,256 @@ function buildTimelineSummary(match, timeline) {
     frameCount: timelineFrames(timeline).length,
     csMilestones,
     wards,
-    wardCount: wards.length
+    wardCount: wards.length,
   };
 }
+
+async function localMatch(gameId, signal, progress) {
+  const numericId = gameId.split("_")[1];
+  const lockfile = await readLeagueLockfile(
+    store.snapshot().settings.leaguePath,
+  );
+  const get = (endpoint) => lcuRequest(lockfile, endpoint, { signal });
+  let game;
+  let lastError;
+  for (const endpoint of [
+    `/lol-match-history/v1/games/${numericId}`,
+    `/lol-match-history/v1/game/${numericId}`,
+  ]) {
+    throwIfAborted(signal);
+    try {
+      const candidate = await get(endpoint);
+      if (
+        !Array.isArray(candidate?.participants) ||
+        !candidate.participants.length
+      )
+        throw new Error("La partie ne contient aucun joueur.");
+      let region;
+      if (!candidate.platformId && !candidate.platform) {
+        const locale = await get("/riotclient/region-locale");
+        region = locale?.region;
+      }
+      validateLocalIdentity(candidate, gameId, region);
+      game = candidate;
+      break;
+    } catch (error) {
+      throwIfAborted(signal);
+      lastError = error;
+    }
+  }
+  if (!game)
+    throw lastError || new Error("Partie introuvable dans le client LoL.");
+  const match = await lcuToRiotMatch(game, gameId, signal);
+  progress?.("Récupération de la timeline depuis le client LoL…");
+  let timeline = null;
+  for (const endpoint of [
+    `/lol-match-history/v1/game-timelines/${numericId}`,
+    `/lol-match-history/v1/games/${numericId}/timeline`,
+    `/lol-match-history/v1/game/${numericId}/timeline`,
+  ]) {
+    throwIfAborted(signal);
+    try {
+      const candidate = normalizeTimelinePayload(await get(endpoint));
+      if (candidate?.info?.frames?.length) {
+        timeline = candidate;
+        break;
+      }
+    } catch {
+      throwIfAborted(signal);
+    }
+  }
+  return { match, timeline, source: "nxt5-lcu-importer" };
+}
+
+const importer = createImportService({
+  async fetchRemote(gameId, platform, signal) {
+    // A numeric ID is only unique within its region. Never search other regions silently.
+    const params = new URLSearchParams({ gameId, platform, fallback: "0" });
+    const { response, payload } = await fetchJson(
+      `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?${params}`,
+      { signal },
+    );
+    if (!response.ok) {
+      const detail = payload?.error || payload?.message || payload?.detail;
+      throw new Error(
+        typeof detail === "string" && detail !== "Bad Request"
+          ? detail.slice(0, 500)
+          : `Partie indisponible auprès de Riot (${response.status}). Vérifiez le Game ID et la région.`,
+      );
+    }
+    return payload;
+  },
+  fetchLocal: localMatch,
+  buildTimelineSummary,
+  chooseSave: (gameId) =>
+    dialog.showSaveDialog(mainWindow, {
+      title: "Enregistrer le JSON NXT5",
+      defaultPath: path.join(app.getPath("downloads"), `nxt5-${gameId}.json`),
+      filters: [{ name: "NXT5 JSON", extensions: ["json"] }],
+      properties: ["createDirectory", "showOverwriteConfirmation"],
+    }),
+  writeFile: atomicWrite,
+  addHistory: (entry) => store.addExport(entry),
+});
 
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 1040,
-    height: 760,
-    minWidth: 880,
-    minHeight: 660,
+  mainWindow = new BrowserWindow({
+    width: 1180,
+    height: 800,
+    minWidth: 820,
+    minHeight: 620,
     title: APP_NAME,
-    backgroundColor: '#030713',
-    icon: path.join(__dirname, '..', 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.icns'),
+    backgroundColor: "#0b1015",
+    icon: path.join(
+      __dirname,
+      "..",
+      "assets",
+      process.platform === "win32" ? "icon.ico" : "icon.icns",
+    ),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       sandbox: true,
-      nodeIntegration: false
-    }
+      nodeIntegration: false,
+    },
   });
-  win.removeMenu();
-  win.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    const target = safeExternalUrl(url);
-    if (target) shell.openExternal(target);
-    return { action: 'deny' };
+  mainWindow.removeMenu();
+  mainWindow.webContents.session.setPermissionRequestHandler(
+    (_webContents, _permission, callback) => callback(false),
+  );
+  mainWindow.webContents.session.setPermissionCheckHandler(() => false);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const target = safeExternalUrl(url, NXT5_SITE_URL);
+    if (target) shell.openExternal(target).catch(() => {});
+    return { action: "deny" };
   });
-  win.webContents.on('will-navigate', (event) => event.preventDefault());
-  win.loadFile(RENDERER_FILE);
+  mainWindow.webContents.on("will-navigate", (event) => event.preventDefault());
+  mainWindow.on("closed", () => {
+    importer.cancel();
+    mainWindow = null;
+  });
+  mainWindow.loadFile(RENDERER_FILE);
 }
 
-ipcMain.handle('generate-import', async (event, form) => {
-  assertTrustedIpcSender(event);
-  const extractedInput = extractGameInput(form?.gameId);
-  const gameId = normalizeGameId(extractedInput, form?.platform);
-  const numericOnly = isNumericGameId(extractedInput);
-  const platform = gameId.split('_')[0];
-  const params = new URLSearchParams({ gameId, platform, fallback: numericOnly ? '1' : '0' });
-  const exportUrl = `${NXT5_SITE_URL}/.netlify/functions/riot-match-export?${params.toString()}`;
-  let exported = null;
-  let riotError = null;
-  try {
-    const { response, payload } = await fetchJsonWithTimeout(exportUrl);
-    exported = payload;
-
-    if (!response.ok) {
-      const rawMessage = exported?.error || exported?.detail || exported?.message || '';
-      const message = rawMessage && rawMessage !== 'Bad Request'
-        ? rawMessage
-        : `NXT5 refuse l'export (${response.status}). Verifie le Game ID, la region et la cle Riot cote Netlify.`;
-      throw new Error(message);
+const handlers = {
+  "get-app-state": () => ({
+    version: CURRENT_VERSION,
+    platform: process.platform,
+    arch: process.arch,
+    siteUrl: NXT5_SITE_URL,
+    ...store.snapshot(),
+    ...(store.loadWarning ? { warning: store.loadWarning } : {}),
+  }),
+  async "get-client-status"() {
+    try {
+      const lockfile = await readLeagueLockfile(
+        store.snapshot().settings.leaguePath,
+      );
+      await lcuRequest(lockfile, "/riotclient/region-locale", {
+        timeoutMs: 3000,
+        maxBytes: 100000,
+      });
+      return { connected: true, message: "Client League of Legends détecté." };
+    } catch (error) {
+      return { connected: false, message: error.message };
     }
-  } catch (err) {
-    riotError = err;
-  }
-
-  if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
-    if (!numericOnly) {
-      throw riotError || new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
+  },
+  async "choose-league-path"() {
+    const choice = await dialog.showMessageBox(mainWindow, {
+      type: "question",
+      title: "Localiser League of Legends",
+      message: "Sélectionnez le dossier du jeu ou son fichier lockfile.",
+      detail:
+        "Le lockfile est créé dans le dossier du jeu lorsque le client est ouvert.",
+      buttons: ["Choisir un dossier", "Choisir le lockfile", "Annuler"],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+    });
+    if (choice.response === 2) return { canceled: true };
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title:
+        choice.response === 0
+          ? "Dossier League of Legends"
+          : "Fichier lockfile de League of Legends",
+      properties:
+        choice.response === 0
+          ? ["openDirectory", "treatPackageAsDirectory"]
+          : ["openFile", "showHiddenFiles"],
+    });
+    if (result.canceled || !result.filePaths[0]) return { canceled: true };
+    const leaguePath = result.filePaths[0];
+    if (choice.response === 1 && path.basename(leaguePath) !== "lockfile")
+      throw new Error(
+        "Sélectionnez le fichier nommé lockfile dans le dossier League of Legends.",
+      );
+    await store.saveSettings({ leaguePath });
+    return { canceled: false, leaguePath };
+  },
+  "save-settings": (settings) => {
+    // Paths are only granted by the native chooser; the renderer may reset one.
+    if (settings?.leaguePath !== undefined && settings.leaguePath !== "")
+      throw new Error(
+        "Utilisez le sélecteur de dossier pour localiser League of Legends.",
+      );
+    return store.saveSettings(settings);
+  },
+  "cancel-import": () => importer.cancel(),
+  "check-update": checkImporterUpdate,
+  async "show-export"(id) {
+    const entry = store.snapshot().history.find((item) => item.id === id);
+    if (!entry) return false;
+    try {
+      if (!(await fs.stat(entry.filePath)).isFile()) return false;
+      shell.showItemInFolder(entry.filePath);
+      return true;
+    } catch {
+      return false;
     }
-    const localMatch = await fetchLocalClientMatch(extractedInput, gameId);
-    const localTimeline = await fetchLocalClientTimeline(extractedInput);
-    exported = { match: localMatch, timeline: localTimeline, source: 'nxt5-lcu-importer' };
-  }
-
-  if (!exported?.match?.info?.participants || !exported?.match?.info?.teams) {
-    throw new Error('NXT5 a repondu, mais le JSON Riot est incomplet. Reessaie dans quelques instants.');
-  }
-
-  const timeline = normalizeTimelinePayload(exported.timeline);
-  if (timeline) exported.match.timeline = timeline;
-  const timelineSummary = buildTimelineSummary(exported.match, timeline);
-
-  const actualGameId = canonicalMatchId(exported.match, exported.gameId || gameId);
-  const actualPlatform = actualGameId.split('_')[0] || platform;
-  const payload = {
-    source: 'nxt5-match-exporter',
-    version: 5,
-    gameId: actualGameId,
-    platform: actualPlatform,
-    requestedGameId: gameId,
-    exportedAt: new Date().toISOString(),
-    importerSource: exported.source || 'riot-match-v5',
-    match: exported.match,
-    timeline,
-    nxt5: {
-      importer: APP_NAME,
-      timelineSummary
-    }
-  };
-
-  const { canceled, filePath } = await dialog.showSaveDialog({
-    title: 'Enregistrer le JSON NXT5',
-    defaultPath: `nxt5-${actualGameId}.json`,
-    filters: [{ name: 'NXT5 JSON', extensions: ['json'] }]
+  },
+  async "open-external"(url) {
+    const target = safeExternalUrl(url, NXT5_SITE_URL);
+    if (!target) return false;
+    await shell.openExternal(target);
+    return true;
+  },
+};
+for (const [channel, handler] of Object.entries(handlers))
+  ipcMain.handle(channel, (event, value) => {
+    assertTrustedIpcSender(event);
+    return handler(value);
   });
-  if (canceled || !filePath) return { canceled: true };
-
-  await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
-  return { canceled: false, filePath, gameId: actualGameId };
-});
-
-ipcMain.handle('check-update', async (event) => {
+ipcMain.handle("generate-import", (event, form) => {
   assertTrustedIpcSender(event);
-  return checkImporterUpdate();
-});
-ipcMain.handle('open-external', async (event, url) => {
-  assertTrustedIpcSender(event);
-  const target = safeExternalUrl(url);
-  if (!target) return false;
-  await shell.openExternal(target);
-  return true;
+  return importer.generate(form, (progress) => {
+    if (!event.sender.isDestroyed())
+      event.sender.send("import-progress", progress);
+  });
 });
 
 app.setName(APP_NAME);
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
+const singleInstance = app.requestSingleInstanceLock();
+if (!singleInstance) app.quit();
+else {
+  app.on("second-instance", () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+  app.whenReady().then(async () => {
+    store = new StateStore(
+      path.join(app.getPath("userData"), "preferences.json"),
+    );
+    await store.load();
+    createWindow();
+  });
+  app.on("window-all-closed", () => {
+    if (process.platform !== "darwin") app.quit();
+  });
+  app.on("activate", () => {
+    if (store && BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+  app.on("before-quit", () => importer.cancel());
+}

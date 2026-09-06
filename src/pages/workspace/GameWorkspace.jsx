@@ -3,7 +3,7 @@ import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js"
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, SelectInput, TextInput } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, ArrowRight, Pencil, Settings, CalendarDays, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight } from "lucide-react";
 import { apiFetch, apiUploadJson } from "../../api/client.js";
-import { NXT5_IMPORTER_MAC_URL, NXT5_IMPORTER_WINDOWS_URL } from "../../app/constants.jsx";
+import { NXT5_IMPORTER_MAC_URL, NXT5_IMPORTER_MAC_INTEL_URL, NXT5_IMPORTER_WINDOWS_URL } from "../../app/constants.jsx";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName, matchHasCategory } from "../../utils/matches.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
@@ -547,7 +547,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
             <div className="border-b border-cyan-200/10 bg-cyan-400/[0.045] p-5 md:p-6 xl:border-b-0 xl:border-r">
               <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">NXT5 Importer</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "JSON chargé" : "Prêt"}</Badge></div>
               <h3 className="mt-4 text-2xl font-black text-white">Importer sans friction</h3>
-              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Lance l’app locale sur le PC où le client League possède la partie, génère le JSON, puis finalise ici le side, les profils et les catégories.</p>
+              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Lance l’app sur l’ordinateur où le client League possède la partie, génère le JSON, puis finalise ici le side, les profils et les catégories.</p>
               <div className="mt-5 grid gap-2">
                 {importFlowSteps.map(([Icon, title, text, done], index) => <div key={title} className={cx("flex gap-3 rounded-2xl border p-3", done ? "border-cyan-200/20 bg-cyan-300/[0.08]" : "border-white/10 bg-black/22")}>
                   <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", done ? "border-cyan-200/35 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300")}><Icon className="h-4 w-4" /></span>
@@ -560,11 +560,12 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                 <div className="min-w-0">
                   <p className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-cyan-100">Action rapide</p>
                   <h4 className="mt-2 text-xl font-black text-white">Télécharger ou importer le JSON</h4>
-                  <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Les boutons restent au premier niveau pour que le coach puisse importer une game juste après la fin du scrim.</p>
+                  <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Télécharge la dernière version pour ton ordinateur, ou charge le JSON d’une partie déjà exportée.</p>
                 </div>
                 <div className="flex flex-wrap gap-2 lg:justify-end">
                   <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a>
-                  <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac</a>
+                  <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac Apple Silicon</a>
+                  <a href={NXT5_IMPORTER_MAC_INTEL_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac Intel</a>
                   <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]", fileImporting ? "pointer-events-none opacity-60" : "")}>
                     {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
                     <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />

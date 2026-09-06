@@ -11,11 +11,11 @@ import {
   Users,
 } from "lucide-react";
 
-const NXT5_IMPORTER_VERSION = "0.2.11";
-const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
+const NXT5_IMPORTER_DOWNLOAD_URL = "/.netlify/functions/importer-download";
 
-export const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Windows-${NXT5_IMPORTER_VERSION}.exe`;
-export const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Mac-arm64-${NXT5_IMPORTER_VERSION}.zip`;
+export const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=windows&arch=x64`;
+export const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac&arch=arm64`;
+export const NXT5_IMPORTER_MAC_INTEL_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac&arch=x64`;
 
 export const NAV = [
   { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
