@@ -240,7 +240,7 @@ async function runSmoke() {
     await test('minimum window has no horizontal overflow', async () => {
       try {
         await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(820, 620));
-        await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(820);
+        await expect.poll(() => application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getSize()[0])).toBe(820);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
         await page.screenshot({ path: path.join(runDir, 'empty-export-minimum.png') });
       } finally { await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1180, 800)); }
