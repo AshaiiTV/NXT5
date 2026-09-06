@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
     name: "nxt5-public-site-metadata",
     transformIndexHtml(html) { return html.replaceAll("%PUBLIC_SITE_URL%", publicSiteUrl); },
   }],
+  test: { include: ["src/**/*.test.{js,jsx,ts,tsx}"] },
   build: {
     rollupOptions: {
       output: {

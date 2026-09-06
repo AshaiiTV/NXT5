@@ -1,116 +1,515 @@
 <!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'" />
-  <title>NXT5 Importer</title>
-  <link rel="stylesheet" href="./styles.css" />
-</head>
-<body>
-  <main class="shell">
-    <header class="top-rail">
-      <div class="rail-brand">
-        <img src="../assets/nxt5-mark.png" alt="" />
-        <span>NXT5 Importer</span>
-      </div>
-      <div class="rail-status">
-        <span id="railVersion">v...</span>
-        <span>Local Match Export</span>
-      </div>
-    </header>
-
-    <section class="hero">
-      <div class="brand-card">
-        <img src="../assets/nxt5-mark.png" alt="NXT5" />
-      </div>
-      <div class="hero-copy">
-        <img class="wordmark" src="../assets/nxt5-wordmark.png" alt="NXT5" />
-        <p class="eyebrow">Match data extractor</p>
-        <h1>Exporter une game LoL</h1>
-        <p class="lead">Genere un fichier NXT5 propre depuis le client League of Legends: joueurs, champions, builds, sorts, objectifs, vision et timeline.</p>
-        <div class="hero-chips" aria-label="Donnees exportees">
-          <span>Builds</span>
-          <span>Summoners</span>
-          <span>Objectifs</span>
-          <span>Vision</span>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="color-scheme" content="dark" />
+    <title>NXT5 Importer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <svg
+      class="icon-defs"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <symbol id="i-export" viewBox="0 0 24 24">
+          <path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5" />
+        </symbol>
+        <symbol id="i-history" viewBox="0 0 24 24">
+          <path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7m2-5v6l4 2" />
+        </symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24">
+          <path d="M4 7h16M4 17h16" />
+          <circle cx="9" cy="7" r="3" />
+          <circle cx="15" cy="17" r="3" />
+        </symbol>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14m-6-6 6 6-6 6" />
+        </symbol>
+        <symbol id="i-external" viewBox="0 0 24 24">
+          <path d="M14 4h6v6m0-6L10 14M9 5H4v15h15v-5" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6" />
+        </symbol>
+        <symbol id="i-refresh" viewBox="0 0 24 24">
+          <path
+            d="M20 7v5h-5M4 17v-5h5M5.1 8a8 8 0 0 1 13-3L20 8M4 16l1.9 3a8 8 0 0 0 13-3"
+          />
+        </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24">
+          <path d="M3 7V4h6l3 3h9v13H3Zm0 3h18" />
+        </symbol>
+        <symbol id="i-file" viewBox="0 0 24 24">
+          <path d="M14 3H5v18h14V8Zm0 0v5h5M9 13h6m-6 4h6" />
+        </symbol>
+        <symbol id="i-info" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v6m0-10v1" />
+        </symbol>
+        <symbol id="i-search" viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 5 5" />
+        </symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z" />
+          <path d="m8 12 3 3 5-6" />
+        </symbol>
+      </defs>
+    </svg>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <a
+          class="brand"
+          href="#"
+          id="brandHome"
+          aria-label="NXT5 Importer, accueil"
+          ><img src="../assets/nxt5-mark.png" alt="" /><span
+            >NXT<span class="brand-five">5</span><small>IMPORTER</small></span
+          ></a
+        >
+        <div class="workspace-label">ESPACE LOCAL</div>
+        <nav class="nav" aria-label="Navigation principale">
+          <button
+            class="nav-item active"
+            id="exportTab"
+            data-view="export"
+            aria-current="page"
+          >
+            <svg><use href="#i-export" /></svg><span>Exporter une game</span>
+          </button>
+          <button class="nav-item" id="historyTab" data-view="history">
+            <svg><use href="#i-history" /></svg><span>Exports récents</span
+            ><span class="nav-count" id="historyCount">0</span>
+          </button>
+          <button class="nav-item" id="settingsTab" data-view="settings">
+            <svg><use href="#i-settings" /></svg><span>Paramètres</span>
+          </button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="local-note">
+            <svg><use href="#i-shield" /></svg>
+            <div>
+              Vos fichiers, chez vous.<small
+                >Exports enregistrés sur cet appareil.</small
+              >
+            </div>
+          </div>
+          <button class="site-link" data-open-site>
+            Ouvrir NXT5 <svg><use href="#i-external" /></svg>
+          </button>
+          <div class="sidebar-meta">
+            <span id="railVersion">Chargement…</span><span>DESKTOP APP</span>
+          </div>
         </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <div class="breadcrumb">
+            Importer <span>/</span> <strong id="viewName">Nouvel export</strong>
+          </div>
+          <div
+            class="client-indicator"
+            id="clientIndicator"
+            data-state="checking"
+          >
+            <span class="status-dot"></span
+            ><span id="clientLabel">Recherche du client…</span
+            ><button
+              class="icon-button"
+              id="refreshClient"
+              aria-label="Vérifier la connexion au client LoL"
+              title="Vérifier le client"
+            >
+              <svg><use href="#i-refresh" /></svg>
+            </button>
+          </div>
+        </header>
+        <main class="content">
+          <div id="globalNotice" class="notice" role="status" hidden></div>
+          <section id="update" class="update-banner" hidden>
+            <div>
+              <strong>Une nouvelle version est disponible</strong>
+              <p id="updateText"></p>
+            </div>
+            <button id="updateLink" class="button compact">
+              Télécharger <svg><use href="#i-external" /></svg>
+            </button>
+          </section>
+          <section id="exportView" class="view" aria-labelledby="exportHeading">
+            <div class="page-heading">
+              <p class="eyebrow"><span></span> DU MATCH À L’ANALYSE</p>
+              <h1 id="exportHeading" tabindex="-1">
+                La prochaine étape de votre game.
+              </h1>
+              <p>
+                Retrouvez les données du match dans un fichier prêt pour NXT5.
+              </p>
+            </div>
+            <div class="export-layout">
+              <div class="export-column">
+                <form id="form" class="card export-card" novalidate>
+                  <div class="card-title">
+                    <span class="icon-tile"
+                      ><svg><use href="#i-export" /></svg
+                    ></span>
+                    <div>
+                      <h2>Nouvel export</h2>
+                      <p>Un identifiant. Toutes les données disponibles.</p>
+                    </div>
+                    <span class="format-badge">.JSON</span>
+                  </div>
+                  <label for="gameId"
+                    >Identifiant de la game
+                    <span class="label-optional">Game ID</span></label
+                  >
+                  <input
+                    id="gameId"
+                    name="gameId"
+                    type="text"
+                    placeholder="Ex. EUW1_7861632138"
+                    maxlength="300"
+                    autocomplete="off"
+                    spellcheck="false"
+                    required
+                    aria-describedby="gameIdHint gameIdError"
+                  />
+                  <p id="gameIdHint" class="field-hint">
+                    Collez un ID complet ou le numéro copié dans le client LoL.
+                  </p>
+                  <p id="gameIdError" class="field-error" hidden></p>
+                  <div class="region-row">
+                    <div>
+                      <label for="platform">Région du match</label
+                      ><select id="platform" name="platform">
+                        <option value="EUW1">Europe Ouest · EUW</option>
+                        <option value="EUN1">Europe Nord & Est · EUNE</option>
+                        <option value="NA1">Amérique du Nord · NA</option>
+                        <option value="KR">Corée · KR</option>
+                        <option value="BR1">Brésil · BR</option>
+                        <option value="LA1">Amérique latine Nord · LAN</option>
+                        <option value="LA2">Amérique latine Sud · LAS</option>
+                        <option value="OC1">Océanie · OCE</option>
+                        <option value="TR1">Turquie · TR</option>
+                        <option value="RU">Russie · RU</option>
+                        <option value="JP1">Japon · JP</option>
+                        <option value="SG2">Singapour · SG</option>
+                        <option value="TW2">Taïwan · TW</option>
+                        <option value="VN2">Vietnam · VN</option>
+                        <option value="PH2">Philippines · PH</option>
+                        <option value="TH2">Thaïlande · TH</option>
+                        <option value="ME1">Moyen-Orient · ME</option>
+                      </select>
+                    </div>
+                    <p>
+                      La région d’un ID complet est reconnue automatiquement.
+                    </p>
+                  </div>
+                  <div class="form-actions">
+                    <button id="submit" class="button primary" type="submit">
+                      <span>Exporter la game</span
+                      ><svg><use href="#i-arrow" /></svg></button
+                    ><span class="keyboard-hint" id="exportShortcut"
+                      >Ctrl ↵</span
+                    >
+                  </div>
+                  <p class="export-caption">
+                    <svg><use href="#i-shield" /></svg> Aucune clé Riot à
+                    saisir. Vous choisissez où enregistrer le fichier.
+                  </p>
+                </form>
+                <section
+                  class="card progress-card"
+                  id="progressPanel"
+                  aria-labelledby="progressHeading"
+                  hidden
+                >
+                  <div class="section-title">
+                    <h2 id="progressHeading">Préparation de votre export</h2>
+                    <button id="cancelImport" class="text-button">
+                      Annuler
+                    </button>
+                  </div>
+                  <ol class="progress-steps" id="progressSteps">
+                    <li data-stage="fetch"><span>1</span>Match</li>
+                    <li data-stage="timeline"><span>2</span>Timeline</li>
+                    <li data-stage="save"><span>3</span>Fichier</li>
+                    <li data-stage="complete"><span>4</span>Terminé</li>
+                  </ol>
+                  <p id="progressMessage" role="status" aria-live="polite">
+                    Vérification de l’identifiant…
+                  </p>
+                  <p class="field-hint" id="progressTime"></p>
+                </section>
+                <section
+                  id="resultPanel"
+                  class="card result-card"
+                  aria-labelledby="resultHeading"
+                  hidden
+                >
+                  <div class="result-header">
+                    <span class="success-icon"
+                      ><svg><use href="#i-check" /></svg
+                    ></span>
+                    <div>
+                      <p class="eyebrow">EXPORT ENREGISTRÉ</p>
+                      <h2 id="resultHeading">Votre game est prête.</h2>
+                    </div>
+                  </div>
+                  <strong class="match-id" id="resultGameId"></strong>
+                  <div class="result-facts" id="resultFacts"></div>
+                  <p id="resultWarning" class="warning-text" hidden></p>
+                  <p class="file-path" id="resultPath"></p>
+                  <div class="result-actions">
+                    <button class="button compact" id="revealFile">
+                      <svg><use href="#i-folder" /></svg>Voir le fichier</button
+                    ><button class="text-button" data-open-site>
+                      Ouvrir NXT5 <svg><use href="#i-external" /></svg>
+                    </button>
+                  </div>
+                  <p class="field-hint">
+                    Dans NXT5 : Intégration → Importer un fichier NXT5 local.
+                  </p>
+                </section>
+                <div
+                  id="status"
+                  class="notice"
+                  role="status"
+                  aria-live="polite"
+                  hidden
+                ></div>
+                <div class="last-export" id="lastExport" hidden>
+                  <svg><use href="#i-history" /></svg>
+                  <div>
+                    <span>Dernier export</span
+                    ><strong id="lastExportId"></strong>
+                  </div>
+                  <button class="text-button" id="viewHistory">
+                    Voir l’historique <svg><use href="#i-arrow" /></svg>
+                  </button>
+                </div>
+              </div>
+              <aside class="guide-column" aria-label="Guide d’export">
+                <section class="guide-card">
+                  <p class="eyebrow muted">COMMENT ÇA MARCHE</p>
+                  <ol class="guide-steps">
+                    <li>
+                      <span class="step-number">01</span>
+                      <div>
+                        <h3>Retrouvez votre game</h3>
+                        <p>
+                          Copiez son identifiant depuis l’historique du client
+                          League of Legends.
+                        </p>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="step-number">02</span>
+                      <div>
+                        <h3>Enregistrez votre export</h3>
+                        <p>
+                          L’application récupère le match et sa timeline
+                          lorsqu’elle est disponible.
+                        </p>
+                      </div>
+                    </li>
+                    <li>
+                      <span class="step-number">03</span>
+                      <div>
+                        <h3>Passez à l’analyse</h3>
+                        <p>
+                          Ajoutez le fichier dans
+                          <strong>Intégration</strong> sur NXT5 et assignez vos
+                          joueurs.
+                        </p>
+                      </div>
+                    </li>
+                  </ol>
+                </section>
+                <section class="data-card">
+                  <div class="section-title">
+                    <h3>Dans votre fichier</h3>
+                    <span class="tiny-label">FORMAT NXT5</span>
+                  </div>
+                  <ul class="data-list">
+                    <li>
+                      <svg><use href="#i-check" /></svg>Joueurs, champions &
+                      statistiques
+                    </li>
+                    <li>
+                      <svg><use href="#i-check" /></svg>Objets & sorts
+                      d’invocateur
+                    </li>
+                    <li>
+                      <svg><use href="#i-check" /></svg>Équipes, objectifs &
+                      résultat
+                    </li>
+                    <li>
+                      <svg><use href="#i-check" /></svg>Timeline & vision
+                      <span>si disponibles</span>
+                    </li>
+                  </ul>
+                </section>
+                <details class="help-card" id="clientHelp">
+                  <summary>
+                    <svg><use href="#i-info" /></svg>Le client LoL est
+                    introuvable ?
+                  </summary>
+                  <p>
+                    Ouvrez League of Legends et son historique. L’export via
+                    NXT5 peut aussi fonctionner sans client local.
+                  </p>
+                  <p>
+                    Pour une installation sur un autre disque, indiquez le
+                    dossier League of Legends dans les paramètres.
+                  </p>
+                  <button class="text-button" id="openClientSettings">
+                    Configurer le client <svg><use href="#i-arrow" /></svg>
+                  </button>
+                </details>
+              </aside>
+            </div>
+          </section>
+          <section
+            id="historyView"
+            class="view"
+            aria-labelledby="historyHeading"
+            hidden
+          >
+            <div class="page-heading">
+              <p class="eyebrow"><span></span> VOTRE ACTIVITÉ</p>
+              <h1 id="historyHeading" tabindex="-1">Exports récents</h1>
+              <p>Retrouvez vos fichiers et reprenez une game en un clic.</p>
+            </div>
+            <div class="card history-card">
+              <div class="history-toolbar">
+                <h2>
+                  Sur cet appareil
+                  <span id="historyTotal" class="count-label">0</span>
+                </h2>
+                <div class="search-field">
+                  <svg><use href="#i-search" /></svg
+                  ><input
+                    type="search"
+                    id="historySearch"
+                    placeholder="Rechercher un Game ID"
+                    aria-label="Rechercher dans les exports"
+                  />
+                </div>
+              </div>
+              <div id="historyList"></div>
+              <div class="empty-state" id="historyEmpty">
+                <span class="empty-icon"
+                  ><svg><use href="#i-folder" /></svg
+                ></span>
+                <h3>Aucune game exportée pour le moment</h3>
+                <p>
+                  Vos prochains fichiers apparaîtront ici après leur
+                  enregistrement.
+                </p>
+                <button class="button compact" id="firstExport">
+                  Exporter ma première game <svg><use href="#i-arrow" /></svg>
+                </button>
+              </div>
+              <p class="history-footnote">
+                Les 30 derniers exports sont conservés ici. Les fichiers restent
+                à l’emplacement que vous avez choisi.
+              </p>
+            </div>
+          </section>
+          <section
+            id="settingsView"
+            class="view"
+            aria-labelledby="settingsHeading"
+            hidden
+          >
+            <div class="page-heading">
+              <p class="eyebrow"><span></span> À VOTRE MESURE</p>
+              <h1 id="settingsHeading" tabindex="-1">Paramètres</h1>
+              <p>
+                Gardez votre application et votre connexion au client à jour.
+              </p>
+            </div>
+            <div class="settings-stack">
+              <section class="card settings-card">
+                <div class="settings-title">
+                  <span class="icon-tile"
+                    ><svg><use href="#i-folder" /></svg
+                  ></span>
+                  <div>
+                    <h2>Client League of Legends</h2>
+                    <p>Détection automatique des installations habituelles.</p>
+                  </div>
+                </div>
+                <label for="leaguePath">Emplacement personnalisé</label
+                ><output id="leaguePath">Détection automatique</output>
+                <div class="settings-actions">
+                  <button id="chooseLeaguePath" class="button compact">
+                    Choisir le dossier
+                    <svg><use href="#i-folder" /></svg></button
+                  ><button id="resetLeaguePath" class="text-button" hidden>
+                    Rétablir la détection automatique
+                  </button>
+                </div>
+                <p class="field-hint">
+                  Si League est installé ailleurs, sélectionnez son dossier ou
+                  son fichier « lockfile ».
+                </p>
+              </section>
+              <section class="card settings-card">
+                <div class="settings-title">
+                  <span class="icon-tile"
+                    ><svg><use href="#i-refresh" /></svg
+                  ></span>
+                  <div>
+                    <h2>Version & mises à jour</h2>
+                    <p>Le téléchargement correspond à votre système.</p>
+                  </div>
+                  <span class="version-pill" id="currentVersion">…</span>
+                </div>
+                <div class="update-settings-row">
+                  <div>
+                    <strong id="latestVersion"
+                      >Vérification des mises à jour…</strong
+                    >
+                    <p id="systemInfo" class="field-hint"></p>
+                  </div>
+                  <button id="manualUpdateButton" class="button compact">
+                    Vérifier les mises à jour
+                  </button>
+                </div>
+                <p id="updateStatus" class="field-hint" role="status"></p>
+              </section>
+              <section class="privacy-note">
+                <svg><use href="#i-shield" /></svg>
+                <div>
+                  <h3>Des données sous votre contrôle</h3>
+                  <p>
+                    Les préférences et l’historique des exports sont enregistrés
+                    sur cet appareil. La récupération d’un match peut contacter
+                    NXT5 et les services Riot. L’envoi du fichier à votre équipe
+                    se fait ensuite dans NXT5.
+                  </p>
+                </div>
+              </section>
+            </div>
+            <div id="settingsStatus" class="notice" role="status" hidden></div>
+          </section>
+          <footer class="footer">
+            <span
+              >NXT5 <span class="footer-divider">/</span> Chaque game fait
+              progresser.</span
+            ><span>League of Legends · Match importer</span>
+          </footer>
+        </main>
       </div>
-    </section>
-
-    <section id="update" class="update-card" hidden>
-      <div>
-        <p class="update-kicker">Mise a jour disponible</p>
-        <h2>Nouvelle version NXT5 Importer</h2>
-        <p id="updateText">Telecharge la derniere version pour garder toutes les features d'import.</p>
-      </div>
-      <a id="updateLink" href="#" target="_blank" rel="noreferrer">Telecharger</a>
-    </section>
-
-    <nav class="tabs" aria-label="Navigation importer">
-      <button id="exportTab" type="button" class="tab active">Export</button>
-      <button id="settingsTab" type="button" class="tab">Parametres</button>
-    </nav>
-
-    <form id="form" class="panel tab-panel active export-panel" data-panel="export">
-      <div class="panel-head">
-        <div>
-          <p class="eyebrow">Export local</p>
-          <h2>Capture de game</h2>
-          <p class="lead small">Le client LoL doit etre installe sur ce PC et la partie doit etre visible dans l'historique.</p>
-        </div>
-        <div class="signal-card">
-          <span>Mode</span>
-          <strong>JSON NXT5</strong>
-          <small>pret pour Integration</small>
-        </div>
-      </div>
-
-      <div class="game-grid">
-        <label class="field-large">
-          <span>Game ID</span>
-          <input id="gameId" name="gameId" placeholder="7861632138 ou EUW1_7861632138" autocomplete="off" required />
-        </label>
-        <label>
-          <span>Region</span>
-          <select id="platform" name="platform">
-            <option value="EUW1">EUW</option>
-            <option value="EUN1">EUNE</option>
-            <option value="NA1">NA</option>
-            <option value="KR">KR</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="protocol">
-        <div><b>1</b><span>Copie le Game ID dans le client LoL</span></div>
-        <div><b>2</b><span>Genere le fichier local NXT5</span></div>
-        <div><b>3</b><span>Importe le JSON dans Integration</span></div>
-      </div>
-
-      <button id="submit" type="submit">Generer le fichier NXT5</button>
-      <p class="hint">Le fichier sera ensuite assigne dans NXT5: side, lanes, profils allies et adversaires.</p>
-    </form>
-
-    <section id="settingsPanel" class="panel tab-panel settings-panel" data-panel="settings" hidden>
-      <div class="settings-grid">
-        <div>
-          <p class="eyebrow">Application</p>
-          <h2>Parametres</h2>
-          <p class="lead small">Controle ta version de NXT5 Importer et telecharge la derniere version quand une mise a jour est disponible.</p>
-        </div>
-        <div class="version-card">
-          <span>Version installee</span>
-          <strong id="currentVersion">Verification...</strong>
-          <small id="latestVersion">Derniere version : verification...</small>
-        </div>
-      </div>
-      <button id="manualUpdateButton" type="button">Verifier les mises a jour</button>
-    </section>
-
-    <div id="status" class="status" hidden></div>
-  </main>
-
-  <script src="./renderer.js"></script>
-</body>
+    </div>
+    <script src="./renderer.js"></script>
+  </body>
 </html>

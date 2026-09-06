@@ -87,23 +87,32 @@ NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot.
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient une vraie application desktop NXT5 Importer qui génère un JSON complet depuis un Game ID.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.0** pour Windows, Mac Intel et Mac Apple Silicon.
 
-À chaque push qui modifie `importer-app`, GitHub Actions lance `Build NXT5 Importer` et génère les fichiers Windows et Mac :
+1. Lancez le `.exe` Windows ou ouvrez `NXT5 Importer.app` après extraction du zip Mac adapté à votre processeur.
+2. Collez le numéro de game ou un ID complet comme `EUW1_7861632138`. Vérifiez la région.
+3. Cliquez sur **Exporter la game**, suivez la progression et choisissez l’emplacement du fichier.
+4. Dans NXT5, ouvrez **Intégration → Importer un fichier NXT5 local** pour ajouter le JSON à votre équipe.
 
-```txt
-NXT5-Importer-Windows-0.1.2.exe
-NXT5-Importer-Mac-x64-0.1.2.zip
-NXT5-Importer-Mac-arm64-0.1.2.zip
+L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvrez le client et son historique. Si le jeu est installé ailleurs, choisissez son dossier dans **Paramètres**. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
+
+Les 30 derniers exports sont accessibles dans **Exports récents** : recherche, affichage dans Finder/Explorateur et réexport. Le récapitulatif précise la présence de la timeline ; son absence n’empêche pas l’export du match. Les fichiers sont enregistrés atomiquement et restent sur cet appareil jusqu’à leur import manuel dans NXT5. L’application nécessite un match de deux équipes de cinq joueurs, conformément au format du site.
+
+Raccourcis : `Ctrl/⌘ + Entrée` pour exporter, `Ctrl/⌘ + 1`, `2`, `3` pour changer de vue.
+
+Les mises à jour sont proposées pour l’architecture de l’appareil. Les liens du site suivent la dernière version publiée ; une version demandée explicitement n’est jamais remplacée par une autre.
+
+À chaque pull request touchant `importer-app`, GitHub Actions exécute les tests puis compile les trois applications. La publication de la release est réservée à `main`, après réussite des tests web et des builds desktop.
+
+```sh
+cd importer-app
+pnpm install --frozen-lockfile
+pnpm test
+pnpm start
+# Packaging : pnpm dist:win / pnpm dist:mac / pnpm dist:mac:arm
 ```
 
-L'utilisation est simple :
-
-1. Sur Mac, ouvre `Ouvrir NXT5 Importer.command` dans le zip. Sur Windows, lance le `.exe`.
-2. Colle le Game ID, exemple `7861632138`, ou le code brut copié depuis l’historique du client LoL, puis choisis la région.
-3. Ajoute un nom d'import ou un adversaire si besoin.
-4. Clique sur `Générer le JSON complet`.
-5. Dans NXT5, va dans `Intégration` puis `Importer un fichier NXT5 local`.
+Voir [les changements 0.3.0](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
 
 ## Important
 
