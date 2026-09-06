@@ -64,6 +64,7 @@ function showView(view, focus = false) {
   };
   if (!names[view]) return;
   activeView = view;
+  window.scrollTo({ top: 0, behavior: "instant" });
   for (const name of Object.keys(names)) {
     $(`#${name}View`).hidden = name !== view;
     const button = $(`#${name}Tab`);
@@ -369,6 +370,8 @@ form.addEventListener("submit", async (event) => {
   $("#resultPanel").hidden = true;
   $("#progressPanel").hidden = false;
   resultHistoryId = "";
+  $("#cancelImport").focus({ preventScroll: true });
+  $("#progressPanel").scrollIntoView({ block: "nearest", behavior: "instant" });
   renderProgress({
     stage: "validate",
     message: "Vérification de l’identifiant…",
@@ -412,6 +415,13 @@ form.addEventListener("submit", async (event) => {
     clearInterval(progressTimer);
     $("#progressPanel").hidden = true;
     setGenerating(false);
+    if (activeView === "export") {
+      const resultPanel = $("#resultPanel");
+      const feedback = resultPanel.hidden ? $("#status") : resultPanel;
+      if (!resultPanel.hidden) $("#resultHeading").focus({ preventScroll: true });
+      else gameInput.focus({ preventScroll: true });
+      if (!feedback.hidden) feedback.scrollIntoView({ block: "nearest", behavior: "instant" });
+    }
     if (activeView !== "export" && $("#status").textContent) {
       notice(
         "#globalNotice",

@@ -237,11 +237,12 @@ async function runSmoke() {
       assert.deepEqual(await page.evaluate(() => [typeof window.require, typeof window.process]), ['undefined', 'undefined']);
       await page.screenshot({ path: path.join(runDir, 'empty-export-desktop.png') });
     });
-    await test('minimum window has no horizontal overflow', async () => {
+    await test('minimum window keeps the export action visible without horizontal overflow', async () => {
       try {
         await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(820, 620));
         await expect.poll(() => application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].getSize()[0])).toBe(820);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+        await expect(page.locator('#submit')).toBeInViewport({ ratio: 1 });
         await page.screenshot({ path: path.join(runDir, 'empty-export-minimum.png') });
       } finally { await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1180, 800)); }
     });
@@ -253,8 +254,17 @@ async function runSmoke() {
       assert.equal((await application.evaluate(() => globalThis.__NXT5_SMOKE.calls.filter((url) => url.includes('riot-match-export')))).length, 0);
     });
     await test('remote export saves one timeline and correct milestones', async () => {
-      await mode('success'); await clickExport();
-      await expect(page.locator('#resultPanel')).toBeVisible();
+      try {
+        await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(820, 620));
+        await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(820);
+        await mode('success'); await clickExport();
+        await expect(page.locator('#resultPanel')).toBeVisible();
+        // Visibility alone allows offscreen panels. Verify the outcome and file action
+        // are actually on screen after export, without a test-driven scroll or click.
+        await expect(page.locator('#resultPanel')).toBeInViewport({ ratio: 1 });
+        await expect(page.locator('#revealFile')).toBeInViewport({ ratio: 1 });
+        await page.screenshot({ path: path.join(runDir, 'fixture-result-minimum.png') });
+      } finally { await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1180, 800)); }
       const saved = await readExport('success');
       assert.equal(saved.gameId, gameId);
       assert.equal(saved.match.info.participants.length, 10);
@@ -303,15 +313,25 @@ async function runSmoke() {
       await assert.rejects(fs.access(path.join(runDir, 'export-dialog-cancel.json')), { code: 'ENOENT' });
     });
     await test('active cancellation, immediate retry and missing timeline', async () => {
-      await mode('delayed'); await clickExport();
-      await expect(page.locator('#cancelImport')).toBeEnabled();
-      await page.locator('#cancelImport').click();
-      await expect(page.locator('#status')).toContainText('Export annulé');
-      await expect(page.locator('#submit')).toBeEnabled();
-      await assert.rejects(fs.access(path.join(runDir, 'export-delayed.json')), { code: 'ENOENT' });
-      await mode('no-timeline'); await page.keyboard.press(`${modifier}+Enter`);
-      await expect(page.locator('#resultPanel')).toBeVisible();
-      await expect(page.locator('#resultWarning')).toContainText('Timeline indisponible');
+      try {
+        await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(820, 620));
+        await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(820);
+        await mode('delayed'); await clickExport();
+        await expect(page.locator('#cancelImport')).toBeEnabled();
+        // Check before clicking: Playwright would otherwise scroll to Annuler and
+        // conceal a regression where active progress starts below the viewport.
+        await expect(page.locator('#progressPanel')).toBeInViewport({ ratio: 1 });
+        await expect(page.locator('#cancelImport')).toBeInViewport({ ratio: 1 });
+        await page.screenshot({ path: path.join(runDir, 'fixture-progress-minimum.png') });
+        await page.locator('#cancelImport').click();
+        await expect(page.locator('#status')).toContainText('Export annulé');
+        await expect(page.locator('#submit')).toBeEnabled();
+        await assert.rejects(fs.access(path.join(runDir, 'export-delayed.json')), { code: 'ENOENT' });
+        await mode('no-timeline'); await page.keyboard.press(`${modifier}+Enter`);
+        await expect(page.locator('#resultPanel')).toBeVisible();
+        await expect(page.locator('#resultWarning')).toContainText('Timeline indisponible');
+        await expect(page.locator('#resultPanel')).toBeInViewport({ ratio: 1 });
+      } finally { await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1180, 800)); }
       const saved = await readExport('no-timeline');
       assert.equal(saved.timeline, null);
       assert.equal(saved.nxt5.timelineSummary.available, false);
@@ -358,7 +378,7 @@ async function runSmoke() {
     });
     await test('site action opens the integration page without external navigation', async () => {
       const state = await page.evaluate(() => window.nxt5.getAppState());
-      await page.locator('.sidebar [data-open-site]').click();
+      await page.locator('.header-actions [data-open-site]').click();
       assert.ok((await application.evaluate(() => globalThis.__NXT5_SMOKE.external)).includes(`${state.siteUrl}/integration`));
       assert.equal(await page.title(), 'NXT5 Importer');
     });
