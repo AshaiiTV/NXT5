@@ -1,15 +1,17 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import { resolveSeoConfig, withMetadata } from "./tools/seo-build.mjs";
+import { installPreviewRouting } from "./tools/preview-routing.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "PUBLIC_");
-  const siteUrl = new URL(process.env.PUBLIC_SITE_URL || env.PUBLIC_SITE_URL || process.env.URL || "https://nxt5.org");
-  if (!["https:", "http:"].includes(siteUrl.protocol) || siteUrl.username || siteUrl.password) throw new Error("PUBLIC_SITE_URL must be an HTTP(S) site URL.");
-  const publicSiteUrl = siteUrl.origin;
+  const seoConfig = resolveSeoConfig({ ...env, ...process.env });
   return {
+  define: { __PUBLIC_SITE_URL__: JSON.stringify(seoConfig.origin), __SEO_NOINDEX__: JSON.stringify(seoConfig.noindex) },
   plugins: [react(), {
     name: "nxt5-public-site-metadata",
-    transformIndexHtml(html) { return html.replaceAll("%PUBLIC_SITE_URL%", publicSiteUrl); },
+    transformIndexHtml(html, context) { return withMetadata(html, context.originalUrl || "/", seoConfig); },
+    configurePreviewServer(server) { installPreviewRouting(server, seoConfig.noindex); },
   }],
   build: {
     rollupOptions: {

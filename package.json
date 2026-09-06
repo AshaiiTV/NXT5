@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
-    "build": "vite build",
+    "build": "vite build && node tools/prerender.mjs",
     "test": "vitest run",
     "preview": "vite preview",
     "optimize:assets": "node tools/optimize-assets.mjs",

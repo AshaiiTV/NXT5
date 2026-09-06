@@ -7,6 +7,7 @@ import { isSafeInternalPath } from "../../app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
+import { MARKETING_PAGES } from "./marketing-content.js";
 function MarketingPreview() {
   const metrics = [
     [Upload, "Intégration", "Importer les games"],
@@ -91,6 +92,10 @@ function StatStrip() {
   );
 }
 
+function isPlainLinkClick(event) {
+  return !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
 function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
   const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0";
   const variants = {
@@ -99,7 +104,7 @@ function LinkButton({ href, children, icon: Icon, variant = "primary", className
   };
 
   function go(event) {
-    if (!navigate || !isSafeInternalPath(href)) return;
+    if (!navigate || !isPlainLinkClick(event) || !isSafeInternalPath(href)) return;
     event.preventDefault();
     navigate(href);
   }
@@ -109,7 +114,7 @@ function LinkButton({ href, children, icon: Icon, variant = "primary", className
 
 function SiteHeader({ children, navigate }) {
   function goHome(event) {
-    if (!navigate) return;
+    if (!navigate || !isPlainLinkClick(event)) return;
     event.preventDefault();
     navigate("/");
   }
@@ -124,6 +129,9 @@ function SiteHeader({ children, navigate }) {
 
 export function LegalLinks({ navigate }) {
   const links = [
+    ["/analyse-equipe-lol", "Analyse d’équipe LoL"],
+    ["/review-scrim-lol", "Review de scrim"],
+    ["/draft-champion-pool-lol", "Draft et champion pool"],
     ["/mentions-legales", "Mentions légales"],
     ["/confidentialite", "Confidentialité"],
     ["/cookies", "Cookies"],
@@ -302,6 +310,66 @@ export function LegalPage({ route, navigate, user }) {
   );
 }
 
+export function MarketingPage({ path, navigate }) {
+  const page = MARKETING_PAGES[path];
+  if (!page) return <NotFoundPage navigate={navigate} />;
+
+  return (
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <AmbientBackground />
+      <SiteHeader navigate={navigate}>
+        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
+        <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
+      </SiteHeader>
+      <main className="relative z-10 mx-auto max-w-5xl px-5 pb-12 pt-6">
+        <nav aria-label="Fil d’Ariane" className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-300">
+          <LinkButton href="/" navigate={navigate} variant="ghost" className="px-3 py-1.5">Accueil</LinkButton>
+          <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0" />
+          <span aria-current="page">{page.eyebrow}</span>
+        </nav>
+        <article>
+          <Surface glow className="p-6 md:p-9">
+            <Badge tone="cyan">{page.eyebrow}</Badge>
+            <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight tracking-tight text-white md:text-6xl">{page.heading}</h1>
+            <p className="mt-5 max-w-3xl text-lg font-medium leading-8 text-slate-200">{page.intro}</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <LinkButton href="/creer-un-compte" navigate={navigate} icon={Users}>Créer mon espace équipe</LinkButton>
+              <LinkButton href="/connexion" navigate={navigate} variant="ghost">Retrouver mon équipe</LinkButton>
+            </div>
+          </Surface>
+          <div className="mt-6 grid gap-5">
+            {page.sections.map(({ title, text, steps }) => (
+              <section key={title} className="nxt5-panel border border-cyan-200/12 bg-[#050914]/80 p-6 md:p-8">
+                <h2 className="text-2xl font-black leading-snug text-white md:text-3xl">{title}</h2>
+                <p className="mt-4 max-w-3xl text-base font-medium leading-8 text-slate-200">{text}</p>
+                {!!steps?.length && (
+                  <ol className="mt-5 max-w-3xl list-decimal space-y-3 pl-6 text-base font-medium leading-7 text-slate-200 marker:font-black marker:text-cyan-200">
+                    {steps.map((step) => <li key={step} className="pl-2">{step}</li>)}
+                  </ol>
+                )}
+              </section>
+            ))}
+          </div>
+        </article>
+        <section className="mt-10" aria-labelledby="related-guides-heading">
+          <h2 id="related-guides-heading" className="text-2xl font-black text-white">Poursuivre le travail avec ton équipe</h2>
+          <p className="mt-3 text-base leading-7 text-slate-300">Relie tes observations à une review, puis utilise ce retour pour préparer les prochaines compositions.</p>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {Object.entries(MARKETING_PAGES).filter(([href]) => href !== path).map(([href, related]) => (
+              <div key={href} className="nxt5-panel border border-white/12 bg-black/20 p-5">
+                <h3 className="text-lg font-black text-white"><LinkButton href={href} navigate={navigate} variant="ghost" icon={ArrowRight} className="justify-start text-left">{related.heading}</LinkButton></h3>
+                <p className="mt-3 text-sm font-medium leading-7 text-slate-300">{related.description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-7"><LinkButton href="/creer-un-compte" navigate={navigate} icon={UserPlus}>Commencer avec NXT5</LinkButton></div>
+        </section>
+      </main>
+      <LegalLinks navigate={navigate} />
+    </div>
+  );
+}
+
 export function HomeScreen({ navigate }) {
   return (
     <div className="relative min-h-screen overflow-hidden text-white">
@@ -315,12 +383,12 @@ export function HomeScreen({ navigate }) {
       <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
         <section className="grid min-h-[calc(100vh-104px)] items-start gap-7 py-4 lg:grid-cols-[.78fr_1.22fr] lg:py-6 xl:items-center">
           <div className="nxt5-enter">
-            <ResponsiveImage src="/assets/nxt5-logo.png" sources={[{ srcSet: "/assets/nxt5-logo-640.webp 640w, /assets/nxt5-logo-320.webp 320w" }]} alt="NXT5" width="1254" height="989" fetchPriority="high" decoding="async" className="mb-4 h-auto w-full max-w-[300px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)] sm:max-w-[340px] xl:max-w-[380px]" />
+            <ResponsiveImage src="/assets/nxt5-logo.png" sources={[{ srcSet: "/assets/nxt5-logo-320.webp 320w, /assets/nxt5-logo-640.webp 640w", sizes: "(min-width: 1280px) 380px, (min-width: 640px) 340px, (max-width: 323px) calc(100vw - 24px), 300px" }]} alt="NXT5" width="1254" height="989" fetchPriority="high" decoding="async" className="mb-4 h-auto w-full max-w-[300px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)] sm:max-w-[340px] xl:max-w-[380px]" />
             <Badge tone="cyan" pulse>Outil d'équipe League of Legends</Badge>
             <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl">
-              Comprends ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">équipe</span> sans te perdre dans les <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">stats</span>.
+              Analyse ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">équipe</span> League of Legends.
             </h1>
-            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-200 md:text-lg">Importe tes games, prépare les reviews et suis le travail de l’équipe au même endroit.</p>
+            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-200 md:text-lg">NXT5 réunit les statistiques de tes matchs LoL, les reviews de scrim et la préparation de draft. Importe tes games, organise les champion pools et suis le travail des joueurs et du staff au même endroit.</p>
             <div className="mt-4 grid max-w-2xl gap-3 sm:grid-cols-3">
               {["Crée la team", "Importe les games", "Lis les tendances"].map((label, index) => <div key={label} className="nxt5-panel border border-cyan-200/14 bg-white/[0.035] px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">0{index + 1}</p><p className="mt-1 text-sm font-black text-white">{label}</p></div>)}
             </div>
@@ -355,6 +423,22 @@ export function HomeScreen({ navigate }) {
             {[["1", Swords, "Importe la game", "Retrouve les champions, le side, le patch et les objectifs."], ["2", Eye, "Vérifie les stats", "Compare la vision, les dégâts, l’or, le KDA et le KP."], ["3", Crown, "Mets les pools à jour", "Classe les picks de chaque joueur selon leur niveau de maîtrise."], ["4", Target, "Prépare la review", "Note ce qui doit être gardé ou corrigé."]].map(([n, Icon, title, text]) => <div key={n} className="nxt5-panel relative border border-cyan-100/14 bg-black/[0.24] p-5 transition hover:-translate-y-1 hover:border-cyan-200/28"><Badge tone={n === "1" ?"cyan" : "purple"}>{n}</Badge><div className="mt-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></div><h3 className="mt-5 text-lg font-black text-white">{title}</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}
           </div>
           <div className="mt-8 flex justify-center"><LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight} className="px-7 py-4">Créer l’espace équipe</LinkButton></div>
+        </section>
+
+        <section id="guides" className="mt-14" aria-labelledby="guides-heading">
+          <Badge tone="cyan">Méthodes et outils</Badge>
+          <h2 id="guides-heading" className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">De l’analyse au prochain scrim</h2>
+          <p className="mt-3 max-w-3xl text-base font-medium leading-7 text-slate-300">Découvre comment lire tes matchs, structurer les retours du staff et préparer les compositions avec les fonctions de NXT5.</p>
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
+            {Object.entries(MARKETING_PAGES).map(([href, page]) => (
+              <Surface key={href} glow>
+                <p className="text-xs font-black uppercase tracking-wider text-cyan-200">{page.eyebrow}</p>
+                <h3 className="mt-3 text-xl font-black leading-snug text-white">{page.heading}</h3>
+                <p className="mb-5 mt-3 text-base font-medium leading-7 text-slate-300">{page.description}</p>
+                <LinkButton href={href} navigate={navigate} variant="ghost" icon={ArrowRight}>{page.eyebrow === "Statistiques d’équipe" ? "Découvrir l’analyse d’équipe" : page.eyebrow === "Review et coaching" ? "Préparer une review de scrim" : "Organiser pools et drafts"}</LinkButton>
+              </Surface>
+            ))}
+          </div>
         </section>
 
         <section className="mt-10"><StatStrip /></section>

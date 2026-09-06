@@ -10,6 +10,7 @@ import {
   Swords,
   Users,
 } from "lucide-react";
+import { MARKETING_PAGES } from "../pages/public/marketing-content.js";
 
 const NXT5_IMPORTER_VERSION = "0.2.11";
 const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
@@ -54,7 +55,7 @@ export const AUTH_ROUTES = {
   "/inscription": "register",
 };
 
-export const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact"];
+export const PUBLIC_ROUTES = ["/", ...Object.keys(MARKETING_PAGES), "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact"];
 export const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 export const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
 export const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";

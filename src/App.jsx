@@ -1,4 +1,6 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect, useState } from "react";
+import { PublicPage } from "./seo/PublicPage.jsx";
+import { SEO_PAGES, seoPath } from "./seo/metadata.js";
 
 const NXT5App = lazy(() => import("./AppContent.jsx"));
 
@@ -14,7 +16,19 @@ function AppShellFallback() {
   );
 }
 
-export default function NXT5() {
+export default function NXT5({ initialPath = "/" }) {
+  const path = seoPath(initialPath);
+  const startsWithPublicContent = Boolean(SEO_PAGES[path]) || (typeof document !== "undefined" && Boolean(document.getElementById("root")?.dataset.prerendered));
+  const [LoadedApp, setLoadedApp] = useState(null);
+  useEffect(() => {
+    if (!startsWithPublicContent) return;
+    let mounted = true;
+    import("./AppContent.jsx").then((module) => { if (mounted) setLoadedApp(() => module.default); }).catch(() => {
+      // Keep the readable public page and normal links if a chunk cannot load.
+    });
+    return () => { mounted = false; };
+  }, [startsWithPublicContent]);
+  if (startsWithPublicContent) return LoadedApp ? <LoadedApp /> : <PublicPage path={path} />;
   return (
     <Suspense fallback={<AppShellFallback />}>
       <NXT5App />

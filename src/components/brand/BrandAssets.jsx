@@ -6,7 +6,7 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
   const priorityProps = fetchPriority ? { fetchpriority: fetchPriority } : {};
   return (
     <picture>
-      {sources.map((source) => <source key={source.srcSet} type={source.type || "image/webp"} media={source.media} srcSet={source.srcSet} />)}
+      {sources.map((source) => <source key={source.srcSet} type={source.type || "image/webp"} media={source.media} srcSet={source.srcSet} sizes={source.sizes} />)}
       <img src={src} alt={alt} className={className} {...priorityProps} {...props} />
     </picture>
   );
