@@ -40,7 +40,5 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Route rules are generated in dist/_redirects by tools/prerender.mjs.
+# Only known app routes use the SPA shell; unknown URLs return an HTTP 404.

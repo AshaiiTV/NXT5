@@ -4,7 +4,9 @@ import { NAV, DEFAULT_DATA } from "./app/constants.jsx";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
-import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
+import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, MarketingPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
+import { MARKETING_PAGES } from "./pages/public/marketing-content.js";
+import { updateDocumentMetadata } from "./seo/metadata.js";
 import { Loader2, ArrowRight, Check, Crown, FileText, Swords, Users, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
@@ -485,6 +487,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
+  if (MARKETING_PAGES[route.path]) return <MarketingPage path={route.path} navigate={navigate} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
   if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
@@ -546,23 +549,7 @@ export default function NXT5() {
       : ["/integration", "/statistiques", "/rapports"].includes(route.path)
         ? `Games & review > ${gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))}`
       : NAV.find((item) => item.path === route.path)?.label;
-    const publicTitles = {
-      "/": "NXT5",
-      "/connexion": "Connexion — NXT5",
-      "/creer-un-compte": "Créer un compte — NXT5",
-      "/inscription": "Créer un compte — NXT5",
-      "/mot-de-passe-oublie": "Mot de passe oublié — NXT5",
-      "/reinitialiser-mot-de-passe": "Réinitialiser le mot de passe — NXT5",
-      "/verify-email": "Vérification e-mail — NXT5",
-      "/verified": "E-mail vérifié — NXT5",
-      "/mentions-legales": "Mentions légales — NXT5",
-      "/confidentialite": "Confidentialité — NXT5",
-      "/cookies": "Cookies — NXT5",
-      "/conditions": "Conditions générales d’utilisation — NXT5",
-      "/reglement": "Règlement — NXT5",
-      "/contact": "Contact — NXT5",
-    };
-    document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
+    updateDocumentMetadata(route.path, navTitle ? `${navTitle} — NXT5` : undefined);
   }, [route.path]);
 
   useEffect(() => {
