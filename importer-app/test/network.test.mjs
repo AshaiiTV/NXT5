@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
+import path from "node:path";
 import { EventEmitter } from "node:events";
 import {
   fetchJson,
@@ -78,7 +79,7 @@ test("lockfile restricts credentials to a valid TLS loopback port", () => {
     assert.throws(() => parseLockfile(value));
   assert.ok(
     lockfileCandidates("/custom/League.app").includes(
-      "/custom/League.app/Contents/LoL/lockfile",
+      path.join("/custom/League.app", "Contents", "LoL", "lockfile"),
     ),
   );
 });
