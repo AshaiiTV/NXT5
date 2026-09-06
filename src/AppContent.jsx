@@ -13,7 +13,6 @@ import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.js
 import { cx, preciseErrorText } from "./app/helpers.js";
 import { createPlanningStore, upsertAvailability } from "./utils/planning-store.js";
 import { useTeamData } from "./hooks/useTeamData.js";
-import { MatchPaginationNotice } from "./components/layout/MatchPaginationNotice.jsx";
 import { matchDisplayName } from "./utils/matches.js";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
 const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
@@ -332,7 +331,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
-  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingMore, bootstrapped, bootstrapReady, apiError, refreshAll, loadMore } = useTeamData(planningStore);
+  const { data, setData, selectedTeamId, setSelectedTeamId, loading, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
@@ -403,6 +402,14 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     ? <InactivityReturnModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} />
     : null;
   if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
+  if (!bootstrapReady) return <div className="relative min-h-screen text-white">
+    <AmbientBackground />
+    <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">
+      <p role="status" className="mb-4 font-semibold">{loading ? "Chargement de toutes les games…" : "L’historique complet n’a pas pu être chargé."}</p>
+      <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
+      <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
+    </main>
+  </div>;
   if (!data.teams.length && active !== "guide" && !(active === "admin" && isPlatformAdmin)) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
@@ -456,7 +463,6 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         />
         <main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-8 xl:px-10 2xl:px-12">
           <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-          <MatchPaginationNotice data={data} loading={loading} loadingMore={loadingMore} loadMore={loadMore} refreshAll={refreshAll} />
           {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}
           <React.Fragment>
             <div key={active} className="nxt5-fade-in min-w-0">
