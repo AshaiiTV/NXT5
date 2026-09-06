@@ -1,17 +1,109 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, ArrowRight, AlertTriangle, Crown, Eye, FileText, Flame, Gauge, RefreshCw, Shield, Sparkles, Target, Trophy, Upload, Users, X } from "lucide-react";
+import { Activity, ArrowRight, AlertTriangle, Crown, Eye, FileText, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Sparkles, Target, Trophy, Upload, Users, X } from "lucide-react";
 import { openAppPath } from "../../app/routing.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { Badge, Button, EmptyState, SkeletonRows, Surface, TabNav } from "../../components/ui/Core.jsx";
 import { cx, tone } from "../../app/helpers.js";
 import { matchDisplayName, matchHasCategory } from "../../utils/matches.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
-import { championAssetId, championDisplayName, compositionIdentity, championStyleTags, championStyleTone, tagLabel, sortPlayersByRole, ROSTER_ROLE_ORDER, isGameplayRole, formatPoints, formatGoldDiff, buildStaffAlerts, formatCountdown, normalizeProfileRole, playerIntegratedRows, matchCategoryTone, CategoryFilter, parsePercent, statValue, teamRows, sumRows, shareOfTeam, objectiveEventType, objectiveEvents, objectiveTeamId, objectiveTeamSummary, diffTone, lazyNamed, loadNextPhase, ChampionBackdrop, ChampionPortrait } from "./workspace-shared.jsx";
+import { championAssetId, championPortraitSources, championDisplayName, compositionIdentity, championStyleTags, championStyleTone, tagLabel, sortPlayersByRole, ROSTER_ROLE_ORDER, isGameplayRole, formatPoints, formatGoldDiff, buildStaffAlerts, formatCountdown, normalizeProfileRole, playerIntegratedRows, matchCategoryTone, CategoryFilter, parsePercent, statValue, teamRows, sumRows, shareOfTeam, objectiveEventType, objectiveEvents, objectiveTeamId, objectiveTeamSummary, diffTone, lazyNamed, loadNextPhase, ChampionBackdrop, ChampionPortrait } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import { hasTrendTimeline, sortTrendMatches } from "../../utils/trends.js";
 import { TrendEvolution, TrendPeriodFilter } from "../../components/trends/TrendEvolution.jsx";
+import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngPanel, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngDownload } from "../../utils/png-report.js";
 
 const BlockComparisonPanel = lazyNamed(loadNextPhase, "BlockComparisonPanel");
+
+async function exportTrendsPng({ title, subtitle, metrics = [], sections = [], champions = [], filename }) {
+  await document.fonts?.ready;
+  const canvas = document.createElement("canvas");
+  canvas.width = 1920;
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width;
+  const margin = 64;
+  const gap = 24;
+  const contentWidth = W - margin * 2;
+  const columnWidth = (contentWidth - gap) / 2;
+  const bodyFont = "500 18px Inter, Arial, sans-serif";
+  const lineHeight = 27;
+  const wrap = (text, width, font = bodyFont) => pngWrapText(ctx, String(text ?? ""), width, { font, maxLines: Infinity });
+  const fit = (text, x, y, width, options) => pngFitText(ctx, text, x, y, width, options);
+  const metricItems = metrics.slice(0, 4);
+  const sectionLayouts = sections.map((section) => {
+    const items = section.items?.length ? section.items : ["Pas assez de données sur cette sélection."];
+    const itemLines = items.map((item) => wrap(item, columnWidth - 76));
+    return { ...section, itemLines, height: Math.max(156, 76 + itemLines.reduce((total, lines) => total + lines.length * lineHeight + 16, 0)) };
+  });
+  let contentBottom = metricItems.length ? 344 : 200;
+  sectionLayouts.forEach((section, index) => {
+    if (index % 2) return;
+    const rowHeight = Math.max(section.height, sectionLayouts[index + 1]?.height || 0);
+    section.y = contentBottom;
+    section.rowHeight = rowHeight;
+    if (sectionLayouts[index + 1]) {
+      sectionLayouts[index + 1].y = contentBottom;
+      sectionLayouts[index + 1].rowHeight = rowHeight;
+    }
+    contentBottom += rowHeight + gap;
+  });
+  const championsY = contentBottom;
+  canvas.height = Math.max(1080, championsY + 142 + 112);
+  const H = canvas.height;
+  const imageCache = new Map();
+  const imageUrls = new Set(["/assets/nxt5-wordmark.png"]);
+  champions.slice(0, 6).forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
+  await Promise.all([...imageUrls].filter(Boolean).map(async (url) => imageCache.set(url, await pngLoadImage(url))));
+
+  pngBackground(ctx, W, H);
+  pngHeader(ctx, {
+    width: W,
+    title: title || "Tendances NXT5",
+    subtitle: subtitle || "Analyse de l’équipe",
+    eyebrow: "Tendances",
+    logo: imageCache.get("/assets/nxt5-wordmark.png"),
+    meta: "Synthèse stratégique",
+  });
+
+  pngMetricStrip(ctx, { x: margin, width: contentWidth, items: metricItems.map((metric) => ({
+    label: metric.label,
+    value: metric.value,
+    detail: metric.hint,
+    accent: metric.tone || "cyan",
+  })) });
+
+  sectionLayouts.forEach((section, index) => {
+    const x = margin + (index % 2) * (columnWidth + gap);
+    const y = section.y;
+    pngPanel(ctx, x, y, columnWidth, section.rowHeight);
+    fit(section.title, x + 28, y + 42, columnWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
+    let itemY = y + 78;
+    section.itemLines.forEach((lines, itemIndex) => {
+      ctx.fillStyle = pngAccent(section.tone);
+      ctx.beginPath();
+      ctx.arc(x + 30, itemY - 6, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = bodyFont;
+      ctx.fillStyle = itemIndex === 0 ? PNG_THEME.text : PNG_THEME.muted;
+      lines.forEach((line, lineIndex) => ctx.fillText(line, x + 48, itemY + lineIndex * lineHeight));
+      itemY += lines.length * lineHeight + 16;
+    });
+  });
+
+  pngPanel(ctx, margin, championsY, contentWidth, 142);
+  fit("Champions récurrents", margin + 28, championsY + 40, contentWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
+  const championWidth = (contentWidth - 56) / 6;
+  champions.slice(0, 6).forEach((stat, index) => {
+    const x = margin + 28 + index * championWidth;
+    const image = championPortraitSources(stat.champion, stat.champion).map((url) => imageCache.get(url)).find(Boolean);
+    pngPanel(ctx, x, championsY + 66, 48, 48, { fill: PNG_THEME.panelAlt, radius: 10 });
+    pngImageCover(ctx, image, x, championsY + 66, 48, 48, 10);
+    fit(championDisplayName(stat.champion), x + 60, championsY + 86, championWidth - 76, { font: "600 18px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 14 });
+    fit(`${stat.games}G · ${Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% WR`, x + 60, championsY + 110, championWidth - 76, { font: "500 15px Inter, Arial, sans-serif", color: PNG_THEME.muted, min: 12 });
+  });
+  if (!champions.length) fit("Aucun champion dans cette sélection.", margin + 28, championsY + 92, contentWidth - 56, { font: bodyFont, color: PNG_THEME.muted });
+  pngFooter(ctx, { width: W, height: H, label: "Tendances · Synthèse stratégique" });
+  await pngDownload(canvas, filename || "nxt5-tendances.png");
+}
 
 function TrendsPage({ data, selectedTeamId }) {
   const baseMatches = useMemo(() => (data.matches || []).filter((match) => match.team_id === selectedTeamId), [data.matches, selectedTeamId]);
@@ -873,6 +965,29 @@ function TrendsPage({ data, selectedTeamId }) {
       sourceGames,
     };
   })();
+  const aiObjectiveItems = [
+    `Équipe: ${teamAiObjective.title} — ${teamAiObjective.target}.`,
+    ...profileAiObjectives.map((item) => `${item.player.name}: ${item.title} — ${item.target}.`),
+    ...roleAiObjectives.map((item) => `${roleLabel(item.role)}: ${item.title} — ${item.target}.`)
+  ].slice(0, 10);
+  const exportTrendSections = [
+    { title: "Objectifs", items: aiObjectiveItems, tone: "purple" },
+    { title: "Modèle d'équipe", items: teamModelCards.map((card) => `${card.label}: ${card.title}. ${card.text}`), tone: "cyan" },
+    { title: "Lecture automatique", items: autoReads, tone: "cyan" },
+    { title: "Écarts moyens", items: forceItems, tone: "green" },
+    { title: "Pression et exposition", items: riskItems, tone: "red" },
+    { title: "Objectifs / game", items: timingItems, tone: "cyan" },
+    { title: "Identité draft", items: draftNeeds, tone: "purple" },
+    { title: "Lecture collective", items: recommendations, tone: "orange" },
+  ];
+  const exportTrends = () => exportTrendsPng({
+    title: "Cockpit stratégique",
+    subtitle: `${activeTrendCategory?.name || "Toutes les games"} · ${trendPeriod === "all" ? "Historique complet" : `${trendPeriod} dernières`} · ${matches.length} game${matches.length > 1 ? "s" : ""} · ${wins}W - ${losses}L`,
+    metrics: topMetrics,
+    sections: exportTrendSections,
+    champions: championCounts,
+    filename: `nxt5-tendances-${String(activeTrendCategory?.name || "global").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`
+  });
   const sourceScopeMetrics = [
     { label: "Contexte", value: activeTrendCategory?.name || "Toutes" },
     { label: "Games", value: String(matches.length) },
@@ -976,6 +1091,7 @@ function TrendsPage({ data, selectedTeamId }) {
           <p className="mt-4 max-w-4xl text-base font-semibold leading-7 text-slate-200">{trendHero.text}</p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Button type="button" icon={FileText} onClick={() => openTrendSources({ title: trendHero.label, subtitle: trendHero.title, games: trendHero.sourceGames })}>Voir les games sources</Button>
+            <Button type="button" variant="ghost" icon={ImageIcon} onClick={exportTrends}>Exporter PNG</Button>
           </div>
         </div>
         <aside className="relative min-w-0 border-t border-white/10 bg-black/24 p-5 sm:p-6 lg:border-l lg:border-t-0">

@@ -9,6 +9,7 @@ import { csAtMinute } from "../../utils/match-timeline.js";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { championDisplayName, championPortraitSources, sortPlayersByRole, canStaffManage, isGameplayRole, formatPoints, normalizeProfileRole, playerIntegratedRows, matchCategoryTone, CategoryFilter, itemSlots, parsePercent, teamRows, shareOfTeam, lazyNamed, loadNextPhase, COMP_ROLES, normalizeProfileKey, ChampionPortrait, matchImportDateLabel, ChampionBackdrop, championStyleTags, championStyleTone, tagLabel, formatGoldDiff, itemIconSources, statValue, creepScore, sumRows, HudIcon, summonerSpellIconSources, summonerSpellIds, trinketItemId, formatCountdown, matchTimelineFrames, rowParticipantId, DDRAGON_FALLBACK_VERSIONS, championKey, championAssetId, exportChampionTierListPng, championPoolStatus, CHAMPION_TIERS, championTierFrame, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championPoolStatusLabel, championPoolStatusTone } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
+import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
 
 const PlayerGoalsPanel = lazyNamed(loadNextPhase, "PlayerGoalsPanel");
 
@@ -355,213 +356,124 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }
   async function exportProfilePng() {
     if (!selectedPlayer) return;
+    await document.fonts?.ready;
     const canvas = document.createElement("canvas");
     canvas.width = 1920;
-    canvas.height = 1080;
     const ctx = canvas.getContext("2d");
     const W = canvas.width;
+    const margin = 64;
+    const gap = 24;
+    const contentWidth = W - margin * 2;
+    const columnWidth = (contentWidth - gap) / 2;
+    const rightX = margin + columnWidth + gap;
+    const bodyFont = "500 18px Inter, Arial, sans-serif";
+    const lineHeight = 27;
+    const fit = (text, x, y, width, options) => pngFitText(ctx, text, x, y, width, options);
+    const wrap = (text, width, font = bodyFont) => pngWrapText(ctx, String(text ?? ""), width, { font, maxLines: Infinity });
+    const verdictFont = "600 23px Inter, Arial, sans-serif";
+    const verdictLines = wrap(coachVerdict, columnWidth - 56, verdictFont);
+    const summaryLines = wrap(coachSummary, columnWidth - 56);
+    const decisionLayouts = coachDecisions.map((item) => ({ ...item, lines: wrap(item.text, columnWidth - 56) }));
+    const coachHeight = 104 + verdictLines.length * 32 + summaryLines.length * lineHeight + decisionLayouts.reduce((total, item) => total + 48 + item.lines.length * lineHeight, 0);
+    const championsShown = championStats.slice(0, 6);
+    const championHeight = 150 + Math.max(1, championsShown.length) * 56 + (championStats.length > 6 ? 28 : 0);
+    const detailY = 344;
+    const detailHeight = Math.max(championHeight, coachHeight);
+    const coachingY = detailY + detailHeight + gap;
+    const coachingLines = wrap(coachingContent.trim() || "Aucun bilan global renseigné.", contentWidth - 56, "500 20px Inter, Arial, sans-serif");
+    const coachingHeight = 96 + coachingLines.length * 30;
+    canvas.height = Math.max(1080, coachingY + coachingHeight + 112);
     const H = canvas.height;
-    const shortCanvas = (value, max = 28) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}...` : String(value || "");
-    const accentColor = (accent = "cyan") => accent === "pink" ? "#f472b6" : accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : accent === "orange" ? "#fb923c" : accent === "purple" ? "#c084fc" : "#67e8f9";
-    const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "pink" || accent === "red" ? `rgba(244,114,182,${alpha})` : accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : accent === "orange" ? `rgba(251,146,60,${alpha})` : accent === "purple" ? `rgba(192,132,252,${alpha})` : `rgba(103,232,249,${alpha})`;
-    const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 12, align = "left" } = {}) => {
-      const source = String(text || "");
-      let nextFont = font || "800 20px Inter, Arial, sans-serif";
-      const match = nextFont.match(/(\d+)px/);
-      let size = match ? Number(match[1]) : 20;
-      ctx.font = nextFont;
-      while (ctx.measureText(source).width > maxWidth && size > min) {
-        size -= 1;
-        nextFont = nextFont.replace(/\d+px/, `${size}px`);
-        ctx.font = nextFont;
-      }
-      ctx.fillStyle = color;
-      ctx.textAlign = align;
-      ctx.fillText(source, x, y);
-      ctx.textAlign = "left";
-    };
-    const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    };
-    const drawPanel = (x, y, w, h, accent = "cyan", alpha = 0.58) => {
-      const gradient = ctx.createLinearGradient(x, y, x + w, y + h);
-      gradient.addColorStop(0, accentSoft(accent, 0.12));
-      gradient.addColorStop(0.38, `rgba(5,10,24,${alpha})`);
-      gradient.addColorStop(1, "rgba(5,10,24,.48)");
-      ctx.fillStyle = gradient;
-      ctx.strokeStyle = accentSoft(accent, 0.34);
-      ctx.lineWidth = 1.5;
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeRect(x, y, w, h);
-      ctx.fillStyle = accentColor(accent);
-      ctx.fillRect(x, y, 4, h);
-    };
     const imageCache = new Map();
-    const loadCanvasImage = (url) => new Promise((resolve) => {
-      if (!url) return resolve(null);
-      if (imageCache.has(url)) return resolve(imageCache.get(url));
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        imageCache.set(url, img);
-        resolve(img);
-      };
-      img.onerror = () => {
-        imageCache.set(url, null);
-        resolve(null);
-      };
-      img.src = url;
+    const imageUrls = new Set(["/assets/nxt5-wordmark.png"]);
+    championsShown.forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
+    await Promise.all([...imageUrls].filter(Boolean).map(async (url) => imageCache.set(url, await pngLoadImage(url))));
+
+    pngBackground(ctx, W, H);
+    pngHeader(ctx, {
+      width: W,
+      title: selectedPlayer.name || "Profil NXT5",
+      subtitle: `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non lié"}`,
+      eyebrow: "Profil joueur",
+      logo: imageCache.get("/assets/nxt5-wordmark.png"),
+      meta: `${games} game${games > 1 ? "s" : ""} importée${games > 1 ? "s" : ""}`,
     });
-    const drawImageCover = (img, x, y, w, h, radius = 12) => {
-      if (!img) return false;
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, radius);
-      ctx.clip();
-      const ratio = Math.max(w / img.width, h / img.height);
-      const dw = img.width * ratio;
-      const dh = img.height * ratio;
-      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-      ctx.restore();
-      return true;
-    };
-    const drawImageContain = (img, x, y, w, h) => {
-      if (!img) return false;
-      const ratio = Math.min(w / img.width, h / img.height);
-      const dw = img.width * ratio;
-      const dh = img.height * ratio;
-      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-      return true;
-    };
-    const drawCachedImage = (sources, x, y, w, h, radius = 12) => {
-      const list = Array.isArray(sources) ? sources : [sources];
-      const img = list.map((url) => imageCache.get(url)).find(Boolean);
-      if (drawImageCover(img, x, y, w, h, radius)) return;
-      ctx.fillStyle = "rgba(255,255,255,.06)";
-      ctx.strokeStyle = "rgba(255,255,255,.14)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, radius);
-      ctx.fill();
-      ctx.stroke();
-    };
-    const drawMetric = (label, value, detail, x, y, w, accent = "cyan") => {
-      ctx.fillStyle = accentColor(accent);
-      ctx.font = "900 13px Inter, Arial, sans-serif";
-      ctx.fillText(label.toUpperCase(), x + 22, y + 31);
-      fitText(shortCanvas(value, 16), x + 22, y + 66, w - 44, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
-      fitText(shortCanvas(detail, 30), x + 22, y + 84, w - 44, { font: "800 13px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    };
-    const imageUrls = new Set(["/assets/nxt5-wordmark.png", "/assets/nxt5-mark.png"]);
-    championStats.slice(0, 6).forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
-    await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
-
-    const gradient = ctx.createLinearGradient(0, 0, W, H);
-    gradient.addColorStop(0, "#030914");
-    gradient.addColorStop(0.52, "#020511");
-    gradient.addColorStop(1, "#090416");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, H);
-    for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.026)", 1);
-    for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
-    const bg = ctx.createRadialGradient(240, 90, 80, 240, 90, 680);
-    bg.addColorStop(0, "rgba(34,211,238,.22)");
-    bg.addColorStop(0.48, "rgba(30,64,175,.08)");
-    bg.addColorStop(1, "rgba(2,5,17,0)");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-    const bg2 = ctx.createRadialGradient(W - 220, 120, 90, W - 220, 120, 700);
-    bg2.addColorStop(0, "rgba(217,70,239,.18)");
-    bg2.addColorStop(1, "rgba(2,5,17,0)");
-    ctx.fillStyle = bg2;
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "rgba(103,232,249,.24)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(48, 42, W - 96, H - 84);
-    drawLine(72, 188, W - 72, 188, "rgba(103,232,249,.55)", 2.5);
-    drawLine(72, 190, W - 72, 190, "rgba(244,114,182,.22)", 1);
-    drawImageContain(imageCache.get("/assets/nxt5-mark.png"), 90, 72, 82, 82);
-    drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 188, 78, 236, 62);
-    fitText(selectedPlayer.name || "Profil NXT5", 464, 105, W - 860, { font: "900 44px Inter, Arial, sans-serif", color: "#ffffff", min: 24 });
-    fitText(`${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non lié"}`, 466, 142, W - 870, { font: "800 18px Inter, Arial, sans-serif", color: "#c8f7ff", min: 12 });
-    ctx.font = "900 16px Inter, Arial, sans-serif";
-    const pillText = "PROFILE EXPORT";
-    const pillW = Math.max(170, ctx.measureText(pillText).width + 34);
-    ctx.fillStyle = "rgba(217,70,239,.14)";
-    ctx.strokeStyle = "rgba(217,70,239,.34)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.roundRect(W - 72 - pillW, 86, pillW, 32, 16);
-    ctx.fill();
-    ctx.stroke();
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(pillText, W - 72 - pillW + 17, 108);
-
     const metrics = [
       ["Games", String(games), `${wins}W - ${losses}L`, "cyan"],
       ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Résumé importé", wins >= losses ? "green" : "orange"],
       ["KDA", kda, `${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`, "cyan"],
       ["KP", `${Math.round(avgKp)}%`, "Participation fights", avgKp >= 60 ? "green" : "yellow"],
-      ["Dégâts", formatPoints(sum("damage") / Math.max(1, games)), "Moyenne/game", "purple"],
-      ["Vision", String(Math.round(sum("vision") / Math.max(1, games))), "Moyenne/game", "orange"],
+      ["Dégâts", formatPoints(sum("damage") / Math.max(1, games)), "Moyenne / game", "purple"],
+      ["Vision", String(Math.round(sum("vision") / Math.max(1, games))), "Moyenne / game", "orange"],
     ];
-    drawPanel(90, 220, 1740, 96, "cyan", 0.54);
-    metrics.forEach(([label, value, detail, accent], index) => {
-      const x = 90 + index * 290;
-      if (index) drawLine(x, 236, x, 300, "rgba(255,255,255,.10)", 1);
-      drawMetric(label, value, detail, x + 2, 220, 286, accent);
+    pngMetricStrip(ctx, { x: margin, width: contentWidth, items: metrics.map(([label, value, detail, accent], index) => ({
+      label,
+      value,
+      detail,
+      accent: index === 1 || index === 3 ? accent : undefined,
+    })) });
+
+    pngPanel(ctx, margin, detailY, columnWidth, detailHeight);
+    fit("Champions joués", margin + 28, detailY + 42, columnWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
+    fit("Volume, winrate et KDA sur les imports", margin + 28, detailY + 70, columnWidth - 56, { font: "500 16px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+    const gamesX = margin + columnWidth * 0.61;
+    const winrateX = margin + columnWidth * 0.77;
+    const kdaX = margin + columnWidth - 28;
+    [
+      ["Champion", margin + 28, "left"],
+      ["Games", gamesX, "right"],
+      ["Winrate", winrateX, "right"],
+      ["KDA", kdaX, "right"],
+    ].forEach(([label, x, align]) => fit(label, x, detailY + 112, columnWidth * 0.16, { font: "600 14px Inter, Arial, sans-serif", color: PNG_THEME.muted, align }));
+    pngLine(ctx, margin + 28, detailY + 126, margin + columnWidth - 28, detailY + 126);
+    championsShown.forEach((stat, index) => {
+      const y = detailY + 138 + index * 56;
+      if (index % 2 === 0) {
+        ctx.fillStyle = PNG_THEME.panelAlt;
+        ctx.fillRect(margin + 16, y - 2, columnWidth - 32, 56);
+      }
+      const image = championPortraitSources(stat.champion, stat.champion).map((url) => imageCache.get(url)).find(Boolean);
+      pngPanel(ctx, margin + 28, y + 5, 40, 40, { fill: PNG_THEME.bg, radius: 9 });
+      pngImageCover(ctx, image, margin + 28, y + 5, 40, 40, 9);
+      fit(championDisplayName(stat.champion), margin + 82, y + 31, gamesX - margin - 120, { font: "600 19px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 14 });
+      fit(String(stat.games), gamesX, y + 31, 90, { font: "500 18px Inter, Arial, sans-serif", color: PNG_THEME.text, align: "right" });
+      fit(`${stat.winrate}%`, winrateX, y + 31, 100, { font: "600 18px Inter, Arial, sans-serif", color: stat.winrate >= 50 ? PNG_THEME.green : PNG_THEME.red, align: "right" });
+      fit(stat.kda, kdaX, y + 31, 130, { font: "500 18px Inter, Arial, sans-serif", color: PNG_THEME.text, align: "right", min: 14 });
+    });
+    if (!championsShown.length) fit("Aucun champion importé.", margin + 28, detailY + 170, columnWidth - 56, { font: bodyFont, color: PNG_THEME.muted });
+    if (championStats.length > 6) fit(`Les 6 champions les plus joués · ${championStats.length} champions au total`, margin + 28, detailY + 162 + championsShown.length * 56, columnWidth - 56, { font: "500 14px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+
+    pngPanel(ctx, rightX, detailY, columnWidth, detailHeight);
+    fit("Lecture coach", rightX + 28, detailY + 42, columnWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
+    let coachY = detailY + 84;
+    ctx.font = verdictFont;
+    ctx.fillStyle = PNG_THEME.text;
+    verdictLines.forEach((line, index) => ctx.fillText(line, rightX + 28, coachY + index * 32));
+    coachY += verdictLines.length * 32 + 8;
+    ctx.font = bodyFont;
+    ctx.fillStyle = PNG_THEME.muted;
+    summaryLines.forEach((line, index) => ctx.fillText(line, rightX + 28, coachY + index * lineHeight));
+    coachY += summaryLines.length * lineHeight + 12;
+    pngLine(ctx, rightX + 28, coachY, rightX + columnWidth - 28, coachY);
+    coachY += 30;
+    decisionLayouts.forEach((item) => {
+      fit(item.label, rightX + 28, coachY, columnWidth - 56, { font: "600 14px Inter, Arial, sans-serif", color: pngAccent(item.toneName), min: 13 });
+      ctx.font = bodyFont;
+      ctx.fillStyle = PNG_THEME.text;
+      item.lines.forEach((line, index) => ctx.fillText(line, rightX + 28, coachY + 27 + index * lineHeight));
+      coachY += 48 + item.lines.length * lineHeight;
     });
 
-    drawPanel(90, 356, 860, 364, "pink", 0.50);
-    fitText("Champions joués", 126, 414, 420, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 22 });
-    fitText("Volume, winrate et KDA sur les imports", 126, 442, 560, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    championStats.slice(0, 6).forEach((stat, index) => {
-      const y = 478 + index * 38;
-      ctx.fillStyle = index % 2 ? "rgba(255,255,255,.035)" : "rgba(255,255,255,.018)";
-      ctx.fillRect(126, y, 760, 38);
-      drawCachedImage(championPortraitSources(stat.champion, stat.champion), 136, y + 5, 28, 28, 7);
-      fitText(championDisplayName(stat.champion), 176, y + 24, 230, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 10 });
-      fitText(`${stat.games}G`, 430, y + 24, 58, { font: "900 13px Inter, Arial, sans-serif", color: "#fbcfe8", min: 10 });
-      fitText(`${stat.winrate}% WR`, 514, y + 24, 82, { font: "800 12px Inter, Arial, sans-serif", color: stat.winrate >= 50 ? "#bbf7d0" : "#fecdd3", min: 10 });
-      fitText(`KDA ${stat.kda}`, 626, y + 24, 110, { font: "800 12px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    });
-    if (!championStats.length) fitText("Aucun champion importé.", 126, 508, 560, { font: "800 18px Inter, Arial, sans-serif", color: "#c7d4e5", min: 12 });
-
-    drawPanel(1010, 356, 820, 364, "green", 0.50);
-    fitText("Notes du coach", 1046, 414, 420, { font: "900 34px Inter, Arial, sans-serif", color: "#ffffff", min: 22 });
-    fitText(shortCanvas(coachVerdict, 54), 1046, 454, 700, { font: "900 23px Inter, Arial, sans-serif", color: "#ffffff", min: 15 });
-    fitText(shortCanvas(coachSummary, 112), 1046, 488, 720, { font: "800 15px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-    drawLine(1046, 520, 1794, 520, "rgba(52,211,153,.24)", 1.5);
-    coachDecisions.forEach((item, index) => {
-      const y = 550 + index * 38;
-      ctx.fillStyle = accentColor(item.toneName);
-      ctx.font = "900 12px Inter, Arial, sans-serif";
-      ctx.fillText(item.label.toUpperCase(), 1046, y);
-      fitText(shortCanvas(item.text, 48), 1220, y, 560, { font: "900 15px Inter, Arial, sans-serif", color: "#ffffff", min: 11 });
-    });
-
-    drawPanel(90, 760, 1740, 134, "cyan", 0.46);
-    fitText("Bilan coaching", 126, 818, 360, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 20 });
-    fitText(shortCanvas(coachingContent.trim() || "Aucun bilan global renseigné.", 160), 126, 858, 1640, { font: "800 18px Inter, Arial, sans-serif", color: "#dff8ff", min: 12 });
-    ctx.fillStyle = "#67e8f9";
-    ctx.font = "800 17px Inter, Arial, sans-serif";
-    ctx.fillText(`Généré par NXT5 · ${new Date().toLocaleString("fr-FR")}`, 72, H - 42);
-    ctx.textAlign = "right";
-    ctx.fillStyle = "#dff8ff";
-    ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
-    ctx.fillText("DRAFT · STRATEGIZE · WIN", W - 72, H - 42);
-    ctx.textAlign = "left";
-    const link = document.createElement("a");
-    link.download = `nxt5-profil-${String(selectedPlayer.name || "joueur").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    pngPanel(ctx, margin, coachingY, contentWidth, coachingHeight);
+    fit("Bilan coaching", margin + 28, coachingY + 42, contentWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
+    ctx.font = "500 20px Inter, Arial, sans-serif";
+    ctx.fillStyle = PNG_THEME.muted;
+    coachingLines.forEach((line, index) => ctx.fillText(line, margin + 28, coachingY + 80 + index * 30));
+    pngFooter(ctx, { width: W, height: H, label: "Profil joueur · Bilan coaching" });
+    await pngDownload(canvas, `nxt5-profil-${String(selectedPlayer.name || "joueur").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`);
     pushToast?.({ type: "cyan", title: "PNG exporté", text: "Le résumé du profil a été téléchargé." });
   }
+
   const buildRowsCount = rows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length).length;
   const buildRows = sortedProfileRows.filter((row) => itemSlots(row).some(Boolean) || itemBuildTimeline(row).length);
   const profileViews = [

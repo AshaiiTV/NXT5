@@ -1,3 +1,4 @@
+import { PNG_THEME, pngAccent, pngTint, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, Shield, Swords, Target, Upload, Flame, Gauge, ShieldCheck } from "lucide-react";
 import { matchDisplayName, assetProxyUrl } from "../../utils/matches.js";
@@ -221,217 +222,66 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
   }
 
   try {
-    const canvas = document.createElement("canvas");
-    const W = 1800;
-    const margin = 72;
-    const labelW = 320;
+    const W = 1920;
+    const margin = 64;
+    const labelW = 264;
     const gap = 16;
-    const cardW = 270;
-    const cardH = 112;
-    const tierGap = 24;
+    const columns = 4;
+    const cardH = 96;
     const contentW = W - margin * 2;
-    const cardsW = contentW - labelW - 28;
-    const columns = Math.max(1, Math.floor((cardsW + gap) / (cardW + gap)));
-    const tierHeights = CHAMPION_TIERS.map((tier) => {
-      const count = (grouped[tier.id] || []).length;
-      const rowsNeeded = Math.max(1, Math.ceil(count / columns));
-      return Math.max(178, 54 + rowsNeeded * cardH + Math.max(0, rowsNeeded - 1) * gap + 36);
-    });
-    const H = 210 + tierHeights.reduce((sum, value) => sum + value, 0) + tierGap * (CHAMPION_TIERS.length - 1) + 96;
+    const cardW = (contentW - labelW - 48 - (columns - 1) * gap) / columns;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const hintFont = "500 18px Inter, Arial, sans-serif";
+    const hints = CHAMPION_TIERS.map((tier) => pngWrapText(ctx, tier.hint, labelW - 48, { font: hintFont }));
+    const tierHeights = CHAMPION_TIERS.map((tier, index) => Math.max(168, 112 + hints[index].length * 25, 48 + Math.ceil((grouped[tier.id] || []).length / columns) * (cardH + gap) - gap));
+    const H = Math.max(1080, 224 + tierHeights.reduce((sum, height) => sum + height, 0) + 24 * (CHAMPION_TIERS.length - 1) + 100);
     canvas.width = W;
     canvas.height = H;
-    const ctx = canvas.getContext("2d");
-    const short = (value, max = 28) => String(value || "").length > max ? `${String(value).slice(0, max - 1)}...` : String(value || "");
-    const accentColor = (accent = "cyan") => accent === "green" ? "#34d399" : accent === "yellow" ? "#facc15" : accent === "red" ? "#fb7185" : accent === "purple" ? "#c084fc" : "#67e8f9";
-    const accentSoft = (accent = "cyan", alpha = 0.16) => accent === "green" ? `rgba(52,211,153,${alpha})` : accent === "yellow" ? `rgba(250,204,21,${alpha})` : accent === "red" ? `rgba(251,113,133,${alpha})` : accent === "purple" ? `rgba(192,132,252,${alpha})` : `rgba(103,232,249,${alpha})`;
-    const exportTierTitle = (tier) => ({
-      lock: "Confiance",
-      pocket: "Situationnel",
-      work: "Validation",
-      danger: "Training",
-    }[tier?.id] || tier?.title || "Tier");
-    const fitText = (text, x, y, maxWidth, { font, color = "#fff", min = 10, align = "left" } = {}) => {
-      let source = String(text || "");
-      let nextFont = font || "800 18px Inter, Arial, sans-serif";
-      const match = nextFont.match(/(\d+)px/);
-      let size = match ? Number(match[1]) : 18;
-      ctx.font = nextFont;
-      while (ctx.measureText(source).width > maxWidth && size > min) {
-        size -= 1;
-        nextFont = nextFont.replace(/\d+px/, `${size}px`);
-        ctx.font = nextFont;
-      }
-      while (ctx.measureText(source).width > maxWidth && source.length > 1) {
-        source = `${source.slice(0, -2).trimEnd()}...`;
-      }
-      ctx.fillStyle = color;
-      ctx.textAlign = align;
-      ctx.fillText(source, x, y);
-      ctx.textAlign = "left";
-    };
-    const drawLine = (x1, y1, x2, y2, color = "rgba(255,255,255,.10)", width = 1) => {
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    };
-    const imageCache = new Map();
-    const loadCanvasImage = (url) => new Promise((resolve) => {
-      if (!url) return resolve(null);
-      if (imageCache.has(url)) return resolve(imageCache.get(url));
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        imageCache.set(url, img);
-        resolve(img);
-      };
-      img.onerror = () => {
-        imageCache.set(url, null);
-        resolve(null);
-      };
-      img.src = url;
-    });
-    const drawImageCover = (img, x, y, w, h, radius = 14) => {
-      if (!img) return false;
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, h, radius);
-      ctx.clip();
-      const ratio = Math.max(w / img.width, h / img.height);
-      const dw = img.width * ratio;
-      const dh = img.height * ratio;
-      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-      ctx.restore();
-      return true;
-    };
-    const drawImageContain = (img, x, y, w, h) => {
-      if (!img) return false;
-      const ratio = Math.min(w / img.width, h / img.height);
-      const dw = img.width * ratio;
-      const dh = img.height * ratio;
-      ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-      return true;
-    };
-    const drawChampionFallback = (row, x, y, size) => {
-      const gradient = ctx.createLinearGradient(x, y, x + size, y + size);
-      gradient.addColorStop(0, "rgba(34,211,238,.22)");
-      gradient.addColorStop(1, "rgba(217,70,239,.18)");
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.roundRect(x, y, size, size, 16);
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,.14)";
-      ctx.stroke();
-      fitText(short(championDisplayName(row.champion), 2).toUpperCase(), x + size / 2, y + size / 2 + 10, size - 12, { font: "900 28px Inter, Arial, sans-serif", color: "#e0faff", min: 18, align: "center" });
-    };
-    const drawCachedChampion = (row, x, y, size) => {
-      const img = championPortraitSources(row, row?.champion).map((url) => imageCache.get(url)).find(Boolean);
-      if (!drawImageCover(img, x, y, size, size, 16)) drawChampionFallback(row, x, y, size);
-      ctx.strokeStyle = "rgba(255,255,255,.18)";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(x, y, size, size, 16);
-      ctx.stroke();
-    };
-    const drawCard = (row, x, y, tier) => {
-      ctx.fillStyle = "rgba(3,7,18,.72)";
-      ctx.strokeStyle = "rgba(255,255,255,.11)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(x, y, cardW, cardH, 18);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = accentSoft(tier.tone, 0.22);
-      ctx.fillRect(x, y, 5, cardH);
-      drawCachedChampion(row, x + 14, y + 14, 84);
-      fitText(short(championDisplayName(row.champion), 18), x + 112, y + 42, cardW - 128, { font: "900 22px Inter, Arial, sans-serif", color: "#ffffff", min: 14 });
-      const games = Number(row.games || 0);
-      const winrate = row.winrate !== undefined && row.winrate !== null && row.winrate !== "" ? Number(row.winrate) : games ? Math.round((Number(row.wins || 0) / Math.max(1, games)) * 100) : null;
-      if (games) fitText(short(`${games}G${Number.isFinite(winrate) ? ` - ${Math.round(winrate)}% WR` : ""}`, 22), x + 112, y + 70, cardW - 128, { font: "800 15px Inter, Arial, sans-serif", color: "#c7d4e5", min: 11 });
-    };
 
-    const imageUrls = new Set(["/assets/nxt5-wordmark.png", "/assets/nxt5-mark.png"]);
-    allRows.forEach((row) => championPortraitSources(row, row?.champion).forEach((url) => imageUrls.add(url)));
-    await Promise.all([...imageUrls].filter(Boolean).map(loadCanvasImage));
+    const images = new Map();
+    const logoPromise = pngLoadImage("/assets/nxt5-wordmark.png");
+    await Promise.all(allRows.map(async (row) => {
+      const sources = championPortraitSources(row, row?.champion);
+      let image = await pngLoadImage(sources[0]);
+      if (!image && sources.length > 1) image = await pngLoadImage(sources[1]);
+      images.set(championAssetId(row.champion) || row.champion, image);
+    }));
+    pngBackground(ctx, W, H);
+    pngHeader(ctx, { width: W, title: "Champion Pool", subtitle: `${player?.name || "Joueur"} · ${roleLabel(player?.role || "")} · ${allRows.length} champion${allRows.length > 1 ? "s" : ""}`, eyebrow: "Préparation équipe", logo: await logoPromise });
 
-    const gradient = ctx.createLinearGradient(0, 0, W, H);
-    gradient.addColorStop(0, "#030914");
-    gradient.addColorStop(0.56, "#020511");
-    gradient.addColorStop(1, "#090416");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, H);
-    for (let x = 0; x <= W; x += 64) drawLine(x, 0, x, H, "rgba(103,232,249,.025)", 1);
-    for (let y = 0; y <= H; y += 64) drawLine(0, y, W, y, "rgba(103,232,249,.018)", 1);
-    const bg = ctx.createRadialGradient(240, 90, 80, 240, 90, 680);
-    bg.addColorStop(0, "rgba(34,211,238,.22)");
-    bg.addColorStop(1, "rgba(2,5,17,0)");
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-    const bg2 = ctx.createRadialGradient(W - 260, 120, 90, W - 260, 120, 740);
-    bg2.addColorStop(0, "rgba(217,70,239,.18)");
-    bg2.addColorStop(1, "rgba(2,5,17,0)");
-    ctx.fillStyle = bg2;
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "rgba(103,232,249,.24)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(48, 42, W - 96, H - 84);
-    drawImageContain(imageCache.get("/assets/nxt5-wordmark.png"), 86, 62, 360, 104);
-    fitText("Champion Tier List", 500, 106, 620, { font: "900 48px Inter, Arial, sans-serif", color: "#ffffff", min: 28 });
-    fitText(`${player?.name || "Joueur"} - ${roleLabel(player?.role || "")} - ${allRows.length} champion${allRows.length > 1 ? "s" : ""}`, 502, 145, 720, { font: "800 20px Inter, Arial, sans-serif", color: "#c8f7ff", min: 13 });
-    const generated = new Date().toLocaleString("fr-FR");
-    fitText(`Export PNG - ${generated}`, W - 90, 112, 390, { font: "900 16px Inter, Arial, sans-serif", color: "#dff8ff", min: 11, align: "right" });
-    drawLine(margin, 184, W - margin, 184, "rgba(103,232,249,.55)", 2.5);
-    drawLine(margin, 187, W - margin, 187, "rgba(244,114,182,.22)", 1);
-
-    let y = 220;
+    let y = 224;
     CHAMPION_TIERS.forEach((tier, tierIndex) => {
       const tierRows = grouped[tier.id] || [];
       const tierH = tierHeights[tierIndex];
-      const panelGradient = ctx.createLinearGradient(margin, y, W - margin, y + tierH);
-      panelGradient.addColorStop(0, accentSoft(tier.tone, 0.18));
-      panelGradient.addColorStop(0.46, "rgba(5,10,24,.66)");
-      panelGradient.addColorStop(1, "rgba(5,10,24,.44)");
-      ctx.fillStyle = panelGradient;
-      ctx.strokeStyle = accentSoft(tier.tone, 0.34);
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.roundRect(margin, y, contentW, tierH, 24);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = accentColor(tier.tone);
-      ctx.beginPath();
-      ctx.roundRect(margin, y, 8, tierH, 4);
-      ctx.fill();
-      fitText(exportTierTitle(tier), margin + 34, y + 62, labelW - 46, { font: "900 30px Inter, Arial, sans-serif", color: "#ffffff", min: 18 });
-      fitText(`${tierRows.length} champion${tierRows.length > 1 ? "s" : ""}`, margin + 34, y + 96, labelW - 46, { font: "900 17px Inter, Arial, sans-serif", color: accentColor(tier.tone), min: 12 });
-      fitText(short(tier.hint, 42), margin + 34, y + 128, labelW - 46, { font: "800 14px Inter, Arial, sans-serif", color: "#c7d4e5", min: 10 });
-      drawLine(margin + labelW, y + 26, margin + labelW, y + tierH - 26, "rgba(255,255,255,.10)", 1);
-      if (!tierRows.length) {
-        fitText("Aucun champion dans ce tier.", margin + labelW + 34, y + 94, cardsW - 68, { font: "800 22px Inter, Arial, sans-serif", color: "#94a3b8", min: 14 });
-      } else {
-        tierRows.forEach((row, index) => {
-          const col = index % columns;
-          const rowIndex = Math.floor(index / columns);
-          drawCard(row, margin + labelW + 28 + col * (cardW + gap), y + 36 + rowIndex * (cardH + gap), tier);
-        });
-      }
-      y += tierH + tierGap;
+      pngPanel(ctx, margin, y, contentW, tierH, { accent: tier.tone });
+      pngFitText(ctx, POOL_TIER_LABELS[tier.id], margin + 28, y + 48, labelW - 52, { font: "700 26px Inter, Arial, sans-serif", color: pngAccent(tier.tone), min: 24 });
+      pngFitText(ctx, `${tierRows.length} champion${tierRows.length > 1 ? "s" : ""}`, margin + 28, y + 81, labelW - 52, { font: "500 18px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+      hints[tierIndex].forEach((line, index) => pngFitText(ctx, line, margin + 28, y + 113 + index * 25, labelW - 48, { font: hintFont, color: PNG_THEME.muted, min: 18 }));
+      pngLine(ctx, margin + labelW, y + 24, margin + labelW, y + tierH - 24);
+      if (!tierRows.length) pngFitText(ctx, "Aucun champion dans cette catégorie.", margin + labelW + 24, y + 87, contentW - labelW - 48, { font: "500 21px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+      tierRows.forEach((row, index) => {
+        const x = margin + labelW + 24 + (index % columns) * (cardW + gap);
+        const cardY = y + 24 + Math.floor(index / columns) * (cardH + gap);
+        const name = championDisplayName(row.champion);
+        pngPanel(ctx, x, cardY, cardW, cardH, { fill: PNG_THEME.panelAlt, radius: 12 });
+        const portrait = images.get(championAssetId(row.champion) || row.champion);
+        if (!pngImageCover(ctx, portrait, x + 16, cardY + 16, 64, 64, 10)) {
+          pngPanel(ctx, x + 16, cardY + 16, 64, 64, { fill: pngTint(tier.tone, 0.12), stroke: null, radius: 10 });
+          pngFitText(ctx, name.slice(0, 2).toUpperCase(), x + 48, cardY + 56, 54, { font: "700 22px Inter, Arial, sans-serif", color: pngAccent(tier.tone), align: "center" });
+        }
+        const games = Number(row.games || 0);
+        pngFitText(ctx, name, x + 96, cardY + (games ? 41 : 55), cardW - 112, { font: "700 24px Inter, Arial, sans-serif", min: 20 });
+        if (games) {
+          const explicitWinrate = row.winrate !== undefined && row.winrate !== null && row.winrate !== "";
+          const winrate = explicitWinrate ? Number(row.winrate) : Math.round(Number(row.wins || 0) / games * 100);
+          pngFitText(ctx, `${games} games${Number.isFinite(winrate) ? ` · ${Math.round(winrate)} % WR` : ""}`, x + 96, cardY + 70, cardW - 112, { font: "500 18px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+        }
+      });
+      y += tierH + 24;
     });
-
-    ctx.fillStyle = "#67e8f9";
-    ctx.font = "800 17px Inter, Arial, sans-serif";
-    ctx.fillText("Généré par NXT5", margin, H - 48);
-    ctx.textAlign = "right";
-    ctx.fillStyle = "#dff8ff";
-    ctx.font = "900 22px Arial Black, Impact, Arial, sans-serif";
-    ctx.fillText("DRAFT - STRATEGIZE - WIN", W - margin, H - 48);
-    ctx.textAlign = "left";
-    const link = document.createElement("a");
-    link.download = `nxt5-tier-list-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    pngFooter(ctx, { width: W, height: H, label: "Champion Pool" });
+    await pngDownload(canvas, `nxt5-tier-list-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`);
     pushToast?.({ type: "cyan", title: "Tier list exportée", text: "Le PNG du Champion Pool a été téléchargé." });
   } catch (err) {
     pushToast?.({ type: "red", title: "Export impossible", text: err?.message || "Le navigateur n'a pas pu générer le PNG." });
@@ -1016,3 +866,5 @@ function championMatchesLane(champion, lane) {
 }
 
 export { ROSTER_ROLE_ORDER, COMP_ROLES, canStaffManage, STAFF_ACCESS_ROLE_IDS, TEAM_ACCESS_ROLES, isGameplayRole, isStaffRole, STAFF_ROLES, lazyNamed, loadNextPhase, championDisplayName, championAssetId, CHAMPION_ASSET_ALIASES, championKey, sortPlayersByRole, ROLE_ORDER, teamMatchRows, normalizeProfileRole, buildStaffAlerts, playerDisplayFromRow, parsePercent, formatCountdown, ChampionPortrait, championPortraitSources, DDRAGON_FALLBACK_VERSIONS, playerIntegratedRows, normalizeProfileKey, matchCategoryTone, matchImportDateLabel, championMatchesLane, ALL_CHAMPION_LANE_POOLS, CHAMPION_LANE_POOLS, ADDITIONAL_CHAMPION_LANE_POOLS, formatPoints, formatGoldDiff, objectiveTeamId, teamRows, sumRows, statValue, storedTimelineFrames, compactTimelineEvents, diffTone, matchTimelineFrames, participantTeamMap, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, compositionIdentity, championStyleTags, ALL_CHAMPION_STYLE_TAGS, CHAMPION_STYLE_TAGS, ADDITIONAL_CHAMPION_STYLE_TAGS, championStyleTone, tagLabel, objectiveTeamSummary, objectiveTeamAnyValue, objectiveTeamValue, ChampionBackdrop, championSplashUrl, championSplashFocus, itemIconSources, summonerSpellIconSources, SUMMONER_SPELLS, itemSlots, participantNumber, itemIndexFromKey, participantSources, participantStoredRaw, safeJsonParse, participantRaw, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, CategoryFilter, championPoolRowsByTier, championPoolStatus, CHAMPION_TIERS, exportChampionTierListPng, safeExportFilename, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championTierFrame, championPoolStatusLabel, championPoolStatusTone };
+
+export const POOL_TIER_LABELS = { lock: "Confiance", pocket: "Situationnel", work: "En validation", danger: "En training" };

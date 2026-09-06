@@ -1,3 +1,4 @@
+import "../../styles/champion-pool.css";
 import { Crown, Sparkles, Download, Search, Users, Trash2, BookOpen, Check, ChevronDown, Loader2, Plus, X, Clipboard, RefreshCw } from "lucide-react";
 import { DRAFT_VIEW_ROUTES } from "../../app/constants.jsx";
 import { draftPathFromView, draftViewFromPath } from "../../app/routing.js";
@@ -7,7 +8,7 @@ import { apiFetch } from "../../api/client.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { cx } from "../../app/helpers.js";
 import { compositionSlots, emptyCompositionSlots, jsonList } from "../../utils/planning.js";
-import { championKey, championAssetId, championDisplayName, championPoolRowsByTier, exportChampionTierListPng, canStaffManage, isGameplayRole, championPoolStatus, CHAMPION_TIERS, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championMatchesLane, ALL_CHAMPION_STYLE_TAGS, championPoolStatusLabel, ChampionPortrait, compositionIdentity, championStyleTone, tagLabel, COMP_ROLES, ChampionBackdrop, championPoolStatusTone, championStyleTags } from "./workspace-shared.jsx";
+import { POOL_TIER_LABELS, championKey, championAssetId, championDisplayName, championPoolRowsByTier, exportChampionTierListPng, canStaffManage, isGameplayRole, championPoolStatus, CHAMPION_TIERS, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championMatchesLane, ALL_CHAMPION_STYLE_TAGS, championPoolStatusLabel, ChampionPortrait, compositionIdentity, championStyleTone, tagLabel, COMP_ROLES, ChampionBackdrop, championPoolStatusTone, championStyleTags } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 function championOptions() {
@@ -145,25 +146,36 @@ function ChampionMasteryPortrait({ row, champion, alt, className = "h-12 w-12 ro
   </span>;
 }
 
-function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete }) {
-  const detail = championPoolStatusLabel(championPoolStatus(row));
-  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, row)} className={cx("group flex min-h-[52px] min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/25 p-2 transition", canManage ?"cursor-grab active:cursor-grabbing hover:border-cyan-300/25 hover:bg-white/[0.05]" : "")}><ChampionMasteryPortrait row={row} alt={row.champion} className="h-10 w-10 rounded-xl" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(row.champion)}</p><p className="truncate text-[0.68rem] font-semibold text-slate-300">{detail}</p></div>{canManage && <button type="button" onClick={() => onDelete(row)} disabled={saving} className="shrink-0 rounded-lg p-1.5 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-3.5 w-3.5" /></button>}</div>;
+function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete, onMove }) {
+  const name = championDisplayName(row.champion);
+  return <div draggable={canManage && !saving} onDragStart={(event) => onDragStart(event, row)} className="nxt5-pool-pick">
+    <ChampionMasteryPortrait row={row} alt={name} className="h-9 w-9 rounded-lg" />
+    <span className="nxt5-pool-pick-name" title={name}>{name}</span>
+    {canManage && <>
+      <span className="nxt5-pool-move">
+        <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+        <select aria-label={`Déplacer ${name}`} title={`Déplacer ${name}`} value={championPoolStatus(row)} disabled={saving} onChange={(event) => onMove(row.champion, event.target.value, row.id)}>
+          {CHAMPION_TIERS.map((tier) => <option key={tier.id} value={tier.id}>{POOL_TIER_LABELS[tier.id]}</option>)}
+        </select>
+      </span>
+      <button type="button" className="nxt5-pool-remove" aria-label={`Retirer ${name} du pool`} title={`Retirer ${name}`} onClick={() => onDelete(row)} disabled={saving}><X className="h-3.5 w-3.5" /></button>
+    </>}
+  </div>;
 }
 
-function ChampionSearchTile({ champion, active, existingRow, canManage, onDragStart, onQuickPick }) {
+function ChampionSearchTile({ champion, active, existingRow, canManage, saving, onDragStart, onQuickPick }) {
   const source = existingRow && ["manual", "riot_manual"].includes(String(existingRow.source || "")) ? existingRow : { champion };
-  return <div draggable={canManage} onDragStart={(event) => onDragStart(event, source)} className={cx("group relative min-w-[150px] rounded-2xl border p-2 text-left transition", canManage && "cursor-grab active:cursor-grabbing", active ? "border-cyan-300/28 bg-cyan-400/10 shadow-[0_0_18px_rgba(34,211,238,.08)]" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/25 hover:bg-cyan-400/10")}>
-    <div className="flex min-w-0 items-center gap-2">
-      <ChampionPortrait champion={champion} alt={champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" />
-      <span className="min-w-0 flex-1 truncate text-xs font-black text-white">{championDisplayName(champion)}</span>
-      {active && <span className="shrink-0 rounded-full border border-cyan-200/18 bg-cyan-400/10 px-2 py-1 text-[0.55rem] font-black uppercase tracking-[0.12em] text-cyan-100">Pool</span>}
+  const name = championDisplayName(champion);
+  return <div draggable={canManage && !saving} onDragStart={(event) => onDragStart(event, source)} className={cx("nxt5-pool-search-row", active && "is-in-pool")}>
+    <ChampionPortrait champion={champion} alt={name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+    <div className="nxt5-pool-search-name">
+      <span title={name}>{name}</span>
+      {active && <small><Check className="h-3 w-3" aria-hidden="true" /> Dans le pool</small>}
     </div>
-    {canManage && <div className="mt-2 grid grid-cols-4 justify-items-center gap-1.5 opacity-80 transition group-hover:opacity-100">
-      {CHAMPION_TIERS.map((tier) => {
-        const selected = active && championPoolStatus(existingRow) === tier.id;
-        return <button key={tier.id} type="button" onClick={(event) => { event.stopPropagation(); onQuickPick(champion, tier.id, source.id || null); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl p-0.5 transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-cyan-200/35" title={`Mettre en ${tier.title}`} aria-label={`Mettre ${championDisplayName(champion)} en ${tier.title}`}><ChampionTierMark tier={tier} active={selected} className="h-8 w-8" /></button>;
-      })}
-    </div>}
+    {canManage && <select className="nxt5-pool-classify" aria-label={`Classer ${name}`} value={active ? championPoolStatus(existingRow) : ""} disabled={saving} onChange={(event) => onQuickPick(champion, event.target.value, source.id || null)}>
+      <option value="" disabled>Ajouter à…</option>
+      {CHAMPION_TIERS.map((tier) => <option key={tier.id} value={tier.id}>{POOL_TIER_LABELS[tier.id]}</option>)}
+    </select>}
   </div>;
 }
 
@@ -316,105 +328,68 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
   }
 
   return (
-    <div>
-      <PageHeader eyebrow="Draft" title="Champion Pool par joueur" />
+    <div className="nxt5-pool-page">
+      <PageHeader eyebrow="Draft" title="Champion Pool" subtitle="Les picks de chaque joueur, classés pour la draft.">
+        <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>Exporter PNG</Button>
+      </PageHeader>
       {players.length ? (
         <>
-          <Surface glow className="mb-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-              <div>
-                <h3 className="text-xl font-black text-white">Joueur actif</h3>
-                <p className="mt-1 text-sm font-semibold text-slate-300">Le choix du joueur reste en haut pour laisser toute la largeur aux tableaux.</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <ChampionPoolColorSummary />
-                <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>Exporter PNG</Button>
-              </div>
-            </div>
-            <div className="mt-5 flex gap-3 overflow-x-auto pb-2">
-              {players.map((player) => {
-                const selected = selectedPlayer?.id === player.id;
-                return (
-                  <button key={player.id} type="button" onClick={() => setSelectedPlayerId(player.id)} className={cx("min-w-[190px] rounded-2xl border p-4 text-left transition", selected ? "border-cyan-300/35 bg-cyan-400/10 shadow-lg shadow-cyan-950/20" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]")}>
-                    <div className="flex items-center gap-3">
-                      <div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", selected ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/25")}>
-                        <RoleIcon role={player.role} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-lg font-black text-white">{player.name}</p>
-                        {player.riot_id && <p className="mt-1 truncate text-xs font-semibold text-slate-300">{player.riot_id}</p>}
-                        {String(player.user_id || "") === String(user?.id || "") && <div className="mt-2"><Badge tone="orange">Mon profil</Badge></div>}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </Surface>
+          <div className="nxt5-pool-roster" role="group" aria-label="Choisir un joueur">
+            {players.map((player) => {
+              const selected = selectedPlayer?.id === player.id;
+              const count = localPool.filter((row) => String(row.team_id || "") === String(activeTeamId || "") && ["manual", "riot_manual"].includes(String(row.source || "")) && (String(row.player_id || "") === String(player.id) || row.player_name === player.name)).length;
+              return <button key={player.id} type="button" className="nxt5-pool-player" aria-pressed={selected} onClick={() => setSelectedPlayerId(player.id)} title={player.riot_id || player.name}>
+                <RoleIcon role={player.role} />
+                <span className="min-w-0"><span className="nxt5-pool-player-name">{player.name}</span><span className="nxt5-pool-player-role">{player.role}{player.user_id && String(player.user_id) === String(user?.id) ? " · Mon profil" : ""}</span></span>
+                <span className="nxt5-pool-player-count" aria-label={`${count} champions`}>{count}</span>
+              </button>;
+            })}
+          </div>
 
-          {selectedPlayer && (
-            <div className="grid gap-4 2xl:grid-cols-[minmax(360px,480px)_minmax(0,1fr)] 2xl:items-start">
-              <Surface className="p-4 2xl:sticky 2xl:top-24">
-                <div className="grid gap-4">
-                  <div>
-                    <TextInput label="Ajouter un champion" value={query} onChange={setQuery} placeholder="Cherche Ahri, Renekton, Kai'Sa..." icon={Search} />
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {laneOptions.map((lane) => (
-                        <button key={lane} type="button" onClick={() => setLaneFilter(lane)} className={cx("rounded-2xl border px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition", laneFilter === lane ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{lane === "ALL" ? "Toutes lanes" : lane}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnChampionBase(event)}>
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-xl font-black text-white">{selectedPlayer.name}</h3>
-                        <p className="mt-1 text-sm font-semibold text-slate-300">{canManageSelectedPool ? `${visibleChampions.length} champions affichés · glisse ici un pick pour le retirer.` : "Lecture seule : seul le capitaine ou le joueur lié à ce profil peut modifier ce Champion Pool."}</p>
-                      </div>
-                      <Badge tone="orange">{selectedPlayer.role}</Badge>
-                    </div>
-                    <div className="grid max-h-[min(58vh,560px)] grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2 overflow-auto pr-1">
-                      {visibleChampions.map((champion) => {
-                        const championKeyValue = championAssetId(champion) || championKey(champion);
-                        const active = pickedChampionKeys.has(championKeyValue);
-                        return <ChampionSearchTile key={champion} champion={champion} active={active} existingRow={selectedChampionByKey.get(championKeyValue)} canManage={canManageSelectedPool} onDragStart={onDragStart} onQuickPick={saveChampion} />;
-                      })}
-                    </div>
-                  </div>
+          {selectedPlayer && <div className="nxt5-pool-workspace">
+            <div className="nxt5-pool-board">
+              <div className="nxt5-pool-board-header">
+                <div>
+                  <h3>Pool de {selectedPlayer.name}</h3>
+                  <p>{selectedRows.length} champion{selectedRows.length > 1 ? "s" : ""} · {selectedRows.filter((row) => ["lock", "pocket"].includes(row.status)).length} prêts pour la draft</p>
                 </div>
-              </Surface>
-
-              <div className="grid gap-3 xl:grid-cols-2">
+                {!canManageSelectedPool && <Badge tone="slate">Lecture seule</Badge>}
+                <span role="status" aria-live="polite" className="text-xs text-slate-400">{saving ? "Enregistrement…" : ""}</span>
+              </div>
+              <div className="nxt5-pool-tiers">
                 {CHAMPION_TIERS.map((tier) => {
                   const items = rowsForTier(tier.id);
-                  return (
-                    <Surface key={tier.id} className="p-3" delay={0}>
-                      <div onDragOver={(event) => canManageSelectedPool && event.preventDefault()} onDrop={(event) => canManageSelectedPool && dropOnTier(event, tier.id)} className={cx("relative flex min-h-[230px] flex-col overflow-hidden rounded-[1.1rem] border p-3 backdrop-blur-2xl", championTierColumnFrame(tier))}>
-                        <div className={cx("pointer-events-none absolute inset-0 bg-gradient-to-br opacity-90", championTierColumnGlow(tier))} />
-                        <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-                        <div className="relative z-10 mb-3">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex min-w-0 items-center gap-3">
-                              <ChampionTierMark tier={tier} />
-                              <h3 className="truncate text-lg font-black text-white">{tier.title}</h3>
-                            </div>
-                            <Badge tone={tier.tone}>{items.length}</Badge>
-                          </div>
-                        </div>
-                        <div className="relative z-10 grid max-h-[210px] flex-1 content-start gap-2 overflow-auto pr-1 sm:grid-cols-2">
-                          {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} />) : <div className="col-span-full flex min-h-[150px] items-center justify-center rounded-xl border border-dashed border-white/10 p-4 text-center text-xs font-semibold leading-5 text-slate-300">{canManageSelectedPool ? "Glisse un champion ici." : "Lecture seule."}</div>}
-                        </div>
-                      </div>
-                    </Surface>
-                  );
+                  return <section key={tier.id} className="nxt5-pool-tier" data-tier={tier.id} aria-labelledby={`pool-tier-${tier.id}`} onDragOver={(event) => canManageSelectedPool && !saving && event.preventDefault()} onDrop={(event) => canManageSelectedPool && !saving && dropOnTier(event, tier.id)}>
+                    <div className="nxt5-pool-tier-heading">
+                      <h4 id={`pool-tier-${tier.id}`}>{POOL_TIER_LABELS[tier.id]} <span>{items.length}</span></h4>
+                      <p>{tier.id === "lock" ? "Prêt pour scrim ou match." : tier.id === "pocket" ? "Pour un contexte précis." : tier.id === "work" ? "À confirmer en scrim." : "15 games de training avant validation."}</p>
+                    </div>
+                    <div className="nxt5-pool-tier-picks">
+                      {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} onMove={saveChampion} />) : <p className="nxt5-pool-tier-empty">{canManageSelectedPool ? "Glisse un champion ici ou ajoute-le depuis le catalogue." : "Aucun champion dans cette catégorie."}</p>}
+                    </div>
+                  </section>;
                 })}
               </div>
             </div>
-          )}
+
+            <aside className="nxt5-pool-library" aria-label="Catalogue de champions">
+              <div className="nxt5-pool-library-header"><h3>{canManageSelectedPool ? "Ajouter un champion" : "Catalogue"}</h3><span>{visibleChampions.length}</span></div>
+              <TextInput label="Rechercher un champion" value={query} onChange={setQuery} placeholder="Nom du champion…" icon={Search} />
+              <div className="nxt5-pool-lanes" role="group" aria-label="Filtrer par rôle">
+                {laneOptions.map((lane) => <button key={lane} type="button" aria-pressed={laneFilter === lane} onClick={() => setLaneFilter(lane)}>{lane === "ALL" ? "Tous" : lane}</button>)}
+              </div>
+              <p className="nxt5-pool-library-help">{canManageSelectedPool ? "Choisis une catégorie ou glisse le champion dans le pool." : "Seuls le staff et le joueur lié peuvent modifier ce pool."}</p>
+              <div className="nxt5-pool-catalogue" key={selectedPlayer.id}>
+                {visibleChampions.length ? visibleChampions.map((champion) => {
+                  const key = championAssetId(champion) || championKey(champion);
+                  return <ChampionSearchTile key={champion} champion={champion} active={pickedChampionKeys.has(key)} existingRow={selectedChampionByKey.get(key)} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onQuickPick={saveChampion} />;
+                }) : <div className="nxt5-pool-no-results"><Search className="h-5 w-5" aria-hidden="true" /><p>Aucun champion trouvé.</p><button type="button" onClick={() => { setQuery(""); setLaneFilter("ALL"); }}>Réinitialiser les filtres</button></div>}
+              </div>
+              {canManageSelectedPool && <div className="nxt5-pool-remove-zone" onDragOver={(event) => !saving && event.preventDefault()} onDrop={(event) => !saving && dropOnChampionBase(event)}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /><span>Glisse un pick ici pour le retirer</span></div>}
+            </aside>
+          </div>}
         </>
-      ) : (
-        <Surface glow><EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de construire les Champion Pools." /></Surface>
-      )}
+      ) : <Surface><EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de construire les Champion Pools." /></Surface>}
     </div>
   );
 }

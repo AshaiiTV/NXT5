@@ -1,3 +1,4 @@
+import { PNG_THEME, pngAccent, pngTint, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
 import React, { useEffect, useState, useDeferredValue } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, SelectInput, TextInput } from "../../components/ui/Core.jsx";
@@ -10,10 +11,261 @@ import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
-import { championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane, matchImportDateLabel, ROSTER_ROLE_ORDER, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane, matchImportDateLabel, ROSTER_ROLE_ORDER, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
+
+async function exportStatsPng({ title, subtitle, matches, filename }) {
+  const finalBuildItems = (row) => [...itemSlots(row).filter(Boolean).map((id) => ({ id })), ...(trinketItemId(row) ? [{ id: trinketItemId(row) }] : [])];
+  const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
+  const rows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
+  const enemyRows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ENEMY"));
+  const sum = (items, key) => items.reduce((total, row) => total + Number(row[key] || 0), 0);
+  const roleOrder = ["TOP", "JGL", "MID", "ADC", "SUP"];
+  const rowName = (row) => row?.summoner_name || row?.riot_id || row?.player_name || "Inconnu";
+  const kdaRatio = (row) => (Number(row?.kills || 0) + Number(row?.assists || 0)) / Math.max(1, Number(row?.deaths || 0));
+  const sideName = (match, teamKey) => {
+    const side = matchTeamSideKey(match, teamKey);
+    return side === "blue" ? "Côté bleu" : side === "red" ? "Côté rouge" : "Côté inconnu";
+  };
+  const wins = scoped.filter((match) => match.result === "Victoire").length;
+  const games = scoped.length;
+  const kills = sum(rows, "kills");
+  const deaths = sum(rows, "deaths");
+  const assists = sum(rows, "assists");
+  const damageDiff = sum(rows, "damage") - sum(enemyRows, "damage");
+  const goldDiff = sum(rows, "gold") - sum(enemyRows, "gold");
+  const visionDiff = sum(rows, "vision") - sum(enemyRows, "vision");
+  const topDamage = rows.slice().sort((a, b) => Number(b.damage || 0) - Number(a.damage || 0))[0];
+  const topVision = rows.slice().sort((a, b) => Number(b.vision || 0) - Number(a.vision || 0))[0];
+  const topKda = rows.slice().sort((a, b) => kdaRatio(b) - kdaRatio(a))[0];
+  const championCounts = (items) => Array.from(items.reduce((map, row) => {
+    if (row?.champion) map.set(row.champion, (map.get(row.champion) || 0) + 1);
+    return map;
+  }, new Map()).entries()).sort((a, b) => b[1] - a[1] || championDisplayName(a[0]).localeCompare(championDisplayName(b[0])));
+  const allyChampionCounts = championCounts(rows);
+  const enemyChampionCounts = championCounts(enemyRows);
+  const firstMatch = scoped[0];
+  const singleGame = games === 1;
+  const visibleGames = scoped.slice(0, 5);
+  const championRows = Math.max(1, Math.ceil(Math.max(allyChampionCounts.length, enemyChampionCounts.length) / 3));
+  const championPanelHeight = 136 + championRows * 56;
+  const groupListY = 556 + championPanelHeight + 24;
+  const groupListHeight = 126 + Math.max(1, visibleGames.length) * 64 + (games > visibleGames.length ? 40 : 0);
+  const canvas = document.createElement("canvas");
+  canvas.width = 1920;
+  canvas.height = singleGame ? 1376 : Math.max(1120, groupListY + groupListHeight + 104);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Le navigateur ne peut pas créer l'export PNG.");
+  const W = canvas.width;
+  const H = canvas.height;
+  const M = 64;
+  const contentW = W - M * 2;
+  const columnW = (contentW - 24) / 2;
+  const font = (size, weight = 600) => `${weight} ${size}px Inter, Arial, sans-serif`;
+  const text = (value, x, y, width, size = 18, color = PNG_THEME.text, weight = 600, align = "left") => pngFitText(ctx, value, x, y, width, { font: font(size, weight), color, min: Math.min(size, 16), align });
+  const imageCache = new Map();
+  const drawImage = (sources, x, y, w, h, radius = 8) => {
+    const image = (Array.isArray(sources) ? sources : [sources]).map((url) => imageCache.get(url)).find(Boolean);
+    if (image) pngImageCover(ctx, image, x, y, w, h, radius);
+    else pngPanel(ctx, x, y, w, h, { fill: PNG_THEME.panelAlt, radius });
+  };
+  const pill = (value, x, y, accent = "cyan") => {
+    ctx.font = font(16, 700);
+    const width = Math.min(360, Math.max(72, ctx.measureText(String(value)).width + 24));
+    pngPanel(ctx, x, y, width, 32, { fill: pngTint(accent, 0.09), stroke: pngTint(accent, 0.25), radius: 8 });
+    text(value, x + 12, y + 22, width - 24, 16, pngAccent(accent), 700);
+    return width;
+  };
+  const teamAccent = (teamKey) => {
+    const side = matchTeamSideKey(firstMatch, teamKey);
+    return side === "red" ? "red" : side === "blue" ? "cyan" : teamKey === "ALLY" ? "cyan" : "red";
+  };
+  const drawObjectiveIcon = (type, x, y, size = 34) => {
+    if (type !== "herald") {
+      drawImage(OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon, x, y, size, size, 8);
+      return;
+    }
+    pngPanel(ctx, x, y, size, size, { fill: pngTint("purple", 0.10), stroke: pngTint("purple", 0.3), radius: 8 });
+    ctx.save();
+    ctx.fillStyle = PNG_THEME.purple;
+    ctx.beginPath();
+    ctx.moveTo(x + size / 2, y + 6);
+    ctx.lineTo(x + size - 9, y + size / 2);
+    ctx.lineTo(x + size / 2, y + size - 6);
+    ctx.lineTo(x + 9, y + size / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+  const drawObjectives = (teamKey, x, y, w) => {
+    const data = objectiveTeamSummary(firstMatch, teamKey);
+    const accent = teamAccent(teamKey);
+    text(`${sideName(firstMatch, teamKey)} · ${teamKey === "ALLY" ? "Alliés" : "Adversaires"}`, x, y + 26, w, 22, pngAccent(accent), 700);
+    const cells = [["Drakes", data?.dragonCount || 0, "dragon"], ["Grubs", data?.grubs || 0, "grub"], ["Herald", data?.heralds || 0, "herald"], ["Nashor", data?.barons || 0, "baron"], ["Tours", data?.towers || 0, "tower"]];
+    cells.forEach(([label, value, type], index) => {
+      const cellX = x + index * (w / cells.length);
+      drawObjectiveIcon(type, cellX, y + 48);
+      text(String(value), cellX + 44, y + 75, w / cells.length - 52, 28, PNG_THEME.text, 700);
+      text(label, cellX, y + 106, w / cells.length - 12, 16, PNG_THEME.muted);
+    });
+    const dragons = (data?.dragons || []).map(objectiveDragonElement).filter(Boolean);
+    if (dragons.length) text(dragons.join(" · "), x, y + 136, w, 16, PNG_THEME.muted);
+  };
+  const drawPlayerRow = (row, x, y, w, accent, index) => {
+    if (index % 2 === 0) {
+      ctx.fillStyle = PNG_THEME.panelAlt;
+      ctx.fillRect(x, y, w, 104);
+    }
+    if (index) pngLine(ctx, x, y, x + w, y, PNG_THEME.border);
+    drawImage(championPortraitSources(row, row?.champion), x + 14, y + 20, 64, 64, 10);
+    text(rowName(row), x + 94, y + 31, 202, 19, PNG_THEME.text, 700);
+    text(`${row?.role || "Rôle ?"} · ${championDisplayName(row?.champion || "Champion ?")}`, x + 94, y + 58, 202, 16, pngAccent(accent));
+    text(`${row?.kills || 0}/${row?.deaths || 0}/${row?.assists || 0}`, x + 316, y + 31, 104, 21, PNG_THEME.text, 700);
+    text(`${creepScore(row)} CS`, x + 316, y + 58, 104, 16, PNG_THEME.muted);
+    text(`${Math.round(parsePercent(row?.kill_participation || row?.kp || 0))}% KP`, x + 432, y + 31, 110, 16, PNG_THEME.muted);
+    text(`${row?.vision || 0} VS`, x + 432, y + 58, 110, 16, PNG_THEME.muted);
+    text(formatPoints(row?.gold), x + 554, y + 31, 120, 19, PNG_THEME.text, 700);
+    text(formatPoints(row?.damage), x + 686, y + 31, w - 700, 19, PNG_THEME.text, 700);
+    const spells = summonerSpellIds(row).filter(Boolean).slice(0, 2);
+    const build = finalBuildItems(row).slice(0, 6);
+    spells.forEach((spell, i) => drawImage(summonerSpellIconSources(spell), x + 554 + i * 32, y + 52, 28, 28, 6));
+    build.forEach((item, i) => drawImage(itemIconSources(item.id), x + 626 + i * 32, y + 52, 28, 28, 6));
+  };
+  const drawTeam = (teamKey, teamRows, x, y) => {
+    const accent = teamAccent(teamKey);
+    pngPanel(ctx, x, y, columnW, 646, { accent });
+    text(`${teamKey === "ALLY" ? "Alliés" : "Adversaires"} · ${sideName(firstMatch, teamKey)}`, x + 24, y + 46, columnW - 48, 28, PNG_THEME.text, 700);
+    const rowX = x + 12;
+    [["JOUEUR / CHAMPION", 26, 280], ["KDA / CS", 328, 106], ["KP / VISION", 444, 110], ["OR", 566, 120], ["DÉGÂTS", 698, 132]].forEach(([label, offset, width]) => text(label, x + offset, y + 91, width, 16, PNG_THEME.muted, 600));
+    pngLine(ctx, x + 24, y + 106, x + columnW - 24, y + 106, PNG_THEME.border);
+    roleOrder.forEach((role, index) => {
+      const row = teamRows.find((item) => String(item.role || "").toUpperCase() === role) || { role, team_key: teamKey };
+      drawPlayerRow(row, rowX, y + 114 + index * 104, columnW - 24, accent, index);
+    });
+  };
+  const drawChampions = (label, counts, x, y, w, accent) => {
+    text(label, x, y + 28, w - 220, 24, PNG_THEME.text, 700);
+    text(`${counts.length} champions · ${counts.reduce((total, [, count]) => total + count, 0)} picks`, x + w, y + 27, 216, 16, PNG_THEME.muted, 600, "right");
+    if (!counts.length) {
+      text("Aucun champion détecté.", x, y + 90, w, 18, PNG_THEME.muted);
+      return;
+    }
+    const gap = 12;
+    const cellW = (w - gap * 2) / 3;
+    counts.forEach(([champion, count], index) => {
+      const cellX = x + (index % 3) * (cellW + gap);
+      const cellY = y + 52 + Math.floor(index / 3) * 56;
+      pngPanel(ctx, cellX, cellY, cellW, 48, { fill: PNG_THEME.panelAlt, radius: 8 });
+      drawImage(championPortraitSources(champion, champion), cellX + 6, cellY + 6, 36, 36, 6);
+      text(championDisplayName(champion), cellX + 52, cellY + 30, cellW - 98, 16, PNG_THEME.text);
+      text(`×${count}`, cellX + cellW - 10, cellY + 30, 42, 16, pngAccent(accent), 700, "right");
+    });
+  };
+  const imageGroups = new Map();
+  const addImageGroup = (sources) => {
+    const urls = [...new Set((Array.isArray(sources) ? sources : [sources]).filter(Boolean))].slice(0, 2);
+    if (urls.length) imageGroups.set(JSON.stringify(urls), urls);
+  };
+  addImageGroup("/assets/nxt5-wordmark.png");
+  if (singleGame) {
+    ["dragon", "grub", "baron", "tower"].forEach((type) => addImageGroup(OBJECTIVE_ICON_SOURCES[type]));
+    [...rows, ...enemyRows].forEach((row) => {
+      addImageGroup(championPortraitSources(row, row?.champion));
+      summonerSpellIds(row).filter(Boolean).slice(0, 2).forEach((spell) => addImageGroup(summonerSpellIconSources(spell)));
+      finalBuildItems(row).slice(0, 6).forEach((item) => addImageGroup(itemIconSources(item.id)));
+    });
+  } else {
+    [...allyChampionCounts, ...enemyChampionCounts].forEach(([champion]) => addImageGroup(championPortraitSources(champion, champion)));
+  }
+  await Promise.all([...imageGroups.values()].map(async (urls) => {
+    for (const url of urls) {
+      const image = imageCache.has(url) ? imageCache.get(url) : await pngLoadImage(url);
+      imageCache.set(url, image);
+      if (image) break;
+    }
+  }));
+  pngBackground(ctx, W, H);
+  pngHeader(ctx, { width: W, title: title || "Statistiques", subtitle: subtitle || `${games} game${games > 1 ? "s" : ""} exportée${games > 1 ? "s" : ""}`, eyebrow: singleGame ? "FICHE GAME" : "GROUPE DE GAMES", logo: imageCache.get("/assets/nxt5-wordmark.png"), meta: singleGame ? "ANALYSE DE MATCH" : "STATISTIQUES DU GROUPE" });
+  const metricMarker = (value) => singleGame && firstMatch ? winningSideForDiff(firstMatch, value) : winningTeamForDiff(value);
+  const metrics = [
+    ["Games", String(games), `${wins}W - ${games - wins}L`, "cyan", ""],
+    ["Winrate", `${Math.round((wins / Math.max(1, games)) * 100)}%`, "Sélection", wins >= games - wins ? "green" : "red", ""],
+    ["KDA équipe", `${kills}/${deaths}/${assists}`, "Alliés", "cyan", ""],
+    ["Écart or", formatGoldDiff(goldDiff), "Économie", goldDiff >= 0 ? "green" : "red", metricMarker(goldDiff)],
+    ["Écart dégâts", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "Dégâts", damageDiff >= 0 ? "green" : "red", metricMarker(damageDiff)],
+    ["Écart vision", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "Vision", visionDiff >= 0 ? "green" : "red", metricMarker(visionDiff)],
+  ];
+  pngMetricStrip(ctx, { x: M, width: contentW, items: metrics.map(([label, value, detail, accent, marker], index) => {
+    const markerMeta = metricSideMarkerMeta(marker);
+    return { label, value, detail, accent: index === 0 || index === 2 ? undefined : accent, marker: markerMeta?.text, markerAccent: markerMeta?.canvasAccent };
+  }) });
+  if (singleGame && firstMatch) {
+    pngPanel(ctx, M, 348, contentW, 184);
+    drawObjectives(objectiveTeamKeyForSide(firstMatch, "BLUE"), M + 28, 362, columnW - 56);
+    pngLine(ctx, W / 2, 376, W / 2, 504, PNG_THEME.border);
+    drawObjectives(objectiveTeamKeyForSide(firstMatch, "RED"), W / 2 + 40, 362, columnW - 56);
+    let pillX = M;
+    [[firstMatch.result || "Analyse", firstMatch.result === "Victoire" ? "green" : firstMatch.result === "Défaite" ? "red" : "cyan"], [firstMatch.duration || "--:--", "cyan"], [firstMatch.patch || "Patch ?", "cyan"]].forEach(([label, accent]) => { pillX += pill(label, pillX, 556, accent) + 12; });
+    text("Sorts d’invocateur · Build final", W - M, 578, 500, 16, PNG_THEME.muted, 600, "right");
+    drawTeam("ALLY", rows, M, 612);
+    drawTeam("ENEMY", enemyRows, M + columnW + 24, 612);
+  } else {
+    pngPanel(ctx, M, 348, contentW, 184);
+    text("Signaux du bloc", M + 28, 394, contentW - 56, 28, PNG_THEME.text, 700);
+    const leaders = [
+      ["Meilleur KDA", topKda ? `${rowName(topKda)} · ${championDisplayName(topKda.champion)}` : "N/A", topKda ? `${topKda.kills || 0}/${topKda.deaths || 0}/${topKda.assists || 0}` : "—", "cyan"],
+      ["Plus de dégâts", topDamage ? `${rowName(topDamage)} · ${championDisplayName(topDamage.champion)}` : "N/A", topDamage ? formatPoints(topDamage.damage) : "—", "yellow"],
+      ["Plus de vision", topVision ? `${rowName(topVision)} · ${championDisplayName(topVision.champion)}` : "N/A", topVision ? `${topVision.vision || 0} VS` : "—", "purple"],
+    ];
+    leaders.forEach(([label, name, value, accent], index) => {
+      const colW = (contentW - 56) / 3;
+      const x = M + 28 + index * colW;
+      if (index) pngLine(ctx, x - 16, 418, x - 16, 508, PNG_THEME.border);
+      text(label.toUpperCase(), x, 438, colW - 36, 16, PNG_THEME.muted);
+      text(name, x, 468, colW - 40, 20, PNG_THEME.text, 700);
+      text(value, x, 503, colW - 40, 24, pngAccent(accent), 700);
+    });
+    pngPanel(ctx, M, 556, contentW, championPanelHeight);
+    text("Champions joués", M + 28, 602, contentW - 56, 28, PNG_THEME.text, 700);
+    text(`${rows.length} picks NXT5 · ${enemyRows.length} picks adverses`, W - M - 28, 600, 670, 16, PNG_THEME.muted, 600, "right");
+    drawChampions("Alliés", allyChampionCounts, M + 28, 620, columnW - 56, "cyan");
+    drawChampions("Adversaires", enemyChampionCounts, M + columnW + 52, 620, columnW - 56, "red");
+    pngPanel(ctx, M, groupListY, contentW, groupListHeight);
+    text("Games du groupe", M + 28, groupListY + 46, 700, 28, PNG_THEME.text, 700);
+    text(`${games} games · ${wins}W - ${games - wins}L`, W - M - 28, groupListY + 44, 500, 18, PNG_THEME.muted, 600, "right");
+    const listX = M + 28;
+    const listW = contentW - 56;
+    const resultX = listX + listW - 600;
+    const durationX = listX + listW - 400;
+    const sideX = listX + listW - 250;
+    [["GAME", listX, 850], ["RÉSULTAT", resultX, 180], ["DURÉE", durationX, 130], ["CÔTÉ", sideX, 130]].forEach(([label, x, width]) => text(label, x, groupListY + 88, width, 16, PNG_THEME.muted));
+    text("PATCH", listX + listW, groupListY + 88, 120, 16, PNG_THEME.muted, 600, "right");
+    pngLine(ctx, listX, groupListY + 104, listX + listW, groupListY + 104, PNG_THEME.border);
+    if (!visibleGames.length) text("Aucune game dans cette sélection.", listX, groupListY + 146, listW, 18, PNG_THEME.muted);
+    visibleGames.forEach((match, index) => {
+      const y = groupListY + 114 + index * 64;
+      if (index % 2 === 0) {
+        ctx.fillStyle = PNG_THEME.panelAlt;
+        ctx.fillRect(listX - 10, y, listW + 20, 64);
+      }
+      const accent = match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "cyan";
+      text(matchDisplayName(match, "Game"), listX, y + 26, listW - 636, 20, PNG_THEME.text, 700);
+      text(match.game_id || "Game ID", listX, y + 51, listW - 636, 16, PNG_THEME.muted);
+      text(match.result || "Analyse", resultX, y + 39, 180, 18, pngAccent(accent), 700);
+      text(match.duration || "--:--", durationX, y + 39, 130, 18, PNG_THEME.text);
+      const rawSide = String(match.side || "").toUpperCase();
+      const blue = rawSide.includes("BLUE") || rawSide.includes("BLEU");
+      const red = rawSide.includes("RED") || rawSide.includes("ROUGE");
+      text(blue ? "BLUE" : red ? "RED" : match.side || "—", sideX, y + 39, 130, 16, blue ? PNG_THEME.cyan : red ? PNG_THEME.red : PNG_THEME.muted, 700);
+      text(match.patch || "Patch ?", listX + listW, y + 39, 120, 18, PNG_THEME.muted, 600, "right");
+    });
+    if (games > visibleGames.length) text(`+ ${games - visibleGames.length} games dans le groupe · incluses dans les statistiques`, listX, groupListY + groupListHeight - 20, listW, 16, PNG_THEME.muted);
+  }
+  pngFooter(ctx, { width: W, height: H, label: singleGame ? "Statistiques de game" : "Statistiques du groupe" });
+  await pngDownload(canvas, filename || "nxt5-stats-export.png");
+}
 
 function metricSideMarkerMeta(marker) {
   const key = String(marker || "").toLowerCase();
@@ -1882,6 +2134,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId || "");
   const [selectedArchiveId, setSelectedArchiveId] = useState("");
+  const [exportingStats, setExportingStats] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
   const [archivesCollapsed, setArchivesCollapsed] = useState(false);
@@ -2010,6 +2263,31 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
       setSavingArchive(false);
     }
   }
+  async function downloadStatsPng(group = false) {
+    if (exportingStats) return;
+    let exportMatches = group ? scopedMatches : selectedMatch ? [selectedMatch] : [];
+    if (!exportMatches.length) return;
+    setExportingStats(true);
+    try {
+      if (group && exportMatches.length === 1) {
+        const match = exportMatches[0];
+        const payload = await apiFetch("match-details", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, matchIds: [match.id] }) });
+        const detail = payload?.matches?.find((item) => String(item.id) === String(match.id) && String(item.team_id) === String(selectedTeamId));
+        if (!detail) throw new Error("Impossible de charger les données complètes de la game.");
+        exportMatches = [{ ...match, ...detail }];
+      }
+      await exportStatsPng({
+        title: group ? selectedArchive?.name || "Groupe NXT5" : matchDisplayName(exportMatches[0]),
+        subtitle: group ? exportMatches.length + " games" : exportMatches[0].game_id,
+        matches: exportMatches,
+        filename: group ? "nxt5-groupe-stats.png" : "nxt5-game-" + (exportMatches[0].game_id || "export") + ".png",
+      });
+    } catch (error) {
+      pushToast?.({ type: "red", title: "Export impossible", text: error?.message || "Le PNG n’a pas pu être généré." });
+    } finally {
+      setExportingStats(false);
+    }
+  }
   const archiveFormTitle = archiveForm.id ? "Modifier le groupe" : "Créer un groupe";
   const archiveFormMatchCount = archiveForm.matchIds.length;
   const selectAllArchiveMatches = () => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }));
@@ -2047,6 +2325,10 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
               const active = String(category.id) === String(selectedCategoryId);
               return <button key={category.id} type="button" onClick={() => { setSelectedCategoryId(active ? "" : category.id); setSelectedArchiveId(""); setSelectedMatchId(""); }} className={cx("rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? "bg-white text-slate-950 shadow-[0_0_24px_rgba(255,255,255,.16)]" : "bg-white/[0.055] text-slate-300 hover:bg-white/[0.09]")}>{category.name}</button>;
             })}
+          </div>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="ghost" icon={exportingStats ? Loader2 : Download} onClick={() => downloadStatsPng(false)} disabled={!selectedMatch || loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>Exporter la game PNG</Button>
+            {selectedArchive && <Button type="button" variant="ghost" icon={exportingStats ? Loader2 : Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>}
           </div>
         </section>
         {!selectedArchive && <Surface className="mt-5">
@@ -2730,4 +3012,4 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   );
 }
 
-export { GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryCard, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
+export { exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryCard, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
