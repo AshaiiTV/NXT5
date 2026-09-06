@@ -11,7 +11,7 @@ import {
   Users,
 } from "lucide-react";
 
-const NXT5_IMPORTER_VERSION = "0.2.10";
+const NXT5_IMPORTER_VERSION = "0.2.11";
 const NXT5_IMPORTER_RELEASE_URL = "https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest";
 
 export const NXT5_IMPORTER_WINDOWS_URL = `${NXT5_IMPORTER_RELEASE_URL}/NXT5-Importer-Windows-${NXT5_IMPORTER_VERSION}.exe`;

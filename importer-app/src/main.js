@@ -333,11 +333,11 @@ function timelineFrames(timeline) {
   return timeline?.info?.frames || timeline?.frames || [];
 }
 
-function csAtMinuteFromTimeline(timeline, participantId, minute) {
+function csAtMinuteFromTimeline(timeline, participantId, minute, gameDuration) {
   const frames = timelineFrames(timeline);
   const target = Number(minute || 0) * 60 * 1000;
-  if (!participantId || !frames.length) return null;
-  const frame = frames.find((item) => Number(item.timestamp || 0) >= target) || frames[frames.length - 1];
+  if (!participantId || !frames.length || Number(gameDuration || 0) < minute * 60) return null;
+  const frame = frames.find((item) => Number(item.timestamp || 0) >= target);
   const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
   if (!participantFrame) return null;
   return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
@@ -392,8 +392,8 @@ function buildTimelineSummary(match, timeline) {
       participantId: Number(participant.participantId || 0),
       champion: participant.championName || '',
       summonerName: participant.summonerName || participant.riotIdGameName || '',
-      cs10: csAtMinuteFromTimeline(timeline, participant.participantId, 10),
-      cs20: csAtMinuteFromTimeline(timeline, participant.participantId, 20)
+      cs10: csAtMinuteFromTimeline(timeline, participant.participantId, 10, match?.info?.gameDuration),
+      cs20: csAtMinuteFromTimeline(timeline, participant.participantId, 20, match?.info?.gameDuration)
     };
   }
   const wards = wardEventsFromTimeline(match, timeline);

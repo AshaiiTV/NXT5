@@ -4,7 +4,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, createSession, ensureEmailVerificationColumns, hashPassword, isValidEmail, normalizeAccountName, normalizeEmail, safeUser, sha256 } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
-import { assertRateLimit } from './_lib/rate-limit';
+import { assertRateLimit, assertVerificationEmailRateLimit } from './_lib/rate-limit';
 
 const LEGAL_VERSION = '2026-09-05';
 
@@ -45,15 +45,21 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Tu dois accepter les CGU, le règlement et la politique de confidentialité en vigueur.'), { status: 400, code: 'LEGAL_ACCEPTANCE_REQUIRED' });
     }
 
+    await ensureEmailVerificationColumns();
+    const existing = await sql`select id from users where lower(email) = ${email} limit 1`;
+    if (existing.length) throw Object.assign(new Error('Cet e-mail est déjà utilisé.'), { status: 409 });
+    // Reserve delivery before creating an account, so a shared recipient limit
+    // cannot leave an unexpected registered account behind a 429 response.
+    const userId = crypto.randomUUID();
+    await assertVerificationEmailRateLimit(userId, email);
     const accountName = accountNameFromEmail(email);
     const passwordHash = await hashPassword(password);
     const verifyToken = crypto.randomBytes(32).toString('base64url');
     const verifyTokenHash = sha256(verifyToken);
     const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    await ensureEmailVerificationColumns();
     const users = await sql`
-      insert into users (account_name, email, name, password_hash, email_verified, email_verify_token, email_verify_expires_at)
-      values (${accountName}, ${email}, ${displayName}, ${passwordHash}, false, ${verifyTokenHash}, ${verifyExpiresAt})
+      insert into users (id, account_name, email, name, password_hash, email_verified, email_verify_token, email_verify_expires_at)
+      values (${userId}, ${accountName}, ${email}, ${displayName}, ${passwordHash}, false, ${verifyTokenHash}, ${verifyExpiresAt})
       returning id, account_name, email, coalesce(email_verified, false) as email_verified, name, created_at
     `;
 

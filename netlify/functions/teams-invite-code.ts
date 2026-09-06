@@ -1,3 +1,4 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import crypto from 'node:crypto';
 import { sql } from './_lib/db';
@@ -13,18 +14,7 @@ function makeInviteCode() {
 }
 
 async function ensureInviteExpiryColumn() {
-  await sql`alter table teams add column if not exists invite_expires_at timestamptz`;
-  await sql`
-    create table if not exists team_invite_codes (
-      id uuid primary key default gen_random_uuid(),
-      team_id uuid not null references teams(id) on delete cascade,
-      created_by uuid references users(id) on delete set null,
-      code text not null unique,
-      expires_at timestamptz not null,
-      created_at timestamptz not null default now()
-    )
-  `;
-  await sql`create index if not exists idx_team_invite_codes_team on team_invite_codes(team_id, expires_at desc)`;
+  await assertSchemaReady();
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

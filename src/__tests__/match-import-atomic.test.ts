@@ -51,7 +51,11 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
   return { sql: neon('postgresql://test:test@local-test.invalid/nxt5') };
 });
 
-import { persistAnalyzedMatch } from '../../netlify/functions/_lib/analytics';
+import { persistAnalyzedMatch, rebuildChampionPool } from '../../netlify/functions/_lib/analytics';
+import { loadMatchPage } from '../../netlify/functions/_lib/match-page';
+import bootstrap from '../../netlify/functions/bootstrap';
+import importRiot from '../../netlify/functions/matches-import';
+import { fetchRiotMatch } from '../../netlify/functions/_lib/riot';
 import importFile from '../../netlify/functions/matches-import-file';
 import manageCategories from '../../netlify/functions/match-categories-manage';
 
@@ -60,7 +64,7 @@ vi.mock('../../netlify/functions/_lib/auth', () => ({
   requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' })
 }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {} }));
-vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => [] }));
+vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => [], ensureUserNotificationColumns: async () => {} }));
 vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({ fetchRiotMatch: vi.fn(() => { throw new Error('Unexpected Riot request in local file import'); }) }));
 
@@ -117,11 +121,15 @@ beforeAll(async () => {
     .replace('create extension if not exists pgcrypto;', '')
     .replaceAll('gen_random_bytes(5)', "decode('0000000000', 'hex')");
   await database.pg.exec(schema);
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
+  await database.pg.exec(`create table if not exists app_schema_migrations (
+    migration_key text primary key, applied_at timestamptz not null default now(), checksum text
+  ); insert into app_schema_migrations(migration_key) values ('audit-runtime-20260906-v1')`);
 }, 20_000);
 
 beforeEach(async () => {
   database.beforeBatch = null;
-  await database.pg.exec('alter table match_participants drop constraint if exists reject_test_stat; truncate users cascade');
+  await database.pg.exec('alter table match_participants drop constraint if exists reject_test_stat; alter table champion_pool drop constraint if exists reject_pool_refresh; truncate users cascade');
   await database.pg.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $3, $4)', [userId, 'test', 'Test account', 'unused']);
   for (const id of [teamId, otherTeamId]) {
     await database.pg.query('insert into teams(id, owner_id, name, tag) values ($1, $2, $3, $4)', [id, userId, id, 'TEST']);
@@ -222,14 +230,10 @@ describe('atomic match imports against PostgreSQL', () => {
   it('keeps one complete version when two callers import the same game', async () => {
     // PGlite serializes connections. This exercises overlapping callers and the
     // real unique constraints; multi-connection row-lock contention needs Neon.
-    // Derived pool refreshes still run after commit. Their existing independent
-    // concurrency behavior must not obscure assertions on the atomic core data.
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
       await Promise.all([persistAnalyzedMatch(importArgs(2)), persistAnalyzedMatch(importArgs(3))]);
-      for (const [message] of errors.mock.calls) {
-        expect(message).toBe('[match-import] champion pool rebuild failed after match persistence.');
-      }
+      expect(errors).not.toHaveBeenCalled();
     } finally {
       errors.mockRestore();
     }
@@ -296,5 +300,147 @@ describe('atomic match imports against PostgreSQL', () => {
     expect(otherParticipants).toHaveLength(10);
     expect(otherParticipants.every((row: any) => row.kills === 3)).toBe(true);
     expect(saved.matches.find((row: any) => row.id === second.id).category_ids).toEqual([foreignCategoryId]);
+  });
+});
+
+describe('stable and atomic champion pool refresh', () => {
+  it('combines two aliases of one profile and champion into one row', async () => {
+    await persistAnalyzedMatch(importArgs(2));
+    const next = importArgs(4);
+    next.gameId = 'EUW1_987654321';
+    next.match.metadata.matchId = next.gameId;
+    next.match.info.participants[0].summonerName = 'Renamed summoner';
+    next.match.info.participants[0].riotIdGameName = 'Second account';
+    const saved = await persistAnalyzedMatch(next);
+    expect(saved.warnings).toEqual([]);
+    const pool = await database.pg.query('select player_name, games, wins from champion_pool where player_id=$1 and champion=$2', [roster[0].id, 'Champion0']);
+    expect(pool.rows).toEqual([{ player_name: 'Player0', games: 2, wins: 2 }]);
+  });
+
+  it('preserves manual and riot_manual entries while replacing automatic statistics', async () => {
+    await persistAnalyzedMatch(importArgs());
+    for (const [index, source] of [[0, 'manual'], [1, 'riot_manual']] as const) {
+      await database.pg.query('update champion_pool set source=$1, status=$2, notes=$3 where player_id=$4', [source, 'lock', 'Keep this coaching note', roster[index].id]);
+    }
+    const before = await database.pg.query("select * from champion_pool where source in ('manual','riot_manual') order by id");
+    await rebuildChampionPool(teamId);
+    const after = await database.pg.query("select * from champion_pool where source in ('manual','riot_manual') order by id");
+    expect(after.rows).toEqual(before.rows);
+    const auto = await database.pg.query("select count(*)::int as count from champion_pool where source='riot'");
+    expect(auto.rows[0].count).toBe(3);
+  });
+
+  it('retains the whole previous pool and returns a warning if recalculation fails after import', async () => {
+    await persistAnalyzedMatch(importArgs());
+    const before = await database.pg.query('select * from champion_pool order by id');
+    await database.pg.exec('alter table champion_pool add constraint reject_pool_refresh check (games <> 2)');
+    const next = importArgs(4);
+    next.gameId = 'EUW1_987654321';
+    next.match.metadata.matchId = next.gameId;
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const saved = await persistAnalyzedMatch(next);
+      expect(saved.warnings).toEqual([expect.objectContaining({ code: 'CHAMPION_POOL_REBUILD_FAILED' })]);
+      expect(saved.game_id).toBe(next.gameId);
+    } finally { errors.mockRestore(); }
+    expect((await database.pg.query('select * from champion_pool order by id')).rows).toEqual(before.rows);
+    expect((await database.pg.query('select count(*)::int as count from matches')).rows[0].count).toBe(2);
+  });
+
+  it('accepts required enemy lane assignments through the Riot import endpoint', async () => {
+    const args = importArgs();
+    vi.mocked(fetchRiotMatch).mockResolvedValueOnce(args.match);
+    const response = await importRiot(new Request('https://nxt5.example/.netlify/functions/matches-import', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        teamId, gameId: args.gameId, label: args.label, categoryIds: args.categoryIds,
+        laneAssignments: args.laneAssignments, enemyLaneAssignments: args.enemyLaneAssignments,
+        playerAssignments: args.playerAssignments, allyTeamSide: args.allyTeamSide
+      })
+    }), {} as any);
+    expect(response.status).toBe(200);
+    expect((await storedMatch()).participants).toHaveLength(10);
+  });
+});
+
+describe('team scoped and paginated match loading', () => {
+  async function seedHistory() {
+    await database.pg.query(`insert into matches(team_id,game_id,result,duration_seconds,raw,created_at)
+      select $1, 'EUW1_' || n, case when n % 2 = 0 then 'Victoire' else 'Défaite' end, 900,
+        '{"nxt5":{"timelineEvents":[{"type":"CHAMPION_KILL"}],"timelineSummary":{"available":true,"wards":[{"x":10}],"csMilestones":{"1":{"cs10":70,"cs20":114}}}},"timeline":{"info":{"frames":[{"timestamp":900000}]}},"info":{"teams":[]}}'::jsonb,
+        '2026-01-01'::timestamptz + n * interval '1 minute' from generate_series(1,62) n`, [teamId]);
+    await database.pg.query(`insert into matches(team_id,game_id,result) values ($1,'EUW1_999','Victoire')`, [otherTeamId]);
+    await database.pg.query(`insert into match_participants(match_id,team_key,champion,role,raw)
+      select id, 'ALLY', 'Ahri', 'MID', '{"participantId":1,"timeline":{"frames":[{"large":"omit"}]}}'::jsonb from matches`);
+  }
+
+  it('loads only one team and only participants for the requested page, with global totals', async () => {
+    await seedHistory();
+    const page = await loadMatchPage(teamId, { limit: 50, offset: 0 });
+    const next = await loadMatchPage(teamId, { limit: 50, offset: 50 });
+    expect(page.pagination).toEqual({ limit: 50, offset: 0, total: 62, hasMore: true, nextOffset: 50 });
+    expect(next.pagination).toEqual({ limit: 50, offset: 50, total: 62, hasMore: false, nextOffset: null });
+    expect(page.totals).toEqual({ games: 62, wins: 31, losses: 31 });
+    expect(page.matches).toHaveLength(50);
+    expect(next.matches).toHaveLength(12);
+    expect(new Set([...page.matches, ...next.matches].map(match => match.id)).size).toBe(62);
+    for (const match of page.matches) {
+      expect(match.team_id).toBe(teamId);
+      expect(match.participants).toHaveLength(1);
+      expect(match.participants[0].match_id).toBe(match.id);
+      expect(match.raw.timeline).toBeUndefined();
+      expect(match.raw.nxt5.timelineEvents).toBeUndefined();
+      expect(match.raw.nxt5.timelineSummary.wards).toBeUndefined();
+      expect(match.raw.nxt5.timelineSummary.csMilestones['1'].cs20).toBeNull();
+      expect(match.participants[0].raw.timeline?.frames).toBeUndefined();
+    }
+  });
+
+  it('applies composition/archive limits to the selected team and returns compact subsequent pages', async () => {
+    await seedHistory();
+    for (const id of [teamId, otherTeamId]) {
+      await database.pg.query("insert into composition_types(team_id,title) select $1, 'Draft ' || n from generate_series(1,60) n", [id]);
+      await database.pg.query("insert into match_archives(team_id,name) select $1, 'Archive ' || n from generate_series(1,110) n", [id]);
+    }
+    const response = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1`), {} as any);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.selectedTeamId).toBe(teamId);
+    expect(body.matches).toHaveLength(1);
+    expect(body.dashboard.winrateTrend).toBe('5W / 5L sur les 10 dernières');
+    expect(body.teams).toHaveLength(2);
+    expect(body.teams.every((team: any) => !('invite_code' in team))).toBe(true);
+    expect(body.compositions).toHaveLength(50);
+    expect(body.matchArchives).toHaveLength(100);
+    expect([...body.compositions, ...body.matchArchives, ...body.players].every((row: any) => row.team_id === teamId)).toBe(true);
+    const next = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=50&offset=50&matchesOnly=1`), {} as any);
+    const nextBody = await next.json();
+    expect(nextBody.matches).toHaveLength(12);
+    expect(nextBody.teams).toBeUndefined();
+    expect(nextBody.compositions).toBeUndefined();
+  });
+
+  it('preserves compact objective timings for trends without transferring full timeline events', async () => {
+    const args = importArgs();
+    args.match.timeline = { info: { frames: [{ timestamp: 600000, events: [
+      { type: 'ELITE_MONSTER_KILL', timestamp: 590000, killerTeamId: 100, killerId: 1, monsterType: 'DRAGON', monsterSubType: 'AIR_DRAGON', position: { x: 10, y: 20 } },
+      { type: 'CHAMPION_KILL', timestamp: 591000, killerId: 1, victimId: 6 },
+      { type: 'ITEM_PURCHASED', timestamp: 592000, participantId: 1, itemId: 1056 }
+    ] }] } };
+    await persistAnalyzedMatch(args);
+    const expected = [{ type: 'ELITE_MONSTER_KILL', timestamp: 590000, killerTeamId: 100, killerId: 1, monsterType: 'DRAGON', monsterSubType: 'AIR_DRAGON' }];
+    const page = await loadMatchPage(teamId, { limit: 50, offset: 0 });
+    expect(page.matches[0].raw.nxt5.objectiveEvents).toEqual(expected);
+    expect(page.matches[0].raw.nxt5.timelineEvents).toBeUndefined();
+    expect(page.matches[0].raw.timeline).toBeUndefined();
+    // Legacy files without the stored event index use their frames as source.
+    await database.pg.query("update matches set raw = raw #- '{nxt5,timelineEvents}' where team_id=$1", [teamId]);
+    expect((await loadMatchPage(teamId, { limit: 50, offset: 0 })).matches[0].raw.nxt5.objectiveEvents).toEqual(expected);
+  });
+
+  it('refuses inaccessible teams and invalid pagination before loading their data', async () => {
+    const inaccessible = await bootstrap(new Request('https://nxt5.example/.netlify/functions/bootstrap?teamId=ffffffff-ffff-4fff-8fff-ffffffffffff'), {} as any);
+    expect(inaccessible.status).toBe(403);
+    const invalid = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=100000`), {} as any);
+    expect(invalid.status).toBe(400);
   });
 });

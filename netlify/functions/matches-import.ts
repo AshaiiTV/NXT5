@@ -59,6 +59,7 @@ export default async function handler(request: Request, context: Context): Promi
     const rawCategoryIds = body.categoryIds || [];
     const categoryIds = [...new Set((Array.isArray(rawCategoryIds) ? rawCategoryIds : [rawCategoryIds]).map((id) => String(id || '').trim()).filter(Boolean))];
     const laneAssignments = body.laneAssignments && typeof body.laneAssignments === 'object' ? body.laneAssignments : {};
+    const enemyLaneAssignments = body.enemyLaneAssignments && typeof body.enemyLaneAssignments === 'object' ? body.enemyLaneAssignments : {};
     const playerAssignments = body.playerAssignments && typeof body.playerAssignments === 'object' ? body.playerAssignments : {};
     const allyTeamSide = cleanText(body.allyTeamSide, 20);
 
@@ -108,7 +109,7 @@ export default async function handler(request: Request, context: Context): Promi
         }
       });
     }
-    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, playerAssignments, allyTeamSide, label, categoryIds });
+    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds });
 
     await runOptionalImportTask('audit log', () => sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
@@ -120,6 +121,7 @@ export default async function handler(request: Request, context: Context): Promi
     else await notificationTask;
 
     return json({
+      warnings: savedMatch.warnings || [],
       match: {
         id: savedMatch.id,
         game_id: savedMatch.game_id,

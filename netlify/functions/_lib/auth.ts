@@ -1,9 +1,9 @@
+import { assertSchemaReady } from './migrations';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import type { Context } from '@netlify/functions';
 import { sql } from './db';
-import { ensureMigration } from './migrations';
-import { INACTIVITY_DAYS, ensureUserEngagementSchema, recordUserActivity } from './engagement';
+import { INACTIVITY_DAYS, recordUserActivity } from './engagement';
 import type { DbUser } from './types';
 
 export const COOKIE_NAME = 'rb_session';
@@ -112,62 +112,7 @@ export function isValidEmail(email: unknown): boolean {
 }
 
 export async function ensureAuthUserSchema(): Promise<void> {
-  await ensureMigration('auth-runtime-2026-09-02-v1', async () => {
-    await sql`create extension if not exists pgcrypto`;
-    await sql`
-      create table if not exists users (
-        id uuid primary key default gen_random_uuid(),
-        account_name text,
-        email text,
-        name text not null default 'Compte NXT5',
-        password_hash text not null default '',
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now()
-      )
-    `;
-    await sql`alter table users add column if not exists account_name text`;
-    await sql`alter table users add column if not exists email text`;
-    await sql`alter table users add column if not exists name text not null default 'Compte NXT5'`;
-    await sql`alter table users add column if not exists password_hash text not null default ''`;
-    await sql`alter table users add column if not exists created_at timestamptz not null default now()`;
-    await sql`alter table users add column if not exists updated_at timestamptz not null default now()`;
-    await sql`alter table users add column if not exists email_verified boolean default false`;
-    await sql`alter table users add column if not exists email_verify_token text default null`;
-    await sql`alter table users add column if not exists email_verify_expires_at timestamptz default null`;
-    await sql`alter table users add column if not exists notif_match boolean default true`;
-    await sql`alter table users add column if not exists notif_report boolean default true`;
-    await sql`
-      update users
-      set account_name = lower(regexp_replace(coalesce(nullif(name, ''), 'compte') || '-' || substr(id::text, 1, 8), '[^a-z0-9._-]', '', 'g'))
-      where account_name is null or account_name = ''
-    `;
-    await sql`alter table users alter column account_name set not null`;
-    await sql`create unique index if not exists idx_users_account_name on users(account_name)`;
-    await sql`create unique index if not exists idx_users_email_lower on users (lower(email)) where email is not null and email <> ''`;
-    await sql`
-      create table if not exists sessions (
-        id uuid primary key default gen_random_uuid(),
-        user_id uuid not null references users(id) on delete cascade,
-        token_hash text not null unique,
-        expires_at timestamptz not null,
-        revoked_at timestamptz,
-        user_agent text,
-        ip text,
-        created_at timestamptz not null default now()
-      )
-    `;
-    await sql`alter table sessions add column if not exists revoked_at timestamptz`;
-    await sql`alter table sessions add column if not exists user_agent text`;
-    await sql`alter table sessions add column if not exists ip text`;
-    await sql`alter table sessions add column if not exists created_at timestamptz not null default now()`;
-    await sql`create unique index if not exists idx_sessions_token_hash on sessions(token_hash)`;
-    await sql`create index if not exists idx_sessions_user_active on sessions(user_id, expires_at desc) where revoked_at is null`;
-  });
-  await ensureMigration('legal-acceptance-2026-09-04-v1', async () => {
-    await sql`alter table users add column if not exists legal_accepted_at timestamptz`;
-    await sql`alter table users add column if not exists legal_version text`;
-  });
-  await ensureUserEngagementSchema();
+  await assertSchemaReady();
 }
 
 export async function ensureEmailVerificationColumns(): Promise<void> {
@@ -175,11 +120,7 @@ export async function ensureEmailVerificationColumns(): Promise<void> {
 }
 
 export async function ensureSessionSchema(): Promise<void> {
-  await ensureAuthUserSchema();
-  await ensureMigration('session-activity-2026-09-04-v1', async () => {
-    await sql`alter table sessions add column if not exists last_seen_at timestamptz`;
-    await sql`create index if not exists idx_sessions_last_seen_at on sessions(last_seen_at desc)`;
-  });
+  await assertSchemaReady();
 }
 
 export async function purgeExpiredAuthData(): Promise<void> {

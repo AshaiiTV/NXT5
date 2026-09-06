@@ -1,3 +1,4 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -10,10 +11,7 @@ function cleanText(value, max = 240) {
 }
 
 async function ensureMatchManagementColumns() {
-  await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
-  await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
-  await ensureMatchCategoriesSchema();
-  await ensureWorkflowSchema();
+  await assertSchemaReady();
 }
 
 function removeIdFromJsonArray(value, id) {

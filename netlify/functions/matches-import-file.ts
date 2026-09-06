@@ -145,6 +145,7 @@ export default async function handler(request: Request, context: Context): Promi
     else await notificationTask;
 
     return json({
+      warnings: savedMatch.warnings || [],
       match: {
         id: savedMatch.id,
         game_id: savedMatch.game_id,

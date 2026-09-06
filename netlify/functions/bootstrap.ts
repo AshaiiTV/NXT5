@@ -1,51 +1,14 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
+import { safeTeam } from './_lib/teams';
+import { loadMatchPage, matchPageOptions } from './_lib/match-page';
 import { json, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-import { ensureMatchCategoriesSchema, seedDefaultMatchCategories } from './_lib/match-categories';
-import { ensureAuditLogsSchema, ensureCompositionTypesSchema, ensureReportsSchema, ensureWorkflowSchema } from './_lib/schema';
-import { ensurePlayerRosterSchema } from './_lib/player-roster';
-import { ensureMigration } from './_lib/migrations';
-import { ensureUserNotificationColumns } from './_getTeamMembers.js';
+import { seedDefaultMatchCategories } from './_lib/match-categories';
 
 async function ensureBootstrapSchema() {
-  return ensureMigration('bootstrap-performance-2026-09-02-v1', async () => {
-    await ensureUserNotificationColumns(sql);
-    await ensureMatchImporterColumn();
-    await ensureMatchCategoriesSchema();
-    await ensureChampionPoolSchema();
-    await ensureReportsSchema();
-    await ensureCompositionTypesSchema();
-    await ensureAuditLogsSchema();
-    await ensureWorkflowSchema();
-    await ensureRoleConstraints();
-    await ensurePlayerRosterSchema();
-    await sql`
-      create table if not exists player_coaching_notes (
-        id uuid primary key default gen_random_uuid(),
-        team_id uuid not null references teams(id) on delete cascade,
-        player_id uuid not null references players(id) on delete cascade,
-        content text not null default '',
-        updated_by uuid references users(id) on delete set null,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now(),
-        unique(team_id, player_id)
-      )
-    `;
-    await sql`
-      create table if not exists match_archives (
-        id uuid primary key default gen_random_uuid(),
-        team_id uuid not null references teams(id) on delete cascade,
-        created_by uuid references users(id) on delete set null,
-        name text not null,
-        description text,
-        match_ids jsonb not null default '[]'::jsonb,
-        created_at timestamptz not null default now(),
-        updated_at timestamptz not null default now()
-      )
-    `;
-    await sql`create index if not exists idx_match_archives_team on match_archives(team_id, created_at desc)`;
-  });
+  await assertSchemaReady();
 }
 
 function buildDashboard(matches, improvements) {
@@ -131,80 +94,14 @@ async function loadMatchArchives(teamIds) {
   }
 }
 
-async function ensureMatchImporterColumn() {
-  await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
-  await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
-}
-
-async function ensureChampionPoolSchema() {
-  await sql`
-    create table if not exists champion_pool (
-      id uuid primary key default gen_random_uuid(),
-      team_id uuid not null references teams(id) on delete cascade,
-      player_id uuid references players(id) on delete cascade,
-      player_name text not null,
-      champion text not null,
-      games integer not null default 0,
-      wins integer not null default 0,
-      losses integer not null default 0,
-      winrate numeric not null default 0,
-      kda numeric not null default 0,
-      cs_per_min numeric not null default 0,
-      impact_grade text not null default '—',
-      verdict text not null default 'Données insuffisantes',
-      updated_at timestamptz not null default now(),
-      unique(team_id, player_id, champion)
-    )
-  `;
-  await sql`alter table champion_pool add column if not exists role text`;
-  await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
-  await sql`alter table champion_pool add column if not exists notes text`;
-  await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
-  await sql`create index if not exists idx_champion_pool_team on champion_pool(team_id)`;
-}
-
-async function ensureRoleConstraints() {
-  await sql`
-    update players
-    set role = 'SUB'
-    where role is null
-      or role not in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD')
-  `;
-  await sql`alter table players drop constraint if exists players_role_check`;
-  await sql`
-    alter table players add constraint players_role_check
-    check (role in ('TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', 'COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD'))
-  `;
-  await sql`alter table team_members drop constraint if exists team_members_role_check`;
-  await sql`
-    update team_members
-    set role = case
-      when lower(coalesce(role, '')) in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member')
-        then lower(role)
-      when lower(coalesce(role, '')) in ('staff', 'admin')
-        then 'coach'
-      else 'member'
-    end
-  `;
-  await sql`
-    alter table team_members add constraint team_members_role_check
-    check (role in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member'))
-  `;
-  await sql`
-    update team_members
-    set role = 'captain'
-    from teams
-    where team_members.team_id = teams.id
-      and team_members.user_id = teams.owner_id
-      and team_members.role = 'owner'
-  `;
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertMethod(request, 'GET');
     assertSessionSecret();
     const user = await requireAuth(request, context);
+    const url = new URL(request.url);
+    const pageOptions = matchPageOptions(url);
+    const requestedTeamId = String(url.searchParams.get('teamId') || '').trim();
     const teams = await sql`
       select distinct teams.*
       from teams
@@ -212,157 +109,46 @@ export default async function handler(request: Request, context: Context): Promi
       where teams.owner_id = ${user.id} or team_members.user_id = ${user.id}
       order by teams.created_at asc
     `;
-    const teamIds = teams.map((t) => t.id);
-
-    if (!teamIds.length) {
-      return json({ dashboard: buildDashboard([], []), teams: [], players: [], teamMembers: [], matches: [], championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [], inviteCodes: [], availability: [], profileCoachingNotes: [], playerGoals: [] });
+    const selectedTeam = requestedTeamId ? teams.find(team => team.id === requestedTeamId) : teams[0];
+    if (requestedTeamId && !selectedTeam) throw Object.assign(new Error('Accès à cette équipe refusé.'), { status: 403 });
+    if (!selectedTeam) {
+      return json({ dashboard: buildDashboard([], []), selectedTeamId: null,
+        pagination: { ...pageOptions, total: 0, hasMore: false, nextOffset: null },
+        totals: { games: 0, wins: 0, losses: 0 }, teams: [], players: [], teamMembers: [], matches: [],
+        championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [],
+        inviteCodes: [], availability: [], profileCoachingNotes: [], playerGoals: [] });
     }
+    const selectedTeamId = String(selectedTeam.id);
+    const teamIds = [selectedTeamId];
     await ensureBootstrapSchema();
+    const page = await loadMatchPage(selectedTeamId, pageOptions);
+    if (url.searchParams.get('matchesOnly') === '1') return json({ selectedTeamId, ...page });
     await seedDefaultMatchCategories(teamIds, user.id);
-
-    const [
-      players,
-      teamMembers,
-      matchSummaries,
-      championPool,
-      improvements,
-      compositions,
-      reports,
-      matchArchives,
-      matchCategories,
-      inviteCodes,
-      availability,
-      profileCoachingNotes,
-      playerGoals
-    ] = await Promise.all([
-      sql`select * from players where team_id = any(${teamIds}) order by created_at asc`,
-      sql`
-        select
-          team_members.*,
-          users.account_name,
-          users.name
-        from team_members
-        join users on users.id = team_members.user_id
-        where team_members.team_id = any(${teamIds})
-        order by team_members.created_at asc
-      `,
-      sql`
-        select
-          to_jsonb(matches) - 'raw' as summary,
-          jsonb_strip_nulls(jsonb_build_object(
-            'nxt5Label', matches.raw -> 'nxt5Label',
-            'nxt5',
-              case when jsonb_typeof(matches.raw -> 'nxt5') = 'object' then matches.raw -> 'nxt5' else '{}'::jsonb end
-              || jsonb_build_object(
-                'timelineEvents', case
-                  when jsonb_typeof(matches.raw #> '{nxt5,timelineEvents}') = 'array' then matches.raw #> '{nxt5,timelineEvents}'
-                  else jsonb_path_query_array(
-                    coalesce(
-                      matches.raw #> '{timeline,info,frames}',
-                      matches.raw #> '{metadata,timeline,info,frames}',
-                      matches.raw #> '{timeline,frames}',
-                      '[]'::jsonb
-                    ),
-                    '$[*].events[*] ? (@.type == "ELITE_MONSTER_KILL" || @.type == "CHAMPION_KILL" || @.type == "BUILDING_KILL" || @.type == "ITEM_PURCHASED" || @.type == "ITEM_SOLD" || @.type == "ITEM_DESTROYED" || @.type == "ITEM_UNDO")'
-                  )
-                end
-              ),
-            'info', jsonb_build_object(
-              'gameCreation', matches.raw #> '{info,gameCreation}',
-              'teams', matches.raw #> '{info,teams}'
-            )
-          )) as raw,
-          users.name as created_by_name,
-          users.account_name as created_by_account
-        from matches
-        left join users on users.id = matches.created_by
-        where matches.team_id = any(${teamIds})
-        order by matches.created_at desc
-      `,
-      sql`select * from champion_pool where team_id = any(${teamIds}) order by games desc, winrate desc`,
-      sql`select * from improvements where team_id = any(${teamIds}) order by rank asc, created_at desc limit 12`,
-      sql`
-        select composition_types.*, users.name as created_by_name
-        from composition_types
-        left join users on users.id = composition_types.created_by
-        where composition_types.team_id = any(${teamIds})
-        order by composition_types.created_at desc
-        limit 50
-      `,
-      sql`
-        select reports.*, users.name as author_name
-        from reports
-        left join users on users.id = reports.created_by
-        where reports.team_id = any(${teamIds})
-        order by reports.created_at desc
-      `,
+    const [players, teamMembers, championPool, improvements, compositions, reports, matchArchives,
+      matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals, recentMatches] = await Promise.all([
+      sql`select * from players where team_id = ${selectedTeamId} order by created_at asc`,
+      sql`select team_members.*, users.account_name, users.name
+          from team_members join users on users.id = team_members.user_id
+          where team_members.team_id = ${selectedTeamId} order by team_members.created_at asc`,
+      sql`select * from champion_pool where team_id = ${selectedTeamId} order by games desc, winrate desc`,
+      sql`select * from improvements where team_id = ${selectedTeamId} order by rank asc, created_at desc limit 12`,
+      sql`select composition_types.*, users.name as created_by_name
+          from composition_types left join users on users.id = composition_types.created_by
+          where composition_types.team_id = ${selectedTeamId} order by composition_types.created_at desc limit 50`,
+      sql`select reports.*, users.name as author_name from reports left join users on users.id = reports.created_by
+          where reports.team_id = ${selectedTeamId} order by reports.created_at desc`,
       loadMatchArchives(teamIds),
-      sql`select * from match_categories where team_id = any(${teamIds}) order by is_default desc, name asc`,
-      loadInviteCodes(teamIds, user.id),
-      loadAvailability(teamIds),
-      loadProfileCoachingNotes(teamIds),
-      sql`
-        select player_goals.*, users.name as created_by_name
-        from player_goals
-        left join users on users.id = player_goals.created_by
-        where player_goals.team_id = any(${teamIds})
-        order by (player_goals.status = 'active') desc, player_goals.created_at desc
-      `
+      sql`select * from match_categories where team_id = ${selectedTeamId} order by is_default desc, name asc`,
+      loadInviteCodes(teamIds, user.id), loadAvailability(teamIds), loadProfileCoachingNotes(teamIds),
+      sql`select player_goals.*, users.name as created_by_name from player_goals
+          left join users on users.id = player_goals.created_by where player_goals.team_id = ${selectedTeamId}
+          order by (player_goals.status = 'active') desc, player_goals.created_at desc`,
+      sql`select result, impact_score, duration, side, vision_score from matches where team_id = ${selectedTeamId}
+          order by created_at desc, id desc limit 10`
     ]);
-    const matches = matchSummaries.map((row) => ({
-      ...(row.summary || {}),
-      raw: row.raw || {},
-      created_by_name: row.created_by_name,
-      created_by_account: row.created_by_account
-    }));
-    const matchIds = matches.map((m) => m.id);
-    const participantSummaries = matchIds.length ? await sql`
-      select
-        to_jsonb(match_participants) - 'raw' as summary,
-        jsonb_strip_nulls(jsonb_build_object(
-          'participantId', coalesce(match_participants.raw -> 'participantId', match_participants.raw #> '{participant,participantId}'),
-          'teamId', coalesce(match_participants.raw -> 'teamId', match_participants.raw #> '{participant,teamId}'),
-          'championId', coalesce(match_participants.raw -> 'championId', match_participants.raw #> '{participant,championId}'),
-          'teamPosition', coalesce(match_participants.raw -> 'teamPosition', match_participants.raw #> '{participant,teamPosition}'),
-          'individualPosition', coalesce(match_participants.raw -> 'individualPosition', match_participants.raw #> '{participant,individualPosition}'),
-          'lane', coalesce(match_participants.raw -> 'lane', match_participants.raw #> '{participant,lane}'),
-          'summoner1Id', coalesce(match_participants.raw -> 'summoner1Id', match_participants.raw #> '{participant,summoner1Id}'),
-          'summoner2Id', coalesce(match_participants.raw -> 'summoner2Id', match_participants.raw #> '{participant,summoner2Id}'),
-          'item0', coalesce(match_participants.raw -> 'item0', match_participants.raw #> '{participant,item0}'),
-          'item1', coalesce(match_participants.raw -> 'item1', match_participants.raw #> '{participant,item1}'),
-          'item2', coalesce(match_participants.raw -> 'item2', match_participants.raw #> '{participant,item2}'),
-          'item3', coalesce(match_participants.raw -> 'item3', match_participants.raw #> '{participant,item3}'),
-          'item4', coalesce(match_participants.raw -> 'item4', match_participants.raw #> '{participant,item4}'),
-          'item5', coalesce(match_participants.raw -> 'item5', match_participants.raw #> '{participant,item5}'),
-          'item6', coalesce(match_participants.raw -> 'item6', match_participants.raw #> '{participant,item6}'),
-          'physicalDamageDealtToChampions', coalesce(match_participants.raw -> 'physicalDamageDealtToChampions', match_participants.raw #> '{participant,physicalDamageDealtToChampions}'),
-          'magicDamageDealtToChampions', coalesce(match_participants.raw -> 'magicDamageDealtToChampions', match_participants.raw #> '{participant,magicDamageDealtToChampions}'),
-          'trueDamageDealtToChampions', coalesce(match_participants.raw -> 'trueDamageDealtToChampions', match_participants.raw #> '{participant,trueDamageDealtToChampions}'),
-          'totalMinionsKilled', coalesce(match_participants.raw -> 'totalMinionsKilled', match_participants.raw #> '{participant,totalMinionsKilled}'),
-          'neutralMinionsKilled', coalesce(match_participants.raw -> 'neutralMinionsKilled', match_participants.raw #> '{participant,neutralMinionsKilled}'),
-          'timePlayed', coalesce(match_participants.raw -> 'timePlayed', match_participants.raw #> '{participant,timePlayed}'),
-          'challenges', jsonb_strip_nulls(jsonb_build_object(
-            'laneMinionsFirst10Minutes', coalesce(match_participants.raw #> '{challenges,laneMinionsFirst10Minutes}', match_participants.raw #> '{participant,challenges,laneMinionsFirst10Minutes}')
-          )),
-          'timeline', jsonb_strip_nulls(jsonb_build_object(
-            'creepsPerMinDeltas', coalesce(match_participants.raw #> '{timeline,creepsPerMinDeltas}', match_participants.raw #> '{participant,timeline,creepsPerMinDeltas}')
-          ))
-        )) as raw
-      from match_participants
-      where match_id = any(${matchIds})
-      order by team_key asc, role asc
-    ` : [];
-    const participants = participantSummaries.map((row) => ({ ...(row.summary || {}), raw: row.raw || {} }));
-
-    const byMatch = new Map();
-    for (const p of participants) {
-      if (!byMatch.has(p.match_id)) byMatch.set(p.match_id, []);
-      byMatch.get(p.match_id).push(p);
-    }
-
-    const enrichedMatches = matches.map((m) => ({ ...m, participants: byMatch.get(m.id) || [] }));
-
-    return json({ dashboard: buildDashboard(enrichedMatches, improvements), teams, players, teamMembers, matches: enrichedMatches, championPool, compositions, improvements, reports, matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals });
+    return json({ dashboard: buildDashboard(recentMatches, improvements), selectedTeamId, ...page,
+      teams: teams.map(safeTeam), players, teamMembers, championPool, compositions, improvements, reports,
+      matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals });
   } catch (err) {
     return handleError(err);
   }

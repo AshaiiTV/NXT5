@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { safeTeam } from './_lib/teams';
 
 function cleanText(value, max = 80) {
   return String(value || '').trim().slice(0, max);
@@ -60,7 +61,7 @@ export default async function handler(request: Request, context: Context): Promi
       values (${user.id}, 'team.update', 'team', ${teamId}, ${JSON.stringify({ name, tag, avatar: Boolean(avatarDataUrl) })}::jsonb)
     `;
 
-    return json({ team: rows[0] });
+    return json({ team: safeTeam(rows[0]) });
   } catch (err) {
     return handleError(err);
   }

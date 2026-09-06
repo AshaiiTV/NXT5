@@ -1,7 +1,13 @@
 [build]
-  command = "npm run build"
+  command = "npm run verify"
   publish = "dist"
   functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+[context.production]
+  command = "npm run verify && npm run db:migrate"
 
 [functions]
   node_bundler = "esbuild"

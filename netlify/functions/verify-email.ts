@@ -20,27 +20,19 @@ export default async function handler(request: Request): Promise<Response> {
     const tokenHash = sha256(token);
     await ensureEmailVerificationColumns();
 
+    // The token still has to belong to the current address when the row is
+    // updated. A concurrent address change replaces it and prevents validation.
     const rows = await sql`
-      select id, email_verify_expires_at
-      from users
-      where email_verify_token in (${tokenHash}, ${token})
-      limit 1
-    `;
-    const user = rows[0];
-    if (!user) return redirectToVerified({ error: 'invalid' });
-    if (new Date(user.email_verify_expires_at).getTime() < Date.now()) {
-      return redirectToVerified({ error: 'expired' });
-    }
-
-    await sql`
       update users
       set email_verified = true,
           email_verify_token = null,
           email_verify_expires_at = null,
           updated_at = now()
-      where id = ${user.id}
+      where email_verify_token in (${tokenHash}, ${token})
+        and email_verify_expires_at > now()
+      returning id
     `;
-
+    if (!rows.length) return redirectToVerified({ error: 'invalid' });
     return redirectToVerified({ success: 'true' });
   } catch (err) {
     return handleError(err);

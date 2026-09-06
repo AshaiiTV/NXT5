@@ -4,6 +4,7 @@ import { sql } from './_lib/db';
 import { json, assertMethod } from './_lib/http';
 import { assertSessionSecret, ensureEmailVerificationColumns, requireAuth, safeUser, sha256 } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
+import { assertVerificationEmailRateLimit } from './_lib/rate-limit';
 
 function verificationErrorResponse(err: any, stage: string): Response {
   console.error('Email verification resend failed', { stage, err });
@@ -17,7 +18,7 @@ function verificationErrorResponse(err: any, stage: string): Response {
     code
   };
   if (err?.retryAfter) payload.retryAfter = err.retryAfter;
-  return json(payload, status);
+  return json(payload, status, err?.retryAfter ? { 'Retry-After': String(err.retryAfter) } : {});
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -53,6 +54,8 @@ export default async function handler(request: Request, context: Context): Promi
       });
     }
 
+    await assertVerificationEmailRateLimit(user.id, current.email);
+
     const token = crypto.randomBytes(32).toString('base64url');
     const tokenHash = sha256(token);
     const nextExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
@@ -64,8 +67,15 @@ export default async function handler(request: Request, context: Context): Promi
           email_verify_expires_at = ${nextExpiresAt},
           updated_at = now()
       where id = ${current.id}
+        and email = ${current.email}
+        and coalesce(email_verified, false) = false
       returning id, account_name, email, coalesce(email_verified, false) as email_verified, name, created_at
     `;
+    if (!updated[0]) {
+      throw Object.assign(new Error('Ton adresse e-mail a changé. Recharge la page puis réessaie.'), {
+        status: 409, code: 'ACCOUNT_CHANGED'
+      });
+    }
 
     try {
       stage = 'send-email';
@@ -78,6 +88,7 @@ export default async function handler(request: Request, context: Context): Promi
             email_verify_expires_at = null,
             updated_at = now()
         where id = ${current.id}
+          and email_verify_token = ${tokenHash}
       `;
       throw emailError;
     }

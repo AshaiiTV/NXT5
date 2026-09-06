@@ -1,3 +1,4 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -36,24 +37,7 @@ function cleanSlots(value) {
 }
 
 async function ensureAvailabilityTable() {
-  await sql`
-    create table if not exists player_availability (
-      id uuid primary key default gen_random_uuid(),
-      team_id uuid not null references teams(id) on delete cascade,
-      player_id uuid not null references players(id) on delete cascade,
-      week_start date not null default date_trunc('week', current_date)::date,
-      slots jsonb not null default '{}'::jsonb,
-      notes text,
-      updated_by uuid references users(id) on delete set null,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now(),
-      unique(team_id, player_id, week_start)
-    )
-  `;
-  await sql`alter table player_availability add column if not exists week_start date not null default date_trunc('week', current_date)::date`;
-  await sql`alter table player_availability drop constraint if exists player_availability_team_id_player_id_key`;
-  await sql`create index if not exists idx_player_availability_team on player_availability(team_id)`;
-  await sql`create unique index if not exists idx_player_availability_week on player_availability(team_id, player_id, week_start)`;
+  await assertSchemaReady();
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

@@ -1,7 +1,8 @@
+import crypto from 'node:crypto';
 import { sql } from './db';
+import { assertSchemaReady } from './migrations';
 
 const DEFAULT_WINDOW_SECONDS = 60;
-const DEFAULT_MAX_ATTEMPTS = 5;
 const AUTH_LIMIT = { limit: 5, windowSeconds: 60 };
 const IMPORT_LIMIT = { limit: 20, windowSeconds: 60 };
 
@@ -29,28 +30,37 @@ function limitForEndpoint(endpoint: string, options: RateLimitOptions = {}): Rat
 }
 
 async function ensureRateLimitTable(): Promise<void> {
-  await sql`
-    create table if not exists rate_limits (
-      rate_key text primary key,
-      ip text not null,
-      endpoint text not null,
-      attempts integer not null default 0,
-      window_start timestamptz not null default now(),
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now()
-    )
-  `;
-  await sql`alter table rate_limits add column if not exists rate_key text`;
-  await sql`alter table rate_limits add column if not exists attempts integer not null default 0`;
-  await sql`alter table rate_limits add column if not exists window_start timestamptz not null default now()`;
-  await sql`alter table rate_limits add column if not exists updated_at timestamptz not null default now()`;
-  await sql`create unique index if not exists idx_rate_limits_rate_key on rate_limits(rate_key)`;
+  await assertSchemaReady();
 }
 
 export async function assertRateLimit(request: Request, endpoint: string, options: RateLimitOptions = {}): Promise<void> {
   const ip = requestIp(request);
+  return assertLimit(`${ip}:${endpoint}`, ip, endpoint, options);
+}
+
+/** Shared budgets must not reset when a caller changes IP or uses another route. */
+export async function assertSubjectRateLimit(endpoint: string, subject: string, options: RateLimitOptions = {}): Promise<void> {
+  const digest = crypto.createHash('sha256').update(subject.trim().toLowerCase()).digest('hex');
+  return assertLimit(`subject:${endpoint}:${digest}`, 'subject', endpoint, options);
+}
+
+export async function assertVerificationEmailRateLimit(userId: string, email: string): Promise<void> {
+  try {
+    // Check the account first: an already blocked account cannot consume the
+    // recipient budgets of arbitrary addresses by changing its requested email.
+    await assertSubjectRateLimit('email-verification-account', userId, { limit: 1, windowSeconds: 300 });
+    await assertSubjectRateLimit('email-verification-recipient', email, { limit: 1, windowSeconds: 300 });
+  } catch (err: any) {
+    if (err?.status === 429) {
+      err.code = 'EMAIL_VERIFY_RATE_LIMIT';
+      err.message = 'Attends quelques minutes avant de demander un nouvel e-mail de vérification.';
+    }
+    throw err;
+  }
+}
+
+async function assertLimit(rateKey: string, ip: string, endpoint: string, options: RateLimitOptions): Promise<void> {
   const { limit, windowSeconds } = limitForEndpoint(endpoint, options);
-  const rateKey = `${ip}:${endpoint}`;
   const resetBefore = new Date(Date.now() - windowSeconds * 1000).toISOString();
 
   try {

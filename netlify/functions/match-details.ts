@@ -33,7 +33,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!membership.length) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
 
     const matches = await sql`
-      select id, raw
+      select *
       from matches
       where team_id = ${teamId}
         and id = any(${matchIds})
@@ -56,7 +56,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     return json({
       matches: matches.map((match) => ({
-        id: match.id,
+        ...match,
         raw: match.raw || {},
         participants: participantsByMatch.get(String(match.id)) || []
       }))

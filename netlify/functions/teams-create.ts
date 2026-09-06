@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { safeTeam } from './_lib/teams';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
@@ -34,7 +35,7 @@ export default async function handler(request: Request, context: Context): Promi
       values (${user.id}, 'team.create', 'team', ${team.id}, ${JSON.stringify({ name, tag, region })}::jsonb)
     `;
 
-    return json({ team });
+    return json({ team: safeTeam(team) });
   } catch (err) {
     if (String(err.message || '').includes('duplicate key')) err.message = 'Cette team existe déjà sur ton compte.';
     return handleError(err);

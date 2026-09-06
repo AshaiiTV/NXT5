@@ -1,3 +1,4 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -7,11 +8,7 @@ const ROLES = new Set(['captain', 'coach', 'assistant', 'analyst', 'manager', 'b
 const ROLE_MANAGEMENT_ROLES = ['captain'];
 
 async function ensureTeamMemberRoleConstraint() {
-  await sql`alter table team_members drop constraint if exists team_members_role_check`;
-  await sql`
-    alter table team_members add constraint team_members_role_check
-    check (role in ('owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player', 'viewer', 'member'))
-  `;
+  await assertSchemaReady();
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

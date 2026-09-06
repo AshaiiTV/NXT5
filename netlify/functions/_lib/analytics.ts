@@ -1,5 +1,5 @@
+import { assertSchemaReady } from './migrations';
 import { sql } from './db';
-import { ensureMatchCategoriesSchema } from './match-categories';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
 
@@ -83,19 +83,29 @@ function timelineFrames(timeline) {
   return timeline?.info?.frames || timeline?.frames || timeline?.timeline?.info?.frames || timeline?.timeline?.frames || [];
 }
 
-function buildNxt5TimelineSummary(match) {
+export function buildNxt5TimelineSummary(match) {
   const timeline = match?.timeline || match?.metadata?.timeline || match?.nxt5?.timeline || null;
   const frames = timelineFrames(timeline);
   const participants = match?.info?.participants || [];
   const participantTeam = new Map(participants.map((participant) => [Number(participant.participantId), Number(participant.teamId)]));
-  if (!frames.length) return match?.nxt5?.timelineSummary || { available: false, csMilestones: {}, wards: [], wardCount: 0 };
+  const duration = Number(match?.info?.gameDuration || 0);
+  if (!frames.length) {
+    const cached = match?.nxt5?.timelineSummary;
+    if (!cached) return { available: false, csMilestones: {}, wards: [], wardCount: 0 };
+    // Older importers populated CS20 from the final frame of games that ended
+    // before twenty minutes. Do not preserve those fabricated milestones.
+    return { ...cached, csMilestones: Object.fromEntries(Object.entries(cached.csMilestones || {}).map(([id, entry]: [string, any]) => [id, {
+      ...entry, cs10: duration >= 600 ? entry.cs10 ?? null : null, cs20: duration >= 1200 ? entry.cs20 ?? null : null
+    }])) };
+  }
 
   const csMilestones = {};
   for (const participant of participants) {
     const participantId = Number(participant.participantId || 0);
     const csAt = (minute) => {
       const target = Number(minute || 0) * 60 * 1000;
-      const frame = frames.find((item) => Number(item.timestamp || 0) >= target) || frames[frames.length - 1];
+      if (duration < minute * 60) return null;
+      const frame = frames.find((item) => Number(item.timestamp || 0) >= target);
       const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
       if (!participantFrame) return null;
       return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
@@ -300,32 +310,35 @@ function reportForMatch({ team, summary, participants }) {
   return `## Review — ${team.name}\n\n**Résultat :** ${summary.result}  \n**Durée :** ${summary.duration}  \n**Side :** ${summary.side}  \n**Objectifs neutres :** ${summary.objective_score}  \n**Vision diff :** ${summary.vision_score}\n\n### Données joueurs\n${rows || '- Aucun participant allié détecté.'}`;
 }
 
-async function rebuildChampionPool(teamId) {
-  await sql`
+export async function rebuildChampionPool(teamId: string) {
+  await sql.transaction(tx => [
+    tx`select id from teams where id = ${teamId} for update`,
+    tx`
     delete from champion_pool
     where team_id = ${teamId}
       and coalesce(source, 'riot') not in ('manual', 'riot_manual')
-  `;
-  await sql`
+  `,
+    tx`
     with stats as (
       select
         p.player_id as player_id,
-        coalesce(pl.name, p.summoner_name, 'Joueur') as player_name,
-        pl.role as role,
+        coalesce(max(pl.name), max(p.summoner_name), 'Joueur') as player_name,
+        max(pl.role) as role,
         p.champion,
         count(*)::int as games,
         sum(case when m.result = 'Victoire' then 1 else 0 end)::int as wins,
         sum(case when m.result = 'Défaite' then 1 else 0 end)::int as losses,
-        avg((p.kills + p.assists)::numeric / greatest(1, p.deaths)) as kda,
+        avg((p.kills::numeric + p.assists) / greatest(1, p.deaths)) as kda,
         avg(p.cs_per_min) as cs_per_min
       from match_participants p
       join matches m on m.id = p.match_id
       left join players pl on pl.id = p.player_id
       where m.team_id = ${teamId}
         and p.team_key = 'ALLY'
+        and p.player_id is not null
         and p.champion is not null
         and p.champion <> ''
-      group by p.player_id, pl.name, pl.role, p.summoner_name, p.champion
+      group by p.player_id, p.champion
     ),
     prepared as (
       select
@@ -367,7 +380,8 @@ async function rebuildChampionPool(teamId) {
         and existing.champion = prepared.champion
         and coalesce(existing.source, 'riot') in ('manual', 'riot_manual')
     )
-  `;
+  `
+  ]);
 }
 
 async function rebuildImprovements(teamId) {
@@ -383,66 +397,11 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
 }
 
 async function ensureMatchArchiveSchema() {
-  await sql`
-    create table if not exists match_raw_archives (
-      id uuid primary key default gen_random_uuid(),
-      team_id uuid not null references teams(id) on delete cascade,
-      match_id uuid references matches(id) on delete cascade,
-      game_id text not null,
-      source text not null default 'import',
-      payload jsonb not null default '{}'::jsonb,
-      created_at timestamptz not null default now(),
-      unique(team_id, game_id)
-    )
-  `;
+  await assertSchemaReady();
 }
 
 async function ensureMatchImporterColumn() {
-  await ensureMatchCategoriesSchema({ migrateLegacy: false });
-  await sql`alter table matches add column if not exists region text not null default 'EUROPE'`;
-  await sql`alter table matches add column if not exists opponent text`;
-  await sql`alter table matches add column if not exists result text`;
-  await sql`alter table matches add column if not exists side text`;
-  await sql`alter table matches add column if not exists duration_seconds integer`;
-  await sql`alter table matches add column if not exists duration text`;
-  await sql`alter table matches add column if not exists patch text`;
-  await sql`alter table matches add column if not exists objective_score text`;
-  await sql`alter table matches add column if not exists vision_score text`;
-  await sql`alter table matches add column if not exists impact_score text`;
-  await sql`alter table matches add column if not exists primary_focus text`;
-  await sql`alter table matches add column if not exists main_issue text`;
-  await sql`alter table matches add column if not exists created_by uuid references users(id) on delete set null`;
-  await sql`alter table matches add column if not exists raw jsonb not null default '{}'::jsonb`;
-  await sql`alter table match_participants add column if not exists player_id uuid references players(id) on delete set null`;
-  await sql`alter table match_participants add column if not exists team_key text`;
-  await sql`alter table match_participants add column if not exists summoner_name text`;
-  await sql`alter table match_participants add column if not exists riot_id text`;
-  await sql`alter table match_participants add column if not exists champion text`;
-  await sql`alter table match_participants add column if not exists role text`;
-  await sql`alter table match_participants add column if not exists kills integer not null default 0`;
-  await sql`alter table match_participants add column if not exists deaths integer not null default 0`;
-  await sql`alter table match_participants add column if not exists assists integer not null default 0`;
-  await sql`alter table match_participants add column if not exists cs integer not null default 0`;
-  await sql`alter table match_participants add column if not exists gold integer not null default 0`;
-  await sql`alter table match_participants add column if not exists damage integer not null default 0`;
-  await sql`alter table match_participants add column if not exists damage_to_turrets integer not null default 0`;
-  await sql`alter table match_participants add column if not exists vision integer not null default 0`;
-  await sql`alter table match_participants add column if not exists kp numeric`;
-  await sql`alter table match_participants add column if not exists kda text`;
-  await sql`alter table match_participants add column if not exists cs_per_min numeric`;
-  await sql`alter table match_participants add column if not exists gold_per_min numeric`;
-  await sql`alter table match_participants add column if not exists kill_participation text`;
-  await sql`alter table match_participants add column if not exists grade text`;
-  await sql`alter table match_participants add column if not exists raw jsonb not null default '{}'::jsonb`;
-  await sql`alter table reports add column if not exists match_id uuid references matches(id) on delete set null`;
-  await sql`alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb`;
-  await sql`alter table reports add column if not exists created_by uuid references users(id) on delete set null`;
-  await sql`alter table reports add column if not exists updated_at timestamptz not null default now()`;
-  await sql`alter table champion_pool add column if not exists role text`;
-  await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
-  await sql`alter table champion_pool add column if not exists notes text`;
-  await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
-  await sql`create index if not exists idx_matches_created_by on matches(created_by)`;
+  await assertSchemaReady();
 }
 
 export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId?: string | null; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[] }) {
@@ -582,7 +541,16 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
     throw error;
   }
 
-  await runImportSideEffect('champion pool rebuild', () => rebuildChampionPool(team.id));
+  const warnings: Array<{ code: string; message: string }> = [];
+  try {
+    await rebuildChampionPool(team.id);
+  } catch (error) {
+    console.error('[match-import] champion pool rebuild failed after match persistence.', error);
+    warnings.push({
+      code: 'CHAMPION_POOL_REBUILD_FAILED',
+      message: 'Game importée, mais le Champion Pool n’a pas pu être recalculé. Les données précédentes ont été conservées.'
+    });
+  }
   await runImportSideEffect('improvements rebuild', () => rebuildImprovements(team.id));
 
   const report = reportForMatch({ team, summary, participants });
@@ -591,5 +559,5 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report})
     `);
 
-  return savedMatch;
+  return { ...savedMatch, warnings };
 }

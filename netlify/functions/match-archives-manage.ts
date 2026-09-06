@@ -1,3 +1,4 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -8,19 +9,7 @@ function cleanText(value, max = 4000) {
 }
 
 async function ensureArchiveTable() {
-  await sql`
-    create table if not exists match_archives (
-      id uuid primary key default gen_random_uuid(),
-      team_id uuid not null references teams(id) on delete cascade,
-      created_by uuid references users(id) on delete set null,
-      name text not null,
-      description text,
-      match_ids jsonb not null default '[]'::jsonb,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now()
-    )
-  `;
-  await sql`create index if not exists idx_match_archives_team on match_archives(team_id, created_at desc)`;
+  await assertSchemaReady();
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

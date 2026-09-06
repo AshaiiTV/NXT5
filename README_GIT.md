@@ -71,7 +71,7 @@ Une fois le depot publie :
 5. Verifie les reglages :
 
 ```txt
-Build command: npm run build
+Build command (production): npm run verify && npm run db:migrate
 Publish directory: dist
 Functions directory: netlify/functions
 ```
@@ -82,8 +82,8 @@ Le fichier `netlify.toml` contient deja ces reglages.
 
 ```bash
 npm install
-npm run build
+npm run verify
 git status
 ```
 
-Si `npm run build` passe, tu peux commit et push.
+Si `npm run verify` passe, tu peux commit et push. Le déploiement de production applique ensuite les migrations avant publication, selon `netlify.toml`.

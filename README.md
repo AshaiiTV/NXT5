@@ -31,12 +31,12 @@ Tu peux uploader ce dossier sur Netlify ou le connecter à GitHub.
 Netlify doit utiliser :
 
 ```txt
-Build command: npm run build
+Build command (production): npm run verify && npm run db:migrate
 Publish directory: dist
 Functions directory: netlify/functions
 ```
 
-Le fichier `netlify.toml` est déjà configuré.
+Le fichier `netlify.toml` est déjà configuré avec Node 24. Les contrôles TypeScript, tests et build doivent réussir avant les migrations et la publication.
 
 ## Variables d'environnement Netlify
 
@@ -53,19 +53,19 @@ RESEND_API_KEY=re_...
 RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 ```
 
-`DATABASE_URL` vient de Neon. Prends l'URL poolée si Neon la propose.
+`DATABASE_URL` vient de Neon et doit être disponible pour les fonctions. Pour les migrations, donne accès au contexte **production / Builds** à `MIGRATION_DATABASE_URL` (ou à `DATABASE_URL` en son absence). Ne partage pas les identifiants de production avec les Deploy Previews.
 `RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton "Analyser profils" recalcule les champions joués sur la saison courante.
 `RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
 
 ## Neon
 
-Dans Neon, exécute le script :
+Après `npm ci`, initialise ou mets à jour une base avec la connexion appropriée dans l'environnement :
 
 ```txt
-database/schema.sql
+npm run db:migrate
 ```
 
-Il crée toutes les tables nécessaires : users, sessions, teams, players, matches, match_participants, champion_pool, improvements, reports, composition_types, audit_logs.
+Cette commande applique le schéma et les migrations versionnées dans une transaction avec verrou PostgreSQL. Elle s'exécute automatiquement avant la publication Netlify en production. Les fonctions ne modifient plus le schéma pendant une requête. Voir [le guide des migrations](database/MIGRATIONS.md).
 
 ## Test rapide
 
@@ -112,4 +112,4 @@ Le front ne stocke aucune donnée métier en localStorage. Les données importan
 
 ## Connexion à la base de données
 
-Pour créer un compte, Netlify doit avoir la variable d’environnement `DATABASE_URL`, et le fichier `database/schema.sql` doit avoir été exécuté dans Neon. Sans ça, NXT5 ne stocke rien en local et l’inscription restera désactivée.
+Pour créer un compte, les fonctions Netlify doivent recevoir `DATABASE_URL` et `npm run db:migrate` doit avoir réussi sur cette base. Sans le marqueur de migration attendu, les fonctions répondent temporairement 503.

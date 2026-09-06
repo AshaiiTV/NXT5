@@ -2,6 +2,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { safeTeam } from './_lib/teams';
 
 function extractInviteCode(value) {
   const raw = String(value || '').trim();
@@ -28,17 +29,6 @@ export default async function handler(request: Request, context: Context): Promi
     const inviteCode = extractInviteCode(body.invite || body.inviteCode || body.link || body.code);
 
     if (!inviteCode) throw Object.assign(new Error('Code d’invitation requis.'), { status: 400 });
-    await sql`alter table teams add column if not exists invite_expires_at timestamptz`;
-    await sql`
-      create table if not exists team_invite_codes (
-        id uuid primary key default gen_random_uuid(),
-        team_id uuid not null references teams(id) on delete cascade,
-        created_by uuid references users(id) on delete set null,
-        code text not null unique,
-        expires_at timestamptz not null,
-        created_at timestamptz not null default now()
-      )
-    `;
     await sql`delete from team_invite_codes where expires_at <= now()`;
 
     const teams = await sql`
@@ -63,7 +53,7 @@ export default async function handler(request: Request, context: Context): Promi
       values (${user.id}, 'team.join', 'team', ${team.id}, ${JSON.stringify({ inviteCode })}::jsonb)
     `;
 
-    return json({ team });
+    return json({ team: safeTeam(team) });
   } catch (err) {
     return handleError(err);
   }

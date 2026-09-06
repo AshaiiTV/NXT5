@@ -1,3 +1,4 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -8,11 +9,7 @@ const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
 const MANAGE_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
 
 async function ensureChampionPoolSchema() {
-  await sql`alter table champion_pool add column if not exists role text`;
-  await sql`alter table champion_pool add column if not exists status text not null default 'work'`;
-  await sql`alter table champion_pool add column if not exists notes text`;
-  await sql`alter table champion_pool add column if not exists source text not null default 'riot'`;
-  await sql`create index if not exists idx_champion_pool_team on champion_pool(team_id)`;
+  await assertSchemaReady();
 }
 
 function cleanText(value, max = 120) {

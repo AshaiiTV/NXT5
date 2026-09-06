@@ -1,37 +1,20 @@
 import { sql } from './db';
 
-const migrationPromises = new Map<string, Promise<void>>();
+export const REQUIRED_SCHEMA_VERSION = 'audit-runtime-20260906-v1';
+let ready: Promise<void> | undefined;
 
-export function ensureMigration(migrationKey: string, migrate: () => Promise<void>): Promise<void> {
-  const cached = migrationPromises.get(migrationKey);
-  if (cached) return cached;
-
-  const migration = (async () => {
-    await sql`
-      create table if not exists app_schema_migrations (
-        migration_key text primary key,
-        applied_at timestamptz not null default now()
-      )
-    `;
-    const applied = await sql`
-      select migration_key
-      from app_schema_migrations
-      where migration_key = ${migrationKey}
-      limit 1
-    `;
-    if (applied.length) return;
-    await migrate();
-    await sql`
-      insert into app_schema_migrations (migration_key)
-      values (${migrationKey})
-      on conflict (migration_key) do nothing
-    `;
-  })();
-
-  const guarded = migration.catch((error) => {
-    migrationPromises.delete(migrationKey);
-    throw error;
+// Requests only check readiness. DDL and backfills run in tools/migrate.mjs,
+// under a PostgreSQL transaction lock, before production deployment.
+export function assertSchemaReady(): Promise<void> {
+  if (ready) return ready;
+  ready = (async () => {
+    const rows = await sql`select migration_key from app_schema_migrations where migration_key = ${REQUIRED_SCHEMA_VERSION}`;
+    if (!rows.length) throw new Error('Missing schema version');
+  })().catch(() => {
+    ready = undefined;
+    throw Object.assign(new Error('Mise à jour de la base requise avant de démarrer cette version.'), {
+      status: 503, code: 'SCHEMA_MIGRATION_REQUIRED', publicMessage: 'Service en cours de mise à jour.'
+    });
   });
-  migrationPromises.set(migrationKey, guarded);
-  return guarded;
+  return ready;
 }

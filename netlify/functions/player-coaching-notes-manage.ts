@@ -1,3 +1,4 @@
+import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -11,18 +12,7 @@ function cleanText(value, max = MAX_CONTENT_LENGTH) {
 }
 
 async function ensureCoachingNotesTable() {
-  await sql`
-    create table if not exists player_coaching_notes (
-      id uuid primary key default gen_random_uuid(),
-      team_id uuid not null references teams(id) on delete cascade,
-      player_id uuid not null references players(id) on delete cascade,
-      content text not null default '',
-      updated_by uuid references users(id) on delete set null,
-      created_at timestamptz not null default now(),
-      updated_at timestamptz not null default now(),
-      unique(team_id, player_id)
-    )
-  `;
+  await assertSchemaReady();
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

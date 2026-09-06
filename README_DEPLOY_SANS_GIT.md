@@ -53,10 +53,10 @@ Les trois variables `PUBLIC_SITE_URL`, `RESEND_API_KEY` et `RESET_EMAIL_FROM` se
 
 ## Neon
 
-Dans Neon, ouvre l'éditeur SQL et exécute :
+Avec Node 24 et les dépendances installées (`npm ci`), configure la connexion Neon dans l'environnement puis exécute :
 
 ```txt
-database/schema.sql
+npm run db:migrate
 ```
 
 ## Important
@@ -97,7 +97,7 @@ Un utilisateur peut ouvrir ce lien, créer/se connecter à son compte, puis rejo
 
 ## Si une erreur serveur apparaît à la création du compte
 
-Vérifie dans Netlify que `DATABASE_URL` est bien présent dans **Site configuration → Environment variables**, puis exécute `database/schema.sql` dans Neon. Sans ça, l’authentification serveur ne peut pas écrire le compte en base.
+Vérifie dans Netlify que `DATABASE_URL` est présent pour les fonctions et que la commande `npm run db:migrate` a réussi pour cette base. Le build de production utilise `MIGRATION_DATABASE_URL` ou, à défaut, `DATABASE_URL` : la variable doit être accessible au scope **Builds / production**.
 
 
 ## Erreur “base de données” sur inscription/connexion
@@ -110,6 +110,6 @@ Si le formulaire affiche que la création de compte n’est pas encore active, c
 2. Ouvre **Environment variables**.
 3. Ajoute `DATABASE_URL` avec l’URL de connexion Neon.
 4. Relance un déploiement Netlify.
-5. Dans Neon, exécute `database/schema.sql` une fois.
+5. Vérifie le succès de l'étape `npm run db:migrate` dans le journal de build. Pour un déploiement manuel, lance cette commande avant de publier les fonctions. Voir [le guide des migrations](database/MIGRATIONS.md).
 
 Sans `DATABASE_URL`, le site ne peut pas créer de compte, car NXT5 ne stocke rien en local.
