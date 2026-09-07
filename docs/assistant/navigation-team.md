@@ -18,6 +18,8 @@ La page `/gestion-equipe` permet aux rôles autorisés de :
 4. Attribuer un niveau d'accès.
 5. Créer une invitation temporaire.
 
+La section Santé des données se consulte aussi dans `/gestion-equipe`. Elle signale les points à vérifier dans le roster, les profils liés et les imports de l’équipe sélectionnée.
+
 Un écart de nombre de games entre deux joueurs vient généralement d'une mauvaise assignation de profil dans un import, d'un doublon ou d'un changement de Riot ID.
 
 ## Mon Profil
