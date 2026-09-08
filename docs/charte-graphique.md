@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.5 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement et des games importées. Checkout actualisé sur `b448eeb`.
+Version 1.6 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées et du favicon de chargement. Checkout actualisé sur `2aac365`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -33,7 +33,7 @@ Cette charte concerne le site. NXT5 Importer partage la marque, mais possède so
 
 Évolution autorisée le 8 septembre 2026 : `AppLoadingScreen` remplace les deux écrans successifs par une seule composition, partagée entre le chargement du module, la vérification de session et le chargement initial des données. Les étapes affichées sont « Ouverture », « Connexion » et « Synchronisation » ; seule l’information d’état évolue.
 
-- La composition repose sur le titre « Cinq rôles. Une même direction. », un texte court et cinq signaux SVG TOP / JGL / MID / ADC / SUP qui convergent vers le symbole NXT5 existant. Ne pas redessiner le signe de marque.
+- La composition repose sur le titre « Cinq rôles. Une même direction. », un texte court et cinq signaux SVG TOP / JGL / MID / ADC / SUP qui convergent vers le favicon complet du site (`public/assets/nxt5-loader-favicon.png`, variante WebP 256 px). Utiliser cet asset avec son cadre et ses effets existants, au même ratio et au même emplacement ; ne pas le remplacer par le symbole compact ni redessiner le signe de marque.
 - Conserver le fond bleu nuit, les accents cyan, bleu et violet avec une touche fuchsia, les halos discrets et la typographie du site. La zone d’attente reste ouverte, sans empiler les panneaux.
 - La barre reste indéterminée lorsque le total n’est pas connu. Pour les games paginées, afficher uniquement le nombre réellement reçu et le total connu. Ne pas inventer de pourcentage, valider une étape à partir de la présence de données, ni ajouter un délai pour prolonger le décor.
 - Un chargement réussi, même vide, ouvre immédiatement le contenu. L’absence de roster, de games, de draft ou de review n’est pas un chargement en cours.
@@ -96,7 +96,8 @@ Le site éclaircit plusieurs utilitaires Tailwind dans `src/index.css` :
 | --- | --- |
 | Logo complet | `BrandLogo` ; `public/assets/nxt5-logo.png` ; variantes WebP 320 et 640. |
 | Signature horizontale | `Nxt5Wordmark` ; `public/assets/nxt5-wordmark.png` ; variantes WebP 320 et 640. |
-| Symbole compact | `public/assets/nxt5-mark.png` et `nxt5-mark-160.webp`. |
+| Symbole compact | `public/assets/nxt5-mark.png` et `nxt5-mark-160.webp` ; usages compacts hors centre du chargement. |
+| Favicon complet au centre du chargement | `public/assets/nxt5-loader-favicon.png` (512 × 512 px) et `nxt5-loader-favicon-256.webp` ; conserver le dessin complet. |
 | Icônes d’interface | `lucide-react`, même famille de traits. |
 | Rôles et avatars | `RoleIcon`, `TeamAvatar` et composants de portraits déjà présents. |
 | Objectifs de jeu | Fichiers existants de `public/assets/objectives/`. |
@@ -282,7 +283,7 @@ Sources principales :
 
 La source auditée contient plusieurs couches CSS. Un commentaire disant « final layer » ne prouve pas qu’une règle gagne : certaines règles ultérieures restent actives, notamment le titre métallique. Les panneaux et boutons conservent en revanche leurs arrondis grâce à `!important`. Examiner spécificité, ordre et styles calculés avant toute correction. Ne pas ajouter automatiquement une nouvelle couche de surcharges.
 
-La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. La version 1.4 documente l’écran de chargement unique. La version 1.5 ajoute la liste ouverte des games importées et ses règles de recherche, de sélection et de navigation. Cette référence ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
+La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. La version 1.4 documente l’écran de chargement unique. La version 1.5 ajoute la liste ouverte des games importées et ses règles de recherche, de sélection et de navigation. La version 1.6 précise le favicon complet existant au centre du chargement. Cette référence ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
 
 `AGENTS.md` dans le dépôt demande de lire cette charte avant le travail visuel. Un rappel existe aussi à la racine de l’espace local NXT5. Pour utiliser la même référence dans un autre checkout ou outil IA, y inclure `AGENTS.md` et cette charte, ou fournir explicitement le document à l’outil. Un PDF seul n’impose pas automatiquement ses règles à toutes les IA.
 
