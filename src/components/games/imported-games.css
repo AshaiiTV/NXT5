@@ -1,0 +1,90 @@
+.imported-games { container-type: inline-size; color: var(--nxt5-text); padding: clamp(4px, 1vw, 12px); }
+.ig-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; margin-bottom: 24px; }
+.ig-heading h3 { font-size: 22px; font-weight: 800; letter-spacing: -.025em; }
+.ig-heading > div > p { margin-top: 4px; color: #dbe8f8; font-size: 13px; line-height: 1.6; }
+.ig-total { color: #c2d0e3; font-size: 13px; }
+.ig-total strong { margin-right: 6px; color: #cffafe; font-size: 26px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.ig-search-row { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 16px; }
+.imported-games .ig-label, .imported-games .ig-sort label > span, .imported-games .ig-filters label > span { display: block; margin-bottom: 8px; color: #c2d0e3; font-size: 11px; font-weight: 700; line-height: 1.5; letter-spacing: .09em; text-transform: uppercase; }
+.ig-search-field { display: block; position: relative; }
+.ig-search-field > svg { position: absolute; top: 14px; left: 14px; width: 18px; height: 18px; color: #a5f3fc; pointer-events: none; }
+.ig-search-field input { display: block; width: 100%; min-height: 46px; border: 1px solid var(--nxt5-border-strong); background: rgba(3,9,21,.78); padding: 11px 46px 11px 42px; color: var(--nxt5-text); font-size: 14px; line-height: 22px; }
+.ig-search-field input::placeholder { color: #b8c6dc; }
+.ig-search-field input::-webkit-search-cancel-button { display: none; }
+.ig-search-field > button { display: grid; place-items: center; position: absolute; right: 2px; top: 1px; width: 44px; height: 44px; color: #c2d0e3; border-radius: 10px; }
+.ig-search-field > button:hover { color: #fff; background: rgba(103,232,249,.07); }
+.ig-search-field > button svg { width: 16px; height: 16px; }
+.ig-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.imported-games .ig-sort select, .imported-games .ig-filters select { min-height: 46px; padding-top: 10px; padding-bottom: 10px; font-size: 13px; font-weight: 600; }
+.ig-results-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; min-height: 56px; padding: 8px 0; color: #c2d0e3; font-size: 12px; }
+.ig-search-hint { color: #b8c6dc; }
+.ig-text-action { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #cffafe; font-size: 12px; font-weight: 650; text-align: left; text-underline-offset: 4px; }
+.ig-text-action svg { width: 14px; height: 14px; flex-shrink: 0; }
+.ig-text-action:hover { color: #fff; text-decoration: underline; }
+.ig-selection { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 16px 20px; margin: 0 0 16px; border-left: 2px solid var(--nxt5-accent); background: rgba(103,232,249,.055); }
+.ig-selection-title { flex: 1 1 240px; min-width: 0; }
+.ig-selection-title h4 { font-weight: 750; font-size: 16px; }
+.ig-selection-title > p { margin-top: 4px; color: #dbe8f8; font-size: 12px; line-height: 1.5; }
+.ig-selection .ig-label { margin-bottom: 4px; color: #a5f3fc; }
+.ig-selection-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ig-results { scroll-margin-top: 24px; }
+.ig-column-labels { display: none; }
+.ig-list { list-style: none; padding: 0; margin: 0; }
+.ig-game { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); text-align: left; }
+.ig-game:hover { background: rgba(255,255,255,.035); }
+.ig-game[aria-pressed="true"] { background: rgba(103,232,249,.065); box-shadow: inset 3px 0 0 var(--nxt5-accent); }
+.ig-result { display: inline-flex; align-items: center; gap: 8px; grid-column: 1; grid-row: 1; font-size: 12px; font-weight: 700; color: #c2d0e3; }
+.ig-result > span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: rgba(255,255,255,.055); font-size: 11px; }
+.ig-win { color: #a7f3d0; }
+.ig-win > span { background: rgba(52,211,153,.10); }
+.ig-loss { color: #fecdd3; }
+.ig-loss > span { background: rgba(251,113,133,.10); }
+.ig-game-identity { display: grid; gap: 4px; grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+.ig-game-identity > strong { color: var(--nxt5-text); font-size: 15px; font-weight: 750; line-height: 1.5; }
+.ig-game-identity > span { color: #c2d0e3; font-size: 11px; line-height: 1.5; }
+.ig-game-identity > .ig-game-categories { color: #d9d0f8; }
+.ig-composition { grid-column: 1; grid-row: 3; display: grid; align-content: start; gap: 7px; min-width: 0; }
+.ig-champions { display: flex; flex-wrap: wrap; gap: 4px; }
+.ig-champion { width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0; object-fit: cover; }
+.ig-side, .ig-missing { color: #c2d0e3; font-size: 11px; line-height: 1.5; }
+.ig-side-blue { color: #bae6fd; }
+.ig-side-red { color: #fecdd3; }
+.ig-date { display: grid; align-content: start; gap: 4px; grid-column: 2; grid-row: 3; color: #e2eaf7; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.ig-date > span:last-child { color: #c2d0e3; font-size: 11px; }
+.ig-review { display: inline-flex; align-items: center; gap: 6px; grid-column: 2; grid-row: 1; color: #e2d5b7; font-size: 12px; }
+.ig-review svg { width: 14px; height: 14px; flex-shrink: 0; }
+.ig-review-done { color: #a7f3d0; }
+.ig-open { display: none; color: #a5f3fc; }
+.ig-open svg { width: 16px; height: 16px; }
+.ig-empty { display: grid; justify-items: center; gap: 10px; border-top: 1px solid var(--nxt5-border); padding: 40px 16px; text-align: center; }
+.ig-empty > svg { width: 24px; height: 24px; color: #a5f3fc; margin-bottom: 4px; }
+.ig-empty h4 { font-size: 18px; font-weight: 750; }
+.ig-empty p { color: #dbe8f8; font-size: 13px; line-height: 1.5; }
+.ig-empty button { margin-top: 6px; }
+.ig-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 20px; padding-top: 16px; border-top: 1px solid var(--nxt5-border); color: #c2d0e3; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ig-page-size, .ig-pagination nav { display: flex; align-items: center; gap: 12px; }
+.ig-page-size select { min-height: 44px; min-width: 64px; padding: 0 10px; border: 1px solid var(--nxt5-border); border-radius: 10px; color: var(--nxt5-text); background: rgba(3,9,21,.78); }
+.ig-icon-button { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--nxt5-border); border-radius: 10px; color: #cffafe; flex-shrink: 0; }
+.ig-icon-button svg { width: 16px; height: 16px; }
+.ig-icon-button:hover:not(:disabled) { background: rgba(103,232,249,.08); border-color: var(--nxt5-border-strong); }
+.ig-icon-button:disabled { opacity: .35; cursor: not-allowed; }
+@container (min-width: 880px) {
+  .ig-column-labels, .ig-game { display: grid; grid-template-columns: 96px minmax(160px, 1fr) 156px 126px 96px 16px; gap: 18px; align-items: center; }
+  .ig-column-labels { padding: 12px; border-top: 1px solid var(--nxt5-border-strong); color: #b8c6dc; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .ig-game { padding: 18px 12px; }
+  .ig-game > span { grid-column: auto; grid-row: auto; }
+  .ig-open { display: block; }
+}
+@container (max-width: 599px) {
+  .ig-search-row { grid-template-columns: minmax(0, 1fr); }
+  .ig-sort { max-width: none; }
+  .ig-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .ig-filters > label:last-child { grid-column: 1 / -1; }
+  .imported-games .ig-search-field input, .imported-games .ig-sort select, .imported-games .ig-filters select { font-size: 16px; }
+  .ig-game { padding: 16px 8px; gap: 12px; }
+  .ig-champion { width: 24px; height: 24px; }
+  .ig-composition { max-width: 148px; }
+  .ig-date { text-align: right; }
+  .ig-selection { padding: 14px; }
+  .ig-pagination nav { justify-content: space-between; width: 100%; }
+}
