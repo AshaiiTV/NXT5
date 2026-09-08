@@ -2,12 +2,14 @@ import type { Config, Context } from '@netlify/functions';
 import { sql } from './_lib/db';
 import { assertMethod, handleError, json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
+import { requirePlatformAdmin } from './_lib/platform-admin';
 import { ensureAccessRequestsSchema } from './_lib/schema';
 import { ACCESS_REQUEST_CONSENT_VERSION, ACCESS_REQUEST_MAX_BYTES, validateAccessRequest } from './_lib/access-requests';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertMethod(request, 'POST');
+    await requirePlatformAdmin(request, context);
     const ip = context.ip || request.headers.get('x-nf-client-connection-ip') || 'unknown';
     // The existing subject limiter stores a hash, never the clear IP address.
     await assertSubjectRateLimit('access-requests-ip', ip, { limit: 5, windowSeconds: 600 });

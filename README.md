@@ -69,7 +69,7 @@ Cette commande applique le schéma et les migrations versionnées dans une trans
 
 ## Validation commerciale avant paiement
 
-La première phase du [plan de financement](docs/plan-financement.md) est préparée : `/tarifs` présente les offres envisagées et recueille les demandes d’accès. L’administration dispose du suivi dans `/admin/demandes-acces`, accessible depuis son tableau de bord. Les fonctions enregistrent les demandes dans Neon ; aucun paiement, e-mail automatique ou quota commercial n’est activé.
+La première phase du [plan de financement](docs/plan-financement.md) est préparée en accès administrateur uniquement : `/tarifs` permet de prévisualiser les offres envisagées et le formulaire, et `/admin/demandes-acces` permet de suivre les demandes. Les deux pages sont accessibles depuis le tableau de bord d’administration, sans lien public. La soumission comme la gestion des demandes exigent un compte administrateur côté serveur. Les fonctions enregistrent les demandes dans Neon ; aucun paiement, e-mail automatique ou quota commercial n’est activé.
 
 La migration additive `database/migrations/20260908_access_requests.sql` est incluse dans `npm run db:migrate`. Le déploiement de production existant l’appliquera avant publication. Aucune variable Stripe n’est nécessaire ; la connexion Neon et la configuration d’administration existantes suffisent. La purge planifiée supprime quotidiennement les demandes de plus de six mois.
 

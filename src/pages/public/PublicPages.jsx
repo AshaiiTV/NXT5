@@ -124,7 +124,6 @@ export function SiteHeader({ children, navigate }) {
 
 export function LegalLinks({ navigate }) {
   const links = [
-    ["/tarifs", "Tarifs"],
     ["/mentions-legales", "Mentions légales"],
     ["/confidentialite", "Confidentialité"],
     ["/cookies", "Cookies"],
@@ -310,7 +309,6 @@ export function HomeScreen({ navigate }) {
       <AmbientBackground />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(0,216,255,.18),transparent_24%,transparent_70%,rgba(217,0,255,.14)),linear-gradient(180deg,transparent_0%,rgba(2,5,17,.42)_78%)]" />
       <SiteHeader navigate={navigate}>
-        <LinkButton href="/tarifs" navigate={navigate} variant="ghost" className="px-3 py-2.5 sm:px-4">Tarifs</LinkButton>
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
         <LinkButton href="/creer-un-compte" navigate={navigate} className="px-3 py-2.5 sm:px-4">Créer un compte</LinkButton>
       </SiteHeader>

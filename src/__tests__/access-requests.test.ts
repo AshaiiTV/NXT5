@@ -49,8 +49,23 @@ beforeEach(async () => {
 
 afterAll(async () => { vi.restoreAllMocks(); await db.close(); });
 
-describe('public access requests', () => {
-  it('stores validated commercial interest and versioned consent without changing any team access', async () => {
+describe('administrator preview access requests', () => {
+  it.each([
+    { account: 'anonymous visitor', status: 401 },
+    { account: 'ordinary account', status: 403 }
+  ])('refuses $account before reading the body or consuming the rate budget', async ({ status }) => {
+    requireAdmin.mockRejectedValue(Object.assign(new Error('Accès refusé'), { status }));
+    const input = request();
+    const response = await submitRequest(input, context);
+    expect(response.status).toBe(status);
+    expect(requireAdmin).toHaveBeenCalledExactlyOnceWith(input, context);
+    expect(input.bodyUsed).toBe(false);
+    expect(query).not.toHaveBeenCalled();
+    expect((await db.query('select * from access_requests')).rows).toEqual([]);
+    expect((await db.query('select * from rate_limits')).rows).toEqual([]);
+  });
+
+  it('allows the administrator to store validated commercial interest and consent without changing team access', async () => {
     const usersBefore = (await db.query('select * from users')).rows;
     const response = await submitRequest(request({ ...valid, email: ' CAMILLE@Example.COM ', teamName: '  Team   NXT  ' }), context);
     expect(response.status).toBe(200);
@@ -62,7 +77,7 @@ describe('public access requests', () => {
     expect(rows[0].consented_at).toBeTruthy();
     expect((await db.query('select * from users')).rows).toEqual(usersBefore);
     expect((await db.query('select * from teams')).rows).toEqual([]);
-    expect(requireAdmin).not.toHaveBeenCalled();
+    expect(requireAdmin).toHaveBeenCalledOnce();
     const rateRows = (await db.query('select rate_key, ip, endpoint from rate_limits')).rows;
     expect(JSON.stringify(rateRows)).not.toContain(context.ip);
     expect(rateRows[0]).toMatchObject({ ip: 'subject', endpoint: 'access-requests-ip' });
@@ -105,7 +120,7 @@ describe('public access requests', () => {
     expect((await db.query('select * from access_requests')).rows).toEqual([]);
   });
 
-  it('enforces the IP budget even when the visitor varies their contact email', async () => {
+  it('enforces the IP budget even when the administrator varies the contact email', async () => {
     for (let index = 0; index < 5; index++) {
       expect((await submitRequest(request({ ...valid, email: `player${index}@example.com` }), context)).status).toBe(200);
     }
@@ -115,7 +130,7 @@ describe('public access requests', () => {
     expect((await db.query('select * from access_requests')).rows).toHaveLength(5);
   });
 
-  it('exposes no public read or edit endpoint', async () => {
+  it('refuses reading or editing through the submission endpoint', async () => {
     const response = await submitRequest(request(undefined, 'GET'), context);
     expect(response.status).toBe(405);
     expect(query).not.toHaveBeenCalled();

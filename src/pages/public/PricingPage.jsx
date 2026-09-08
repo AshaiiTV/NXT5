@@ -101,11 +101,15 @@ export default function PricingPage({ navigate, user }) {
     <div className="nxt5-pricing relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
-        <LinkButton href={user ? "/equipes" : "/connexion"} navigate={navigate} variant="ghost">
-          {user ? "Mon espace" : "Connexion"}
+        <LinkButton href="/admin" navigate={navigate} variant="ghost">
+          Administration
         </LinkButton>
       </SiteHeader>
       <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
+        <aside className="border-l-2 border-violet-300/40 py-2 pl-4 text-sm leading-6 text-slate-300" aria-label="Accès administrateur">
+          <p className="font-bold text-violet-100">Aperçu réservé à l’administrateur</p>
+          <p>La page et son formulaire sont fermés aux visiteurs et aux autres comptes. Les demandes envoyées depuis cet aperçu sont enregistrées dans le suivi.</p>
+        </aside>
         <section className="pricing-intro" aria-labelledby="pricing-title">
           <div>
             <Badge tone="cyan">Tarifs · offres à l’étude</Badge>

@@ -2,51 +2,57 @@
 
 Préparation de la phase 1 du [plan de financement](plan-financement.md), 8 septembre 2026.
 
+**État actuel : prévisualisation interne réservée à l’administrateur plateforme.** Les pages Tarifs et Demandes d’accès ainsi que leurs API sont accessibles uniquement avec ce compte. La collecte publique est fermée : les visiteurs et les comptes ordinaires ne peuvent ni consulter ces nouvelles pages ni envoyer de demande. L’ouverture aux équipes demandera une décision et une modification explicites ultérieures.
+
 ## Ce qui est intégré
 
-- `/tarifs` : Découverte à 0 €, Pass Équipe à 29 € TTC par mois et Pass Saison à 169 € TTC pour six mois. Les prix et limites sont présentés comme des offres envisagées. L’annuel, le fondateur et Structure attendent la validation du besoin.
-- « Demander un accès » sélectionne une formule et mène au formulaire. Les demandes sont enregistrées dans Neon après validation côté serveur ; aucune carte, activation d’abonnement ou modification des accès existants.
-- Le formulaire recueille le contact, l’e-mail, l’équipe, le rôle, l’offre, le payeur envisagé et l’intention déclarée. Le message est facultatif. L’accord porte uniquement sur le recontact lié à cette demande, sans newsletter.
+- `/tarifs`, en prévisualisation administrateur : Découverte à 0 €, Pass Équipe à 29 € TTC par mois et Pass Saison à 169 € TTC pour six mois. Les prix et limites sont présentés comme des offres envisagées. L’annuel, le fondateur et Structure attendent la validation du besoin.
+- « Demander un accès » sélectionne une formule et mène au formulaire de prévisualisation. Seul l’administrateur peut le soumettre ; les demandes sont enregistrées dans Neon après contrôle de ses droits et validation côté serveur. Aucune carte, activation d’abonnement ou modification des accès existants.
+- Le formulaire préparé pour une ouverture future comprend le contact, l’e-mail, l’équipe, le rôle, l’offre, le payeur envisagé et l’intention déclarée. Le message est facultatif. L’accord porte uniquement sur le recontact lié à cette demande, sans newsletter. Pour la recette interne, utiliser des coordonnées fictives et supprimer les demandes de test.
 - `/admin/demandes-acces` : consultation paginée, filtre par statut, notes privées, statut de suivi et suppression. L’accès est contrôlé côté serveur avec l’administration plateforme existante.
 - La page Confidentialité décrit les données collectées et leur conservation. Le consentement est enregistré avec la version `access-request-2026-09-08` et une date serveur.
 
-## Installer et vérifier avant publication
+## Installer et vérifier la prévisualisation interne
 
 Le code est préparé localement ; sa présence dans ce checkout ne signifie pas que le site en ligne a changé.
 
 1. Exécuter `npm run verify` avec Node 24.
 2. Pour une recette complète, utiliser une base dédiée et `npm run db:migrate` avec sa connexion. Ne jamais utiliser les identifiants de production pour les tests.
-3. Démarrer les fonctions avec le serveur Netlify local (`npm run dev`). Une prévisualisation Vite seule permet de voir la page mais ne fournit pas les API d’enregistrement.
-4. Vérifier `/tarifs` déconnecté puis connecté, la sélection du Pass Saison, la validation des champs et la confirmation d’enregistrement.
-5. Vérifier le suivi avec le compte administrateur configuré, et son refus avec un compte ordinaire. Tester filtre, pagination, note, statut et suppression d’une demande de recette.
-6. Vérifier un échec serveur : aucune confirmation d’enregistrement, réponses conservées pour réessayer. Renvoyer la même demande ne doit ni la dupliquer ni réécrire les coordonnées et les notes existantes.
+3. Démarrer les fonctions avec le serveur Netlify local (`npm run dev`). Vite seul ne fournit ni la vérification de session ni les API nécessaires aux nouvelles pages réservées à l’administrateur.
+4. Sans session, puis avec un compte ordinaire, vérifier que les nouvelles pages `/tarifs` et `/admin/demandes-acces` ne sont pas accessibles, y compris par URL directe, et qu’aucun lien vers elles n’est proposé. Vérifier aussi le refus d’un appel direct à `POST access-requests` et aux méthodes `GET`, `POST` et `DELETE` d’`admin-access-requests` : 401 sans session, 403 avec un compte ordinaire. Aucun enregistrement ne doit être créé ou modifié.
+5. Avec le compte administrateur configuré, vérifier l’accès aux deux pages, la sélection du Pass Saison, la validation des champs et la confirmation d’enregistrement d’une demande fictive. Tester ensuite filtre, pagination, note, statut et suppression dans le suivi.
+6. Vérifier un échec serveur : aucune confirmation d’enregistrement, réponses conservées pour réessayer. Avec le compte administrateur, renvoyer la même demande ne doit ni la dupliquer ni réécrire les coordonnées et les notes existantes.
 
 Au prochain déploiement de production, la commande existante `npm run verify && npm run db:migrate` applique la migration additive `database/migrations/20260908_access_requests.sql` avant publication. Les migrations publiées restent immuables. Les nouvelles API attendent le marqueur `pricing-access-requests-20260908-v1` et répondent temporairement 503 s’il manque ; les routes de compte et d’équipe n’attendent pas ce nouveau marqueur.
 
 Aucun secret Stripe ou prestataire de paiement n’est nécessaire. Les connexions Neon et les variables `PLATFORM_ADMIN_USER_ID` / `PLATFORM_ADMIN_EMAIL` déjà utilisées par l’administration gardent leurs règles actuelles.
 
-Validation locale réalisée : `npm run verify` réussit avec 301 tests, le contrôle TypeScript et le build de production. Les pages Tarifs et Demandes d’accès ont été contrôlées dans Chromium à 360, 390, 768, 1024 et 1440 pixels, sans débordement horizontal ni erreur JavaScript. Les tests d’API et de migration exécutent les requêtes SQL sur PostgreSQL embarqué PGlite. Les essais de formulaire et de suivi dans le navigateur utilisent des réponses HTTP simulées, notamment l’échec puis la nouvelle tentative. Aucune base Neon externe n’a été migrée ou utilisée pour cette recette ; le fonctionnement sur l’environnement déployé reste à vérifier lors de la publication.
+Validation avant push : `npm run verify` réussit dans un instantané isolé du contenu de la branche, avec 302 tests, le contrôle TypeScript et le build de production. Les tests d’API et de migration exécutent les requêtes SQL sur PostgreSQL embarqué PGlite. Les tests vérifient le refus des visiteurs et comptes ordinaires, l’autorisation de l’administrateur et l’absence de lecture du formulaire ou de consommation du quota avant autorisation.
 
-Avant le push, le contenu de la branche a également été vérifié dans un instantané isolé, sans les autres modifications locales en cours : 293 tests, TypeScript et build réussis. La différence de nombre de tests correspond aux travaux locaux hors de cette phase.
+Dans Chromium, les trois profils ont été contrôlés avec des réponses de session simulées : connexion requise pour les visiteurs, refus pour les comptes ordinaires, accès aux deux pages pour l’administrateur, aucun aperçu pendant la vérification de session. Les deux pages ont aussi été contrôlées à 360, 390, 768, 1024 et 1440 pixels, sans débordement horizontal ni erreur JavaScript. Aucune base Neon externe n’a été migrée ou utilisée pour cette recette ; le fonctionnement sur l’environnement déployé reste à vérifier lors de la publication.
 
 ## Contrat des API
 
 | Fonction | Usage |
 | --- | --- |
-| `POST /.netlify/functions/access-requests` | Demande publique. Champs `contactName`, `email`, `teamName`, `role`, `planCode`, `payer`, `purchaseIntent`, `message`, `consent: true`, `website` (piège anti-robot facultatif). Réponse uniforme `{ "ok": true }` après enregistrement ou si doublon. |
+| `POST /.netlify/functions/access-requests` | Administration uniquement, pour la prévisualisation interne. Champs `contactName`, `email`, `teamName`, `role`, `planCode`, `payer`, `purchaseIntent`, `message`, `consent: true`, `website` (piège anti-robot facultatif). Réponse uniforme `{ "ok": true }` après enregistrement ou si doublon. |
 | `GET /.netlify/functions/admin-access-requests` | Administration uniquement. Paramètres `page`, `pageSize` et `status` facultatif ; renvoie demandes, pagination et compteurs globaux. |
 | `POST /.netlify/functions/admin-access-requests` | Administration uniquement. `{ "id": "…", "status": "…", "adminNote": "…" }` met à jour le suivi et mémorise l’auteur et la date de dernière modification. |
 | `DELETE /.netlify/functions/admin-access-requests` | Administration uniquement. `{ "id": "…" }` supprime la demande et toutes ses notes. |
 
-Les entrées publiques sont limitées à 12 Kio, le nom de contact à 80 caractères, l’e-mail à 160, le nom d’équipe à 100 et le message à 2 000. Les notes administrateur sont limitées à 4 000 caractères. Les choix sont contrôlés par liste autorisée, les mutations intersites refusées et les soumissions limitées à cinq par dix minutes et par IP via une empreinte stockée par le limiteur existant.
+Toutes ces API exigent la session de l’administrateur plateforme ; le contrôle est réalisé côté serveur, indépendamment de la visibilité des liens. Elles refusent les visiteurs sans session et les comptes ordinaires.
 
-L’unicité repose sur l’e-mail et le nom normalisé de l’équipe. Un renvoi anonyme ne peut pas modifier la demande initiale. Pour changer ses informations, le contact utilise le canal privé de Contact ; l’administrateur peut consigner la correction dans les notes ou supprimer la demande pour permettre une nouvelle soumission. Aucun e-mail n’est envoyé automatiquement.
+Les soumissions du formulaire sont limitées à 12 Kio, le nom de contact à 80 caractères, l’e-mail à 160, le nom d’équipe à 100 et le message à 2 000. Les notes administrateur sont limitées à 4 000 caractères. Les choix sont contrôlés par liste autorisée, les mutations intersites refusées et les soumissions limitées à cinq par dix minutes et par IP via une empreinte stockée par le limiteur existant.
+
+L’unicité repose sur l’e-mail et le nom normalisé de l’équipe. Un nouvel envoi autorisé ne modifie pas la demande initiale ; une soumission anonyme est refusée. L’administrateur peut consigner une correction dans les notes ou supprimer la demande pour permettre une nouvelle soumission. Aucun e-mail n’est envoyé automatiquement.
 
 La fonction Netlify planifiée `access-requests-cleanup` s’exécute à 03:15 UTC chaque jour en production. Elle supprime les demandes créées depuis au moins six mois, notes et coordonnées comprises. Un changement de statut ne repousse pas cette date. Les compteurs portent donc sur les demandes encore conservées. Contrôler l’exécution de cette fonction dans les journaux Netlify après publication.
 
-## Conduire les dix échanges
+## Après une future ouverture : conduire les dix échanges
 
-Présenter NXT5 à dix équipes réelles, sans inventer de contacts ou de retours. Pour chaque échange, partir de leur organisation actuelle, montrer un import et une review, puis ouvrir la page Tarifs.
+Cette étape commerciale reste à lancer après la décision d’ouvrir la collecte aux équipes. La prévisualisation actuelle et ses demandes fictives ne constituent pas des retours commerciaux ; supprimer ces demandes avant le suivi réel.
+
+Lors de cette étape, présenter NXT5 à dix équipes réelles, sans inventer de contacts ou de retours. Pour chaque échange, partir de leur organisation actuelle, montrer un import et une review, puis présenter les tarifs validés pour cette ouverture.
 
 Questions à poser :
 

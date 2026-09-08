@@ -2,7 +2,7 @@ import React, { startTransition, useCallback, useEffect, useState, Suspense, use
 import { apiFetch, API_BASE } from "./api/client.js";
 import { NAV, DEFAULT_DATA } from "./app/constants.jsx";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
-import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
+import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
 import { Loader2, ArrowRight, Check, Crown, FileText, Swords, Users, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
@@ -486,7 +486,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
   const unknownRoute = !isKnownPath(route.path);
-  const forbiddenAdminRoute = (route.path === "/admin" || route.path.startsWith("/admin/")) && (!user || user.is_platform_admin !== true);
+  const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
 
   // Public pages do not depend on the session check and should render immediately.
   // Keep the full-screen loader only when opening the authenticated workspace.
