@@ -5,6 +5,12 @@ export const SUBSCRIPTION_PLANS = [
   { code: "structure", label: "Pass Structure", months: 1 },
 ];
 
+export const SUBSCRIPTION_UPDATED_EVENT = "nxt5:subscription-updated";
+
+export function notifySubscriptionUpdated() {
+  globalThis.window?.dispatchEvent?.(new Event(SUBSCRIPTION_UPDATED_EVENT));
+}
+
 const STATUS_PRESENTATIONS = {
   none: { statusLabel: "Sans abonnement", tone: "slate" },
   scheduled: { statusLabel: "À venir", tone: "purple" },

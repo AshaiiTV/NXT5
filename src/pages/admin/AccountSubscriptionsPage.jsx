@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, History, Loader2, RefreshCw, Search, ShieldCheck, UserRound, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
-import { SUBSCRIPTION_PLANS, createSubscriptionForm, defaultSubscriptionEndDate, getSubscriptionPresentation, localDateInput, subscriptionDateToISO, subscriptionFormDates, subscriptionPeriodLabel } from "../../app/subscriptions.js";
+import { SUBSCRIPTION_PLANS, createSubscriptionForm, defaultSubscriptionEndDate, getSubscriptionPresentation, localDateInput, notifySubscriptionUpdated, subscriptionDateToISO, subscriptionFormDates, subscriptionPeriodLabel } from "../../app/subscriptions.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import "./account-subscriptions.css";
 import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
@@ -158,6 +158,7 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "" 
       if (sequence !== detailSequence.current || selectedRef.current !== userId) return;
       if (result?.ok !== true || result?.account?.id !== userId || !result.account.subscription || !Array.isArray(result.history)) throw new Error("Le serveur n’a pas confirmé la modification. Ton brouillon est conservé.");
       applyDetail(result);
+      notifySubscriptionUpdated();
       setAnnouncement(action === "revoke" ? `Abonnement retiré pour ${accountLabel(result.account)}.` : `Abonnement enregistré pour ${accountLabel(result.account)}.`);
     } catch (err) {
       if (sequence !== detailSequence.current || selectedRef.current !== userId) return;
