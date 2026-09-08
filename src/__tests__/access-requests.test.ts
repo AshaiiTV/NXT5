@@ -65,15 +65,15 @@ describe('administrator preview access requests', () => {
     expect((await db.query('select * from rate_limits')).rows).toEqual([]);
   });
 
-  it('allows the administrator to store validated commercial interest and consent without changing team access', async () => {
+  it.each(['team_monthly', 'structure'])('allows the administrator to store %s interest and consent without changing team access', async (planCode) => {
     const usersBefore = (await db.query('select * from users')).rows;
-    const response = await submitRequest(request({ ...valid, email: ' CAMILLE@Example.COM ', teamName: '  Team   NXT  ' }), context);
+    const response = await submitRequest(request({ ...valid, planCode, email: ' CAMILLE@Example.COM ', teamName: '  Team   NXT  ' }), context);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     const rows = (await db.query('select * from access_requests')).rows as any[];
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ email: 'camille@example.com', team_name: 'Team NXT', team_key: 'team nxt', status: 'new', admin_note: '', consent_version: 'access-request-2026-09-08' });
+    expect(rows[0]).toMatchObject({ email: 'camille@example.com', team_name: 'Team NXT', team_key: 'team nxt', plan_code: planCode, status: 'new', admin_note: '', consent_version: 'access-request-2026-09-08' });
     expect(rows[0].consented_at).toBeTruthy();
     expect((await db.query('select * from users')).rows).toEqual(usersBefore);
     expect((await db.query('select * from teams')).rows).toEqual([]);
@@ -178,6 +178,18 @@ describe('administrator access request follow-up', () => {
     expect(body.requests[0]).toHaveProperty('contactName');
     expect(body.requests[0]).not.toHaveProperty('team_key');
     expect(body.requests[0]).not.toHaveProperty('updated_by');
+  });
+
+  it('preserves Structure in admin follow-up and counts it only after confirmation', async () => {
+    await submitRequest(request({ ...valid, planCode: 'structure', teamName: 'NXT Organisation' }), context);
+    const before = await (await administerRequests(request(undefined, 'GET'), context)).json();
+    expect(before.requests[0]).toMatchObject({ planCode: 'structure', status: 'new' });
+    expect(before.stats.confirmedTeams).toBe(0);
+    await administerRequests(request({ id: before.requests[0].id, status: 'confirmed', adminNote: 'Devis accepté après échange.' }), context);
+    const after = await (await administerRequests(request(undefined, 'GET'), context)).json();
+    expect(after.requests[0]).toMatchObject({ planCode: 'structure', status: 'confirmed', adminNote: 'Devis accepté après échange.' });
+    expect(after.stats.confirmedTeams).toBe(1);
+    expect((await db.query('select * from teams')).rows).toEqual([]);
   });
 
   it('allows an administrator to track an intention and delete the contact record', async () => {

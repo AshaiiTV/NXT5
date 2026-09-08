@@ -8,8 +8,9 @@ import { LegalLinks, LinkButton, SiteHeader } from "./PublicPages.jsx";
 import "./pricing.css";
 
 const FAQ = [
+  ["Une offre existe-t-elle pour plusieurs équipes ?", "Le Pass Structure est envisagé sur devis, à partir de 79 € TTC par mois. Il prévoit plusieurs équipes, une facturation centralisée, un administrateur de structure, une vue multi-équipe et un accompagnement à l’installation. Le nombre d’équipes, les accès et le tarif final seront définis ensemble. Ces fonctions sont à préparer ; cette demande recueille ton besoin sans les activer."],
   ["Est-ce que je dois payer aujourd’hui ?", "Non. Ces offres sont en cours de validation avec les équipes. La demande d’accès nous permet de comprendre ton besoin et de te recontacter. Elle ne crée ni commande ni abonnement, et aucune carte bancaire n’est demandée."],
-  ["Est-ce que chaque joueur devra payer ?", "L’offre envisagée couvre une équipe entière : jusqu’à 10 membres en Découverte et 15 avec un Pass. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
+  ["Est-ce que chaque joueur devra payer ?", "L’offre envisagée couvre une équipe entière : jusqu’à 10 membres en Découverte et 15 par équipe avec un Pass Équipe ou Saison. Pour une structure, le périmètre sera défini sur devis. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
   ["Quelle différence entre le mensuel et le Pass Saison ?", "Le Pass Équipe est envisagé à 29 € TTC par mois, avec renouvellement mensuel et résiliation à tout moment pour la période suivante. Le Pass Saison est envisagé à 169 € TTC pour six mois, en un paiement, sans renouvellement automatique. Il reprend les mêmes outils et l’assistance standard."],
   ["Les limites s’appliquent-elles déjà à mon équipe ?", "Non. Les prix, fonctions incluses et quotas présentés ici décrivent les offres envisagées. Tes accès actuels et tes données restent inchangés. Toute évolution sera précisée avant le lancement des offres."],
   ["Que deviennent mes données à la fin d’un Pass ?", "Les règles de conservation après expiration sont encore à définir. Elles seront communiquées avant toute vente, avec les conditions de résiliation. Cette demande d’accès ne modifie pas la conservation actuelle de tes données."],
@@ -45,13 +46,14 @@ export default function PricingPage({ navigate, user }) {
   const formSectionRef = useRef(null);
   const statusRef = useRef(null);
   const pendingRef = useRef(false);
+  const structureSelected = form.planCode === "structure";
 
   useEffect(() => {
     if (error || success) statusRef.current?.focus();
   }, [error, success]);
 
   function patch(key, value) {
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => ({ ...current, [key]: value, ...(key === "planCode" && (current.planCode === "structure") !== (value === "structure") ? { purchaseIntent: "" } : {}) }));
   }
 
   function selectPlan(planCode) {
@@ -67,7 +69,7 @@ export default function PricingPage({ navigate, user }) {
     if (pendingRef.current || success) return;
     setError("");
     if (form.contactName.trim().length < 2 || form.teamName.trim().length < 2 || !form.email.trim() || !form.role || !form.purchaseIntent) {
-      setError("Renseigne ton nom, ton e-mail, ton équipe, ton rôle et ton intérêt pour l’offre.");
+      setError("Renseigne ton nom, ton e-mail, ton équipe ou ta structure, ton rôle et ton intérêt pour l’offre.");
       return;
     }
     if (!form.consent) {
@@ -134,10 +136,10 @@ export default function PricingPage({ navigate, user }) {
               <Surface key={plan.code} className={`pricing-plan pricing-plan--${plan.code}`}>
                 <article aria-labelledby={`plan-${plan.code}`} className="pricing-plan-body">
                   <div>
-                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? "Premiers pas" : plan.code === "team_monthly" ? "Au rythme de l’équipe" : "Une durée définie"}</p>
+                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? "Premiers pas" : plan.code === "team_monthly" ? "Au rythme de l’équipe" : plan.code === "structure" ? "Plusieurs équipes" : "Une durée définie"}</p>
                     <h2 id={`plan-${plan.code}`} className="mt-2 text-2xl font-black">{plan.name}</h2>
                     <p className="pricing-plan-description mt-3 text-sm leading-6 text-slate-300">{plan.description}</p>
-                    <p className="mt-5 text-5xl font-black tracking-tight tabular-nums">{plan.price}</p>
+                    <p className="mt-5 text-5xl font-black tracking-tight tabular-nums"><span className="pricing-price-prefix">{plan.pricePrefix || ""}</span>{" "}{plan.price}</p>
                     <p className="mt-2 text-sm font-bold text-slate-300">{plan.period}</p>
                     <p className="pricing-plan-terms mt-4 text-sm font-semibold leading-6 text-cyan-100">{plan.terms}</p>
                   </div>
@@ -149,7 +151,7 @@ export default function PricingPage({ navigate, user }) {
               </Surface>
             ))}
           </div>
-          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Offres envisagées, en cours de validation. Les Pass prévoient les outils inclus sans quota fonctionnel artificiel, dans le cadre d’un usage normal. Les limites Découverte affichées ici ne sont pas appliquées aujourd’hui.</p>
+          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Offres envisagées, en cours de validation. Les Pass Équipe et Saison prévoient les outils inclus sans quota fonctionnel artificiel, dans le cadre d’un usage normal. Le Pass Structure sera adapté sur devis, avec des fonctions multi-équipes à préparer. Les limites Découverte affichées ici ne sont pas appliquées aujourd’hui.</p>
         </section>
 
         <div className="pricing-details">
@@ -164,7 +166,7 @@ export default function PricingPage({ navigate, user }) {
           <section id="demande-acces" ref={formSectionRef} aria-labelledby="access-request-title" className="pricing-request">
             <Surface>
               <Badge tone="cyan">Préparer ton accès</Badge>
-              <h2 id="access-request-title" className="mt-4 text-3xl font-black tracking-tight">Parlons de ton équipe</h2>
+              <h2 id="access-request-title" className="mt-4 text-3xl font-black tracking-tight">{structureSelected ? "Parlons de ta structure" : "Parlons de ton équipe"}</h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">Dis-nous ce qui t’intéresse. Ta demande nous aide à valider l’offre et à préparer un échange avec toi, sans engagement d’achat.</p>
               {success ? (
                 <div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
@@ -183,7 +185,7 @@ export default function PricingPage({ navigate, user }) {
                       <TextInput label="E-mail de contact *" name="email" autoComplete="email" maxLength={160} value={form.email} onChange={(value) => patch("email", value)} placeholder="toi@exemple.fr" type="email" required />
                     </div>
                     <div className="pricing-form-row">
-                      <TextInput label="Nom de l’équipe *" name="teamName" minLength={2} maxLength={100} value={form.teamName} onChange={(value) => patch("teamName", value)} placeholder="Ton équipe ou ton projet" required />
+                      <TextInput label={structureSelected ? "Nom de la structure *" : "Nom de l’équipe *"} name="teamName" minLength={2} maxLength={100} value={form.teamName} onChange={(value) => patch("teamName", value)} placeholder={structureSelected ? "Ton organisation" : "Ton équipe ou ton projet"} required />
                       <SelectInput label="Ton rôle *" name="role" required value={form.role} onChange={(value) => patch("role", value)}>
                         <option value="" disabled>Choisis ton rôle</option>
                         <option value="captain">Capitaine</option><option value="manager">Manager</option><option value="coach">Coach</option><option value="player">Joueur</option><option value="other">Autre</option>
@@ -196,9 +198,9 @@ export default function PricingPage({ navigate, user }) {
                       <option value="unknown">Pas encore décidé</option><option value="self">Moi</option><option value="team">L’équipe, en commun</option><option value="association">Une association ou une structure</option>
                     </SelectInput>
                     <SelectInput label="Ton intérêt pour cette offre *" name="purchaseIntent" required value={form.purchaseIntent} onChange={(value) => patch("purchaseIntent", value)}>
-                      <option value="" disabled>Choisis une réponse</option><option value="yes">Oui, au tarif indiqué</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
+                      <option value="" disabled>Choisis une réponse</option><option value="yes">{structureSelected ? "Oui, selon le devis" : "Oui, au tarif indiqué"}</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
                     </SelectInput>
-                    <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder="Votre rythme de jeu, le lancement d’un split, un besoin du staff…" rows={3} />
+                    <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder={structureSelected ? "Nombre d’équipes, organisation du staff et besoins communs…" : "Votre rythme de jeu, le lancement d’un split, un besoin du staff…"} rows={3} />
                     <div className="pricing-honeypot" aria-hidden="true"><label>Site web<input name="website" type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => patch("website", event.target.value)} /></label></div>
                     <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-300">
                       <input type="checkbox" required checked={form.consent} onChange={(event) => patch("consent", event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-cyan-300" />

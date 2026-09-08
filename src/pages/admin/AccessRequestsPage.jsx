@@ -10,7 +10,7 @@ const STATUSES = [
   { value: "confirmed", label: "Intention confirmée après échange", tone: "green" },
   { value: "declined", label: "Offre présentée, sans suite", tone: "slate" },
 ];
-const PLANS = { free: "Découverte", team_monthly: "Pass Équipe mensuel", team_season: "Pass Saison" };
+const PLANS = { free: "Découverte", team_monthly: "Pass Équipe mensuel", team_season: "Pass Saison", structure: "Pass Structure" };
 const ROLES = { captain: "Capitaine", manager: "Manager", coach: "Coach", player: "Joueur", other: "Autre" };
 const PAYERS = { self: "Le contact", team: "L’équipe", association: "L’association / structure", unknown: "À définir" };
 const INTENTS = { yes: "Oui, au prix présenté", maybe: "À discuter", discover: "Découvrir le service" };
@@ -54,7 +54,7 @@ function RequestCard({ request, busy, onSave, onDelete }) {
     <dl className="access-request-facts">
       <div><dt>Formule envisagée</dt><dd>{PLANS[request.planCode] || request.planCode}</dd></div>
       <div><dt>Qui paierait ?</dt><dd>{PAYERS[request.payer] || request.payer}</dd></div>
-      <div><dt>Intention déclarée au formulaire</dt><dd>{INTENTS[request.purchaseIntent] || request.purchaseIntent}</dd></div>
+      <div><dt>Intention déclarée au formulaire</dt><dd>{request.planCode === "structure" && request.purchaseIntent === "yes" ? "Oui, selon le devis" : INTENTS[request.purchaseIntent] || request.purchaseIntent}</dd></div>
       <div><dt>Demande reçue</dt><dd>{date(request.createdAt)}</dd></div>
     </dl>
     {request.message && <div className="access-request-message"><h4>Message du contact</h4><p>{request.message}</p></div>}
@@ -63,7 +63,7 @@ function RequestCard({ request, busy, onSave, onDelete }) {
     {editing && <form id={detailsId} className="access-request-editor" onSubmit={save}>
       <fieldset disabled={Boolean(busy)}><legend className="sr-only">Suivi de {request.teamName}</legend>
         <SelectInput label="Statut du suivi" value={status} onChange={setStatus} disabled={Boolean(busy)}>{STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</SelectInput>
-        <p className="access-requests-caption">Après présentation de l’offre, confirme l’intention uniquement si l’équipe a validé la formule, le prix et la personne qui paie. Le choix du formulaire seul ne suffit pas.{request.planCode === "free" && " Une demande Découverte ne compte pas comme intention d’achat."}</p>
+        <p className="access-requests-caption">Après présentation de l’offre, confirme l’intention uniquement si le contact a validé la formule, le prix et la personne qui paie. Le choix du formulaire seul ne suffit pas.{request.planCode === "structure" && " Pour une structure, le périmètre et le devis doivent avoir été validés ; le tarif de départ ne suffit pas."}{request.planCode === "free" && " Une demande Découverte ne compte pas comme intention d’achat."}</p>
         <TextAreaInput label="Notes de suivi" value={adminNote} onChange={setAdminNote} rows={3} maxLength={4000} placeholder="Date de l’échange, prix accepté, payeur, questions ou réserves…" />
         <p className="access-requests-caption">Notes privées · {adminNote.length} / 4 000 caractères</p>
         <div className="access-request-actions"><Button type="submit" icon={isSaving ? Loader2 : Check} disabled={Boolean(busy) || !dirty || adminNote.length > 4000}>{isSaving ? "Enregistrement…" : "Enregistrer le suivi"}</Button><Button type="button" variant="ghost" disabled={Boolean(busy)} onClick={reset}>Annuler</Button></div>

@@ -6,6 +6,7 @@ export async function loadMigrations() {
     ['baseline-20260906-v1', '../database/schema.sql'],
     ['audit-runtime-20260906-v1', '../database/migrations/20260906_runtime_schema.sql'],
     ['pricing-access-requests-20260908-v1', '../database/migrations/20260908_access_requests.sql'],
+    ['pricing-access-requests-structure-20260908-v1', '../database/migrations/20260908_access_requests_structure.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

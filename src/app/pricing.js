@@ -45,9 +45,25 @@ export const PROPOSED_PLANS = [
       "Historique, export et accès du staff",
     ],
   },
+  {
+    code: "structure",
+    name: "Pass Structure",
+    pricePrefix: "À partir de",
+    price: "79 €",
+    period: "TTC / mois · sur devis",
+    description: "Pour réunir plusieurs équipes sous une même organisation.",
+    terms: "Périmètre et tarif à définir ensemble",
+    features: [
+      "Plusieurs équipes selon tes besoins",
+      "Facturation centralisée envisagée",
+      "Administrateur de structure",
+      "Vue multi-équipe à préparer",
+      "Accompagnement à l’installation",
+    ],
+  },
 ];
 
 export const PROPOSED_PLAN_OPTIONS = PROPOSED_PLANS.map((plan) => ({
   value: plan.code,
-  label: `${plan.name} — ${plan.price} ${plan.period}`,
+  label: `${plan.name} — ${plan.pricePrefix ? `${plan.pricePrefix.toLowerCase()} ` : ""}${plan.price} ${plan.period}`,
 }));
