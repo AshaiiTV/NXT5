@@ -33,7 +33,28 @@ describe('controlled database migrations', () => {
     await db.query('select notif_inactivity, legal_version, email_verify_token from users');
     await db.query('select attempts, rate_key, updated_at from rate_limits');
     await db.query('select team_id, player_id from player_coaching_notes');
+    await db.query(`insert into access_requests (contact_name, email, team_name, team_key, role, plan_code, payer, purchase_intent, consent_version)
+      values ('Camille', 'fresh@example.test', 'Structure', 'structure', 'manager', 'structure', 'association', 'maybe', 'test')`);
+    expect((await db.query('select plan_code from access_requests')).rows).toEqual([{ plan_code: 'structure' }]);
   }, 30_000);
+
+  it('upgrades the published three-plan schema without changing requests and rejects unknown plans', async () => {
+    const { db, client, migrations } = await fixture();
+    const structureKey = 'pricing-access-requests-structure-20260908-v1';
+    await applyMigrations(client, migrations.filter(migration => migration.key !== structureKey));
+    const insert = `insert into access_requests (contact_name, email, team_name, team_key, role, plan_code, payer, purchase_intent, consent_version)
+      values ('Camille', $1, 'Team NXT', 'team nxt', 'manager', $2, 'association', 'maybe', 'test')`;
+    await db.query(insert, ['existing@example.test', 'team_season']);
+    const before = (await db.query('select * from access_requests')).rows;
+    await expect(db.query(insert, ['structure@example.test', 'structure'])).rejects.toMatchObject({ code: '23514' });
+    expect(await applyMigrations(client, migrations)).toEqual([structureKey]);
+    expect((await db.query('select * from access_requests')).rows).toEqual(before);
+    for (const plan of ['free', 'team_monthly', 'structure']) await db.query(insert, [`${plan}@example.test`, plan]);
+    await expect(db.query(insert, ['invalid@example.test', 'arbitrary-price-id'])).rejects.toMatchObject({ code: '23514' });
+    const after = (await db.query('select * from access_requests order by email')).rows;
+    expect(await applyMigrations(client, migrations)).toEqual([]);
+    expect((await db.query('select * from access_requests order by email')).rows).toEqual(after);
+  });
 
   it('upgrades an existing schema without deleting user data and is idempotent', async () => {
     const { db, client, migrations } = await fixture();

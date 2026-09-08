@@ -37,10 +37,26 @@ function edit(renderer, label, value) {
   act(() => renderer.root.findByProps({ label }).props.onChange(value));
 }
 
+function namedInput(renderer, name) {
+  return renderer.root.findAllByType("input").find((input) => input.props.name === name);
+}
+
+function editTeam(renderer, value) {
+  act(() => namedInput(renderer, "teamName").props.onChange({ target: { value } }));
+}
+
+function selectPlan(renderer, name) {
+  act(() => renderer.root.findAllByType("button").find((button) => button.props["aria-label"] === `Demander un accès — ${name}`).props.onClick());
+}
+
+function content(node) {
+  return typeof node === "string" ? node : (node.children || []).map(content).join(" ");
+}
+
 function fill(renderer, { consent = true } = {}) {
   edit(renderer, "Ton nom ou pseudo *", "  Camille  ");
   edit(renderer, "E-mail de contact *", "  CAMILLE@example.fr  ");
-  edit(renderer, "Nom de l’équipe *", "  Les Cinq  ");
+  editTeam(renderer, "  Les Cinq  ");
   edit(renderer, "Ton rôle *", "manager");
   edit(renderer, "Qui prendrait en charge l’offre ?", "association");
   edit(renderer, "Ton intérêt pour cette offre *", "yes");
@@ -53,14 +69,27 @@ function submit(renderer) {
 }
 
 describe("commercial validation pricing page", () => {
-  it("shows only the three proposed team offers without any checkout or card field", () => {
+  it("keeps the three team offers and adds a quoted Structure offer without checkout or card fields", () => {
     const { renderer } = render();
-    expect(PROPOSED_PLANS.map((plan) => [plan.code, plan.price, plan.period])).toEqual([
+    expect(PROPOSED_PLANS.map((plan) => plan.code)).toEqual(["free", "team_monthly", "team_season", "structure"]);
+    expect(PROPOSED_PLANS.slice(0, 3).map((plan) => [plan.code, plan.price, plan.period])).toEqual([
       ["free", "0 €", "gratuit"],
       ["team_monthly", "29 €", "TTC / mois / équipe"],
       ["team_season", "169 €", "TTC / 6 mois / équipe"],
     ]);
+    const structure = renderer.root.findByProps({ "aria-labelledby": "plan-structure" });
+    const structureText = content(structure);
+    expect(structureText).toContain("Pass Structure");
+    expect(structureText).toMatch(/À partir de\s+79 €/);
+    expect(structureText).toMatch(/TTC\s*\/\s*mois/);
+    expect(structureText).toMatch(/sur devis/i);
+    expect(structureText).toContain("Plusieurs équipes selon tes besoins");
+    expect(structureText).toContain("Facturation centralisée envisagée");
+    expect(structureText).toContain("Administrateur de structure");
+    expect(structureText).toContain("Vue multi-équipe à préparer");
+    expect(structureText).toContain("Accompagnement à l’installation");
     const page = JSON.stringify(renderer.toJSON());
+    expect(page).toContain("Aperçu réservé à l’administrateur");
     expect(page).toContain("Aucun paiement aujourd’hui.");
     expect(page).toContain("Tes accès actuels restent inchangés.");
     expect(page).toContain("sans renouvellement automatique");
@@ -71,12 +100,62 @@ describe("commercial validation pricing page", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
-  it("selects the requested plan, brings the form into view and focuses its first field", () => {
+  it.each([["Pass Saison", "team_season"], ["Pass Structure", "structure"]])("selects %s, brings the form into view and focuses its first field", (name, code) => {
     const { renderer, scrollIntoView, focusInput } = render();
-    act(() => renderer.root.findAllByType("button").find((button) => button.props["aria-label"] === "Demander un accès — Pass Saison").props.onClick());
-    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe("team_season");
+    selectPlan(renderer, name);
+    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe(code);
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
     expect(focusInput).toHaveBeenCalledWith({ preventScroll: true });
+  });
+
+  it("makes Structure interest conditional on the quote and leaves the answer explicit", () => {
+    const { renderer } = render();
+    edit(renderer, "Ton intérêt pour cette offre *", "yes");
+    selectPlan(renderer, "Pass Structure");
+    const planOption = renderer.root.findAllByType("option").find((option) => option.props.value === "structure");
+    expect(content(planOption)).toMatch(/Pass Structure.*partir de.*79 €.*sur devis/i);
+    const interest = renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" });
+    expect(interest.props.value).toBe("");
+    expect(content(interest.findAllByType("option").find((option) => option.props.value === "yes"))).toMatch(/devis/i);
+    expect(content(namedInput(renderer, "teamName").parent.parent)).toMatch(/structure/i);
+    edit(renderer, "Ton intérêt pour cette offre *", "yes");
+    selectPlan(renderer, "Pass Équipe");
+    expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("");
+    expect(content(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).findAllByType("option").find((option) => option.props.value === "yes"))).toBe("Oui, au tarif indiqué");
+    edit(renderer, "Ton intérêt pour cette offre *", "maybe");
+    selectPlan(renderer, "Pass Saison");
+    expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("maybe");
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("submits the Structure selected by its CTA and preserves the full request after failure", async () => {
+    const { renderer } = render();
+    selectPlan(renderer, "Pass Structure");
+    fill(renderer);
+    editTeam(renderer, "  Association Aurora  ");
+    edit(renderer, "Un besoin, une question ? (facultatif)", "  Deux rosters et un plan de financement.  ");
+    apiFetch.mockRejectedValueOnce(Object.assign(new Error("Connection unavailable"), { status: 503 }));
+    await act(async () => submit(renderer));
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    const [endpoint, options] = apiFetch.mock.calls[0];
+    expect(endpoint).toBe("access-requests");
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body)).toEqual({
+      contactName: "Camille", email: "camille@example.fr", teamName: "Association Aurora", role: "manager",
+      planCode: "structure", payer: "association", purchaseIntent: "yes", message: "Deux rosters et un plan de financement.", consent: true, website: "",
+    });
+    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe("structure");
+    expect(namedInput(renderer, "teamName").props.value).toBe("  Association Aurora  ");
+    expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("yes");
+    expect(renderer.root.findByProps({ type: "checkbox" }).props.checked).toBe(true);
+    expect(renderer.root.findByType("fieldset").props.disabled).toBe(false);
+    expect(renderer.root.findByProps({ role: "alert" }).children.join("")).toContain("Tes réponses sont conservées");
+    apiFetch.mockResolvedValueOnce({ ok: true });
+    await act(async () => submit(renderer));
+    expect(apiFetch.mock.calls[1]).toEqual(apiFetch.mock.calls[0]);
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    expect(JSON.stringify(renderer.toJSON())).toContain("Aucun compte ni abonnement n’a été activé");
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
   });
 
   it("requires explicit interest and consent before contacting the server", async () => {
@@ -126,7 +205,7 @@ describe("commercial validation pricing page", () => {
     apiFetch.mockRejectedValueOnce(Object.assign(new Error("Database internal detail"), { status: 503 }));
     await act(async () => submit(renderer));
     expect(renderer.root.findByProps({ label: "E-mail de contact *" }).props.value).toBe("  CAMILLE@example.fr  ");
-    expect(renderer.root.findByProps({ label: "Nom de l’équipe *" }).props.value).toBe("  Les Cinq  ");
+    expect(namedInput(renderer, "teamName").props.value).toBe("  Les Cinq  ");
     expect(renderer.root.findByProps({ type: "checkbox" }).props.checked).toBe(true);
     expect(renderer.root.findByType("fieldset").props.disabled).toBe(false);
     expect(renderer.root.findByProps({ role: "alert" }).children.join("")).toContain("Tes réponses sont conservées");

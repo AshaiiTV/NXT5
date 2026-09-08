@@ -1,7 +1,7 @@
 import { assertSchemaReady } from './migrations';
 import { sql } from './db';
 
-export const ACCESS_REQUESTS_SCHEMA_VERSION = 'pricing-access-requests-20260908-v1';
+export const ACCESS_REQUESTS_SCHEMA_VERSION = 'pricing-access-requests-structure-20260908-v1';
 let accessRequestsReady: Promise<void> | undefined;
 
 // Keep this feature's migration independent from existing account/workspace routes.

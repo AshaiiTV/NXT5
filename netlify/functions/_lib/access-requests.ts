@@ -43,7 +43,7 @@ export function validateAccessRequest(body: Record<string, unknown>) {
     teamName,
     teamKey,
     role: choice(body.role, ['captain', 'manager', 'coach', 'player', 'other'], 'Rôle'),
-    planCode: choice(body.planCode, ['free', 'team_monthly', 'team_season'], 'Offre'),
+    planCode: choice(body.planCode, ['free', 'team_monthly', 'team_season', 'structure'], 'Offre'),
     payer: choice(body.payer, ['self', 'team', 'association', 'unknown'], 'Payeur'),
     purchaseIntent: choice(body.purchaseIntent, ['yes', 'maybe', 'discover'], 'Intention'),
     message: body.message === undefined ? '' : textField(body.message, 'Le message', 0, 2000, true)

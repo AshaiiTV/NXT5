@@ -33,6 +33,31 @@ describe("access request administration", () => {
     expect(text(renderer)).toContain("L’association / structure");
   });
 
+  it.each([
+    ["yes", "Oui, selon le devis"],
+    ["maybe", "À discuter"],
+    ["discover", "Découvrir le service"],
+  ])("shows a Structure request with declared intention %s without confirming a sale", async (purchaseIntent, label) => {
+    apiFetch.mockResolvedValueOnce(result({ requests: [{ ...request, teamName: "Association Aurora", planCode: "structure", purchaseIntent }] }));
+    const renderer = await render();
+    const card = renderer.root.findByType("article");
+    const values = card.findAllByType("dd").map((node) => node.children.join(""));
+    expect(values).toContain("Pass Structure");
+    expect(values).toContain(label);
+    expect(values).not.toContain("Oui, au prix présenté");
+    expect(text(renderer)).toContain("Nouvelle demande");
+    expect(text(renderer)).toContain("La collecte publique est fermée");
+    expect(text(renderer)).toContain("sans e-mail automatique ni abonnement");
+    const metrics = renderer.root.findAllByProps({ className: "access-requests-metric" });
+    expect(metrics[2].findByType("strong").children[0]).toBe("0");
+    if (purchaseIntent === "yes") {
+      act(() => button(renderer, "Suivre cette demande").props.onClick());
+      expect(text(renderer)).toContain("le périmètre et le devis doivent avoir été validés");
+      expect(renderer.root.findAllByType(SelectInput).find((item) => item.props.label === "Statut du suivi").props.value).toBe("new");
+    }
+    expect(apiFetch.mock.calls).toEqual([["admin-access-requests?page=1&pageSize=10"]]);
+  });
+
   it("keeps a failed edit available and saves explicit status with private notes", async () => {
     apiFetch.mockResolvedValueOnce(result());
     const renderer = await render();

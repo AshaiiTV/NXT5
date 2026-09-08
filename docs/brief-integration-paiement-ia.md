@@ -4,6 +4,8 @@ Copier tout le contenu de ce document dans une nouvelle tâche de développement
 
 ---
 
+Ce brief prépare une étape de développement ultérieure. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation comprend Découverte, Pass Équipe, Pass Saison et Pass Structure. L’ajout du Pass Structure couvre sa présentation et le recueil de besoins ; il n’ouvre ni collecte publique, ni paiement, ni outils multi-équipes. L’ouverture publique et Stripe décrits ci-dessous relèvent de la future mission de monétisation.
+
 ## Mission
 
 Intègre de bout en bout la monétisation de NXT5 dans le projet existant. Tu dois livrer une implémentation fonctionnelle, testée et documentée en mode Stripe Test. Ne te limite pas à créer des maquettes : le paiement, les webhooks, les droits, les limites côté serveur, les pages publiques, la facturation et les tests doivent fonctionner ensemble.
@@ -90,7 +92,15 @@ La facturation appartient à l’équipe, pas au compte individuel. Le capitaine
 - mêmes droits que `team_monthly` ;
 - ne jamais accepter un simple `plan_code=founder_monthly` venant du client.
 
-Ne développe pas encore l’offre multi-équipe « Structure ». Prépare les noms et le modèle de données pour qu’elle puisse être ajoutée plus tard, sans construire d’écran ni de logique inutilisés.
+### Proposition `structure` — Pass Structure sur devis
+
+- à partir de 79 € TTC par mois, avec périmètre et prix final à définir sur devis ;
+- besoins envisagés : plusieurs équipes sous une même organisation, facturation centralisée, administrateur de structure, vue multi-équipe et accompagnement à l’installation ;
+- aucun nombre d’équipes ou de membres, quota d’usage ou niveau d’accompagnement fixé sans validation du besoin.
+
+La carte du Pass Structure, son option dans le formulaire et son suivi administrateur sont déjà intégrés à la prévisualisation commerciale interne. Conserve ce recueil de besoins et sa distinction avec les offres achetables. Une intention Structure ne peut être confirmée manuellement qu’après acceptation du périmètre, du devis et du payeur ; la confirmation compte pour une organisation et n’active aucun droit. Le code `structure` appartient au catalogue des propositions et aux demandes d’accès ; à ce stade, il ne doit pas devenir un Price Stripe, un plan de facturation ou une autorisation produit.
+
+Le paiement Structure, la facturation centralisée et les outils d’administration multi-équipes restent à développer dans une étape ultérieure, après validation du Pass Équipe et de prospects réels. Ne construis pas ces fonctions dans la présente mission de paiement des offres équipe ; n’associe pas automatiquement une demande Structure à une souscription ou à des droits multi-équipes.
 
 ## Comptes et autorisations
 
@@ -297,7 +307,7 @@ Respecte les helpers actuels `assertSessionSecret`, `requireAuth`, `assertMethod
 
 Retourne uniquement les offres publiques, leurs montants d’affichage, périodicité, fonctions et codes autorisés. Les montants peuvent être définis dans un catalogue serveur versionné, mais le Price Stripe reste la référence à l’achat.
 
-Ne retourne jamais de clé secrète ni le Founder Price.
+Ne retourne jamais de clé secrète ni le Founder Price. Le Pass Structure reste une proposition sur devis dans le catalogue de présentation ; il n’appartient pas au catalogue de facturation ni à la liste blanche des plans achetables.
 
 ### `billing-status.ts` — GET authentifié
 
@@ -333,6 +343,8 @@ Body attendu :
 13. retourner uniquement `{ url }`.
 
 Pour le Pass Saison, crée une commande `pending` avant ou au moment de Checkout et lie son identifiant aux métadonnées. Ne calcule les six mois d’accès qu’après paiement confirmé.
+
+Refuse explicitement `planCode=structure` : une demande de devis ne doit jamais créer de session Checkout ni activer d’accès payant.
 
 ### `billing-portal-create.ts` — POST authentifié
 
@@ -466,19 +478,20 @@ Choisis un statut et documente-le. Le front doit se baser sur `code`, pas analys
 
 ### `/tarifs` — public
 
-Créer une page responsive comprenant :
+Adapter la page de prévisualisation existante pour cette future ouverture publique, en conservant une présentation responsive comprenant :
 
 - titre : « Choisis la formule adaptée à ton équipe » ;
 - carte Découverte ;
 - carte Pass Équipe avec choix mensuel/annuel ;
 - carte Pass Saison ;
+- carte Pass Structure « sur devis, à partir de 79 € TTC par mois », orientée vers le recueil de besoins ;
 - prix TTC clairement visibles ;
-- fonctions réellement incluses ;
+- fonctions réellement incluses pour les offres achetables, besoins envisagés clairement identifiés pour Structure ;
 - CTA adapté à l’état connecté ;
 - FAQ sur membres, renouvellement, résiliation, factures, données et Pass Saison ;
 - lien vers CGV, CGU et confidentialité.
 
-L’offre Founder ne doit jamais apparaître. N’ajoute ni faux témoignage, ni compte à rebours, ni réduction artificielle.
+L’offre Founder ne doit jamais apparaître. Le Pass Structure garde un parcours de contact ou de demande de devis, sans bouton d’achat ni redirection vers `/achat`. Ne promets pas de fonctions multi-équipes disponibles. N’ajoute ni faux témoignage, ni compte à rebours, ni réduction artificielle.
 
 ### `/achat` — authentifié
 
@@ -686,6 +699,7 @@ Conserve tous les tests actuels et ajoute des tests ciblés.
 - équipe étrangère ;
 - rôle interdit ;
 - plan inconnu ;
+- proposition Structure refusée à la création de Checkout ;
 - Founder plan demandé publiquement ;
 - configuration Stripe manquante ;
 - Checkout récurrent ;
@@ -725,6 +739,7 @@ Mocke Stripe : aucun test automatisé ne doit contacter l’API réelle.
 
 - tarifs publics ;
 - sélection d’offre ;
+- quatre cartes visibles, dont Pass Structure avec un parcours de recueil de besoins sans paiement ;
 - redirection connexion avec retour ;
 - choix d’équipe ;
 - confirmation en attente puis confirmée ;
@@ -821,7 +836,8 @@ Tu peux achever toute l’intégration en mode Test sans ces valeurs. Tu ne dois
 La mission est terminée seulement si :
 
 - les pages `/tarifs`, `/achat`, `/achat/confirme`, `/achat/annule`, `/abonnement` et `/conditions-vente` sont accessibles selon leurs règles ;
-- les trois offres publiques s’affichent correctement ;
+- les quatre familles d’offres s’affichent correctement : Découverte, Pass Équipe (mensuel/annuel), Pass Saison et Pass Structure sur devis ;
+- le Pass Structure reste un recueil de besoins, sans Checkout, droits activés ni fonctions multi-équipes ajoutées ;
 - Checkout Test fonctionne pour mensuel, annuel et saison ;
 - le webhook signé est idempotent ;
 - une souscription active et un Pass Saison payé donnent les bons droits ;
