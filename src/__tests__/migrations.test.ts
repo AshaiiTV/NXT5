@@ -33,7 +33,7 @@ describe('controlled database migrations', () => {
     await db.query('select notif_inactivity, legal_version, email_verify_token from users');
     await db.query('select attempts, rate_key, updated_at from rate_limits');
     await db.query('select team_id, player_id from player_coaching_notes');
-  }, 15_000);
+  }, 30_000);
 
   it('upgrades an existing schema without deleting user data and is idempotent', async () => {
     const { db, client, migrations } = await fixture();

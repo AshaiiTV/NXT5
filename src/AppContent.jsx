@@ -394,7 +394,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const unknownRoute = !isKnownPath(route.path);
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/verify-email", "/verified"].includes(route.path);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/tarifs", "/verify-email", "/verified"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
