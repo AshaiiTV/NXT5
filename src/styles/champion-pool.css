@@ -46,7 +46,7 @@
   border: 1px solid transparent;
   border-radius: 0.625rem;
   background: transparent;
-  color: #94a3b8;
+  color: #edf5ff;
   text-align: left;
 }
 
@@ -84,7 +84,7 @@
 .nxt5-pool-player-role {
   display: block;
   margin: 0.125rem 0 0;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1.35;
@@ -101,7 +101,7 @@
   padding: 0 0.375rem;
   border-radius: 0.375rem;
   background: #ffffff07;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -144,7 +144,7 @@
 
 .nxt5-pool-board-header p {
   margin: 0.25rem 0 0;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.75rem;
   line-height: 1.5;
 }
@@ -213,7 +213,7 @@
 .nxt5-pool-tier-heading h4 + span,
 .nxt5-pool-tier-heading h4 > span {
   margin-left: 0.375rem;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -221,7 +221,7 @@
 
 .nxt5-pool-tier-heading p {
   margin: 0.375rem 0 0;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   font-weight: 400;
   line-height: 1.5;
@@ -239,7 +239,7 @@
 
 .nxt5-pool-pick {
   display: flex;
-  flex: 0 1 13.25rem;
+  flex: 0 1 17rem;
   align-items: center;
   gap: 0.375rem;
   min-width: 0;
@@ -286,16 +286,16 @@
 .nxt5-pool-page button.nxt5-pool-remove {
   display: inline-flex;
   position: relative;
-  flex: 0 0 1.75rem;
+  flex: 0 0 2.75rem;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  min-height: 1.75rem;
+  width: 2.75rem;
+  min-height: 2.75rem;
   padding: 0;
   border: 0;
   border-radius: 0.375rem;
   background: transparent;
-  color: #94a3b8;
+  color: #edf5ff;
 }
 
 .nxt5-pool-move:hover {
@@ -336,7 +336,7 @@
   align-items: center;
   min-height: 3rem;
   margin: 0;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.75rem;
   line-height: 1.5;
 }
@@ -357,7 +357,7 @@
 }
 
 .nxt5-pool-library-header > span {
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -372,12 +372,12 @@
 
 .nxt5-pool-page .nxt5-pool-lanes button {
   flex: 1 0 auto;
-  min-height: 1.875rem;
+  min-height: 2.75rem;
   padding: 0.375rem 0.5rem;
   border: 1px solid transparent;
   border-radius: 0.375rem;
   background: transparent;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   font-weight: 650;
   line-height: 1.2;
@@ -448,7 +448,7 @@
 
 .nxt5-pool-search-name :where(small, p + p, span + span) {
   margin-top: 0.1875rem;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.625rem;
   font-weight: 400;
 }
@@ -468,12 +468,12 @@
   flex: 0 0 6.875rem;
   width: 6.875rem;
   min-width: 0;
-  min-height: 2.125rem;
+  min-height: 2.75rem;
   padding: 0.375rem 0.25rem 0.375rem 0.5rem;
   border: 1px solid #ffffff12;
   border-radius: 0.375rem;
   background: #0b1524;
-  color: #cbd5e1;
+  color: #f3f8ff;
   font-size: 0.6875rem;
   font-weight: 500;
   cursor: pointer;
@@ -481,7 +481,7 @@
 
 .nxt5-pool-library-help {
   margin: 0.75rem 0;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   line-height: 1.6;
 }
@@ -496,7 +496,7 @@
   padding: 0.625rem;
   border: 1px dashed #ffffff17;
   border-radius: 0.5rem;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.6875rem;
   line-height: 1.5;
   text-align: center;
@@ -511,7 +511,7 @@
 .nxt5-pool-no-results {
   margin: 0;
   padding: 2rem 0.75rem;
-  color: #94a3b8;
+  color: #edf5ff;
   font-size: 0.8125rem;
   line-height: 1.6;
   text-align: center;
@@ -519,7 +519,7 @@
 
 .nxt5-pool-no-results > svg {
   margin: 0 auto 0.75rem;
-  color: #64748b;
+  color: #dbe8f8;
 }
 
 .nxt5-pool-no-results p {
@@ -527,7 +527,7 @@
 }
 
 .nxt5-pool-no-results button {
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   margin-top: 0.625rem;
   padding: 0.375rem 0.5rem;
   border: 0;
@@ -575,24 +575,30 @@
   }
 
   .nxt5-pool-pick {
-    flex: 1 1 12rem;
+    flex: 1 1 17rem;
     min-width: min(100%, 140px);
   }
 
   .nxt5-pool-move,
   .nxt5-pool-page button.nxt5-pool-remove {
-    flex-basis: 2.5rem;
-    width: 2.5rem;
-    min-height: 2.5rem;
+    flex-basis: 2.75rem;
+    width: 2.75rem;
+    min-height: 2.75rem;
   }
 
   .nxt5-pool-page .nxt5-pool-lanes button,
   .nxt5-pool-page select.nxt5-pool-classify {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
+  }
+
+  .nxt5-pool-page select.nxt5-pool-classify {
+    flex-basis: 8.75rem;
+    width: 8.75rem;
+    font-size: 1rem;
   }
 
   .nxt5-pool-tier-empty {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
   }
 
   .nxt5-pool-library {

@@ -55,7 +55,7 @@ function MarketingPreview() {
             <p className="font-black text-white">Données prêtes à lire</p>
             <p className="text-xs font-semibold text-slate-300">Le site expose les infos. Le coach garde l’interprétation.</p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {axes.map((a, i) => <div key={a} className="rounded-2xl border border-cyan-100/12 bg-black/[0.18] p-3"><div className={cx("mb-3 inline-flex rounded-xl border p-2", tone(i === 0 ? "cyan" : i === 1 ? "purple" : i === 2 ? "green" : "yellow"))}>{i === 0 ? <Eye className="h-4 w-4" /> : i === 1 ? <Target className="h-4 w-4" /> : i === 2 ? <Gauge className="h-4 w-4" /> : <Swords className="h-4 w-4" />}</div><p className="text-sm font-black text-white">{a}</p></div>)}
+              {axes.map((a, i) => <div key={a} className="rounded-2xl border border-cyan-100/12 bg-black/[0.18] p-3"><div className={cx("mb-3 inline-flex rounded-xl border p-2", tone(i === 0 ? "cyan" : i === 1 ? "purple" : i === 2 ? "blue" : "pink"))}>{i === 0 ? <Eye className="h-4 w-4" /> : i === 1 ? <Target className="h-4 w-4" /> : i === 2 ? <Gauge className="h-4 w-4" /> : <Swords className="h-4 w-4" />}</div><p className="text-sm font-black text-white">{a}</p></div>)}
             </div>
           </div>
         </div>
@@ -80,9 +80,9 @@ function StatStrip() {
   const stats = [
     [Crown, "Champion Pool", "Picks forts et picks pièges", "cyan"],
     [Swords, "Games importées", "KDA, dégâts, vision, objectifs", "purple"],
-    [Target, "Axes de progrès", "Ce qu’il faut travailler", "green"],
+    [Target, "Axes de progrès", "Ce qu’il faut travailler", "cyan"],
     [Eye, "Vision & setup", "Avant dragons et Nashor", "blue"],
-    [Flame, "Progression", "Game après game", "yellow"],
+    [Flame, "Progression", "Game après game", "pink"],
   ];
   return (
     <div className="nxt5-panel grid gap-3 border border-cyan-200/14 bg-[#050914]/72 p-4 shadow-[0_0_42px_rgba(34,211,238,.08)] backdrop-blur-2xl md:grid-cols-5">
@@ -91,10 +91,10 @@ function StatStrip() {
   );
 }
 
-export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
+export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate, ...props }) {
   const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0";
   const variants = {
-    primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
+    primary: "nxt5-button-primary border border-cyan-100/36",
     ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11]",
   };
 
@@ -104,7 +104,7 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
     navigate(href);
   }
 
-  return <a href={href} onClick={go} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
+  return <a {...props} href={href} onClick={go} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
 }
 
 export function SiteHeader({ children, navigate }) {
@@ -273,17 +273,17 @@ export function LegalPage({ route, navigate, user }) {
       </SiteHeader>
       <main className="relative z-10 mx-auto max-w-5xl px-5 pb-12 pt-6">
         <Surface glow className="p-6 md:p-9">
-          <Badge tone="orange">{page.eyebrow}</Badge>
+          <Badge tone="purple">{page.eyebrow}</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">{page.title}</h1>
           <p className="mt-5 max-w-3xl text-lg font-semibold leading-8 text-slate-200">{page.intro}</p>
-          <div className="mt-8 grid gap-4">
-            {page.sections.map(([title, text]) => <section key={title} className="rounded-2xl border border-white/12 bg-black/[0.24] p-5 md:p-6"><h2 className="text-2xl font-black text-white">{title}</h2><p className="mt-3 text-base font-semibold leading-8 text-slate-200">{text}</p></section>)}
+          <div className="mt-8 divide-y divide-white/10 border-y border-white/10">
+            {page.sections.map(([title, text]) => <section key={title} className="py-6"><h2 className="text-2xl font-black text-white">{title}</h2><p className="mt-3 text-base font-semibold leading-8 text-slate-200">{text}</p></section>)}
           </div>
-          {!!page.resources?.length && <section className="mt-8 rounded-2xl border border-cyan-200/15 bg-cyan-300/[0.055] p-5 md:p-6"><h2 className="text-xl font-black text-white">Références et garanties</h2><div className="mt-4 flex flex-wrap gap-2">{page.resources.map(([label, href]) => <a key={href} href={href} target="_blank" rel="noreferrer" className="rounded-xl border border-cyan-200/20 bg-black/20 px-3 py-2 text-sm font-black text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">{label}</a>)}</div></section>}
-          {page.contact && <div className="mt-8 rounded-[1.35rem] border border-cyan-300/18 bg-cyan-400/[0.07] p-5 shadow-[0_0_34px_rgba(34,211,238,.10)]">
+          {!!page.resources?.length && <section className="mt-8 border-l-2 border-cyan-200/30 pl-5"><h2 className="text-xl font-black text-white">Références et garanties</h2><div className="mt-4 flex flex-wrap gap-2">{page.resources.map(([label, href]) => <a key={href} href={href} target="_blank" rel="noreferrer" className="rounded-xl border border-cyan-200/20 bg-black/20 px-3 py-2 text-sm font-black text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">{label}</a>)}</div></section>}
+          {page.contact && <div className="mt-8 border-l-2 border-violet-300/30 pl-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div><Badge tone="purple">Discord</Badge><h2 className="mt-3 text-2xl font-black text-white">Rejoindre le serveur NXT5</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{DISCORD_INVITE_URL ? "Ouvre Discord pour contacter le support ou rejoindre la communauté." : "Le bouton est prêt. Il manque juste le lien d’invitation Discord final."}</p></div>
-              {DISCORD_INVITE_URL ? <a href={DISCORD_INVITE_URL} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-200/35 bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 shadow-[0_0_24px_rgba(34,211,238,.25)] transition hover:-translate-y-0.5 hover:bg-white"><Users className="h-4 w-4" />Ouvrir Discord</a> : <button type="button" disabled className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-slate-400"><Users className="h-4 w-4" />Discord à connecter</button>}
+              {DISCORD_INVITE_URL ? <LinkButton href={DISCORD_INVITE_URL} target="_blank" rel="noreferrer" icon={Users}>Ouvrir Discord</LinkButton> : <Button type="button" variant="ghost" disabled icon={Users}>Discord à connecter</Button>}
             </div>
           </div>}
           <div className="mt-8 flex flex-wrap gap-3">
@@ -345,7 +345,7 @@ export function HomeScreen({ navigate }) {
           {[
             { icon: Users, title: "Pose le roster", text: "Crée la team, ajoute les joueurs et relie les profils. NXT5 sait ensuite à qui appartient chaque donnée.", t: "cyan" },
             { icon: Swords, title: "Ajoute les games", text: "Importe une game ou un bloc de scrim. Le site garde le side, les champions, les objectifs et les stats importantes.", t: "purple" },
-            { icon: Activity, title: "Compare les blocs", text: "Retrouve les résultats, les écarts par rôle et les games à revoir.", t: "green" },
+            { icon: Activity, title: "Compare les blocs", text: "Retrouve les résultats, les écarts par rôle et les games à revoir.", t: "blue" },
           ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
           </div>
         </section>
@@ -440,7 +440,7 @@ export function ForgotPasswordPage({ navigate }) {
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] max-w-4xl items-center px-5 pb-16">
         <Surface glow className="mx-auto w-full max-w-2xl">
-          <Badge tone="yellow">Sécurité du compte</Badge>
+          <Badge tone="purple">Sécurité du compte</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">Mot de passe oublié</h1>
           <p className="mt-5 text-base font-semibold leading-8 text-slate-200">Entre l’e-mail de ton compte. NXT5 t’envoie un lien temporaire pour choisir un nouveau mot de passe.</p>
           <form onSubmit={submit} className="mt-6 space-y-4">
@@ -494,7 +494,7 @@ export function ResetPasswordPage({ navigate }) {
       </SiteHeader>
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] max-w-4xl items-center px-5 pb-16">
         <Surface glow className="mx-auto w-full max-w-2xl">
-          <Badge tone="green">Nouveau mot de passe</Badge>
+          <Badge tone="purple">Nouveau mot de passe</Badge>
           <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">Réinitialiser le mot de passe</h1>
           {!token ? (
             <div className="mt-6 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm font-bold text-rose-100">Lien invalide : aucun token de réinitialisation.</div>

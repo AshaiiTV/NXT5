@@ -1,0 +1,60 @@
+/* Open sections inside the shared composition Surface; drop targets retain their frame. */
+.nxt5-compositions-page {
+  container: compositions / inline-size;
+}
+
+.nxt5-composition-section {
+  min-width: 0;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--nxt5-border);
+}
+
+.nxt5-composition-slot,
+.nxt5-composition-bank-role {
+  min-width: 0;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--nxt5-border);
+}
+
+.nxt5-composition-counter-roles,
+.nxt5-composition-lexicon,
+.nxt5-composition-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 1rem 1.5rem;
+  min-width: 0;
+}
+
+.nxt5-composition-counter-roles,
+.nxt5-composition-lexicon {
+  margin-top: 1.25rem;
+}
+
+.nxt5-composition-lexicon > div {
+  min-width: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--nxt5-border);
+}
+
+.nxt5-composition-summary {
+  margin-bottom: 1.5rem;
+  padding: 1rem 0;
+  border-block: 1px solid var(--nxt5-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.nxt5-composition-summary > div {
+  min-width: 0;
+}
+
+@container compositions (max-width: 600px) {
+  .nxt5-composition-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nxt5-composition-summary > div > div {
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+  }
+}

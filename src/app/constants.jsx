@@ -71,9 +71,9 @@ export const PLANNING_DAYS = [
 ];
 
 export const PLANNING_EVENT_TYPES = [
-  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-100 shadow-[0_0_16px_rgba(240,171,252,.92)]", cell: "bg-[#2a123f] text-fuchsia-50 shadow-[inset_0_0_0_1px_rgba(240,171,252,.28),inset_0_0_24px_rgba(217,70,239,.18)]" },
-  { id: "match", label: "Match", dot: "bg-emerald-200 shadow-[0_0_12px_rgba(167,243,208,.72)]", cell: "bg-[#0e3329] text-emerald-50 shadow-[inset_0_0_0_1px_rgba(110,231,183,.2)]" },
-  { id: "review", label: "Review", dot: "bg-amber-200 shadow-[0_0_12px_rgba(253,230,138,.72)]", cell: "bg-[#3a2b10] text-amber-50 shadow-[inset_0_0_0_1px_rgba(253,230,138,.2)]" },
+  { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200", cell: "bg-fuchsia-400/10 text-fuchsia-100" },
+  { id: "match", label: "Match", dot: "bg-cyan-200", cell: "bg-cyan-400/10 text-cyan-100" },
+  { id: "review", label: "Review", dot: "bg-violet-200", cell: "bg-violet-400/10 text-violet-100" },
 ];
 
 export const PLANNING_TIMES = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00"];

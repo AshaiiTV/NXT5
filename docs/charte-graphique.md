@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.7 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Checkout actualisé sur `816e3cc`.
+Version 1.8 · 8 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version ajoute les corrections de contraste, de densité et de contrôles partagés ; elle conserve les règles des versions précédentes.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -81,7 +81,7 @@ Le site éclaircit plusieurs utilitaires Tailwind dans `src/index.css` :
 
 ### Dégradés et sens des couleurs
 
-- Action principale : `linear-gradient(to right, #22D3EE, #3B82F6, #D946EF)` ; cyan, bleu, fuchsia, dans cet ordre.
+- Action principale : `linear-gradient(to right, #22D3EE, #3B82F6, #D946EF)` ; cyan, bleu, fuchsia, dans cet ordre. Le token `--nxt5-primary-gradient` et la classe partagée `nxt5-button-primary` portent ce dégradé. Depuis la version 1.8, son texte est bleu nuit `#020611` : le contraste minimal calculé sur le dégradé complet est d’environ 5:1 en sRGB (état actif non désactivé), contre 1,81:1 au minimum avec le blanc. Conserver ce texte sombre et retirer les filtres de saturation ou de luminosité qui altéreraient cette borne, y compris sur les liens de téléchargement. Les textes courants des surfaces restent clairs.
 - Accent de titre métallique existant : `linear-gradient(180deg, #FFFFFF 0%, #DBE9FF 38%, #8297C6 72%, #FFFFFF 100%)` via `nxt5-metal-text`.
 - Halo de fond : cyan à gauche, fuchsia à droite, avec une opacité basse ; ne pas créer un aplat saturé derrière un tableau.
 - Succès / victoire / écart favorable : `green` (emerald). Erreur / défaite / écart défavorable : `red` (rose). Vigilance : `yellow` (amber). Interpréter le sens selon la métrique : moins de morts peut être favorable ; un signe négatif n’est pas automatiquement mauvais.
@@ -140,7 +140,7 @@ Les titres de page ont des surcharges mobile : ne pas reproduire cette échelle 
 | Fond de surface principale | Dégradé à 145° : `rgba(10,22,42,.94)`, `rgba(5,11,24,.92)` à 62 %, `rgba(12,9,28,.9)` ; base `--nxt5-surface`. |
 | Fond de champ | `rgba(3,9,21,.78)`. |
 
-Les boutons partagés n’ont pas d’ombre finale : le CSS neutralise les halos encore présents dans leurs classes. Les balayages `::after` des boutons et panneaux premium sont également désactivés. Ne pas les réactiver par copie d’anciens styles.
+Les boutons partagés n’ont pas d’ombre finale ; leurs variantes ne doivent pas recréer de halo. Les balayages `::after` des boutons et panneaux premium sont également désactivés. Ne pas les réactiver par copie d’anciens styles. Un `Surface` standard n’ajoute plus de filet lumineux décoratif : `glow` réserve un unique filet supérieur atténué aux zones mises en avant. Les panneaux imbriqués n’ont ni ombre ni flou d’arrière-plan. Les états vides restent cyan/violet, sans halo orange.
 
 Utiliser les espacements Tailwind déjà présents. Pour les nouveaux blocs, privilégier la grille 4 / 8 / 12 / 16 / 24 / 32 px, puis laisser les règles de densité du site s’appliquer. Un `Surface` standard utilise 16 px de padding ; le mode dense descend notamment à `0.85rem`, puis 12 px sur petit mobile. Un seul niveau de panneau principal par zone suffit généralement ; organiser l’intérieur avec lignes et séparateurs légers.
 
@@ -191,6 +191,21 @@ Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cet
 
 `src/pages/workspace/GameWorkspace.jsx` porte les actions et formulaires de cet historique ; le composant partagé conserve la recherche, la liste, la sélection et la navigation. Cette composition concerne le site, sans modifier l’interface de l’application `importer-app`.
 
+### Cohérence des espaces de travail
+
+Évolution autorisée le 8 septembre 2026 lors de l’audit transversal : appliquer la même sobriété aux écrans existants, en conservant les données, les actions et les états sémantiques.
+
+- **Tendances** : utiliser `PageHeader` avec ou sans données. Le bilan conserve un `Surface` partagé ; présenter ses métriques en lignes et séparateurs sans halo saturé. `TrendEvolution` réutilise aussi `Surface` et `Button`, avec des commandes de période de 44 px. Les côtés restent cyan/bleu et rose/rouge, distincts du résultat.
+- **Modules de progression et review** : les primitives de `NextPhase` réutilisent `Surface`, `Badge`, `Button` et les champs partagés. Présenter les comparaisons Avant / Après et les synthèses en zones ouvertes. Les actions répétées de la file de review restent secondaires pour éviter un dégradé par ligne. Le côté rouge reste rose, indépendamment de la couleur du résultat.
+- **Draft et compositions** : synthèse, banque de picks, counters, identité et lexique utilisent des zones ouvertes et des filets. Réserver les cadres aux portraits et aux cibles de dépôt utiles. Les légendes et explications restent en texte ; les badges identifient les états. Les contrôles de picks et de tags sélectionnables exposent leur sélection.
+- **Champion Pool** : les textes secondaires sont clairs (`#EDF5FF`), les commandes mesurent au moins 44 px et les sélecteurs passent à 16 px de texte lorsque le conteneur descend sous 560 px. La largeur disponible gouverne la composition.
+- **Roster et profils** : conserver les noms entiers et recomposer les lignes sur mobile dans des zones ouvertes. Le profil joueur utilise une hiérarchie dense (titre 24/30 px), des métriques séparées par des filets et des sections repliables avec focus et état ouvert visibles, sans halo de profil.
+- **Planning** : employer les boutons partagés et une légende ouverte. Les cellules gardent une hauteur minimale de 56 px ; les dates sont à 12 px et le type de session à 11 px. Le mode explicite « Modifier les événements » donne accès au choix Scrim / Match / Review au clic, au toucher et avec Entrée. Le clic droit reste disponible ; Échap ferme le choix et restitue le focus.
+- **Administration** : présenter les métriques avec des séparateurs, les graphiques avec des barres cyan/violet unies et des libellés lisibles. Une barre garde sa hauteur proportionnelle à la donnée dans une cible interactive de 44 px minimum ; le minimum tactile ne doit pas déformer la barre elle-même. Réutiliser `TextInput` / `SelectInput` avec labels persistants ; les tableaux larges ont un `nxt5-responsive-scroll` nommé et accessible au clavier.
+- **Compte et pages publiques** : réserver vert et ambre à des états réels. Les repères de présentation et de sécurité utilisent cyan, bleu, violet ou fuchsia. Les sections légales sont ouvertes dans un seul `Surface`. Le choix de rendu complet ou performance utilise un fond cyan translucide et un état sélectionné explicite.
+
+Les règles locales de `compositions.css`, `champion-pool.css` et `Planning.css` complètent les composants partagés sans reproduire les anciennes piles de cartes lumineuses.
+
 ## 7. Composants à employer
 
 Les composants de référence se trouvent dans `src/components/ui/Core.jsx`.
@@ -199,7 +214,7 @@ Les composants de référence se trouvent dans `src/components/ui/Core.jsx`.
 | --- | --- |
 | En-tête | `PageHeader` : surtitre, titre, description et actions qui reviennent à la ligne. |
 | Bloc de contenu | `Surface` : fond, rayon, bordure et conteneur intérieur déjà harmonisés. |
-| Action principale | `Button variant="primary"` : dégradé de marque ; une action dominante par zone. |
+| Action principale | `Button variant="primary"` : dégradé de marque, texte bleu nuit ; une action dominante par zone. Les ancres utilisent aussi `nxt5-button-primary`. |
 | Action secondaire | `Button variant="ghost"` : surface sombre et bordure claire. |
 | Action destructive | `Button variant="danger"` : rose, libellé qui décrit l’action. |
 | État court | `Badge tone="…"` : même sens des couleurs sur toutes les pages. |
@@ -246,18 +261,18 @@ Exemple d’assemblage, à adapter aux vraies données et au cadre de page. `Pag
 - Pour le bloc Objectifs, la largeur du conteneur détermine la disposition : à partir de 700 px, priorité et cible sont côte à côte, et chaque rôle occupe trois colonnes ; en dessous, les contenus se superposent sans recréer de cartes. Cette règle tient compte de l’espace réellement disponible avec la sidebar.
 - Pour les games importées, la disposition suit aussi la largeur du conteneur : à partir de 880 px, aligner les informations sous des en-têtes de colonnes ; en dessous, recomposer chaque ligne en plusieurs rangées sans sous-carte. Sous 600 px, empiler recherche et tri, répartir les filtres sur deux colonnes avec le côté en pleine largeur, et donner toute la largeur à la navigation de pagination. Conserver la composition, la date, le résultat et le statut de review sans défilement horizontal global.
 - Dans l’historique des imports, conserver les mêmes paliers de conteneur que la liste partagée. Sous 880 px, empiler les zones d’édition et les équipes du formulaire de postes. Sous 600 px, Catégorie et Côté prennent toute la largeur, Résultat et Review partagent une rangée, et les champs poste / profil s’empilent. Les actions de sélection reviennent à la ligne. Garder les noms, les catégories et les champs de profil lisibles sans débordement global.
-- Les noms de joueurs, titres et boutons peuvent revenir à la ligne. Réserver la troncature aux endroits où l’intégralité reste accessible.
+- Les noms de joueurs, titres et boutons peuvent revenir à la ligne. Réserver la troncature aux endroits où l’intégralité reste accessible. Les onglets `TabNav` gardent leurs libellés entiers ; sur mobile, leur propre conteneur défile horizontalement sans provoquer de débordement de page.
 - Les tables larges utilisent un conteneur `nxt5-responsive-scroll`. Sur mobile, certaines tables gardent une largeur interne minimale de 680 px : faire défiler le tableau, pas toute la page.
-- Champs à 16 px à 640 px et moins. Objectif pour les nouveaux contrôles tactiles : zone confortable d’au moins 44 × 44 px ; l’existant comporte aussi des minima de 40 et 42 px.
+- Champs à 16 px à 640 px et moins : cette taille doit gagner dans la cascade, y compris sur les champs partagés et les contrôles denses. Les boutons partagés et les actions des panneaux sur mobile ont un minimum de 44 px de hauteur. Les actions à icône concernées (mot de passe, notification, menu, picks) offrent 44 × 44 px et un nom accessible. Ce minimum ne certifie pas chaque contrôle du site ; vérifier également la largeur et l’espacement dans son contexte.
 - Conserver le focus clavier visible. Le style global utilise un contour cyan de 2 px, décalé de 2 px ; les champs ajoutent une bordure cyan et un anneau de 3 px.
 - Objectifs de conception : contraste d’au moins 4,5:1 pour le texte courant et 3:1 pour les grands textes. Contrôler les fonds réellement composités et toute la zone de texte d’un dégradé.
-- Le texte blanc sur la portion cyan du CTA actuel mérite une vérification de contraste. La charte ne certifie pas sa conformité. Si corrigé, le faire dans le composant partagé et documenter l’évolution.
+- Le CTA partagé a été corrigé en version 1.8 avec un texte bleu nuit sur le dégradé de marque, pour un contraste calculé minimal d’environ 5:1. Contrôler la cascade effective et les éventuels enfants colorés avant d’étendre cette mesure à un CTA particulier ; les états désactivés restent explicitement différenciés.
 
 ## 9. Mouvement et performance
 
 Transitions usuelles des contrôles : 160 ms. Classes d’entrée : `nxt5-enter` 320 ms, `nxt5-enter-fast` 180 ms, `nxt5-fade-in` 160 ms. Conserver un mouvement bref et utile ; ne pas animer en continu les chiffres ou les tableaux.
 
-Respecter `prefers-reduced-motion` et `html.nxt5-low-gpu`. Le mode `nxt5-low-gpu` supprime globalement les animations et réduit les effets coûteux. La prise en charge actuelle de `prefers-reduced-motion` cible certaines animations ; vérifier et compléter sa couverture pour toute nouvelle animation. Ne pas empiler de nouvelles couches de flou dans les panneaux imbriqués.
+Respecter `prefers-reduced-motion` et `html.nxt5-low-gpu`. Depuis la version 1.8, le mouvement réduit arrête globalement les animations, rend les transitions immédiates et désactive le défilement fluide. Le défilement déclenché en JavaScript dans l’assistant suit également cette préférence et le mode performance. Le mode `nxt5-low-gpu` supprime globalement les animations et les filtres d’arrière-plan des surfaces, onglets et éléments de navigation partagés. Ne pas empiler de nouvelles couches de flou dans les panneaux imbriqués ; vérifier ces préférences pour toute nouvelle animation ou commande de défilement.
 
 ## 10. Ton des textes
 
@@ -289,16 +304,22 @@ Sources principales :
 - `src/App.jsx`, `src/AppContent.jsx` et `src/hooks/useTeamData.js` : relais entre les phases de chargement et progression des games paginées.
 - `src/components/brand/BrandAssets.jsx` : logos, images responsive et rôles.
 - `src/components/trends/ProgressionObjectives.jsx` et `src/components/trends/progression-objectives.css` : composition ouverte du bloc Objectifs et adaptation à la largeur du conteneur.
+- `src/NextPhase.jsx` et `src/components/trends/TrendEvolution.jsx` : primitives communes, comparaisons ouvertes, actions de review secondaires et périodes accessibles.
 - `src/components/games/ImportedGames.jsx`, `src/components/games/imported-games.css` et `src/utils/imported-games.js` : liste des games importées, recherche et filtres, tri et pagination, sélection persistante et adaptation à la largeur du conteneur.
 - `src/app/helpers.js` : correspondance des tons via `tone()`.
-- `src/pages/public/PublicPages.jsx` : accueil et composition des pages publiques.
+- `src/pages/public/PublicPages.jsx` : accueil, composition des pages publiques et sections légales ouvertes.
+- `src/pages/workspace/DraftWorkspace.jsx` et `src/styles/compositions.css` : compositions, banque, counters et lexique ouverts.
+- `src/pages/workspace/TrendsPage.jsx`, `Teams.jsx` et `PlayerUltimateProfile.jsx` : en-têtes communs, roster et hiérarchie des profils.
+- `src/styles/champion-pool.css` : lisibilité, contrôles et largeur du Champion Pool.
+- `src/pages/workspace/Planning.jsx` et `Planning.css` : planning, légende et mode d’édition tactile.
+- `src/pages/admin/AdminDashboard.jsx` et `src/pages/workspace/AccountSettings.jsx` : contrôles, graphiques et états de réglage.
 - `src/pages/workspace/ImporterDownloadPanel.jsx` et `src/pages/workspace/GameWorkspace.jsx` : téléchargement, chargement du JSON, apparition de l’assignation et gestion de l’historique des imports avec formulaires contextuels.
 - `src/components/layout/AppChrome.jsx` et `src/app/performance.js` : shell et mode performance.
 - `tailwind.config.js` et `index.html` : configuration et pile de chargement.
 
 La source auditée contient plusieurs couches CSS. Un commentaire disant « final layer » ne prouve pas qu’une règle gagne : certaines règles ultérieures restent actives, notamment le titre métallique. Les panneaux et boutons conservent en revanche leurs arrondis grâce à `!important`. Examiner spécificité, ordre et styles calculés avant toute correction. Ne pas ajouter automatiquement une nouvelle couche de surcharges.
 
-La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. La version 1.4 documente l’écran de chargement unique. La version 1.5 ajoute la liste ouverte des games importées et ses règles de recherche, de sélection et de navigation. La version 1.6 précise le favicon complet existant au centre du chargement. La version 1.7 étend la liste partagée à l’historique des imports et documente son filtre de catégorie, ses dates distinctes et ses formulaires contextuels. Cette référence ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
+La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. La version 1.4 documente l’écran de chargement unique. La version 1.5 ajoute la liste ouverte des games importées et ses règles de recherche, de sélection et de navigation. La version 1.6 précise le favicon complet existant au centre du chargement. La version 1.7 étend la liste partagée à l’historique des imports et documente son filtre de catégorie, ses dates distinctes et ses formulaires contextuels. La version 1.8 consigne les corrections de l’audit transversal sur les composants partagés, les pages publiques et les espaces de travail : contraste CTA, surfaces apaisées, lisibilité et contrôles mobiles. La borne de contraste du CTA provient d’un calcul sur 2 002 points du dégradé sRGB ; elle ne constitue pas une mesure de chaque élément rendu. Les vérifications du code et du navigateur sont consignées séparément dans le rapport d’audit de cette intervention. Cette référence ne certifie pas toutes les pages connectées ni la production.
 
 `AGENTS.md` dans le dépôt demande de lire cette charte avant le travail visuel. Un rappel existe aussi à la racine de l’espace local NXT5. Pour utiliser la même référence dans un autre checkout ou outil IA, y inclure `AGENTS.md` et cette charte, ou fournir explicitement le document à l’outil. Un PDF seul n’impose pas automatiquement ses règles à toutes les IA.
 

@@ -2,7 +2,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, ArrowRight, AlertTriangle, Crown, Eye, FileText, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Sparkles, Target, Trophy, Upload, Users, X } from "lucide-react";
 import { openAppPath } from "../../app/routing.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
-import { Badge, Button, EmptyState, SkeletonRows, Surface, TabNav } from "../../components/ui/Core.jsx";
+import { Badge, Button, EmptyState, PageHeader, SkeletonRows, Surface, TabNav } from "../../components/ui/Core.jsx";
 import { cx, tone } from "../../app/helpers.js";
 import { matchDisplayName, matchHasCategory } from "../../utils/matches.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
@@ -211,14 +211,9 @@ function TrendsPage({ data, selectedTeamId }) {
   }), [matches]);
   if (!matches.length) return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <div className="mb-5 border-b border-cyan-100/10 pb-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0">
-          <div className="mb-2 flex items-center gap-2"><span className="h-px w-8 bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-transparent" /><p className="text-[0.7rem] font-black uppercase tracking-[0.32em] text-cyan-100/85">Tendances</p></div>
-          <h2 className="text-3xl font-black tracking-tight text-white">Tendances d’équipe</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">Les évolutions, les répétitions et le prochain axe de travail.</p>
-        </div>
-        <Badge tone="slate">{baseMatches.length} game{baseMatches.length > 1 ? "s" : ""} importée{baseMatches.length > 1 ? "s" : ""}</Badge>
-      </div>
+      <PageHeader eyebrow="Tendances" title="Tendances d’équipe" subtitle="Les évolutions, les répétitions et le prochain axe de travail.">
+        <span className="text-sm font-semibold text-slate-300">{baseMatches.length} game{baseMatches.length > 1 ? "s" : ""} importée{baseMatches.length > 1 ? "s" : ""}</span>
+      </PageHeader>
       <div className="mt-5 border-t border-white/8 pt-3">
         <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" />
       </div>
@@ -1068,24 +1063,20 @@ function TrendsPage({ data, selectedTeamId }) {
 
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <div className="mb-4 flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-200/80">Comprendre l’équipe</p><h2 className="mt-1 text-3xl font-black tracking-tight text-white">Tendances d’équipe</h2><p className="mt-1 text-sm text-slate-400">Les évolutions, les répétitions et le prochain axe de travail.</p></div>
+      <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Les évolutions, les répétitions et le prochain axe de travail.">
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3">
+      </PageHeader>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
         <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
         <p className="text-xs font-semibold text-slate-400" aria-live="polite">{matches.length} sur {categoryMatches.length} games · {timelineGamesCount}/{matches.length} timelines</p>
       </div>
       {matches.length < 5 && <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>Petit échantillon : les patterns restent à confirmer.</span></p>}
     </div>
-    <section className="relative mb-4 overflow-hidden rounded-[1.75rem] border border-cyan-200/18 bg-[#050815] p-0 shadow-[0_26px_90px_rgba(0,0,0,.34)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(34,211,238,.22),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(217,70,239,.16),transparent_34%),linear-gradient(135deg,rgba(8,47,73,.34),rgba(5,8,21,.88)_46%,rgba(30,10,50,.42))]" />
+    <Surface className="mb-4 overflow-hidden p-0">
       <div className="nxt5-keep-grid relative z-10 grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(18rem,.85fr)]">
         <div className="min-w-0 p-5 sm:p-6">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="cyan">Tendances</Badge>
-            <Badge tone={activeTrendCategory ? matchCategoryTone(activeTrendCategory) : "slate"}>{activeTrendCategory?.name || "Toutes les games"}</Badge>
-            <Badge tone={matches.length >= 5 ? "green" : "orange"}>{matches.length} games</Badge>
+            <p className="text-xs font-semibold text-cyan-100">{activeTrendCategory?.name || "Toutes les games"} · {matches.length} games</p>
           </div>
           <p className="mt-5 text-[0.68rem] font-black uppercase tracking-[0.28em] text-cyan-100/75">Bilan du bloc</p>
           <h3 className="mt-2 max-w-5xl break-words text-2xl font-black leading-tight tracking-tight text-white sm:text-3xl">{trendHero.title}</h3>
@@ -1103,7 +1094,7 @@ function TrendsPage({ data, selectedTeamId }) {
               <p className="mt-1 text-xs font-semibold text-slate-400">{tagLabel(identity.primary)}</p>
             </div>
             <div className="grid min-w-0 gap-2">
-              {topMetrics.slice(1).map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="nxt5-keep-grid grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl bg-white/[0.045] px-3 py-2 sm:grid-cols-[2rem_minmax(0,1fr)_auto]">
+              {topMetrics.slice(1).map(({ icon: Icon, label, value, hint, tone: metricTone }) => <div key={label} className="nxt5-keep-grid grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-white/10 py-2 last:border-b-0 sm:grid-cols-[2rem_minmax(0,1fr)_auto]">
                 <span className={cx("hidden h-8 w-8 place-items-center rounded-lg sm:grid", tone(metricTone))}><Icon className="h-4 w-4" /></span>
                 <span className="min-w-0"><span className="block truncate text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><span className="block truncate text-[0.65rem] font-semibold text-slate-300">{hint}</span></span>
                 <span className="text-sm font-black text-white">{value}</span>
@@ -1112,8 +1103,8 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
           <div className="nxt5-keep-grid mt-5 grid grid-cols-2 gap-2">
             {sideStats.map((stat) => {
-              const color = stat.side === "Blue" ? "bg-cyan-300" : "bg-fuchsia-300";
-              return <div key={stat.side} className="rounded-xl bg-white/[0.035] p-3">
+              const color = stat.side === "Blue" ? "bg-cyan-300" : "bg-rose-300";
+              return <div key={stat.side} className="min-w-0 border-t border-white/10 pt-3">
                 <div className="flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-white"><span className={cx("h-2.5 w-2.5 rounded-full", color)} />{stat.side} side</span><span className="text-lg font-black text-white">{stat.games ? `${stat.wr}%` : "-"}</span></div>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.07]"><span className={cx("block h-full rounded-full", color)} style={{ width: `${stat.games ? stat.wr : 0}%` }} /></div>
                 <p className="mt-1 text-xs font-semibold text-slate-400">{stat.games ? `${stat.wins}W - ${stat.games - stat.wins}L · ${stat.games} games` : "Aucune game"}</p>
@@ -1122,7 +1113,7 @@ function TrendsPage({ data, selectedTeamId }) {
           </div>
         </aside>
       </div>
-    </section>
+    </Surface>
     <TabNav className="sticky top-[5.25rem] z-10 mb-4" label="Sections Tendances" items={trendPanelOptions.map(([id, label, icon, description]) => ({ id, label, icon, description }))} activeId={trendPanel} onChange={setTrendPanel} columns="md:grid-cols-4" />
     {trendPanel === "coach" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} onOpenSources={(games) => openTrendSources({ title: "Dynamique récente", subtitle: "Deux blocs consécutifs de même taille, dans la sélection active.", games: sourceGamesForMatches(games) })} />}
     {trendPanel === "coach" && staffAlerts.length > 0 && <div className="mb-4 grid gap-2 lg:grid-cols-3">
@@ -1225,7 +1216,7 @@ function TrendsPage({ data, selectedTeamId }) {
         <Surface className="p-4">
           <div className="flex items-center justify-between gap-3"><div><Badge tone="cyan">Notes du coach</Badge><h3 className="mt-2 text-xl font-black text-white">À revoir</h3></div><Badge tone={winrate >= 50 ? "green" : "red"}>{coachBriefs.length} axes</Badge></div>
           <div className="mt-4 grid gap-2">
-            {coachBriefs.slice(0, 4).map((brief) => <button type="button" onClick={() => openTrendSources({ title: brief.label, subtitle: brief.title, games: brief.sourceGames })} key={brief.label} className="min-w-0 rounded-xl bg-white/[0.035] p-3 text-left transition hover:bg-white/[0.06]">
+            {coachBriefs.slice(0, 4).map((brief) => <button type="button" onClick={() => openTrendSources({ title: brief.label, subtitle: brief.title, games: brief.sourceGames })} key={brief.label} className="min-w-0 border-t border-white/10 pt-3 text-left transition hover:bg-white/[0.06]">
               <div className="flex flex-wrap items-center justify-between gap-2"><Badge tone={brief.toneName}>{brief.label}</Badge><span className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-400">{brief.sourceGames?.length || matches.length} games</span></div>
               <p className="mt-2 text-sm font-black leading-5 text-white">{brief.title}</p>
               <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{brief.text}</p>
