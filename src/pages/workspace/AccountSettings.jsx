@@ -4,11 +4,8 @@ import { apiFetch } from "../../api/client.js";
 import { configurePerformanceMode, currentPerformanceMode, setStoredPerformanceMode } from "../../app/performance.js";
 import { Badge, Button, PageHeader, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { cx, preciseErrorText } from "../../app/helpers.js";
-import { lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
 
-const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
-
-function AccountSettings({ user, onUserUpdate, pushToast, currentTeam, data = {} }) {
+function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [emailPassword, setEmailPassword] = useState("");
   const emailChanging = profileForm.email.trim().toLowerCase() !== String(user?.email || "").trim().toLowerCase();
@@ -145,10 +142,6 @@ function AccountSettings({ user, onUserUpdate, pushToast, currentTeam, data = {}
         </div>
       </Surface>
 
-      {currentTeam && <div className="xl:col-span-2">
-        <TeamDataHealthPanel team={currentTeam} players={data.players || []} matches={data.matches || []} />
-      </div>}
-
       <Surface className="p-5 xl:col-span-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -168,4 +161,4 @@ function AccountSettings({ user, onUserUpdate, pushToast, currentTeam, data = {}
   </div>;
 }
 
-export { AccountSettings, TeamDataHealthPanel };
+export { AccountSettings };

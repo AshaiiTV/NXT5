@@ -11,6 +11,7 @@ import { roleLabel } from "./shell-shared.jsx";
 import "./Teams.css";
 
 const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
+const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
 
 const PROFILE_ROLES = [...COMP_ROLES, "SUB", ...STAFF_ROLES];
 
@@ -432,7 +433,13 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     }
   }
 
-  if (managementOnly) return <div className="nxt5-data-dense"><PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Permissions, liaisons de comptes et création de profils. La lecture sportive reste dans l’onglet Équipe." />{selectedTeam ? <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} /> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}</div>;
+  if (managementOnly) return <div className="nxt5-data-dense">
+    <PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Permissions, liaisons de comptes, création de profils et santé des données de l’équipe." />
+    {selectedTeam ? <div className="space-y-5">
+      <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} />
+      <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} />
+    </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
+  </div>;
 
   return <div><PageHeader eyebrow="Équipe" title={hasTeams ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."}>{hasTeams && <Button type="button" variant="ghost" icon={teamSetupOpen ? X : UserPlus} onClick={() => { if (teamSetupOpen) { setTeamSetupOpen(false); openAppPath("/equipes"); } else setTeamSetupOpen(true); }}>{teamSetupOpen ? "Fermer les formulaires" : "Créer ou rejoindre une équipe"}</Button>}</PageHeader>
     {!hasTeams && <Surface className="mb-5 p-4">

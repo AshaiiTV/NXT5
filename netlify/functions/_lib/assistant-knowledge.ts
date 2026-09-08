@@ -70,13 +70,14 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: 'Équipe, roster et accès',
     path: '/gestion-equipe',
     actionLabel: 'Gérer l’équipe',
-    summary: 'La page Équipe présente les joueurs et le staff. Gestion équipe sert à ajouter, modifier, classer Main Team ou Sub, lier les comptes et régler les accès.',
-    keywords: ['équipe', 'team', 'roster', 'joueur', 'staff', 'main team', 'sub', 'remplaçant', 'riot id', 'opgg', 'invitation', 'lier compte', 'modifier nom', 'accès'],
+    summary: 'La page Équipe présente les joueurs et le staff. Gestion équipe sert à ajouter, modifier, classer Main Team ou Sub, lier les comptes, régler les accès et consulter Santé des données.',
+    keywords: ['équipe', 'team', 'roster', 'joueur', 'staff', 'main team', 'sub', 'remplaçant', 'riot id', 'opgg', 'invitation', 'lier compte', 'modifier nom', 'accès', 'santé des données', 'fiabilité'],
     steps: [
       'Ouvre Gestion équipe depuis le bouton Gestion en haut de l’application.',
       'Ajoute ou modifie le profil, son rôle et son groupe Main Team ou Sub.',
       'Lie le bon compte NXT5 au profil joueur.',
-      'Vérifie l’accès attribué avant de partager le code d’invitation.'
+      'Vérifie l’accès attribué avant de partager le code d’invitation.',
+      'Consulte Santé des données pour vérifier le roster, les profils liés et les imports de l’équipe sélectionnée.'
     ],
     suggestions: ['Comment ajouter un joueur ?', 'Comment séparer Main Team et Subs ?', 'Comment modifier le nom ou le rôle d’un profil ?'],
     faq: [
