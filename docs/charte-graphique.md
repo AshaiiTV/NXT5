@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.1 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par l’évolution locale de la zone de téléchargement. Checkout actualisé sur `9c01d15`.
+Version 1.2 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par l’évolution locale de la zone de téléchargement. Checkout actualisé sur `9c01d15`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -135,10 +135,10 @@ Utiliser les espacements Tailwind déjà présents. Pour les nouveaux blocs, pri
 Évolution autorisée le 8 septembre 2026 : simplifier la zone de téléchargement sur la page d’intégration du **site web**, en conservant la palette et les composants existants.
 
 - Présenter le téléchargement dans une seule `Surface`, sans cartes internes ni répétition du parcours d’import.
-- Regrouper trois liens homogènes et explicitement nommés : Windows, Mac Apple Silicon et Mac Intel. Conserver les URL et architectures correspondantes.
+- Proposer un menu déroulant natif avec le libellé persistant « Version de l’application » et trois choix : Windows (64 bits), Mac Apple Silicon et Mac Intel. Un unique lien bouton « Télécharger » utilise l’URL correspondant au choix sélectionné. Conserver les URL et architectures existantes ainsi que l’accès au clavier.
 - Séparer la ligne « Déjà un fichier JSON ? » des téléchargements par un trait léger. Utiliser un véritable `Button` accessible au clavier pour ouvrir le sélecteur de fichier, avec focus visible et états de chargement et désactivation.
 - Afficher l’assignation de la game uniquement après le chargement d’un JSON. Conserver la progression d’envoi, les validations, le changement de fichier et la réinitialisation.
-- Sur petit écran, empiler les liens et les actions sans couper les libellés ni créer de défilement horizontal global.
+- Sur petit écran, empiler le menu de version et le bouton de téléchargement ; conserver les libellés entiers et les actions JSON distinctes, sans défilement horizontal global.
 
 Cette règle concerne la zone de téléchargement du site ; elle ne modifie pas la mise en page de l’application `importer-app`.
 
@@ -242,7 +242,7 @@ Sources principales :
 
 La source auditée contient plusieurs couches CSS. Un commentaire disant « final layer » ne prouve pas qu’une règle gagne : certaines règles ultérieures restent actives, notamment le titre métallique. Les panneaux et boutons conservent en revanche leurs arrondis grâce à `!important`. Examiner spécificité, ordre et styles calculés avant toute correction. Ne pas ajouter automatiquement une nouvelle couche de surcharges.
 
-La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La version 1.1 documente aussi la simplification locale du téléchargement, vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. Elle ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
+La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. Elle ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
 
 `AGENTS.md` dans le dépôt demande de lire cette charte avant le travail visuel. Un rappel existe aussi à la racine de l’espace local NXT5. Pour utiliser la même référence dans un autre checkout ou outil IA, y inclure `AGENTS.md` et cette charte, ou fournir explicitement le document à l’outil. Un PDF seul n’impose pas automatiquement ses règles à toutes les IA.
 

@@ -1,16 +1,18 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Check, Download, Loader2, Upload } from "lucide-react";
-import { Button, Surface } from "../../components/ui/Core.jsx";
+import { Button, SelectInput, Surface } from "../../components/ui/Core.jsx";
 import { NXT5_IMPORTER_MAC_URL, NXT5_IMPORTER_MAC_INTEL_URL, NXT5_IMPORTER_WINDOWS_URL } from "../../app/constants.jsx";
 
 const downloads = [
-  { label: "Windows", detail: "64 bits", href: NXT5_IMPORTER_WINDOWS_URL },
-  { label: "Mac", detail: "Apple Silicon", href: NXT5_IMPORTER_MAC_URL },
-  { label: "Mac", detail: "Intel", href: NXT5_IMPORTER_MAC_INTEL_URL },
+  { id: "windows", label: "Windows (64 bits)", href: NXT5_IMPORTER_WINDOWS_URL },
+  { id: "mac-silicon", label: "Mac Apple Silicon", href: NXT5_IMPORTER_MAC_URL },
+  { id: "mac-intel", label: "Mac Intel", href: NXT5_IMPORTER_MAC_INTEL_URL },
 ];
 
 export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onImport, children }) {
   const fileInput = useRef(null);
+  const [selectedVersion, setSelectedVersion] = useState(downloads[0].id);
+  const selectedDownload = downloads.find(({ id }) => id === selectedVersion);
 
   return (
     <Surface className="min-w-0">
@@ -19,13 +21,16 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
         <h3 id="importer-download-title" className="mt-2 text-2xl font-black text-white">Télécharge NXT5 Importer</h3>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Exporte la game depuis le client League sur ton ordinateur, puis importe le fichier JSON ici.</p>
 
-        <div role="group" className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap" aria-label="Versions de NXT5 Importer">
-          {downloads.map(({ label, detail, href }) => (
-            <a key={href} href={href} download aria-label={`Télécharger pour ${label} ${detail}`} className="nxt5-cyber-button nxt5-control inline-flex min-h-12 items-center justify-center gap-3 border border-cyan-100/20 bg-cyan-400/[0.08] px-4 py-3 text-sm text-white transition-colors hover:border-cyan-200/45 hover:bg-cyan-300/[0.14] active:bg-cyan-300/[0.20]">
-              <Download className="h-4 w-4 shrink-0 text-cyan-200" aria-hidden="true" />
-              <span><span className="font-black">{label}</span><span className="ml-2 text-slate-300">{detail}</span></span>
-            </a>
-          ))}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="w-full sm:w-72">
+            <SelectInput label="Version de l’application" value={selectedVersion} onChange={setSelectedVersion}>
+              {downloads.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
+            </SelectInput>
+          </div>
+          <a href={selectedDownload.href} download aria-label={`Télécharger pour ${selectedDownload.label}`} className="nxt5-cyber-button nxt5-control inline-flex min-h-12 items-center justify-center gap-2 border border-cyan-100/20 bg-cyan-400/[0.08] px-5 py-3 text-sm font-black text-white transition-colors hover:border-cyan-200/45 hover:bg-cyan-300/[0.14] active:bg-cyan-300/[0.20]">
+            <Download className="h-4 w-4 shrink-0 text-cyan-200" aria-hidden="true" />
+            Télécharger
+          </a>
         </div>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-cyan-100/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
