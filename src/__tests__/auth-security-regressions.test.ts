@@ -53,6 +53,8 @@ vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmai
 
 import verifyEmail from '../../netlify/functions/verify-email';
 import updateProfile from '../../netlify/functions/auth-update-profile';
+import changePassword from '../../netlify/functions/auth-change-password';
+import resetPassword from '../../netlify/functions/auth-reset-password';
 import registerAccount from '../../netlify/functions/auth-register';
 import resendVerification from '../../netlify/functions/resend-verify-email';
 import { sha256 } from '../../netlify/functions/_lib/auth';
@@ -112,6 +114,24 @@ beforeEach(async () => {
   state.statements = [];
 });
 afterAll(async () => { await state.pg?.close(); });
+
+describe('authentication request size limits', () => {
+  it.each([
+    { route: 'auth-change-password', handler: changePassword, limit: 4096 },
+    { route: 'auth-reset-password', handler: resetPassword, limit: 4096 },
+    { route: 'auth-update-profile', handler: updateProfile, limit: 8192 }
+  ])('$route rejects a body above its limit without relying on Content-Length', async ({ route, handler, limit }) => {
+    const emptyBody = JSON.stringify({ padding: '' });
+    const body = JSON.stringify({ padding: 'x'.repeat(limit + 1 - Buffer.byteLength(emptyBody)) });
+    const request = new Request(`https://nxt5.test/${route}`, { method: 'POST', body });
+    expect(request.headers.has('content-length')).toBe(false);
+
+    const response = await handler(request, context);
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'REQUEST_TOO_LARGE' });
+  });
+});
 
 describe('email verification belongs to the current address', () => {
   it('consumes a current unexpired token exactly once', async () => {
