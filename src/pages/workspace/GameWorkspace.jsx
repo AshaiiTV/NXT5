@@ -1,5 +1,5 @@
 import { PNG_THEME, pngAccent, pngTint, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
-import React, { useEffect, useState, useDeferredValue } from "react";
+import React, { useEffect, useState, useDeferredValue, useMemo } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, SelectInput, TextInput } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, ArrowRight, Pencil, Settings, CalendarDays, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight } from "lucide-react";
@@ -11,6 +11,7 @@ import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName, matchHasCategory } from "../../utils/matches.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
+import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
 import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane, ROSTER_ROLE_ORDER, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
@@ -1848,10 +1849,14 @@ function matchPlayerCoachReads(match) {
       ? `${catches.length} catch${catches.length > 1 ? "s" : ""} détecté${catches.length > 1 ? "s" : ""} : ${catches.slice(0, 3).map((event) => event.time).join(" · ")}${catches.length > 3 ? "…" : ""}. Revoir information disponible, position des alliés et objectif suivant.`
       : deaths.length
         ? `Aucun catch net détecté : ${deaths.length} mort${deaths.length > 1 ? "s" : ""}, mais échangée${deaths.length > 1 ? "s" : ""} ou hors fenêtre critique.`
-        : "Aucune mort : vérifier que cette discipline n'a pas sacrifié une fenêtre d'impact utile.";
+        : Number(row.deaths) === 0
+          ? "Aucune mort : vérifier que cette discipline n'a pas sacrifié une fenêtre d'impact utile."
+          : "Timings des morts indisponibles : vérifier les catches dans la VOD.";
     const goodText = positiveEvents.length
       ? `${positiveEvents.length} bonne${positiveEvents.length > 1 ? "s" : ""} fenêtre${positiveEvents.length > 1 ? "s" : ""} d'impact, dès ${positiveEvents[0].time} : participation à une séquence gagnée sans rendre autant de kills.`
-      : "Aucune séquence positive nette détectée dans la timeline : chercher si le joueur arrive trop tard, trop tôt ou sans ressources.";
+      : !kills.length
+        ? "Événements de combat indisponibles : vérifier les séquences positives dans la VOD."
+        : "Aucune séquence positive nette détectée dans la timeline : chercher si le joueur arrive trop tard, trop tôt ou sans ressources.";
     const laneText = diff
       ? `Lane : CS10 ${Number.isFinite(diff.cs10Diff) ? `${diff.cs10Diff >= 0 ? "+" : ""}${diff.cs10Diff}` : "N/A"} · or final ${formatGoldDiff(diff.goldDiff)} · ${diff.goldDiff >= 0 ? "levier à convertir" : "coût à stabiliser"}.`
       : "Lane : données comparatives insuffisantes.";
@@ -2442,8 +2447,9 @@ function renderReportContent(content, rows) {
     const result = commandResult(line, rows);
     const trimmed = String(line || "").trim();
     if (result) return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap rounded-lg bg-cyan-300/[0.055] px-2.5 py-1 font-mono text-[0.76rem] font-bold leading-6 text-cyan-50 sm:text-[0.82rem]">{result}</p>;
+    if (trimmed === REPORT_REWRITE_MARKER || trimmed === "[NXT5_REPORT_V2]") return null;
     if (!trimmed) return <div key={index} className="h-2" />;
-    if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|REPÈRES)$/i.test(trimmed)) {
+    if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|LECTURE PAR JOUEUR|NOTES STAFF(?: CONSERVÉES)?|REPÈRES)$/i.test(trimmed)) {
       return <h4 key={index} className={cx("mt-4 rounded-xl border px-3 py-2 text-[0.67rem] font-black uppercase tracking-[0.18em]", sectionTone(trimmed))}>{trimmed.replace(/^#{1,3}\s+/, "")}</h4>;
     }
     if (/^[-•]\s+/.test(trimmed)) return <p key={index} className="relative min-h-[1.5rem] break-words whitespace-pre-wrap pl-5 text-slate-100 before:absolute before:left-1 before:top-[0.65rem] before:h-1.5 before:w-1.5 before:rounded-full before:bg-cyan-300">{trimmed.replace(/^[-•]\s+/, "")}</p>;
@@ -2451,17 +2457,29 @@ function renderReportContent(content, rows) {
   })}</div>;
 }
 
+function ReviewAnalysisStatus({ details }) {
+  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">Préparation automatique de l’analyse des games liées…</p>;
+  if (details.error) return <div role="alert" className="mb-3 space-y-2 text-sm text-amber-100"><p>{details.error} Le contenu enregistré et les notes restent disponibles.</p><Button type="button" variant="ghost" onClick={details.retry}>Réessayer</Button></div>;
+  return null;
+}
+
 function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
   return <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/[0.26] p-3 text-[0.82rem] leading-6 text-slate-100 shadow-inner shadow-black/35 sm:p-4 sm:text-sm sm:leading-7">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}</div>;
 }
 
-const REPORT_REWRITE_MARKER = "[NXT5_REPORT_V2]";
+// V2 was fully editable: preserve its text, including corrections in the coaching block.
+const REPORT_REWRITE_MARKER = "[NXT5_REPORT_V3]";
 
 function stripGeneratedReportContent(content) {
-  const text = String(content || "").trim();
-  if (!text) return "";
-  const preserved = text.split(REPORT_REWRITE_MARKER).pop().trim();
-  return preserved.replace(/^Notes (précédentes|conservées|staff(?: conservées)?)\s*:?\s*/i, "").trim();
+  const text = String(content || "");
+  const marker = /^\[NXT5_REPORT_V3\]\r?$/m.exec(text);
+  if (!marker) {
+    // Remove only the legacy structural separator, never its editable coaching text.
+    return text.replace(/^\[NXT5_REPORT_V2\]\r?\n(?=Notes (?:précédentes|conservées|staff(?: conservées)?)[ \t]*:?(?:\r?\n|$))/m, "");
+  }
+  // Only the first generated boundary belongs to NXT5. Keep the notes verbatim.
+  return text.slice(marker.index + marker[0].length)
+    .replace(/^\r?\nNotes (?:précédentes|conservées|staff(?: conservées)?)[ \t]*:?(?:\r?\n|$)/i, "");
 }
 
 function reportRawGameLine(match) {
@@ -2502,6 +2520,7 @@ function buildGameReviewContent(match) {
     "",
     `Game: ${matchDisplayName(match, "Game")}`,
     `Résultat: ${match.result || "Analyse"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`,
+    `Données: ${timelineStatus(match).label} · ${timelineStatus(match).detail}`,
     "",
     "CAUSE RACINE",
     `- ${snapshot.title}`,
@@ -2578,29 +2597,27 @@ function buildArchiveReportContent(name, matches) {
     "REPÈRES",
     gameLines,
     "",
+    ...linked.flatMap((match, index) => [
+      `## GAME ${index + 1} · ${matchDisplayName(match, "Game")}`,
+      buildGameReviewContent(match).split(REPORT_REWRITE_MARKER)[0].trim(),
+      "",
+    ]),
     REPORT_REWRITE_MARKER,
     "Notes staff",
     "",
   ].join("\n");
 }
 
-function buildRetroactiveCoachContent(report, matches) {
-  const ids = reportMatchIds(report);
-  const linked = matches.filter((match) => ids.includes(match.id));
-  if (!linked.length) return String(report?.content || "");
-  const staffNotes = stripGeneratedReportContent(report?.content);
+function buildRetroactiveCoachContent(report, matches, staffNotes = stripGeneratedReportContent(report?.content)) {
+  const ids = [...new Set(reportMatchIds(report))];
+  const linked = ids.map((id) => matches.find((match) => match.id === id)).filter(Boolean);
+  // A partial block must never be presented or saved as the complete review.
+  if (!ids.length || linked.length !== ids.length) return String(report?.content || "");
   const generated = linked.length === 1
     ? buildGameReviewContent(linked[0])
     : buildArchiveReportContent(reportDisplayName(report, matches, "Review de groupe"), linked);
   const coachingBlock = generated.split(REPORT_REWRITE_MARKER)[0].trim();
-  return [
-    coachingBlock,
-    "",
-    REPORT_REWRITE_MARKER,
-    staffNotes ? "Notes staff conservées" : "Notes staff",
-    staffNotes,
-    "",
-  ].join("\n");
+  return `${coachingBlock}\n\n${REPORT_REWRITE_MARKER}\nNotes staff\n${staffNotes}`;
 }
 
 function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -2612,7 +2629,6 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const urlMatchId = urlParams.get("match") || "";
   const urlComposeReview = urlParams.get("compose") === "1";
   const { detail: requestedMatch, loading: loadingReviewMatch, error: reviewMatchError, retry: retryReviewMatch } = useMatchDetails(selectedTeamId, urlMatchId, data.bootstrapRevision || "");
-  const matches = requestedMatch ? [...baseMatches.filter((match) => match.id !== requestedMatch.id), requestedMatch] : baseMatches;
   const canCaptainDelete = canStaffManage(currentMember?.role);
   const [form, setForm] = useState({ id: null, title: "", content: "", matchIds: [] });
   const [selectedArchiveId, setSelectedArchiveId] = useState("");
@@ -2623,7 +2639,6 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const [composerOpen, setComposerOpen] = useState(false);
   const [workspaceView, setWorkspaceView] = useState("library");
   const [saving, setSaving] = useState(false);
-  const [retrofitProgress, setRetrofitProgress] = useState(null);
 
   useEffect(() => {
     if (!composerOpen) return undefined;
@@ -2645,9 +2660,21 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     };
   }, [composerOpen]);
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
-  const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const scopedReports = selectedArchive ? reports.filter((report) => reportMatchIds(report).some((id) => archiveMatchIds(selectedArchive).includes(id))) : reports;
   const selected = scopedReports.find((report) => report.id === selectedReportId) || scopedReports[0] || null;
+  const activeReviewIds = composerOpen ? form.matchIds : selected ? reportMatchIds(selected) : [];
+  const reviewDetails = useReviewMatchDetails(selectedTeamId, activeReviewIds, data.bootstrapRevision || "");
+  const matches = [...new Map([...baseMatches, ...(requestedMatch ? [requestedMatch] : []), ...reviewDetails.matches].map((match) => [match.id, match])).values()];
+  const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
+  const selectedContent = useMemo(() => selected && !composerOpen && reviewDetails.complete
+    ? buildRetroactiveCoachContent(selected, reviewDetails.matches)
+    : selected?.content || "", [selected, composerOpen, reviewDetails.complete, reviewDetails.matches]);
+  const formCoaching = useMemo(() => composerOpen && reviewDetails.complete
+    ? buildRetroactiveCoachContent({ title: form.title, content: "", match_ids: form.matchIds }, reviewDetails.matches, "")
+    : "", [composerOpen, form.title, form.matchIds, reviewDetails.complete, reviewDetails.matches]);
+  const formContent = formCoaching + form.content;
+  const formCanSave = Boolean(selectedTeamId && (form.content.trim() || form.matchIds.length) && form.matchIds.length <= 20 && reviewDetails.complete);
+
   const selectedRows = selected ? reportRows(matches, reportMatchIds(selected)) : [];
   const formRows = reportRows(matches, form.matchIds);
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
@@ -2669,7 +2696,6 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     return title.includes(searchNeedle) || author.includes(searchNeedle) || String(report.content || "").toLowerCase().includes(searchNeedle);
   });
   const selectionLabel = reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% WR` : "Aucune game sélectionnée";
-  const retrofittableReports = reports.filter((report) => reportMatchIds(report).some((id) => matches.some((match) => match.id === id)) && (canCaptainDelete || report.created_by === user?.id));
 
   function startBlankReview() {
     resetReportForm();
@@ -2709,7 +2735,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   useEffect(() => {
     if (!urlComposeReview || !urlMatchId || !requestedMatch) return;
     setSelectedArchiveId("");
-    setForm({ id: null, title: matchDisplayName(requestedMatch, "Review"), content: buildGameReviewContent(requestedMatch), matchIds: [requestedMatch.id] });
+    setForm({ id: null, title: matchDisplayName(requestedMatch, "Review"), content: "", matchIds: [requestedMatch.id] });
     setComposerOpen(true);
     setLexiconOpen(false);
     window.history.replaceState({}, "", `/rapports?match=${encodeURIComponent(urlMatchId)}`);
@@ -2720,7 +2746,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   }
 
   function useArchiveForReport(archive) {
-    const ids = archiveMatchIds(archive).filter((id) => matches.some((match) => match.id === id));
+    const ids = archiveMatchIds(archive);
     setSelectedArchiveId((current) => current === archive.id ? "" : archive.id);
     setForm((current) => ({
       ...current,
@@ -2734,13 +2760,13 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   }
 
   function editReport(report) {
-    setForm({ id: report.id, title: reportDisplayName(report, matches), content: report.content || "", matchIds: reportMatchIds(report) });
+    setForm({ id: report.id, title: reportDisplayName(report, matches), content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) });
     setComposerOpen(true);
     setLexiconOpen(false);
   }
 
   function duplicateReport(report) {
-    setForm({ id: null, title: `${reportDisplayName(report, matches)} copie`, content: report.content || "", matchIds: reportMatchIds(report) });
+    setForm({ id: null, title: `${reportDisplayName(report, matches)} copie`, content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) });
     setComposerOpen(true);
     setLexiconOpen(false);
   }
@@ -2757,10 +2783,11 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
   async function saveReport(event) {
     event.preventDefault();
+    if (saving || !formCanSave) return;
     setSaving(true);
     try {
       const title = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Review");
-      await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: form.content, matchIds: form.matchIds }) });
+      await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: formContent, matchIds: form.matchIds }) });
       resetReportForm();
       setComposerOpen(false);
       setLexiconOpen(false);
@@ -2789,41 +2816,6 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     }
   }
 
-  async function retrofitExistingReports() {
-    if (!retrofittableReports.length || saving) return;
-    const confirmed = window.confirm(`Re-coacher ${retrofittableReports.length} ancienne${retrofittableReports.length > 1 ? "s" : ""} review${retrofittableReports.length > 1 ? "s" : ""} ? Les notes staff seront conservées à l'identique.`);
-    if (!confirmed) return;
-    setSaving(true);
-    setRetrofitProgress({ done: 0, total: retrofittableReports.length });
-    const failures = [];
-    for (const [index, report] of retrofittableReports.entries()) {
-      try {
-        await apiFetch("reports-manage", {
-          method: "POST",
-          body: JSON.stringify({
-            action: "update",
-            teamId: selectedTeamId,
-            reportId: report.id,
-            title: report.title || reportDisplayName(report, matches),
-            content: buildRetroactiveCoachContent(report, matches),
-            matchIds: reportMatchIds(report),
-          }),
-        });
-      } catch (err) {
-        failures.push({ report, err });
-      }
-      setRetrofitProgress({ done: index + 1, total: retrofittableReports.length });
-    }
-    await refreshAll();
-    setSaving(false);
-    setRetrofitProgress(null);
-    if (failures.length) {
-      pushToast({ type: "red", title: "Historique partiellement mis à jour", text: `${retrofittableReports.length - failures.length} review(s) renforcée(s), ${failures.length} en échec.` });
-      return;
-    }
-    pushToast({ type: "green", title: "Historique re-coaché", text: `${retrofittableReports.length} review${retrofittableReports.length > 1 ? "s" : ""} enrichie${retrofittableReports.length > 1 ? "s" : ""}, notes staff conservées.` });
-  }
-
   const commands = [[`/KDA "ADC"`, "KDA moyen d’un rôle."], [`/DAMAGE "MID"`, "Dégâts moyens d’un rôle."], [`/VISION "SUP"`, "Vision moyenne d’un rôle."], [`/GOLD "JGL"`, "Gold moyen d’un rôle."], [`/KP "TOP"`, "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
   const noteTemplates = [
     ["Verdict", "## VERDICT COACH\n- Le fait décisif : \n- La décision attendue : "],
@@ -2839,10 +2831,9 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       <PageHeader
         eyebrow="Reviews"
         title="Review"
-        subtitle="Retrouve les reviews ou prépare celle du prochain bloc."
+        subtitle="L’analyse des games liées est préparée automatiquement. Ajoute tes notes et les décisions du staff."
       >
         <Button icon={Plus} onClick={startBlankReview}>Créer une review</Button>
-        <Button variant="ghost" icon={saving ? Loader2 : RefreshCw} onClick={retrofitExistingReports} disabled={saving || !retrofittableReports.length}>{retrofitProgress ? `${retrofitProgress.done}/${retrofitProgress.total}` : "Re-coacher l’historique"}</Button>
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
       </PageHeader>
 
@@ -2924,9 +2915,10 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Record</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins}W - ${selectedMatches.length - selectedWins}L` : "--"}</p></div>
               <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
             </div>
-            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} games liées chargées. Charge les games restantes pour calculer le bilan complet ; leur page Stats reste accessible.</p>}
+            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} games liées chargées. Les games restantes sont chargées automatiquement pour compléter l’analyse.</p>}
             <div className="mt-5">
-              <ReportPreview content={selected.content} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
+              <ReviewAnalysisStatus details={reviewDetails} />
+              <ReportPreview content={selectedContent} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
             </div>
           </> : <EmptyState icon={FileText} title="Aucune review sélectionnée" text="Choisis une review dans la bibliothèque ou crée-en une nouvelle." />}
         </Surface>
@@ -2939,8 +2931,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Note ce qu’il faut garder, corriger et tester à la prochaine session.</p></div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !selectedTeamId || !formDisplayTitle.trim() || !form.content.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
+                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">L’analyse se complète avec les games liées. Ajoute les notes et les décisions du staff.</p></div>
+                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
                 </div>
               </div>
 
@@ -2957,7 +2949,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
               <div className="min-w-0 space-y-4">
                 <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-xl border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required rows={18} className="min-h-[22rem] w-full resize-y rounded-2xl xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReportPreview content={form.content} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-xl border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="min-h-[22rem] w-full resize-y rounded-2xl xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Une review peut lier au maximum 20 games. Retire des games pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
                 </div>
               </div>
