@@ -6,6 +6,9 @@ import { getTeamMemberEmails } from './_getTeamMembers.js';
 import { sendNotification } from './_mailer.js';
 import { ensureAuditLogsSchema, ensureReportsSchema } from './_lib/schema';
 
+const MAX_REPORT_CONTENT_LENGTH = 256000;
+const MAX_REPORT_MATCHES = 20;
+
 function cleanText(value, max = 4000) {
   return String(value || '').trim().slice(0, max);
 }
@@ -47,8 +50,10 @@ export default async function handler(request: Request, context: Context): Promi
     const teamId = cleanText(body.teamId, 80);
     const reportId = cleanText(body.reportId, 80);
     const title = cleanText(body.title, 140);
-    const content = cleanText(body.content, 12000);
-    const matchIds = Array.isArray(body.matchIds) ? body.matchIds.map((id) => cleanText(id, 80)).filter(Boolean).slice(0, 20) : [];
+    // Generated coaching and staff notes share this field. Never truncate it:
+    // the notes are usually at the end and must survive an update unchanged.
+    const content = String(body.content || '');
+    const matchIds = Array.isArray(body.matchIds) ? body.matchIds.map((id) => cleanText(id, 80)).filter(Boolean) : [];
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 
@@ -80,7 +85,17 @@ export default async function handler(request: Request, context: Context): Promi
       return json({ ok: true });
     }
 
-    if (!title || !content) throw Object.assign(new Error('Titre et contenu requis.'), { status: 400 });
+    if (!title || !content.trim()) throw Object.assign(new Error('Titre et contenu requis.'), { status: 400 });
+    if (content.length > MAX_REPORT_CONTENT_LENGTH) {
+      throw Object.assign(new Error('La review dépasse la limite de 256 000 caractères. Réduis son contenu avant de l’enregistrer.'), {
+        status: 413, code: 'REPORT_CONTENT_TOO_LONG'
+      });
+    }
+    if (matchIds.length > MAX_REPORT_MATCHES) {
+      throw Object.assign(new Error('Une review peut contenir au maximum 20 games liées.'), {
+        status: 400, code: 'REPORT_TOO_MANY_MATCHES'
+      });
+    }
 
     const validMatches = matchIds.length ? await sql`
       select id

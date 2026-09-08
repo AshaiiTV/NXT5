@@ -18,6 +18,10 @@ CS10 et CS20 indiquent le farm du joueur. DIFF10 et DIFF20 comparent ce farm à 
 
 ## Créer une review
 
-Une review peut partir d'une game ou d'un groupe. Elle doit contenir une décision conservée, un point à corriger et une action vérifiable pour la prochaine game. Les games liées restent les sources de preuve et peuvent être rouvertes depuis la review.
+Une review peut partir d'une game ou d'un groupe. L'analyse complète est préparée automatiquement à l'ouverture et dans l'aperçu de création : verdict, cause à vérifier, checkpoints VOD, lecture par joueur, weakside/strongside, plan d'exécution et validation. Les groupes donnent aussi le détail de chaque game. Le bouton « Re-coacher l'historique » n'est plus nécessaire.
+
+Les données complètes des games liées sont chargées automatiquement, y compris les games anciennes hors de la liste visible. Un chargement incomplet affiche son état et permet de réessayer ; le contenu enregistré reste lisible. Les timings absents ne sont pas présentés comme une absence de morts.
+
+Le staff peut compléter les notes sans modifier le bloc automatique. Les notes et les corrections des anciennes reviews sont conservées ; choisir d'autres games actualise l'aperçu sans remplacer la saisie. Une review avec des games liées peut être enregistrée sans note supplémentaire, après le chargement complet. Elle peut contenir jusqu'à 20 games. Les games liées restent les sources de preuve et peuvent être rouvertes depuis la review.
 
 La bibliothèque de `/rapports` permet de rechercher, filtrer, ouvrir, modifier ou supprimer une review selon les permissions du membre.
