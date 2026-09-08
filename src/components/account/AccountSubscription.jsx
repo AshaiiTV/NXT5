@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
-import { getSubscriptionPresentation } from "../../app/subscriptions.js";
+import { getSubscriptionPresentation, notifySubscriptionUpdated, SUBSCRIPTION_PLANS, SUBSCRIPTION_UPDATED_EVENT } from "../../app/subscriptions.js";
 import { Badge, Button, Surface } from "../ui/Core.jsx";
 
 function dateLabel(value, inclusiveEnd = false) {
@@ -9,11 +9,22 @@ function dateLabel(value, inclusiveEnd = false) {
   return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(date);
 }
 
-export default function AccountSubscription() {
+export default function AccountSubscription({ compact = false }) {
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
+
+  useEffect(() => {
+    if (!compact || typeof window === "undefined") return;
+    const reload = () => setRefresh((value) => value + 1);
+    window.addEventListener(SUBSCRIPTION_UPDATED_EVENT, reload);
+    window.addEventListener("focus", reload);
+    return () => {
+      window.removeEventListener(SUBSCRIPTION_UPDATED_EVENT, reload);
+      window.removeEventListener("focus", reload);
+    };
+  }, [compact]);
 
   useEffect(() => {
     let current = true;
@@ -24,15 +35,25 @@ export default function AccountSubscription() {
         if (!result?.subscription || !["none", "active", "scheduled", "expired", "revoked"].includes(result.subscription.status)) {
           throw new Error("L’abonnement n’a pas pu être vérifié.");
         }
-        if (current) setSubscription(result.subscription);
+        if (current) {
+          setSubscription(result.subscription);
+          if (!compact) notifySubscriptionUpdated();
+        }
       })
       .catch((err) => { if (current) { setSubscription(null); setError(err.message || "Impossible de charger ton abonnement."); } })
       .finally(() => { if (current) setLoading(false); });
     return () => { current = false; };
-  }, [refresh]);
+  }, [compact, refresh]);
 
   const presentation = subscription ? getSubscriptionPresentation(subscription) : null;
   const hasPass = subscription && subscription.planCode !== "free";
+
+  if (compact) {
+    const currentPlan = SUBSCRIPTION_PLANS.find((plan) => plan.code === subscription?.effectivePlanCode);
+    if (loading) return <span role="status"><Badge tone="slate">Abonnement…</Badge></span>;
+    if (error || !currentPlan) return <button type="button" className="min-h-11 rounded-xl" onClick={() => setRefresh((value) => value + 1)} title="Réessayer de charger ton abonnement" aria-label="Abonnement indisponible. Réessayer"><Badge tone="slate">Indisponible</Badge></button>;
+    return <span aria-label={`Abonnement en cours : ${currentPlan.label}`}><Badge tone="cyan">{currentPlan.label}</Badge></span>;
+  }
 
   return <Surface className="mb-5"><section aria-labelledby="account-subscription-title">
     <div className="flex flex-wrap items-start justify-between gap-3">
