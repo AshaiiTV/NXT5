@@ -31,6 +31,7 @@ export type AssistantKnowledgeMatch = AssistantKnowledgeEntry & {
 export const ALLOWED_ASSISTANT_PATHS = [
   '/equipes',
   '/gestion-equipe',
+  '/games',
   '/integration',
   '/statistiques',
   '/rapports',
@@ -61,7 +62,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       'Crée une équipe ou rejoins-la avec un code temporaire.',
       'Ajoute les joueurs, lie leurs comptes et vérifie leurs rôles.',
       'Importe une première game depuis la page Games.',
-      'Ouvre Statistiques ou Tendances, puis crée une review courte.'
+      'Ouvre une game dans Games pour consulter ses statistiques, puis crée une review courte.'
     ],
     suggestions: ['Comment importer ma première game ?', 'Comment préparer correctement le roster ?', 'Comment créer une review utile ?']
   },
@@ -96,13 +97,13 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
   {
     id: 'imports-and-games',
     title: 'Importer et gérer les games',
-    path: '/integration',
+    path: '/games',
     actionLabel: 'Ouvrir Games',
-    summary: 'Games permet d’importer un JSON NXT5, de nommer la partie, choisir le contexte, confirmer le side, les lanes et les profils, puis corriger l’import plus tard.',
+    summary: 'Games réunit l’historique et les statistiques. Le bouton Importer une game ouvre le téléchargement de NXT5 Importer et l’import JSON ; les corrections restent accessibles depuis les options de la game.',
     keywords: ['import', 'importer', 'json', 'game id', 'games', 'partie', 'side', 'lane', 'profil', 'catégorie', 'scrim', 'upload', 'historique'],
     steps: [
       'Génère le JSON avec la dernière version de NXT5 Importer.',
-      'Dépose le fichier dans Games et attends la fin de l’analyse.',
+      'Dans Games, clique sur Importer une game, charge le JSON et attends la fin de l’analyse.',
       'Nomme la game, choisis le contexte et ton side.',
       'Confirme chaque lane et chaque profil avant de valider.'
     ],
@@ -116,19 +117,19 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       {
         question: 'Comment corriger une assignation ?',
         triggers: ['corriger profil', 'mauvaise lane', 'mauvais joueur', 'assignation', 'modifier import'],
-        answer: 'Dans Games, ouvre la game importée puis utilise Modifier. Réassigne le side, les lanes et les profils concernés ; les pages Statistiques, Tendances, Profil et Review se recalculent avec la correction.'
+        answer: 'Dans Games, ouvre la game puis ses options de gestion pour corriger les postes et profils. Réassigne le side, les lanes et les profils concernés ; les statistiques, Tendances, Profil et Review se recalculent avec la correction.'
       }
     ]
   },
   {
     id: 'statistics',
     title: 'Statistiques des games',
-    path: '/statistiques',
+    path: '/games',
     actionLabel: 'Voir les statistiques',
-    summary: 'Statistiques regroupe les données d’une game ou d’un groupe : KDA, KP, farm, or, vision, builds, écarts à 10 et 20 minutes, objectifs et timeline.',
+    summary: 'Games présente les statistiques d’une game ou d’un groupe : KDA, KP, farm, or, vision, builds, écarts à 10 et 20 minutes, objectifs et timeline.',
     keywords: ['statistiques', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'or', 'vision', 'build', 'objectif', 'timeline', 'groupe'],
     steps: [
-      'Recherche puis sélectionne une game dans la bibliothèque.',
+      'Dans Games, recherche puis ouvre une game pour afficher directement ses statistiques.',
       'Lis les deux sides et les écarts par rôle.',
       'Descends vers les objectifs et la timeline pour replacer les chiffres dans le temps.',
       'Crée un groupe pour comparer plusieurs games du même bloc.'
@@ -150,7 +151,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     summary: 'Une review garde les notes et les actions décidées après une ou plusieurs games. La bibliothèque permet de les retrouver et de les modifier.',
     keywords: ['review', 'rapport', 'décision', 'notes', 'game source', 'bibliothèque', 'staff', 'groupe', 'créer review', 'modifier review'],
     steps: [
-      'Sélectionne une game ou un groupe depuis Games ou Statistiques.',
+      'Sélectionne une game ou un groupe depuis Games.',
       'Clique sur Créer une review et donne un titre clair.',
       'Écris ce qu’on garde, ce qu’on corrige et l’action de la prochaine game.',
       'Enregistre puis utilise le lien source pour revenir aux données.'
@@ -318,6 +319,7 @@ function routeMatches(entryPath: string, route: string): boolean {
 
 export function safeAssistantRoute(value: unknown): string {
   const route = String(value || '').trim().split('?')[0];
+  if (route === '/integration' || route === '/statistiques') return '/games';
   if (ALLOWED_PATH_SET.has(route)) return route;
   if (route.startsWith('/mon-profil/') && ALLOWED_PATH_SET.has(route)) return route;
   return '/equipes';
@@ -391,7 +393,8 @@ export function sanitizeAssistantActions(value: unknown): AssistantAction[] {
   const seen = new Set<string>();
   const actions: AssistantAction[] = [];
   for (const candidate of value) {
-    const path = String(candidate?.path || '').trim().split('?')[0];
+    const requestedPath = String(candidate?.path || '').trim().split('?')[0];
+    const path = requestedPath === '/integration' || requestedPath === '/statistiques' ? '/games' : requestedPath;
     const label = String(candidate?.label || '').trim().slice(0, 64);
     if (!label || !ALLOWED_PATH_SET.has(path) || seen.has(path)) continue;
     seen.add(path);

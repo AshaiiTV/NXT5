@@ -6,8 +6,7 @@ import { cx } from "../../app/helpers.js";
 
 const ROUTE_SUGGESTIONS = [
   { matches: ["/equipes", "/gestion-equipe"], prompts: ["Comment ajouter un joueur ?", "Comment organiser la Main Team et les Subs ?", "Où modifier les accès de l'équipe ?"] },
-  { matches: ["/integration"], prompts: ["Comment importer une game ?", "Pourquoi mon import peut-il échouer ?", "Comment ouvrir les statistiques d'une game ?"] },
-  { matches: ["/statistiques"], prompts: ["Comment lire les statistiques de cette game ?", "Où comparer les performances par rôle ?", "Comment créer une review depuis cette game ?"] },
+  { matches: ["/games", "/integration", "/statistiques"], prompts: ["Comment lire les statistiques de cette game ?", "Comment importer une game ?", "Comment analyser un groupe de games ?"] },
   { matches: ["/rapports"], prompts: ["Comment créer une review ?", "Comment lier plusieurs games à une review ?", "Où retrouver mes anciennes reviews ?"] },
   { matches: ["/tendances"], prompts: ["Comment filtrer les tendances ?", "Comment interpréter les indicateurs d'équipe ?", "Comment ouvrir une game source ?"] },
   { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une session d'équipe ?"] },

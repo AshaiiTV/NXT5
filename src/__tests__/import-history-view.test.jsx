@@ -1,20 +1,22 @@
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiFetch } from "../api/client.js";
+import { apiFetch, apiUploadJson } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
-import { ImportedGames } from "../components/games/ImportedGames.jsx";
+
 import { SelectInput, TextInput } from "../components/ui/Core.jsx";
-import { CategoryMultiSelect, Matches } from "../pages/workspace/GameWorkspace.jsx";
+import { CategoryMultiSelect, GameActions, GameCategoryManager, ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
+import { ImporterDownloadPanel } from "../pages/workspace/ImporterDownloadPanel.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
 
 const cleanups = [];
 beforeEach(() => {
   vi.stubGlobal("window", {
-    location: new URL("https://nxt5.test/integration"), history: { pushState: vi.fn() }, dispatchEvent: vi.fn(),
-    addEventListener: vi.fn(), removeEventListener: vi.fn(), scrollTo: vi.fn(), confirm: vi.fn(() => false),
+    location: new URL("https://nxt5.test/integration"), history: { pushState: vi.fn(), replaceState: vi.fn(), state: { from: "games" } }, dispatchEvent: vi.fn(),
+    addEventListener: vi.fn(), removeEventListener: vi.fn(), scrollTo: vi.fn(), confirm: vi.fn(() => false), setTimeout: vi.fn(), clearTimeout: vi.fn(),
   });
+  vi.stubGlobal("document", { body: { style: { overflow: "" } }, activeElement: { focus: vi.fn(), isConnected: true } });
   apiFetch.mockResolvedValue({});
 });
 afterEach(() => {
@@ -58,9 +60,21 @@ function settings(overrides = {}) {
     refreshAll: vi.fn().mockResolvedValue(undefined), pushToast: vi.fn(), ...overrides,
   };
 }
+function Controls(props) { return <><GameActions {...props} match={props.match || props.data.matches[0]} /><GameCategoryManager {...props} /></>; }
+const dialogNodes = [];
+let optionsTrigger;
 async function render(props = settings()) {
   let renderer;
-  await act(async () => { renderer = TestRenderer.create(<Suspense fallback="loading"><Matches {...props} /></Suspense>); });
+  await act(async () => { renderer = TestRenderer.create(<Controls {...props} />, { createNodeMock: (element) => {
+    if (element.type === "dialog") {
+      const node = { open: false, showModal: vi.fn(function () { this.open = true; }), close: vi.fn(function () { this.open = false; }) };
+      dialogNodes.push(node);
+      return node;
+    }
+    const node = { focus: vi.fn(), isConnected: true, querySelector: () => null };
+    if (element.props["aria-label"] === "Options de la game") optionsTrigger = node;
+    return node;
+  } }); });
   cleanups.push(() => act(() => renderer.unmount()));
   return renderer;
 }
@@ -69,9 +83,6 @@ function text(node) {
 }
 function button(renderer, label) {
   return renderer.root.findAllByType("button").find((node) => node.props["aria-label"] === label || text(node).trim() === label);
-}
-function rows(renderer) {
-  return renderer.root.findAllByType("button").filter((node) => node.props.className === "ig-game");
 }
 async function click(renderer, label) {
   const target = button(renderer, label);
@@ -85,15 +96,6 @@ function activate(target) {
   while (form && form.type !== "form") form = form.parent;
   expect(form, "Submit button has a form").toBeTruthy();
   return form.props.onSubmit({ preventDefault: vi.fn() });
-}
-async function pick(renderer, gameNumber = 1) {
-  const target = rows(renderer).find((node) => node.props["aria-label"].endsWith(`EUW1_${gameNumber}`));
-  expect(target).toBeTruthy();
-  expect(target.props.disabled).not.toBe(true);
-  await act(async () => target.props.onClick());
-}
-async function search(renderer, query) {
-  await act(async () => renderer.root.findByProps({ type: "search" }).props.onChange({ target: { value: query } }));
 }
 function select(renderer, label) {
   return renderer.root.findAllByType(SelectInput).find((node) => node.props.label === label).findByType("select");
@@ -111,98 +113,76 @@ function payload() {
   const [endpoint, options] = apiFetch.mock.calls.at(-1);
   return { endpoint, method: options.method, body: JSON.parse(options.body) };
 }
-function activeId(renderer) {
-  return renderer.root.findByType(ImportedGames).props.selectedMatchId;
+async function openAction(renderer, label) {
+  await click(renderer, "Options de la game");
+  await click(renderer, label);
 }
 
-describe("import history browsing", () => {
-  it("uses import order, scopes games and categories to the team, and opens the selected stats", async () => {
+describe("discreet game options", () => {
+  it("shows only the options icon until opened and closes with Escape without saving", async () => {
     const renderer = await render();
-    expect(rows(renderer)).toHaveLength(10);
-    expect(rows(renderer)[0].props["aria-label"]).toMatch(/EUW1_1$/);
-    expect(select(renderer, "Trier par").props.value).toBe("import-newest");
-    expect(select(renderer, "Catégorie").findAllByType("option").map(text)).not.toContain("Autre équipe");
-    await filter(renderer, "Trier par", "import-oldest");
-    expect(rows(renderer)[0].props["aria-label"]).toMatch(/EUW1_24$/);
-    await filter(renderer, "Trier par", "newest");
-    expect(rows(renderer)[0].props["aria-label"]).toMatch(/EUW1_24$/);
-    await pick(renderer, 24);
-    await click(renderer, "Voir les stats");
-    expect(window.history.pushState).toHaveBeenCalledWith({}, "", "/statistiques?match=team-game-24");
+    expect(button(renderer, "Options de la game")).toBeTruthy();
+    expect(button(renderer, "Modifier les informations")).toBeUndefined();
+    expect(button(renderer, "Corriger les rôles et profils")).toBeUndefined();
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    await openAction(renderer, "Corriger les rôles et profils");
+    expect(dialogNodes.at(-1).showModal).toHaveBeenCalledOnce();
+    await filter(renderer, "Poste · Jinx", "SUP");
+    optionsTrigger.focus.mockClear();
+    const cancelEvent = { preventDefault: vi.fn() };
+    await act(async () => renderer.root.findByType("dialog").props.onCancel(cancelEvent));
+    expect(cancelEvent.preventDefault).toHaveBeenCalledOnce();
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    expect(optionsTrigger.focus).toHaveBeenCalledOnce();
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
-  it("recovers from an empty category and finds uncategorized games", async () => {
+  it("protects open drafts from native back navigation and lets application navigation through", async () => {
     const renderer = await render();
-    await filter(renderer, "Catégorie", "empty");
-    expect(rows(renderer)).toHaveLength(0);
-    expect(select(renderer, "Catégorie").props.value).toBe("empty");
-    const reset = renderer.root.findByProps({ className: "ig-empty" }).findByType("button");
-    await act(async () => reset.props.onClick());
-    expect(rows(renderer)).toHaveLength(10);
-    expect(select(renderer, "Catégorie").props.value).toBe("");
-    await filter(renderer, "Catégorie", "__uncategorized__");
-    expect(rows(renderer)).toHaveLength(1);
-    expect(rows(renderer)[0].props["aria-label"]).toMatch(/EUW1_4$/);
-    await search(renderer, "introuvable");
-    expect(rows(renderer)).toHaveLength(0);
-    await act(async () => renderer.root.findByProps({ className: "ig-empty" }).findByType("button").props.onClick());
-    expect(rows(renderer)).toHaveLength(10);
-  });
-
-  it("preserves an edit draft through search, filters and pagination until cancellation", async () => {
-    const renderer = await render();
-    await pick(renderer);
-    await click(renderer, "Modifier");
-    await fill(renderer, "Nom de la game", "Finale — brouillon");
-    await click(renderer, "Page suivante");
-    expect(activeId(renderer)).toBe("team-game-1");
-    expect(input(renderer, "Nom de la game").props.value).toBe("Finale — brouillon");
-    expect(rows(renderer).every((node) => node.props.disabled)).toBe(true);
-    expect(button(renderer, "Désélectionner la game").props.disabled).toBe(true);
-    await search(renderer, "introuvable");
-    await filter(renderer, "Catégorie", "empty");
-    expect(rows(renderer)).toHaveLength(0);
-    expect(input(renderer, "Nom de la game").props.value).toBe("Finale — brouillon");
-    await click(renderer, "Afficher dans la liste");
-    expect(rows(renderer).filter((node) => node.props["aria-pressed"])).toHaveLength(1);
-    expect(input(renderer, "Nom de la game").props.value).toBe("Finale — brouillon");
+    await openAction(renderer, "Modifier les informations");
+    await fill(renderer, "Nom de la game", "Brouillon à conserver");
+    const [eventName, protectDraft, capture] = window.addEventListener.mock.calls.at(-1);
+    expect(eventName).toBe("popstate");
+    expect(capture).toBe(true);
+    const native = { isTrusted: true, stopImmediatePropagation: vi.fn() };
+    protectDraft(native);
+    expect(native.stopImmediatePropagation).toHaveBeenCalledOnce();
+    expect(window.history.replaceState).toHaveBeenCalledWith({ from: "games" }, "", "https://nxt5.test/integration");
+    expect(input(renderer, "Nom de la game").props.value).toBe("Brouillon à conserver");
+    const app = { isTrusted: false, stopImmediatePropagation: vi.fn() };
+    protectDraft(app);
+    expect(app.stopImmediatePropagation).not.toHaveBeenCalled();
+    expect(window.history.replaceState).toHaveBeenCalledOnce();
     await click(renderer, "Annuler");
-    expect(input(renderer, "Nom de la game")).toBeUndefined();
-    expect(rows(renderer).every((node) => !node.props.disabled)).toBe(true);
-    await pick(renderer, 2);
-    expect(activeId(renderer)).toBe("team-game-2");
-    expect(apiFetch).not.toHaveBeenCalled();
+    expect(window.removeEventListener).toHaveBeenCalledWith("popstate", protectDraft, true);
   });
 
-  it("resets selection, draft and list filters when changing teams", async () => {
+  it.each([["player", "member", undefined, false], ["player", "creator", "creator", true], ["coach", "coach", undefined, true], ["player", "owner", undefined, true]])("respects game author and staff permissions (%s / %s)", async (role, userId, creator, allowed) => {
+    const props = settings({ currentMember: { role }, user: { id: userId } });
+    props.data.matches[0].created_by = creator;
+    const renderer = await render(props);
+    expect(Boolean(button(renderer, "Options de la game"))).toBe(allowed);
+  });
+
+  it("discards the previous team's open form when the team changes", async () => {
     const props = settings();
     const renderer = await render(props);
-    await pick(renderer);
-    await click(renderer, "Modifier");
-    await fill(renderer, "Nom de la game", "Brouillon de la première équipe");
-    await search(renderer, "introuvable");
-    await filter(renderer, "Catégorie", "scrim");
-    await act(async () => renderer.update(<Suspense fallback="loading"><Matches {...props} selectedTeamId="other-team" currentMember={{ role: "player" }} /></Suspense>));
-    expect(activeId(renderer)).toBeFalsy();
+    await openAction(renderer, "Modifier les informations");
+    await fill(renderer, "Nom de la game", "Brouillon privé");
+    await act(async () => renderer.update(<Controls {...props} selectedTeamId="other-team" currentMember={{ role: "player" }} />));
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
     expect(input(renderer, "Nom de la game")).toBeUndefined();
-    expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("");
-    expect(select(renderer, "Catégorie").props.value).toBe("");
-    expect(rows(renderer)).toHaveLength(1);
-    await pick(renderer);
-    expect(activeId(renderer)).toBe("other-team-game-1");
     expect(apiFetch).not.toHaveBeenCalled();
   });
 });
 
-describe("import history mutations", () => {
+describe("game mutations from the options dialog", () => {
   it("saves the renamed game and its categories, locking controls until the request resolves", async () => {
     const props = settings();
     let resolveSave;
     apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
     const renderer = await render(props);
-    await pick(renderer);
-    await click(renderer, "Modifier");
+    await openAction(renderer, "Modifier les informations");
     await fill(renderer, "Nom de la game", "Finale vs Aurora");
     const categoryPicker = renderer.root.findByType(CategoryMultiSelect);
     await act(async () => categoryPicker.findAllByType("button").find((node) => text(node) === "Ligue").props.onClick());
@@ -210,21 +190,22 @@ describe("import history mutations", () => {
     expect(payload()).toEqual({ endpoint: "matches-manage", method: "POST", body: { action: "update", teamId: "team", matchId: "team-game-1", label: "Finale vs Aurora", categoryIds: ["scrim", "league"] } });
     expect(button(renderer, "Enregistrement…").props.disabled).toBe(true);
     expect(button(renderer, "Annuler").props.disabled).toBe(true);
-    expect(button(renderer, "Désélectionner la game").props.disabled).toBe(true);
+    const cancelEvent = { preventDefault: vi.fn() };
+    await act(async () => renderer.root.findByType("dialog").props.onCancel(cancelEvent));
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
     expect(props.refreshAll).not.toHaveBeenCalled();
     await act(async () => resolveSave({}));
     expect(input(renderer, "Nom de la game")).toBeUndefined();
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "green" }));
-    expect(button(renderer, "Désélectionner la game").props.disabled).toBe(false);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
   });
 
   it("retains a rejected rename and category selection for retry", async () => {
     const props = settings();
     apiFetch.mockRejectedValueOnce(new Error("Connexion interrompue"));
     const renderer = await render(props);
-    await pick(renderer);
-    await click(renderer, "Modifier");
+    await openAction(renderer, "Modifier les informations");
     await fill(renderer, "Nom de la game", "Finale à conserver");
     await act(async () => renderer.root.findByType(CategoryMultiSelect).props.onChange(["league"]));
     await click(renderer, "Enregistrer");
@@ -241,8 +222,7 @@ describe("import history mutations", () => {
 
   it("does not send a whitespace-only game name", async () => {
     const renderer = await render();
-    await pick(renderer);
-    await click(renderer, "Modifier");
+    await openAction(renderer, "Modifier les informations");
     await fill(renderer, "Nom de la game", "   ");
     expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
     await click(renderer, "Annuler");
@@ -251,8 +231,7 @@ describe("import history mutations", () => {
 
   it("cancels role and player changes and restores the original assignments on reopening", async () => {
     const renderer = await render();
-    await pick(renderer);
-    await click(renderer, "Postes");
+    await openAction(renderer, "Corriger les rôles et profils");
     expect(select(renderer, "Poste · Jinx").props.value).toBe("ADC");
     expect(select(renderer, "Profil NXT5 · Jinx").props.value).toBe("adc");
     expect(select(renderer, "Profil NXT5 · Jinx").findAllByType("option").map(text).join(" ")).not.toContain("Autre joueur");
@@ -260,11 +239,10 @@ describe("import history mutations", () => {
     await filter(renderer, "Poste · Jinx", "SUP");
     await filter(renderer, "Profil NXT5 · Jinx", "support");
     await filter(renderer, "Poste · Ashe", "MID");
-    await search(renderer, "introuvable");
     expect(select(renderer, "Poste · Jinx").props.value).toBe("SUP");
     expect(select(renderer, "Profil NXT5 · Jinx").props.value).toBe("support");
     await click(renderer, "Annuler");
-    await click(renderer, "Postes");
+    await openAction(renderer, "Corriger les rôles et profils");
     expect(select(renderer, "Poste · Jinx").props.value).toBe("ADC");
     expect(select(renderer, "Profil NXT5 · Jinx").props.value).toBe("adc");
     expect(select(renderer, "Poste · Ashe").props.value).toBe("ADC");
@@ -272,10 +250,9 @@ describe("import history mutations", () => {
   });
 
   it("sends allied player links and both teams' corrected roles in one request", async () => {
-    const props = settings();
+    const props = settings({ onUpdated: vi.fn() });
     const renderer = await render(props);
-    await pick(renderer);
-    await click(renderer, "Postes");
+    await openAction(renderer, "Corriger les rôles et profils");
     await filter(renderer, "Poste · Jinx", "SUP");
     await filter(renderer, "Profil NXT5 · Jinx", "support");
     await filter(renderer, "Poste · Lulu", "ADC");
@@ -291,7 +268,8 @@ describe("import history mutations", () => {
     } });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "green", title: "Assignation corrigée" }));
-    expect(button(renderer, "Postes")).toBeTruthy();
+    expect(props.onUpdated).toHaveBeenCalledWith({ matchId: "team-game-1", action: "roles", result: {} });
+    expect(button(renderer, "Options de la game")).toBeTruthy();
     expect(button(renderer, "Annuler")).toBeUndefined();
   });
 
@@ -299,8 +277,7 @@ describe("import history mutations", () => {
     const props = settings();
     apiFetch.mockRejectedValueOnce(new Error("Assignation indisponible"));
     const renderer = await render(props);
-    await pick(renderer);
-    await click(renderer, "Postes");
+    await openAction(renderer, "Corriger les rôles et profils");
     await filter(renderer, "Poste · Jinx", "SUP");
     await filter(renderer, "Profil NXT5 · Jinx", "");
     await click(renderer, "Enregistrer");
@@ -311,50 +288,50 @@ describe("import history mutations", () => {
     await click(renderer, "Enregistrer");
     expect(payload().body.roles["ally-adc-0"]).toEqual({ role: "SUP", playerId: "" });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
-    expect(button(renderer, "Postes")).toBeTruthy();
+    expect(button(renderer, "Options de la game")).toBeTruthy();
   });
 
-  it("honors cancellation then confirms deletion of the selected import", async () => {
-    const props = settings();
+  it("requires an explicit deletion confirmation and reports the removed game", async () => {
+    const props = settings({ onDeleted: vi.fn() });
     const renderer = await render(props);
-    await pick(renderer);
-    await click(renderer, "Supprimer");
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("Aurora 01"));
+    await openAction(renderer, "Supprimer");
+    expect(text(renderer.root.findByType("dialog"))).toContain("Aurora 01");
     expect(apiFetch).not.toHaveBeenCalled();
-    expect(activeId(renderer)).toBe("team-game-1");
-    window.confirm.mockReturnValueOnce(true);
-    await click(renderer, "Supprimer");
+    await click(renderer, "Annuler");
+    expect(apiFetch).not.toHaveBeenCalled();
+    await openAction(renderer, "Supprimer");
+    await click(renderer, "Supprimer la game");
     expect(payload()).toEqual({ endpoint: "matches-manage", method: "POST", body: { action: "delete", teamId: "team", matchId: "team-game-1" } });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
-    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "green" }));
+    expect(props.onDeleted).toHaveBeenCalledWith("team-game-1");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
   });
 
-  it("keeps a game selected when deletion fails", async () => {
-    const props = settings();
+  it("keeps the deletion confirmation open after an error", async () => {
+    const props = settings({ onDeleted: vi.fn() });
     const renderer = await render(props);
-    await pick(renderer);
-    window.confirm.mockReturnValueOnce(true);
     apiFetch.mockRejectedValueOnce(new Error("Suppression refusée"));
-    await click(renderer, "Supprimer");
-    expect(activeId(renderer)).toBe("team-game-1");
-    expect(button(renderer, "Supprimer").props.disabled).toBe(false);
+    await openAction(renderer, "Supprimer");
+    await click(renderer, "Supprimer la game");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    expect(button(renderer, "Supprimer la game").props.disabled).toBe(false);
     expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(props.onDeleted).not.toHaveBeenCalled();
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", text: "Suppression refusée" }));
   });
 });
 
-describe("import history category permissions", () => {
+describe("category management on demand", () => {
   it.each([
     ["player", "member", false],
     ["coach", "coach", true],
     ["player", "owner", true],
   ])("exposes category management according to role %s and account %s", async (role, userId, allowed) => {
     const renderer = await render(settings({ currentMember: { role }, user: { id: userId } }));
-    expect(Boolean(button(renderer, "Gérer les catégories"))).toBe(allowed);
-    expect(select(renderer, "Catégorie")).toBeTruthy();
+    expect(Boolean(button(renderer, "Catégories"))).toBe(allowed);
     expect(button(renderer, "Ajouter une catégorie")).toBeUndefined();
     if (allowed) {
-      await click(renderer, "Gérer les catégories");
+      await click(renderer, "Catégories");
       expect(button(renderer, "Ajouter une catégorie")).toBeTruthy();
       expect(button(renderer, "Supprimer la catégorie Scrim")).toBeUndefined();
       expect(button(renderer, "Supprimer la catégorie Ligue")).toBeTruthy();
@@ -366,7 +343,7 @@ describe("import history category permissions", () => {
   it("creates a category and keeps the management section accessible after saving", async () => {
     const props = settings();
     const renderer = await render(props);
-    await click(renderer, "Gérer les catégories");
+    await click(renderer, "Catégories");
     await click(renderer, "Ajouter une catégorie");
     await fill(renderer, "Nom de la catégorie", "Bootcamp");
     await filter(renderer, "Couleur", "purple");
@@ -380,7 +357,7 @@ describe("import history category permissions", () => {
   it("preserves a rejected category draft and respects deletion confirmation", async () => {
     const props = settings();
     const renderer = await render(props);
-    await click(renderer, "Gérer les catégories");
+    await click(renderer, "Catégories");
     await click(renderer, "Ajouter une catégorie");
     await fill(renderer, "Nom de la catégorie", "Bootcamp");
     await filter(renderer, "Couleur", "purple");
@@ -397,5 +374,74 @@ describe("import history category permissions", () => {
     await click(renderer, "Supprimer la catégorie Ligue");
     expect(payload()).toEqual({ endpoint: "match-categories-manage", method: "POST", body: { action: "delete", teamId: "team", categoryId: "league" } });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("import flow without a second game list", () => {
+  const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
+  const champions = ["Aatrox", "LeeSin", "Ahri", "Jinx", "Lulu"];
+  const preview = { teams: ["BLUE", "RED"].map((side, teamIndex) => ({ side, win: !teamIndex, participants: roles.map((role, index) => ({ participantId: teamIndex * 5 + index + 1, teamPosition: role, champion: champions[index], riotId: `${side}-${role}#EUW` })) })) };
+  async function renderFlow(overrides = {}) {
+    const props = settings({
+      onImported: vi.fn(), onBusyChange: vi.fn(), ...overrides,
+    });
+    props.data.players = roles.map((role, index) => ({ id: `profile-${role}`, team_id: "team", name: `NXT5 ${role}`, role, riot_id: `BLUE-${role}#EUW` }));
+    let renderer;
+    await act(async () => { renderer = TestRenderer.create(<ImportGameFlow {...props} />); });
+    cleanups.push(() => act(() => renderer.unmount()));
+    return { renderer, props };
+  }
+  const load = async (renderer, content) => {
+    await act(async () => renderer.root.findByType(ImporterDownloadPanel).props.onImport({ name: "game.json", size: content.length, text: async () => content }));
+  };
+
+  it("previews JSON, keeps the original assignment payload, and opens the imported game only after refresh", async () => {
+    const order = [];
+    const result = { match: { id: "imported", team_id: "team" }, warnings: [{ message: "Chronologie partielle" }] };
+    apiUploadJson.mockResolvedValueOnce({ match: preview }).mockResolvedValueOnce(result);
+    const { renderer, props } = await renderFlow({ refreshAll: vi.fn(async () => order.push("refresh")), onImported: vi.fn(() => order.push("imported")) });
+    const source = { metadata: { label: "Finale" }, info: { gameId: "fixture" } };
+    expect(renderer.root.findAllByProps({ type: "search" })).toHaveLength(0);
+    expect(renderer.root.findAllByType("h2")).toHaveLength(0);
+    await load(renderer, JSON.stringify(source));
+    expect(apiUploadJson.mock.calls[0].slice(0, 2)).toEqual(["matches-import-file", { teamId: "team", payload: source, previewOnly: true }]);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    const blue = renderer.root.findAllByType("button").find((node) => text(node).startsWith("Blue Side"));
+    await act(async () => blue.props.onClick());
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson.mock.calls[1].slice(0, 2)).toEqual(["matches-import-file", {
+      teamId: "team", payload: source, label: "Finale", categoryIds: [], allyTeamSide: "BLUE",
+      laneAssignments: Object.fromEntries(roles.map((role) => [role, `BLUE-${role}#EUW`])),
+      enemyLaneAssignments: Object.fromEntries(roles.map((role) => [role, `RED-${role}#EUW`])),
+      playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])),
+    }]);
+    expect(props.onImported).toHaveBeenCalledWith(result);
+    expect(order).toEqual(["refresh", "imported"]);
+    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "yellow", text: "Chronologie partielle" }));
+    expect(props.onBusyChange.mock.calls.map(([busy]) => busy)).toContain(true);
+    expect(props.onBusyChange.mock.calls.at(-1)).toEqual([false]);
+    expect(button(renderer, "Confirmer l’import")).toBeUndefined();
+  });
+
+  it("keeps the draft after a failed final import for retry", async () => {
+    apiUploadJson.mockResolvedValueOnce({ match: preview }).mockRejectedValueOnce(new Error("Connexion interrompue"));
+    const { renderer, props } = await renderFlow();
+    await load(renderer, JSON.stringify({ label: "Brouillon à garder" }));
+    await act(async () => renderer.root.findAllByType("button").find((node) => text(node).startsWith("Blue Side")).props.onClick());
+    await click(renderer, "Confirmer l’import");
+    expect(input(renderer, "Nom de la game").props.value).toBe("Brouillon à garder");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    expect(props.onImported).not.toHaveBeenCalled();
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red" }));
+  });
+
+  it("rejects invalid JSON before making an API call", async () => {
+    const { renderer, props } = await renderFlow();
+    await load(renderer, "{oops");
+    expect(apiUploadJson).not.toHaveBeenCalled();
+    expect(props.onImported).not.toHaveBeenCalled();
+    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", text: expect.stringContaining("JSON valide") }));
   });
 });

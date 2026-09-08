@@ -22,7 +22,7 @@ function gameDuration(match) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
-export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false }) {
+export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false, showSelection = true, showCategoryFilter = history, allowImportSort = history, title, description, emptyAction }) {
   const [filters, setFilters] = useState(() => ({ ...initialFilters, sort: history ? "import-newest" : "newest" }));
   const titleId = useId();
   const searchId = useId();
@@ -40,7 +40,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
   const setFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value, page: 1 }));
   const resetFilters = () => setFilters((current) => ({ ...initialFilters, sort: current.sort, pageSize: current.pageSize }));
   const clearSearch = () => { setFilter("query", ""); searchRef.current?.focus(); };
-  const showSelection = () => {
+  const revealSelection = () => {
     const ordered = filterImportedGames(matches, { sort: filters.sort }, categories);
     const index = ordered.findIndex((match) => String(match.id) === String(selectedMatchId));
     setFilters((current) => ({ ...initialFilters, sort: current.sort, pageSize: current.pageSize, page: Math.floor(Math.max(0, index) / current.pageSize) + 1 }));
@@ -55,8 +55,8 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
     <section className={`imported-games${history ? " import-history" : ""}`} aria-labelledby={titleId}>
       <header className="ig-heading">
         <div>
-          <h3 id={titleId}>{history ? "Historique des imports" : "Games importées"}</h3>
-          <p>{history ? "Retrouve tes imports, classe tes games et ajuste les assignations." : "Retrouve une game, consulte ses stats et prépare sa review."}</p>
+          <h3 id={titleId}>{title || (history ? "Historique des imports" : "Games importées")}</h3>
+          <p>{description || (history ? "Retrouve tes imports, classe tes games et ajuste les assignations." : "Retrouve une game, consulte ses stats et prépare sa review.")}</p>
         </div>
         <p className="ig-total"><strong>{matches.length}</strong> {scopeName || `game${matches.length > 1 ? "s" : ""}`}</p>
         {headerActions}
@@ -73,12 +73,12 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
           </span>
         </div>
         <div className="ig-sort"><SelectInput label="Trier par" value={filters.sort} onChange={(value) => setFilter("sort", value)}>
-          {history && <><option value="import-newest">Derniers imports</option><option value="import-oldest">Premiers imports</option></>}
+          {allowImportSort && <><option value="import-newest">Derniers imports</option><option value="import-oldest">Premiers imports</option></>}
           <option value="newest">Plus récentes</option><option value="oldest">Plus anciennes</option><option value="longest">Plus longues</option><option value="shortest">Plus courtes</option>
         </SelectInput></div>
       </div>
-      <div className={`ig-filters${history ? " ig-filters-history" : ""}`}>
-        {history && <SelectInput label="Catégorie" value={filters.category} onChange={(value) => setFilter("category", value)}>
+      <div className={`ig-filters${showCategoryFilter ? " ig-filters-history" : ""}`}>
+        {showCategoryFilter && <SelectInput label="Catégorie" value={filters.category} onChange={(value) => setFilter("category", value)}>
           <option value="">Toutes</option><option value="__uncategorized__">Non classées</option>
           {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           {filters.category && filters.category !== "__uncategorized__" && !categories.some((category) => String(category.id) === filters.category) && <option value={filters.category}>Catégorie supprimée</option>}
@@ -98,11 +98,11 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
         {hasFilters ? <button type="button" className="ig-text-action" onClick={resetFilters}><X aria-hidden="true" /> Réinitialiser les filtres</button> : <p className="ig-search-hint">Essaie « Jinx défaite »</p>}
       </div>
 
-      {selectedMatch && <div className="ig-selection">
+      {showSelection && selectedMatch && <div className="ig-selection">
         <div className="ig-selection-title">
           <span className="ig-label">Sélection active</span>
           <h4>{matchDisplayName(selectedMatch)}</h4>
-          {!selectionVisible && <p>Cette game reste sélectionnée hors des résultats affichés.{selectionInScope && <> <button type="button" className="ig-text-action" onClick={showSelection}>Afficher dans la liste</button></>}</p>}
+          {!selectionVisible && <p>Cette game reste sélectionnée hors des résultats affichés.{selectionInScope && <> <button type="button" className="ig-text-action" onClick={revealSelection}>Afficher dans la liste</button></>}</p>}
         </div>
         <div className="ig-selection-actions">
           {selectionActions ?? <>
@@ -127,7 +127,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
           const matchCategories = matchCategoryIds(match).map((id) => categories.find((category) => String(category.id) === id)?.name).filter(Boolean);
           const allies = (match.participants || []).filter((row) => row.team_key === "ALLY").sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role)).slice(0, 5);
           return <li key={match.id}>
-            <button type="button" className="ig-game" disabled={selectionLocked} aria-pressed={active} onClick={() => onSelectMatch(active ? "" : match.id)} aria-label={`${active ? "Désélectionner" : "Sélectionner"} ${matchDisplayName(match)} · ${match.result || "Sans résultat"} · ${done ? "Review terminée" : "À revoir"} · ${match.game_id || "Game"}`}>
+            <button type="button" className="ig-game" data-match-id={match.id} disabled={selectionLocked} aria-pressed={active} onClick={() => onSelectMatch(active ? "" : match.id)} aria-label={`${active ? "Désélectionner" : "Sélectionner"} ${matchDisplayName(match)} · ${match.result || "Sans résultat"} · ${done ? "Review terminée" : "À revoir"} · ${match.game_id || "Game"}`}>
               <span className={`ig-result ${won ? "ig-win" : lost ? "ig-loss" : ""}`}><span aria-hidden="true">{won ? "V" : lost ? "D" : "—"}</span>{won ? "Victoire" : lost ? "Défaite" : "Sans résultat"}</span>
               <span className="ig-game-identity"><strong>{matchDisplayName(match)}</strong><span>{match.game_id || "Identifiant indisponible"}</span><span className="ig-game-categories">{matchCategories.length ? matchCategories.join(" · ") : "Non classée"}</span>{history && (match.created_by_name || match.created_by_account) && <span>Par {match.created_by_name || match.created_by_account}</span>}</span>
               <span className="ig-composition"><span className="ig-champions">{allies.length ? allies.map((row, index) => <ChampionPortrait key={row.id || index} row={row} champion={row.champion} alt={championDisplayName(row.champion)} className="ig-champion" />) : <span className="ig-missing">Composition indisponible</span>}</span><span className={`ig-side ${side ? `ig-side-${side}` : ""}`}>{side === "blue" ? "Côté bleu" : side === "red" ? "Côté rouge" : "Côté inconnu"}</span></span>
@@ -139,8 +139,8 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
         })}</ul> : <div className="ig-empty">
           <Search aria-hidden="true" />
           <h4>{hasFilters ? "Aucune game ne correspond" : history ? "Aucune game importée" : "Aucune game dans cette sélection"}</h4>
-          <p>{hasFilters ? "Essaie moins de mots ou élargis tes filtres." : history ? "Importe une première game pour alimenter ton historique et tes statistiques." : "Choisis une autre catégorie pour retrouver tes games."}</p>
-          {hasFilters ? <Button type="button" variant="ghost" onClick={resetFilters}>Réinitialiser les filtres</Button> : onResetScope && <Button type="button" variant="ghost" onClick={onResetScope}>Voir toutes les games</Button>}
+          <p>{hasFilters ? "Essaie moins de mots ou élargis tes filtres." : emptyAction ? "Importe une première game pour retrouver ici ses statistiques." : history ? "Importe une première game pour alimenter ton historique et tes statistiques." : "Choisis une autre catégorie pour retrouver tes games."}</p>
+          {hasFilters ? <Button type="button" variant="ghost" onClick={resetFilters}>Réinitialiser les filtres</Button> : emptyAction || onResetScope && <Button type="button" variant="ghost" onClick={onResetScope}>Voir toutes les games</Button>}
         </div>}
       </div>
       {results.length > 0 && <footer className="ig-pagination">

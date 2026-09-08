@@ -283,7 +283,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const page = useMemo(() => {
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
-    if (active === "matches" || active === "stats" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
+    if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} />;
     if (active === "draft") return <DraftWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
@@ -370,7 +370,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         />
         <main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-8 xl:px-10 2xl:px-12">
           <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-          {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onClose={hideBeginnerCompass} />}
+          {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onImport={() => navigate("/games?import=1")} onClose={hideBeginnerCompass} />}
           <React.Fragment>
             <div key={active} className="nxt5-fade-in min-w-0">
               <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{data.selectedTeamId === selectedTeamId ? page : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
@@ -462,8 +462,8 @@ export default function NXT5() {
   useEffect(() => {
     const navTitle = route.path === "/profil" || route.path.startsWith("/profil/") || route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")
       ? `Profil > ${profileViewLabel(profileViewFromPath(route.path))}`
-      : ["/integration", "/statistiques", "/rapports"].includes(route.path)
-        ? `Games & review > ${gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))}`
+      : ["/games", "/integration", "/statistiques", "/rapports"].includes(route.path)
+        ? gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))
       : NAV.find((item) => item.path === route.path)?.label;
     const publicTitles = {
       "/": "NXT5",

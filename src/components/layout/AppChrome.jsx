@@ -1,7 +1,7 @@
 import React from "react";
 import { Activity, AlertTriangle, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
-import { draftViewFromPath, draftViewLabel, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
+import { draftViewFromPath, draftViewLabel, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
 import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
 import { Nxt5Wordmark, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
 import { Badge, Button } from "../ui/Core.jsx";
@@ -24,7 +24,7 @@ export function AmbientBackground() {
   );
 }
 
-export function BeginnerCompass({ active, data, currentTeam, onNavigate, onClose }) {
+export function BeginnerCompass({ active, data, currentTeam, onNavigate, onImport, onClose }) {
   if (!currentTeam) return null;
   const teamMatches = (data.matches || []).filter((match) => match.team_id === currentTeam.id);
   const teamPlayers = (data.players || []).filter((player) => player.team_id === currentTeam.id);
@@ -42,6 +42,7 @@ export function BeginnerCompass({ active, data, currentTeam, onNavigate, onClose
     { id: "reports", icon: FileText, label: "Décider", text: teamReports.length ? `${teamReports.length} review${teamReports.length > 1 ? "s" : ""}` : "Écris une review", done: teamReports.length >= 1 },
   ];
   const nextStep = steps.find((step) => !step.done) || steps[2];
+  const goToStep = (step) => step.id === "matches" && onImport ? onImport() : onNavigate(step.id);
   return <section className="nxt5-panel nxt5-premium-panel nxt5-surface mb-4 overflow-hidden border p-3">
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
       <div className="min-w-0">
@@ -50,15 +51,15 @@ export function BeginnerCompass({ active, data, currentTeam, onNavigate, onClose
         <p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-300">Prépare le roster, importe une game, consulte les stats puis écris la review.</p>
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
-        <Button type="button" icon={nextStep.icon} onClick={() => onNavigate(nextStep.id)} className="px-3 py-2 text-xs">Continuer : {nextStep.label}</Button>
+        <Button type="button" icon={nextStep.icon} onClick={() => goToStep(nextStep)} className="px-3 py-2 text-xs">Continuer : {nextStep.label}</Button>
         <Button type="button" variant="ghost" icon={X} onClick={onClose} className="px-3 py-2 text-xs">Masquer</Button>
       </div>
     </div>
     <div className="mt-3 grid gap-2 md:grid-cols-4">
       {steps.map((step, index) => {
         const Icon = step.icon;
-        const selected = active === step.id || (step.id === "matches" && active === "stats");
-        return <button key={step.id} type="button" onClick={() => onNavigate(step.id)} className={cx("flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left transition", selected ? "border-cyan-200/32 bg-cyan-300/10" : step.done ? "border-emerald-200/16 bg-emerald-300/[0.045]" : "border-white/10 bg-white/[0.028] hover:border-cyan-200/20 hover:bg-cyan-300/[0.055]")}>
+        const selected = active === step.id;
+        return <button key={step.id} type="button" onClick={() => goToStep(step)} className={cx("flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left transition", selected ? "border-cyan-200/32 bg-cyan-300/10" : step.done ? "border-emerald-200/16 bg-emerald-300/[0.045]" : "border-white/10 bg-white/[0.028] hover:border-cyan-200/20 hover:bg-cyan-300/[0.055]")}>
           <span className={cx("grid h-8 w-8 shrink-0 place-items-center rounded-lg border text-xs font-black", step.done ? "border-emerald-200/24 bg-emerald-300/10 text-emerald-100" : "border-cyan-200/18 bg-cyan-300/10 text-cyan-100")}>{step.done ? <Check className="h-4 w-4" /> : `0${index + 1}`}</span>
           <span className="min-w-0"><span className="flex items-center gap-1.5 truncate text-xs font-black text-white"><Icon className="h-3.5 w-3.5 shrink-0" />{step.label}</span><span className="mt-0.5 block truncate text-[0.64rem] font-semibold text-slate-400">{step.text}</span></span>
         </button>;
@@ -132,7 +133,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
 
 export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
-  const navLabel = active === "profile" ? `${nav.label} > ${profileViewLabel(profileViewFromPath(window.location.pathname))}` : active === "matches" ? `${nav.label} > ${gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(window.location.pathname))}` : active === "draft" ? `${nav.label} > ${draftViewLabel(draftViewFromPath(window.location.pathname))}` : nav.label;
+  const navLabel = active === "profile" ? `${nav.label} > ${profileViewLabel(profileViewFromPath(window.location.pathname))}` : active === "draft" ? `${nav.label} > ${draftViewLabel(draftViewFromPath(window.location.pathname))}` : nav.label;
   const [teamMenuOpen, setTeamMenuOpen] = React.useState(false);
   const isAdmin = active === "admin";
   return <header className="nxt5-topbar sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button type="button" aria-label="Ouvrir le menu" onClick={() => setOpen(true)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block">{isAdmin ? <div className="grid h-11 w-11 place-items-center rounded-xl border border-fuchsia-200/25 bg-fuchsia-400/10 text-fuchsia-100"><ShieldCheck className="h-5 w-5" /></div> : <TeamAvatar team={currentTeam} />}</div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{navLabel}</p>{isAdmin ? <h1 className="nxt5-metal-text mt-0.5 truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">Administration</h1> : <><button type="button" aria-expanded={teamMenuOpen} aria-label={`Choisir une équipe : ${currentTeam?.name || nav.label}`} onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text break-words text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><React.Fragment>{teamMenuOpen && <div className="nxt5-enter-fast nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(20rem,calc(100vw-5rem))] overflow-hidden border border-cyan-200/30 bg-[#050814] p-2 shadow-[0_30px_80px_rgba(0,0,0,.72),0_0_36px_rgba(34,211,238,.16)] ring-1 ring-white/10"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),rgba(5,8,20,.96)_42%,rgba(217,70,239,.10))]" /> <div className="relative z-10">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition", currentTeam?.id === team.id ? "border-cyan-200/25 bg-cyan-400/14 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent bg-[#070d1c] text-slate-200 hover:border-cyan-200/18 hover:bg-[#0b1428] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/22 bg-[#071221] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/12"><Plus className="h-4 w-4" />Créer une nouvelle team</button></div></div>}</React.Fragment></>}</div></div>{currentTeam && !isAdmin && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} aria-label="Gestion de l’équipe" className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;

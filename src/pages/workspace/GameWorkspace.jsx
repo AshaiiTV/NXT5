@@ -1,20 +1,21 @@
-import { PNG_THEME, pngAccent, pngTint, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
-import React, { useEffect, useState, useDeferredValue, useMemo } from "react";
+import { PNG_THEME, pngAccent, pngTint, pngFitText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
+import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
-import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, SelectInput, TextInput } from "../../components/ui/Core.jsx";
-import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, ArrowRight, Pencil, Settings, CalendarDays, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight } from "lucide-react";
-import { apiFetch, apiUploadJson } from "../../api/client.js";
-import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
+import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput } from "../../components/ui/Core.jsx";
+import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft } from "lucide-react";
+import { apiFetch } from "../../api/client.js";
+import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
+import "./games-workspace.css";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
-import { importedGameImportTimestamp } from "../../utils/imported-games.js";
-import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
-import { matchCategoryIds, matchDisplayName, matchHasCategory } from "../../utils/matches.js";
+
+import { cx, tone } from "../../app/helpers.js";
+import { matchDisplayName } from "../../utils/matches.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
-import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane, ROSTER_ROLE_ORDER, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
@@ -334,585 +335,8 @@ function winningTeamForDiff(value) {
   return diff > 0 ? "ally" : "enemy";
 }
 
-function matchImportTitle(match) {
-  return matchDisplayName(match, "Import");
-}
-
-function matchCategoriesForMatch(match, categories) {
-  return matchCategoryIds(match)
-    .map((id) => (categories || []).find((category) => String(category.id || "") === String(id)))
-    .filter(Boolean);
-}
-
-function CategoryMultiSelect({ categories, selectedIds, onChange, label = "Catégories" }) {
-  const ids = Array.isArray(selectedIds) ? selectedIds.map(String) : [];
-  const toggle = (categoryId) => {
-    const id = String(categoryId || "");
-    onChange(ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
-  };
-  return <div>
-    <p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">{label}</p>
-    <div className="flex flex-wrap gap-2">
-      {(categories || []).map((category) => {
-        const active = ids.includes(String(category.id));
-        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? [tone(matchCategoryTone(category)), "scale-[1.03] ring-2 ring-white/55 shadow-[0_0_24px_rgba(34,211,238,.24)]"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
-      })}
-      {!categories?.length && <Badge tone="slate">Aucune catégorie</Badge>}
-    </div>
-  </div>;
-}
-
-function JsonUploadProgress({ progress }) {
-  if (!progress?.active) return null;
-  const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
-  const uploaded = progress.total ? `${formatUploadSize(progress.loaded)} / ${formatUploadSize(progress.total)}` : "Calcul de l’upload...";
-  const phaseLabel = progress.phase === "server" ? "JSON envoyé, analyse NXT5 en cours" : "Upload du JSON";
-  return <div className="rounded-2xl border border-cyan-300/18 bg-cyan-400/[0.07] p-3">
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-cyan-100">{progress.label || phaseLabel}</p>
-        <p className="mt-1 text-xs font-semibold text-slate-300">{phaseLabel} · {uploaded}</p>
-      </div>
-      <span className="shrink-0 text-sm font-black text-white">{percent}%</span>
-    </div>
-    <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/35">
-      <div className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-sky-400 to-fuchsia-300 shadow-[0_0_18px_rgba(34,211,238,.35)] transition-[width] duration-150 ease-out" style={{ width: `${percent}%` }} />
-    </div>
-  </div>;
-}
-
-function ImportRoleHeader({ role, toneName = "cyan", player = null, fallbackLabel = "À lier" }) {
-  const roleTone = toneName === "red"
-    ? "border-rose-200/20 bg-rose-500/[0.08] text-rose-100"
-    : "border-cyan-200/20 bg-cyan-400/[0.08] text-cyan-100";
-  const chipTone = player
-    ? "border-white/10 bg-white/[0.055] text-white"
-    : "border-white/10 bg-black/20 text-slate-400";
-  return (
-    <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
-      <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border", roleTone)}>
-        <RoleIcon role={role} className="h-5 w-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">Poste</span>
-        <span className="block truncate text-sm font-black text-white">{roleLabel(role)}</span>
-      </span>
-      <span className={cx("min-w-0 max-w-[46%] shrink rounded-lg border px-2 py-1 text-right text-[0.62rem] font-black uppercase tracking-[0.08em]", chipTone)}>
-        <span className="block truncate">{player?.name || fallbackLabel}</span>
-      </span>
-    </div>
-  );
-}
-
-function ImportHistoryEditor({ match, categories, roster, editing, editForm, saving, roleForm, onCancel, onSave, onChange, onRoleChange, onPlayerChange }) {
-  return <form className="ih-editor" onSubmit={(event) => { event.preventDefault(); if (!saving) onSave(); }}>
-    <header><h4>{editing ? "Modifier la game" : "Réassigner postes et profils"}</h4><p>{editing ? "Ajuste le nom et les catégories utilisés dans les stats et les reviews." : "Associe chaque champion au bon poste et au bon profil NXT5."}</p></header>
-    <fieldset disabled={saving}>
-      {editing ? <div className="ih-edit-fields">
-        <TextInput label="Nom de la game" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Game 1 vs BK, Finale LB…" required icon={FileText} />
-        <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} />
-      </div> : <div className="ih-teams">{["ALLY", "ENEMY"].map((teamKey) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()}`}>
-        <h5>{teamKey === "ALLY" ? "Notre équipe" : "Adversaires"}</h5>
-        <div className="ih-roster">{(match.participants || []).filter((row) => row.team_key === teamKey).map((row) => {
-          const value = roleForm[row.id];
-          const form = value && typeof value === "object" ? value : { role: value || row.role || "", playerId: row.player_id || "" };
-          const champion = championDisplayName(row.champion);
-          return <div key={row.id} className="ih-participant">
-            <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion}</strong><span>{row.summoner_name || row.riot_id || "Joueur"}</span></div></div>
-            <div className="ih-role-fields">
-              <SelectInput label={`Poste · ${champion}`} value={form.role || ""} onChange={(role) => onRoleChange(row.id, role)}><option value="" disabled>À attribuer</option>{COMP_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
-              {teamKey === "ALLY" && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">Conserver le profil</option>{form.playerId && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>Profil lié hors roster</option>}{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>}
-            </div>
-          </div>;
-        })}</div>
-        {!(match.participants || []).some((row) => row.team_key === teamKey) && <p className="ih-no-participants">Aucun participant disponible.</p>}
-      </section>)}</div>}
-      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || (editing ? !editForm.label.trim() : !match.participants?.length)}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></div>
-    </fieldset>
-  </form>;
-}
-
-function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, user }) {
-  const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-  const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-  const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-  const [allyTeamSide, setAllyTeamSide] = useState("");
-  const [importDetails, setImportDetails] = useState({ label: "", categoryIds: [] });
-  const [importPreview, setImportPreview] = useState(null);
-  const [previewPayload, setPreviewPayload] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [fileImporting, setFileImporting] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(null);
-  const [editingMatchId, setEditingMatchId] = useState("");
-  const [matchEditForm, setMatchEditForm] = useState({ label: "", categoryIds: [] });
-  const [managingMatchId, setManagingMatchId] = useState("");
-  const [categoryForm, setCategoryForm] = useState({ name: "", color: "cyan" });
-  const [categoryCreatorOpen, setCategoryCreatorOpen] = useState(false);
-  const [savingCategory, setSavingCategory] = useState(false);
-  const [roleEditorMatchId, setRoleEditorMatchId] = useState("");
-  const [roleEditForm, setRoleEditForm] = useState({});
-  const [historyMatchId, setHistoryMatchId] = useState("");
-  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
-  useEffect(() => {
-    setHistoryMatchId("");
-    setEditingMatchId("");
-    setMatchEditForm({ label: "", categoryIds: [] });
-    setRoleEditorMatchId("");
-    setRoleEditForm({});
-    setCategoryManagerOpen(false);
-    setCategoryCreatorOpen(false);
-  }, [selectedTeamId]);
-  useEffect(() => {
-    if (historyMatchId && !(data.matches || []).some((match) => match.id === historyMatchId && match.team_id === selectedTeamId)) {
-      setHistoryMatchId("");
-      setEditingMatchId("");
-      setRoleEditorMatchId("");
-    }
-  }, [data.matches, historyMatchId, selectedTeamId]);
-  const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
-  const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
-  const canManageCategories = selectedTeam?.owner_id === user?.id || canStaffManage(currentMember?.role);
-  const gameplayRoster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
-  function updateUploadProgress(next) {
-    setUploadProgress((current) => ({ ...(current || {}), ...(next || {}), active: true }));
-  }
-  function clearUploadProgressSoon() {
-    window.setTimeout(() => setUploadProgress(null), 1200);
-  }
-  function updateLaneAssignment(role, value) {
-    setLaneAssignments((current) => ({ ...current, [role]: value }));
-  }
-  function updateEnemyLaneAssignment(role, value) {
-    setEnemyLaneAssignments((current) => ({ ...current, [role]: value }));
-  }
-  function updatePlayerAssignment(role, value) {
-    setPlayerAssignments((current) => ({ ...current, [role]: value }));
-  }
-  function rosterAssignmentsByRole() {
-    return COMP_ROLES.reduce((next, role) => {
-      next[role] = gameplayRoster.find((player) => player.role === role)?.id || "";
-      return next;
-    }, {});
-  }
-  function normalizePreviewRole(value) {
-    const raw = String(value || "").toUpperCase();
-    if (raw === "JUNGLE") return "JGL";
-    if (raw === "MIDDLE") return "MID";
-    if (raw === "BOTTOM") return "ADC";
-    if (raw === "UTILITY" || raw === "SUPPORT") return "SUP";
-    if (COMP_ROLES.includes(raw)) return raw;
-    return "";
-  }
-  function previewRiotRole(participant) {
-    return normalizePreviewRole(participant?.teamPosition || participant?.individualPosition || participant?.lane);
-  }
-  function previewFallbackRole(participant, index) {
-    const participantId = Number(participant?.participantId || 0);
-    if (participantId) return COMP_ROLES[(participantId - 1) % 5] || "";
-    return COMP_ROLES[index] || "";
-  }
-  function previewRole(participant, index) {
-    return previewRiotRole(participant) || previewFallbackRole(participant, index);
-  }
-  function previewAssignmentValue(participant) {
-    return participant?.riotId || participant?.summonerName || participant?.champion || "";
-  }
-  function preportIdentityKeys(participant) {
-    const riotId = String(participant?.riotId || "").trim();
-    const summonerName = String(participant?.summonerName || "").trim();
-    const values = [riotId, summonerName];
-    if (riotId.includes("#")) values.push(riotId.split("#")[0]);
-    return [...new Set(values.map(normalizeProfileKey).filter(Boolean))];
-  }
-  function rosterIdentityLookup() {
-    const lookup = new Map();
-    gameplayRoster.forEach((player) => {
-      [player.riot_id, player.name].forEach((value) => {
-        const key = normalizeProfileKey(value);
-        if (key && !lookup.has(key)) lookup.set(key, player);
-      });
-      const riotName = String(player.riot_id || "").split("#")[0];
-      const riotNameKey = normalizeProfileKey(riotName);
-      if (riotNameKey && !lookup.has(riotNameKey)) lookup.set(riotNameKey, player);
-    });
-    return lookup;
-  }
-  function matchedRosterPlayer(participant, lookup) {
-    return preportIdentityKeys(participant).map((key) => lookup.get(key)).find(Boolean) || null;
-  }
-  function previewRoleScore(participant, role, index, matchedPlayer) {
-    const riotRole = previewRiotRole(participant);
-    const fallbackRole = previewFallbackRole(participant, index);
-    const champion = participant?.champion;
-    let score = 0;
-    if (matchedPlayer?.role === role) score += 140;
-    if (matchedPlayer && matchedPlayer.role !== role) score -= 70;
-    if (riotRole === role) score += 110;
-    if (riotRole && riotRole !== role) score -= 55;
-    if (champion && championMatchesLane(champion, role)) score += 28;
-    if (fallbackRole === role) score += 10;
-    return score;
-  }
-  function roleParticipantMapForSide(side) {
-    const team = previewTeams.find((item) => item.side === side);
-    const participants = [...(team?.participants || [])].sort((a, b) => Number(a.participantId || 0) - Number(b.participantId || 0));
-    const lookup = rosterIdentityLookup();
-    const candidates = [];
-    participants.forEach((participant, index) => {
-      const matched = matchedRosterPlayer(participant, lookup);
-      COMP_ROLES.forEach((role) => {
-        candidates.push({ role, participant, matched, score: previewRoleScore(participant, role, index, matched) });
-      });
-    });
-    candidates.sort((a, b) => b.score - a.score);
-    const byRole = new Map();
-    const usedParticipants = new Set();
-    candidates.forEach((candidate) => {
-      const key = candidate.participant?.participantId || previewAssignmentValue(candidate.participant);
-      if (!key || candidate.score <= -40 || byRole.has(candidate.role) || usedParticipants.has(key)) return;
-      byRole.set(candidate.role, candidate);
-      usedParticipants.add(key);
-    });
-    COMP_ROLES.forEach((role) => {
-      if (byRole.has(role)) return;
-      const fallback = participants.find((participant, index) => {
-        const key = participant?.participantId || previewAssignmentValue(participant);
-        return !usedParticipants.has(key) && previewFallbackRole(participant, index) === role;
-      }) || participants.find((participant) => {
-        const key = participant?.participantId || previewAssignmentValue(participant);
-        return !usedParticipants.has(key);
-      });
-      if (!fallback) return;
-      const key = fallback?.participantId || previewAssignmentValue(fallback);
-      byRole.set(role, { role, participant: fallback, matched: matchedRosterPlayer(fallback, lookup), score: 0 });
-      usedParticipants.add(key);
-    });
-    return byRole;
-  }
-  function laneAssignmentsForSide(side) {
-    const byRole = roleParticipantMapForSide(side);
-    return COMP_ROLES.reduce((next, role) => {
-      next[role] = previewAssignmentValue(byRole.get(role)?.participant);
-      return next;
-    }, {});
-  }
-  function playerAssignmentsForSide(side) {
-    const defaults = rosterAssignmentsByRole();
-    const byRole = roleParticipantMapForSide(side);
-    return COMP_ROLES.reduce((next, role) => {
-      next[role] = byRole.get(role)?.matched?.id || defaults[role] || "";
-      return next;
-    }, {});
-  }
-  function selectImportSide(side) {
-    const enemySide = side === "BLUE" ? "RED" : "BLUE";
-    setAllyTeamSide(side);
-    setLaneAssignments(laneAssignmentsForSide(side));
-    setEnemyLaneAssignments(laneAssignmentsForSide(enemySide));
-    setPlayerAssignments(playerAssignmentsForSide(side));
-  }
-  function resetImportDraft() {
-    setImportPreview(null);
-    setPreviewPayload(null);
-    setAllyTeamSide("");
-    setImportDetails({ label: "", categoryIds: [] });
-    setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-    setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-    setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-  }
-  function startEditMatch(match) {
-    setRoleEditorMatchId("");
-    setRoleEditForm({});
-    setEditingMatchId(match.id);
-    setMatchEditForm({ label: matchImportTitle(match), categoryIds: matchCategoryIds(match) });
-  }
-  function cancelEditMatch() {
-    setEditingMatchId("");
-    setMatchEditForm({ label: "", categoryIds: [] });
-  }
-  function toggleRoleEditor(match) {
-    cancelEditMatch();
-    const open = roleEditorMatchId === match.id;
-    setRoleEditorMatchId(open ? "" : match.id);
-    setRoleEditForm(open ? {} : Object.fromEntries((match.participants || []).map((row) => [row.id, { role: row.role || "", playerId: row.player_id || "" }])));
-  }
-  function updateRoleEdit(participantId, role) {
-    setRoleEditForm((current) => {
-      const previous = current[participantId];
-      const form = previous && typeof previous === "object" ? previous : { role: previous || "", playerId: "" };
-      return { ...current, [participantId]: { ...form, role } };
-    });
-  }
-  function updatePlayerEdit(participantId, playerId) {
-    setRoleEditForm((current) => {
-      const previous = current[participantId];
-      const form = previous && typeof previous === "object" ? previous : { role: previous || "", playerId: "" };
-      return { ...current, [participantId]: { ...form, playerId } };
-    });
-  }
-  async function saveMatchRoles(match) {
-    setManagingMatchId(match.id);
-    try {
-      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "roles", teamId: selectedTeamId, matchId: match.id, roles: roleEditForm }) });
-      setRoleEditorMatchId("");
-      setRoleEditForm({});
-      await refreshAll();
-      pushToast({ type: "green", title: "Assignation corrigée", text: "Les profils, statistiques et lectures 5v5 utilisent les bons joueurs." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Correction impossible", text: err.message });
-    } finally {
-      setManagingMatchId("");
-    }
-  }
-  async function saveMatchHistory(match) {
-    setManagingMatchId(match.id);
-    try {
-      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "update", teamId: selectedTeamId, matchId: match.id, label: matchEditForm.label, categoryIds: matchEditForm.categoryIds || [] }) });
-      cancelEditMatch();
-      await refreshAll();
-      pushToast({ type: "green", title: "Import renommé", text: "Les statistiques et reviews utilisent le nouvel intitulé." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Renommage impossible", text: err.message });
-    } finally {
-      setManagingMatchId("");
-    }
-  }
-  async function createMatchCategory(event) {
-    event.preventDefault();
-    if (!canManageCategories || !categoryForm.name.trim()) return;
-    setSavingCategory(true);
-    try {
-      await apiFetch("match-categories-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, name: categoryForm.name, color: categoryForm.color }) });
-      setCategoryForm({ name: "", color: "cyan" });
-      setCategoryCreatorOpen(false);
-      await refreshAll();
-      pushToast({ type: "green", title: "Catégorie créée", text: "Tu peux maintenant classer tes games dedans." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Création impossible", text: err.message });
-    } finally {
-      setSavingCategory(false);
-    }
-  }
-  async function deleteMatchCategory(category) {
-    if (!canManageCategories || !category || category.is_default) return;
-    if (!window.confirm(`Supprimer la catégorie "${category.name}" ? Les games resteront importées mais seront non classées.`)) return;
-    setSavingCategory(true);
-    try {
-      await apiFetch("match-categories-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, categoryId: category.id }) });
-      await refreshAll();
-      pushToast({ type: "green", title: "Catégorie supprimée", text: "Les games associées ont été conservées." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
-    } finally {
-      setSavingCategory(false);
-    }
-  }
-  async function deleteMatchHistory(match) {
-    if (!window.confirm(`Supprimer l'import "${matchImportTitle(match)}" ? Les statistiques, reviews auto et groupes liés seront mis à jour.`)) return;
-    setManagingMatchId(match.id);
-    try {
-      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, matchId: match.id }) });
-      await refreshAll();
-      pushToast({ type: "green", title: "Import supprimé", text: "Les autres pages ont été recalculées sans cette game." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
-    } finally {
-      setManagingMatchId("");
-    }
-  }
-  async function confirmImport(event) {
-    event.preventDefault();
-    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [] };
-    setImporting(true);
-    setUploadProgress({ active: true, label: "Import final", phase: "upload", percent: 0, loaded: 0, total: 0 });
-    try {
-      const result = await apiUploadJson("matches-import-file", payload, updateUploadProgress);
-      resetImportDraft();
-      await refreshAll();
-      pushToast({ type: "green", title: "Game importée", text: "Side, profils et lanes ont été appliqués à cette game." });
-      for (const warning of result?.warnings || []) pushToast({ type: "yellow", title: "Analyse à compléter", text: warning.message });
-      clearUploadProgressSoon();
-    } catch (err) {
-      pushToast(errorToast(err, "Import impossible", "match-import"));
-      clearUploadProgressSoon();
-    } finally {
-      setImporting(false);
-    }
-  }
-  async function importLocalFile(file) {
-    if (!file) return;
-    setFileImporting(true);
-    setUploadProgress({ active: true, label: file.name || "Prévisualisation JSON", phase: "prepare", percent: 0, loaded: 0, total: file.size || 0 });
-    try {
-      const text = await file.text();
-      const payload = JSON.parse(text);
-      const result = await apiUploadJson("matches-import-file", { teamId: selectedTeamId, payload, previewOnly: true }, updateUploadProgress);
-      resetImportDraft();
-      setPreviewPayload(payload);
-      setImportPreview(result.match);
-      setImportDetails({
-        label: payload?.label || payload?.metadata?.label || payload?.opponent || payload?.metadata?.opponent || "",
-        categoryIds: []
-      });
-      pushToast({ type: "green", title: "JSON chargé", text: "Choisis ton side, les champions et les profils avant de confirmer." });
-      clearUploadProgressSoon();
-    } catch (err) {
-      if (err instanceof SyntaxError) pushToast({ type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Importer." });
-      else pushToast(errorToast(err, "Import fichier impossible", "match-import"));
-      clearUploadProgressSoon();
-    } finally {
-      setFileImporting(false);
-    }
-  }
-
-  const teamMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
-  const historyMatch = teamMatches.find((match) => match.id === historyMatchId);
-  const historyImportedAt = importedGameImportTimestamp(historyMatch);
-  const historyEditing = Boolean(historyMatch && (editingMatchId === historyMatch.id || roleEditorMatchId === historyMatch.id));
-  const historyLocked = historyEditing || Boolean(managingMatchId);
-  const laneAssignmentsReady = COMP_ROLES.every((role) => String(laneAssignments[role] || "").trim() && String(playerAssignments[role] || "").trim());
-  const enemyAssignmentsReady = COMP_ROLES.every((role) => String(enemyLaneAssignments[role] || "").trim());
-  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
-  const previewTeams = importPreview?.teams || [];
-  const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
-  const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
-  const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
-  const importFlowSteps = [
-    [Upload, "JSON", "Charge le fichier de la game.", Boolean(importPreview)],
-    [Shield, "Side", "Choisis ton équipe dans la game.", Boolean(allyTeamSide)],
-    [Users, "Roster", "Valide lanes et profils NXT5.", laneAssignmentsReady && enemyAssignmentsReady],
-    [Check, "Résumé", "Nom, catégorie et import final.", importReady],
-  ];
-  return (
-    <div className="nxt5-data-dense nxt5-import-page min-w-0 overflow-hidden">
-      <PageHeader eyebrow="Intégration" title="Intégration des games" />
-      <div className="grid min-w-0 gap-5">
-        <ImporterDownloadPanel fileImporting={fileImporting} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
-          {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
-        </ImporterDownloadPanel>
-
-        {importPreview && <Surface className="min-w-0 p-5">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Sélectionne le side de ton équipe, puis valide les lanes et profils avant de confirmer l’import.</p></div>
-          </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-4">
-            {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("min-w-0 rounded-2xl p-3", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
-              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="text-xs font-black uppercase tracking-[0.14em]">{index + 1}. {title}</span></span>{done && <Check className="h-4 w-4 shrink-0" />}</div>
-              <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{text}</p>
-            </div>)}
-          </div>
-              <div className="mt-4 space-y-4">
-                <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
-                  <TextInput label="Nom de la game" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1 vs BK, Finale LB..." required icon={FileText} />
-                  <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} />
-                </div>
-                <div className="grid gap-3 lg:grid-cols-2">
-                  {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} className={cx("rounded-2xl border p-4 text-left transition hover:-translate-y-0.5", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
-                    <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Blue Side" : "Red Side"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div>
-                    <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="truncate text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
-                  </button>)}
-                </div>
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <div className="rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide || "Side ?"}</Badge></div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                      {COMP_ROLES.map((role) => {
-                        const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
-                        const pickedChampion = selectedPreviewParticipant(allyPreviewTeam, laneAssignments[role]);
-                        return <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
-                          <ImportRoleHeader role={role} player={assignedPlayer} />
-                          <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
-                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Swords className="h-4 w-4" /></span>}
-                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
-                          </div>
-                          <select value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
-                            <option value="">Champion joué</option>
-                            {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
-                          </select>
-                          <select value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="mt-2 w-full rounded-xl border border-cyan-300/14 bg-cyan-400/[0.07] px-3 py-2 text-xs font-black text-white outline-none">
-                            <option value="">Profil NXT5 lié</option>
-                            {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}{player.riot_id ? ` · ${player.riot_id}` : ""}</option>)}
-                          </select>
-                        </div>;
-                      })}
-                    </div>
-                  </div>
-                  <div className="rounded-[1.35rem] border border-rose-300/14 bg-rose-500/[0.055] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side || "Side ?"}</Badge></div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                      {COMP_ROLES.map((role) => {
-                        const pickedChampion = selectedPreviewParticipant(enemyPreviewTeam, enemyLaneAssignments[role]);
-                        return (
-                        <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", enemyLaneAssignments[role] ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
-                          <ImportRoleHeader role={role} toneName="red" fallbackLabel="Adverse" />
-                          <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
-                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Shield className="h-4 w-4" /></span>}
-                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion adverse"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
-                          </div>
-                          <select value={enemyLaneAssignments[role] || ""} onChange={(event) => updateEnemyLaneAssignment(role, event.target.value)} disabled={!enemyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
-                            <option value="">Champion adverse</option>
-                            {(enemyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
-                          </select>
-                        </div>
-                      );})}
-                    </div>
-                  </div>
-                </div>
-                 {importReady && <div className="rounded-2xl border border-emerald-200/16 bg-emerald-400/[0.055] p-4">
-                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                     <div className="min-w-0">
-                       <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-emerald-100">Résumé avant import</p>
-                       <p className="mt-1 truncate text-lg font-black text-white">{importDetails.label}</p>
-                       <p className="mt-1 text-sm font-semibold text-slate-300">{allyTeamSide} side · {COMP_ROLES.map((role) => gameplayRoster.find((player) => player.id === playerAssignments[role])?.name || role).join(" / ")}</p>
-                     </div>
-                     <Badge tone="green">Prêt</Badge>
-                   </div>
-                 </div>}
-                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
-              </div>
-        </Surface>}
-      </div>
-
-      <ImportedGames
-        key={selectedTeamId}
-        history
-        matches={teamMatches}
-        categories={matchCategories}
-        selectedMatchId={historyMatchId}
-        selectedMatch={historyMatch}
-        selectionLocked={historyLocked}
-        onSelectMatch={(id) => { if (!historyLocked) setHistoryMatchId(id); }}
-        headerActions={canManageCategories && <Button type="button" variant="ghost" icon={Settings} aria-expanded={categoryManagerOpen} aria-controls="import-category-manager" onClick={() => setCategoryManagerOpen((open) => !open)}>Gérer les catégories</Button>}
-        categoryManager={canManageCategories && categoryManagerOpen && <section id="import-category-manager" className="ih-categories" aria-label="Gestion des catégories">
-          <header><div><h4>Catégories</h4><p>Organise tes games par contexte : scrim, ligue, bootcamp…</p></div><Button type="button" variant="ghost" icon={categoryCreatorOpen ? X : Plus} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen((open) => !open); setCategoryForm({ name: "", color: "cyan" }); }}>{categoryCreatorOpen ? "Fermer" : "Ajouter une catégorie"}</Button></header>
-          <ul className="ih-category-list">{matchCategories.map((category) => <li key={category.id}><span>{category.name}</span>{category.is_default ? <span className="ih-category-default">Par défaut</span> : <button type="button" className="ig-icon-button" onClick={() => deleteMatchCategory(category)} disabled={savingCategory} aria-label={`Supprimer la catégorie ${category.name}`}><X aria-hidden="true" /></button>}</li>)}</ul>
-          {!matchCategories.length && <p>Aucune catégorie pour le moment.</p>}
-          {categoryCreatorOpen && <form className="ih-category-create" onSubmit={createMatchCategory}>
-            <fieldset disabled={savingCategory}>
-              <TextInput label="Nom de la catégorie" value={categoryForm.name} onChange={(name) => setCategoryForm((current) => ({ ...current, name }))} placeholder="Ligue, Bootcamp…" required />
-              <SelectInput label="Couleur" value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>{[["cyan", "Cyan"], ["purple", "Violet"], ["green", "Vert"], ["yellow", "Jaune"], ["pink", "Rose"], ["red", "Rouge"], ["blue", "Bleu"], ["slate", "Ardoise"]].map(([color, name]) => <option key={color} value={color}>{name}</option>)}</SelectInput>
-              <Button type="submit" icon={savingCategory ? Loader2 : Plus} disabled={savingCategory || !categoryForm.name.trim()}>{savingCategory ? "Création…" : "Créer"}</Button>
-              <Button type="button" variant="ghost" onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }} disabled={savingCategory}>Annuler</Button>
-            </fieldset>
-          </form>}
-        </section>}
-        selectionActions={historyMatch && <>{!historyEditing && <>
-          <Button type="button" icon={ArrowRight} disabled={Boolean(managingMatchId)} onClick={() => openAppPath(`/statistiques?match=${encodeURIComponent(historyMatch.id)}`)}>Voir les stats</Button>
-          <Button type="button" variant="ghost" icon={Pencil} disabled={Boolean(managingMatchId)} onClick={() => startEditMatch(historyMatch)}>Modifier</Button>
-          <Button type="button" variant="ghost" icon={Settings} disabled={Boolean(managingMatchId)} onClick={() => toggleRoleEditor(historyMatch)}>Postes</Button>
-          <button type="button" className="ig-text-action ih-delete" disabled={Boolean(managingMatchId)} onClick={() => deleteMatchHistory(historyMatch)}><Trash2 aria-hidden="true" />{managingMatchId ? "Suppression…" : "Supprimer"}</button>
-        </>}{historyEditing && <span className="ih-editing-label">Modification en cours</span>}</>}
-        selectionDetails={historyMatch && <>
-          <p className="ih-import-meta">{historyImportedAt === null ? "Date d’import inconnue" : `Importée le ${new Date(historyImportedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}`}{(historyMatch.created_by_name || historyMatch.created_by_account) && <> · Par {historyMatch.created_by_name || historyMatch.created_by_account}</>} · {historyMatch.patch ? `Patch ${historyMatch.patch}` : "Patch inconnu"}</p>
-          {historyEditing && <ImportHistoryEditor match={historyMatch} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === historyMatch.id} editForm={matchEditForm} saving={managingMatchId === historyMatch.id} roleForm={roleEditForm}
-            onCancel={() => { cancelEditMatch(); setRoleEditorMatchId(""); setRoleEditForm({}); }}
-            onSave={() => editingMatchId === historyMatch.id ? saveMatchHistory(historyMatch) : saveMatchRoles(historyMatch)}
-            onChange={setMatchEditForm} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} />}
-        </>}
-      />
-    </div>
-  );
-}
+// Compatibility export: both former pages now share the Games workspace.
+function Matches(props) { return <Statistics {...props} />; }
 
 function objectiveEventTone(event) {
   const label = objectiveEventLabel(event).toLowerCase();
@@ -2009,7 +1433,7 @@ function MatchCoachBrief({ match }) {
   </section>;
 }
 
-function MatchDataPanel({ match, teamName }) {
+function MatchDataPanel({ match, teamName, statsFirst = false }) {
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -2020,14 +1444,15 @@ function MatchDataPanel({ match, teamName }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button></div></div><MatchCoachBrief match={match} /><MatchVersusOverview match={match} teamName={teamName} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
+  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 tabIndex={-1} className="mt-3 break-words text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div>{!statsFirst && <div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button></div>}</div>{statsFirst && metrics}{!statsFirst && <MatchCoachBrief match={match} />}<MatchVersusOverview match={match} teamName={teamName} />{!statsFirst && metrics}{statsFirst && <MatchCoachBrief match={match} />}<GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
   return Array.isArray(archive?.match_ids) ? archive.match_ids : [];
 }
 
-function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
+function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, showGames = true }) {
   const rows = matches.flatMap((match) => match.participants || []);
   const ally = rows.filter((row) => row.team_key === "ALLY");
   const enemy = rows.filter((row) => row.team_key === "ENEMY");
@@ -2051,146 +1476,108 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch }) {
       </div>
     </div>
     <div className="nxt5-kpi-grid mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
-    <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>
+    {showGames && <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>}
   </Surface>;
 }
 
 const GAME_WORKSPACE_TABS = [
-  { id: "import", label: "Importer", icon: Upload, hint: "Ajouter, corriger et classer les games", path: "/integration" },
-  { id: "stats", label: "Stats", icon: BarChart3, hint: "Lire une game ou un groupe", path: "/statistiques" },
-  { id: "review", label: "Review", icon: FileText, hint: "Rédiger et retrouver les reviews", path: "/rapports" },
+  { id: "games", label: "Games", icon: Swords, path: "/games" },
+  { id: "review", label: "Review", icon: FileText, path: "/rapports" },
 ];
 
-function GameWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route }) {
-  const initialSection = gameWorkspaceSectionFromPath(route?.path);
-  const [section, setSection] = useState(initialSection);
-  const teamMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
-  const teamReports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
-  const teamArchives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
-  const wins = teamMatches.filter((match) => match.result === "Victoire").length;
-
-  useEffect(() => {
-    setSection(initialSection);
-  }, [initialSection]);
-  const selectSection = (tab) => {
-    setSection(tab.id);
-    openAppPath(tab.path);
-  };
-
-  return <div className="nxt5-data-dense nxt5-game-workspace min-w-0 overflow-hidden">
-    <PageHeader
-      eyebrow="Games"
-      title="Games, stats et review"
-      subtitle="Importe les games, consulte les stats et prépare les reviews."
-    />
-    <Surface glow className="nxt5-workspace-tabs sticky top-3 z-20 mb-5 overflow-hidden p-3 sm:p-4">
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-        <TabNav label="Sections Games" items={GAME_WORKSPACE_TABS.map((tab) => ({ ...tab, description: tab.hint }))} activeId={section} onChange={(id) => selectSection(GAME_WORKSPACE_TABS.find((tab) => tab.id === id))} columns="sm:grid-cols-3" />
-        <div className="nxt5-workspace-kpis grid grid-cols-2 gap-2 xl:min-w-[14rem]">
-          <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-xl font-black text-white">{teamMatches.length}</p></div>
-          <div className="rounded-2xl border border-white/10 bg-black/22 p-3 text-center"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-xl font-black text-white">{Math.round((wins / Math.max(1, teamMatches.length)) * 100)}%</p></div>
-        </div>
-      </div>
-    </Surface>
-    <React.Fragment>
-      <div key={section} className="nxt5-enter-fast">
-        {section === "import" && <Matches data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} pushToast={pushToast} currentMember={currentMember} user={user} />}
-        {section === "stats" && <Statistics data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} />}
-        {section === "review" && <Reports data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
-      </div>
-    </React.Fragment>
-  </div>;
+function GameWorkspace(props) {
+  return gameWorkspaceSectionFromPath(props.route?.path) === "review"
+    ? <Reports key={props.selectedTeamId} {...props} />
+    : <Statistics key={props.selectedTeamId} {...props} />;
 }
 
-function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
+function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route }) {
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
-  const selectedTeamName = (data.teams || []).find((team) => String(team.id || "") === String(selectedTeamId || ""))?.name || "Notre équipe";
-  const urlMatchId = new URLSearchParams(window.location.search).get("match") || "";
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
-  const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId || "");
-  const [selectedArchiveId, setSelectedArchiveId] = useState("");
+  const selectedTeamName = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId))?.name || "Notre équipe";
+  const query = new URLSearchParams(route?.search ?? window.location.search);
+  const urlMatchId = query.get("match") || "";
+  const urlArchiveId = query.get("archive") || "";
+  const urlImportOpen = query.get("import") === "1";
+  const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : "games";
+  const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
+  const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
+  const [importOpen, setImportOpen] = useState(urlImportOpen);
+  const [importBusy, setImportBusy] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState(urlView);
   const [exportingStats, setExportingStats] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
-  const [archivesCollapsed, setArchivesCollapsed] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
-  const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
-  const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
+  const importTriggerRef = useRef(null);
+  const statsRef = useRef(null);
+  const listRef = useRef(null);
+  const previousSelection = useRef("");
+
+  useEffect(() => {
+    setSelectedMatchId(urlMatchId);
+    setSelectedArchiveId(urlArchiveId);
+    setImportOpen(urlImportOpen);
+    setWorkspaceView(urlView);
+  }, [urlMatchId, urlArchiveId, urlImportOpen, urlView]);
+
+  function updateLocation(changes) {
+    const next = new URLSearchParams(window.location.search);
+    Object.entries(changes).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
+    if ("match" in changes) setSelectedMatchId(changes.match || "");
+    if ("archive" in changes) setSelectedArchiveId(changes.archive || "");
+    if ("import" in changes) setImportOpen(changes.import === "1");
+    if ("view" in changes) setWorkspaceView(changes.view === "groups" ? "groups" : "games");
+    openAppPath(`/games${next.size ? `?${next}` : ""}`);
+  }
+  const selectMatch = (id) => updateLocation({ match: id });
+  const selectArchive = (id) => updateLocation({ archive: id, match: "", view: "groups" });
+  const selectView = (id) => updateLocation({ view: id === "groups" ? "groups" : "", archive: "", match: "" });
+  useEffect(() => {
+    if (selectedMatchId) {
+      (statsRef.current?.querySelector?.("h3") || statsRef.current)?.focus({ preventScroll: true });
+      statsRef.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    } else if (previousSelection.current) {
+      const rows = listRef.current?.querySelectorAll?.("[data-match-id]") || [];
+      const row = Array.from(rows).find((node) => node.dataset.matchId === previousSelection.current);
+      row?.focus({ preventScroll: true });
+      row?.scrollIntoView({ block: "center", behavior: "instant" });
+    }
+    previousSelection.current = selectedMatchId;
+  }, [selectedMatchId]);
+
+  const selectedArchive = archives.find((archive) => String(archive.id) === String(selectedArchiveId));
+  const matches = baseMatches;
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
-  const scopedMatchIds = scopedMatches.map((match) => match.id).join("|");
-  useEffect(() => {
-    if (archives.length && selectedArchiveId && !archives.some((archive) => archive.id === selectedArchiveId)) setSelectedArchiveId("");
-  }, [archives, selectedArchiveId]);
-  useEffect(() => {
-    if (selectedMatchId && selectedMatchId !== urlMatchId && !scopedMatches.some((match) => String(match.id || "") === String(selectedMatchId || ""))) setSelectedMatchId("");
-  }, [scopedMatchIds, selectedMatchId]);
-  useEffect(() => {
-    if (urlMatchId) setSelectedMatchId(urlMatchId);
-  }, [urlMatchId, matches.map((match) => match.id).join("|")]);
-  const selectedMatchSummary = scopedMatches.find((match) => String(match.id || "") === String(selectedMatchId || "")) || null;
+  const selectedMatchSummary = baseMatches.find((match) => String(match.id) === String(selectedMatchId)) || null;
   const { detail: selectedMatchDetail, error: selectedMatchDetailError, loading: loadingMatchDetail, retry: retryMatchDetail } = useMatchDetails(selectedTeamId, selectedMatchId, data.bootstrapRevision || "");
   const selectedMatch = selectedMatchDetail
     ? { ...selectedMatchSummary, ...selectedMatchDetail, participants: selectedMatchDetail.participants || selectedMatchSummary?.participants || [] }
     : selectedMatchSummary;
-  const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && reportMatchIds(report).includes(selectedMatch?.id));
+  const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && reportMatchIds(report).includes(selectedMatchId));
   const selectedArchiveReport = selectedArchive ? (data.reports || []).find((report) => {
-    const reportIds = reportMatchIds(report);
-    const archiveIds = archiveMatchIds(selectedArchive);
-    return report.team_id === selectedTeamId && archiveIds.length && archiveIds.every((id) => reportIds.includes(id)) && reportIds.every((id) => archiveIds.includes(id));
+    const ids = reportMatchIds(report);
+    const groupIds = archiveMatchIds(selectedArchive);
+    return report.team_id === selectedTeamId && groupIds.length && groupIds.length === ids.length && groupIds.every((id) => ids.includes(id));
   }) : null;
-  const roster = (data.players || []).filter((player) => player.team_id === selectedTeamId);
-  const rosterById = new Map(roster.map((player) => [player.id, player]));
-  const rosterByRiot = new Map(roster.map((player) => [normalizeProfileKey(player.riot_id), player]).filter(([key]) => key));
-  const rosterByName = new Map(roster.map((player) => [normalizeProfileKey(player.name), player]).filter(([key]) => key));
-  const rosterByRole = new Map(roster.map((player) => [normalizeProfileRole(player.role), player]).filter(([role]) => ROSTER_ROLE_ORDER.includes(role)));
-  const profileMatches = selectedMatch ? [selectedMatch] : scopedMatches;
-  const rows = profileMatches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
-  const resolveRowPlayer = (row) => rosterById.get(row.player_id) || rosterByRiot.get(normalizeProfileKey(row.riot_id)) || rosterByName.get(normalizeProfileKey(row.summoner_name));
-  const stats = Array.from(rows.reduce((map, row) => {
-    const player = resolveRowPlayer(row);
-    const role = normalizeProfileRole(row.role || player?.role || "ROLE");
-    const rolePlayer = ROSTER_ROLE_ORDER.includes(role) ? rosterByRole.get(role) : null;
-    const displayPlayer = player || rolePlayer;
-    const key = displayPlayer?.id ? `PLAYER::${displayPlayer.id}` : ROSTER_ROLE_ORDER.includes(role) ? role : `OTHER::${row.riot_id || row.summoner_name || row.champion || role}`;
-    const rowDisplayName = displayPlayer?.name || row.summoner_name || row.riot_id || roleLabel(role);
-    const current = map.get(key) || { key, name: rowDisplayName, role, games: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, kp: 0, csPerMin: 0, champions: new Map(), championRows: new Map(), nameCounts: new Map() };
-    current.nameCounts.set(rowDisplayName, (current.nameCounts.get(rowDisplayName) || 0) + 1);
-    current.name = Array.from(current.nameCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || rowDisplayName;
-    current.role = role;
-    current.games += 1;
-    current.kills += Number(row.kills || 0);
-    current.deaths += Number(row.deaths || 0);
-    current.assists += Number(row.assists || 0);
-    current.damage += Number(row.damage || 0);
-    current.vision += Number(row.vision || 0);
-    current.gold += Number(row.gold || 0);
-    current.kp += parsePercent(row.kill_participation || row.kp || 0);
-    current.csPerMin += Number(row.cs_per_min || 0);
-    current.champions.set(row.champion, (current.champions.get(row.champion) || 0) + 1);
-    if (!current.championRows.has(row.champion)) current.championRows.set(row.champion, []);
-    current.championRows.get(row.champion).push(row);
-    map.set(key, current);
-    return map;
-  }, new Map()).values()).sort((a, b) => (ROSTER_ROLE_ORDER.indexOf(a.role) === -1 ? 99 : ROSTER_ROLE_ORDER.indexOf(a.role)) - (ROSTER_ROLE_ORDER.indexOf(b.role) === -1 ? 99 : ROSTER_ROLE_ORDER.indexOf(b.role)));
-  const maxDamage = Math.max(1, ...stats.map((stat) => stat.damage / Math.max(1, stat.games)));
-  const maxVision = Math.max(1, ...stats.map((stat) => stat.vision / Math.max(1, stat.games)));
-  const maxGold = Math.max(1, ...stats.map((stat) => stat.gold / Math.max(1, stat.games)));
-  const metricMatches = selectedMatch ? [selectedMatch] : scopedMatches;
-  const wins = metricMatches.filter((match) => match.result === "Victoire").length;
-  const losses = metricMatches.length - wins;
-  const winrate = Math.round((wins / Math.max(1, metricMatches.length)) * 100);
-  const activeCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
-  const scopeLabel = selectedMatch ? "Game sélectionnée" : selectedArchive ? "Groupe actif" : activeCategory ? "Catégorie active" : "Vue globale";
-  const scopeTitle = selectedMatch ? matchDisplayName(selectedMatch) : selectedArchive ? selectedArchive.name : activeCategory ? activeCategory.name : "Toutes les games";
-  const scopeHint = selectedMatch ? `${selectedMatch.game_id || "Game"} · ${selectedMatch.duration || "--:--"}` : selectedArchive ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans le groupe` : activeCategory ? `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} dans cette catégorie` : `${scopedMatches.length} game${scopedMatches.length > 1 ? "s" : ""} importée${scopedMatches.length > 1 ? "s" : ""}`;
+  const wins = baseMatches.filter((match) => match.result === "Victoire").length;
+  const losses = baseMatches.filter((match) => match.result === "Défaite").length;
+  const openReview = () => openAppPath(selectedReport
+    ? `/rapports?report=${encodeURIComponent(selectedReport.id)}&match=${encodeURIComponent(selectedMatchId)}`
+    : `/rapports?match=${encodeURIComponent(selectedMatchId)}&compose=1`);
+  function finishImport(result) {
+    const id = result?.match?.id;
+    setImportBusy(false);
+    setWorkspaceView("games");
+    updateLocation({ import: "", view: "", archive: "", match: id ? String(id) : "" });
+  }
   const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : [...current.matchIds, matchId] }));
   const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
   const editArchive = (archive) => {
     setArchiveForm({ id: archive.id, name: archive.name || "", description: archive.description || "", matchIds: archiveMatchIds(archive) });
-    setSelectedArchiveId(archive.id);
-    setArchivesCollapsed(false);
+    setWorkspaceView("groups");
+    updateLocation({ match: "", archive: "", view: "groups" });
     setArchiveWorkspaceTab("create");
   };
   async function saveArchive(event) {
@@ -2203,7 +1590,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
         const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
         await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
       }
-      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe de games est prêt dans les statistiques." });
+      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe de games est prêt dans Games." });
       resetArchiveForm();
       setArchiveWorkspaceTab("select");
       await refreshAll?.();
@@ -2218,7 +1605,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
     setSavingArchive(true);
     try {
       await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, archiveId: archive.id }) });
-      if (selectedArchiveId === archive.id) setSelectedArchiveId("");
+      if (selectedArchiveId === archive.id) updateLocation({ archive: "", match: "" });
       pushToast?.({ type: "green", title: "Archive supprimée", text: "Le groupe a été retiré." });
       await refreshAll?.();
     } catch (err) {
@@ -2252,121 +1639,77 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
       setExportingStats(false);
     }
   }
-  const archiveFormTitle = archiveForm.id ? "Modifier le groupe" : "Créer un groupe";
-  const archiveFormMatchCount = archiveForm.matchIds.length;
-  const selectAllArchiveMatches = () => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }));
-  const clearArchiveMatches = () => setArchiveForm((current) => ({ ...current, matchIds: [] }));
-  return (
-    <div className="nxt5-data-dense nxt5-stats-page min-w-0 overflow-hidden">
-      <PageHeader eyebrow="Games" title="Statistiques" subtitle="Choisis une game ou un groupe pour consulter les résultats." />
-      {(baseMatches.length || selectedMatchId) ? <>
-        <section className="mb-5 rounded-[1.35rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(6,182,212,.10),rgba(15,23,42,.46)_45%,rgba(168,85,247,.10))] p-4 shadow-[0_18px_60px_rgba(0,0,0,.18)]">
-          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.22em] text-cyan-100/70">{scopeLabel}</p>
-              <h3 className="mt-1 truncate text-2xl font-black text-white">{scopeTitle}</h3>
-              <p className="mt-1 text-sm font-semibold text-slate-300">{scopeHint}</p>
-            </div>
-            <div className="grid min-w-[18rem] grid-cols-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20">
-              <div className="px-4 py-3">
-                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Games</p>
-                <p className="mt-1 text-xl font-black text-white">{metricMatches.length}</p>
-              </div>
-              <div className="border-x border-white/10 px-4 py-3">
-                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan</p>
-                <p className="mt-1 text-xl font-black text-white">{wins}W - {losses}L</p>
-              </div>
-              <div className="px-4 py-3">
-                <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Winrate</p>
-                <p className="mt-1 text-xl font-black text-cyan-100">{winrate}%</p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-4 flex min-w-0 flex-wrap items-center gap-2 border-t border-white/10 pt-3">
-            <span className="mr-1 text-[0.62rem] font-black uppercase tracking-[0.2em] text-slate-400">Type</span>
-            <button type="button" onClick={() => { setSelectedCategoryId(""); setSelectedArchiveId(""); setSelectedMatchId(""); }} className={cx("rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", !selectedCategoryId ? "bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(103,232,249,.20)]" : "bg-white/[0.055] text-slate-300 hover:bg-white/[0.09]")}>Toutes</button>
-            {(matchCategories || []).map((category) => {
-              const active = String(category.id) === String(selectedCategoryId);
-              return <button key={category.id} type="button" onClick={() => { setSelectedCategoryId(active ? "" : category.id); setSelectedArchiveId(""); setSelectedMatchId(""); }} className={cx("rounded-xl px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? "bg-white text-slate-950 shadow-[0_0_24px_rgba(255,255,255,.16)]" : "bg-white/[0.055] text-slate-300 hover:bg-white/[0.09]")}>{category.name}</button>;
-            })}
-          </div>
-          <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="ghost" icon={exportingStats ? Loader2 : Download} onClick={() => downloadStatsPng(false)} disabled={!selectedMatch || loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>Exporter la game PNG</Button>
-            {selectedArchive && <Button type="button" variant="ghost" icon={exportingStats ? Loader2 : Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>}
-          </div>
-        </section>
-        {!selectedArchive && <ImportedGames
-          key={`${selectedTeamId}:${selectedCategoryId}`}
-          matches={scopedMatches}
-          categories={matchCategories}
-          selectedMatchId={selectedMatchId}
-          selectedMatch={selectedMatch}
-          selectedReport={selectedReport}
-          onSelectMatch={setSelectedMatchId}
-          onCreateReview={() => selectedMatch && openAppPath(`/rapports?match=${encodeURIComponent(selectedMatch.id)}&compose=1`)}
-          onOpenReview={() => selectedReport && openAppPath(`/rapports?report=${encodeURIComponent(selectedReport.id)}&match=${encodeURIComponent(selectedMatch.id)}`)}
-          onViewStats={() => {
-            const panel = document.getElementById("selected-game-stats");
-            panel?.focus({ preventScroll: true });
-            panel?.scrollIntoView({ block: "start" });
-          }}
-          onResetScope={() => { setSelectedCategoryId(""); setSelectedArchiveId(""); }}
-          scopeName={activeCategory?.name || ""}
-        />}
-        {!selectedMatch && <Surface className="mt-5">
-          <button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-4 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.035]">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Sélection groupe</Badge><Badge tone="slate">{archives.length} sauvegardé{archives.length > 1 ? "s" : ""}</Badge><Badge tone={archiveFormMatchCount ? "cyan" : "slate"}>{archiveFormMatchCount} en création</Badge></div>
-              <h3 className="mt-3 text-2xl font-black text-white">Groupes de games</h3>
-              <p className="mt-1 text-sm font-semibold text-slate-300">Ouvre un groupe existant. La création reste rangée dans son onglet dédié.</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2"><Badge tone={selectedArchive ? "cyan" : "slate"}>{selectedArchive ? "Groupe actif" : "Aucun actif"}</Badge><ChevronDown className={cx("h-5 w-5 text-cyan-100 transition", archivesCollapsed && "-rotate-90")} /></div>
-          </button>
-          {!archivesCollapsed && <div className="mt-5 min-w-0">
-            <TabNav className="mb-4" label="Gestion des groupes" items={[
-              { id: "select", label: "Sélection groupe", meta: archives.length + " groupe" + (archives.length > 1 ? "s" : "") },
-              { id: "create", label: "Créer un groupe", meta: archiveFormMatchCount ? archiveFormMatchCount + " game" + (archiveFormMatchCount > 1 ? "s" : "") : "Masqué" },
-            ]} activeId={archiveWorkspaceTab} onChange={setArchiveWorkspaceTab} columns="sm:grid-cols-2" />
-            {archiveWorkspaceTab === "select" ? <>
-            <section className="min-w-0">
-              <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-3">
-                <div><p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-slate-300">Groupes sauvegardés</p><p className="mt-1 text-sm font-semibold text-slate-400">Clique pour lire le bloc, reclique pour revenir à la vue globale.</p></div>
-                {selectedArchive && selectedArchiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports?report=" + selectedArchiveReport.id)}>Review active</Button>}
-              </div>
-              <div className="mt-3 max-h-[22rem] space-y-2 overflow-auto pr-1">
-                {archives.length ? archives.map((archive) => { const ids = archiveMatchIds(archive); const count = ids.length; const archiveMatches = matches.filter((match) => ids.includes(match.id)); const archiveWins = archiveMatches.filter((match) => match.result === "Victoire").length; const selected = selectedArchiveId === archive.id; const archiveReport = (data.reports || []).find((report) => { const reportIds = reportMatchIds(report); return report.team_id === selectedTeamId && ids.length && ids.every((id) => reportIds.includes(id)) && reportIds.every((id) => ids.includes(id)); }); return <div key={archive.id} className={cx("relative overflow-hidden rounded-2xl border p-3 transition", selected ? "border-cyan-200/80 bg-cyan-400/16 shadow-[0_0_0_1px_rgba(103,232,249,.26),0_0_30px_rgba(34,211,238,.16)]" : "border-white/10 bg-black/24 hover:border-cyan-300/20 hover:bg-white/[0.05]")}>
-                  <div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", selected ? "opacity-100" : "opacity-0")} />
-                  <button type="button" onClick={() => setSelectedArchiveId(selectedArchiveId === archive.id ? "" : archive.id)} className="flex w-full min-w-0 items-start gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
-                    <span className={cx("mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border", selected ? "border-cyan-200/45 bg-cyan-300/14 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300")}><FileText className="h-4 w-4" /></span>
-                    <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><span className="truncate font-black text-white">{archive.name}</span><Badge tone="purple">{count} game{count > 1 ? "s" : ""}</Badge>{selected && <Badge tone="cyan">Actif</Badge>}</span><span className={cx("mt-1 block truncate text-xs font-semibold", selected ? "text-cyan-100" : "text-slate-300")}>{archive.description || "Créée par " + (archive.created_by_name || "NXT5")}</span><span className="mt-2 block text-xs font-black uppercase tracking-[0.14em] text-cyan-100">WR {Math.round((archiveWins / Math.max(1, count)) * 100)}% · {archiveWins}W - {count - archiveWins}L</span></span>
-                  </button>
-                  <div className="mt-3 flex flex-wrap justify-end gap-2">{archiveReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports?report=" + archiveReport.id)} disabled={savingArchive}>Review</Button>}<Button type="button" variant="ghost" icon={Pencil} onClick={() => editArchive(archive)} disabled={savingArchive}>Modifier</Button><Button type="button" variant="ghost" icon={Trash2} onClick={() => deleteArchive(archive)} disabled={savingArchive}>Supprimer</Button></div>
-                </div>; }) : <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300"><p>Aucun groupe enregistré.</p><Button type="button" className="mt-3" variant="ghost" icon={Plus} onClick={() => setArchiveWorkspaceTab("create")}>Créer un groupe</Button></div>}
-              </div>
-            </section>
-            </> : <>
-            <form onSubmit={saveArchive} className="min-w-0 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[0.64rem] font-black uppercase tracking-[0.18em] text-cyan-100">Création rapide</p><h4 className="mt-1 text-xl font-black text-white">{archiveFormTitle}</h4><p className="mt-1 text-sm font-semibold text-slate-300">{archiveFormMatchCount ? archiveFormMatchCount + " game" + (archiveFormMatchCount > 1 ? "s" : "") + " dans le bloc" : "Choisis les games à inclure"}</p></div><Badge tone={archiveFormMatchCount ? "cyan" : "slate"}>{archiveFormMatchCount}/{matches.length}</Badge></div>
-              <div className="mt-4 grid gap-3 2xl:grid-cols-2"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK - 26/05" required icon={FileText} /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Bo3, bloc early, test compo..." icon={Clipboard} /></div>
-              <div className="mt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games à inclure</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" icon={Plus} onClick={selectAllArchiveMatches} disabled={!matches.length || archiveFormMatchCount === matches.length}>Tout prendre</Button><Button type="button" variant="ghost" icon={X} onClick={clearArchiveMatches} disabled={!archiveFormMatchCount}>Vider</Button></div></div><div className="mt-2 grid max-h-[20rem] gap-2 overflow-auto pr-1 md:grid-cols-2">{matches.map((match) => { const picked = archiveForm.matchIds.includes(match.id); return <button key={match.id} type="button" aria-pressed={picked} onClick={() => toggleArchiveMatch(match.id)} className={cx("flex min-w-0 items-start gap-3 rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", picked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-black/22 hover:border-cyan-300/20 hover:bg-white/[0.055]")}><span className={cx("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border", picked ? "border-cyan-200/45 bg-cyan-300/18 text-cyan-50" : "border-white/14 bg-white/[0.035] text-transparent")}><Check className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge></span><span className="mt-2 block truncate text-sm font-black text-white">{matchDisplayName(match)}</span><span className="mt-1 block truncate text-xs font-semibold text-slate-300">{match.game_id}</span></span></button>; })}</div></div>
-              <div className="mt-4 flex flex-wrap justify-end gap-2">{archiveForm.id && <Button type="button" variant="ghost" icon={X} onClick={resetArchiveForm}>Annuler</Button>}<Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={savingArchive || !archiveForm.name.trim() || !archiveForm.matchIds.length}>{archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div>
-            </form>
-            </>}
-          </div>}
-        </Surface>}
-        {selectedArchive && <ScrimArchiveSummary matches={scopedMatches} selectedMatchId={selectedMatchId} onSelectMatch={setSelectedMatchId} />}
-        {!selectedMatch && selectedMatchId && <Surface className="mt-5"><p role="status">{loadingMatchDetail ? "Chargement des données avancées de la game…" : selectedMatchDetailError || "Game introuvable."}</p>{!loadingMatchDetail && selectedMatchDetailError && <Button type="button" className="mt-3" onClick={retryMatchDetail}>Réessayer</Button>}</Surface>}
-        {selectedMatch && <div id="selected-game-stats" tabIndex={-1} className="scroll-mt-6">
-          {loadingMatchDetail && <div className="mt-5 flex flex-wrap items-center gap-2 border-y border-cyan-200/15 bg-cyan-300/[0.045] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-100"><Loader2 className="h-4 w-4 animate-spin" />Chargement des données avancées de la game</div>}
-          {selectedMatchDetailError && !loadingMatchDetail && <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200/18 bg-amber-400/[0.065] px-4 py-3 text-sm font-semibold text-amber-50 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">Détail avancé indisponible</p><p className="mt-1 text-xs leading-5 text-amber-50/85">{selectedMatchDetailError} Les stats déjà chargées restent affichées.</p></div>
-            <Button type="button" variant="ghost" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button>
-          </div>}
-          <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} />
+
+  return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
+    <PageHeader eyebrow={selectedTeamName} title="Games" subtitle={selectedMatchId ? "Les statistiques de ta game, du résultat au détail par rôle." : "Retrouve tes games et ouvre leurs statistiques."}>
+      <span ref={importTriggerRef}><Button type="button" variant={selectedMatchId ? "ghost" : "primary"} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une game</Button></span>
+    </PageHeader>
+    {importOpen && <GameOperationDialog title="Importer une game" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
+      <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} />
+    </GameOperationDialog>}
+
+    {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label="Statistiques de la game">
+      <div className="games-detail-toolbar">
+        <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? "Retour au groupe" : "Retour aux games"}</Button>
+        {selectedMatch && <div className="games-detail-actions">
+          <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? "Export…" : "Exporter PNG"}</Button>
+          <Button type="button" variant="ghost" icon={FileText} onClick={openReview}>{selectedReport ? "Ouvrir la review" : "Créer une review"}</Button>
+          <GameActions key={selectedMatchId} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError)} match={selectedMatch} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onDeleted={() => updateLocation({ match: "", ...(selectedArchive && scopedMatches.length <= 1 ? { archive: "" } : {}) })} onUpdated={retryMatchDetail} />
         </div>}
-      </> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}
+      </div>
+      {!selectedMatch && <div className="games-detail-title"><h3>Statistiques de la game</h3></div>}
+      {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement des statistiques détaillées…</p>}
+      {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && " Les statistiques déjà chargées restent disponibles."}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button></Surface>}
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} statsFirst />}
+      {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Game introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
+    </div>}
+
+    <div hidden={Boolean(selectedMatchId)}>
+      <div className="games-library-toolbar">
+        <TabNav label="Bibliothèque de games" items={[{ id: "games", label: "Games", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
+        {baseMatches.length > 0 && <p className="games-team-record"><span>Équipe</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)} % de victoires</span></p>}
+      </div>
+      {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
+        <div className="games-group-heading"><div><h3>Groupes de games</h3><p>Analyse ensemble les games d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
+        {archiveWorkspaceTab === "select" ? <div className="games-group-list">
+          {archives.map((archive) => {
+            const groupMatches = baseMatches.filter((match) => archiveMatchIds(archive).includes(match.id));
+            const groupWins = groupMatches.filter((match) => match.result === "Victoire").length;
+            return <div key={archive.id} className="games-group-row">
+              <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || `${groupMatches.length} games`}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
+              <div className="games-group-tools"><button type="button" className="ig-icon-button" aria-label={`Modifier le groupe ${archive.name}`} onClick={() => editArchive(archive)} disabled={savingArchive}><Pencil aria-hidden="true" /></button><button type="button" className="ig-icon-button" aria-label={`Supprimer le groupe ${archive.name}`} onClick={() => deleteArchive(archive)} disabled={savingArchive}><Trash2 aria-hidden="true" /></button></div>
+            </div>;
+          })}
+          {!archives.length && <EmptyState icon={FileText} title="Aucun groupe" text="Rassemble les games d’un scrim ou d’une compétition pour lire leurs résultats ensemble." />}
+        </div> : <form onSubmit={saveArchive} className="games-group-form">
+          <fieldset disabled={savingArchive}>
+            <div className="games-group-fields"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK — 08/09" required /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Session, objectif du bloc…" /></div>
+            <div className="games-group-heading"><p>{archiveForm.matchIds.length} game(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }))} disabled={!matches.length}>Tout sélectionner</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
+            <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {match.result || "Résultat inconnu"}</span></span></label>)}</div>
+            {!matches.length && <p>Importe une première game pour créer un groupe.</p>}
+            <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>Annuler</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? "Enregistrement…" : archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div>
+          </fieldset>
+        </form>}
+      </Surface>}
+      {selectedArchive && <>
+        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir la review</Button>}</div></div>
+        <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
+        <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
+      </>}
+      {selectedArchiveId && !selectedArchive && <p role="status" className="games-load-state">Ce groupe n’est plus disponible. Choisis un autre groupe.</p>}
+      <div ref={listRef} hidden={workspaceView === "groups" && !selectedArchive}>
+        <ImportedGames
+          matches={scopedMatches} categories={matchCategories} selectedMatchId={selectedMatchId} selectedMatch={selectedMatch}
+          onSelectMatch={selectMatch} showSelection={false} showCategoryFilter allowImportSort
+          title={selectedArchive ? "Games du groupe" : "Toutes les games"}
+          description="Recherche une game et ouvre directement ses statistiques."
+          scopeName={selectedArchive?.name || ""}
+          headerActions={<GameCategoryManager data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+          emptyAction={<Button type="button" icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une game</Button>}
+        />
+      </div>
     </div>
-  );
+  </div>;
 }
 
 function reportMatchIds(report) {
@@ -2834,7 +2177,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         subtitle="L’analyse des games liées est préparée automatiquement. Ajoute tes notes et les décisions du staff."
       >
         <Button icon={Plus} onClick={startBlankReview}>Créer une review</Button>
-        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/statistiques")}>Voir les stats</Button>
+        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/games")}>Voir les stats</Button>
       </PageHeader>
 
       {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la game pour préparer la review…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
@@ -2904,7 +2247,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                 <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatchIds.length} game{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-                <Button variant="ghost" icon={ArrowRight} onClick={() => selectedStatsMatchId && openAppPath(`/statistiques?match=${encodeURIComponent(selectedStatsMatchId)}`)} disabled={!selectedStatsMatchId}>Stats</Button>
+                <Button variant="ghost" icon={ArrowRight} onClick={() => selectedStatsMatchId && openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)} disabled={!selectedStatsMatchId}>Stats</Button>
                 <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
                 {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
                 {canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}

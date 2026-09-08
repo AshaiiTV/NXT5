@@ -94,7 +94,7 @@ function ProfileLinkAuditPanel({ player, matches, issues, open, canRepair, repai
           </div>
           <div className="min-w-0"><p className="truncate text-xs font-black text-slate-100">{account}</p><p className="mt-1 truncate text-xs font-semibold text-amber-100/80">{item.issue}</p></div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
-            <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/statistiques?match=${encodeURIComponent(item.match.id)}`)}>Ouvrir</Button>
+            <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(item.match.id)}`)}>Ouvrir</Button>
             {canRepair && row && <Button type="button" icon={repairing ? Loader2 : RefreshCw} disabled={Boolean(repairingId)} onClick={() => onRepair(item)}>{repairing ? "Correction..." : `Attribuer à ${player.name}`}</Button>}
             {!canRepair && <Badge tone="slate">Lecture seule</Badge>}
           </div>
@@ -582,7 +582,7 @@ function CoachDiagnosticPanel({ player, games, wins, losses, verdict, summary, i
         </li>)}</ol>
         <div className="mt-5 border-t border-white/10 pt-4">
           <div className="flex items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">Preuves</p><Badge tone={evidenceRows.length ? "cyan" : "slate"}>{evidenceRows.length}</Badge></div>
-          <div className="mt-2 divide-y divide-white/10">{evidenceRows.length ? evidenceRows.slice(0, 4).map((row, index) => <button key={`${row.match?.id || index}-coach-proof`} type="button" onClick={() => openAppPath(`/statistiques?match=${row.match?.id || ""}`)} className="flex w-full min-w-0 items-center justify-between gap-3 py-3 text-left transition hover:text-cyan-100"><span className="min-w-0"><span className="block truncate text-xs font-black text-white">{matchDisplayName(row.match, "Game")}</span><span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{championDisplayName(row.champion)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · KP {Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</span></span><ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" /></button>) : <p className="py-3 text-xs font-semibold leading-5 text-slate-400">Aucune game critique isolée pour ce profil.</p>}</div>
+          <div className="mt-2 divide-y divide-white/10">{evidenceRows.length ? evidenceRows.slice(0, 4).map((row, index) => <button key={`${row.match?.id || index}-coach-proof`} type="button" onClick={() => openAppPath(`/games?match=${row.match?.id || ""}`)} className="flex w-full min-w-0 items-center justify-between gap-3 py-3 text-left transition hover:text-cyan-100"><span className="min-w-0"><span className="block truncate text-xs font-black text-white">{matchDisplayName(row.match, "Game")}</span><span className="mt-0.5 block truncate text-[0.62rem] font-semibold text-slate-400">{championDisplayName(row.champion)} · {row.kills || 0}/{row.deaths || 0}/{row.assists || 0} · KP {Math.round(parsePercent(row.kill_participation || row.kp || 0))}%</span></span><ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" /></button>) : <p className="py-3 text-xs font-semibold leading-5 text-slate-400">Aucune game critique isolée pour ce profil.</p>}</div>
         </div>
       </aside>
     </div>
@@ -1100,7 +1100,7 @@ function ChampionLaneGameLine({ row: summaryRow, enemy: summaryEnemy, cs10, cs20
   const openMatch = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (targetMatchId) navigate?.(`/statistiques?match=${encodeURIComponent(targetMatchId)}`);
+    if (targetMatchId) navigate?.(`/games?match=${encodeURIComponent(targetMatchId)}`);
   };
   return <details className="group" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
     <summary className="grid cursor-pointer list-none gap-3 py-3 transition hover:bg-white/[0.025] 2xl:grid-cols-[minmax(0,1fr)_repeat(4,minmax(70px,.16fr))_auto] 2xl:items-center [&::-webkit-details-marker]:hidden">
@@ -1242,7 +1242,7 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
         const targetMatchId = row.match?.id || "";
         const enemy = opponentRoleRow(row.match, row.role, row.raw?.participantId || row.participantId);
         const kp = Math.round(parsePercent(row.kill_participation || row.kp || 0));
-        return <button key={(row.match?.id || row.match?.game_id || index) + row.champion} type="button" disabled={!targetMatchId} onClick={() => targetMatchId && navigate?.(`/statistiques?match=${encodeURIComponent(targetMatchId)}`)} className={cx("group min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-cyan-300/22 hover:bg-white/[0.055]", targetMatchId ? "cursor-pointer" : "cursor-default opacity-75")}>
+        return <button key={(row.match?.id || row.match?.game_id || index) + row.champion} type="button" disabled={!targetMatchId} onClick={() => targetMatchId && navigate?.(`/games?match=${encodeURIComponent(targetMatchId)}`)} className={cx("group min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-left transition hover:border-cyan-300/22 hover:bg-white/[0.055]", targetMatchId ? "cursor-pointer" : "cursor-default opacity-75")}>
           <div className="flex min-w-0 gap-3">
             <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover" />
             <div className="min-w-0 flex-1">

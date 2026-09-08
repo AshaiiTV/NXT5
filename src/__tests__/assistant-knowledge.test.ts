@@ -31,7 +31,7 @@ describe('assistant knowledge', () => {
       { label: 'Stats en double', path: '/statistiques' },
       { label: 'Reviews', path: '/rapports' }
     ])).toEqual([
-      { label: 'Stats détaillées', path: '/statistiques' },
+      { label: 'Stats détaillées', path: '/games' },
       { label: 'Reviews', path: '/rapports' }
     ]);
   });
@@ -41,6 +41,9 @@ describe('assistant knowledge', () => {
     expect(safeAssistantRoute('https://example.com')).toBe('/equipes');
     expect(safeAssistantRoute('/mon-profil/coaching')).toBe('/mon-profil/coaching');
     expect(safeAssistantRoute('/guide')).toBe('/guide');
+    expect(safeAssistantRoute('/games?match=private-id')).toBe('/games');
+    expect(safeAssistantRoute('/integration')).toBe('/games');
+    expect(safeAssistantRoute('/statistiques')).toBe('/games');
   });
 
   it('bounds and deduplicates follow-up suggestions', () => {

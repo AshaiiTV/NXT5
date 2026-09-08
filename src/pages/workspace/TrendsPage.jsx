@@ -218,7 +218,7 @@ function TrendsPage({ data, selectedTeamId }) {
         <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Type de games" />
       </div>
     </div>
-    <Surface glow><EmptyState icon={Activity} title={baseMatches.length ? "Aucune game dans cette sélection" : "Vos tendances commencent ici"} text={baseMatches.length ? "Choisis un autre contexte pour retrouver les analyses de l’équipe." : "Importe tes premières games pour suivre les résultats et faire émerger les répétitions."} /><div className="mt-4 flex justify-center"><Button icon={baseMatches.length ? RefreshCw : Upload} onClick={() => baseMatches.length ? setSelectedCategoryId("") : openAppPath("/integration")}>{baseMatches.length ? "Voir toutes les games" : "Importer des games"}</Button></div></Surface>
+    <Surface glow><EmptyState icon={Activity} title={baseMatches.length ? "Aucune game dans cette sélection" : "Vos tendances commencent ici"} text={baseMatches.length ? "Choisis un autre contexte pour retrouver les analyses de l’équipe." : "Importe tes premières games pour suivre les résultats et faire émerger les répétitions."} /><div className="mt-4 flex justify-center"><Button icon={baseMatches.length ? RefreshCw : Upload} onClick={() => baseMatches.length ? setSelectedCategoryId("") : openAppPath("/games?import=1")}>{baseMatches.length ? "Voir toutes les games" : "Importer des games"}</Button></div></Surface>
   </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
@@ -1007,7 +1007,7 @@ function TrendsPage({ data, selectedTeamId }) {
   };
   const openSourceGame = (game) => {
     const matchId = game?.id || game?.match?.id || game?.match?.game_id || "";
-    openAppPath(matchId ? `/statistiques?match=${encodeURIComponent(String(matchId))}` : "/statistiques");
+    openAppPath(matchId ? `/games?match=${encodeURIComponent(String(matchId))}` : "/games");
   };
   const sourceModalSummary = (games = []) => {
     const count = games.length;

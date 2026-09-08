@@ -7,13 +7,14 @@ export function normalizePath(pathname = "/") {
 
 export function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/statistiques" || path === "/rapports") return "matches";
+  if (path === "/integration" || path === "/statistiques") return "matches";
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return "draft";
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
   return NAV.find((item) => item.path === path)?.id || "teams";
 }
 
 export function pathFromPage(pageId) {
+  if (pageId === "stats") return "/games";
   return NAV.find((item) => item.id === pageId)?.path || "/equipes";
 }
 
@@ -51,13 +52,12 @@ export function draftViewLabel(viewId = "pool") {
 
 export function gameWorkspaceSectionFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/statistiques") return "stats";
   if (path === "/rapports") return "review";
-  return "import";
+  return "games";
 }
 
-export function gameWorkspaceSectionLabel(sectionId = "import") {
-  return { import: "Importer", stats: "Stats", review: "Review" }[sectionId] || "Importer";
+export function gameWorkspaceSectionLabel(sectionId = "games") {
+  return sectionId === "review" ? "Review" : "Games";
 }
 
 export function authModeFromPath(pathname = window.location.pathname) {
@@ -71,7 +71,7 @@ export function isAdminPath(pathname = window.location.pathname) {
 
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/tarifs") return true;
+  if (path === "/tarifs" || path === "/integration" || path === "/statistiques") return true;
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return true;
   return NAV.some((item) => item.path === path);

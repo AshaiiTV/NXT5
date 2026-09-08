@@ -222,42 +222,59 @@ describe("imported games interactions", () => {
 });
 
 describe("imported games in Statistics", () => {
+  beforeEach(() => {
+    window.history = { pushState: vi.fn((_state, _title, path) => { window.location = new URL(path, window.location); }) };
+    window.dispatchEvent = vi.fn();
+  });
   function statisticsProps(matches = games(3)) {
     return {
       data: { ...DEFAULT_DATA, teams: [{ id: "team", name: "Équipe" }], matches, matchCategories: categories },
       selectedTeamId: "team", refreshAll: vi.fn(), pushToast: vi.fn(),
     };
   }
+  function visible(node) {
+    for (let ancestor = node; ancestor; ancestor = ancestor.parent) if (ancestor.props.hidden) return false;
+    return true;
+  }
 
-  it("retains the actual selected stats when search and filters hide the game", async () => {
+  it("opens stats directly, hides the list and restores its search and filters on return", async () => {
     const settings = statisticsProps();
     const selected = settings.data.matches[2];
     apiFetch.mockResolvedValue({ matches: [selected] });
     const renderer = await render(<Statistics {...settings} />);
+    await search(renderer, "Club 03");
+    await filter(renderer, "Résultat", "Victoire");
+    await filter(renderer, "Catégorie", "scrim");
+    await filter(renderer, "Trier par", "oldest");
+    expect(rows(renderer)).toHaveLength(1);
     await act(async () => rows(renderer)[0].props.onClick());
+    expect(window.location.pathname).toBe("/games");
+    expect(window.location.search).toBe(`?match=${selected.id}`);
     expect(renderer.root.findByType(ImportedGames).props.selectedMatchId).toBe(selected.id);
-    expect(renderer.root.findAllByProps({ id: "selected-game-stats" })).toHaveLength(1);
-    await search(renderer, "introuvable");
-    await filter(renderer, "Résultat", "Défaite");
-    expect(rows(renderer)).toHaveLength(0);
-    expect(renderer.root.findByType(ImportedGames).props.selectedMatchId).toBe(selected.id);
-    expect(renderer.root.findByType(ImportedGames).props.selectedMatch.id).toBe(selected.id);
-    expect(renderer.root.findAllByProps({ id: "selected-game-stats" })).toHaveLength(1);
+    expect(visible(renderer.root.findByProps({ id: "selected-game-stats" }))).toBe(true);
+    expect(visible(renderer.root.findByProps({ type: "search" }))).toBe(false);
+    expect(rows(renderer).filter(visible)).toHaveLength(0);
     expect(apiFetch).toHaveBeenCalledTimes(1);
-    await click(renderer, "Afficher dans la liste");
-    expect(rows(renderer).filter((node) => node.props["aria-pressed"])).toHaveLength(1);
-    expect(renderer.root.findByType(ImportedGames).props.selectedMatchId).toBe(selected.id);
+    await click(renderer, "Retour aux games");
+    expect(renderer.root.findAllByProps({ id: "selected-game-stats" })).toHaveLength(0);
+    expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("Club 03");
+    expect(select(renderer, "Résultat").props.value).toBe("Victoire");
+    expect(select(renderer, "Catégorie").props.value).toBe("scrim");
+    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(rows(renderer).filter(visible)).toHaveLength(1);
+    expect(rowLabels(renderer)[0]).toContain("EUW1_3");
   });
 
-  it("keeps category navigation available with no matches and can return to all games", async () => {
+  it("keeps the category filter available with no results and can return to all games", async () => {
     const renderer = await render(<Statistics {...statisticsProps()} />);
-    await click(renderer, "Tournoi");
-    expect(renderer.root.findByType(ImportedGames).props.matches).toHaveLength(0);
-    expect(renderer.root.findByType(ImportedGames).props.scopeName).toBe("Tournoi");
-    expect(button(renderer, "Toutes")).toBeTruthy();
-    await click(renderer, "Voir toutes les games");
-    expect(renderer.root.findByType(ImportedGames).props.matches).toHaveLength(3);
-    expect(renderer.root.findByType(ImportedGames).props.scopeName).toBe("");
+    await filter(renderer, "Catégorie", "empty");
+    expect(rows(renderer)).toHaveLength(0);
+    expect(select(renderer, "Catégorie").props.value).toBe("empty");
+    expect(visible(select(renderer, "Catégorie"))).toBe(true);
+    expect(text(renderer.root.findByProps({ className: "ig-empty" }))).toContain("Aucune game ne correspond");
+    await act(async () => renderer.root.findByProps({ className: "ig-empty" }).findByType("button").props.onClick());
+    expect(select(renderer, "Catégorie").props.value).toBe("");
     expect(rows(renderer)).toHaveLength(3);
+    expect(renderer.root.findAllByType(ImportedGames)).toHaveLength(1);
   });
 });

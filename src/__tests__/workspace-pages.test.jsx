@@ -32,10 +32,10 @@ describe("extracted workspace pages", () => {
   it("loads a direct game link even when the game is outside the loaded page", async () => {
     let resolve;
     apiFetch.mockImplementation(() => new Promise((done) => { resolve = done; }));
-    const renderer = await render(<Statistics {...props()} />);
-    expect(JSON.stringify(renderer.toJSON())).toContain("Chargement des données avancées");
+    const renderer = await render(<Statistics {...props()} route={{ path: "/statistiques", search: "?match=older" }} />);
+    expect(JSON.stringify(renderer.toJSON())).toContain("Chargement des statistiques détaillées");
     await act(async () => resolve({ matches: [{ id: "older", team_id: "a", game_id: "EUW1_123", duration: "15:00", result: "Victoire", raw: { nxt5Label: "Game ancienne" }, participants: [] }] }));
-    expect(JSON.stringify(renderer.toJSON())).not.toContain("Chargement des données avancées");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("Chargement des statistiques détaillées");
     expect(renderer.root.findAllByType("h3").some((heading) => heading.children.includes("Game ancienne"))).toBe(true);
   });
   it("keeps links to report games that are outside the loaded match page", async () => {

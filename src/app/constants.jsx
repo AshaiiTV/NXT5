@@ -1,6 +1,5 @@
 import {
   Activity,
-  BarChart3,
   BookOpen,
   CalendarDays,
   FileText,
@@ -19,8 +18,7 @@ export const NXT5_IMPORTER_MAC_INTEL_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platfo
 
 export const NAV = [
   { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
-  { id: "matches", label: "Games", hint: "Importer, lire, review", icon: Swords, shortcut: "G", path: "/integration" },
-  { id: "stats", label: "Statistiques", hint: "Games et tendances", icon: BarChart3, shortcut: "S", path: "/statistiques" },
+  { id: "matches", label: "Games", hint: "Historique et statistiques", icon: Swords, shortcut: "G", path: "/games" },
   { id: "trends", label: "Tendances", hint: "Comprendre l'équipe", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "planning", label: "Planning", hint: "Dispos et sessions", icon: CalendarDays, shortcut: "L", path: "/planning" },
   { id: "draft", label: "Draft", hint: "Pools et compositions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
@@ -34,7 +32,7 @@ export const NAV = [
 ];
 
 export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
-export const MORE_NAV_IDS = ["trends", "draft"];
+export const MORE_NAV_IDS = ["reports", "trends", "draft"];
 
 export const DRAFT_VIEW_ROUTES = [
   { id: "pool", label: "Champion Pool", path: "pool" },
