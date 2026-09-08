@@ -91,7 +91,7 @@ function StatStrip() {
   );
 }
 
-function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
+export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
   const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0";
   const variants = {
     primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
@@ -107,7 +107,7 @@ function LinkButton({ href, children, icon: Icon, variant = "primary", className
   return <a href={href} onClick={go} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
 }
 
-function SiteHeader({ children, navigate }) {
+export function SiteHeader({ children, navigate }) {
   function goHome(event) {
     if (!navigate) return;
     event.preventDefault();
@@ -115,8 +115,8 @@ function SiteHeader({ children, navigate }) {
   }
 
   return (
-    <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-5">
-      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="transition hover:opacity-90"><BrandLogo /></a>
+    <header className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5">
+      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90"><BrandLogo /></a>
       {children && <div className="nxt5-panel relative flex shrink-0 items-center gap-3 border border-cyan-200/12 bg-[#050914]/62 p-1.5 shadow-[0_0_32px_rgba(34,211,238,.08)] backdrop-blur-2xl">{children}</div>}
     </header>
   );
@@ -165,6 +165,7 @@ export const LEGAL_PAGES = {
       ["Responsable du traitement", "Le responsable du traitement est l’éditeur non professionnel de NXT5. Les demandes relatives aux données personnelles s’effectuent par message privé via le canal indiqué sur la page Contact. N’envoyez aucune donnée sensible dans un salon Discord public."],
       ["Données de compte et de sécurité", "NXT5 traite l’adresse e-mail, le pseudonyme, le mot de passe sous forme hachée, les préférences de notification, les dates de création et de dernière activité du compte, ainsi que l’état d’envoi d’un éventuel rappel d’inactivité. Pour sécuriser les connexions, le service traite aussi un identifiant de session haché, l’adresse IP, le navigateur utilisé, les tentatives récentes et des journaux d’actions."],
       ["Données d’équipe et de jeu", "Le service peut traiter les équipes, rôles et invitations, profils joueurs, Riot IDs, disponibilités, objectifs, notes de coaching, compositions, champion pools, reviews, Game IDs, fichiers de match importés, chronologies de partie, statistiques et pseudonymes publics des participants. Certaines notes peuvent contenir des appréciations rédigées par le staff de l’équipe."],
+      ["Demandes d’accès et offres en préparation — ajout du 8 septembre 2026", "Le formulaire Tarifs recueille ton nom de contact, ton e-mail, le nom de ton équipe, ton rôle, la formule souhaitée, le payeur envisagé et ton intention d’achat. Le message libre est facultatif. Ton accord pour être recontacté, sa version et sa date sont enregistrés avec la demande. Ces informations servent uniquement à répondre à ta demande et à préparer l’offre avec les équipes intéressées ; elles sont accessibles à l’administration NXT5 et hébergées par Netlify et Neon. Les coordonnées, réponses et notes de suivi sont supprimées après six mois à compter de la demande, lors du nettoyage quotidien. Aucune inscription à une newsletter ni aucun paiement n’en résulte. Tu peux demander la rectification ou la suppression de ta demande et retirer ton accord par le canal privé de la page Contact."],
       ["Origine des données", "Les données proviennent de l’utilisateur, des autres membres autorisés de son équipe, des fichiers de match importés, de profils de jeu accessibles au public et des API Riot. Une personne peut donc apparaître dans un roster ou un match sans avoir elle-même créé de compte NXT5."],
       ["Finalités et bases juridiques", "La création du compte, l’accès aux équipes, l’import et l’analyse des matchs reposent sur l’exécution des CGU. La sécurisation du service, la prévention des abus, la traçabilité et l’amélioration de sa fiabilité reposent sur l’intérêt légitime de NXT5 et de ses utilisateurs. Les notifications facultatives, dont le rappel unique après trois mois d’inactivité, reposent sur le choix de l’utilisateur et peuvent être désactivées dans les paramètres."],
       ["Données obligatoires ou facultatives", "L’e-mail, le pseudonyme et le mot de passe sont nécessaires à la création et à la récupération du compte. Sans eux, NXT5 ne peut pas fournir l’accès personnel au service. Les données d’équipe, Riot IDs, disponibilités, imports, notes et réglages de notification sont facultatifs, mais certaines fonctions resteront incomplètes s’ils ne sont pas renseignés."],

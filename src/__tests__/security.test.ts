@@ -108,6 +108,52 @@ describe('one-way security tokens', () => {
 });
 
 describe('bounded JSON requests', () => {
+  function streamingRequest(chunks: Uint8Array[], cancel = () => {}) {
+    let reads = 0;
+    const body = new ReadableStream({
+      pull(controller) {
+        if (reads === chunks.length) controller.close();
+        else controller.enqueue(chunks[reads++]);
+      },
+      cancel
+    }, { highWaterMark: 0 });
+    return {
+      request: new Request('https://nxt5.org/test', { method: 'POST', body, duplex: 'half' } as RequestInit),
+      reads: () => reads
+    };
+  }
+
+  it('cancels an undeclared stream at the limit without consuming the remaining body', async () => {
+    let cancelled = false;
+    const input = streamingRequest([
+      new Uint8Array(8), new Uint8Array(8), new Uint8Array(1_000_000)
+    ], () => { cancelled = true; });
+    await expect(readJson(input.request, 10)).rejects.toMatchObject({ status: 413, code: 'REQUEST_TOO_LARGE' });
+    expect(input.reads()).toBe(2);
+    expect(cancelled).toBe(true);
+    expect(input.request.body?.locked).toBe(false);
+  });
+
+  it('counts UTF-8 bytes and decodes characters split across chunks at the exact limit', async () => {
+    const bytes = new TextEncoder().encode('{"name":"é"}');
+    const split = bytes.indexOf(0xc3) + 1;
+    const input = streamingRequest([bytes.slice(0, split), bytes.slice(split)]);
+    await expect(readJson(input.request, bytes.length)).resolves.toEqual({ name: 'é' });
+    const oversized = streamingRequest([bytes]);
+    await expect(readJson(oversized.request, bytes.length - 1)).rejects.toMatchObject({ status: 413 });
+  });
+
+  it.each(['{broken', 'null', '[]', '"text"'])('rejects non-object or malformed JSON: %s', async (body) => {
+    await expect(readJson(new Request('https://nxt5.org/test', { method: 'POST', body })))
+      .rejects.toMatchObject({ status: 400, code: 'INVALID_JSON' });
+  });
+
+  it('rejects interrupted request bodies instead of processing an empty object', async () => {
+    const body = new ReadableStream({ start(controller) { controller.error(new Error('connection closed')); } });
+    const request = new Request('https://nxt5.org/test', { method: 'POST', body, duplex: 'half' } as RequestInit);
+    await expect(readJson(request)).rejects.toMatchObject({ status: 400, code: 'INVALID_JSON' });
+  });
+
   it('rejects declared and actual bodies over the endpoint limit', async () => {
     const declared = new Request('https://nxt5.org/.netlify/functions/test', {
       method: 'POST',

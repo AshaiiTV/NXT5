@@ -15,6 +15,7 @@
 .ig-search-field > button:hover { color: #fff; background: rgba(103,232,249,.07); }
 .ig-search-field > button svg { width: 16px; height: 16px; }
 .ig-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.ig-filters-history { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .imported-games .ig-sort select, .imported-games .ig-filters select { min-height: 46px; padding-top: 10px; padding-bottom: 10px; font-size: 13px; font-weight: 600; }
 .ig-results-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; min-height: 56px; padding: 8px 0; color: #c2d0e3; font-size: 12px; }
 .ig-search-hint { color: #b8c6dc; }
@@ -32,7 +33,10 @@
 .ig-list { list-style: none; padding: 0; margin: 0; }
 .ig-game { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); text-align: left; }
 .ig-game:hover { background: rgba(255,255,255,.035); }
+.ig-game:disabled { cursor: default; }
+.ig-game:disabled:hover { background: transparent; }
 .ig-game[aria-pressed="true"] { background: rgba(103,232,249,.065); box-shadow: inset 3px 0 0 var(--nxt5-accent); }
+.ig-game[aria-pressed="true"]:disabled:hover { background: rgba(103,232,249,.065); }
 .ig-result { display: inline-flex; align-items: center; gap: 8px; grid-column: 1; grid-row: 1; font-size: 12px; font-weight: 700; color: #c2d0e3; }
 .ig-result > span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: rgba(255,255,255,.055); font-size: 11px; }
 .ig-win { color: #a7f3d0; }
@@ -68,6 +72,42 @@
 .ig-icon-button svg { width: 16px; height: 16px; }
 .ig-icon-button:hover:not(:disabled) { background: rgba(103,232,249,.08); border-color: var(--nxt5-border-strong); }
 .ig-icon-button:disabled { opacity: .35; cursor: not-allowed; }
+.import-history .ig-heading > div:first-child { flex: 1 1 320px; }
+.ih-import-meta { margin: -4px 0 20px; color: #c2d0e3; font-size: 12px; line-height: 1.7; }
+.ih-delete { color: #fecdd3; }
+.ih-delete:disabled { cursor: wait; opacity: .5; }
+.ih-editing-label { color: #cffafe; font-size: 12px; }
+.ih-editor, .ih-categories { padding: 20px 0; margin-bottom: 24px; border-block: 1px solid var(--nxt5-border-strong); }
+.ih-editor > header, .ih-categories > header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; margin-bottom: 20px; }
+.ih-editor > header { display: block; }
+.ih-editor h4, .ih-categories h4 { color: var(--nxt5-text); font-size: 17px; font-weight: 750; }
+.ih-editor > header p, .ih-categories p { color: #c2d0e3; font-size: 13px; line-height: 1.6; margin-top: 4px; }
+.ih-edit-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.ih-editor button[aria-pressed] { min-height: 44px; }
+.ih-editor-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; padding-top: 20px; }
+.ih-teams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+.ih-team h5 { padding-bottom: 12px; color: #bae6fd; font-size: 14px; font-weight: 750; border-bottom: 1px solid var(--nxt5-border); }
+.ih-team-enemy h5 { color: #fecdd3; }
+.ih-participant { display: grid; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--nxt5-border); }
+.ih-player { display: flex; align-items: center; gap: 10px; }
+.ih-player > div { display: grid; gap: 2px; min-width: 0; }
+.ih-player strong { color: var(--nxt5-text); font-size: 13px; }
+.ih-player span { color: #c2d0e3; font-size: 12px; }
+.ih-portrait { width: 32px; height: 32px; flex-shrink: 0; border-radius: 6px; object-fit: cover; }
+.ih-role-fields { display: grid; grid-template-columns: minmax(110px, .75fr) minmax(0, 1.25fr); gap: 12px; }
+.ih-team-enemy .ih-role-fields { grid-template-columns: minmax(0, 1fr); }
+.ih-role-fields label > span { font-size: 10px; letter-spacing: .04em; }
+.ih-no-participants { color: #c2d0e3; padding: 16px 0; font-size: 13px; }
+.ih-category-list { display: flex; flex-wrap: wrap; gap: 12px 32px; list-style: none; padding: 0; }
+.ih-category-list li { display: inline-flex; align-items: center; gap: 12px; font-size: 13px; color: #e2eaf7; }
+.ih-category-default { color: #c2d0e3; font-size: 11px; }
+.ih-category-create { padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--nxt5-border); }
+.ih-category-create fieldset { display: grid; grid-template-columns: minmax(0, 1fr) 160px auto auto; gap: 12px; align-items: end; }
+@container (max-width: 879px) {
+  .ih-teams, .ih-edit-fields { grid-template-columns: minmax(0, 1fr); }
+  .ih-category-create fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ig-filters-history { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @container (min-width: 880px) {
   .ig-column-labels, .ig-game { display: grid; grid-template-columns: 96px minmax(160px, 1fr) 156px 126px 96px 16px; gap: 18px; align-items: center; }
   .ig-column-labels { padding: 12px; border-top: 1px solid var(--nxt5-border-strong); color: #b8c6dc; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -80,6 +120,7 @@
   .ig-sort { max-width: none; }
   .ig-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .ig-filters > label:last-child { grid-column: 1 / -1; }
+  .ig-filters-history > label:first-child { grid-column: 1 / -1; }
   .imported-games .ig-search-field input, .imported-games .ig-sort select, .imported-games .ig-filters select { font-size: 16px; }
   .ig-game { padding: 16px 8px; gap: 12px; }
   .ig-champion { width: 24px; height: 24px; }
@@ -87,4 +128,7 @@
   .ig-date { text-align: right; }
   .ig-selection { padding: 14px; }
   .ig-pagination nav { justify-content: space-between; width: 100%; }
+  .ih-role-fields { grid-template-columns: minmax(0, 1fr); }
+  .ih-category-create fieldset { grid-template-columns: minmax(0, 1fr); }
+  .import-history .ih-editor select, .import-history .ih-editor input { font-size: 16px; }
 }

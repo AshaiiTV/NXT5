@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.6 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées et du favicon de chargement. Checkout actualisé sur `2aac365`.
+Version 1.7 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Checkout actualisé sur `816e3cc`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -177,6 +177,20 @@ Cette règle concerne la zone de téléchargement du site ; elle ne modifie pas 
 
 Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cette composition ; `src/utils/imported-games.js` porte les règles de recherche, de filtre et de tri. Réutiliser les portraits de champions et les contrôles partagés.
 
+### Historique des imports
+
+Évolution autorisée le 8 septembre 2026 : dans Games > Importer, l’historique reprend la composition et les comportements de la liste des games importées. Réutiliser `ImportedGames` et sa feuille de styles pour conserver une même lecture entre consultation des games et gestion des imports.
+
+- Regrouper recherche, filtres, sélection et liste dans un seul `Surface`. Conserver les lignes aérées, les séparateurs légers, les portraits et les états de résultat / review ; ne pas revenir à une carte de gestion par game.
+- Ajouter un filtre Catégorie proposant toutes les games, les games non classées et les catégories existantes, à côté des filtres Résultat, Review et Côté. Garder la recherche multi-mots, la réinitialisation et la pagination. Le tri initial suit la date d’import, du plus récent au plus ancien ; distinguer explicitement les tris par date d’import, date de partie et durée.
+- Dans les lignes, nommer la colonne « Import / durée » et afficher l’auteur de l’import sous l’identité de la game. Sous la sélection active, réunir date d’import, auteur et patch lorsqu’ils sont connus. Ne pas confondre date d’import et date de partie ni inventer une valeur absente.
+- Regrouper « Voir les stats », « Modifier », « Postes » et « Supprimer » auprès de la game sélectionnée. La suppression conserve son traitement de danger et sa confirmation existante. Les droits existants restent applicables aux modifications, aux suppressions et à la gestion des catégories.
+- Ouvrir l’édition du nom et des catégories, ou celle des postes et profils, au-dessus de la liste dans une zone ouverte distinguée par des filets. Conserver labels, validations, actions d’enregistrement / annulation et états de sauvegarde. Les formulaires ne doivent pas créer une succession de sous-cartes.
+- Conserver le brouillon lorsque la recherche, un filtre ou la pagination masque la ligne concernée. Pendant l’édition ou la sauvegarde, verrouiller la sélection, y compris la désélection de la game active, et indiquer la modification en cours. Les actions « Enregistrer » et « Annuler » permettent de terminer l’édition. Le formulaire reste attaché à la game nommée, indépendamment des résultats visibles.
+- Rendre la gestion des catégories repliable depuis le bouton « Gérer les catégories ». Son état ouvert est accessible au clavier et annoncé ; la création et la suppression restent soumises aux droits et confirmations existants.
+
+`src/pages/workspace/GameWorkspace.jsx` porte les actions et formulaires de cet historique ; le composant partagé conserve la recherche, la liste, la sélection et la navigation. Cette composition concerne le site, sans modifier l’interface de l’application `importer-app`.
+
 ## 7. Composants à employer
 
 Les composants de référence se trouvent dans `src/components/ui/Core.jsx`.
@@ -231,6 +245,7 @@ Exemple d’assemblage, à adapter aux vraies données et au cadre de page. `Pag
 - Sous 768 px, d’autres règles convertissent les grilles arbitraires dans les panneaux en une colonne. Ne pas supposer que le seul préfixe Tailwind décide du résultat.
 - Pour le bloc Objectifs, la largeur du conteneur détermine la disposition : à partir de 700 px, priorité et cible sont côte à côte, et chaque rôle occupe trois colonnes ; en dessous, les contenus se superposent sans recréer de cartes. Cette règle tient compte de l’espace réellement disponible avec la sidebar.
 - Pour les games importées, la disposition suit aussi la largeur du conteneur : à partir de 880 px, aligner les informations sous des en-têtes de colonnes ; en dessous, recomposer chaque ligne en plusieurs rangées sans sous-carte. Sous 600 px, empiler recherche et tri, répartir les filtres sur deux colonnes avec le côté en pleine largeur, et donner toute la largeur à la navigation de pagination. Conserver la composition, la date, le résultat et le statut de review sans défilement horizontal global.
+- Dans l’historique des imports, conserver les mêmes paliers de conteneur que la liste partagée. Sous 880 px, empiler les zones d’édition et les équipes du formulaire de postes. Sous 600 px, Catégorie et Côté prennent toute la largeur, Résultat et Review partagent une rangée, et les champs poste / profil s’empilent. Les actions de sélection reviennent à la ligne. Garder les noms, les catégories et les champs de profil lisibles sans débordement global.
 - Les noms de joueurs, titres et boutons peuvent revenir à la ligne. Réserver la troncature aux endroits où l’intégralité reste accessible.
 - Les tables larges utilisent un conteneur `nxt5-responsive-scroll`. Sur mobile, certaines tables gardent une largeur interne minimale de 680 px : faire défiler le tableau, pas toute la page.
 - Champs à 16 px à 640 px et moins. Objectif pour les nouveaux contrôles tactiles : zone confortable d’au moins 44 × 44 px ; l’existant comporte aussi des minima de 40 et 42 px.
@@ -277,13 +292,13 @@ Sources principales :
 - `src/components/games/ImportedGames.jsx`, `src/components/games/imported-games.css` et `src/utils/imported-games.js` : liste des games importées, recherche et filtres, tri et pagination, sélection persistante et adaptation à la largeur du conteneur.
 - `src/app/helpers.js` : correspondance des tons via `tone()`.
 - `src/pages/public/PublicPages.jsx` : accueil et composition des pages publiques.
-- `src/pages/workspace/ImporterDownloadPanel.jsx` et `src/pages/workspace/GameWorkspace.jsx` : téléchargement, chargement du JSON et apparition de l’assignation.
+- `src/pages/workspace/ImporterDownloadPanel.jsx` et `src/pages/workspace/GameWorkspace.jsx` : téléchargement, chargement du JSON, apparition de l’assignation et gestion de l’historique des imports avec formulaires contextuels.
 - `src/components/layout/AppChrome.jsx` et `src/app/performance.js` : shell et mode performance.
 - `tailwind.config.js` et `index.html` : configuration et pile de chargement.
 
 La source auditée contient plusieurs couches CSS. Un commentaire disant « final layer » ne prouve pas qu’une règle gagne : certaines règles ultérieures restent actives, notamment le titre métallique. Les panneaux et boutons conservent en revanche leurs arrondis grâce à `!important`. Examiner spécificité, ordre et styles calculés avant toute correction. Ne pas ajouter automatiquement une nouvelle couche de surcharges.
 
-La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. La version 1.4 documente l’écran de chargement unique. La version 1.5 ajoute la liste ouverte des games importées et ses règles de recherche, de sélection et de navigation. La version 1.6 précise le favicon complet existant au centre du chargement. Cette référence ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
+La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. La version 1.4 documente l’écran de chargement unique. La version 1.5 ajoute la liste ouverte des games importées et ses règles de recherche, de sélection et de navigation. La version 1.6 précise le favicon complet existant au centre du chargement. La version 1.7 étend la liste partagée à l’historique des imports et documente son filtre de catégorie, ses dates distinctes et ses formulaires contextuels. Cette référence ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
 
 `AGENTS.md` dans le dépôt demande de lire cette charte avant le travail visuel. Un rappel existe aussi à la racine de l’espace local NXT5. Pour utiliser la même référence dans un autre checkout ou outil IA, y inclure `AGENTS.md` et cette charte, ou fournir explicitement le document à l’outil. Un PDF seul n’impose pas automatiquement ses règles à toutes les IA.
 

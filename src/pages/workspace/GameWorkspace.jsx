@@ -6,6 +6,7 @@ import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Users, Upload
 import { apiFetch, apiUploadJson } from "../../api/client.js";
 import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
+import { importedGameImportTimestamp } from "../../utils/imported-games.js";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName, matchHasCategory } from "../../utils/matches.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
@@ -13,7 +14,7 @@ import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
-import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane, matchImportDateLabel, ROSTER_ROLE_ORDER, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane, ROSTER_ROLE_ORDER, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
@@ -403,55 +404,32 @@ function ImportRoleHeader({ role, toneName = "cyan", player = null, fallbackLabe
   );
 }
 
-function ImportHistoryCard({ match, categories, roster = [], editing, editForm, saving, onEdit, onCancel, onSave, onDelete, onChange, roleEditorOpen, roleForm, onToggleRoles, onRoleChange, onPlayerChange, onSaveRoles, onOpenGame }) {
-  const importer = match.created_by_name || match.created_by_account || "";
-  const participants = match.participants || [];
-  const selectedCategories = matchCategoriesForMatch(match, categories);
-  return <div className="nxt5-import-card rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-    <div className="nxt5-import-card-header flex flex-col gap-3">
-      <div className="min-w-0 flex-1">
-        {editing ? <div className="grid gap-3">
-          <TextInput label="Nom de la game" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Game 1 vs BK, Finale LB..." icon={FileText} />
-          <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} />
-        </div> : <>
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-black text-white">{matchImportTitle(match)}</p>
-            <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge>
-            <Badge tone="slate">{match.side || "Side ?"}</Badge>
-            {selectedCategories.length ? selectedCategories.map((category) => <Badge key={category.id} tone={matchCategoryTone(category)}>{category.name}</Badge>) : <Badge tone="slate">Non classée</Badge>}
-          </div>
-          <p className="mt-1 truncate text-xs font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] font-bold uppercase tracking-[0.08em] text-slate-400">
-            <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-cyan-100/80" /> Importée le {matchImportDateLabel(match)}</span>
-            {importer && <span>Par {importer}</span>}
-            <span>{match.patch || "Patch ?"}</span>
-          </div>
-        </>}
-      </div>
-      <div className="nxt5-import-card-actions flex flex-wrap gap-2">
-        {editing ? <>
-          <Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button>
-          <Button type="button" icon={saving ? Loader2 : Check} onClick={onSave} disabled={saving || !editForm.label.trim()}>Enregistrer</Button>
-        </> : <>
-          <button type="button" title="Ouvrir la game" aria-label="Ouvrir la game" onClick={onOpenGame} disabled={saving} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35">
-            <ArrowRight className="h-4 w-4" />
-          </button>
-          <Button type="button" variant="ghost" icon={Settings} onClick={onToggleRoles} disabled={saving}>Postes</Button>
-          <Button type="button" variant="ghost" icon={Pencil} onClick={onEdit} disabled={saving}>Modifier</Button>
-          <Button type="button" variant="ghost" icon={Trash2} onClick={onDelete} disabled={saving}>Supprimer</Button>
-        </>}
-      </div>
-    </div>
-    {roleEditorOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-black text-white">Réassigner postes et profils</p><p className="mt-1 text-xs font-semibold text-slate-300">Corrige les lanes et le profil NXT5 attaché au champion, notamment en cas d'inversion ADC/SUP.</p></div><Button type="button" icon={saving ? Loader2 : Check} onClick={onSaveRoles} disabled={saving}>Enregistrer</Button></div>
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey} className={cx("rounded-2xl border p-3", teamKey === "ALLY" ? "border-cyan-300/14 bg-cyan-400/[0.045]" : "border-rose-300/14 bg-rose-500/[0.045]")}><div className="mb-3 flex items-center justify-between gap-2"><Badge tone={teamKey === "ALLY" ? "cyan" : "red"}>{teamKey === "ALLY" ? "Alliés" : "Adversaires"}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{participants.filter((row) => row.team_key === teamKey).map((row) => {
-        const formValue = roleForm[row.id];
-        const form = formValue && typeof formValue === "object" ? formValue : { role: formValue || row.role || "", playerId: row.player_id || "" };
-        const linkedPlayer = roster.find((player) => String(player.id || "") === String(form.playerId || ""));
-        return <label key={row.id} className="grid min-w-0 gap-2 rounded-xl border border-white/10 bg-black/22 p-2"><span className="flex min-w-0 items-center gap-2"><ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-9 w-9 shrink-0 rounded-lg object-cover" /><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-white">{championDisplayName(row.champion)}</span><span className="block truncate text-[0.62rem] font-semibold text-slate-300">{teamKey === "ALLY" && linkedPlayer ? `${linkedPlayer.name} · ${row.summoner_name || row.riot_id || "Joueur"}` : row.summoner_name || row.riot_id || "Joueur"}</span></span></span><span className="grid grid-cols-[76px_minmax(0,1fr)] gap-2"><select value={form.role || ""} onChange={(event) => onRoleChange(row.id, event.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-[0.68rem] font-black text-white outline-none">{COMP_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select>{teamKey === "ALLY" ? <select value={form.playerId || ""} onChange={(event) => onPlayerChange(row.id, event.target.value)} className="min-w-0 rounded-lg border border-cyan-300/14 bg-cyan-400/[0.07] px-2 py-1.5 text-[0.68rem] font-black text-white outline-none"><option value="">Profil NXT5</option>{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</select> : <span className="rounded-lg border border-white/10 bg-black/24 px-2 py-1.5 text-[0.68rem] font-black text-slate-400">Adversaire</span>}</span></label>;
-      })}</div></div>)}</div>
-    </div>}
-  </div>;
+function ImportHistoryEditor({ match, categories, roster, editing, editForm, saving, roleForm, onCancel, onSave, onChange, onRoleChange, onPlayerChange }) {
+  return <form className="ih-editor" onSubmit={(event) => { event.preventDefault(); if (!saving) onSave(); }}>
+    <header><h4>{editing ? "Modifier la game" : "Réassigner postes et profils"}</h4><p>{editing ? "Ajuste le nom et les catégories utilisés dans les stats et les reviews." : "Associe chaque champion au bon poste et au bon profil NXT5."}</p></header>
+    <fieldset disabled={saving}>
+      {editing ? <div className="ih-edit-fields">
+        <TextInput label="Nom de la game" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Game 1 vs BK, Finale LB…" required icon={FileText} />
+        <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} />
+      </div> : <div className="ih-teams">{["ALLY", "ENEMY"].map((teamKey) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()}`}>
+        <h5>{teamKey === "ALLY" ? "Notre équipe" : "Adversaires"}</h5>
+        <div className="ih-roster">{(match.participants || []).filter((row) => row.team_key === teamKey).map((row) => {
+          const value = roleForm[row.id];
+          const form = value && typeof value === "object" ? value : { role: value || row.role || "", playerId: row.player_id || "" };
+          const champion = championDisplayName(row.champion);
+          return <div key={row.id} className="ih-participant">
+            <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion}</strong><span>{row.summoner_name || row.riot_id || "Joueur"}</span></div></div>
+            <div className="ih-role-fields">
+              <SelectInput label={`Poste · ${champion}`} value={form.role || ""} onChange={(role) => onRoleChange(row.id, role)}><option value="" disabled>À attribuer</option>{COMP_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
+              {teamKey === "ALLY" && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">Conserver le profil</option>{form.playerId && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>Profil lié hors roster</option>}{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>}
+            </div>
+          </div>;
+        })}</div>
+        {!(match.participants || []).some((row) => row.team_key === teamKey) && <p className="ih-no-participants">Aucun participant disponible.</p>}
+      </section>)}</div>}
+      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || (editing ? !editForm.label.trim() : !match.participants?.length)}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></div>
+    </fieldset>
+  </form>;
 }
 
 function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, user }) {
@@ -473,9 +451,24 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const [savingCategory, setSavingCategory] = useState(false);
   const [roleEditorMatchId, setRoleEditorMatchId] = useState("");
   const [roleEditForm, setRoleEditForm] = useState({});
-  const [selectedId, setSelectedId] = useState(null);
-  const selected = data.matches.find((match) => match.id === selectedId) || data.matches[0];
-  const rows = selected?.participants || [];
+  const [historyMatchId, setHistoryMatchId] = useState("");
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
+  useEffect(() => {
+    setHistoryMatchId("");
+    setEditingMatchId("");
+    setMatchEditForm({ label: "", categoryIds: [] });
+    setRoleEditorMatchId("");
+    setRoleEditForm({});
+    setCategoryManagerOpen(false);
+    setCategoryCreatorOpen(false);
+  }, [selectedTeamId]);
+  useEffect(() => {
+    if (historyMatchId && !(data.matches || []).some((match) => match.id === historyMatchId && match.team_id === selectedTeamId)) {
+      setHistoryMatchId("");
+      setEditingMatchId("");
+      setRoleEditorMatchId("");
+    }
+  }, [data.matches, historyMatchId, selectedTeamId]);
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const canManageCategories = selectedTeam?.owner_id === user?.id || canStaffManage(currentMember?.role);
@@ -628,6 +621,8 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   }
   function startEditMatch(match) {
+    setRoleEditorMatchId("");
+    setRoleEditForm({});
     setEditingMatchId(match.id);
     setMatchEditForm({ label: matchImportTitle(match), categoryIds: matchCategoryIds(match) });
   }
@@ -636,6 +631,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
     setMatchEditForm({ label: "", categoryIds: [] });
   }
   function toggleRoleEditor(match) {
+    cancelEditMatch();
     const open = roleEditorMatchId === match.id;
     setRoleEditorMatchId(open ? "" : match.id);
     setRoleEditForm(open ? {} : Object.fromEntries((match.participants || []).map((row) => [row.id, { role: row.role || "", playerId: row.player_id || "" }])));
@@ -770,6 +766,10 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   }
 
   const teamMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const historyMatch = teamMatches.find((match) => match.id === historyMatchId);
+  const historyImportedAt = importedGameImportTimestamp(historyMatch);
+  const historyEditing = Boolean(historyMatch && (editingMatchId === historyMatch.id || roleEditorMatchId === historyMatch.id));
+  const historyLocked = historyEditing || Boolean(managingMatchId);
   const laneAssignmentsReady = COMP_ROLES.every((role) => String(laneAssignments[role] || "").trim() && String(playerAssignments[role] || "").trim());
   const enemyAssignmentsReady = COMP_ROLES.every((role) => String(enemyLaneAssignments[role] || "").trim());
   const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
@@ -873,27 +873,43 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
         </Surface>}
       </div>
 
-      <Surface className="mt-5 p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between"><div><h3 className="text-xl font-black text-white">Historique des imports</h3><p className="mt-1 text-sm font-semibold text-slate-300">{teamMatches.length} game{teamMatches.length > 1 ? "s" : ""} importée{teamMatches.length > 1 ? "s" : ""}. Classe-les en Scrim ou catégories custom pour analyser les blocs séparément.</p></div><Badge tone="cyan">Stats synchronisées</Badge></div>
-        <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap gap-2">{matchCategories.length ? matchCategories.map((category) => <span key={category.id} className={cx("inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em]", tone(matchCategoryTone(category)))}>{category.name}{!category.is_default && canManageCategories && <button type="button" onClick={() => deleteMatchCategory(category)} disabled={savingCategory} className="rounded-full p-0.5 opacity-70 transition hover:bg-white/10 hover:opacity-100" aria-label={`Supprimer ${category.name}`}><X className="h-3 w-3" /></button>}</span>) : <Badge tone="slate">Catégories en cours de création</Badge>}</div>
-              <p className="mt-2 text-sm font-semibold text-slate-300">Les catégories servent à comparer les performances selon le contexte : scrim, bootcamp, ligue, test draft...</p>
-            </div>
-            {canManageCategories && <Button type="button" icon={categoryCreatorOpen ? X : Plus} variant={categoryCreatorOpen ? "ghost" : "primary"} onClick={() => { setCategoryCreatorOpen((open) => !open); if (categoryCreatorOpen) setCategoryForm({ name: "", color: "cyan" }); }}>{categoryCreatorOpen ? "Fermer" : "Ajouter une catégorie"}</Button>}
-          </div>
-          {canManageCategories && categoryCreatorOpen && <form onSubmit={createMatchCategory} className="mt-4 grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-black/24 p-3 sm:grid-cols-[minmax(180px,1fr)_150px_auto_auto]">
-            <TextInput label="Catégorie custom" value={categoryForm.name} onChange={(name) => setCategoryForm((current) => ({ ...current, name }))} placeholder="Ligue, Bootcamp..." icon={Plus} />
-            <SelectInput label="Couleur" value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>
-              {["cyan", "purple", "green", "yellow", "pink", "red", "blue", "slate"].map((color) => <option key={color} value={color}>{color}</option>)}
-            </SelectInput>
-            <div className="flex items-end"><Button type="submit" icon={savingCategory ? Loader2 : Plus} disabled={savingCategory || !categoryForm.name.trim()}>Créer</Button></div>
-            <div className="flex items-end"><Button type="button" variant="ghost" icon={X} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }}>Annuler</Button></div>
+      <ImportedGames
+        key={selectedTeamId}
+        history
+        matches={teamMatches}
+        categories={matchCategories}
+        selectedMatchId={historyMatchId}
+        selectedMatch={historyMatch}
+        selectionLocked={historyLocked}
+        onSelectMatch={(id) => { if (!historyLocked) setHistoryMatchId(id); }}
+        headerActions={canManageCategories && <Button type="button" variant="ghost" icon={Settings} aria-expanded={categoryManagerOpen} aria-controls="import-category-manager" onClick={() => setCategoryManagerOpen((open) => !open)}>Gérer les catégories</Button>}
+        categoryManager={canManageCategories && categoryManagerOpen && <section id="import-category-manager" className="ih-categories" aria-label="Gestion des catégories">
+          <header><div><h4>Catégories</h4><p>Organise tes games par contexte : scrim, ligue, bootcamp…</p></div><Button type="button" variant="ghost" icon={categoryCreatorOpen ? X : Plus} disabled={savingCategory} onClick={() => { setCategoryCreatorOpen((open) => !open); setCategoryForm({ name: "", color: "cyan" }); }}>{categoryCreatorOpen ? "Fermer" : "Ajouter une catégorie"}</Button></header>
+          <ul className="ih-category-list">{matchCategories.map((category) => <li key={category.id}><span>{category.name}</span>{category.is_default ? <span className="ih-category-default">Par défaut</span> : <button type="button" className="ig-icon-button" onClick={() => deleteMatchCategory(category)} disabled={savingCategory} aria-label={`Supprimer la catégorie ${category.name}`}><X aria-hidden="true" /></button>}</li>)}</ul>
+          {!matchCategories.length && <p>Aucune catégorie pour le moment.</p>}
+          {categoryCreatorOpen && <form className="ih-category-create" onSubmit={createMatchCategory}>
+            <fieldset disabled={savingCategory}>
+              <TextInput label="Nom de la catégorie" value={categoryForm.name} onChange={(name) => setCategoryForm((current) => ({ ...current, name }))} placeholder="Ligue, Bootcamp…" required />
+              <SelectInput label="Couleur" value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>{[["cyan", "Cyan"], ["purple", "Violet"], ["green", "Vert"], ["yellow", "Jaune"], ["pink", "Rose"], ["red", "Rouge"], ["blue", "Bleu"], ["slate", "Ardoise"]].map(([color, name]) => <option key={color} value={color}>{name}</option>)}</SelectInput>
+              <Button type="submit" icon={savingCategory ? Loader2 : Plus} disabled={savingCategory || !categoryForm.name.trim()}>{savingCategory ? "Création…" : "Créer"}</Button>
+              <Button type="button" variant="ghost" onClick={() => { setCategoryCreatorOpen(false); setCategoryForm({ name: "", color: "cyan" }); }} disabled={savingCategory}>Annuler</Button>
+            </fieldset>
           </form>}
-        </div>
-        <div className="nxt5-import-history-list mt-4 grid gap-3">{teamMatches.length ? teamMatches.map((match) => <ImportHistoryCard key={match.id} match={match} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === match.id} editForm={matchEditForm} saving={managingMatchId === match.id} roleEditorOpen={roleEditorMatchId === match.id} roleForm={roleEditForm} onEdit={() => startEditMatch(match)} onCancel={cancelEditMatch} onSave={() => saveMatchHistory(match)} onDelete={() => deleteMatchHistory(match)} onChange={setMatchEditForm} onToggleRoles={() => toggleRoleEditor(match)} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} onSaveRoles={() => saveMatchRoles(match)} onOpenGame={() => openAppPath(`/statistiques?match=${encodeURIComponent(match.id)}`)} />) : <EmptyState icon={Swords} title="Aucune game" text="Importe une première game pour alimenter les statistiques." />}</div>
-      </Surface>
+        </section>}
+        selectionActions={historyMatch && <>{!historyEditing && <>
+          <Button type="button" icon={ArrowRight} disabled={Boolean(managingMatchId)} onClick={() => openAppPath(`/statistiques?match=${encodeURIComponent(historyMatch.id)}`)}>Voir les stats</Button>
+          <Button type="button" variant="ghost" icon={Pencil} disabled={Boolean(managingMatchId)} onClick={() => startEditMatch(historyMatch)}>Modifier</Button>
+          <Button type="button" variant="ghost" icon={Settings} disabled={Boolean(managingMatchId)} onClick={() => toggleRoleEditor(historyMatch)}>Postes</Button>
+          <button type="button" className="ig-text-action ih-delete" disabled={Boolean(managingMatchId)} onClick={() => deleteMatchHistory(historyMatch)}><Trash2 aria-hidden="true" />{managingMatchId ? "Suppression…" : "Supprimer"}</button>
+        </>}{historyEditing && <span className="ih-editing-label">Modification en cours</span>}</>}
+        selectionDetails={historyMatch && <>
+          <p className="ih-import-meta">{historyImportedAt === null ? "Date d’import inconnue" : `Importée le ${new Date(historyImportedAt).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}`}{(historyMatch.created_by_name || historyMatch.created_by_account) && <> · Par {historyMatch.created_by_name || historyMatch.created_by_account}</>} · {historyMatch.patch ? `Patch ${historyMatch.patch}` : "Patch inconnu"}</p>
+          {historyEditing && <ImportHistoryEditor match={historyMatch} categories={matchCategories} roster={gameplayRoster} editing={editingMatchId === historyMatch.id} editForm={matchEditForm} saving={managingMatchId === historyMatch.id} roleForm={roleEditForm}
+            onCancel={() => { cancelEditMatch(); setRoleEditorMatchId(""); setRoleEditForm({}); }}
+            onSave={() => editingMatchId === historyMatch.id ? saveMatchHistory(historyMatch) : saveMatchRoles(historyMatch)}
+            onChange={setMatchEditForm} onRoleChange={updateRoleEdit} onPlayerChange={updatePlayerEdit} />}
+        </>}
+      />
     </div>
   );
 }
@@ -2946,4 +2962,4 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   );
 }
 
-export { exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryCard, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
+export { exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
