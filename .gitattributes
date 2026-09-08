@@ -13,3 +13,4 @@
 *.svg text eol=lf
 *.webmanifest text eol=lf
 _redirects text eol=lf
+*.pdf binary
