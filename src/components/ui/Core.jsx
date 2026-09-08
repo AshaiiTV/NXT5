@@ -20,23 +20,22 @@ export function Surface({ children, className = "", delay = 0, glow = false }) {
         className
       )}
     >
-      <div className="pointer-events-none absolute inset-x-5 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-cyan-100/70 to-fuchsia-100/45" />
-      <div className="pointer-events-none absolute bottom-0 left-5 z-[1] h-px w-20 bg-gradient-to-r from-cyan-300/55 to-transparent" />
+      {glow && <div aria-hidden="true" className="pointer-events-none absolute inset-x-5 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-cyan-100/35 to-fuchsia-100/25" />}
       <div className="relative z-10">{children}</div>
     </div>
   );
 }
 
 export function Button({ children, icon: Icon, variant = "primary", className = "", disabled = false, ...props }) {
-  const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
+  const base = "nxt5-cyber-button nxt5-control inline-flex min-h-11 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
-    primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
-    ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11] hover:text-white hover:shadow-[0_0_28px_rgba(34,211,238,.14)]",
-    danger: "border border-rose-300/28 bg-rose-500/12 text-rose-100 hover:-translate-y-0.5 hover:bg-rose-500/18 hover:shadow-[0_0_28px_rgba(244,63,94,.14)]",
+    primary: "nxt5-button-primary border border-cyan-100/36 hover:border-cyan-100/65",
+    ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11] hover:text-white",
+    danger: "border border-rose-300/28 bg-rose-500/12 text-rose-100 hover:bg-rose-500/18",
   };
   return (
     <button disabled={disabled} className={cx(base, variants[variant], className)} {...props}>
-      {Icon && <Icon className={cx("h-4 w-4 shrink-0", Icon === Loader2 && "animate-spin")} />}
+      {Icon && <Icon aria-hidden="true" className={cx("h-4 w-4 shrink-0", Icon === Loader2 && "animate-spin")} />}
       {children}
     </button>
   );
@@ -49,10 +48,10 @@ export function TabNav({ items, activeId, onChange, label = "Sous-navigation", c
         {items.map((item) => {
           const Icon = item.icon;
           const active = activeId === item.id;
-          return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => onChange(item.id)} className={cx("group relative flex min-h-12 min-w-[9rem] items-center justify-center gap-2 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:min-w-0", active ? "border-cyan-200/35 bg-gradient-to-r from-cyan-400/18 via-blue-500/12 to-fuchsia-500/14 text-white shadow-[0_0_24px_rgba(34,211,238,.12)]" : "border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.055] hover:text-white")}>
+          return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => onChange(item.id)} className={cx("group relative flex min-h-12 min-w-max items-center justify-center gap-2 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 sm:min-w-0", active ? "border-cyan-200/35 bg-gradient-to-r from-cyan-400/18 via-blue-500/12 to-fuchsia-500/14 text-white shadow-[0_0_24px_rgba(34,211,238,.12)]" : "border-transparent text-slate-400 hover:border-white/10 hover:bg-white/[0.055] hover:text-white")}>
             <span className={cx("pointer-events-none absolute inset-x-4 bottom-0 h-0.5 origin-center bg-gradient-to-r from-cyan-200 via-blue-300 to-fuchsia-300 transition-transform duration-300", active ? "scale-x-100" : "scale-x-0")} />
             {Icon && <Icon className={cx("h-4 w-4 shrink-0 transition-colors duration-300", active ? "text-cyan-100" : "text-slate-500 group-hover:text-cyan-200")} />}
-            <span className="min-w-0"><span className="block truncate text-xs font-black uppercase tracking-[0.1em]">{item.label}</span>{item.description && <span className={cx("mt-0.5 block truncate text-[0.6rem] font-semibold normal-case tracking-normal transition-colors", active ? "text-cyan-50/70" : "text-slate-500 group-hover:text-slate-300")}>{item.description}</span>}</span>
+            <span className="min-w-0"><span className="block whitespace-nowrap text-xs font-black uppercase tracking-[0.1em]">{item.label}</span>{item.description && <span className={cx("mt-0.5 block break-words text-[0.68rem] font-semibold normal-case tracking-normal transition-colors", active ? "text-cyan-50/85" : "text-slate-500 group-hover:text-slate-300")}>{item.description}</span>}</span>
             {item.meta !== undefined && <span className={cx("ml-auto shrink-0 rounded-lg px-2 py-0.5 text-[0.6rem] font-black transition-colors", active ? "bg-cyan-300/14 text-cyan-100" : "bg-white/[0.05] text-slate-500")}>{item.meta}</span>}
           </button>;
         })}
@@ -71,7 +70,7 @@ export function TextInput({ label, value, onChange, placeholder, type = "text", 
       <div className="relative">
         {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-200/75" />}
         <input {...inputProps} type={inputType} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} required={required} disabled={disabled} className={cx("nxt5-input-shell nxt5-control w-full rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:bg-[#050914]/88 focus:ring-4 focus:ring-cyan-300/12 disabled:cursor-not-allowed disabled:opacity-60", Icon && "pl-10", isPassword && "pr-12")} />
-        {isPassword && <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} disabled={disabled} aria-label={passwordVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="absolute right-2.5 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-slate-300 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>}
+        {isPassword && <button type="button" onClick={() => setPasswordVisible((visible) => !visible)} disabled={disabled} aria-label={passwordVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"} aria-pressed={passwordVisible} className="absolute right-1 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-slate-300 transition hover:bg-cyan-400/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40">{passwordVisible ? <EyeOff aria-hidden="true" className="h-4 w-4" /> : <Eye aria-hidden="true" className="h-4 w-4" />}</button>}
       </div>
     </label>
   );
@@ -105,7 +104,7 @@ export function SelectInput({ label, value, onChange, children, disabled = false
 
 export function PremiumToggle({ checked, onChange, title, text }) {
   return (
-    <button type="button" onClick={() => onChange(!checked)} className={cx("group flex w-full items-center justify-between gap-4 rounded-2xl border p-3 text-left transition", checked ? "border-cyan-300/35 bg-cyan-400/10 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/[0.18] hover:border-cyan-300/20 hover:bg-white/[0.045]")}>
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={cx("group flex w-full items-center justify-between gap-4 rounded-2xl border p-3 text-left transition", checked ? "border-cyan-300/35 bg-cyan-400/10" : "border-white/10 bg-black/[0.18] hover:border-cyan-300/20 hover:bg-white/[0.045]")}>
       <span className="min-w-0">
         <span className="block text-sm font-black text-white">{title}</span>
         {text && <span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">{text}</span>}
@@ -132,14 +131,14 @@ export function PageHeader({ eyebrow, title, subtitle, children }) {
 
 export function ToastStack({ toasts, removeToast }) {
   return (
-    <div className="fixed bottom-5 right-5 z-[80] space-y-3">
+    <div className="fixed bottom-5 right-4 z-[80] max-w-[calc(100vw-2rem)] space-y-3" aria-live="polite" aria-atomic="false">
       <React.Fragment>
         {toasts.map((toast) => (
-          <div key={toast.id} className={cx("nxt5-enter-fast w-[min(92vw,380px)] rounded-3xl border p-4 shadow-2xl backdrop-blur-xl", tone(toast.type || "cyan"))}>
+          <div key={toast.id} className={cx("nxt5-enter-fast w-[min(92vw,380px)] max-w-full rounded-[1.25rem] border p-4 shadow-2xl backdrop-blur-xl", tone(toast.type || "cyan"))}>
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-2xl bg-white/10 p-2">{toast.type === "red" ? <AlertTriangle className="h-4 w-4" /> : <Check className="h-4 w-4" />}</div>
               <div className="min-w-0 flex-1"><p className="font-black">{toast.title}</p>{toast.text && <p className="mt-1 whitespace-pre-line text-sm leading-5 opacity-80">{toast.text}</p>}</div>
-              <button onClick={() => removeToast(toast.id)} className="rounded-xl p-1.5 opacity-70 hover:bg-white/10 hover:opacity-100"><X className="h-4 w-4" /></button>
+              <button type="button" aria-label="Fermer la notification" onClick={() => removeToast(toast.id)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-white/10"><X aria-hidden="true" className="h-4 w-4" /></button>
             </div>
           </div>
         ))}
@@ -151,7 +150,7 @@ export function ToastStack({ toasts, removeToast }) {
 export function EmptyState({ icon: Icon = BarChart3, title, text, action }) {
   return (
     <div className="relative flex min-h-[190px] flex-col items-center justify-center overflow-hidden rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.018] p-5 text-center">
-      <div className="absolute inset-0 bg-[linear-gradient(126deg,rgba(34,211,238,.10),transparent_38%,rgba(249,115,22,.06))]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(126deg,rgba(34,211,238,.05),transparent_38%,rgba(167,139,250,.04))]" />
       <div className="relative rounded-xl border border-white/10 bg-white/[0.05] p-3 text-cyan-100"><Icon className="h-5 w-5" /></div>
       <h3 className="relative mt-3 text-lg font-black text-white">{title}</h3>
       <p className="relative mt-2 max-w-xl text-sm leading-6 text-slate-400">{text}</p>

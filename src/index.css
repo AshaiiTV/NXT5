@@ -14,6 +14,7 @@
   --nxt5-accent: #67e8f9;
   --nxt5-accent-2: #a78bfa;
   --nxt5-danger: #fda4af;
+  --nxt5-primary-gradient: linear-gradient(to right, #22d3ee, #3b82f6, #d946ef);
   --nxt5-radius-panel: 1.25rem;
   --nxt5-radius-control: 0.75rem;
   --nxt5-shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.045);
@@ -202,17 +203,13 @@ textarea {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:root *,
+  html:root *::before,
+  html:root *::after {
     scroll-behavior: auto !important;
-  }
-
-  .nxt5-defer-render *,
-  .nxt5-defer-row * {
+    animation: none !important;
     transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+    transition-delay: 0ms !important;
   }
 
   .nxt5-beam-forward,
@@ -221,9 +218,8 @@ textarea {
   }
 }
 
-/* Canonical NXT5 visual system ------------------------------------------------
-   This final layer deliberately wins over page-specific experiments. Pages may
-   vary in content density, but surfaces, controls and hierarchy stay constant. */
+/* Canonical NXT5 visual system. Some legacy rules follow this section;
+   the !important declarations preserve the shared surfaces and controls. */
 body {
   background-color: var(--nxt5-bg);
   color: var(--nxt5-text);
@@ -282,8 +278,17 @@ body {
   transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease !important;
 }
 
-.nxt5-cyber-button:hover {
+.nxt5-button-primary {
+  background-image: var(--nxt5-primary-gradient) !important;
+  color: var(--nxt5-bg) !important;
+}
+
+.nxt5-cyber-button:where(:not(:disabled)):hover {
   transform: translateY(-1px);
+}
+
+.nxt5-cyber-button:active {
+  transform: translateY(0);
 }
 
 .nxt5-input-shell,
@@ -320,6 +325,20 @@ textarea.nxt5-control:focus {
 
 .nxt5-tab-nav [role="tab"] {
   border-radius: 0.7rem !important;
+}
+
+@media (max-width: 640px) {
+  .nxt5-tab-nav > div {
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+  }
+
+  .nxt5-tab-nav [role="tab"] {
+    flex: 1 0 auto;
+    max-width: none;
+  }
 }
 
 .nxt5-sidebar,
@@ -772,9 +791,8 @@ svg {
     linear-gradient(135deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.012)),
     rgba(2, 7, 18, 0.12);
   border-color: rgba(214, 246, 255, 0.08) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.034) !important;
-  backdrop-filter: blur(8px);
+  box-shadow: none !important;
+  backdrop-filter: none;
 }
 
 .nxt5-panel .nxt5-premium-panel {
@@ -863,7 +881,7 @@ html.nxt5-low-gpu .nxt5-ambient-bg > div:first-child {
     radial-gradient(circle at 82% 8%, rgba(217, 70, 239, 0.08), transparent 36%) !important;
 }
 
-html.nxt5-low-gpu :where([class*="backdrop-blur"], .nxt5-panel .nxt5-panel) {
+html.nxt5-low-gpu :where([class*="backdrop-blur"], .nxt5-premium-panel, .nxt5-surface, .nxt5-tab-nav, .nxt5-sidebar, .nxt5-topbar, .nxt5-panel .nxt5-panel) {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
@@ -1471,7 +1489,7 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
   }
 
   .nxt5-cyber-button {
-    min-height: 42px;
+    min-height: 44px;
   }
 
   .nxt5-wordmark {
@@ -1536,9 +1554,7 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
     max-height: min(70vh, 32rem);
   }
 
-  input,
-  select,
-  textarea {
+  :root :is(input, select, textarea) {
     font-size: 16px;
   }
 
@@ -1615,7 +1631,7 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
   }
 
   .nxt5-panel :where(button, a) {
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .nxt5-panel :where(.gap-5) {

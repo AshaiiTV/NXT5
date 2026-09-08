@@ -1,4 +1,5 @@
 import "../../styles/champion-pool.css";
+import "../../styles/compositions.css";
 import { Crown, Sparkles, Download, Search, Users, Trash2, BookOpen, Check, ChevronDown, Loader2, Plus, X, Clipboard, RefreshCw } from "lucide-react";
 import { DRAFT_VIEW_ROUTES } from "../../app/constants.jsx";
 import { draftPathFromView, draftViewFromPath } from "../../app/routing.js";
@@ -338,7 +339,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
             {players.map((player) => {
               const selected = selectedPlayer?.id === player.id;
               const count = localPool.filter((row) => String(row.team_id || "") === String(activeTeamId || "") && ["manual", "riot_manual"].includes(String(row.source || "")) && (String(row.player_id || "") === String(player.id) || row.player_name === player.name)).length;
-              return <button key={player.id} type="button" className="nxt5-pool-player" aria-pressed={selected} onClick={() => setSelectedPlayerId(player.id)} title={player.riot_id || player.name}>
+              return <button key={player.id} type="button" className="nxt5-pool-player" aria-pressed={selected} onClick={() => setSelectedPlayerId(player.id)} title={`${player.name}${player.riot_id ? ` · ${player.riot_id}` : ""}`}>
                 <RoleIcon role={player.role} />
                 <span className="min-w-0"><span className="nxt5-pool-player-name">{player.name}</span><span className="nxt5-pool-player-role">{player.role}{player.user_id && String(player.user_id) === String(user?.id) ? " · Mon profil" : ""}</span></span>
                 <span className="nxt5-pool-player-count" aria-label={`${count} champions`}>{count}</span>
@@ -455,11 +456,11 @@ function compositionCounterRecommendations(slots, rows, limitPerRole = 3) {
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
   const tier = championTierByStatus(status);
-  return <button type="button" draggable onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 rounded-[1.15rem] border p-1 text-left transition duration-200", active ? "border-cyan-200/75 bg-cyan-400/16 shadow-[0_0_28px_rgba(34,211,238,.22)]" : "border-white/10 bg-black/28 hover:border-cyan-300/35 hover:bg-cyan-400/10 hover:shadow-[0_0_22px_rgba(34,211,238,.12)]")}>
+  return <button type="button" draggable aria-pressed={active} onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 rounded-[1.15rem] border p-1 text-left transition duration-200", active ? "border-cyan-200/75 bg-cyan-400/10 ring-1 ring-cyan-200/40" : "border-white/10 bg-black/20 hover:border-cyan-300/35 hover:bg-cyan-400/10")}>
     <span className="relative block h-full w-full overflow-hidden rounded-[0.88rem] bg-black/45 ring-1 ring-white/10">
       <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full rounded-[inherit] object-cover" />
       <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-black/10" />
-      <ChampionTierMark tier={tier} active className="absolute right-1.5 top-1.5 z-40 h-5 w-5 rounded-md border border-white/60 bg-black/82 shadow-[0_0_10px_rgba(255,255,255,.18)] backdrop-blur-sm transition group-hover:scale-105 [&_svg]:h-3 [&_svg]:w-3" />
+      <ChampionTierMark tier={tier} active className="absolute right-1.5 top-1.5 z-40 h-5 w-5 rounded-md border border-white/60 bg-black/82 [&_svg]:h-3 [&_svg]:w-3" />
       <span className="absolute inset-x-1.5 bottom-1.5 z-30 truncate text-center text-[0.62rem] font-black text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.9)]">{championDisplayName(row.champion)}</span>
     </span>
   </button>;
@@ -478,8 +479,7 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
       if (row && String(payload.role || row.role || "").toUpperCase() === role) onChange(role, { playerId: row.player_id || player?.id || "", poolId: row.id });
     } catch {}
   }
-  return <div className="group relative overflow-hidden rounded-xl border border-white/10 bg-black/18 p-3">
-    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
+  return <div className="nxt5-composition-slot group">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><p className="text-sm font-black uppercase tracking-[0.16em] text-white">{roleLabel(role)}</p></div>
@@ -491,7 +491,7 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
     <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("relative mt-3 min-h-[168px] overflow-hidden rounded-xl border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
       {pick && <><ChampionBackdrop champion={pick.champion} /><div className="absolute inset-0 bg-gradient-to-t from-[#050711] via-[#050711]/72 to-transparent" /></>}
       <div className={cx("relative z-10 flex h-full min-h-[144px] flex-col", pick ? "justify-end" : "justify-center")}>
-        {pick ? <div className="relative rounded-xl border border-white/10 bg-black/30 p-3 pr-10"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="truncate text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 truncate text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Vider</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-black text-white">Glisse un champion ici</p><p className="mt-1 text-xs font-semibold text-slate-300">Pool {player?.name || role}</p></div>}
+        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="truncate text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 truncate text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Vider</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-black text-white">Glisse un champion ici</p><p className="mt-1 text-xs font-semibold text-slate-300">Pool {player?.name || role}</p></div>}
       </div>
     </div>
   </div>;
@@ -504,11 +504,11 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
     event.dataTransfer.setData("application/json", JSON.stringify({ role, playerId: row.player_id || "", poolId: row.id }));
     event.dataTransfer.effectAllowed = "copy";
   }
-  return <div className="mt-4 rounded-xl border border-white/10 bg-black/18 p-3">
+  return <div className="nxt5-composition-section">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/80">Banque de champions</p><p className="mt-1 text-sm font-semibold text-slate-300">Glisse une icône vers le cadre de compo correspondant.</p></div>
       <div className="flex flex-wrap gap-2">
-        {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/24 px-3 py-2 text-[0.66rem] font-black uppercase tracking-[0.14em] text-white">
+        {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-200">
           <ChampionTierMark tier={tier} active className="h-7 w-7 rounded-xl border-white/18 bg-black/20 [&_svg]:h-4 [&_svg]:w-4" />
           {tier.title}
         </span>)}
@@ -526,7 +526,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
             return championDisplayName(a.champion).localeCompare(championDisplayName(b.champion));
           });
         const tierGroups = CHAMPION_TIERS.map((tier) => ({ tier, items: pool.filter((row) => championPoolStatus(row) === tier.id) })).filter((group) => group.items.length);
-        return <div key={role} className="min-w-0 rounded-xl border border-white/10 bg-black/18 p-3">
+        return <div key={role} className="nxt5-composition-bank-role">
           <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
           {tierGroups.length ? <div className="space-y-3">{tierGroups.map(({ tier, items }) => <section key={tier.id}>
             <div className="mb-2 flex min-w-0 items-center gap-2">
@@ -536,7 +536,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
               <span className="text-[0.58rem] font-black tabular-nums text-slate-400">{items.length}</span>
             </div>
             <div className="nxt5-composition-bank-pool grid gap-2">{items.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />)}</div>
-          </section>)}</div> : <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-center text-xs font-semibold text-slate-300">Aucun champion.</div>}
+          </section>)}</div> : <div className="py-3 text-xs leading-5 text-slate-300">Aucun champion.</div>}
         </div>;
       })}
     </div>
@@ -545,26 +545,25 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
 
 function CompositionCounterPanel({ slots, rows, compact = false }) {
   const groups = compositionCounterRecommendations(slots, rows, compact ? 1 : 3).filter((group) => group.counters.length);
-  if (!groups.length) return <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-black/18 p-3 text-sm font-semibold text-slate-300">Ajoute des champions dans la compo pour afficher les counters probables par rôle.</div>;
+  if (!groups.length) return <p className="nxt5-composition-section text-sm leading-6 text-slate-300">Ajoute des champions dans la compo pour afficher les counters probables par rôle.</p>;
   const allCounters = groups.flatMap((group) => group.counters.map((counter) => ({ ...counter, role: group.role }))).sort((a, b) => b.score - a.score);
-  if (compact) return <div className="mt-4 rounded-xl border border-rose-300/14 bg-rose-500/[0.045] p-3">
-    <div className="mb-3 flex items-center justify-between gap-2"><Badge tone="red">Counters à prévoir</Badge></div>
-    <div className="flex flex-wrap gap-2">{allCounters.slice(0, 5).map((counter) => <div key={`${counter.role}-${counter.champion}`} className="flex items-center gap-2 rounded-xl border border-white/10 bg-black/24 py-1.5 pl-1.5 pr-3"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-8 w-8 rounded-lg object-cover" /><span className="text-xs font-black text-white">{counter.role} · {championDisplayName(counter.champion)}</span></div>)}</div>
+  if (compact) return <div className="nxt5-composition-section">
+    <h4 className="text-xs font-black uppercase tracking-[0.14em] text-rose-100">Counters à prévoir</h4>
+    <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">{allCounters.slice(0, 5).map((counter) => <div key={`${counter.role}-${counter.champion}`} className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-8 w-8 rounded-lg object-cover" /><span className="text-xs font-semibold text-white">{counter.role} · {championDisplayName(counter.champion)}</span></div>)}</div>
   </div>;
-  return <div className="mt-4 rounded-xl border border-rose-300/14 bg-black/18 p-3">
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div><Badge tone="red">Matchups</Badge><h3 className="mt-3 text-xl font-black text-white">Picks à vérifier</h3><p className="mt-1 text-sm font-semibold leading-6 text-slate-300">Ces champions peuvent poser problème à la compo selon leurs rôles et leurs styles.</p></div>
-    </div>
-    <div className="mt-4 grid gap-3 xl:grid-cols-5">
-      {groups.map((group) => <div key={group.role} className="min-w-0 rounded-2xl border border-white/10 bg-black/24 p-3">
-        <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={group.role} className="h-5 w-5" />{group.role}</span><Badge tone="red">{group.counters.length}</Badge></div>
-        <div className="space-y-2">{group.counters.map((counter) => <div key={counter.champion} className="rounded-xl border border-white/10 bg-white/[0.035] p-2">
-          <div className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-10 w-10 shrink-0 rounded-xl border border-white/10 object-cover" /><div className="min-w-0 flex-1"><p className="truncate text-sm font-black text-white">{championDisplayName(counter.champion)}</p><p className="truncate text-[0.62rem] font-bold text-rose-100">Counter probable</p></div></div>
-          <div className="mt-2 flex flex-wrap gap-1.5">{counter.reasons.map((reason) => <span key={reason} className="rounded-lg border border-rose-200/12 bg-rose-500/10 px-2 py-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-rose-50">{String(reason).toUpperCase()}</span>)}</div>
+  return <section className="nxt5-composition-section">
+    <h3 className="text-xl font-black text-white">Picks à vérifier</h3>
+    <p className="mt-1 text-sm leading-6 text-slate-300">Ces champions peuvent poser problème à la compo selon leurs rôles et leurs styles.</p>
+    <div className="nxt5-composition-counter-roles">
+      {groups.map((group) => <div key={group.role} className="min-w-0">
+        <div className="flex items-center gap-2"><RoleIcon role={group.role} className="h-5 w-5" /><h4 className="text-sm font-black text-white">{roleLabel(group.role)}</h4><span className="ml-auto text-xs tabular-nums text-slate-300">{group.counters.length} picks</span></div>
+        <div className="mt-2 divide-y divide-white/10">{group.counters.map((counter) => <div key={counter.champion} className="py-3">
+          <div className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="break-words text-sm font-bold text-white">{championDisplayName(counter.champion)}</p><p className="text-xs text-rose-100">Counter probable</p></div></div>
+          <p className="mt-2 text-xs leading-5 text-slate-300">{counter.reasons.join(" · ")}</p>
         </div>)}</div>
       </div>)}
     </div>
-  </div>;
+  </section>;
 }
 
 function CompositionCard({ composition, rows, canManage, saving, onEdit, onDuplicate, onDelete }) {
@@ -575,19 +574,18 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
   const picks = slotPicks.map((slot) => slot.pick).filter(Boolean);
   const identity = compositionIdentity(picks);
   return <Surface className="group relative overflow-hidden p-0 transition duration-200 hover:border-cyan-300/28">
-    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-200/55 via-white/30 to-fuchsia-200/35" />
-    <div className="relative z-10 p-4">
+        <div className="relative z-10 p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge><Badge tone="cyan">{picks.length}/5 picks</Badge>{tags.map((tag) => <Badge key={tag} tone="purple">{tagLabel(tag)}</Badge>)}</div>
-          <h3 className="mt-3 truncate text-2xl font-black text-white">{composition.title}</h3>
+          <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge><span className="text-xs font-semibold text-slate-300">{picks.length}/5 picks{tags.length ? ` · ${tags.map(tagLabel).join(" · ")}` : ""}</span></div>
+          <h3 className="mt-3 break-words text-2xl font-black text-white">{composition.title}</h3>
           <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100/72">Créée par {composition.created_by_name || "un membre"}</p>
           {composition.notes && <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}
         </div>
-        {canManage && <div className="flex shrink-0 gap-1 rounded-xl border border-white/10 bg-black/24 p-1">
-          <button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" className="rounded-xl p-2 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button>
-          <button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" className="rounded-xl p-2 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button>
-          <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" className="rounded-xl p-2 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
+        {canManage && <div className="flex shrink-0 flex-wrap gap-2">
+          <button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" aria-label="Modifier la composition" className="min-h-11 min-w-11 rounded-xl p-3 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" aria-label="Dupliquer la composition" className="min-h-11 min-w-11 rounded-xl p-3 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" aria-label="Supprimer la composition" className="min-h-11 min-w-11 rounded-xl p-3 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
         </div>}
       </div>
       <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/24">
@@ -600,7 +598,7 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
               <div className="absolute inset-0 bg-gradient-to-b from-black/12 via-[#06101f]/74 to-[#050814]" />
               <div className="relative z-10 flex h-full min-h-[116px] flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[0.66rem] font-black uppercase tracking-[0.14em]"><RoleIcon role={role} className="h-4 w-4 text-cyan-100" />{role}</span>
+                  <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em]"><RoleIcon role={role} className="h-4 w-4 text-cyan-100" />{role}</span>
                   {tier && <ChampionTierMark tier={tier} active className="h-8 w-8 rounded-xl ring-1 ring-black/45 [&_svg]:h-4 [&_svg]:w-4" />}
                 </div>
                 {pick ? <div className="mt-5">
@@ -611,7 +609,7 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
                       <p className="truncate text-xs font-bold text-slate-200">{pick.player_name || "Joueur"}</p>
                     </div>
                   </div>
-                  <p className="mt-3 truncate rounded-xl border border-white/10 bg-black/35 px-3 py-2 text-[0.66rem] font-black uppercase tracking-[0.12em] text-cyan-100">{championPoolStatusLabel(pickStatus)}</p>
+                  <p className="mt-3 text-xs font-semibold leading-5 text-cyan-100">{championPoolStatusLabel(pickStatus)}</p>
                 </div> : <div className="flex flex-1 items-center justify-center text-sm font-black uppercase tracking-[0.16em] text-slate-500">Slot vide</div>}
               </div>
             </div>;
@@ -619,8 +617,8 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
         </div>
       </div>
       {(identity.tags.length > 0 || picks.length > 0) && <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Badge tone={championStyleTone(identity.primary)}>{tagLabel(identity.primary)}</Badge>
-        {identity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>)}
+        <span className="text-xs font-bold text-cyan-100">{tagLabel(identity.primary)}</span>
+        <span className="text-xs leading-5 text-slate-300">{identity.tags.map(([tag, count]) => `${tagLabel(tag)} ×${count}`).join(" · ")}</span>
       </div>}
       <CompositionCounterPanel slots={slots} rows={rows} compact />
     </div>
@@ -629,17 +627,20 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
 
 function CompositionTagLexicon({ open }) {
   if (!open) return null;
-  return <div className="nxt5-enter-fast mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-200/16 bg-[#050914]/82 p-4 shadow-[0_0_34px_rgba(34,211,238,.08)] backdrop-blur-xl">
-    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between"><div><Badge tone="cyan">Sommaire</Badge><h3 className="mt-3 text-xl font-black text-white">Lexique des tags champions</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">Ces tags décrivent l'identité d'un champion dans une Compo Type. Ils servent à lire rapidement le plan de draft, pas à juger automatiquement la compo.</p></div><div className="hidden rounded-full border border-fuchsia-300/20 bg-fuchsia-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-fuchsia-100 md:block">NXT5 Draft</div></div>
-    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{CHAMPION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={championStyleTone(tag)}>{tagLabel(tag)}</Badge></div><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{definition}</p></div>)}</div>
-    <div className="mt-4 rounded-2xl border border-violet-300/14 bg-violet-400/[0.055] p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-violet-100">Tags de classement</p><div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">{COMPOSITION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag} className="rounded-xl border border-white/10 bg-black/20 p-3"><Badge tone="purple">{tagLabel(tag)}</Badge><p className="mt-2 text-xs font-semibold leading-5 text-slate-200">{definition}</p></div>)}</div></div>
-  </div>;
+  return <Surface className="mt-4">
+    <h3 className="text-xl font-black text-white">Lexique des tags champions</h3>
+    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Ces tags décrivent l’identité d’un champion dans une Compo Type. Ils servent à lire rapidement le plan de draft, pas à juger automatiquement la compo.</p>
+    <dl className="nxt5-composition-lexicon">{CHAMPION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag}><dt className="text-sm font-bold text-cyan-100">{tagLabel(tag)}</dt><dd className="mt-1 text-sm leading-6 text-slate-300">{definition}</dd></div>)}</dl>
+    <section className="nxt5-composition-section">
+      <h4 className="text-sm font-black text-violet-100">Tags de classement</h4>
+      <dl className="nxt5-composition-lexicon">{COMPOSITION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag}><dt className="text-sm font-bold text-violet-100">{tagLabel(tag)}</dt><dd className="mt-1 text-sm leading-6 text-slate-300">{definition}</dd></div>)}</dl>
+    </section>
+  </Surface>;
 }
 
 function ChampionPoolColorSummary() {
-  return <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 shadow-[0_0_18px_rgba(34,211,238,.05)]">
-    <span className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-300">Couleurs pool</span>
-    {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] py-1 pl-1 pr-2.5 text-[0.62rem] font-black uppercase tracking-[0.08em] text-slate-100"><ChampionTierMark tier={tier} className="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />{tier.title}</span>)}
+  return <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2" aria-label="Légende des catégories du pool">
+    {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-200"><ChampionTierMark tier={tier} className="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />{tier.title}</span>)}
   </div>;
 }
 
@@ -651,7 +652,7 @@ function CompositionSummaryStrip({ players, rows, compositions, formPicks }) {
     ["Compos", compositions.length, "Enregistrées"],
     ["Builder", `${formPicks.length}/5`, "Picks actifs"],
   ];
-  return <div className="mb-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">{items.map(([label, value, detail]) => <div key={label} className="rounded-xl border border-white/10 bg-black/18 px-3 py-2.5"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="truncate text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
+  return <div className="nxt5-composition-summary">{items.map(([label, value, detail]) => <div key={label}><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="truncate text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
 }
 
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -736,11 +737,10 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   return (
     <div className="nxt5-data-dense nxt5-compositions-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Draft" title="Compositions" subtitle="Prépare les picks de chaque rôle à partir des Champion Pools.">
-        <button type="button" onClick={() => setShowTagLexicon((open) => !open)} className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-400/16">
-          <BookOpen className="h-4 w-4" />
-          Tags
+        <Button type="button" variant="ghost" icon={BookOpen} aria-expanded={showTagLexicon} onClick={() => setShowTagLexicon((open) => !open)}>
+          Lexique des tags
           <ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} />
-        </button>
+        </Button>
         <ChampionPoolColorSummary />
       </PageHeader>
 
@@ -752,19 +752,19 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 
       {players.length ? (
         <form onSubmit={saveComposition} className="mt-4">
-          <Surface glow className="p-4">
+          <Surface className="p-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone="cyan">Builder 5 lanes</Badge>
+                  <span className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">Cinq rôles</span>
                   <Badge tone={mastery.tone}>{mastery.label}</Badge>
                 </div>
-                <h3 className="mt-3 text-2xl font-black text-white md:text-3xl">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Drag & drop ou clic, la categorie se met a jour instantanement.</p>
+                <h3 className="mt-3 text-2xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3>
+                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Glisse ou sélectionne un champion pour mettre la composition à jour.</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 {form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}
-                <Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Creer"}</Button>
+                <Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button>
               </div>
             </div>
 
@@ -772,12 +772,12 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                 <TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} />
                 <div className="flex flex-wrap gap-2">
-                  {tagOptions.map((tag) => <button key={tag} type="button" onClick={() => toggleCompTag(tag)} className={cx("rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}
+                  {tagOptions.map((tag) => <button key={tag} type="button" aria-pressed={form.tags.includes(tag)} onClick={() => toggleCompTag(tag)} className={cx("rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}
                 </div>
               </div>
 
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">Resume</span>
+                <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">Résumé</span>
                 <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft..." rows={3} className="nxt5-input-shell w-full resize-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" />
               </label>
             </div>
@@ -786,16 +786,16 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
               {COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}
             </div>
 
-            {formPicks.length > 0 && <div className="nxt5-flat-block mt-4 rounded-xl border p-3">
+            {formPicks.length > 0 && <div className="nxt5-composition-section">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <Badge tone={championStyleTone(formIdentity.primary)}>Identite en cours</Badge>
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">Identité en cours</p>
                   <h4 className="mt-2 text-xl font-black text-white">{tagLabel(formIdentity.primary)}</h4>
                   <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{formIdentity.text}</p>
                 </div>
                 <Badge tone="cyan">{formPicks.length}/5 picks</Badge>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">{formIdentity.tags.length ? formIdentity.tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Standard</Badge>}</div>
+              <div className="mt-3 flex flex-wrap gap-2"><p className="text-xs leading-5 text-slate-300">{formIdentity.tags.length ? formIdentity.tags.map(([tag, count]) => `${tagLabel(tag)} ×${count}`).join(" · ") : "Standard"}</p></div>
             </div>}
 
             <CompositionCounterPanel slots={form.slots} rows={rows} />
@@ -810,7 +810,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
           <p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p>
         </div>
         <div className="flex w-full rounded-xl border border-white/10 bg-black/20 p-1 md:w-auto">
-          {sideOptions.map((option) => <button key={option.id} type="button" onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950 shadow-[0_0_16px_rgba(34,211,238,0.24)]" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}
+          {sideOptions.map((option) => <button key={option.id} type="button" aria-pressed={sideFilter === option.id} onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}
         </div>
       </div>
 

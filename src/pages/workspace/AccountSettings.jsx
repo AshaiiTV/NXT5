@@ -93,15 +93,15 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     configurePerformanceMode();
     pushToast?.({
       type: "green",
-      title: mode === "low" ? "Mode Low cost active" : "Visuels OK actifs",
-      text: mode === "low" ? "Les effets lourds sont reduits sur cet appareil." : "Le rendu complet est force sur cet appareil.",
+      title: mode === "low" ? "Mode performance activé" : "Rendu complet activé",
+      text: mode === "low" ? "Les effets lourds sont réduits sur cet appareil." : "Le rendu complet est activé sur cet appareil.",
     });
   }
 
   return <div className="nxt5-data-dense min-w-0">
     <PageHeader eyebrow="Compte" title="Paramètres" subtitle="Modifie ton pseudo, ton e-mail de récupération et ton mot de passe NXT5." />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
-      <Surface glow className="p-5">
+      <Surface className="p-5">
         <div className="flex items-start justify-between gap-3"><div><Badge tone="cyan">Identité</Badge><h3 className="mt-3 text-2xl font-black text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
         {user?.email && (user?.email_verified ? <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-100"><Check className="h-4 w-4" />Email vérifié</div> : <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Ton email n'est pas vérifié.</p><p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications sont désactivées jusqu'à validation de ton adresse.</p></div><Button type="button" variant="ghost" icon={resendingVerify ? Loader2 : Mail} onClick={resendVerificationEmail} disabled={resendingVerify}>{resendingVerify ? "Envoi..." : "Renvoyer l'email de vérification"}</Button></div></div>)}
         <form onSubmit={saveProfile} className="mt-5 space-y-4">
@@ -113,7 +113,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
       </Surface>
 
       <Surface className="p-5">
-        <div className="flex items-start justify-between gap-3"><div><Badge tone="yellow">Sécurité</Badge><h3 className="mt-3 text-2xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis un mot de passe différent de l’actuel, avec au moins 8 caractères.</p></div><Shield className="h-5 w-5 shrink-0 text-amber-100" /></div>
+        <div className="flex items-start justify-between gap-3"><div><Badge tone="purple">Sécurité</Badge><h3 className="mt-3 text-2xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis un mot de passe différent de l’actuel, avec au moins 8 caractères.</p></div><Shield className="h-5 w-5 shrink-0 text-violet-200" /></div>
         <form onSubmit={savePassword} className="mt-5 space-y-4">
           <TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} />
           <TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} />
@@ -127,17 +127,17 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
           <div className="min-w-0">
             <Badge tone="cyan">Options</Badge>
             <h3 className="mt-3 text-2xl font-black text-white">Mode visuel</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis le rendu de cet appareil selon la fluidite du navigateur.</p>
+            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis le rendu de cet appareil selon la fluidité du navigateur.</p>
           </div>
           <Gauge className="h-5 w-5 shrink-0 text-cyan-100" />
         </div>
         <div className="mt-5 grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-1 sm:grid-cols-2">
           {[
-            ["full", "Visuels OK", "Effets complets"],
-            ["low", "Mode Low cost", "Plus fluide sans GPU"],
+            ["full", "Rendu complet", "Effets de marque activés"],
+            ["low", "Mode performance", "Effets réduits pour plus de fluidité"],
           ].map(([id, label, detail]) => {
             const active = visualMode === id;
-            return <button key={id} type="button" onClick={() => updateVisualMode(id)} className={cx("rounded-xl border px-4 py-3 text-left transition", active ? "border-cyan-200/45 bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(34,211,238,.22)]" : "border-transparent text-slate-300 hover:bg-white/[0.055] hover:text-white")}><span className="block text-sm font-black">{label}</span><span className={cx("mt-1 block text-xs font-bold", active ? "text-slate-800" : "text-slate-400")}>{detail}</span></button>;
+            return <button key={id} type="button" onClick={() => updateVisualMode(id)} aria-pressed={active} className={cx("rounded-xl border px-4 py-3 text-left transition", active ? "border-cyan-200/40 bg-cyan-400/10 text-white" : "border-transparent text-slate-300 hover:bg-white/[0.055] hover:text-white")}><span className="block text-sm font-black">{label}</span><span className={cx("mt-1 block text-xs font-bold", active ? "text-cyan-100" : "text-slate-400")}>{detail}</span></button>;
           })}
         </div>
       </Surface>
@@ -153,7 +153,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <PremiumToggle checked={notificationForm.notif_match} onChange={(checked) => updateNotifications({ ...notificationForm, notif_match: checked })} title="Recevoir un email à chaque import de match" text="Pratique pour suivre les nouvelles games ajoutées à ta team." />
-          <PremiumToggle checked={notificationForm.notif_report} onChange={(checked) => updateNotifications({ ...notificationForm, notif_report: checked })} title="Recevoir un email a chaque review generee" text="Tu es prevenu des qu'une nouvelle review d'equipe est disponible." />
+          <PremiumToggle checked={notificationForm.notif_report} onChange={(checked) => updateNotifications({ ...notificationForm, notif_report: checked })} title="Recevoir un e-mail à chaque review générée" text="Tu es prévenu dès qu’une nouvelle review d’équipe est disponible." />
           <PremiumToggle checked={notificationForm.notif_inactivity} onChange={(checked) => updateNotifications({ ...notificationForm, notif_inactivity: checked })} title="Recevoir le rappel après 3 mois" text="Un seul e-mail par période d'inactivité, sans donnée d'équipe ou de jeu." />
         </div>
       </Surface>

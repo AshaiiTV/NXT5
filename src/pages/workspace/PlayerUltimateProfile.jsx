@@ -487,16 +487,15 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   return <div className="nxt5-data-dense min-w-0 overflow-hidden">
     <PageHeader eyebrow="Joueur" title="Mon profil" subtitle="Stats, historique, pool et notes du coach." />
     <Surface className="relative overflow-hidden p-5">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_20%,rgba(34,211,238,.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(217,70,239,.13),transparent_34%)]" />
       <div className="relative z-10 mb-5 flex flex-col gap-3 border-b border-white/10 pb-4 2xl:flex-row 2xl:items-end 2xl:justify-between">
         <div className="grid min-w-0 flex-1 gap-3 lg:grid-cols-[minmax(220px,320px)_minmax(0,1fr)] lg:items-end">
           <div className="min-w-0"><SelectInput label={"Profil observ\u00e9"} value={selectedPlayer.id} onChange={selectProfile}>{sortPlayersByRole(players).map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)}{" \u00b7 "}{player.name}</option>)}</SelectInput></div>
-          {matchCategories.length > 0 && <div className="min-w-0 rounded-2xl border border-cyan-300/14 bg-black/20 p-2.5"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(categoryId) => setSelectedCategoryId(categoryId)} label="Filtrer" /></div>}
+          {matchCategories.length > 0 && <div className="min-w-0"><CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={(categoryId) => setSelectedCategoryId(categoryId)} label="Filtrer" /></div>}
         </div>
         <Button type="button" variant="ghost" icon={Download} onClick={exportProfilePng} className="shrink-0 justify-center 2xl:w-auto">{"Exporter le r\u00e9sum\u00e9 PNG"}</Button>
       </div>
       <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge>{activeProfileCategory && <Badge tone={matchCategoryTone(activeProfileCategory)}>{activeProfileCategory.name}</Badge>}</div><h2 className="mt-4 break-words text-4xl font-black leading-tight text-white md:text-5xl">{selectedPlayer.name}</h2><p className="mt-2 break-words text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
+        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">{roleLabel(selectedPlayer.role)}</Badge>{selectedPlayer.user_id === user?.id && <Badge tone="orange">Moi</Badge>}<Badge tone={games ? "green" : "slate"}>{games} game{games > 1 ? "s" : ""}</Badge>{activeProfileCategory && <Badge tone={matchCategoryTone(activeProfileCategory)}>{activeProfileCategory.name}</Badge>}</div><h2 className="mt-3 break-words text-2xl font-black leading-tight text-white md:text-3xl">{selectedPlayer.name}</h2><p className="mt-2 break-words text-sm font-semibold text-slate-300">{selectedPlayer.riot_id || "Riot ID non lié"}</p></div>
         <div className="grid w-full gap-2 sm:grid-cols-2 2xl:grid-cols-4 2xl:w-auto 2xl:min-w-[560px]"><ProfileHudMetric icon={Trophy} label="WR" value={`${Math.round((wins / Math.max(1, games)) * 100)}%`} detail={`${wins}W - ${losses}L`} tone={wins >= losses ? "green" : "orange"} /><ProfileHudMetric icon={Swords} label="KDA" value={kda} detail={`${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`} tone="cyan" /><ProfileHudMetric icon={Flame} label="Dégâts" value={formatPoints(sum("damage") / Math.max(1, games))} detail="Moyenne/game" tone="purple" /><ProfileHudMetric icon={Eye} label="Vision" value={Math.round(sum("vision") / Math.max(1, games))} detail="Moyenne/game" tone="orange" /></div>
       </div>
     </Surface>
@@ -1273,17 +1272,26 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
 
 function ProfileFold({ title, badge, icon: Icon = Activity, toneName = "cyan", children }) {
   const [open, setOpen] = useState(true);
-  return <Surface glow={open} className="min-w-0 p-4"><button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-3 text-left transition hover:border-cyan-300/25 hover:bg-white/[0.045]"><div className="flex min-w-0 items-center gap-3"><div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><Badge tone={toneName}>{badge}</Badge><h3 className="mt-2 truncate text-2xl font-black text-white">{title}</h3></div></div><ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} /></button><React.Fragment>{open && <div className="nxt5-enter-fast overflow-hidden"><div className="pt-4">{children}</div></div>}</React.Fragment></Surface>;
+  return <Surface className="min-w-0 p-4">
+    <h3><button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg py-2 text-left transition hover:bg-white/[0.035]">
+      <span className="flex min-w-0 items-center gap-3">
+        <Icon className={cx("h-5 w-5 shrink-0", toneName === "red" ? "text-rose-100" : toneName === "green" ? "text-emerald-100" : toneName === "purple" ? "text-violet-100" : "text-cyan-100")} aria-hidden="true" />
+        <span className="min-w-0"><span className="text-xs font-semibold text-slate-300">{badge}</span><span className="mt-1 block break-words text-xl font-black text-white">{title}</span></span>
+      </span>
+      <ChevronDown className={cx("h-5 w-5 shrink-0 text-cyan-100 transition", !open && "-rotate-90")} aria-hidden="true" />
+    </button></h3>
+    {open && <div className="mt-3 min-w-0 border-t border-white/10 pt-4">{children}</div>}
+  </Surface>;
 }
 
 function ProfileHudMetric({ icon: Icon, label, value, detail, tone: t = "cyan" }) {
-  return <div className="min-w-0 rounded-2xl border border-white/10 bg-black/25 p-3 shadow-inner shadow-black/25">
+  return <div className="min-w-0 border-l border-white/10 px-3 py-1 tabular-nums">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <p className="truncate text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p>
         <p className="mt-2 truncate text-2xl font-black text-white">{value}</p>
       </div>
-      {Icon && <div className={cx("shrink-0 rounded-xl border p-2", tone(t))}><Icon className="h-4 w-4" /></div>}
+      {Icon && <Icon className={cx("h-4 w-4 shrink-0", t === "green" ? "text-emerald-100" : t === "red" ? "text-rose-100" : t === "purple" ? "text-violet-100" : t === "orange" ? "text-fuchsia-100" : "text-cyan-100")} aria-hidden="true" />}
     </div>
     {detail && <p className="mt-2 truncate text-xs font-bold text-slate-300">{detail}</p>}
   </div>;

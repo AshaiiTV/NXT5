@@ -121,7 +121,8 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   }, [open]);
 
   useEffect(() => {
-    if (open) endRef.current?.scrollIntoView({ block: "end", behavior: messages.length ? "smooth" : "auto" });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches || document.documentElement.classList.contains("nxt5-low-gpu");
+    if (open) endRef.current?.scrollIntoView({ block: "end", behavior: messages.length && !reduceMotion ? "smooth" : "auto" });
   }, [open, messages, loading, error]);
 
   useEffect(() => () => {
@@ -222,7 +223,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
     <div className="pointer-events-none fixed inset-0 z-[90] isolate">
       <button type="button" aria-label="Fermer l'assistant" onClick={onClose} className="pointer-events-auto absolute inset-0 cursor-default bg-black/65 backdrop-blur-[3px] sm:hidden" />
       <aside role="dialog" aria-modal="false" aria-labelledby="nxt5-assistant-title" className="nxt5-enter-fast nxt5-panel nxt5-premium-panel pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[#030611]/98 text-white shadow-[0_28px_90px_rgba(0,0,0,.82),0_0_42px_rgba(34,211,238,.12)] ring-1 ring-white/10 sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-cyan-100/12 bg-[#060a18] px-4 py-4 sm:px-5">
+        <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-cyan-100/12 bg-[#060a18] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
