@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.3 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement et du bloc Objectifs. Checkout actualisé sur `816a755`.
+Version 1.4 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs et du chargement. Checkout actualisé sur `fd42233`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -25,9 +25,22 @@ Cette charte concerne le site. NXT5 Importer partage la marque, mais possède so
 | Accueil, présentation | Grand logo, titre fort, quelques mots accentués, fond lumineux et composition aérée. |
 | Tableaux de bord, statistiques, review | Densité maîtrisée, contenus alignés, surfaces calmes, chiffres lisibles. Réutiliser `nxt5-data-dense` là où ce mode existe. |
 | Formulaires, réglages, compte | Même palette et mêmes contrôles ; labels explicites, aide lisible et états visibles. |
-| Chargement | Réutiliser les loaders existants. Le décor animé doit céder la place au contenu dès qu’il est prêt. |
+| Chargement | Un seul écran partagé couvre ouverture de l’application, connexion et synchronisation. La composition « Cinq rôles. Une même direction. » cède immédiatement la place au contenu prêt. |
 
 Éviter les fonds blancs par défaut, les nouveaux thèmes orange/vert, les cartes toutes lumineuses, les effets 3D sur les données et les grandes illustrations qui repoussent les informations utiles.
+
+### Écran de chargement unique
+
+Évolution autorisée le 8 septembre 2026 : `AppLoadingScreen` remplace les deux écrans successifs par une seule composition, partagée entre le chargement du module, la vérification de session et le chargement initial des données. Les étapes affichées sont « Ouverture », « Connexion » et « Synchronisation » ; seule l’information d’état évolue.
+
+- La composition repose sur le titre « Cinq rôles. Une même direction. », un texte court et cinq signaux SVG TOP / JGL / MID / ADC / SUP qui convergent vers le symbole NXT5 existant. Ne pas redessiner le signe de marque.
+- Conserver le fond bleu nuit, les accents cyan, bleu et violet avec une touche fuchsia, les halos discrets et la typographie du site. La zone d’attente reste ouverte, sans empiler les panneaux.
+- La barre reste indéterminée lorsque le total n’est pas connu. Pour les games paginées, afficher uniquement le nombre réellement reçu et le total connu. Ne pas inventer de pourcentage, valider une étape à partir de la présence de données, ni ajouter un délai pour prolonger le décor.
+- Un chargement réussi, même vide, ouvre immédiatement le contenu. L’absence de roster, de games, de draft ou de review n’est pas un chargement en cours.
+- Sur mobile, empiler le texte, l’illustration et l’état sans débordement global. Garder les trois étapes lisibles. Le statut est annoncé poliment ; la décoration est ignorée par les technologies d’assistance.
+- `prefers-reduced-motion` et `html.nxt5-low-gpu` arrêtent les animations ; le mode performance supprime aussi les filtres et la texture. L’état et la progression restent compréhensibles à l’arrêt.
+
+Le composant `src/components/loading/AppLoadingScreen.jsx` et sa feuille `AppLoadingScreen.css` définissent cette composition. Ne pas réintroduire le premier écran à cercle animé ni les anciennes colonnes de chargement.
 
 ## 3. Palette de référence
 
@@ -242,6 +255,8 @@ Sources principales :
 
 - `src/index.css` : tokens (début du fichier), couche d’harmonisation à partir de la ligne 224, variantes de densité, mobile, performance et couleurs secondaires.
 - `src/components/ui/Core.jsx` : composants partagés et états.
+- `src/components/loading/AppLoadingScreen.jsx` et `AppLoadingScreen.css` : écran de chargement partagé, signaux des cinq rôles, progression réelle, adaptation mobile et mouvement réduit.
+- `src/App.jsx`, `src/AppContent.jsx` et `src/hooks/useTeamData.js` : relais entre les phases de chargement et progression des games paginées.
 - `src/components/brand/BrandAssets.jsx` : logos, images responsive et rôles.
 - `src/components/trends/ProgressionObjectives.jsx` et `src/components/trends/progression-objectives.css` : composition ouverte du bloc Objectifs et adaptation à la largeur du conteneur.
 - `src/app/helpers.js` : correspondance des tons via `tone()`.
@@ -252,7 +267,7 @@ Sources principales :
 
 La source auditée contient plusieurs couches CSS. Un commentaire disant « final layer » ne prouve pas qu’une règle gagne : certaines règles ultérieures restent actives, notamment le titre métallique. Les panneaux et boutons conservent en revanche leurs arrondis grâce à `!important`. Examiner spécificité, ordre et styles calculés avant toute correction. Ne pas ajouter automatiquement une nouvelle couche de surcharges.
 
-La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. Elle ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
+La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. La version 1.4 documente l’écran de chargement unique. Elle ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
 
 `AGENTS.md` dans le dépôt demande de lire cette charte avant le travail visuel. Un rappel existe aussi à la racine de l’espace local NXT5. Pour utiliser la même référence dans un autre checkout ou outil IA, y inclure `AGENTS.md` et cette charte, ou fournir explicitement le document à l’outil. Un PDF seul n’impose pas automatiquement ses règles à toutes les IA.
 
