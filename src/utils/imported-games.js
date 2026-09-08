@@ -38,6 +38,15 @@ export function importedGameDurationSeconds(match) {
   return positiveNumber(match?.raw?.info?.gameDuration);
 }
 
+/** Use import metadata only; a played date does not establish an import date. */
+export function importedGameImportTimestamp(match) {
+  for (const value of [match?.imported_at, match?.created_at, match?.createdAt]) {
+    const timestamp = trendMatchTimestamp({ date: value });
+    if (timestamp !== null) return timestamp;
+  }
+  return null;
+}
+
 function searchableDates(match) {
   const values = [
     match?.game_date, match?.date, match?.created_at, match?.createdAt, match?.imported_at,
@@ -71,13 +80,20 @@ function searchableText(match, categoryNames) {
 }
 
 /** Filter the loaded history; sort copies only and keep unknown values last. */
-export function filterImportedGames(matches = [], { query = "", result = "", review = "", side = "", sort = "newest" } = {}, categories = []) {
+export function filterImportedGames(matches = [], { query = "", result = "", review = "", side = "", category = "", sort = "newest" } = {}, categories = []) {
   const words = normalize(query).trim().split(/\s+/).filter(Boolean);
   const categoryNames = new Map(categories.map((category) => [String(category.id), category.name]));
+  const categoryId = String(category ?? "").trim();
   const byDuration = sort === "longest" || sort === "shortest";
-  const ascending = sort === "oldest" || sort === "shortest";
+  const byImport = sort === "import-newest" || sort === "import-oldest";
+  const valueForMatch = byDuration ? importedGameDurationSeconds : byImport ? importedGameImportTimestamp : trendMatchTimestamp;
+  const ascending = sort === "oldest" || sort === "shortest" || sort === "import-oldest";
   return matches.map((match, index) => ({ match, index }))
     .filter(({ match }) => {
+      if (categoryId) {
+        const matchIds = matchCategoryIds(match);
+        if (categoryId === "__uncategorized__" ? matchIds.length > 0 : !matchIds.includes(categoryId)) return false;
+      }
       if (result && normalize(match.result).trim() !== normalize(result).trim()) return false;
       const reviewStatus = normalize(match.review_status || "todo").trim() === "done" ? "done" : "todo";
       if (review && reviewStatus !== review) return false;
@@ -86,7 +102,7 @@ export function filterImportedGames(matches = [], { query = "", result = "", rev
       const text = searchableText(match, categoryNames);
       return words.every((word) => text.includes(word));
     })
-    .map((entry) => ({ ...entry, value: byDuration ? importedGameDurationSeconds(entry.match) : trendMatchTimestamp(entry.match) }))
+    .map((entry) => ({ ...entry, value: valueForMatch(entry.match) }))
     .sort((a, b) => {
       if (a.value === b.value) return a.index - b.index;
       if (a.value === null) return 1;
