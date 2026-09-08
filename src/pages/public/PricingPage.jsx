@@ -4,7 +4,8 @@ import { apiFetch } from "../../api/client.js";
 import { PROPOSED_PLANS, PROPOSED_PLAN_OPTIONS } from "../../app/pricing.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
-import { LegalLinks, LinkButton, SiteHeader } from "./PublicPages.jsx";
+import { LegalLinks, SiteHeader } from "./PublicPages.jsx";
+import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
 import "./pricing.css";
 
 const FAQ = [
@@ -40,6 +41,7 @@ function requestError(error) {
 
 export default function PricingPage({ navigate, user }) {
   const [form, setForm] = useState(() => initialForm(user));
+  const initialFormRef = useRef(form);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -102,12 +104,9 @@ export default function PricingPage({ navigate, user }) {
   return (
     <div className="nxt5-pricing relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
-      <SiteHeader navigate={navigate}>
-        <LinkButton href="/admin" navigate={navigate} variant="ghost">
-          Administration
-        </LinkButton>
-      </SiteHeader>
+      <SiteHeader navigate={navigate} />
       <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
+        <AdminTabNav activeId="pricing" navigate={navigate} disabled={saving} dirty={!success && JSON.stringify(form) !== JSON.stringify(initialFormRef.current)} />
         <aside className="border-l-2 border-violet-300/40 py-2 pl-4 text-sm leading-6 text-slate-300" aria-label="Accès administrateur">
           <p className="font-bold text-violet-100">Aperçu réservé à l’administrateur</p>
           <p>La page et son formulaire sont fermés aux visiteurs et aux autres comptes. Les demandes envoyées depuis cet aperçu sont enregistrées dans le suivi.</p>

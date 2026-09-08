@@ -26,7 +26,7 @@ function render() {
     renderer = TestRenderer.create(<PricingPage navigate={vi.fn()} />, {
       createNodeMock: (element) => element.props.id === "demande-acces"
         ? { scrollIntoView, querySelector: () => ({ focus: focusInput }) }
-        : { focus: focusStatus },
+        : { focus: focusStatus, querySelector: () => null },
     });
   });
   cleanups.push(() => act(() => renderer.unmount()));
@@ -148,7 +148,7 @@ describe("commercial validation pricing page", () => {
     expect(namedInput(renderer, "teamName").props.value).toBe("  Association Aurora  ");
     expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("yes");
     expect(renderer.root.findByProps({ type: "checkbox" }).props.checked).toBe(true);
-    expect(renderer.root.findByType("fieldset").props.disabled).toBe(false);
+    expect(renderer.root.findByType("form").findByType("fieldset").props.disabled).toBe(false);
     expect(renderer.root.findByProps({ role: "alert" }).children.join("")).toContain("Tes réponses sont conservées");
     apiFetch.mockResolvedValueOnce({ ok: true });
     await act(async () => submit(renderer));
@@ -179,7 +179,7 @@ describe("commercial validation pricing page", () => {
       submit(renderer);
     });
     expect(apiFetch).toHaveBeenCalledTimes(1);
-    expect(renderer.root.findByType("fieldset").props.disabled).toBe(true);
+    expect(renderer.root.findByType("form").findByType("fieldset").props.disabled).toBe(true);
     expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(0);
     const [endpoint, options] = apiFetch.mock.calls[0];
     expect(endpoint).toBe("access-requests");
@@ -207,7 +207,7 @@ describe("commercial validation pricing page", () => {
     expect(renderer.root.findByProps({ label: "E-mail de contact *" }).props.value).toBe("  CAMILLE@example.fr  ");
     expect(namedInput(renderer, "teamName").props.value).toBe("  Les Cinq  ");
     expect(renderer.root.findByProps({ type: "checkbox" }).props.checked).toBe(true);
-    expect(renderer.root.findByType("fieldset").props.disabled).toBe(false);
+    expect(renderer.root.findByType("form").findByType("fieldset").props.disabled).toBe(false);
     expect(renderer.root.findByProps({ role: "alert" }).children.join("")).toContain("Tes réponses sont conservées");
     expect(JSON.stringify(renderer.toJSON())).not.toContain("Database internal detail");
     expect(focusStatus).toHaveBeenCalled();

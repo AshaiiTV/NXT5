@@ -143,14 +143,14 @@ describe("manual subscription editor", () => {
     await act(async () => { const form = renderer.root.findByType("form"); form.props.onSubmit({ preventDefault: vi.fn() }); form.props.onSubmit({ preventDefault: vi.fn() }); });
     expect(apiFetch.mock.calls.filter((call) => call[1]?.method === "POST")).toHaveLength(1);
     expect(requestBody()).toEqual({ userId: account.id, action: "assign", planCode: "structure", startsAt: subscriptionDateToISO("2030-01-31"), endsAt: subscriptionDateToISO("2030-03-31", true), note: "Accord de la structure", expectedRevision: 0 });
-    expect(renderer.root.findByType("fieldset").props.disabled).toBe(true);
+    expect(renderer.root.findByType("form").findByType("fieldset").props.disabled).toBe(true);
     expect(button(renderer, "Enregistrement…").props.disabled).toBe(true);
     const updated = { ...activeSubscription, planCode: "structure", effectivePlanCode: "free", status: "scheduled", startsAt: subscriptionDateToISO("2030-01-31"), endsAt: subscriptionDateToISO("2030-03-31", true), revision: 1, note: "Accord de la structure" };
     await act(async () => resolveSave(saved(updated)));
     expect(text(renderer)).toContain("Abonnement enregistré pour Camille Dupont.");
     expect(text(renderer)).toContain("Pass Structure");
     expect(text(renderer)).toContain("À venir");
-    expect(renderer.root.findByType("fieldset").props.disabled).toBe(false);
+    expect(renderer.root.findByType("form").findByType("fieldset").props.disabled).toBe(false);
   });
 
   it("defaults Saison to six calendar months and allows explicit unlimited duration", async () => {
