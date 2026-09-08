@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterImportedGames, importedGameDurationSeconds, importedGameSide } from "../utils/imported-games.js";
+import { filterImportedGames, importedGameDurationSeconds, importedGameImportTimestamp, importedGameSide } from "../utils/imported-games.js";
 
 const ids = (matches, options, categories) => filterImportedGames(matches, options, categories).map((match) => match.id);
 const game = (id, values = {}) => ({ id, participants: [], ...values });
@@ -48,6 +48,39 @@ describe("imported game search", () => {
 });
 
 describe("imported game filters", () => {
+  it("filters category IDs across legacy and multi-category imports without needing category labels", () => {
+    const matches = [
+      game("legacy", { category_id: "scrim" }),
+      game("multiple", { category_ids: ["league", "scrim"] }),
+      game("other", { category_ids: ["league"] }),
+      game("number", { category_id: 42 }),
+      game("missing"),
+    ];
+    expect(ids(matches, { category: "scrim" })).toEqual(["legacy", "multiple"]);
+    expect(ids(matches, { category: "42" })).toEqual(["number"]);
+    expect(ids(matches, { category: "unknown" })).toEqual([]);
+    expect(ids(matches, { category: "" })).toEqual(matches.map((match) => match.id));
+  });
+
+  it("combines category filtering with search, result, review and side", () => {
+    const matching = game("yes", { opponent: "Club", result: "Défaite", review_status: "todo", side: "Blue Side", category_ids: ["league", "scrim"] });
+    const matches = [matching, ...[
+      { id: "category", category_ids: ["league"] }, { id: "result", result: "Victoire" },
+      { id: "review", review_status: "done" }, { id: "side", side: "Red Side" }, { id: "name", opponent: "Autre" },
+    ].map((override) => ({ ...matching, ...override }))];
+    expect(ids(matches, { category: "scrim", query: "club", result: "Défaite", review: "todo", side: "blue" })).toEqual(["yes"]);
+  });
+
+  it("selects only truly uncategorized games, including empty legacy metadata", () => {
+    const matches = [
+      game("missing"), game("empty", { category_id: null, category_ids: [] }),
+      game("blank", { category_id: " ", category_ids: ["", null] }),
+      game("legacy", { category_id: "scrim", category_ids: [] }),
+      game("unlisted", { category_ids: ["deleted-category"] }),
+    ];
+    expect(ids(matches, { category: "__uncategorized__" }, [])).toEqual(["missing", "empty", "blank"]);
+  });
+
   it("combines query, result, review and side filters", () => {
     const matching = game("yes", { opponent: "Club", result: "Défaite", review_status: "todo", side: "Blue Side" });
     const matches = [matching, ...[
@@ -94,6 +127,30 @@ describe("imported game ordering", () => {
     expect(ids([lateImport, matches[2]])).toEqual(["old", "late-import"]);
   });
 
+  it("sorts imports independently of played dates without changing the default game ordering", () => {
+    const imports = [
+      game("older-import", { imported_at: "2026-09-01", game_date: "2026-08-30" }),
+      game("newer-import", { created_at: "2026-09-07", game_date: "2026-07-01", raw: { info: { gameCreation: Date.parse("2026-07-01") } } }),
+    ];
+    expect(ids(imports, { sort: "import-newest" })).toEqual(["newer-import", "older-import"]);
+    expect(ids(imports, { sort: "import-oldest" })).toEqual(["older-import", "newer-import"]);
+    expect(ids(imports)).toEqual(["older-import", "newer-import"]);
+  });
+
+  it("keeps missing import dates last and equal import dates stable in both directions", () => {
+    const imports = [
+      game("played-only", { game_date: "2026-09-08" }),
+      game("newer", { imported_at: "2026-09-07" }),
+      game("older", { created_at: "2026-09-01" }),
+      game("equal", { createdAt: "2026-09-07" }),
+      game("invalid", { imported_at: "bad", created_at: "bad" }),
+    ];
+    const source = Object.freeze(imports.map((match) => Object.freeze(match)));
+    expect(ids(source, { sort: "import-newest" })).toEqual(["newer", "equal", "older", "played-only", "invalid"]);
+    expect(ids(source, { sort: "import-oldest" })).toEqual(["older", "newer", "equal", "played-only", "invalid"]);
+    expect(source.map((match) => match.id)).toEqual(["played-only", "newer", "older", "equal", "invalid"]);
+  });
+
   it("sorts durations without promoting unknown values and retains duration ties", () => {
     const durationMatches = [game("missing"), game("short", { duration_seconds: 900 }), game("long", { duration: "42:15" }), game("equal", { duration_seconds: 900 }), game("invalid", { duration: "--:--" })];
     expect(ids(durationMatches, { sort: "longest" })).toEqual(["long", "short", "equal", "missing", "invalid"]);
@@ -106,6 +163,23 @@ describe("imported game ordering", () => {
     expect(filtered).not.toBe(source);
     expect(filtered[0]).toBe(source[1]);
     expect(source.map((match) => match.id)).toEqual(["undated", "newer", "old", "equal", "invalid"]);
+  });
+});
+
+describe("import date resolution", () => {
+  it("prefers explicit import time over the stored creation timestamps", () => {
+    expect(importedGameImportTimestamp({ imported_at: "2026-09-01", created_at: "2026-09-02", createdAt: "2026-09-03" })).toBe(Date.parse("2026-09-01"));
+  });
+
+  it("uses the next valid creation date when earlier import metadata is missing or invalid", () => {
+    expect(importedGameImportTimestamp({ imported_at: "bad", created_at: "2026-09-02", createdAt: "2026-09-03" })).toBe(Date.parse("2026-09-02"));
+    expect(importedGameImportTimestamp({ imported_at: " ", created_at: null, createdAt: "2026-09-03" })).toBe(Date.parse("2026-09-03"));
+    expect(importedGameImportTimestamp({ created_at: Date.parse("2026-09-03") / 1000 })).toBe(Date.parse("2026-09-03"));
+  });
+
+  it("never substitutes played dates for unknown import dates", () => {
+    expect(importedGameImportTimestamp({ imported_at: "bad", created_at: false, createdAt: "", game_date: "2026-09-08", date: "2026-09-08", raw: { info: { gameStartTimestamp: Date.parse("2026-09-08") } } })).toBeNull();
+    expect(importedGameImportTimestamp()).toBeNull();
   });
 });
 
