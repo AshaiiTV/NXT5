@@ -1,3 +1,8 @@
+# NXT5 Importer 0.3.3
+
+- La fenêtre d’enregistrement réutilise le dossier du dernier export réussi, y compris après fermeture et réouverture de l’application.
+- Une annulation ou un échec d’enregistrement conserve le dossier précédent. Si ce dossier n’existe plus, la fenêtre propose Téléchargements.
+
 # NXT5 Importer 0.3.2
 
 ![Interface NXT5 Importer alignée sur le site](docs/images/exporter.png)
