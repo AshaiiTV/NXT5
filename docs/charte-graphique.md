@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.2 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par l’évolution locale de la zone de téléchargement. Checkout actualisé sur `9c01d15`.
+Version 1.3 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement et du bloc Objectifs. Checkout actualisé sur `816a755`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -142,6 +142,14 @@ Utiliser les espacements Tailwind déjà présents. Pour les nouveaux blocs, pri
 
 Cette règle concerne la zone de téléchargement du site ; elle ne modifie pas la mise en page de l’application `importer-app`.
 
+### Composition des objectifs
+
+Évolution autorisée le 8 septembre 2026 : dans Tendances, le bloc Objectifs utilise un seul `Surface`. Sa hiérarchie repose sur la typographie, les espacements et les séparateurs, sans sous-cartes ni badges imbriqués.
+
+- La priorité équipe réunit le titre, sa justification et un seul accès « Voir les games sources ». La cible collective, la valeur actuelle et le prochain contrôle forment une seconde zone ouverte, distinguée par un filet violet.
+- Les objectifs par rôle se lisent en lignes : icône et contexte actuel, consigne et explication, puis cible. Réutiliser `RoleIcon`, sans boîtier décoratif. Une seule action « Contrats joueurs » donne accès au détail individuel.
+- Le composant `ProgressionObjectives` et sa feuille `progression-objectives.css` définissent cette composition. Les classes locales évitent les anciennes surcharges visant les cartes arrondies et les grilles Tailwind. Conserver les données, les unités et les accès aux preuves lors de toute adaptation.
+
 ## 7. Composants à employer
 
 Les composants de référence se trouvent dans `src/components/ui/Core.jsx`.
@@ -194,6 +202,7 @@ Exemple d’assemblage, à adapter aux vraies données et au cadre de page. `Pag
 - À partir de 1024 px, le shell tient compte de la sidebar : 19 rem ouverte, 8,5 rem réduite. En dessous, le contenu reprend toute la largeur.
 - Le mode dense réduit de nombreuses grilles à deux colonnes sous 1024 px, puis une à 640 px et moins. Des exceptions existent pour les petits groupes répétitifs. Vérifier la cascade avant d’ajouter une grille.
 - Sous 768 px, d’autres règles convertissent les grilles arbitraires dans les panneaux en une colonne. Ne pas supposer que le seul préfixe Tailwind décide du résultat.
+- Pour le bloc Objectifs, la largeur du conteneur détermine la disposition : à partir de 700 px, priorité et cible sont côte à côte, et chaque rôle occupe trois colonnes ; en dessous, les contenus se superposent sans recréer de cartes. Cette règle tient compte de l’espace réellement disponible avec la sidebar.
 - Les noms de joueurs, titres et boutons peuvent revenir à la ligne. Réserver la troncature aux endroits où l’intégralité reste accessible.
 - Les tables larges utilisent un conteneur `nxt5-responsive-scroll`. Sur mobile, certaines tables gardent une largeur interne minimale de 680 px : faire défiler le tableau, pas toute la page.
 - Champs à 16 px à 640 px et moins. Objectif pour les nouveaux contrôles tactiles : zone confortable d’au moins 44 × 44 px ; l’existant comporte aussi des minima de 40 et 42 px.
@@ -234,6 +243,7 @@ Sources principales :
 - `src/index.css` : tokens (début du fichier), couche d’harmonisation à partir de la ligne 224, variantes de densité, mobile, performance et couleurs secondaires.
 - `src/components/ui/Core.jsx` : composants partagés et états.
 - `src/components/brand/BrandAssets.jsx` : logos, images responsive et rôles.
+- `src/components/trends/ProgressionObjectives.jsx` et `src/components/trends/progression-objectives.css` : composition ouverte du bloc Objectifs et adaptation à la largeur du conteneur.
 - `src/app/helpers.js` : correspondance des tons via `tone()`.
 - `src/pages/public/PublicPages.jsx` : accueil et composition des pages publiques.
 - `src/pages/workspace/ImporterDownloadPanel.jsx` et `src/pages/workspace/GameWorkspace.jsx` : téléchargement, chargement du JSON et apparition de l’assignation.
@@ -242,7 +252,7 @@ Sources principales :
 
 La source auditée contient plusieurs couches CSS. Un commentaire disant « final layer » ne prouve pas qu’une règle gagne : certaines règles ultérieures restent actives, notamment le titre métallique. Les panneaux et boutons conservent en revanche leurs arrondis grâce à `!important`. Examiner spécificité, ordre et styles calculés avant toute correction. Ne pas ajouter automatiquement une nouvelle couche de surcharges.
 
-La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. Elle ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
+La référence initiale est issue de la lecture du code et d’une vérification du rendu local de l’accueil. La simplification locale documentée en version 1.1 a été vérifiée de 320 à 1440 px, au clavier et dans les états JSON invalide, chargement, aperçu, réinitialisation et absence d’équipe. La version 1.2 précise le choix de version dans un menu déroulant natif et son unique lien de téléchargement ; le formulaire JSON et l’assignation conditionnelle restent inchangés. La version 1.3 ajoute la composition ouverte des objectifs, vérifiée de 360 à 1440 px avec l’espace de la sidebar, l’accès aux sources et les contrats joueurs. Elle ne constitue pas un audit exhaustif de toutes les pages connectées ou de la production.
 
 `AGENTS.md` dans le dépôt demande de lire cette charte avant le travail visuel. Un rappel existe aussi à la racine de l’espace local NXT5. Pour utiliser la même référence dans un autre checkout ou outil IA, y inclure `AGENTS.md` et cette charte, ou fournir explicitement le document à l’outil. Un PDF seul n’impose pas automatiquement ses règles à toutes les IA.
 
