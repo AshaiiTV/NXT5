@@ -55,7 +55,7 @@ function TeamConvergence() {
         <path d="M207 350H213M427 350H433M320 237V243M320 457V463" stroke="#c2e2ff" strokeOpacity=".6" />
       </svg>
       <div className="nxt5-sync-core">
-        <ResponsiveImage src="/assets/nxt5-mark.png" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="" width="500" height="500" loading="eager" decoding="async" />
+        <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="" width="512" height="512" loading="eager" decoding="async" />
       </div>
     </div>
   );
