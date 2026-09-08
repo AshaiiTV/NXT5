@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.9 · 8 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Après les corrections de contraste, de densité et de contrôles partagés, cette version unifie Importations et Statistiques dans Games, avec une gestion discrète à la demande ; elle conserve les règles précédentes non contredites par cette évolution.
+Version 1.10 · 8 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version conserve l’espace Games unifié et simplifie la grille de lancement des tarifs en deux offres ; les règles précédentes restent applicables.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -193,6 +193,17 @@ Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cet
 - Un menu discret garde une cible de 44 × 44 px, un focus visible et un état ouvert annoncé. Son contenu, ainsi que les formulaires, reste utilisable au clavier et au toucher ; sa fermeture restitue le focus au déclencheur. La discrétion repose sur la hiérarchie et l’affichage à la demande, jamais sur un texte illisible ou un contrôle minuscule.
 
 `src/pages/workspace/GameWorkspace.jsx` porte l’espace Games et son orchestration ; `ImportedGames` conserve la recherche, la liste, la sélection et la navigation. Cette composition concerne le site, sans modifier l’interface de l’application `importer-app`.
+
+### Grille des tarifs de lancement
+
+Évolution autorisée le 8 septembre 2026 : présenter deux cartes de même largeur, **Découverte** et **Pass Équipe**. Découverte annonce 30 jours d’accès complet à 0 €, sans carte bancaire et sans passage automatique au payant. Le Pass Équipe annonce 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment. Les deux offres couvrent une équipe jusqu’à 15 membres avec les mêmes outils.
+
+- Réutiliser `Surface`, `Button`, le fond et la palette du site. Conserver le tarif et sa durée dans deux lignes distinctes, les listes lisibles et le bouton du Pass Équipe comme action principale de la grille.
+- Garder deux colonnes à partir de 768 px, y compris sur grand écran ; empiler les cartes en dessous. Ne pas réserver d’emplacements vides aux anciennes offres.
+- Remplacer les cartes Saison et Structure par un lien discret « Plusieurs équipes ? Parlons de tes besoins » sous la grille. Le lien sélectionne le sujet multi-équipe et conduit au formulaire, avec focus au premier champ et cible de 44 px minimum. Aucun tarif ni fonction multi-équipe future n’y est promis.
+- La page reste un aperçu administrateur préparant le lancement. Conserver la distinction entre demande d’accès et activation effective : ni essai, ni paiement, ni changement de droits ne démarrent depuis cette page.
+
+`src/app/pricing.js`, `src/pages/public/PricingPage.jsx` et `src/pages/public/pricing.css` portent cette présentation. Le suivi administratif distingue l’intérêt pour un essai, un abonnement et un échange multi-équipe.
 
 ### Cohérence des espaces de travail
 

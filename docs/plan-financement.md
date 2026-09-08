@@ -6,49 +6,37 @@ Version de travail — septembre 2026
 
 Le premier objectif n’est pas de maximiser le revenu. Il est de couvrir les frais fixes de NXT5, puis de financer son amélioration sans dégrader l’expérience des joueurs.
 
-Le produit doit être vendu à l’équipe. Le capitaine, le coach ou le manager paie et invite les autres membres. Un joueur ne doit pas avoir à acheter son propre accès pour rejoindre une équipe déjà abonnée.
+Le produit doit être vendu à l’équipe. Le capitaine ou le manager paie et invite les autres membres. Un joueur ne doit pas avoir à acheter son propre accès pour rejoindre une équipe déjà abonnée.
 
-## 2. Offre recommandée
+## 2. Offre de lancement retenue
 
-### Découverte — gratuit
+Décision du 8 septembre 2026 : simplifier la grille en deux cartes, pour permettre aux premières équipes de tester NXT5 avant de s’engager. **9,90 € reste une hypothèse commerciale à valider auprès d’équipes réelles**, pas un prix déjà validé par des clients.
 
-- Un compte personnel.
-- Une équipe.
-- Jusqu’à 10 membres.
-- 5 imports de games au total.
-- Statistiques essentielles.
-- Une composition et trois reviews.
-- Pas d’essai automatique avec carte bancaire.
+La page et le formulaire restent une prévisualisation réservée à l’administrateur plateforme. Cette évolution de la proposition commerciale n’active ni paiement, ni essai chronométré, ni nouveaux droits ou quotas. Les accès actuels restent inchangés. Les parcours de paiement et règles d’accès décrits plus bas constituent une étape future.
 
-Cette offre doit permettre de comprendre le produit, mais pas de gérer une saison entière.
+### Découverte — 30 jours gratuits, sans carte bancaire
 
-### Pass Équipe — 29 € TTC par mois
+- Une équipe et jusqu’à 15 membres.
+- Accès complet aux mêmes fonctions que le Pass Équipe pendant 30 jours : imports, statistiques, reviews, planning, champion pools, compositions, historique, export et accès du staff.
+- Aucun quota réduit à cinq imports, une composition ou trois reviews pendant l’essai.
+- Aucun prélèvement automatique à la fin : le passage au Pass Équipe exige une souscription explicite.
+
+Le futur essai doit permettre d’éprouver le produit sur plusieurs sessions. Sa demande dans la prévisualisation ne le démarre pas.
+
+### Pass Équipe — 9,90 € TTC par mois et par équipe
 
 - Une équipe et jusqu’à 15 membres.
 - Imports, statistiques, reviews, planning, champion pools et compositions sans limite fonctionnelle artificielle.
-- Historique complet.
-- Export des données.
+- Historique complet et export des données.
 - Gestion des rôles et accès du staff.
 - Assistance standard.
 - Résiliation à tout moment, avec accès jusqu’à la fin de la période payée.
 
-### Pass Équipe annuel — 290 € TTC par an
+### Plusieurs équipes : échange sur les besoins
 
-Même contenu que le Pass Équipe mensuel, avec deux mois offerts. L’offre annuelle doit être mise en avant comme le choix le plus simple pour une structure stable.
+Le lien « Plusieurs équipes ? Parlons de tes besoins » mène au formulaire d’échange, avec le choix Structure. Aucun prix ni fonction multi-équipe à venir n’est promis. Ce parcours sert à comprendre le nombre d’équipes, leur organisation et leurs besoins avant de définir une éventuelle offre.
 
-### Pass Saison — 169 € TTC pour six mois
-
-Paiement unique, sans renouvellement automatique. Cette formule répond aux équipes temporaires, splits, projets amateurs et associations qui refusent un abonnement permanent.
-
-### Structure — sur devis, à partir de 79 € TTC par mois
-
-- Plusieurs équipes sous une même organisation.
-- Facturation centralisée.
-- Administrateur de structure.
-- Vue multi-équipe.
-- Accompagnement à l’installation.
-
-Cette offre ne doit être commercialisée qu’après validation du Pass Équipe. Il ne faut pas construire les fonctions multi-équipes avant d’avoir des prospects réels.
+Pass Saison, Pass Structure, annuel et tarif fondateur sont retirés de la commercialisation de lancement. Les codes et attributions manuelles historiques sont conservés pour compatibilité ; ils ne constituent ni de nouvelles offres achetables ni des droits Stripe.
 
 ## 3. Positionnement commercial
 
@@ -63,12 +51,21 @@ Arguments concrets :
 - préparer une session avec le même support pour tout le staff ;
 - conserver l’historique quand le roster change.
 
-## 4. Parcours d’achat
+## 4. Futurs parcours d’essai et d’achat
 
-### Depuis le site public
+### Essai Découverte, après activation du parcours
+
+- Le capitaine ou le manager démarre explicitement les 30 jours d’essai pour son équipe.
+- Les dates de début et de fin sont enregistrées côté serveur, sans collecte de carte bancaire.
+- Les droits fonctionnels sont ceux du Pass Équipe, dans la limite de 15 membres.
+- Le service affiche la date de fin et propose une souscription explicite au mensuel.
+- À l’expiration, les données restent consultables selon la politique de conservation ; aucun paiement n’est créé automatiquement.
+- La règle d’éligibilité à un nouvel essai et le traitement des équipes existantes doivent être décidés avant activation, sans réinitialisation implicite.
+
+### Achat depuis le site public
 
 1. Le visiteur ouvre `/tarifs`.
-2. Il compare Découverte, Pass Équipe mensuel, annuel et Pass Saison.
+2. Il compare les 30 jours de Découverte et le Pass Équipe mensuel à 9,90 € TTC par équipe.
 3. Il clique sur « Choisir le Pass Équipe ».
 4. S’il n’est pas connecté, il crée son compte ou se connecte.
 5. Il choisit une équipe existante dont il est capitaine ou en crée une.
@@ -83,20 +80,20 @@ Arguments concrets :
 - Une page `/abonnement` affiche l’offre de l’équipe, les limites, l’échéance et le payeur.
 - Les boutons bloqués ouvrent une fenêtre courte expliquant la limite et renvoient vers cette page.
 - Le bouton « Gérer la facturation » ouvre le portail client Stripe.
-- Le propriétaire peut changer de formule, mettre à jour la carte, télécharger ses factures ou résilier.
+- Le propriétaire peut mettre à jour la carte, télécharger ses factures ou résilier.
 
-## 5. Pages à créer ou modifier
+## 5. Pages à créer ou modifier lors de l’intégration future
 
 ### Pages publiques
 
 #### `/tarifs`
 
-- Tableau simple des trois formules principales.
-- Prix TTC clairement affichés pour la France.
-- Mensuel, annuel et saison dans un sélecteur unique.
+- Deux cartes : Découverte, 30 jours sans carte bancaire, et Pass Équipe, 9,90 € TTC par mois et par équipe.
+- Prix TTC et durée de l’essai clairement affichés.
+- Lien « Plusieurs équipes ? Parlons de tes besoins » vers le formulaire, sans tarif annoncé.
 - Liste factuelle des fonctions incluses.
 - FAQ : renouvellement, résiliation, membres, conservation des données, remboursement et factures.
-- CTA principal « Créer mon équipe ».
+- CTA d’essai ou de souscription adapté au parcours réellement activé. Tant que la validation commerciale est interne, conserver « Demander un accès » et expliquer qu’aucun essai ne démarre.
 - Aucun faux compteur, fausse réduction urgente ou témoignage inventé.
 
 #### `/conditions-vente`
@@ -148,7 +145,7 @@ Le texte final doit être validé par un professionnel du droit selon le statut 
 
 #### Administration NXT5
 
-- Revenu mensuel récurrent estimé.
+- Revenu mensuel récurrent estimé, dans une future vue facturation distincte du suivi commercial actuel.
 - Nombre d’équipes actives par offre.
 - Nouveaux achats, résiliations et paiements échoués.
 - Conversion Découverte vers payant.
@@ -160,8 +157,8 @@ La souscription appartient à une équipe et non à un utilisateur. Le compte qu
 
 Règles recommandées :
 
-- capitaine et manager : achat et accès à la page de facturation ;
-- capitaine : changement de formule et résiliation ;
+- capitaine et manager : démarrage de l’essai, achat et accès à la page de facturation ;
+- capitaine : résiliation ;
 - coach et analyste : consultation du statut, sans accès aux factures ni au moyen de paiement ;
 - joueur et viewer : aucun accès à la facturation ;
 - administrateur NXT5 : vue du statut Stripe, sans capacité de lire les données de carte.
@@ -194,13 +191,12 @@ Stripe Checkout est recommandé pour l’achat et Stripe Customer Portal pour la
 #### `subscriptions`
 
 - `team_id` ;
-- `stripe_subscription_id` unique, nullable pour le Pass Saison ;
+- `stripe_subscription_id` unique ;
 - `stripe_price_id` ;
 - `plan_code` ;
 - `status` ;
 - `current_period_start` et `current_period_end` ;
 - `cancel_at_period_end` ;
-- `trial_end` nullable ;
 - `latest_invoice_id` ;
 - dates de création et mise à jour.
 
@@ -221,13 +217,14 @@ Stripe Checkout est recommandé pour l’achat et Stripe Customer Portal pour la
 - `source` ;
 - `valid_until` nullable.
 
-Une table d’entitlements évite de disperser les conditions `plan === ...` dans tout le code.
+Une table d’entitlements évite de disperser les conditions `plan === ...` dans tout le code. Les 30 jours de Découverte sont enregistrés séparément côté NXT5 avec `team_id`, début et fin de validité, auteur du démarrage et audit. Ils ne nécessitent ni Customer Stripe ni carte bancaire. Le mensuel est le seul plan achetable ; les anciens codes manuels ne doivent pas être convertis automatiquement.
 
 ### Fonctions serveur à ajouter
 
 - `billing-checkout-create` : vérifie le rôle, l’équipe et le `price_id`, puis crée Checkout.
 - `billing-portal-create` : crée une session Customer Portal.
-- `billing-status` : retourne le statut et les droits de l’équipe.
+- `billing-trial-start` : démarre les 30 jours sans carte après contrôle du rôle et de l’éligibilité, avec dates serveur et idempotence.
+- `billing-status` : retourne le statut, la date de fin de l’essai éventuel et les droits de l’équipe.
 - `billing-invoices` : retourne les liens de factures autorisés.
 - `stripe-webhook` : vérifie la signature, enregistre l’événement puis met à jour la souscription.
 
@@ -241,19 +238,17 @@ Une table d’entitlements évite de disperser les conditions `plan === ...` dan
 - `invoice.payment_failed` ;
 - `charge.refunded` si des remboursements sont proposés.
 
-Le webhook est la source de vérité. Le retour navigateur après Checkout ne doit jamais suffire à activer une offre.
+Le webhook est la source de vérité pour les droits payants. Le retour navigateur après Checkout ne doit jamais suffire à activer une offre. Les dates d’essai enregistrées côté NXT5 déterminent séparément les droits de Découverte.
 
 ### Variables d’environnement
 
 - `STRIPE_SECRET_KEY` ;
 - `STRIPE_WEBHOOK_SECRET` ;
 - `STRIPE_PRICE_TEAM_MONTHLY` ;
-- `STRIPE_PRICE_TEAM_YEARLY` ;
-- `STRIPE_PRICE_TEAM_SEASON` ;
 - `STRIPE_PORTAL_CONFIGURATION_ID` facultatif ;
 - `PUBLIC_SITE_URL`, déjà présent.
 
-## 8. Limites produit
+## 8. Droits et expiration
 
 Les limites doivent être contrôlées côté serveur. Masquer un bouton dans React ne protège rien.
 
@@ -267,22 +262,25 @@ Points de contrôle :
 - accès à l’historique ;
 - export.
 
-En cas de passage au gratuit :
+Découverte et Pass Équipe ont les mêmes droits fonctionnels et la même limite de 15 membres. L’essai est limité dans le temps, sans anciens quotas réduits d’imports, de reviews ou de compositions.
+
+À l’expiration de l’essai ou de la période payée :
 
 - ne supprimer aucune donnée immédiatement ;
-- rendre les éléments au-delà de la limite consultables mais non modifiables ;
+- conserver la consultation selon la durée de conservation décidée ;
+- bloquer les nouvelles écritures si aucun droit valide ne subsiste ;
 - permettre l’export et la suppression du compte ;
-- laisser le capitaine choisir les éléments actifs si nécessaire.
+- laisser l’accès à la facturation pour souscrire ou régulariser.
 
 ## 9. E-mails transactionnels
 
 - confirmation d’achat ;
 - facture disponible ;
 - paiement échoué, avec lien sécurisé vers le portail ;
-- rappel avant fin du Pass Saison ;
+- confirmation de démarrage et rappel avant fin de l’essai de 30 jours ;
 - confirmation de résiliation ;
 - rappel avant expiration ;
-- confirmation de changement de formule ;
+- confirmation de passage de Découverte au mensuel ;
 - avertissement avant suppression de données.
 
 Les e-mails commerciaux doivent être séparés des e-mails nécessaires au service et soumis au consentement approprié.
@@ -304,27 +302,27 @@ Stripe Tax peut calculer les taxes, mais ne remplace pas l’immatriculation, le
 
 ## 11. Économie du projet
 
-### Hypothèse de départ
+### Hypothèse de calcul, à vérifier avant encaissement
 
-Pour une carte standard de l’Espace économique européen, Stripe affiche actuellement 1,5 % + 0,25 € par paiement réussi. À 29 €, le coût de paiement indicatif est donc proche de 0,69 €, avant options de facturation ou de taxe. Le revenu encaissé avant impôts et coûts techniques serait proche de 28,31 €.
+Le scénario ci-dessous reprend uniquement l’hypothèse de frais d’encaissement utilisée dans le document précédent : 1,5 % + 0,25 € par paiement. **Ce tarif Stripe n’a pas été revérifié pour cette révision.** À 9,90 €, ces frais hypothétiques valent 0,3985 €, soit environ 0,40 € ; il reste environ 9,50 € encaissés après ces seuls frais.
 
-### Seuil d’autofinancement indicatif
+### Couverture indicative des coûts
 
-| Coûts mensuels de NXT5 | Équipes à 29 €/mois nécessaires |
+| Coûts mensuels de NXT5 | Équipes à 9,90 €/mois nécessaires, après ces seuls frais hypothétiques |
 |---:|---:|
-| 50 € | 2 |
-| 100 € | 4 |
-| 200 € | 8 |
-| 500 € | 18 |
-| 1 000 € | 36 |
+| 50 € | 6 |
+| 100 € | 11 |
+| 200 € | 22 |
+| 500 € | 53 |
+| 1 000 € | 106 |
 
-Ces nombres couvrent les frais d’encaissement estimés mais pas les impôts, cotisations, remboursements, temps de travail ou coûts variables élevés. Un budget de sécurité de trois à six mois de dépenses doit rester sur le compte du projet.
+Calcul : arrondir au supérieur `coûts / (9,90 − (9,90 × 1,5 % + 0,25))`. Ce tableau n’est pas un seuil de rentabilité : il ne déduit ni TVA éventuellement due, ni impôts, cotisations, remboursements, options de facturation ou de taxe, temps de travail ou coûts variables. Les essais gratuits ne produisent aucun revenu et ont aussi un coût. Ces hypothèses doivent être remplacées par les frais et le régime réellement applicables avant toute décision financière. Un budget de sécurité de trois à six mois de dépenses reste un objectif de préparation.
 
 ### Tableau de bord mensuel
 
 - revenu encaissé ;
 - revenu récurrent mensuel ;
-- revenu annuel engagé ;
+- revenu mensuel engagé et coût des essais ;
 - coûts Stripe ;
 - Netlify, Neon, e-mails, domaine, outils et comptabilité ;
 - revenu net avant fiscalité ;
@@ -337,15 +335,15 @@ Ces nombres couvrent les frais d’encaissement estimés mais pas les impôts, c
 
 ## 12. Acquisition sans gros budget
 
-### Programme fondateur
+### Premières équipes
 
-Proposer aux 20 premières équipes un prix conservé de 19 € TTC par mois tant que leur abonnement reste actif. En échange, organiser un retour produit mensuel. Ne pas promettre un accès « à vie ».
+Proposer la même offre de lancement aux premières équipes : 30 jours d’accès complet sans carte, puis une souscription volontaire à 9,90 € TTC par mois. Organiser un retour produit pendant l’essai et après les premiers renouvellements. Aucun tarif fondateur distinct ni prix « à vie » n’est proposé.
 
 ### Vente directe
 
 - contacter des coachs, managers et structures amateur/semi-pro ;
 - faire une démonstration de 20 minutes avec leurs propres usages ;
-- offrir le Pass Saison à tarif réduit pour un premier split ;
+- accompagner le démarrage de l’essai de 30 jours sur leurs propres usages ;
 - demander un retour et l’autorisation d’utiliser un témoignage réel ;
 - suivre prospects, essais, refus et raisons de résiliation dans un tableau simple.
 
@@ -364,7 +362,7 @@ Pas de publicité payante avant de connaître le taux de conversion et la réten
 
 - vue des tarifs ;
 - clic sur une offre ;
-- démarrage et réussite de Checkout ;
+- démarrage et fin de l’essai, puis démarrage et réussite de Checkout ;
 - création de la première équipe ;
 - premier joueur ajouté ;
 - première game importée ;
@@ -379,22 +377,23 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 
 ### Étape 1 — validation commerciale, une semaine
 
-- publier la page Tarifs sans paiement ;
+- préparer la page Tarifs sans paiement en accès administrateur, puis ouvrir la collecte après une décision explicite ;
 - ajouter « Demander un accès » ou une liste d’attente ;
 - présenter l’offre à 10 équipes ;
-- valider le prix, la formule saison et la personne qui paie ;
+- tester le prix de 9,90 €, l’intérêt d’un essai de 30 jours et la personne qui paie ;
 - obtenir au moins trois intentions d’achat avant l’intégration complète.
 
 ### Étape 2 — paiement minimum viable, une à deux semaines
 
-- créer les produits et prix Stripe en mode test ;
+- créer le produit et le prix mensuel Stripe en mode test ;
+- développer le démarrage et l’expiration serveur de l’essai sans carte ;
 - ajouter les tables de facturation ;
 - implémenter Checkout, webhook, statut et portail ;
 - créer les quatre pages d’achat ;
-- protéger les limites côté serveur ;
+- protéger les droits et la limite de membres côté serveur ;
 - tester achat, renouvellement, échec, résiliation et remboursement.
 
-### Étape 3 — lancement fondateur, quatre semaines
+### Étape 3 — premières équipes, quatre semaines
 
 - vendre à 20 équipes maximum ;
 - suivre chaque activation manuellement ;
@@ -405,7 +404,7 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 ### Étape 4 — passage à l’échelle
 
 - automatiser les relances de paiement ;
-- ajouter la formule Structure si la demande existe ;
+- définir une éventuelle offre pour plusieurs équipes si des besoins réels sont confirmés ;
 - ouvrir de nouveaux pays après validation fiscale ;
 - ajuster les prix à partir de la rétention, pas du nombre d’inscriptions.
 
@@ -418,9 +417,9 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 - une page de confirmation ouverte manuellement n’active rien ;
 - une résiliation garde l’accès jusqu’à l’échéance ;
 - un paiement échoué applique une période de grâce définie ;
-- le Pass Saison expire sans renouvellement ;
+- l’essai expire après 30 jours sans prélèvement ni renouvellement automatique ;
 - un changement de propriétaire ne divulgue aucune facture ;
-- une équipe gratuite ne contourne pas les limites via l’API ;
+- une équipe en essai garde les mêmes fonctions qu’une équipe payante et ne contourne ni l’échéance ni la limite de 15 membres via l’API ;
 - les pages achat et facturation fonctionnent sur mobile ;
 - les montants, taxes et dates sont cohérents entre NXT5 et Stripe.
 
@@ -431,12 +430,12 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 3. Prix affichés TTC ou HT selon la clientèle visée.
 4. Durée de grâce après paiement échoué, recommandation : sept jours.
 5. Conservation des données après expiration, recommandation : 90 jours en lecture seule.
-6. Politique de remboursement du Pass Saison.
-7. Limites exactes de l’offre Découverte.
-8. Disponibilité ou non du tarif fondateur.
+6. Politique de remboursement du mensuel.
+7. Déclenchement, éligibilité et traitement des équipes existantes pour l’essai de 30 jours.
+8. Date d’activation réelle du paiement et de l’essai, après validation commerciale.
 
-## 17. Recommandation finale
+## 17. Décision de lancement
 
-Lancer d’abord Découverte + Pass Équipe mensuel + Pass Saison. Garder l’annuel visible uniquement si des équipes stables le demandent. Le Pass Saison est le meilleur complément au mensuel pour NXT5 : il finance le produit à l’avance, ne crée pas de renouvellement surprise et correspond au rythme d’un roster compétitif.
+Retenir Découverte, 30 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Le lien destiné aux organisations possédant plusieurs équipes recueille leurs besoins sans prix ni engagement fonctionnel. Les autres formules sont hors du lancement.
 
-Le développement du paiement ne doit commencer qu’après trois intentions d’achat réelles. Si personne n’accepte 29 € par équipe et par mois ou 169 € par saison, il faut revoir la promesse ou la cible avant d’ajouter toute l’infrastructure de facturation.
+Le développement du paiement vient après des échanges réels et au moins trois intentions d’achat documentées pour le mensuel. Ce prix reste à tester ; la fidélité des premières équipes et les coûts observés permettront de décider de la suite. La présente révision ne démarre aucun essai, n’encaisse aucun paiement et conserve le périmètre administrateur de la prévisualisation.
