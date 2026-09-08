@@ -42,18 +42,19 @@ describe('controlled database migrations', () => {
   it('adds manual account subscriptions without changing existing accounts or teams and is idempotent', async () => {
     const { db, client, migrations } = await fixture();
     const key = 'account-subscriptions-20260908-v1';
-    await applyMigrations(client, migrations.filter(migration => migration.key !== key));
+    const throughManualSubscriptions = migrations.slice(0, migrations.findIndex(migration => migration.key === key) + 1);
+    await applyMigrations(client, throughManualSubscriptions.slice(0, -1));
     const userId = '00000000-0000-4000-8000-000000000001';
     await db.query("insert into users(id, account_name, name, password_hash) values ($1, 'manual', 'Manual account', 'hash')", [userId]);
     await db.query("insert into teams(owner_id, name, tag) values ($1, 'Team intacte', 'NXT')", [userId]);
     const users = (await db.query('select * from users')).rows;
     const teams = (await db.query('select * from teams')).rows;
-    expect(await applyMigrations(client, migrations)).toEqual([key]);
+    expect(await applyMigrations(client, throughManualSubscriptions)).toEqual([key]);
     expect((await db.query('select * from users')).rows).toEqual(users);
     expect((await db.query('select * from teams')).rows).toEqual(teams);
     await db.query("insert into account_subscriptions(user_id, plan_code, starts_at, note, updated_by) values ($1, 'structure', '2026-09-01', 'Manuel', $1)", [userId]);
     const subscription = (await db.query('select * from account_subscriptions')).rows;
-    expect(await applyMigrations(client, migrations)).toEqual([]);
+    expect(await applyMigrations(client, throughManualSubscriptions)).toEqual([]);
     expect((await db.query('select * from account_subscriptions')).rows).toEqual(subscription);
     await db.query('delete from users where id = $1', [userId]);
     expect((await db.query('select * from account_subscriptions')).rows).toEqual([]);
@@ -64,6 +65,9 @@ describe('controlled database migrations', () => {
     await applyMigrations(client, migrations);
     const userId = '00000000-0000-4000-8000-000000000001';
     await db.query("insert into users(id, account_name, name, password_hash) values ($1, 'constraints', 'Constraints', 'hash')", [userId]);
+    // Remove the default only in this constraint fixture so inserts exercise
+    // validity constraints without colliding with the user's subscription.
+    await db.query('delete from account_subscriptions where user_id = $1', [userId]);
     const insert = 'insert into account_subscriptions(user_id, plan_code, starts_at, ends_at, note, revision) values ($1,$2,$3,$4,$5,$6)';
     for (const values of [
       ['unknown', null, null, '', 1], ['team_monthly', null, null, '', 1],
@@ -76,21 +80,100 @@ describe('controlled database migrations', () => {
     expect((await db.query('select plan_code, char_length(note) as length from account_subscriptions')).rows).toEqual([{ plan_code: 'free', length: 1000 }]);
   });
 
+  it('backfills Discovery only for missing subscriptions and preserves every existing plan and state exactly', async () => {
+    const { db, client, migrations } = await fixture();
+    const key = 'account-subscriptions-discovery-default-20260908-v1';
+    expect(migrations.at(-1)?.key).toBe(key);
+    await applyMigrations(client, migrations.slice(0, -1));
+    const missingIds = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'];
+    for (const [index, id] of missingIds.entries()) {
+      await db.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $2, $3)', [id, `missing-${index}`, 'hash']);
+    }
+    let sequence = 10;
+    for (const plan of ['free', 'team_monthly', 'team_season', 'structure']) {
+      const states = plan === 'free' ? ['active', 'revoked'] : ['active', 'scheduled', 'expired', 'revoked'];
+      for (const status of states) {
+        const id = `00000000-0000-4000-8000-${String(sequence++).padStart(12, '0')}`;
+        await db.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $2, $3)', [id, `${plan}-${status}`, 'hash']);
+        await db.query(`insert into account_subscriptions
+          (user_id, plan_code, starts_at, ends_at, revoked_at, note, updated_by, revision, updated_at)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, '2026-08-31T12:34:56.123456Z')`, [
+          id, plan,
+          plan === 'free' ? null : status === 'scheduled' ? '2090-09-01T09:15:30.123456Z' : '2000-09-01T09:15:30.123456Z',
+          plan === 'free' ? null : status === 'expired' ? '2001-09-01T10:15:30.654321Z' : '2099-09-01T10:15:30.654321Z',
+          status === 'revoked' ? '2026-09-07T11:22:33.123456Z' : null,
+          `Conserver exactement ${plan} / ${status} — note privée 🙂`, missingIds[0], sequence
+        ]);
+      }
+    }
+    await db.query("insert into teams(owner_id, name, tag) values ($1, 'Équipe existante', 'NXT')", [missingIds[0]]);
+    const existingQuery = 'select row_to_json(subscription)::text as exact_row from account_subscriptions subscription where user_id <> all($1::uuid[]) order by user_id';
+    const existingBefore = (await db.query(existingQuery, [missingIds])).rows;
+    const usersBefore = (await db.query('select * from users order by id')).rows;
+    const teamsBefore = (await db.query('select * from teams order by id')).rows;
+    const auditBefore = (await db.query('select * from audit_logs order by id')).rows;
+
+    expect(await applyMigrations(client, migrations)).toEqual([key]);
+    expect((await db.query(existingQuery, [missingIds])).rows).toEqual(existingBefore);
+    expect((await db.query('select user_id, plan_code, starts_at, ends_at, revoked_at, note, updated_by, revision from account_subscriptions where user_id = any($1::uuid[]) order by user_id', [missingIds])).rows)
+      .toEqual(missingIds.map(user_id => ({ user_id, plan_code: 'free', starts_at: null, ends_at: null, revoked_at: null, note: '', updated_by: null, revision: 1 })));
+    expect((await db.query('select count(*)::int as missing from users u left join account_subscriptions s on s.user_id = u.id where s.user_id is null')).rows)
+      .toEqual([{ missing: 0 }]);
+    expect((await db.query('select * from users order by id')).rows).toEqual(usersBefore);
+    expect((await db.query('select * from teams order by id')).rows).toEqual(teamsBefore);
+    expect((await db.query('select * from audit_logs order by id')).rows).toEqual(auditBefore);
+
+    const allBefore = (await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s order by user_id')).rows;
+    expect(await applyMigrations(client, migrations)).toEqual([]);
+    // The SQL itself can also be safely retried without resetting any row,
+    // including microsecond timestamps that JavaScript Date would truncate.
+    await db.exec(migrations.at(-1)!.sql);
+    expect((await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s order by user_id')).rows).toEqual(allBefore);
+  });
+
+  it('gives each newly inserted account active Discovery without validity dates or an administrator actor', async () => {
+    const { db, client, migrations } = await fixture();
+    await applyMigrations(client, migrations);
+    await db.exec(`insert into users(id, account_name, name, password_hash) values
+      ('00000000-0000-4000-8000-000000000001', 'new-one', 'One', 'hash'),
+      ('00000000-0000-4000-8000-000000000002', 'new-two', 'Two', 'hash');`);
+    expect((await db.query(`select plan_code, starts_at, ends_at, revoked_at, note, updated_by, revision,
+      updated_at between now() - interval '1 minute' and now() as recently_created
+      from account_subscriptions order by user_id`)).rows).toEqual(Array.from({ length: 2 }, () => ({
+      plan_code: 'free', starts_at: null, ends_at: null, revoked_at: null, note: '', updated_by: null, revision: 1, recently_created: true
+    })));
+    expect((await db.query('select * from audit_logs')).rows).toEqual([]);
+  });
+
+  it('rolls back the default subscription with a failed account creation transaction', async () => {
+    const { db, client, migrations } = await fixture();
+    await applyMigrations(client, migrations);
+    const id = '00000000-0000-4000-8000-000000000001';
+    await expect(db.transaction(async tx => {
+      await tx.query("insert into users(id, account_name, name, password_hash) values ($1, 'rolled-back', 'Rollback', 'hash')", [id]);
+      expect((await tx.query('select plan_code from account_subscriptions where user_id = $1', [id])).rows).toEqual([{ plan_code: 'free' }]);
+      throw new Error('Account registration failed');
+    })).rejects.toThrow('Account registration failed');
+    expect((await db.query('select id from users')).rows).toEqual([]);
+    expect((await db.query('select user_id from account_subscriptions')).rows).toEqual([]);
+  });
+
   it('upgrades the published three-plan schema without changing requests and rejects unknown plans', async () => {
     const { db, client, migrations } = await fixture();
     const structureKey = 'pricing-access-requests-structure-20260908-v1';
-    await applyMigrations(client, migrations.filter(migration => migration.key !== structureKey));
+    const throughStructure = migrations.slice(0, migrations.findIndex(migration => migration.key === structureKey) + 1);
+    await applyMigrations(client, throughStructure.slice(0, -1));
     const insert = `insert into access_requests (contact_name, email, team_name, team_key, role, plan_code, payer, purchase_intent, consent_version)
       values ('Camille', $1, 'Team NXT', 'team nxt', 'manager', $2, 'association', 'maybe', 'test')`;
     await db.query(insert, ['existing@example.test', 'team_season']);
     const before = (await db.query('select * from access_requests')).rows;
     await expect(db.query(insert, ['structure@example.test', 'structure'])).rejects.toMatchObject({ code: '23514' });
-    expect(await applyMigrations(client, migrations)).toEqual([structureKey]);
+    expect(await applyMigrations(client, throughStructure)).toEqual([structureKey]);
     expect((await db.query('select * from access_requests')).rows).toEqual(before);
     for (const plan of ['free', 'team_monthly', 'structure']) await db.query(insert, [`${plan}@example.test`, plan]);
     await expect(db.query(insert, ['invalid@example.test', 'arbitrary-price-id'])).rejects.toMatchObject({ code: '23514' });
     const after = (await db.query('select * from access_requests order by email')).rows;
-    expect(await applyMigrations(client, migrations)).toEqual([]);
+    expect(await applyMigrations(client, throughStructure)).toEqual([]);
     expect((await db.query('select * from access_requests order by email')).rows).toEqual(after);
   });
 
