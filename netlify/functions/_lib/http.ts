@@ -51,21 +51,45 @@ export function error(message: string, status = 400, code: string | null = null)
 }
 
 export async function readJson(request: Request, maxBytes = DEFAULT_MAX_JSON_BYTES): Promise<any> {
+  const tooLarge = () => Object.assign(new Error('Requête trop volumineuse.'), { status: 413, code: 'REQUEST_TOO_LARGE' });
+  const invalidJson = () => Object.assign(new Error('Corps JSON invalide.'), { status: 400, code: 'INVALID_JSON' });
   const declaredBytes = Number(request.headers.get('content-length') || 0);
   if (Number.isFinite(declaredBytes) && declaredBytes > maxBytes) {
-    throw Object.assign(new Error('Requête trop volumineuse.'), { status: 413, code: 'REQUEST_TOO_LARGE' });
+    await request.body?.cancel().catch(() => {});
+    throw tooLarge();
   }
-  let raw = '';
+  if (!request.body) return {};
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
   try {
-    raw = await request.text();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > maxBytes) {
+        await reader.cancel().catch(() => {});
+        throw tooLarge();
+      }
+      chunks.push(value);
+    }
+  } catch (err: any) {
+    if (err?.code === 'REQUEST_TOO_LARGE') throw err;
+    throw invalidJson();
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (!bytes) return {};
+  try {
+    const raw = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks, bytes));
+    const body = JSON.parse(raw);
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw invalidJson();
+    return body;
   } catch {
-    return {};
+    throw invalidJson();
   }
-  if (Buffer.byteLength(raw, 'utf8') > maxBytes) {
-    throw Object.assign(new Error('Requête trop volumineuse.'), { status: 413, code: 'REQUEST_TOO_LARGE' });
-  }
-  try { return raw ? JSON.parse(raw) : {}; }
-  catch { return {}; }
 }
 
 export function assertMethod(request: Request, method: string): void {

@@ -24,6 +24,8 @@ const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx")
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
+const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
+const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
 
@@ -382,7 +384,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-    if (active === "admin" && isPlatformAdmin) return <AdminDashboard />;
+    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button></div><AdminDashboard /></>;
+    if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore]);
 
@@ -408,7 +411,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
     </main>
   </div>;
-  if (!data.teams.length && active !== "guide" && !(active === "admin" && isPlatformAdmin)) return <>
+  if (!data.teams.length && active !== "guide" && !(["admin", "access-requests"].includes(active) && isPlatformAdmin)) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
@@ -483,13 +486,14 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
   const unknownRoute = !isKnownPath(route.path);
-  const forbiddenAdminRoute = route.path === "/admin" && (!user || user.is_platform_admin !== true);
+  const forbiddenAdminRoute = (route.path === "/admin" || route.path.startsWith("/admin/")) && (!user || user.is_platform_admin !== true);
 
   // Public pages do not depend on the session check and should render immediately.
   // Keep the full-screen loader only when opening the authenticated workspace.
   if (checkingSession && routeIsPrivate) return <AppLoadingScreen />;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (route.path === "/tarifs") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des tarifs…</div>}><PricingPage navigate={navigate} user={user} /></Suspense>;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
@@ -554,6 +558,7 @@ export default function NXT5() {
       : NAV.find((item) => item.path === route.path)?.label;
     const publicTitles = {
       "/": "NXT5",
+      "/tarifs": "Tarifs — NXT5",
       "/connexion": "Connexion — NXT5",
       "/creer-un-compte": "Créer un compte — NXT5",
       "/inscription": "Créer un compte — NXT5",

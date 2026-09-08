@@ -21,17 +21,19 @@ async function fixture() {
 }
 
 describe('controlled database migrations', () => {
+  // The first fixture also compiles/starts PostgreSQL WASM. Concurrent SQL suites
+  // can take more than the default 5 seconds on a cold runtime.
   it('prepares a fresh database and checks the lock before applying DDL', async () => {
     const { db, client, migrations } = await fixture();
     expect(await applyMigrations(client, migrations)).toEqual(migrations.map(m => m.key));
     const calls = client.query.mock.calls.map(([sql]) => sql);
     expect(calls.findIndex(sql => sql.includes('pg_advisory_xact_lock')))
       .toBeLessThan(calls.findIndex(sql => sql.startsWith('create table')));
-    expect((await db.query('select migration_key from app_schema_migrations')).rows).toHaveLength(2);
+    expect((await db.query('select migration_key from app_schema_migrations')).rows).toHaveLength(migrations.length);
     await db.query('select notif_inactivity, legal_version, email_verify_token from users');
     await db.query('select attempts, rate_key, updated_at from rate_limits');
     await db.query('select team_id, player_id from player_coaching_notes');
-  });
+  }, 15_000);
 
   it('upgrades an existing schema without deleting user data and is idempotent', async () => {
     const { db, client, migrations } = await fixture();

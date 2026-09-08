@@ -30,6 +30,7 @@ export const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
+  { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
 ];
 
 export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
@@ -54,7 +55,7 @@ export const AUTH_ROUTES = {
   "/inscription": "register",
 };
 
-export const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact"];
+export const PUBLIC_ROUTES = ["/", "/tarifs", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact"];
 export const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 export const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
 export const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";
