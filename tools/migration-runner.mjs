@@ -8,6 +8,7 @@ export async function loadMigrations() {
     ['pricing-access-requests-20260908-v1', '../database/migrations/20260908_access_requests.sql'],
     ['pricing-access-requests-structure-20260908-v1', '../database/migrations/20260908_access_requests_structure.sql'],
     ['account-subscriptions-20260908-v1', '../database/migrations/20260908_account_subscriptions.sql'],
+    ['account-subscriptions-discovery-default-20260908-v1', '../database/migrations/20260908_account_subscriptions_discovery_default.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

@@ -58,7 +58,7 @@ const userId = '00000000-0000-4000-8000-000000000002';
 const otherId = '00000000-0000-4000-8000-000000000003';
 const absentId = '00000000-0000-4000-8000-000000000099';
 const context = {} as any;
-const assignment = { action: 'assign', userId, planCode: 'team_monthly', startsAt: '2000-01-01T00:00:00Z', endsAt: '2099-01-01T00:00:00Z', note: 'Accord privé', expectedRevision: 0 };
+const assignment = { action: 'assign', userId, planCode: 'team_monthly', startsAt: '2000-01-01T00:00:00Z', endsAt: '2099-01-01T00:00:00Z', note: 'Accord privé', expectedRevision: 1 };
 function request(body?: any, query = '', method = body === undefined ? 'GET' : 'POST', headers = {}) {
   return new Request(`https://nxt5.org/.netlify/functions/admin-account-subscriptions${query}`, {
     method, headers: { 'Content-Type': 'application/json', Origin: 'https://nxt5.org', ...headers },
@@ -125,7 +125,7 @@ describe('manual account subscription assignments', () => {
     const body = await response.json();
     expect(body.ok).toBe(true);
     expect(body.account).toMatchObject({ id: userId, name: 'Camille Coach', accountName: 'camille', email: 'camille@example.test' });
-    expect(body.account.subscription).toMatchObject({ planCode, effectivePlanCode: planCode, status: 'active', note: 'Accord privé', revision: 1, revokedAt: null });
+    expect(body.account.subscription).toMatchObject({ planCode, effectivePlanCode: planCode, status: 'active', note: 'Accord privé', revision: 2, revokedAt: null });
     expect(body.history).toHaveLength(1);
     expect(body.history[0]).toMatchObject({ action: 'assign', actorName: 'Admin NXT5', planCode, note: 'Accord privé' });
     expect(body.history[0].createdAt).toBeTruthy();
@@ -146,28 +146,38 @@ describe('manual account subscription assignments', () => {
     expect(account.subscription.status).toBe('active');
   });
 
-  it('returns none for an unassigned account and free outside the assigned validity', async () => {
-    expect((await detail()).account.subscription).toMatchObject({ status: 'none', planCode: 'free', effectivePlanCode: 'free', revision: 0, note: '' });
+  it('starts with active Discovery and falls back to free outside the assigned validity', async () => {
+    expect((await detail()).account.subscription).toMatchObject({ status: 'active', planCode: 'free', effectivePlanCode: 'free', revision: 1, note: '', startsAt: null, endsAt: null, revokedAt: null });
     await save({ startsAt: '2090-01-01T00:00:00Z', endsAt: null });
     expect((await detail()).account.subscription).toMatchObject({ status: 'scheduled', effectivePlanCode: 'free' });
-    await save({ expectedRevision: 1, startsAt: '2000-01-01T00:00:00Z', endsAt: '2001-01-01T00:00:00Z' });
+    await save({ expectedRevision: 2, startsAt: '2000-01-01T00:00:00Z', endsAt: '2001-01-01T00:00:00Z' });
     expect((await detail()).account.subscription).toMatchObject({ status: 'expired', effectivePlanCode: 'free' });
+  });
+
+  it('still handles an unassigned legacy account and rejects competing initial assignments', async () => {
+    await state.db.query('delete from account_subscriptions where user_id = $1', [userId]);
+    expect((await detail()).account.subscription).toMatchObject({ status: 'none', planCode: 'free', effectivePlanCode: 'free', revision: 0, note: '' });
+    expect((await save({ expectedRevision: 0 })).status).toBe(200);
+    const before = await detail();
+    expect(before.account.subscription).toMatchObject({ planCode: 'team_monthly', status: 'active', revision: 1 });
+    expect((await save({ expectedRevision: 0, planCode: 'structure' })).status).toBe(409);
+    expect(await detail()).toEqual(before);
   });
 
   it('revokes immediately, retains history, and allows an explicit later reassignment', async () => {
     await save({ startsAt: '2090-01-01T00:00:00Z', endsAt: null });
-    const response = await administer(request({ action: 'revoke', userId, note: 'Retiré par le staff', expectedRevision: 1 }), context);
+    const response = await administer(request({ action: 'revoke', userId, note: 'Retiré par le staff', expectedRevision: 2 }), context);
     const body = await response.json();
-    expect(body.account.subscription).toMatchObject({ planCode: 'team_monthly', effectivePlanCode: 'free', status: 'revoked', revision: 2, note: 'Retiré par le staff' });
+    expect(body.account.subscription).toMatchObject({ planCode: 'team_monthly', effectivePlanCode: 'free', status: 'revoked', revision: 3, note: 'Retiré par le staff' });
     expect(body.account.subscription.revokedAt).toBeTruthy();
     expect(body.history[0]).toMatchObject({ action: 'revoke', note: 'Retiré par le staff', planCode: 'team_monthly' });
     expect(body.history[1]).toMatchObject({ action: 'assign', note: 'Accord privé' });
-    const reassigned = await (await save({ expectedRevision: 2, planCode: 'structure' })).json();
-    expect(reassigned.account.subscription).toMatchObject({ planCode: 'structure', status: 'active', revokedAt: null, revision: 3 });
+    const reassigned = await (await save({ expectedRevision: 3, planCode: 'structure' })).json();
+    expect(reassigned.account.subscription).toMatchObject({ planCode: 'structure', status: 'active', revokedAt: null, revision: 4 });
     expect(reassigned.history).toHaveLength(3);
   });
 
-  it('rejects a stale revision including competing first assignments and does not add audit events', async () => {
+  it('rejects a stale revision when replacing Discovery and does not add audit events', async () => {
     await save();
     const before = await detail();
     const conflict = await save({ planCode: 'structure' });
@@ -181,25 +191,27 @@ describe('manual account subscription assignments', () => {
   it('detects a change immediately before the transaction without overwriting it', async () => {
     await save();
     state.beforeBatch = async () => {
-      expect((await save({ planCode: 'structure', note: 'Autre onglet', expectedRevision: 1 })).status).toBe(200);
+      expect((await save({ planCode: 'structure', note: 'Autre onglet', expectedRevision: 2 })).status).toBe(200);
     };
-    expect((await save({ planCode: 'team_season', expectedRevision: 1 })).status).toBe(409);
+    expect((await save({ planCode: 'team_season', expectedRevision: 2 })).status).toBe(409);
     const current = await detail();
-    expect(current.account.subscription).toMatchObject({ planCode: 'structure', note: 'Autre onglet', revision: 2 });
+    expect(current.account.subscription).toMatchObject({ planCode: 'structure', note: 'Autre onglet', revision: 3 });
     expect(current.history).toHaveLength(2);
   });
 
-  it('rolls back the subscription if the audit write fails', async () => {
+  it('preserves the default subscription if the audit write fails', async () => {
+    const subscriptionsBefore = (await state.db.query('select * from account_subscriptions order by user_id')).rows;
     await state.db.exec("alter table audit_logs add constraint reject_subscription_audit check (entity_type <> 'account_subscription')");
     expect((await save()).status).toBe(500);
-    expect((await state.db.query('select * from account_subscriptions')).rows).toEqual([]);
+    expect((await state.db.query('select * from account_subscriptions order by user_id')).rows).toEqual(subscriptionsBefore);
     expect((await state.db.query('select * from audit_logs')).rows).toEqual([]);
   });
 
   it('returns 404 for absent accounts without storing an assignment or audit', async () => {
+    const subscriptionsBefore = (await state.db.query('select * from account_subscriptions order by user_id')).rows;
     expect((await save({ userId: absentId })).status).toBe(404);
     expect((await administer(request(undefined, `?userId=${absentId}`), context)).status).toBe(404);
-    expect((await state.db.query('select * from account_subscriptions')).rows).toEqual([]);
+    expect((await state.db.query('select * from account_subscriptions order by user_id')).rows).toEqual(subscriptionsBefore);
     expect((await state.db.query('select * from audit_logs')).rows).toEqual([]);
   });
 
@@ -250,7 +262,7 @@ describe('subscription reads and privacy', () => {
   });
 
   it('bounds detailed history to the ten most recent actions', async () => {
-    for (let revision = 0; revision < 12; revision++) expect((await save({ expectedRevision: revision, note: `Version ${revision + 1}` })).status).toBe(200);
+    for (let revision = 1; revision <= 12; revision++) expect((await save({ expectedRevision: revision, note: `Version ${revision}` })).status).toBe(200);
     const body = await detail();
     expect(body.history).toHaveLength(10);
     expect(body.history[0].note).toBe('Version 12');
@@ -262,14 +274,14 @@ describe('subscription reads and privacy', () => {
     await save({ userId: otherId, planCode: 'structure', note: 'Autre note secrète' });
     const response = await readOwn(request(undefined, `?userId=${otherId}`), context);
     const body = await response.json();
-    expect(body.subscription).toMatchObject({ planCode: 'team_monthly', status: 'active', revision: 1 });
+    expect(body.subscription).toMatchObject({ planCode: 'team_monthly', status: 'active', revision: 2 });
     expect(body.subscription).not.toHaveProperty('note');
     expect(body.subscription).not.toHaveProperty('updatedBy');
     expect(body).not.toHaveProperty('history');
     expect(JSON.stringify(body)).not.toContain('privé');
     expect(JSON.stringify(body)).not.toContain('Admin NXT5');
     state.auth.mockResolvedValue({ id: adminId });
-    expect((await (await readOwn(request(), context)).json()).subscription).toMatchObject({ status: 'none', effectivePlanCode: 'free', revision: 0 });
+    expect((await (await readOwn(request(), context)).json()).subscription).toMatchObject({ status: 'active', effectivePlanCode: 'free', revision: 1 });
   });
 });
 
@@ -286,8 +298,8 @@ describe('subscription validity boundaries', () => {
 
   it('preserves a revocation note when no replacement was supplied', async () => {
     await save();
-    const result = await (await administer(request({ action: 'revoke', userId, expectedRevision: 1 }), context)).json();
+    const result = await (await administer(request({ action: 'revoke', userId, expectedRevision: 2 }), context)).json();
     expect(result.account.subscription.note).toBe('Accord privé');
-    expect(() => validateSubscriptionMutation({ action: 'revoke', userId, expectedRevision: 1, planCode: 'free' })).toThrow('Champ');
+    expect(() => validateSubscriptionMutation({ action: 'revoke', userId, expectedRevision: 2, planCode: 'free' })).toThrow('Champ');
   });
 });
