@@ -2,13 +2,15 @@
 
 Préparation de la phase 1 du [plan de financement](plan-financement.md), 8 septembre 2026.
 
-**État actuel : prévisualisation interne réservée à l’administrateur plateforme.** Les pages Tarifs et Demandes d’accès ainsi que leurs API sont accessibles uniquement avec ce compte. La collecte publique est fermée : les visiteurs et les comptes ordinaires ne peuvent ni consulter ces nouvelles pages ni envoyer de demande. L’ouverture aux équipes demandera une décision et une modification explicites ultérieures.
+**Tarifs et demandes d’accès : prévisualisation interne réservée à l’administrateur plateforme.** Ces pages et leurs API sont accessibles uniquement avec ce compte. La collecte publique est fermée : les visiteurs et les comptes ordinaires ne peuvent ni consulter ces pages ni envoyer de demande. L’ouverture aux équipes demandera une décision et une modification explicites ultérieures.
+
+Une fonction distincte permet désormais à l’administrateur d’[attribuer manuellement un abonnement à un profil](abonnements-manuels.md) depuis `/admin/abonnements`. L’attribution est persistante, datée et consultable par son titulaire dans Paramètres. Elle ne dépend pas du formulaire commercial et n’encaisse aucun paiement ; les rôles et quotas produit restent inchangés.
 
 ## Ce qui est intégré
 
 - `/tarifs`, en prévisualisation administrateur, présente quatre offres : Découverte à 0 €, Pass Équipe à 29 € TTC par mois, Pass Saison à 169 € TTC pour six mois et Pass Structure sur devis, à partir de 79 € TTC par mois. Les prix et limites sont présentés comme des offres envisagées. L’annuel et le fondateur restent hors de cette prévisualisation.
 - Le Pass Structure est une proposition destinée au recueil de besoins : plusieurs équipes sous une organisation, facturation centralisée, administrateur de structure, vue multi-équipe et accompagnement à l’installation. Sa carte, son choix dans le formulaire et son suivi administrateur sont intégrés. Le périmètre, le prix final et les limites restent à définir sur devis ; aucun quota de membres ou d’équipes n’est inventé. Les outils multi-équipes et le paiement Structure ne sont pas implémentés.
-- « Demander un accès » sélectionne une formule et mène au formulaire de prévisualisation. Seul l’administrateur peut le soumettre ; les demandes sont enregistrées dans Neon après contrôle de ses droits et validation côté serveur. Aucune carte, activation d’abonnement ou modification des accès existants.
+- « Demander un accès » sélectionne une formule et mène au formulaire de prévisualisation. Seul l’administrateur peut le soumettre ; les demandes sont enregistrées dans Neon après contrôle de ses droits et validation côté serveur. Ce formulaire ne demande aucune carte et n’attribue aucun abonnement. L’attribution manuelle d’un profil se fait séparément dans **Profils et abonnements**.
 - Le formulaire préparé pour une ouverture future comprend le contact, l’e-mail, l’équipe ou la structure, le rôle, l’offre, le payeur envisagé et l’intention déclarée. Pour Structure, le nom demandé devient celui de l’organisation et l’intérêt positif est libellé « Oui, selon le devis ». Le message facultatif permet de préciser le nombre d’équipes et les besoins communs. L’accord porte uniquement sur le recontact lié à cette demande, sans newsletter. Pour la recette interne, utiliser des coordonnées fictives et supprimer les demandes de test.
 - `/admin/demandes-acces` : consultation paginée, filtre par statut, notes privées, statut de suivi et suppression. L’accès est contrôlé côté serveur avec l’administration plateforme existante.
 - La page Confidentialité décrit les données collectées et leur conservation. Le consentement est enregistré avec la version `access-request-2026-09-08` et une date serveur.
@@ -45,7 +47,7 @@ Dans Chromium, les trois profils ont été contrôlés avec des réponses de ses
 
 Toutes ces API exigent la session de l’administrateur plateforme ; le contrôle est réalisé côté serveur, indépendamment de la visibilité des liens. Elles refusent les visiteurs sans session et les comptes ordinaires.
 
-Le champ `planCode` accepte `free`, `team_monthly`, `team_season` et `structure`. Le code `structure` identifie un besoin à qualifier sur devis ; il n’accorde aucun droit produit et n’est pas un code de paiement.
+Le champ `planCode` accepte `free`, `team_monthly`, `team_season` et `structure`. Dans une demande d’accès, le code `structure` identifie un besoin à qualifier sur devis ; il n’accorde aucun droit produit et n’est pas un code de paiement. Ces mêmes noms de formules peuvent être attribués manuellement à un profil par le parcours administratif dédié, sans convertir la demande commerciale en abonnement.
 
 Les soumissions du formulaire sont limitées à 12 Kio, le nom de contact à 80 caractères, l’e-mail à 160, le nom d’équipe à 100 et le message à 2 000. Les notes administrateur sont limitées à 4 000 caractères. Les choix sont contrôlés par liste autorisée, les mutations intersites refusées et les soumissions limitées à cinq par dix minutes et par IP via une empreinte stockée par le limiteur existant.
 

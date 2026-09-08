@@ -6,6 +6,8 @@ Copier tout le contenu de ce document dans une nouvelle tâche de développement
 
 Ce brief prépare une étape de développement ultérieure. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation comprend Découverte, Pass Équipe, Pass Saison et Pass Structure. L’ajout du Pass Structure couvre sa présentation et le recueil de besoins ; il n’ouvre ni collecte publique, ni paiement, ni outils multi-équipes. L’ouverture publique et Stripe décrits ci-dessous relèvent de la future mission de monétisation.
 
+Les [abonnements manuels des profils](abonnements-manuels.md) sont également intégrés : l’administrateur peut attribuer Découverte, Pass Équipe, Pass Saison ou Pass Structure à un compte, avec dates, retrait et audit. Ces attributions persistantes ne sont pas des souscriptions Stripe et ne modifient pas encore les quotas produit. Préserve-les et leur historique. La présente mission porte sur la facturation des équipes ; définis explicitement leur coexistence avant d’utiliser un abonnement de profil pour calculer des droits d’équipe, sans conversion automatique ni rattachement présumé.
+
 ## Mission
 
 Intègre de bout en bout la monétisation de NXT5 dans le projet existant. Tu dois livrer une implémentation fonctionnelle, testée et documentée en mode Stripe Test. Ne te limite pas à créer des maquettes : le paiement, les webhooks, les droits, les limites côté serveur, les pages publiques, la facturation et les tests doivent fonctionner ensemble.
@@ -47,7 +49,7 @@ Lis d’abord entièrement les fichiers d’instructions du dépôt, puis inspec
 
 ## Modèle commercial à intégrer
 
-La facturation appartient à l’équipe, pas au compte individuel. Le capitaine ou le manager paie pour tous les membres.
+La facturation en ligne décrite ici appartient à l’équipe. Le capitaine ou le manager paie pour tous les membres. Elle reste distincte des abonnements manuels déjà attribués aux comptes par l’administrateur.
 
 ### Offre `free`
 
@@ -98,7 +100,7 @@ La facturation appartient à l’équipe, pas au compte individuel. Le capitaine
 - besoins envisagés : plusieurs équipes sous une même organisation, facturation centralisée, administrateur de structure, vue multi-équipe et accompagnement à l’installation ;
 - aucun nombre d’équipes ou de membres, quota d’usage ou niveau d’accompagnement fixé sans validation du besoin.
 
-La carte du Pass Structure, son option dans le formulaire et son suivi administrateur sont déjà intégrés à la prévisualisation commerciale interne. Conserve ce recueil de besoins et sa distinction avec les offres achetables. Une intention Structure ne peut être confirmée manuellement qu’après acceptation du périmètre, du devis et du payeur ; la confirmation compte pour une organisation et n’active aucun droit. Le code `structure` appartient au catalogue des propositions et aux demandes d’accès ; à ce stade, il ne doit pas devenir un Price Stripe, un plan de facturation ou une autorisation produit.
+La carte du Pass Structure, son option dans le formulaire et son suivi administrateur sont déjà intégrés à la prévisualisation commerciale interne. Conserve ce recueil de besoins et sa distinction avec les offres achetables. Une intention Structure ne peut être confirmée manuellement qu’après acceptation du périmètre, du devis et du payeur ; la confirmation compte pour une organisation et n’active aucun droit. Le code `structure` est aussi disponible pour l’attribution manuelle d’un abonnement à un profil. À ce stade, il ne doit pas devenir un Price Stripe, un plan de facturation en ligne ou une autorisation multi-équipe.
 
 Le paiement Structure, la facturation centralisée et les outils d’administration multi-équipes restent à développer dans une étape ultérieure, après validation du Pass Équipe et de prospects réels. Ne construis pas ces fonctions dans la présente mission de paiement des offres équipe ; n’associe pas automatiquement une demande Structure à une souscription ou à des droits multi-équipes.
 
@@ -640,7 +642,7 @@ Pour le rappel Pass Saison, utiliser une Scheduled Function quotidienne ou un m�
 - revenu encaissé sur 30 jours si calculable proprement ;
 - répartition par plan.
 
-Ne présente pas une estimation comme un montant comptable. N’affiche pas d’adresse complète, données de carte ou informations inutiles. Toute dérogation manuelle d’accès doit avoir motif, auteur, date de fin et audit.
+Ne présente pas une estimation comme un montant comptable. N’affiche pas d’adresse complète, données de carte ou informations inutiles. La section de facturation en lecture seule ne remplace pas **Profils et abonnements**, qui conserve ses fonctions d’attribution et de retrait. Préserve les notes privées, les révisions et l’audit des abonnements manuels de profils, y compris leurs validités sans date de fin. Toute nouvelle dérogation aux droits d’une équipe doit avoir motif, auteur, date de fin et audit.
 
 ## Analytics respectueux des données
 
@@ -837,7 +839,8 @@ La mission est terminée seulement si :
 
 - les pages `/tarifs`, `/achat`, `/achat/confirme`, `/achat/annule`, `/abonnement` et `/conditions-vente` sont accessibles selon leurs règles ;
 - les quatre familles d’offres s’affichent correctement : Découverte, Pass Équipe (mensuel/annuel), Pass Saison et Pass Structure sur devis ;
-- le Pass Structure reste un recueil de besoins, sans Checkout, droits activés ni fonctions multi-équipes ajoutées ;
+- le Pass Structure conserve son recueil de besoins et son attribution manuelle aux profils, sans Checkout ni fonctions multi-équipes ajoutées ;
+- les attributions manuelles de profils, leurs dates et leur audit sont préservés, sans conversion automatique en souscriptions d’équipe ;
 - Checkout Test fonctionne pour mensuel, annuel et saison ;
 - le webhook signé est idempotent ;
 - une souscription active et un Pass Saison payé donnent les bons droits ;

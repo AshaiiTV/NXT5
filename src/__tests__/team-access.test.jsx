@@ -60,6 +60,7 @@ describe("joining and creating another team", () => {
 describe("email change reauthentication", () => {
   it("requires the current password only when the email changes and clears it on success", async () => {
     const user = { id: "u1", name: "Joueur", email: "old@example.com", email_verified: true };
+    apiFetch.mockResolvedValueOnce({ subscription: { planCode: "free", effectivePlanCode: "free", status: "none" } });
     const renderer = await render(<AccountSettings user={user} data={{}} onUserUpdate={vi.fn()} pushToast={vi.fn()} />);
     const emailPassword = () => renderer.root.findAllByType(TextInput).filter((field) => field.props.label === "Mot de passe actuel pour modifier l’e-mail");
     expect(emailPassword()).toHaveLength(0);
@@ -68,7 +69,7 @@ describe("email change reauthentication", () => {
     act(() => emailPassword()[0].props.onChange("current-secret"));
     apiFetch.mockResolvedValueOnce({ user: { ...user, email: "new@example.com" } });
     await act(async () => renderer.root.findAllByType("form")[0].props.onSubmit({ preventDefault() {} }));
-    expect(JSON.parse(apiFetch.mock.calls[0][1].body)).toMatchObject({ email: "new@example.com", currentPassword: "current-secret" });
+    expect(JSON.parse(apiFetch.mock.calls.find(([endpoint]) => endpoint === "auth-update-profile")[1].body)).toMatchObject({ email: "new@example.com", currentPassword: "current-secret" });
     expect(emailPassword()[0].props.value).toBe("");
   });
 });
