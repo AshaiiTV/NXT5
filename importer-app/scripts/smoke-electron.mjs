@@ -16,7 +16,7 @@ const packageInfo = JSON.parse(await fs.readFile(path.join(importerRoot, 'packag
 const gameId = 'EUW1_7861632138';
 const execFileAsync = promisify(execFile);
 
-function makeFixtures() {
+function makeFixtures(id = gameId) {
   const participants = Array.from({ length: 10 }, (_, index) => ({
     participantId: index + 1,
     teamId: index < 5 ? 100 : 200,
@@ -33,9 +33,9 @@ function makeFixtures() {
     win: index < 5
   }));
   const match = {
-    metadata: { matchId: gameId, participants: participants.map((player) => `fixture-puuid-${player.participantId}`) },
+    metadata: { matchId: id, participants: participants.map((player) => `fixture-puuid-${player.participantId}`) },
     info: {
-      gameId: 7861632138, gameDuration: 1500,
+      gameId: Number(id.split('_')[1]), gameDuration: 1500,
       gameCreation: Date.parse('2026-09-05T16:00:00.000Z'),
       gameVersion: '26.17.1', gameMode: 'CLASSIC', gameType: 'CUSTOM_GAME', mapId: 11,
       participants,
@@ -46,7 +46,7 @@ function makeFixtures() {
     }
   };
   const timeline = {
-    metadata: { matchId: gameId },
+    metadata: { matchId: id },
     info: {
       frames: [0, 600000, 1200000, 1500000].map((timestamp) => ({
         timestamp,
@@ -100,7 +100,7 @@ async function bootFixture() {
   const lockfilePath = path.join(runDir, 'lockfile');
   const state = globalThis.__NXT5_SMOKE = {
     runDir, mode: 'success', saved: path.join(runDir, 'initial-export.json'),
-    calls: [], external: [], saveDialogCalls: 0, updatesOffline: false
+    calls: [], external: [], saveDialogCalls: 0, saveDialogOptions: [], updatesOffline: false
   };
   globalThis.fetch = async (input, options = {}) => {
     const url = new URL(String(input));
@@ -133,16 +133,18 @@ async function bootFixture() {
       if (state.mode === 'wrong-match') {
         return new Response(JSON.stringify({ match: { ...match, metadata: { matchId: 'EUW1_7861632199' } } }));
       }
+      const requested = makeFixtures(url.searchParams.get('gameId') || gameId);
       return new Response(JSON.stringify({
-        match, timeline: state.mode === 'no-timeline' ? null : timeline,
+        match: requested.match, timeline: state.mode === 'no-timeline' ? null : requested.timeline,
         source: 'nxt5-riot-match-export'
       }));
     }
     // Includes Data Dragon: verifies that unavailable champion metadata is optional.
     throw new Error(`Network disabled by smoke fixture: ${url.href}`);
   };
-  dialog.showSaveDialog = async () => {
+  dialog.showSaveDialog = async (_window, options) => {
     state.saveDialogCalls += 1;
+    state.saveDialogOptions.push(options);
     return state.mode === 'dialog-cancel' ? { canceled: true } : { canceled: false, filePath: state.saved };
   };
   dialog.showMessageBox = async () => ({ response: 1 });
@@ -201,6 +203,14 @@ async function runSmoke() {
     try { await callback(); results.push({ name, passed: true }); console.log(`PASS ${name}`); }
     catch (error) { results.push({ name, passed: false, error: error.message }); console.error(`FAIL ${name}: ${error.message}`); }
   };
+  const launch = () => electronLauncher.launch({
+    executablePath, args: [scriptPath], cwd: importerRoot, timeout: 30000,
+    env: { ...process.env, NXT5_SMOKE_CHILD: '1', NXT5_SMOKE_RUN_DIR: runDir }
+  });
+  const trackPageErrors = (page) => {
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  };
   try {
     try {
       await execFileAsync('openssl', [
@@ -209,22 +219,19 @@ async function runSmoke() {
         '-subj', '/CN=127.0.0.1', '-days', '1'
       ]);
     } catch (error) { throw new Error('OpenSSL must be available on PATH to generate the loopback LCU fixture certificate.', { cause: error }); }
-    application = await electronLauncher.launch({
-      executablePath, args: [scriptPath], cwd: importerRoot, timeout: 30000,
-      env: { ...process.env, NXT5_SMOKE_CHILD: '1', NXT5_SMOKE_RUN_DIR: runDir }
-    });
-    const page = await application.firstWindow();
-    page.on('pageerror', (error) => errors.push(error.message));
-    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+    application = await launch();
+    let page = await application.firstWindow();
+    trackPageErrors(page);
     await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('#railVersion')).toHaveText(`v${packageInfo.version}`);
     await expect(page.locator('#clientIndicator')).toHaveAttribute('data-state', 'connected');
     await expect(page.locator('#manualUpdateButton')).toBeEnabled();
     const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
-    const mode = async (value) => application.evaluate((_, next) => {
+    const mode = async (value, saved = path.join(runDir, `export-${value}.json`)) => application.evaluate((_, next) => {
       globalThis.__NXT5_SMOKE.mode = next.mode;
       globalThis.__NXT5_SMOKE.saved = next.saved;
-    }, { mode: value, saved: path.join(runDir, `export-${value}.json`) });
+    }, { mode: value, saved });
+    const lastSavePath = () => application.evaluate(() => globalThis.__NXT5_SMOKE.saveDialogOptions.at(-1)?.defaultPath);
     const clickExport = async (value = gameId) => {
       await page.locator('#exportTab').click();
       await page.locator('#gameId').fill(value);
@@ -266,6 +273,8 @@ async function runSmoke() {
         await page.screenshot({ path: path.join(runDir, 'fixture-result-minimum.png') });
       } finally { await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1180, 800)); }
       const saved = await readExport('success');
+      const downloads = await application.evaluate(({ app }) => app.getPath('downloads'));
+      assert.equal(await lastSavePath(), path.join(downloads, `nxt5-${gameId}.json`));
       assert.equal(saved.gameId, gameId);
       assert.equal(saved.match.info.participants.length, 10);
       assert.equal(saved.match.timeline, undefined);
@@ -403,6 +412,59 @@ async function runSmoke() {
       await page.reload();
       await expect(page.locator('#platform')).toHaveValue('NA1');
       await expect(page.locator('#historyCount')).toHaveText(count);
+    });
+    await test('native save dialog remembers folders across page reopening and app restart', async () => {
+      const firstFolder = path.join(runDir, 'Matchs équipe');
+      const nextFolder = path.join(runDir, 'Next session');
+      await fs.mkdir(firstFolder);
+      await fs.mkdir(nextFolder);
+      const firstGame = 'EUW1_7861632139';
+      const nextGame = 'EUW1_7861632140';
+      await mode('success', path.join(firstFolder, 'custom-name.json'));
+      await clickExport(firstGame);
+      await expect(page.locator('#resultPanel')).toBeVisible();
+      assert.equal(JSON.parse(await fs.readFile(path.join(firstFolder, 'custom-name.json'), 'utf8')).gameId, firstGame);
+
+      await page.locator('#settingsTab').click();
+      await page.locator('#exportTab').click();
+      await page.reload();
+      await mode('success', path.join(nextFolder, 'next-game.json'));
+      await clickExport(nextGame);
+      await expect(page.locator('#resultPanel')).toBeVisible();
+      assert.equal(await lastSavePath(), path.join(firstFolder, `nxt5-${nextGame}.json`));
+      assert.equal(JSON.parse(await fs.readFile(path.join(nextFolder, 'next-game.json'), 'utf8')).gameId, nextGame);
+
+      const historyCount = await page.locator('#historyCount').textContent();
+      const blockedFile = path.join(firstFolder, 'blocked.json');
+      await fs.mkdir(blockedFile);
+      await mode('success', blockedFile);
+      await clickExport();
+      await expect(page.locator('#status')).toHaveClass(/error/);
+      await expect(page.locator('#submit')).toBeEnabled();
+      await expect(page.locator('#historyCount')).toHaveText(historyCount);
+      await mode('dialog-cancel', path.join(firstFolder, 'canceled.json'));
+      await clickExport();
+      await expect(page.locator('#status')).toContainText('Export annulé');
+      assert.equal(await lastSavePath(), path.join(nextFolder, `nxt5-${gameId}.json`));
+      await expect(page.locator('#historyCount')).toHaveText(historyCount);
+
+      await application.close();
+      application = await launch();
+      page = await application.firstWindow();
+      trackPageErrors(page);
+      await page.waitForLoadState('domcontentloaded');
+      await expect(page.locator('#historyCount')).toHaveText(historyCount);
+      await mode('dialog-cancel');
+      const followingGame = 'EUW1_7861632141';
+      await clickExport(followingGame);
+      await expect(page.locator('#status')).toContainText('Export annulé');
+      assert.equal(await lastSavePath(), path.join(nextFolder, `nxt5-${followingGame}.json`));
+
+      await fs.rm(nextFolder, { recursive: true });
+      await clickExport(followingGame);
+      await expect(page.locator('#status')).toContainText('Export annulé');
+      const downloads = await application.evaluate(({ app }) => app.getPath('downloads'));
+      await expect.poll(lastSavePath).toBe(path.join(downloads, `nxt5-${followingGame}.json`));
     });
     await test('no renderer console or page errors', async () => assert.deepEqual(errors, []));
   } catch (error) {

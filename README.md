@@ -95,7 +95,7 @@ NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot.
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.1** pour Windows, Mac Intel et Mac Apple Silicon.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.3** pour Windows, Mac Intel et Mac Apple Silicon.
 
 1. Lancez le `.exe` Windows ou ouvrez `NXT5 Importer.app` après extraction du zip Mac adapté à votre processeur.
 2. Collez le numéro de game ou un ID complet comme `EUW1_7861632138`. Vérifiez la région.
@@ -120,7 +120,9 @@ pnpm start
 # Packaging : pnpm dist:win / pnpm dist:mac / pnpm dist:mac:arm
 ```
 
-Voir [les changements 0.3.1](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
+La fenêtre d’enregistrement reprend le dossier du dernier export réussi, même après réouverture de l’application. Si ce dossier n’existe plus, elle revient dans Téléchargements.
+
+Voir [les changements 0.3.3](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
 
 ## Important
 

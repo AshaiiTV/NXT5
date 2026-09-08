@@ -8,6 +8,7 @@ import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rost
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, sortPlayersByRole, teamMatchRows, buildStaffAlerts, normalizeProfileRole, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
+import "./Teams.css";
 
 const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
 const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
@@ -645,11 +646,11 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         <div><h4 className="text-xl font-black text-white">Profils & accès</h4><p className="mt-1 text-sm font-semibold text-slate-300">Lie un compte, choisis son accès, et retire un profil depuis la même ligne.</p></div>
         <Badge tone="purple">{roster.length} profil{roster.length > 1 ? "s" : ""}</Badge>
       </div>
-      <div className="mt-4 space-y-2">
+      <div className="nxt5-management-profiles mt-4 space-y-2">
         {roster.map((player) => {
           const linkedMember = player.user_id ? memberByUser.get(player.user_id) : null;
           const staff = isStaffRole(player.role);
-          return <div key={player.id} className={cx("grid gap-3 rounded-2xl border p-3 xl:grid-cols-[minmax(180px,.78fr)_minmax(210px,1fr)_minmax(150px,.58fr)_minmax(0,.95fr)] xl:items-center", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
+          return <div key={player.id} className={cx("nxt5-management-profile rounded-2xl border p-3", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge>{!staff && <label><span className="sr-only">Effectif de {player.name}</span><select value={playerRosterStatus(player)} onChange={(event) => onRosterStatusChange?.(player, event.target.value)} disabled={saving || !canManage || player.role === "SUB"} title="Groupe d’effectif" className="rounded-full border border-cyan-200/20 bg-[#081322] px-2.5 py-1 text-[0.66rem] font-black uppercase text-cyan-50 outline-none transition hover:border-cyan-200/40 disabled:cursor-not-allowed disabled:opacity-45">{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}</div>
               <p className="mt-2 truncate text-lg font-black text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
@@ -657,10 +658,10 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             </div>
             <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
             <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-            <div className={cx("grid min-w-0 gap-2", linkedMember ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
-              {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} className="min-w-0 px-3" onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}><span className="min-w-0 truncate">Renvoyer</span></Button>}
-              <Button type="button" variant="ghost" icon={Pencil} className="min-w-0 px-3" onClick={() => onEditPlayer(player)} disabled={saving || !canManage}><span className="min-w-0 truncate">Modifier</span></Button>
-              <Button type="button" variant="danger" icon={Trash2} className="min-w-0 px-3" onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}><span className="min-w-0 truncate">Supprimer</span></Button>
+            <div className="nxt5-management-actions">
+              {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} className="px-3" onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}><span>Renvoyer</span></Button>}
+              <Button type="button" variant="ghost" icon={Pencil} className="px-3" onClick={() => onEditPlayer(player)} disabled={saving || !canManage}><span>Modifier</span></Button>
+              <Button type="button" variant="danger" icon={Trash2} className="px-3" onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}><span>Supprimer</span></Button>
             </div>
           </div>;
         })}

@@ -4,7 +4,8 @@ import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js"
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, SelectInput, TextInput } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, ArrowRight, Pencil, Settings, CalendarDays, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight } from "lucide-react";
 import { apiFetch, apiUploadJson } from "../../api/client.js";
-import { NXT5_IMPORTER_MAC_URL, NXT5_IMPORTER_MAC_INTEL_URL, NXT5_IMPORTER_WINDOWS_URL } from "../../app/constants.jsx";
+import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
+import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName, matchHasCategory } from "../../utils/matches.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
@@ -775,68 +776,23 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
   const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
-  const importChecks = [
-    ["JSON", Boolean(importPreview)],
-    ["Side", Boolean(allyTeamSide)],
-    ["Nom", Boolean(importDetails.label.trim())],
-    ["Profils", laneAssignmentsReady],
-    ["Adversaires", enemyAssignmentsReady],
-  ];
-  const importProgress = importChecks.filter(([, done]) => done).length;
   const importFlowSteps = [
     [Upload, "JSON", "Charge le fichier de la game.", Boolean(importPreview)],
     [Shield, "Side", "Choisis ton équipe dans la game.", Boolean(allyTeamSide)],
     [Users, "Roster", "Valide lanes et profils NXT5.", laneAssignmentsReady && enemyAssignmentsReady],
     [Check, "Résumé", "Nom, catégorie et import final.", importReady],
   ];
-  const latestMatch = teamMatches[0];
   return (
     <div className="nxt5-data-dense nxt5-import-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Intégration" title="Intégration des games" />
       <div className="grid min-w-0 gap-5">
-        <Surface glow className="min-w-0 p-0">
-          <div className="grid min-w-0 gap-0 xl:grid-cols-[minmax(280px,.72fr)_minmax(0,1fr)]">
-            <div className="border-b border-cyan-200/10 bg-cyan-400/[0.045] p-5 md:p-6 xl:border-b-0 xl:border-r">
-              <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">NXT5 Importer</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "JSON chargé" : "Prêt"}</Badge></div>
-              <h3 className="mt-4 text-2xl font-black text-white">Importer sans friction</h3>
-              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Lance l’app sur l’ordinateur où le client League possède la partie, génère le JSON, puis finalise ici le side, les profils et les catégories.</p>
-              <div className="mt-5 grid gap-2">
-                {importFlowSteps.map(([Icon, title, text, done], index) => <div key={title} className={cx("flex gap-3 rounded-2xl border p-3", done ? "border-cyan-200/20 bg-cyan-300/[0.08]" : "border-white/10 bg-black/22")}>
-                  <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", done ? "border-cyan-200/35 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300")}><Icon className="h-4 w-4" /></span>
-                  <div className="min-w-0"><p className="text-sm font-black text-white">{index + 1}. {title}</p><p className="mt-0.5 text-xs font-semibold leading-5 text-slate-300">{text}</p></div>
-                </div>)}
-              </div>
-            </div>
-            <div className="min-w-0 p-5 md:p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <p className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-cyan-100">Action rapide</p>
-                  <h4 className="mt-2 text-xl font-black text-white">Télécharger ou importer le JSON</h4>
-                  <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Télécharge la dernière version pour ton ordinateur, ou charge le JSON d’une partie déjà exportée.</p>
-                </div>
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a>
-                  <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac Apple Silicon</a>
-                  <a href={NXT5_IMPORTER_MAC_INTEL_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac Intel</a>
-                  <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]", fileImporting ? "pointer-events-none opacity-60" : "")}>
-                    {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
-                    <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
-                  </label>
-                </div>
-              </div>
-              <JsonUploadProgress progress={uploadProgress} />
-              <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">Imports</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length}</p></div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">Dernière game</p><p className="mt-1 truncate text-sm font-black text-white">{latestMatch ? matchImportTitle(latestMatch) : "Aucune"}</p></div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">État</p><p className="mt-1 text-sm font-black text-cyan-100">{importProgress}/{importChecks.length} étapes validées</p></div>
-              </div>
-            </div>
-          </div>
-        </Surface>
+        <ImporterDownloadPanel fileImporting={fileImporting} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
+          {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
+        </ImporterDownloadPanel>
 
-        <Surface className="min-w-0 p-5">
+        {importPreview && <Surface className="min-w-0 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Charge un JSON, sélectionne le side de ton équipe, puis valide les lanes et profils. La barre ci-dessous montre ce qui manque avant confirmation.</p></div>
+            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Sélectionne le side de ton équipe, puis valide les lanes et profils avant de confirmer l’import.</p></div>
           </div>
           <div className="mt-4 grid gap-2 md:grid-cols-4">
             {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("min-w-0 rounded-2xl p-3", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
@@ -844,7 +800,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
               <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{text}</p>
             </div>)}
           </div>
-              {importPreview ? <div className="mt-4 space-y-4">
+              <div className="mt-4 space-y-4">
                 <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
                   <TextInput label="Nom de la game" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1 vs BK, Finale LB..." required icon={FileText} />
                   <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} />
@@ -912,8 +868,8 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                    </div>
                  </div>}
                  <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
-              </div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold leading-6 text-slate-300">Aucun JSON chargé pour le moment.</p>}
-        </Surface>
+              </div>
+        </Surface>}
       </div>
 
       <Surface className="mt-5 p-5">
@@ -2139,29 +2095,16 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   const [savingArchive, setSavingArchive] = useState(false);
   const [archivesCollapsed, setArchivesCollapsed] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
-  const [gameSearch, setGameSearch] = useState("");
-  const deferredGameSearch = useDeferredValue(gameSearch);
   const matches = selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches;
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
-  const normalizeGameSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr-FR");
-  const normalizedGameSearch = normalizeGameSearch(deferredGameSearch.trim());
-  const searchedMatches = normalizedGameSearch ? scopedMatches.filter((match) => {
-    const categoryNames = matchCategoryIds(match).map((id) => matchCategories.find((category) => String(category.id) === String(id))?.name || "");
-    const participantTerms = (match.participants || []).flatMap((row) => [row.summoner_name, row.riot_id, row.champion, row.role]);
-    return normalizeGameSearch([matchDisplayName(match), match.game_id, match.opponent, match.result, match.duration, match.created_by_name, ...categoryNames, ...participantTerms].filter(Boolean).join(" ")).includes(normalizedGameSearch);
-  }) : scopedMatches;
   const scopedMatchIds = scopedMatches.map((match) => match.id).join("|");
-  const searchedMatchIds = searchedMatches.map((match) => match.id).join("|");
   useEffect(() => {
     if (archives.length && selectedArchiveId && !archives.some((archive) => archive.id === selectedArchiveId)) setSelectedArchiveId("");
   }, [archives, selectedArchiveId]);
   useEffect(() => {
     if (selectedMatchId && selectedMatchId !== urlMatchId && !scopedMatches.some((match) => String(match.id || "") === String(selectedMatchId || ""))) setSelectedMatchId("");
   }, [scopedMatchIds, selectedMatchId]);
-  useEffect(() => {
-    if (normalizedGameSearch && selectedMatchId && !searchedMatches.some((match) => String(match.id || "") === String(selectedMatchId || ""))) setSelectedMatchId("");
-  }, [normalizedGameSearch, searchedMatchIds, selectedMatchId]);
   useEffect(() => {
     if (urlMatchId) setSelectedMatchId(urlMatchId);
   }, [urlMatchId, matches.map((match) => match.id).join("|")]);
@@ -2295,7 +2238,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
   return (
     <div className="nxt5-data-dense nxt5-stats-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Games" title="Statistiques" subtitle="Choisis une game ou un groupe pour consulter les résultats." />
-      {(matches.length || selectedMatchId) ? <>
+      {(baseMatches.length || selectedMatchId) ? <>
         <section className="mb-5 rounded-[1.35rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(6,182,212,.10),rgba(15,23,42,.46)_45%,rgba(168,85,247,.10))] p-4 shadow-[0_18px_60px_rgba(0,0,0,.18)]">
           <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0">
@@ -2331,25 +2274,24 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
             {selectedArchive && <Button type="button" variant="ghost" icon={exportingStats ? Loader2 : Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>}
           </div>
         </section>
-        {!selectedArchive && <Surface className="mt-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-            <div><h3 className="text-xl font-black text-white">Games importées</h3><p className="mt-1 text-sm font-semibold text-slate-300">Sélectionne une game, puis crée ou ouvre la review associée.</p></div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" icon={Plus} onClick={() => selectedMatch && openAppPath(`/rapports?match=${encodeURIComponent(selectedMatch.id)}&compose=1`)} disabled={!selectedMatch}>Créer review</Button>
-              {selectedReport && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports?report=" + selectedReport.id + "&match=" + selectedMatch?.id)} disabled={!selectedMatch}>Review existante</Button>}
-            </div>
-          </div>
-          <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <label className="relative block w-full sm:max-w-xl">
-              <span className="sr-only">Rechercher une game</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-100/70" />
-              <input type="text" inputMode="search" role="searchbox" value={gameSearch} onChange={(event) => setGameSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setGameSearch(""); }} placeholder="Rechercher par nom, Game ID, adversaire, joueur..." className="h-11 w-full rounded-xl border border-white/10 bg-black/25 pl-10 pr-10 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-300/10" />
-              {gameSearch && <button type="button" onClick={() => setGameSearch("")} aria-label="Effacer la recherche" title="Effacer la recherche" className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-white/[0.07] hover:text-white"><X className="h-4 w-4" /></button>}
-            </label>
-            <p className="shrink-0 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{searchedMatches.length} sur {scopedMatches.length} games</p>
-          </div>
-          {searchedMatches.length ? <div className="nxt5-game-list mt-3 grid max-h-80 gap-2 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">{searchedMatches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <button key={match.id} type="button" aria-pressed={activeGame} onClick={() => setSelectedMatchId(activeGame ? "" : match.id)} className={cx("relative rounded-2xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60", activeGame ? "border-cyan-200/80 bg-cyan-400/18 shadow-[0_0_0_1px_rgba(103,232,249,.32),0_0_34px_rgba(34,211,238,.22)] ring-1 ring-cyan-200/35" : "border-white/10 bg-white/[0.035] hover:border-cyan-300/18 hover:bg-white/[0.06]")}><div className={cx("pointer-events-none absolute inset-y-3 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_16px_rgba(103,232,249,.72)] transition", activeGame ? "opacity-100" : "opacity-0")} /><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id}</p></button>; })}</div> : <div className="mt-3 rounded-xl border border-dashed border-white/10 bg-black/20 px-4 py-8 text-center"><Search className="mx-auto h-5 w-5 text-slate-500" /><p className="mt-2 text-sm font-black text-white">Aucune game trouvée</p><p className="mt-1 text-xs font-semibold text-slate-400">Essaie un nom d’équipe, un Game ID, un joueur ou un champion.</p></div>}
-        </Surface>}
+        {!selectedArchive && <ImportedGames
+          key={`${selectedTeamId}:${selectedCategoryId}`}
+          matches={scopedMatches}
+          categories={matchCategories}
+          selectedMatchId={selectedMatchId}
+          selectedMatch={selectedMatch}
+          selectedReport={selectedReport}
+          onSelectMatch={setSelectedMatchId}
+          onCreateReview={() => selectedMatch && openAppPath(`/rapports?match=${encodeURIComponent(selectedMatch.id)}&compose=1`)}
+          onOpenReview={() => selectedReport && openAppPath(`/rapports?report=${encodeURIComponent(selectedReport.id)}&match=${encodeURIComponent(selectedMatch.id)}`)}
+          onViewStats={() => {
+            const panel = document.getElementById("selected-game-stats");
+            panel?.focus({ preventScroll: true });
+            panel?.scrollIntoView({ block: "start" });
+          }}
+          onResetScope={() => { setSelectedCategoryId(""); setSelectedArchiveId(""); }}
+          scopeName={activeCategory?.name || ""}
+        />}
         {!selectedMatch && <Surface className="mt-5">
           <button type="button" onClick={() => setArchivesCollapsed((value) => !value)} className="flex w-full items-center justify-between gap-4 rounded-xl px-2 py-1.5 text-left transition hover:bg-white/[0.035]">
             <div className="min-w-0">
@@ -2393,14 +2335,14 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast }) {
         </Surface>}
         {selectedArchive && <ScrimArchiveSummary matches={scopedMatches} selectedMatchId={selectedMatchId} onSelectMatch={setSelectedMatchId} />}
         {!selectedMatch && selectedMatchId && <Surface className="mt-5"><p role="status">{loadingMatchDetail ? "Chargement des données avancées de la game…" : selectedMatchDetailError || "Game introuvable."}</p>{!loadingMatchDetail && selectedMatchDetailError && <Button type="button" className="mt-3" onClick={retryMatchDetail}>Réessayer</Button>}</Surface>}
-        {selectedMatch && <>
+        {selectedMatch && <div id="selected-game-stats" tabIndex={-1} className="scroll-mt-6">
           {loadingMatchDetail && <div className="mt-5 flex flex-wrap items-center gap-2 border-y border-cyan-200/15 bg-cyan-300/[0.045] px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-cyan-100"><Loader2 className="h-4 w-4 animate-spin" />Chargement des données avancées de la game</div>}
           {selectedMatchDetailError && !loadingMatchDetail && <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200/18 bg-amber-400/[0.065] px-4 py-3 text-sm font-semibold text-amber-50 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0"><p className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">Détail avancé indisponible</p><p className="mt-1 text-xs leading-5 text-amber-50/85">{selectedMatchDetailError} Les stats déjà chargées restent affichées.</p></div>
             <Button type="button" variant="ghost" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button>
           </div>}
           <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} />
-        </>}
+        </div>}
       </> : <Surface glow><EmptyState icon={BarChart3} title="Aucune statistique" text="Importe une game dans Intégration pour alimenter les graphiques." /></Surface>}
     </div>
   );
