@@ -67,7 +67,15 @@ npm run db:migrate
 
 Cette commande applique le schéma et les migrations versionnées dans une transaction avec verrou PostgreSQL. Elle s'exécute automatiquement avant la publication Netlify en production. Les fonctions ne modifient plus le schéma pendant une requête. Voir [le guide des migrations](database/MIGRATIONS.md).
 
-## Test rapide
+## Validation commerciale avant paiement
+
+La première phase du [plan de financement](docs/plan-financement.md) est préparée en accès administrateur uniquement : `/tarifs` permet de prévisualiser les offres envisagées et le formulaire, et `/admin/demandes-acces` permet de suivre les demandes. Les deux pages sont accessibles depuis le tableau de bord d’administration, sans lien public. La soumission comme la gestion des demandes exigent un compte administrateur côté serveur. Les fonctions enregistrent les demandes dans Neon ; aucun paiement, e-mail automatique ou quota commercial n’est activé.
+
+La migration additive `database/migrations/20260908_access_requests.sql` est incluse dans `npm run db:migrate`. Le déploiement de production existant l’appliquera avant publication. Aucune variable Stripe n’est nécessaire ; la connexion Neon et la configuration d’administration existantes suffisent. La purge planifiée supprime quotidiennement les demandes de plus de six mois.
+
+Voir [le guide de validation commerciale](docs/validation-commerciale.md) pour la recette, les entretiens et les critères de passage au paiement.
+
+## Test rapide du suivi d’équipe
 
 1. Crée un compte.
 2. Crée ou sélectionne une team.

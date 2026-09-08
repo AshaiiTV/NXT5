@@ -64,8 +64,14 @@ export function authModeFromPath(pathname = window.location.pathname) {
   return AUTH_ROUTES[normalizePath(pathname)] || null;
 }
 
+export function isAdminPath(pathname = window.location.pathname) {
+  const path = normalizePath(pathname);
+  return path === "/tarifs" || path === "/admin" || path.startsWith("/admin/");
+}
+
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
+  if (path === "/tarifs") return true;
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return true;
   return NAV.some((item) => item.path === path);

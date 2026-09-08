@@ -1,0 +1,50 @@
+.access-requests-page { display: flex; min-width: 0; flex-direction: column; gap: 1rem; }
+.access-requests-page .nxt5-page-header { margin-bottom: 0; }
+.access-requests-notice { display: flex; align-items: flex-start; gap: 1rem; }
+.access-requests-notice > span { flex: none; }
+.access-requests-notice p, .access-requests-caption { color: #edf5ff; font-size: .8rem; line-height: 1.7; }
+.access-requests-metrics { display: flex; flex-wrap: wrap; gap: 1.5rem; padding-bottom: 1rem; }
+.access-requests-metric { flex: 1 1 13rem; min-width: 0; }
+.access-requests-metric p { color: #edf5ff; font-size: .8rem; line-height: 1.6; }
+.access-requests-metric p:first-child { font-weight: 800; }
+.access-requests-metric strong { display: block; color: #f8fafc; font-size: 2rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.access-requests-metric strong span { color: #c4b5fd; font-size: 1.1rem; }
+.access-requests-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; padding-bottom: 1rem; }
+.access-requests-toolbar > label { width: min(100%, 25rem); }
+.access-requests-live { color: #cffafe; font-size: .875rem; }
+.access-requests-live:empty { display: none; }
+.access-request { padding: 1.5rem 0; border-top: 1px solid var(--nxt5-border); }
+.access-request-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.access-request-heading > div { min-width: 0; }
+.access-request-heading > .nxt5-badge { flex: none; max-width: 50%; }
+.access-request h3 { color: #f8fafc; font-size: 1.1rem; font-weight: 900; overflow-wrap: anywhere; }
+.access-request-heading p { margin-top: .25rem; color: #edf5ff; font-size: .875rem; overflow-wrap: anywhere; }
+.access-request-facts { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; margin-top: 1rem; }
+.access-request-facts > div { flex: 1 1 12rem; min-width: 0; }
+.access-request-facts dt, .access-request-message h4 { color: #edf5ff; font-size: .75rem; line-height: 1.5; font-weight: 700; }
+.access-request-facts dd { margin-top: .25rem; color: #f8fafc; font-size: .875rem; font-weight: 700; overflow-wrap: anywhere; }
+.access-request-message { margin-top: 1rem; padding-left: 1rem; border-left: 2px solid rgba(167,139,250,.5); }
+.access-request-message p { margin-top: .25rem; color: #edf5ff; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; line-height: 1.7; }
+.access-request-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.access-request-editor { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--nxt5-border); }
+.access-request-editor fieldset { min-width: 0; }
+.access-request-editor fieldset > label { max-width: 52rem; }
+.access-request-editor fieldset > p { margin: .75rem 0; max-width: 52rem; }
+.access-request-delete { margin-top: 1rem; padding: 1rem; border: 1px solid rgba(253,164,175,.35); border-radius: var(--nxt5-radius-control); color: #ffe4e6; font-size: .875rem; line-height: 1.7; }
+.access-requests-error { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; color: #fecdd3; font-size: .875rem; line-height: 1.7; }
+.access-request > .access-requests-error { margin-top: .75rem; }
+.access-requests-pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-top: 1px solid var(--nxt5-border); padding-top: 1rem; color: #edf5ff; font-size: .8rem; }
+.access-requests-pagination > div { display: flex; align-items: center; gap: .75rem; }
+.access-requests-page button { min-height: 44px; }
+@media (max-width: 640px) {
+  .access-requests-notice, .access-request-heading, .access-requests-toolbar { flex-direction: column; align-items: stretch; }
+  .access-requests-notice > .nxt5-badge { align-self: flex-start; }
+  .access-requests-toolbar > label { width: 100%; }
+  .access-request-heading > .nxt5-badge { align-self: flex-start; max-width: 100%; }
+  .access-request-facts > div { flex-basis: 100%; }
+  .access-request-actions > button { flex: 1 1 auto; }
+  .access-request { padding: 1.25rem 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .access-requests-page *, .access-requests-page *::before, .access-requests-page *::after { animation: none !important; transition: none !important; }
+}

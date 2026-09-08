@@ -1,0 +1,166 @@
+.nxt5-pricing .pricing-intro {
+  display: grid;
+  gap: 2rem;
+  align-items: end;
+  padding: 2.5rem 0 1rem;
+}
+
+.nxt5-pricing .pricing-launch-note {
+  border-left: 2px solid rgba(103, 232, 249, .42);
+  padding-left: 1.5rem;
+}
+
+.nxt5-pricing .pricing-plans {
+  display: grid;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.nxt5-pricing .pricing-plan {
+  min-width: 0;
+  padding: 1.5rem;
+}
+
+.nxt5-pricing .pricing-plan--team_monthly {
+  border-color: rgba(103, 232, 249, .48) !important;
+}
+
+.nxt5-pricing .pricing-plan--team_season .pricing-plan-eyebrow {
+  color: #c4b5fd;
+}
+
+.nxt5-pricing .pricing-plan > div:last-child,
+.nxt5-pricing .pricing-plan-body {
+  height: 100%;
+}
+
+.nxt5-pricing .pricing-plan-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.nxt5-pricing .pricing-plan-eyebrow {
+  color: #a5f3fc;
+  font-size: .6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.nxt5-pricing .pricing-plan-features {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: .8rem;
+  margin: 1.5rem 0;
+  padding: 1.5rem 0 0;
+  border-top: 1px solid rgba(207, 250, 254, .13);
+}
+
+.nxt5-pricing .pricing-plan-features li {
+  display: flex;
+  gap: .625rem;
+  align-items: flex-start;
+  color: #edf5ff;
+  font-size: .875rem;
+  line-height: 1.5;
+}
+
+.nxt5-pricing .pricing-details {
+  display: grid;
+  gap: 3rem;
+  align-items: start;
+  margin-top: 4rem;
+}
+
+.nxt5-pricing .pricing-request {
+  min-width: 0;
+  scroll-margin-top: 1.5rem;
+}
+
+.nxt5-pricing .pricing-faq-item {
+  border-bottom: 1px solid rgba(207, 250, 254, .16);
+}
+
+.nxt5-pricing .pricing-faq-item summary {
+  padding: 1.125rem 0;
+  font-size: .9375rem;
+  font-weight: 750;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.nxt5-pricing .pricing-faq-item summary::marker {
+  color: #a5f3fc;
+}
+
+.nxt5-pricing .pricing-form-row {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.nxt5-pricing .pricing-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.nxt5-pricing button,
+.nxt5-pricing select {
+  min-height: 44px;
+}
+
+@media (min-width: 640px) {
+  .nxt5-pricing .pricing-form-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .nxt5-pricing .pricing-plans {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .nxt5-pricing .pricing-plan {
+    padding: 1.25rem;
+  }
+
+  .nxt5-pricing .pricing-plan-description {
+    min-height: 4.5rem;
+  }
+
+  .nxt5-pricing .pricing-plan-terms {
+    min-height: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .nxt5-pricing .pricing-intro {
+    grid-template-columns: minmax(0, 1fr) minmax(0, .43fr);
+    gap: 3rem;
+  }
+
+  .nxt5-pricing .pricing-details {
+    grid-template-columns: minmax(0, .84fr) minmax(0, 1.16fr);
+  }
+
+  .nxt5-pricing .pricing-plan {
+    padding: 1.5rem;
+  }
+
+  .nxt5-pricing .pricing-plan-description {
+    min-height: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nxt5-pricing *,
+  .nxt5-pricing *::before,
+  .nxt5-pricing *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -30,6 +30,7 @@ export const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
+  { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
 ];
 
 export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
