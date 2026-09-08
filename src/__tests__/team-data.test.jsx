@@ -57,14 +57,17 @@ describe("complete team history lifecycle in React", () => {
     const app = mount();
     const history = games("a", 205);
     expectRequest(app.requests[0]);
+    expect(app.state.loadingProgress).toBeNull();
     await app.resolve(0, page("a", history));
     expect(app.state.loading).toBe(true);
     expect(app.state.bootstrapReady).toBe(false);
     expect(app.state.data.matches).toEqual([]);
+    expect(app.state.loadingProgress).toEqual({ loaded: 100, total: 205 });
     expectRequest(app.requests[1], { offset: 100, teamId: "a", matchesOnly: true });
     await app.resolve(1, page("a", history, 100));
     expect(app.state.loading).toBe(true);
     expect(app.state.data.matches).toEqual([]);
+    expect(app.state.loadingProgress).toEqual({ loaded: 200, total: 205 });
     expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
     await app.resolve(2, page("a", history, 200));
     expect(app.state.loading).toBe(false);
@@ -72,6 +75,7 @@ describe("complete team history lifecycle in React", () => {
     expect(app.state.data.matches).toEqual(history);
     expect(app.state.data.historyComplete).toBe(true);
     expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.loadingProgress).toEqual({ loaded: 205, total: 205 });
     expect(app.state.data.teams).toEqual(teams);
     expect(app.state.data.players[0].id).toBe("a-player");
     expect(app.state.data.reports[0].id).toBe("a-report");
@@ -190,6 +194,7 @@ describe("complete team history lifecycle in React", () => {
     expect(app.state.loading).toBe(false);
     app.refresh();
     expectRequest(app.requests[2]);
+    expect(app.state.loadingProgress).toBeNull();
     await app.resolve(2, page("a", history));
     expect(app.state.bootstrapReady).toBe(false);
     expect(app.state.data.matches).toEqual([]);
@@ -228,6 +233,7 @@ describe("complete team history lifecycle in React", () => {
     expect(app.state.loading).toBe(false);
     expect(app.state.apiError).toBe("");
     expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.loadingProgress).toEqual({ loaded: 0, total: 0 });
     expect(app.requests).toHaveLength(1);
   });
 });

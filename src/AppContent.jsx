@@ -1,16 +1,17 @@
 import React, { startTransition, useCallback, useEffect, useState, Suspense, useMemo, lazy } from "react";
 import { apiFetch, API_BASE } from "./api/client.js";
-import { NAV, DEFAULT_DATA } from "./app/constants.jsx";
+import { NAV } from "./app/constants.jsx";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
-import { Loader2, ArrowRight, Check, Crown, FileText, Swords, Users, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
 import { cx, preciseErrorText } from "./app/helpers.js";
 import { createPlanningStore, upsertAvailability } from "./utils/planning-store.js";
 import { useTeamData } from "./hooks/useTeamData.js";
+import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 import { matchDisplayName } from "./utils/matches.js";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
 const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
@@ -190,103 +191,6 @@ function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
   </div>;
 }
 
-function loadingStepState(done, active) {
-  if (done) return "done";
-  if (active) return "active";
-  return "pending";
-}
-
-function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = false }) {
-  const roles = [
-    ["TOP", "top"],
-    ["JGL", "jungle"],
-    ["MID", "mid"],
-    ["ADC", "adc"],
-    ["SUP", "support"],
-  ];
-  const hasRoster = Boolean((data.teams || []).length || (data.players || []).length || (data.teamMembers || []).length);
-  const hasGames = Boolean((data.matches || []).length);
-  const hasDraft = Boolean((data.championPool || []).length || (data.compositions || []).length);
-  const hasReview = Boolean((data.reports || []).length || (data.matchArchives || []).length || hasGames);
-  const activeIndex = phase === "session" ? 0 : hasReview ? 4 : hasDraft ? 3 : hasGames ? 2 : hasRoster ? 1 : 0;
-  const stages = [
-    ["Roster", "R\u00f4les align\u00e9s", Users, phase !== "session" && hasRoster],
-    ["Games", "Timelines index\u00e9es", Swords, hasGames],
-    ["Draft", "Priorit\u00e9s charg\u00e9es", Crown, hasDraft],
-    ["Review", "Signaux pr\u00eats", FileText, hasReview],
-  ];
-  const targetDoneCount = stages.reduce((count, [, , , done]) => count + (done ? 1 : 0), 0);
-  const [visibleDoneCount, setVisibleDoneCount] = useState(0);
-  const readyVisible = ready && visibleDoneCount >= targetDoneCount;
-  const progressValue = readyVisible ? 100 : Math.min(92, Math.max(12, Math.round((visibleDoneCount / Math.max(stages.length, 1)) * 100)));
-
-  useEffect(() => {
-    if (visibleDoneCount > targetDoneCount) {
-      setVisibleDoneCount(targetDoneCount);
-      return undefined;
-    }
-    if (visibleDoneCount >= targetDoneCount) return undefined;
-    const timer = window.setTimeout(() => {
-      setVisibleDoneCount((count) => Math.min(count + 1, targetDoneCount));
-    }, 190);
-    return () => window.clearTimeout(timer);
-  }, [targetDoneCount, visibleDoneCount]);
-
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-6 text-white sm:px-6">
-      <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(103,232,249,.14),transparent_34%),radial-gradient(circle_at_74%_30%,rgba(217,70,239,.10),transparent_30%),linear-gradient(90deg,rgba(2,5,17,.86),transparent_42%,rgba(2,5,17,.84))]" />
-      <div className="nxt5-warroom relative z-10 w-full">
-        <div className="nxt5-warroom-header">
-          <Nxt5Wordmark className="nxt5-loader-wordmark h-12 w-48 object-left sm:h-14 sm:w-56" />
-        </div>
-
-        <div className="nxt5-warroom-copy">
-          <p>Ouverture espace staff</p>
-          <h1 className="nxt5-loader-title">Synchronisation en cours</h1>
-        </div>
-
-        <div className="nxt5-warroom-grid">
-          <div className="nxt5-player-board" aria-hidden="true">
-            <div className="nxt5-player-board-noise" />
-            <div className="nxt5-player-columns">
-              {roles.map(([role], index) => (
-                <span key={role} className={cx("nxt5-player-column", `nxt5-player-column-${index + 1}`, hasRoster && "is-loaded")} style={{ "--delay": `${index * 160}ms`, "--fill-delay": `${index * 130}ms` }}>
-                  <strong>{role}</strong>
-                </span>
-              ))}
-            </div>
-            <div className="nxt5-player-board-title">
-              <span>{readyVisible ? "Chargement termin\u00e9" : "Chargement roster"}</span>
-              <div className={cx("nxt5-player-progress", readyVisible && "is-complete")} style={{ "--progress": `${progressValue}%` }}>
-                <i />
-              </div>
-            </div>
-          </div>
-
-          <div className="nxt5-warroom-panel">
-            {stages.map(([stage, detail, Icon, done], index) => {
-              const visibleDone = done && index < visibleDoneCount;
-              const state = loadingStepState(visibleDone, index === activeIndex && !visibleDone);
-              return <div key={stage} className={cx("nxt5-warroom-step", `is-${state}`)} style={{ "--delay": `${index * 180}ms` }}>
-                {state === "done" ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                <div>
-                  <p>{stage}</p>
-                  <span>{detail}</span>
-                </div>
-              </div>;
-            })}
-            <div className={cx("nxt5-warroom-ready", readyVisible ? "is-done" : ready && "is-active")}>
-              <Check className="h-4 w-4" />
-              <span>{"Pr\u00eat"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function assistantEntityForRoute(route, data, selectedTeamId) {
   const params = new URLSearchParams(route?.search || "");
   const teamMatches = (data.matches || []).filter((item) => String(item.team_id || "") === String(selectedTeamId || ""));
@@ -329,7 +233,9 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
-  const { data, setData, selectedTeamId, setSelectedTeamId, loading, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
+  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
+  const waitingForBootstrap = !bootstrapReady && (!bootstrapped || loading);
+  useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
@@ -399,7 +305,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
     ? <InactivityReturnModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} />
     : null;
-  if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
+  if (waitingForBootstrap) return null;
   if (!bootstrapReady) return <div className="relative min-h-screen text-white">
     <AmbientBackground />
     <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">
@@ -485,9 +391,12 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const unknownRoute = !isKnownPath(route.path);
   const forbiddenAdminRoute = route.path === "/admin" && (!user || user.is_platform_admin !== true);
 
-  // Public pages do not depend on the session check and should render immediately.
-  // Keep the full-screen loader only when opening the authenticated workspace.
-  if (checkingSession && routeIsPrivate) return <AppLoadingScreen />;
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/verify-email", "/verified"].includes(route.path);
+  useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
+
+  // Public pages render during the session check. The shared screen remains
+  // mounted while a private route passes from session checking to bootstrap.
+  if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
