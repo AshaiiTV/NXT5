@@ -132,3 +132,5 @@ Le front ne stocke aucune donnée métier en localStorage. Les données importan
 ## Connexion à la base de données
 
 Pour créer un compte, les fonctions Netlify doivent recevoir `DATABASE_URL` et `npm run db:migrate` doit avoir réussi sur cette base. Sans le marqueur de migration attendu, les fonctions répondent temporairement 503.
+
+Le déploiement de production effectue aussi la [réécriture unique des reviews historiques](docs/review-backfill.md), avec sauvegarde des anciennes versions et conservation des notes.
