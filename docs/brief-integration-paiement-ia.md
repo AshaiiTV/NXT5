@@ -4,9 +4,9 @@ Copier tout le contenu de ce document dans une nouvelle tâche de développement
 
 ---
 
-Ce brief prépare une étape de développement ultérieure. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation comprend Découverte, Pass Équipe, Pass Saison et Pass Structure. L’ajout du Pass Structure couvre sa présentation et le recueil de besoins ; il n’ouvre ni collecte publique, ni paiement, ni outils multi-équipes. L’ouverture publique et Stripe décrits ci-dessous relèvent de la future mission de monétisation.
+Ce brief prépare une étape de développement ultérieure ; il n’active rien à lui seul. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation de lancement présente deux cartes : Découverte, 30 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Ce prix est une hypothèse à valider. Le lien « Plusieurs équipes ? Parlons de tes besoins » recueille les besoins d’une organisation, sans tarif annoncé ni promesse de fonctions multi-équipes. Aucun essai chronométré, paiement ou quota commercial n’est actuellement activé ; les accès actuels restent inchangés. L’ouverture publique, l’essai et Stripe décrits ci-dessous relèvent d’une future mission expressément lancée.
 
-Les [abonnements manuels des profils](abonnements-manuels.md) sont également intégrés : l’administrateur peut attribuer Découverte, Pass Équipe, Pass Saison ou Pass Structure à un compte, avec dates, retrait et audit. Ces attributions persistantes ne sont pas des souscriptions Stripe et ne modifient pas encore les quotas produit. Préserve-les et leur historique. La présente mission porte sur la facturation des équipes ; définis explicitement leur coexistence avant d’utiliser un abonnement de profil pour calculer des droits d’équipe, sans conversion automatique ni rattachement présumé.
+Les [abonnements manuels des profils](abonnements-manuels.md) sont également intégrés : l’administrateur peut attribuer les codes historiques Découverte, Pass Équipe, Pass Saison ou Pass Structure à un compte, avec dates, retrait et audit. Ces attributions persistantes ne sont pas des souscriptions Stripe et ne modifient pas encore les quotas produit. Préserve-les et leur historique. Pass Saison, Pass Structure, annuel et fondateur sont hors du catalogue de lancement : leur éventuelle présence dans les API ou données historiques n’autorise pas leur vente. La présente mission porte sur la facturation des équipes ; définis explicitement sa coexistence avec les abonnements de profils avant tout calcul de droits, sans conversion automatique ni rattachement présumé.
 
 ## Mission
 
@@ -25,7 +25,7 @@ Lis d’abord entièrement les fichiers d’instructions du dépôt, puis inspec
 3. Stripe Checkout encaisse le paiement ;
 4. un webhook signé met à jour la base ;
 5. les droits de l’équipe sont calculés côté serveur ;
-6. les limites de l’offre gratuite sont appliquées sur les endpoints concernés ;
+6. l’essai de 30 jours sans carte bancaire, son expiration et la limite commune de 15 membres sont contrôlés côté serveur ;
 7. le payeur peut gérer l’abonnement et télécharger ses factures via Stripe Customer Portal ;
 8. l’application gère correctement renouvellement, résiliation, échec de paiement et expiration ;
 9. les pages et e-mails utilisent un français sobre, sans faux argument marketing ;
@@ -39,7 +39,7 @@ Lis d’abord entièrement les fichiers d’instructions du dépôt, puis inspec
 - Ne stocke jamais de numéro de carte, CVC ou payload Stripe complet en base.
 - Ne fais jamais confiance au prix, au plan, au rôle ou au statut transmis par le navigateur.
 - Tous les contrôles d’autorisation et de quota doivent exister côté serveur.
-- Le webhook Stripe est la source de vérité pour l’activation d’une offre.
+- Le webhook Stripe est la source de vérité pour l’activation d’une offre payante ; le démarrage et l’expiration de l’essai gratuit dépendent des dates enregistrées côté NXT5.
 - Une redirection Checkout réussie ne doit jamais activer un plan à elle seule.
 - Toutes les mutations de facturation doivent produire une entrée d’audit exploitable.
 - Les migrations doivent être idempotentes et compatibles avec la base existante.
@@ -51,65 +51,41 @@ Lis d’abord entièrement les fichiers d’instructions du dépôt, puis inspec
 
 La facturation en ligne décrite ici appartient à l’équipe. Le capitaine ou le manager paie pour tous les membres. Elle reste distincte des abonnements manuels déjà attribués aux comptes par l’administrateur.
 
-### Offre `free`
+### Découverte — code de présentation `free`
 
-- gratuite ;
-- une équipe créée par compte ;
-- 10 membres maximum dans l’équipe ;
-- 5 games importées au total ;
-- 3 reviews maximum ;
-- 1 composition maximum ;
-- statistiques essentielles ;
-- pas d’historique supprimé automatiquement lors d’un downgrade.
+- 30 jours gratuits, sans carte bancaire ;
+- une équipe et 15 membres maximum ;
+- mêmes fonctions que le Pass Équipe pendant l’essai : imports, statistiques, reviews, compositions, planning, champion pools, historique, export et accès du staff ;
+- aucun quota réduit d’imports, de reviews ou de compositions ;
+- démarrage explicite par un utilisateur autorisé, enregistré côté serveur ;
+- aucun prélèvement ni abonnement payant automatique à la fin ;
+- conservation des données en lecture seule après expiration selon la politique retenue.
 
-### Offre `team_monthly`
+Le code `free` reste utile pour la compatibilité du catalogue et des demandes. Il désigne ici une découverte limitée à 30 jours, pas un plan gratuit permanent. Représente distinctement les états non démarré, en essai et expiré. Une demande commerciale et une attribution manuelle à un profil ne démarrent jamais cet essai à elles seules. La règle d’éligibilité, le point de départ exact et le traitement des équipes déjà présentes sont à décider avant activation réelle.
 
-- 29 € TTC par mois ;
-- renouvellement automatique ;
-- une équipe ;
-- 15 membres maximum ;
-- imports, reviews, compositions, planning, champion pools et historique sans quota produit artificiel ;
-- export des données ;
+### Pass Équipe — `team_monthly`
+
+- 9,90 € TTC par mois et par équipe ;
+- renouvellement automatique après souscription explicite ;
+- une équipe et 15 membres maximum ;
+- imports, statistiques, reviews, compositions, planning, champion pools et historique sans quota produit artificiel ;
+- export des données, rôles et accès du staff, assistance standard ;
 - résiliation à tout moment avec accès jusqu’à la fin de la période payée.
 
-### Offre `team_yearly`
+Le mensuel est la seule offre achetable au lancement. Ne crée aucun produit, Price Stripe ou Checkout pour les anciennes offres saison, annuelle, fondateur ou Structure.
 
-- 290 € TTC par an ;
-- renouvellement automatique ;
-- mêmes droits que `team_monthly`.
+### Besoins de plusieurs équipes — code de demande `structure`
 
-### Offre `team_season`
+Conserve le lien « Plusieurs équipes ? Parlons de tes besoins » et le formulaire de qualification, sans montant ni engagement sur des fonctions à développer. Le code `structure` reste un choix de contact et un code historique d’attribution manuelle de profil ; il n’est ni un plan de facturation ni une autorisation multi-équipe.
 
-- 169 € TTC ;
-- paiement unique ;
-- accès pendant six mois à compter du paiement confirmé ;
-- aucun renouvellement automatique ;
-- mêmes droits fonctionnels que `team_monthly` pendant la période active.
-
-### Offre `founder_monthly`
-
-- 19 € TTC par mois ;
-- offre non affichée publiquement ;
-- attribuable seulement via un Price Stripe configuré et une autorisation explicite côté serveur ;
-- mêmes droits que `team_monthly` ;
-- ne jamais accepter un simple `plan_code=founder_monthly` venant du client.
-
-### Proposition `structure` — Pass Structure sur devis
-
-- à partir de 79 € TTC par mois, avec périmètre et prix final à définir sur devis ;
-- besoins envisagés : plusieurs équipes sous une même organisation, facturation centralisée, administrateur de structure, vue multi-équipe et accompagnement à l’installation ;
-- aucun nombre d’équipes ou de membres, quota d’usage ou niveau d’accompagnement fixé sans validation du besoin.
-
-La carte du Pass Structure, son option dans le formulaire et son suivi administrateur sont déjà intégrés à la prévisualisation commerciale interne. Conserve ce recueil de besoins et sa distinction avec les offres achetables. Une intention Structure ne peut être confirmée manuellement qu’après acceptation du périmètre, du devis et du payeur ; la confirmation compte pour une organisation et n’active aucun droit. Le code `structure` est aussi disponible pour l’attribution manuelle d’un abonnement à un profil. À ce stade, il ne doit pas devenir un Price Stripe, un plan de facturation en ligne ou une autorisation multi-équipe.
-
-Le paiement Structure, la facturation centralisée et les outils d’administration multi-équipes restent à développer dans une étape ultérieure, après validation du Pass Équipe et de prospects réels. Ne construis pas ces fonctions dans la présente mission de paiement des offres équipe ; n’associe pas automatiquement une demande Structure à une souscription ou à des droits multi-équipes.
+Préserve les demandes et leurs notes, y compris leurs anciennes offres. Ne convertis pas automatiquement une demande Structure en souscription ou en droit. Une éventuelle offre pour plusieurs équipes fera l’objet d’une décision séparée, après validation des besoins ; ses fonctions ne sont pas à construire dans cette mission.
 
 ## Comptes et autorisations
 
 Respecte les rôles actuels de `team_members`.
 
-- `captain` : voir la facturation, acheter, changer de formule, ouvrir le portail et résilier ;
-- `manager` : voir la facturation, acheter et ouvrir le portail ;
+- `captain` : voir la facturation, démarrer l’essai, acheter, ouvrir le portail et résilier ;
+- `manager` : voir la facturation, démarrer l’essai, acheter et ouvrir le portail ;
 - `coach`, `assistant`, `analyst`, `board` : voir uniquement le nom de l’offre et son statut, sans facture ni information de paiement ;
 - `player`, `viewer`, `member` : aucun accès à la facturation ;
 - administrateur plateforme : consulter les statuts et identifiants techniques nécessaires au support, mais aucune donnée de carte.
@@ -130,9 +106,6 @@ Variables serveur :
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_TEAM_MONTHLY=
-STRIPE_PRICE_TEAM_YEARLY=
-STRIPE_PRICE_TEAM_SEASON=
-STRIPE_PRICE_FOUNDER_MONTHLY=
 STRIPE_PORTAL_CONFIGURATION_ID=
 PUBLIC_SITE_URL=
 ```
@@ -143,14 +116,14 @@ Ajoute une validation centralisée de la configuration :
 
 - erreur serveur claire si une clé obligatoire manque ;
 - liste blanche serveur reliant chaque `plan_code` public au Price ID attendu ;
-- `founder_monthly` absent de la liste publique ;
+- seul `team_monthly` figure dans la liste des plans achetables ;
 - URL de retour construite uniquement à partir de `PUBLIC_SITE_URL`, pas d’une origine arbitraire envoyée par le navigateur.
 
 Documente dans le README la création des produits et Prices Stripe, la configuration du portail, l’URL du webhook Netlify et les variables à renseigner.
 
 ## Schéma PostgreSQL
 
-Ajoute le schéma à `database/schema.sql` et une migration runtime idempotente dans les helpers existants. Utilise les types PostgreSQL simples et des contraintes explicites.
+Ajoute le schéma à `database/schema.sql` et une migration versionnée dans le parcours `npm run db:migrate` existant, sans migration pendant les requêtes. Utilise les types PostgreSQL simples et des contraintes explicites.
 
 ### Table `billing_customers`
 
@@ -188,30 +161,25 @@ created_at timestamptz not null default now()
 updated_at timestamptz not null default now()
 ```
 
-Contrainte `plan_code` : `team_monthly`, `team_yearly`, `founder_monthly`.
+Contrainte `plan_code` des nouvelles souscriptions Stripe : `team_monthly`. Les codes historiques des abonnements manuels restent dans leur modèle existant.
 
 Contrainte `status` compatible avec les statuts utiles de Stripe : `incomplete`, `incomplete_expired`, `trialing`, `active`, `past_due`, `canceled`, `unpaid`, `paused`.
 
-### Table `billing_orders`
+### Table `team_trials`
 
-Cette table représente notamment le Pass Saison à paiement unique.
+L’essai est géré côté NXT5, sans carte ni souscription Stripe.
 
 ```sql
 id uuid primary key default gen_random_uuid()
-team_id uuid not null references teams(id) on delete restrict
-billing_customer_id uuid not null references billing_customers(id) on delete restrict
-stripe_checkout_session_id text unique
-stripe_payment_intent_id text unique
-stripe_price_id text not null
-plan_code text not null check (plan_code in ('team_season'))
-status text not null check (status in ('pending','paid','refunded','expired','failed'))
-access_start timestamptz
-access_end timestamptz
-amount_total integer
-currency text
+team_id uuid not null unique references teams(id) on delete restrict
+started_by uuid not null references users(id) on delete restrict
+started_at timestamptz not null
+ends_at timestamptz not null
 created_at timestamptz not null default now()
-updated_at timestamptz not null default now()
+check (ends_at > started_at)
 ```
+
+Adapter la clé utilisateur à la convention réelle du dépôt. Enregistrer une durée exacte de 30 jours et un événement d’audit lors du démarrage. Un retry ne doit ni doubler ni prolonger l’essai. Ne créer aucune ligne à partir d’une simple visite, demande commerciale ou attribution manuelle. Les règles anti-réinitialisation et la migration éventuelle des équipes existantes doivent être décidées explicitement avant activation.
 
 ### Table `billing_events`
 
@@ -243,7 +211,7 @@ updated_at timestamptz not null default now()
 unique(team_id, feature_key, source)
 ```
 
-Les droits Stripe peuvent être calculés depuis les souscriptions et commandes. Utilise `team_entitlements` pour les dérogations administratives, promotions ou futurs droits ponctuels, pas pour recopier inutilement chaque plan.
+Les droits Stripe sont calculés depuis les souscriptions ; les droits d’essai viennent de `team_trials`. Utilise `team_entitlements` pour les dérogations administratives, promotions ou futurs droits ponctuels, pas pour recopier inutilement chaque plan.
 
 ### Index et maintenance
 
@@ -256,12 +224,13 @@ Crée `netlify/functions/_lib/billing.ts` avec une API interne claire.
 Il doit notamment exposer :
 
 ```ts
-type PlanCode = 'free' | 'team_monthly' | 'team_yearly' | 'team_season' | 'founder_monthly';
+type PlanCode = 'free' | 'team_monthly';
 
 type TeamBillingStatus = {
   teamId: string;
   planCode: PlanCode;
-  access: 'active' | 'grace' | 'read_only' | 'expired';
+  access: 'not_started' | 'trial' | 'active' | 'grace' | 'read_only' | 'expired';
+  trialEndsAt: string | null;
   stripeStatus: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -285,19 +254,22 @@ Fonctions attendues :
 - `requireBillingManager(teamId, userId, action)` ;
 - `assertTeamEntitlement(teamId, featureKey, context?)` ;
 - `getTeamUsage(teamId)` ;
-- `isPaidAccessActive(subscriptionOrOrder, now)`.
+- `isPaidAccessActive(subscription, now)` ;
+- `isTrialActive(trial, now)` ;
+- `startTeamTrial(teamId, userId)` avec autorisation, éligibilité et idempotence.
 
 Règles d’accès :
 
-- `active` et `trialing` donnent l’accès complet ;
+- un essai NXT5 entre `started_at` inclus et `ends_at` exclu donne les mêmes fonctions et la même limite de 15 membres que le mensuel ;
+- une souscription Stripe `active` donne l’accès complet ; ne crée pas d’essai Stripe nécessitant une carte pour Découverte ;
 - `past_due` donne une grâce de sept jours à partir de la première échéance impayée si cette date peut être déterminée ;
 - après la grâce : lecture seule ;
 - `cancel_at_period_end=true` conserve l’accès jusqu’à `current_period_end` ;
-- `canceled`, `unpaid` ou abonnement expiré : lecture seule ;
-- un Pass Saison payé est actif entre `access_start` et `access_end` ;
-- si plusieurs accès coexistent, retenir celui qui donne la date valide la plus lointaine ;
-- sans accès payant valide : plan `free` ;
-- une dérogation administrateur doit être explicite, datée et auditée.
+- `canceled`, `unpaid` ou abonnement expiré : lecture seule si aucun autre droit explicite ne subsiste ;
+- l’expiration de l’essai ne crée ni prélèvement ni abonnement ;
+- une souscription valide prend le relais de l’essai sans réinitialiser sa durée ni supprimer de données ;
+- sans accès payant ni essai valide : état non démarré ou expiré, jamais des droits gratuits illimités ;
+- une dérogation administrateur doit être explicite, datée et auditée ; les abonnements manuels de profils ne deviennent pas implicitement des dérogations d’équipe.
 
 N’éparpille pas les règles dans les endpoints. Tous doivent appeler ce service.
 
@@ -309,7 +281,11 @@ Respecte les helpers actuels `assertSessionSecret`, `requireAuth`, `assertMethod
 
 Retourne uniquement les offres publiques, leurs montants d’affichage, périodicité, fonctions et codes autorisés. Les montants peuvent être définis dans un catalogue serveur versionné, mais le Price Stripe reste la référence à l’achat.
 
-Ne retourne jamais de clé secrète ni le Founder Price. Le Pass Structure reste une proposition sur devis dans le catalogue de présentation ; il n’appartient pas au catalogue de facturation ni à la liste blanche des plans achetables.
+Ne retourne jamais de clé secrète. Expose Découverte comme essai sans paiement et `team_monthly` comme seule offre achetable. Le lien pour plusieurs équipes est un contact sans prix, séparé du catalogue de facturation.
+
+### `billing-trial-start.ts` — POST authentifié
+
+Body : `{ "teamId": "uuid" }`. Vérifier la session, le rôle, l’équipe et l’éligibilité côté serveur ; enregistrer atomiquement le démarrage et l’échéance à 30 jours, puis auditer l’action. Refuser la relance d’un essai terminé selon la règle choisie ; un double clic ou retry retourne le même essai sans extension. N’appelle pas Stripe et ne demande aucune carte. Une soumission du formulaire commercial ne peut pas invoquer implicitement ce parcours.
 
 ### `billing-status.ts` — GET authentifié
 
@@ -324,7 +300,7 @@ Body attendu :
 ```json
 {
   "teamId": "uuid",
-  "planCode": "team_monthly | team_yearly | team_season"
+  "planCode": "team_monthly"
 }
 ```
 
@@ -337,16 +313,13 @@ Body attendu :
 5. retrouver ou créer un Customer Stripe associé à l’équipe ;
 6. enregistrer ou mettre à jour `billing_customers` ;
 7. empêcher une deuxième souscription récurrente active ;
-8. créer Checkout en mode `subscription` pour mensuel/annuel ;
-9. créer Checkout en mode `payment` pour le Pass Saison ;
-10. inclure `team_id`, `plan_code` et `initiated_by` dans les métadonnées Stripe ;
-11. utiliser une clé d’idempotence stable par tentative contrôlée ;
-12. limiter le nombre de créations par utilisateur et équipe ;
-13. retourner uniquement `{ url }`.
+8. créer Checkout en mode `subscription` pour le mensuel ;
+9. inclure `team_id`, `plan_code` et `initiated_by` dans les métadonnées Stripe ;
+10. utiliser une clé d’idempotence stable par tentative contrôlée ;
+11. limiter le nombre de créations par utilisateur et équipe ;
+12. retourner uniquement `{ url }`.
 
-Pour le Pass Saison, crée une commande `pending` avant ou au moment de Checkout et lie son identifiant aux métadonnées. Ne calcule les six mois d’accès qu’après paiement confirmé.
-
-Refuse explicitement `planCode=structure` : une demande de devis ne doit jamais créer de session Checkout ni activer d’accès payant.
+Refuse explicitement `free`, `structure` et les anciens codes saison, annuel et fondateur : ils ne doivent créer aucune session Checkout. Le début d’un abonnement avant la fin de l’essai doit faire apparaître clairement la date du premier paiement ; ne déclenche jamais Checkout automatiquement à l’expiration de Découverte.
 
 ### `billing-portal-create.ts` — POST authentifié
 
@@ -358,7 +331,7 @@ Body : `{ "teamId": "uuid" }`.
 - utiliser `/abonnement` comme retour ;
 - retourner `{ url }`.
 
-La configuration du portail doit autoriser mise à jour du moyen de paiement, consultation des factures et résiliation. Les changements de plan ne doivent être activés que si leur comportement de prorata a été choisi et testé. Pour la première version, autorise la résiliation mais effectue les changements de formule depuis NXT5 ou désactive-les.
+La configuration du portail doit autoriser mise à jour du moyen de paiement, consultation des factures et résiliation. Désactive les changements de formule : seul le mensuel est commercialisé au lancement.
 
 ### `billing-invoices.ts` — GET authentifié
 
@@ -388,8 +361,7 @@ Exigences :
 - valider les métadonnées ;
 - vérifier que le Price/plan attendu correspond à la session ;
 - lier Customer et équipe ;
-- pour le Pass Saison payé : passer la commande à `paid`, fixer `access_start` à la date du paiement et `access_end` à six mois calendaires plus tard ;
-- pour une souscription : ne pas inventer les dates, récupérer/synchroniser la Subscription Stripe.
+- ne pas inventer les dates : récupérer/synchroniser la Subscription Stripe.
 
 #### `customer.subscription.created` et `customer.subscription.updated`
 
@@ -418,61 +390,48 @@ Exigences :
 
 #### `charge.refunded`
 
-- pour un Pass Saison entièrement remboursé, mettre la commande à `refunded` et retirer l’accès futur ;
-- pour un remboursement partiel, conserver l’accès et signaler le cas à l’administration, sauf règle commerciale contraire documentée.
+- consigner le remboursement et le rapprocher du paiement concerné ;
+- appliquer la politique de remboursement décidée : un remboursement ne résilie pas automatiquement une souscription Stripe ;
+- conserver un audit et signaler les cas nécessitant une décision, sans supprimer les données d’équipe.
 
-## Application des quotas côté serveur
+## Application des droits côté serveur
 
-Ajoute les contrôles sans casser la lecture des données existantes.
+Ajoute les contrôles sans casser la lecture des données existantes. Toutes les mutations d’imports, de reviews, de compositions, de planning et de champion pools doivent vérifier un essai valide, une souscription valide ou une dérogation d’équipe explicite. Ne rétablis pas les anciens quotas de cinq imports, trois reviews ou une composition.
 
-### Création d’équipe
+### Création d’équipe et essai
 
-Dans `teams-create.ts`, une offre gratuite permet à un compte de posséder une équipe. Un compte déjà propriétaire d’une équipe doit recevoir une erreur structurée s’il tente d’en créer une autre, sauf dérogation future.
+Dans `teams-create.ts` et le démarrage d’essai, appliquer la règle d’éligibilité décidée, sans permettre de renouveler indéfiniment un essai par recréation ou transfert d’équipe. Le forfait couvre une équipe ; une personne peut rejoindre d’autres équipes sans payer un accès individuel. Ne modifier les droits des équipes existantes qu’après avoir documenté leur transition.
 
 ### Membres
 
-Avant l’ajout ou l’acceptation d’une invitation, compter les membres actuels et appliquer la limite 10 ou 15. Ne bloque pas le départ ou la suppression d’un membre.
+Avant l’ajout ou l’acceptation d’une invitation, compter les membres actuels et appliquer la même limite de 15 pendant l’essai ou le mensuel. Ne bloque pas le départ ou la suppression d’un membre. Gérer les ajouts concurrents atomiquement.
 
-### Imports
+### Imports, reviews, compositions et export
 
-Avant la création définitive d’une nouvelle game, compter les games distinctes de l’équipe. L’offre gratuite s’arrête à cinq. Une correction ou un nouvel import du même match ne doit pas consommer artificiellement un quota supplémentaire.
+Pendant les 30 jours et pendant une période payée valide, proposer les mêmes fonctions sans quotas commerciaux réduits. Les protections techniques existantes contre les abus restent applicables. Une correction ou un réimport du même match garde son comportement actuel. L’export est inclus dans les deux offres ; maintenir aussi l’accès nécessaire aux données personnelles et à la suppression du compte après expiration.
 
-### Reviews
+### Expiration
 
-Bloquer seulement la création d’une quatrième review gratuite. Autoriser modification, suppression et consultation des trois existantes.
-
-### Compositions
-
-Bloquer seulement la création d’une deuxième composition gratuite. Autoriser modification, suppression et consultation de l’existante.
-
-### Export
-
-Réserver l’export enrichi à une offre payante, mais maintenir l’accès légal aux données personnelles et à la suppression du compte. Ne transforme pas une fonction RGPD nécessaire en option payante.
-
-### Downgrade et expiration
-
-Si l’équipe dépasse les quotas gratuits :
+Si aucun droit valide ne subsiste :
 
 - ne rien supprimer ;
-- garder les données consultables ;
-- autoriser suppression et export réglementaire ;
-- bloquer les nouvelles créations ;
-- afficher ce qui doit être réduit ou proposer le renouvellement ;
+- garder les données consultables selon la politique de conservation ;
+- autoriser suppression et export prévu par cette politique ;
+- bloquer les nouvelles écritures ;
+- afficher l’échéance atteinte et proposer la souscription ou la régularisation ;
 - ne jamais empêcher l’accès à la page de facturation ou au portail.
 
-Les erreurs API de quota doivent utiliser le statut HTTP `402` ou `403` de manière cohérente dans tout le projet et inclure un code stable, par exemple :
+Les erreurs API doivent utiliser le statut HTTP `402` ou `403` de manière cohérente dans tout le projet et inclure un code stable, par exemple :
 
 ```json
 {
-  "error": "Le quota gratuit de cinq games est atteint.",
-  "code": "PLAN_LIMIT_REACHED",
-  "feature": "matches",
-  "limit": 5,
+  "error": "Les 30 jours de Découverte sont terminés.",
+  "code": "TEAM_ACCESS_EXPIRED",
   "upgradePath": "/abonnement"
 }
 ```
 
-Choisis un statut et documente-le. Le front doit se baser sur `code`, pas analyser le texte.
+Réserver `PLAN_LIMIT_REACHED` à une limite réellement atteinte, comme les 15 membres. Choisis un statut et documente-le. Le front doit se baser sur `code`, pas analyser le texte.
 
 ## Routage et pages React
 
@@ -483,17 +442,16 @@ Choisis un statut et documente-le. Le front doit se baser sur `code`, pas analys
 Adapter la page de prévisualisation existante pour cette future ouverture publique, en conservant une présentation responsive comprenant :
 
 - titre : « Choisis la formule adaptée à ton équipe » ;
-- carte Découverte ;
-- carte Pass Équipe avec choix mensuel/annuel ;
-- carte Pass Saison ;
-- carte Pass Structure « sur devis, à partir de 79 € TTC par mois », orientée vers le recueil de besoins ;
+- carte Découverte : 30 jours d’accès complet, sans carte bancaire, une équipe et jusqu’à 15 membres ;
+- carte Pass Équipe : 9,90 € TTC par mois et par équipe, jusqu’à 15 membres, résiliable à tout moment ;
+- lien « Plusieurs équipes ? Parlons de tes besoins » vers le formulaire d’échange, sans prix ;
 - prix TTC clairement visibles ;
-- fonctions réellement incluses pour les offres achetables, besoins envisagés clairement identifiés pour Structure ;
+- mêmes fonctions listées pour l’essai et le mensuel ;
 - CTA adapté à l’état connecté ;
-- FAQ sur membres, renouvellement, résiliation, factures, données et Pass Saison ;
+- FAQ sur essai sans carte, fin des 30 jours, membres, renouvellement, résiliation, factures et données ;
 - lien vers CGV, CGU et confidentialité.
 
-L’offre Founder ne doit jamais apparaître. Le Pass Structure garde un parcours de contact ou de demande de devis, sans bouton d’achat ni redirection vers `/achat`. Ne promets pas de fonctions multi-équipes disponibles. N’ajoute ni faux témoignage, ni compte à rebours, ni réduction artificielle.
+N’affiche aucune carte ni offre achetable Saison, Structure, annuelle ou fondateur. Le lien pour plusieurs équipes conserve un parcours de contact, sans bouton d’achat ni redirection vers `/achat`. Ne promets pas de fonctions multi-équipes disponibles. N’ajoute ni faux témoignage, ni compte à rebours, ni réduction artificielle.
 
 ### `/achat` — authentifié
 
@@ -539,17 +497,17 @@ Pour capitaine/manager :
 - coordonnées de facturation disponibles ;
 - liste paginée des factures ;
 - bouton « Gérer la facturation » ;
-- CTA pour acheter ou renouveler ;
-- mention claire pour le Pass Saison sans renouvellement.
+- CTA pour démarrer l’essai, souscrire ou régulariser selon l’état ;
+- dates de l’essai et mention de l’absence de prélèvement automatique à son terme.
 
 Pour coach/analyste autorisé à voir le statut : afficher uniquement l’offre et sa validité. Pour les autres rôles : refuser la route et revenir vers l’équipe.
 
 ### Intégration dans l’application
 
 - ajouter « Abonnement » dans la zone Paramètres/Gestion, sans surcharger la navigation principale ;
-- afficher un badge discret « Gratuit », « Équipe » ou « Saison » ;
+- afficher un badge discret « Découverte », « Équipe » ou « Expiré » ;
 - créer un composant commun `PlanLimitNotice` ;
-- lors d’une erreur `PLAN_LIMIT_REACHED`, ouvrir un message clair avec lien vers `/abonnement` ;
+- lors d’une erreur `PLAN_LIMIT_REACHED` ou `TEAM_ACCESS_EXPIRED`, ouvrir un message clair adapté à la limite ou à l’échéance, avec lien vers `/abonnement` ;
 - ne pas parsemer de bannières d’achat sur toutes les pages ;
 - ne jamais cacher les fonctions de suppression, sécurité ou gestion du compte derrière un paywall.
 
@@ -560,15 +518,15 @@ Chaque page de facturation doit gérer :
 - chargement ;
 - aucune équipe ;
 - rôle insuffisant ;
-- gratuit ;
+- essai non démarré ;
+- essai de 30 jours actif ;
 - Checkout en cours ;
 - paiement en confirmation ;
 - actif ;
 - fin de période programmée ;
 - paiement échoué avec grâce ;
 - lecture seule après grâce ;
-- Pass Saison actif ;
-- Pass Saison expiré ;
+- essai expiré sans souscription ;
 - erreur Stripe temporaire ;
 - configuration serveur manquante.
 
@@ -589,7 +547,7 @@ Inclure les sections :
 - fourniture du service ;
 - renouvellement ;
 - résiliation ;
-- Pass Saison ;
+- essai de 30 jours sans carte et sans prélèvement automatique ;
 - remboursement ;
 - droit de rétractation et commencement immédiat du service numérique ;
 - disponibilité ;
@@ -613,8 +571,9 @@ Créer des templates sobres pour :
 - renouvellement payé ;
 - paiement échoué ;
 - résiliation programmée ;
-- fin du Pass Saison dans 14 jours ;
-- Pass Saison expiré ;
+- essai démarré ;
+- rappel avant fin de l’essai ;
+- essai expiré ;
 - remboursement confirmé.
 
 Exigences :
@@ -626,15 +585,14 @@ Exigences :
 - adresse de support configurable ;
 - distinction entre notification nécessaire au service et marketing.
 
-Pour le rappel Pass Saison, utiliser une Scheduled Function quotidienne ou un mécanisme existant. Enregistrer l’envoi afin de ne pas répéter le message chaque jour.
+Pour le rappel de fin d’essai, utiliser une Scheduled Function quotidienne ou un mécanisme existant. Enregistrer l’envoi afin de ne pas répéter le message chaque jour.
 
 ## Administration
 
 Étendre l’administration existante avec une section facturation en lecture seule :
 
-- équipes gratuites ;
+- essais non démarrés, actifs et expirés ;
 - souscriptions actives ;
-- Pass Saison actifs ;
 - `past_due` ;
 - résiliations en fin de période ;
 - paiements échoués récents ;
@@ -656,7 +614,8 @@ Instrumenter uniquement :
 - `plan_limit_reached` ;
 - `subscription_cancel_scheduled` ;
 - `payment_failed` ;
-- `season_pass_expiring`.
+- `trial_started` ;
+- `trial_expired`.
 
 Ne jamais envoyer Riot ID, nom de joueur, contenu de review, note du coach, composition ou statistique de game. Utiliser des identifiants internes pseudonymisés si une corrélation est indispensable.
 
@@ -688,10 +647,10 @@ Conserve tous les tests actuels et ajoute des tests ciblés.
 - catalogue des plans ;
 - calcul des limites ;
 - calcul de l’accès effectif ;
-- priorité entre souscription et Pass Saison ;
+- passage de l’essai à une souscription sans remise à zéro ;
 - grâce de sept jours ;
 - fin de période après résiliation ;
-- expiration du Pass Saison ;
+- démarrage idempotent et expiration exacte des 30 jours d’essai ;
 - mapping Price ID vers plan ;
 - filtrage des données selon le rôle.
 
@@ -702,10 +661,11 @@ Conserve tous les tests actuels et ajoute des tests ciblés.
 - rôle interdit ;
 - plan inconnu ;
 - proposition Structure refusée à la création de Checkout ;
-- Founder plan demandé publiquement ;
+- anciens plans saison, annuel et fondateur refusés à la création de Checkout ;
 - configuration Stripe manquante ;
 - Checkout récurrent ;
-- Checkout saison ;
+- démarrage d’essai sans Stripe ni carte ;
+- relance d’un essai interdit et retry sans prolongation ;
 - seconde souscription active ;
 - ouverture du portail ;
 - pagination des factures.
@@ -722,30 +682,29 @@ Mocke Stripe : aucun test automatisé ne doit contacter l’API réelle.
 - création/mise à jour/suppression d’abonnement ;
 - facture payée ;
 - paiement échoué ;
-- Pass Saison payé ;
 - remboursement complet ;
 - erreur temporaire suivie d’un retry.
 
-### Tests des quotas
+### Tests des droits
 
-- 5e import gratuit accepté, 6e refusé ;
-- réimport/correction sans double comptage ;
-- 3e review acceptée, 4e refusée ;
-- modification et suppression toujours permises ;
-- 10e membre accepté, 11e refusé ;
-- plan actif sans quotas ;
-- plan expiré en lecture seule ;
-- appel direct API refusé comme l’interface.
+- même accès complet pour un essai valide et le mensuel actif ;
+- plus de cinq imports, trois reviews et une composition autorisés pendant l’essai ;
+- 15e membre accepté, 16e refusé, y compris ajouts concurrents ;
+- essai expiré en lecture seule, sans paiement automatique ;
+- données existantes, suppression et export conservés selon la politique retenue ;
+- un nouveau navigateur, un retry ou un changement de propriétaire ne remet pas les dates à zéro ;
+- appel direct API refusé comme l’interface lorsqu’aucun droit n’est valide ;
+- aucune demande commerciale ou attribution manuelle de profil ne démarre implicitement l’essai.
 
 ### Tests React
 
 - tarifs publics ;
 - sélection d’offre ;
-- quatre cartes visibles, dont Pass Structure avec un parcours de recueil de besoins sans paiement ;
+- deux cartes visibles, à 30 jours sans carte et 9,90 €/mois/équipe, plus le lien pour plusieurs équipes sans prix ;
 - redirection connexion avec retour ;
 - choix d’équipe ;
 - confirmation en attente puis confirmée ;
-- abonnement gratuit, actif, résilié et `past_due` ;
+- essai non démarré, actif, expiré, puis abonnement actif, résilié et `past_due` ;
 - rôle insuffisant ;
 - affichage de `PlanLimitNotice` ;
 - navigation clavier et libellés accessibles.
@@ -755,8 +714,7 @@ Mocke Stripe : aucun test automatisé ne doit contacter l’API réelle.
 Exécuter :
 
 ```bash
-npm test
-npm run build
+npm run verify
 git diff --check
 ```
 
@@ -766,7 +724,7 @@ Effectuer également un parcours Stripe Test manuel complet avec Stripe CLI :
 stripe listen --forward-to http://localhost:8888/.netlify/functions/stripe-webhook
 ```
 
-Tester au minimum paiement réussi, carte refusée, renouvellement, `invoice.payment_failed`, résiliation et remboursement du Pass Saison. Documenter les commandes utilisées sans inclure de secret.
+Tester au minimum paiement réussi, carte refusée, renouvellement, `invoice.payment_failed`, résiliation, remboursement et essai de 30 jours sans carte (expiration simulée). Documenter les commandes utilisées sans inclure de secret.
 
 ## Documentation à livrer
 
@@ -801,12 +759,12 @@ Procède par petits lots vérifiables :
 1. audit du dépôt et note des risques ;
 2. catalogue des plans et configuration ;
 3. migration PostgreSQL ;
-4. service central de droits avec tests ;
+4. démarrage d’essai et service central de droits avec tests ;
 5. intégration Stripe serveur et mocks ;
 6. Checkout et portail ;
 7. webhook idempotent ;
 8. statut et factures ;
-9. quotas sur les endpoints existants ;
+9. droits, limite de membres et expiration sur les endpoints existants ;
 10. pages publiques ;
 11. pages achat et abonnement ;
 12. notifications et e-mails ;
@@ -829,7 +787,10 @@ Si ces informations ne sont pas fournies, utilise des placeholders clairement bl
 - politique exacte de remboursement ;
 - pays ouverts à la vente ;
 - traitement fiscal TTC/HT ;
-- compte Stripe et identifiants Price réels.
+- compte Stripe et identifiant Price mensuel réel ;
+- règle d’éligibilité et point de départ de l’essai, traitement des équipes existantes et politique de conservation à son terme.
+
+La durée de 30 jours, l’absence de carte, l’accès complet jusqu’à 15 membres et le mensuel à 9,90 € TTC sont déjà retenus pour la proposition de lancement ; ne réintroduis pas les anciennes formules pour combler une décision manquante.
 
 Tu peux achever toute l’intégration en mode Test sans ces valeurs. Tu ne dois pas activer le Live Mode ni publier des CGV contenant des données inventées.
 
@@ -838,13 +799,13 @@ Tu peux achever toute l’intégration en mode Test sans ces valeurs. Tu ne dois
 La mission est terminée seulement si :
 
 - les pages `/tarifs`, `/achat`, `/achat/confirme`, `/achat/annule`, `/abonnement` et `/conditions-vente` sont accessibles selon leurs règles ;
-- les quatre familles d’offres s’affichent correctement : Découverte, Pass Équipe (mensuel/annuel), Pass Saison et Pass Structure sur devis ;
-- le Pass Structure conserve son recueil de besoins et son attribution manuelle aux profils, sans Checkout ni fonctions multi-équipes ajoutées ;
+- les deux cartes s’affichent correctement : Découverte, 30 jours d’accès complet sans carte, et Pass Équipe à 9,90 € TTC/mois/équipe ;
+- le lien pour plusieurs équipes conserve le recueil de besoins sans prix ; les codes et attributions manuelles historiques sont préservés sans Checkout ni fonctions multi-équipes ajoutées ;
 - les attributions manuelles de profils, leurs dates et leur audit sont préservés, sans conversion automatique en souscriptions d’équipe ;
-- Checkout Test fonctionne pour mensuel, annuel et saison ;
+- Checkout Test fonctionne pour le mensuel uniquement ;
 - le webhook signé est idempotent ;
-- une souscription active et un Pass Saison payé donnent les bons droits ;
-- les quotas gratuits sont réellement bloqués côté serveur ;
+- un essai valide et une souscription active donnent les mêmes fonctions et la limite de 15 membres côté serveur ;
+- l’essai expire après 30 jours sans prélèvement automatique et sans remise à zéro implicite ;
 - aucune donnée existante n’est supprimée lors d’une expiration ;
 - Stripe Customer Portal fonctionne ;
 - les factures sont visibles uniquement par les rôles autorisés ;

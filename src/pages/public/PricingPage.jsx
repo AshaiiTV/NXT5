@@ -9,12 +9,13 @@ import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
 import "./pricing.css";
 
 const FAQ = [
-  ["Une offre existe-t-elle pour plusieurs équipes ?", "Le Pass Structure est envisagé sur devis, à partir de 79 € TTC par mois. Il prévoit plusieurs équipes, une facturation centralisée, un administrateur de structure, une vue multi-équipe et un accompagnement à l’installation. Le nombre d’équipes, les accès et le tarif final seront définis ensemble. Ces fonctions sont à préparer ; cette demande recueille ton besoin sans les activer."],
+  ["Comment se passeront les 30 jours de Découverte ?", "Au lancement, ton équipe pourra tester tous les outils du Pass Équipe pendant 30 jours, sans carte bancaire. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
+  ["Et après les 30 jours ?", "Tu pourras choisir le Pass Équipe, proposé au lancement à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera une démarche volontaire ; aucun paiement ne sera déclenché à la fin de l’essai."],
+  ["Nous avons plusieurs équipes : comment en parler ?", "Choisis « Plusieurs équipes » dans le formulaire et décris ton organisation. Nous pourrons échanger sur tes besoins. Aucune offre multi-équipe ni aucun tarif ne sont annoncés à ce stade."],
   ["Est-ce que je dois payer aujourd’hui ?", "Non. Ces offres sont en cours de validation avec les équipes. La demande d’accès nous permet de comprendre ton besoin et de te recontacter. Elle ne crée ni commande ni abonnement, et aucune carte bancaire n’est demandée."],
-  ["Est-ce que chaque joueur devra payer ?", "L’offre envisagée couvre une équipe entière : jusqu’à 10 membres en Découverte et 15 par équipe avec un Pass Équipe ou Saison. Pour une structure, le périmètre sera défini sur devis. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
-  ["Quelle différence entre le mensuel et le Pass Saison ?", "Le Pass Équipe est envisagé à 29 € TTC par mois, avec renouvellement mensuel et résiliation à tout moment pour la période suivante. Le Pass Saison est envisagé à 169 € TTC pour six mois, en un paiement, sans renouvellement automatique. Il reprend les mêmes outils et l’assistance standard."],
-  ["Les limites s’appliquent-elles déjà à mon équipe ?", "Non. Les prix, fonctions incluses et quotas présentés ici décrivent les offres envisagées. Tes accès actuels et tes données restent inchangés. Toute évolution sera précisée avant le lancement des offres."],
-  ["Que deviennent mes données à la fin d’un Pass ?", "Les règles de conservation après expiration sont encore à définir. Elles seront communiquées avant toute vente, avec les conditions de résiliation. Cette demande d’accès ne modifie pas la conservation actuelle de tes données."],
+  ["Est-ce que chaque joueur devra payer ?", "Non. Découverte et Pass Équipe prévoient une équipe jusqu’à 15 membres, roster et staff compris. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
+  ["Ces offres changent-elles déjà mes accès ?", "Non. L’essai et le tarif présentés ici préparent le lancement. Tes accès actuels et tes données restent inchangés. Toute évolution sera précisée avant l’ouverture des offres."],
+  ["Que deviennent mes données à la fin de l’essai ou du Pass ?", "Les règles d’accès et de conservation après expiration seront communiquées avant l’ouverture de l’essai et des abonnements. Cette demande d’accès ne modifie pas la conservation actuelle de tes données."],
   ["Où trouver les conditions de vente et les factures ?", "Le paiement n’est pas encore ouvert. Les conditions de vente, les règles de remboursement et les informations de facturation seront disponibles avant toute souscription."],
 ];
 
@@ -55,7 +56,7 @@ export default function PricingPage({ navigate, user }) {
   }, [error, success]);
 
   function patch(key, value) {
-    setForm((current) => ({ ...current, [key]: value, ...(key === "planCode" && (current.planCode === "structure") !== (value === "structure") ? { purchaseIntent: "" } : {}) }));
+    setForm((current) => ({ ...current, [key]: value, ...(key === "planCode" && current.planCode !== value ? { purchaseIntent: "" } : {}) }));
   }
 
   function selectPlan(planCode) {
@@ -124,7 +125,7 @@ export default function PricingPage({ navigate, user }) {
           <aside className="pricing-launch-note" aria-label="Avant le lancement">
             <Users aria-hidden="true" className="h-6 w-6 text-cyan-200" />
             <p className="mt-4 text-lg font-black">Une offre pour l’équipe entière</p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">Un seul payeur pour le roster et le staff. Les prix et quotas sont en cours de validation.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">30 jours pour essayer ensemble, puis un seul abonnement pour le roster et le staff. Le tarif de lancement reste à valider avec les premières équipes.</p>
             <p className="mt-4 border-t border-cyan-100/15 pt-4 text-sm font-bold leading-6 text-cyan-100">Aucun paiement aujourd’hui.<br />Tes accès actuels restent inchangés.</p>
           </aside>
         </section>
@@ -135,10 +136,10 @@ export default function PricingPage({ navigate, user }) {
               <Surface key={plan.code} className={`pricing-plan pricing-plan--${plan.code}`}>
                 <article aria-labelledby={`plan-${plan.code}`} className="pricing-plan-body">
                   <div>
-                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? "Premiers pas" : plan.code === "team_monthly" ? "Au rythme de l’équipe" : plan.code === "structure" ? "Plusieurs équipes" : "Une durée définie"}</p>
+                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? "30 jours pour essayer" : "Tarif de lancement"}</p>
                     <h2 id={`plan-${plan.code}`} className="mt-2 text-2xl font-black">{plan.name}</h2>
                     <p className="pricing-plan-description mt-3 text-sm leading-6 text-slate-300">{plan.description}</p>
-                    <p className="mt-5 text-5xl font-black tracking-tight tabular-nums"><span className="pricing-price-prefix">{plan.pricePrefix || ""}</span>{" "}{plan.price}</p>
+                    <p className="mt-5 text-5xl font-black tracking-tight tabular-nums">{plan.price}</p>
                     <p className="mt-2 text-sm font-bold text-slate-300">{plan.period}</p>
                     <p className="pricing-plan-terms mt-4 text-sm font-semibold leading-6 text-cyan-100">{plan.terms}</p>
                   </div>
@@ -150,7 +151,8 @@ export default function PricingPage({ navigate, user }) {
               </Surface>
             ))}
           </div>
-          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Offres envisagées, en cours de validation. Les Pass Équipe et Saison prévoient les outils inclus sans quota fonctionnel artificiel, dans le cadre d’un usage normal. Le Pass Structure sera adapté sur devis, avec des fonctions multi-équipes à préparer. Les limites Découverte affichées ici ne sont pas appliquées aujourd’hui.</p>
+          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Les mêmes outils pour découvrir NXT5 et continuer avec ton équipe, dans le cadre d’un usage normal. Offres préparées pour le lancement : aucun essai ni abonnement n’est activé aujourd’hui.</p>
+          <a href="#demande-acces" className="pricing-structure-link" aria-disabled={saving || undefined} onClick={(event) => { event.preventDefault(); selectPlan("structure"); }}>Plusieurs équipes ? Parlons de tes besoins<ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></a>
         </section>
 
         <div className="pricing-details">
@@ -197,7 +199,7 @@ export default function PricingPage({ navigate, user }) {
                       <option value="unknown">Pas encore décidé</option><option value="self">Moi</option><option value="team">L’équipe, en commun</option><option value="association">Une association ou une structure</option>
                     </SelectInput>
                     <SelectInput label="Ton intérêt pour cette offre *" name="purchaseIntent" required value={form.purchaseIntent} onChange={(value) => patch("purchaseIntent", value)}>
-                      <option value="" disabled>Choisis une réponse</option><option value="yes">{structureSelected ? "Oui, selon le devis" : "Oui, au tarif indiqué"}</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
+                      <option value="" disabled>Choisis une réponse</option><option value="yes">{structureSelected ? "Oui, je souhaite en discuter" : form.planCode === "free" ? "Oui, je souhaite essayer" : "Oui, au tarif indiqué"}</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
                     </SelectInput>
                     <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder={structureSelected ? "Nombre d’équipes, organisation du staff et besoins communs…" : "Votre rythme de jeu, le lancement d’un split, un besoin du staff…"} rows={3} />
                     <div className="pricing-honeypot" aria-hidden="true"><label>Site web<input name="website" type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => patch("website", event.target.value)} /></label></div>

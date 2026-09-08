@@ -25,22 +25,6 @@
   border-color: rgba(103, 232, 249, .48) !important;
 }
 
-.nxt5-pricing .pricing-plan--team_season .pricing-plan-eyebrow,
-.nxt5-pricing .pricing-plan--structure .pricing-plan-eyebrow {
-  color: #c4b5fd;
-}
-
-.nxt5-pricing .pricing-price-prefix {
-  display: block;
-  min-height: 1.25rem;
-  margin-bottom: .25rem;
-  color: #edf5ff;
-  font-size: .8125rem;
-  line-height: 1.25rem;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
 .nxt5-pricing .pricing-plan > div:last-child,
 .nxt5-pricing .pricing-plan-body {
   height: 100%;
@@ -83,6 +67,26 @@
   gap: 3rem;
   align-items: start;
   margin-top: 4rem;
+}
+
+.nxt5-pricing .pricing-structure-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+  min-height: 44px;
+  max-width: 100%;
+  margin-top: .75rem;
+  padding: .5rem 0;
+  color: #a5f3fc;
+  font-size: .875rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: .25rem;
+}
+
+.nxt5-pricing .pricing-structure-link[aria-disabled="true"] {
+  opacity: .5;
+  cursor: wait;
 }
 
 .nxt5-pricing .pricing-request {
@@ -139,10 +143,6 @@
     padding: 1.25rem;
   }
 
-  .nxt5-pricing .pricing-plan-description {
-    min-height: 4.5rem;
-  }
-
   .nxt5-pricing .pricing-plan-terms {
     min-height: 3rem;
   }
@@ -164,15 +164,6 @@
 
   .nxt5-pricing .pricing-plan-description {
     min-height: 3rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .nxt5-pricing .pricing-plans {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-  .nxt5-pricing .pricing-plan-description {
-    min-height: 4.5rem;
   }
 }
 

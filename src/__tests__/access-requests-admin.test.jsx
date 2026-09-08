@@ -36,7 +36,7 @@ describe("access request administration", () => {
   });
 
   it.each([
-    ["yes", "Oui, selon le devis"],
+    ["yes", "Oui, je souhaite en discuter"],
     ["maybe", "À discuter"],
     ["discover", "Découvrir le service"],
   ])("shows a Structure request with declared intention %s without confirming a sale", async (purchaseIntent, label) => {
@@ -44,7 +44,7 @@ describe("access request administration", () => {
     const renderer = await render();
     const card = renderer.root.findByType("article");
     const values = card.findAllByType("dd").map((node) => node.children.join(""));
-    expect(values).toContain("Pass Structure");
+    expect(values).toContain("Plusieurs équipes · échange");
     expect(values).toContain(label);
     expect(values).not.toContain("Oui, au prix présenté");
     expect(text(renderer)).toContain("Nouvelle demande");

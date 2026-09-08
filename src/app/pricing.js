@@ -1,69 +1,37 @@
-// Public proposals for commercial validation. These values do not grant or limit access.
+// Launch proposals for commercial validation. These values do not start a trial or change access.
+const TEAM_FEATURES = [
+  "1 équipe · jusqu’à 15 membres",
+  "Imports, statistiques et reviews",
+  "Planning, champion pools et compositions",
+  "Historique complet et export des données",
+  "Rôles et accès du staff · assistance standard",
+];
+
 export const PROPOSED_PLANS = [
   {
     code: "free",
     name: "Découverte",
     price: "0 €",
-    period: "gratuit",
-    description: "Pour prendre tes repères avec une première équipe.",
-    terms: "Sans carte bancaire",
-    features: [
-      "1 équipe · jusqu’à 10 membres",
-      "5 imports de games au total",
-      "Statistiques essentielles",
-      "1 composition et 3 reviews",
-      "Un compte personnel pour rejoindre ton équipe",
-    ],
+    period: "pendant 30 jours",
+    description: "30 jours d’accès complet pour tester NXT5 avec ton équipe.",
+    terms: "Sans carte bancaire · sans passage automatique au payant",
+    features: TEAM_FEATURES,
   },
   {
     code: "team_monthly",
     name: "Pass Équipe",
-    price: "29 €",
+    price: "9,90 €",
     period: "TTC / mois / équipe",
-    description: "Pour organiser les sessions et suivre la progression du roster.",
+    description: "Pour continuer à organiser tes sessions et suivre ton roster après l’essai.",
     terms: "Mensuel · résiliable à tout moment",
-    features: [
-      "1 équipe · jusqu’à 15 membres",
-      "Imports, statistiques et reviews",
-      "Planning, champion pools et compositions",
-      "Historique complet et export des données",
-      "Rôles et accès du staff · assistance standard",
-    ],
-  },
-  {
-    code: "team_season",
-    name: "Pass Saison",
-    price: "169 €",
-    period: "TTC / 6 mois / équipe",
-    description: "Pour préparer un split avec une durée définie dès le départ.",
-    terms: "Paiement unique · sans renouvellement automatique",
-    features: [
-      "1 équipe · jusqu’à 15 membres",
-      "Tous les outils du Pass Équipe",
-      "Imports, statistiques et reviews",
-      "Planning, champion pools et compositions",
-      "Historique, export et accès du staff",
-    ],
-  },
-  {
-    code: "structure",
-    name: "Pass Structure",
-    pricePrefix: "À partir de",
-    price: "79 €",
-    period: "TTC / mois · sur devis",
-    description: "Pour réunir plusieurs équipes sous une même organisation.",
-    terms: "Périmètre et tarif à définir ensemble",
-    features: [
-      "Plusieurs équipes selon tes besoins",
-      "Facturation centralisée envisagée",
-      "Administrateur de structure",
-      "Vue multi-équipe à préparer",
-      "Accompagnement à l’installation",
-    ],
+    features: TEAM_FEATURES,
   },
 ];
 
-export const PROPOSED_PLAN_OPTIONS = PROPOSED_PLANS.map((plan) => ({
-  value: plan.code,
-  label: `${plan.name} — ${plan.pricePrefix ? `${plan.pricePrefix.toLowerCase()} ` : ""}${plan.price} ${plan.period}`,
-}));
+export const PROPOSED_PLAN_OPTIONS = [
+  ...PROPOSED_PLANS.map((plan) => ({
+    value: plan.code,
+    label: `${plan.name} — ${plan.price} ${plan.period}`,
+  })),
+  { value: "structure", label: "Plusieurs équipes — parlons de tes besoins" },
+];

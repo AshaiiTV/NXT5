@@ -49,6 +49,10 @@ function selectPlan(renderer, name) {
   act(() => renderer.root.findAllByType("button").find((button) => button.props["aria-label"] === `Demander un accès — ${name}`).props.onClick());
 }
 
+function selectStructure(renderer) {
+  act(() => renderer.root.findByProps({ href: "#demande-acces" }).props.onClick({ preventDefault() {} }));
+}
+
 function content(node) {
   return typeof node === "string" ? node : (node.children || []).map(content).join(" ");
 }
@@ -69,38 +73,37 @@ function submit(renderer) {
 }
 
 describe("commercial validation pricing page", () => {
-  it("keeps the three team offers and adds a quoted Structure offer without checkout or card fields", () => {
+  it("presents a full 30-day trial and the launch monthly price without checkout or card fields", () => {
     const { renderer } = render();
-    expect(PROPOSED_PLANS.map((plan) => plan.code)).toEqual(["free", "team_monthly", "team_season", "structure"]);
-    expect(PROPOSED_PLANS.slice(0, 3).map((plan) => [plan.code, plan.price, plan.period])).toEqual([
-      ["free", "0 €", "gratuit"],
-      ["team_monthly", "29 €", "TTC / mois / équipe"],
-      ["team_season", "169 €", "TTC / 6 mois / équipe"],
+    expect(PROPOSED_PLANS.map((plan) => [plan.code, plan.price, plan.period])).toEqual([
+      ["free", "0 €", "pendant 30 jours"],
+      ["team_monthly", "9,90 €", "TTC / mois / équipe"],
     ]);
-    const structure = renderer.root.findByProps({ "aria-labelledby": "plan-structure" });
-    const structureText = content(structure);
-    expect(structureText).toContain("Pass Structure");
-    expect(structureText).toMatch(/À partir de\s+79 €/);
-    expect(structureText).toMatch(/TTC\s*\/\s*mois/);
-    expect(structureText).toMatch(/sur devis/i);
-    expect(structureText).toContain("Plusieurs équipes selon tes besoins");
-    expect(structureText).toContain("Facturation centralisée envisagée");
-    expect(structureText).toContain("Administrateur de structure");
-    expect(structureText).toContain("Vue multi-équipe à préparer");
-    expect(structureText).toContain("Accompagnement à l’installation");
+    const cards = renderer.root.findAllByType("article");
+    expect(cards).toHaveLength(2);
+    const trial = content(renderer.root.findByProps({ "aria-labelledby": "plan-free" }));
+    expect(trial).toContain("Découverte");
+    expect(trial).toMatch(/accès complet/i);
+    expect(trial).toMatch(/sans carte bancaire/i);
+    expect(trial).toContain("jusqu’à 15 membres");
+    const monthly = content(renderer.root.findByProps({ "aria-labelledby": "plan-team_monthly" }));
+    expect(monthly).toContain("Pass Équipe");
+    expect(monthly).toContain("résiliable à tout moment");
+    const structureLink = renderer.root.findByProps({ href: "#demande-acces" });
+    expect(structureLink.type).toBe("a");
+    expect(content(structureLink).trim()).toBe("Plusieurs équipes ? Parlons de tes besoins");
     const page = JSON.stringify(renderer.toJSON());
     expect(page).toContain("Aperçu réservé à l’administrateur");
     expect(page).toContain("Aucun paiement aujourd’hui.");
     expect(page).toContain("Tes accès actuels restent inchangés.");
-    expect(page).toContain("sans renouvellement automatique");
-    expect(page).not.toContain("290 €");
-    expect(page).not.toContain("19 €");
+    expect(page).not.toMatch(/Pass Saison|Pass Structure|29 €|169 €|79 €|5 imports de games au total/);
+    expect(renderer.root.findAllByType("option").some((option) => option.props.value === "team_season")).toBe(false);
     expect(renderer.root.findAllByType("a").some((link) => /checkout|stripe|achat/.test(link.props.href))).toBe(false);
     expect(renderer.root.findAllByType("input").some((input) => /^cc-/.test(input.props.autoComplete))).toBe(false);
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
-  it.each([["Pass Saison", "team_season"], ["Pass Structure", "structure"]])("selects %s, brings the form into view and focuses its first field", (name, code) => {
+  it.each([["Découverte", "free"], ["Pass Équipe", "team_monthly"]])("selects %s, brings the form into view and focuses its first field", (name, code) => {
     const { renderer, scrollIntoView, focusInput } = render();
     selectPlan(renderer, name);
     expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe(code);
@@ -108,29 +111,38 @@ describe("commercial validation pricing page", () => {
     expect(focusInput).toHaveBeenCalledWith({ preventScroll: true });
   });
 
-  it("makes Structure interest conditional on the quote and leaves the answer explicit", () => {
-    const { renderer } = render();
+  it("selects the multi-team discussion from its link and keeps interest explicit on each offer change", () => {
+    const { renderer, scrollIntoView, focusInput } = render();
     edit(renderer, "Ton intérêt pour cette offre *", "yes");
-    selectPlan(renderer, "Pass Structure");
+    selectStructure(renderer);
+    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe("structure");
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+    expect(focusInput).toHaveBeenCalledWith({ preventScroll: true });
     const planOption = renderer.root.findAllByType("option").find((option) => option.props.value === "structure");
-    expect(content(planOption)).toMatch(/Pass Structure.*partir de.*79 €.*sur devis/i);
+    expect(content(planOption)).toBe("Plusieurs équipes — parlons de tes besoins");
     const interest = renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" });
     expect(interest.props.value).toBe("");
-    expect(content(interest.findAllByType("option").find((option) => option.props.value === "yes"))).toMatch(/devis/i);
+    expect(content(interest.findAllByType("option").find((option) => option.props.value === "yes"))).toBe("Oui, je souhaite en discuter");
     expect(content(namedInput(renderer, "teamName").parent.parent)).toMatch(/structure/i);
     edit(renderer, "Ton intérêt pour cette offre *", "yes");
     selectPlan(renderer, "Pass Équipe");
     expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("");
     expect(content(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).findAllByType("option").find((option) => option.props.value === "yes"))).toBe("Oui, au tarif indiqué");
     edit(renderer, "Ton intérêt pour cette offre *", "maybe");
-    selectPlan(renderer, "Pass Saison");
+    selectPlan(renderer, "Découverte");
+    expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("");
+    expect(content(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).findAllByType("option").find((option) => option.props.value === "yes"))).toBe("Oui, je souhaite essayer");
+    edit(renderer, "Ton intérêt pour cette offre *", "maybe");
+    selectPlan(renderer, "Découverte");
     expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("maybe");
+    edit(renderer, "L’offre qui t’intéresse *", "team_monthly");
+    expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("");
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
   it("submits the Structure selected by its CTA and preserves the full request after failure", async () => {
     const { renderer } = render();
-    selectPlan(renderer, "Pass Structure");
+    selectStructure(renderer);
     fill(renderer);
     editTeam(renderer, "  Association Aurora  ");
     edit(renderer, "Un besoin, une question ? (facultatif)", "  Deux rosters et un plan de financement.  ");
@@ -169,8 +181,8 @@ describe("commercial validation pricing page", () => {
 
   it("sends one trimmed request, waits for confirmation and never creates an account", async () => {
     const { renderer, focusStatus } = render();
+    edit(renderer, "L’offre qui t’intéresse *", "free");
     fill(renderer);
-    edit(renderer, "L’offre qui t’intéresse *", "team_season");
     let complete;
     apiFetch.mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
     let pending;
@@ -186,7 +198,7 @@ describe("commercial validation pricing page", () => {
     expect(options.method).toBe("POST");
     expect(JSON.parse(options.body)).toEqual({
       contactName: "Camille", email: "camille@example.fr", teamName: "Les Cinq", role: "manager",
-      planCode: "team_season", payer: "association", purchaseIntent: "yes", message: "Un split de six mois.", consent: true, website: "",
+      planCode: "free", payer: "association", purchaseIntent: "yes", message: "Un split de six mois.", consent: true, website: "",
     });
     await act(async () => { complete({ ok: true }); await pending; });
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
