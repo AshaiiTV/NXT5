@@ -292,7 +292,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>Profils et abonnements</Button><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button></div><AdminDashboard navigate={navigate} /></>;
+    if (active === "admin" && isPlatformAdmin) return <AdminDashboard navigate={navigate} />;
     if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
     if (active === "account-subscriptions" && isPlatformAdmin) return <AccountSubscriptionsPage navigate={navigate} initialUserId={new URLSearchParams(route.search).get("userId") || ""} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;

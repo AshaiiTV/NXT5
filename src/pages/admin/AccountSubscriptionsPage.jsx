@@ -4,6 +4,7 @@ import { apiFetch } from "../../api/client.js";
 import { SUBSCRIPTION_PLANS, createSubscriptionForm, defaultSubscriptionEndDate, getSubscriptionPresentation, localDateInput, subscriptionDateToISO, subscriptionFormDates, subscriptionPeriodLabel } from "../../app/subscriptions.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import "./account-subscriptions.css";
+import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
 
 const ENDPOINT = "admin-account-subscriptions";
 const PAGE_SIZE = 10;
@@ -177,9 +178,8 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "" 
   const pagination = list?.pagination;
 
   return <div className="nxt5-data-dense account-subscriptions-page">
-    <PageHeader eyebrow="Administration" title="Profils et abonnements" subtitle="Attribue et suis manuellement les formules des comptes NXT5.">
-      <Button type="button" variant="ghost" icon={ArrowLeft} disabled={busy} onClick={() => navigate("/admin")}>Retour administration</Button>
-    </PageHeader>
+    <PageHeader eyebrow="Administration" title="Profils et abonnements" subtitle="Attribue et suis manuellement les formules des comptes NXT5." />
+    <AdminTabNav activeId="account-subscriptions" navigate={navigate} disabled={busy} dirty={dirty} />
     <p className="as-notice"><ShieldCheck aria-hidden="true" /><span>Attribution manuelle par profil. Aucun paiement ni renouvellement automatique.</span></p>
     <p className="as-announcement" role="status" aria-live="polite">{announcement}</p>
 

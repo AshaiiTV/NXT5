@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, ChevronLeft, ChevronRight, ClipboardList, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ClipboardList, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, SkeletonRows, Surface, TextAreaInput } from "../../components/ui/Core.jsx";
 import "./access-requests.css";
 
@@ -26,7 +27,7 @@ function Metric({ label, value, target, detail }) {
   return <div className="access-requests-metric"><p>{label}</p><strong>{count(value)}{target && <span> / {target}</span>}</strong><p>{detail}</p></div>;
 }
 
-function RequestCard({ request, busy, onSave, onDelete }) {
+function RequestCard({ request, busy, onSave, onDelete, onDirtyChange }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [status, setStatus] = useState(request.status);
@@ -36,6 +37,8 @@ function RequestCard({ request, busy, onSave, onDelete }) {
   const titleId = `access-request-${request.id}`;
   const detailsId = `${titleId}-followup`;
   const dirty = status !== request.status || adminNote !== (request.adminNote || "");
+  useEffect(() => { onDirtyChange(request.id, editing && dirty); }, [request.id, editing, dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange(request.id, false), [request.id, onDirtyChange]);
   const isSaving = busy === request.id;
   const reset = () => { setStatus(request.status); setAdminNote(request.adminNote || ""); setEditing(false); setError(""); };
   const save = async (event) => {
@@ -82,6 +85,15 @@ export default function AccessRequestsPage({ navigate }) {
   const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
   const [busy, setBusy] = useState("");
+  const [dirtyRequests, setDirtyRequests] = useState(() => new Set());
+  const handleDirtyChange = useCallback((id, dirty) => {
+    setDirtyRequests((previous) => {
+      if (previous.has(id) === dirty) return previous;
+      const next = new Set(previous);
+      if (dirty) next.add(id); else next.delete(id);
+      return next;
+    });
+  }, []);
   const requestSequence = useRef(0);
   const mutationPending = useRef(false);
   const load = useCallback(async () => {
@@ -114,9 +126,8 @@ export default function AccessRequestsPage({ navigate }) {
   const stats = data?.stats;
   const blocked = loading || Boolean(busy);
   return <div className="nxt5-data-dense access-requests-page">
-    <PageHeader eyebrow="Administration · Validation commerciale" title="Demandes d’accès" subtitle="Prépare le suivi des demandes dans la prévisualisation réservée à l’administrateur.">
-      <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => navigate("/admin")}>Retour administration</Button><Button type="button" variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button>
-    </PageHeader>
+    <PageHeader eyebrow="Administration · Validation commerciale" title="Demandes d’accès" subtitle="Prépare le suivi des demandes dans la prévisualisation réservée à l’administrateur." />
+    <AdminTabNav activeId="access-requests" navigate={navigate} disabled={Boolean(busy)} dirty={dirtyRequests.size > 0} />
     <div className="access-requests-notice"><Badge tone="cyan">Prévisualisation interne</Badge><p>La collecte publique est fermée. Seul l’administrateur peut consulter les tarifs et envoyer une demande de test. Le suivi reste manuel, sans e-mail automatique ni abonnement.</p></div>
     <div className="access-requests-live" role="status" aria-live="polite">{announcement || (loading ? "Chargement des demandes…" : "")}</div>
     {error && <div className="access-requests-error" role="alert"><p>{error}{data && " Les données ci-dessous datent de la dernière lecture réussie."}</p><Button type="button" variant="ghost" disabled={blocked} onClick={load}>Réessayer</Button></div>}
@@ -124,7 +135,7 @@ export default function AccessRequestsPage({ navigate }) {
     <Surface>
       <div className="access-requests-toolbar"><SelectInput label="Afficher les demandes" value={statusFilter} disabled={blocked} onChange={(value) => { setStatusFilter(value); setPage(1); setAnnouncement(""); }}><option value="">Tous les statuts</option>{STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</SelectInput><Button type="button" variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={blocked} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></div>
       {!data && loading && <div aria-label="Chargement des demandes"><SkeletonRows count={3} /></div>}
-      {data && <div aria-busy={loading} className="access-requests-list">{data.requests.length ? data.requests.map((request) => <RequestCard key={`${request.id}:${request.updatedAt}`} request={request} busy={busy || (loading ? "loading" : "")} onSave={(id, status, adminNote) => mutate(id, "POST", { id, status, adminNote })} onDelete={(id) => mutate(id, "DELETE", { id })} />) : <EmptyState icon={ClipboardList} title={statusFilter ? "Aucune demande avec ce statut" : "Aucune demande pour le moment"} text={statusFilter ? "Choisis un autre statut pour retrouver les demandes enregistrées." : "Les demandes de test envoyées par l’administrateur depuis la prévisualisation des tarifs apparaîtront ici."} />}</div>}
+      {data && <div aria-busy={loading} className="access-requests-list">{data.requests.length ? data.requests.map((request) => <RequestCard key={`${request.id}:${request.updatedAt}`} request={request} busy={busy || (loading ? "loading" : "")} onDirtyChange={handleDirtyChange} onSave={(id, status, adminNote) => mutate(id, "POST", { id, status, adminNote })} onDelete={(id) => mutate(id, "DELETE", { id })} />) : <EmptyState icon={ClipboardList} title={statusFilter ? "Aucune demande avec ce statut" : "Aucune demande pour le moment"} text={statusFilter ? "Choisis un autre statut pour retrouver les demandes enregistrées." : "Les demandes de test envoyées par l’administrateur depuis la prévisualisation des tarifs apparaîtront ici."} />}</div>}
       {pagination && <nav className="access-requests-pagination" aria-label="Pagination des demandes d’accès"><p>{pagination.total ? `${count((pagination.page - 1) * pagination.pageSize + 1)}–${count(Math.min(pagination.page * pagination.pageSize, pagination.total))} sur ${count(pagination.total)} demande${pagination.total > 1 ? "s" : ""}` : "0 demande"}</p><div><Button type="button" variant="ghost" icon={ChevronLeft} aria-label="Page précédente des demandes" disabled={blocked || pagination.page <= 1} onClick={() => setPage(pagination.page - 1)} /><span>Page {pagination.page} / {Math.max(1, pagination.totalPages)}</span><Button type="button" variant="ghost" icon={ChevronRight} aria-label="Page suivante des demandes" disabled={blocked || pagination.page >= pagination.totalPages} onClick={() => setPage(pagination.page + 1)} /></div></nav>}
     </Surface>
   </div>;

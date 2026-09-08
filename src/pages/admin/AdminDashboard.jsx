@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, BarChart3, Check, Clock3, Gamepad2, Loader2, M
 import { apiFetch } from "../../api/client.js";
 import { cx } from "../../app/helpers.js";
 import { Badge, Button, EmptyState, PageHeader, SkeletonRows, Surface, TextInput, SelectInput } from "../../components/ui/Core.jsx";
+import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
 
 const number = new Intl.NumberFormat("fr-FR");
 const decimal = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
@@ -113,8 +114,8 @@ export default function AdminDashboard({ navigate }) {
     [Gamepad2, "Games", dashboard?.totals?.matches, dashboard?.growth?.days7?.matches, dashboard?.growth?.days30?.matches, "cyan"],
   ], [dashboard]);
 
-  if (loading && !dashboard) return <><PageHeader eyebrow="Administration" title="Vue d’ensemble plateforme" subtitle="Chargement des indicateurs globaux…" /><SkeletonRows count={5} /></>;
-  if (error && !dashboard) return <><PageHeader eyebrow="Administration" title="Vue d’ensemble plateforme" /><Surface><EmptyState icon={AlertTriangle} title="Dashboard indisponible" text={error} action={<Button icon={RefreshCw} onClick={load}>Réessayer</Button>} /></Surface></>;
+  if (loading && !dashboard) return <><PageHeader eyebrow="Administration" title="Vue d’ensemble plateforme" subtitle="Chargement des indicateurs globaux…" /><AdminTabNav activeId="admin" navigate={navigate} /><SkeletonRows count={5} /></>;
+  if (error && !dashboard) return <><PageHeader eyebrow="Administration" title="Vue d’ensemble plateforme" /><AdminTabNav activeId="admin" navigate={navigate} /><Surface><EmptyState icon={AlertTriangle} title="Dashboard indisponible" text={error} action={<Button icon={RefreshCw} onClick={load}>Réessayer</Button>} /></Surface></>;
 
   const activity = dashboard?.activity || {};
   const averages = dashboard?.averages || {};
@@ -134,6 +135,7 @@ export default function AdminDashboard({ navigate }) {
   const teamPlayers = Number(teamTotals.players || 0);
   return <div className="nxt5-data-dense min-w-0">
     <PageHeader eyebrow="Administration" title="Vue d’ensemble" subtitle="Données générales de NXT5. Cet espace est réservé à l’administrateur."><Button variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></PageHeader>
+    <AdminTabNav activeId="admin" navigate={navigate} />
     {error && <div className="mb-4 rounded-xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100">{error}</div>}
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{kpis.map(([icon, label, value, g7, g30, tone]) => <KpiCard key={label} icon={icon} label={label} value={value} growth7={g7} growth30={g30} tone={tone} />)}</div>
 
