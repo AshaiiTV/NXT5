@@ -1075,7 +1075,7 @@ function TrendsPage({ data, selectedTeamId }) {
         <CategoryFilter categories={matchCategories} selectedCategoryId={selectedCategoryId} onSelect={setSelectedCategoryId} label="Contexte" />
         <p className="text-xs font-semibold text-slate-400" aria-live="polite">{matches.length} sur {categoryMatches.length} games · {timelineGamesCount}/{matches.length} timelines</p>
       </div>
-      {(matches.length < 5 || timelineGamesCount < matches.length) && <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>{matches.length < 5 ? "Petit échantillon : les patterns restent à confirmer. " : ""}{timelineGamesCount < matches.length ? `${matches.length - timelineGamesCount} game(s) sans timeline : les timings ne décrivent que les données disponibles.` : ""}</span></p>}
+      {matches.length < 5 && <p className="flex items-start gap-2 text-xs leading-5 text-amber-100/80"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /><span>Petit échantillon : les patterns restent à confirmer.</span></p>}
     </div>
     <section className="relative mb-4 overflow-hidden rounded-[1.75rem] border border-cyan-200/18 bg-[#050815] p-0 shadow-[0_26px_90px_rgba(0,0,0,.34)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(34,211,238,.22),transparent_32%),radial-gradient(circle_at_82%_18%,rgba(217,70,239,.16),transparent_34%),linear-gradient(135deg,rgba(8,47,73,.34),rgba(5,8,21,.88)_46%,rgba(30,10,50,.42))]" />
