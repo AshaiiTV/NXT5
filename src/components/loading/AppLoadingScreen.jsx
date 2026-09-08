@@ -57,7 +57,6 @@ function TeamConvergence() {
       <div className="nxt5-sync-core">
         <ResponsiveImage src="/assets/nxt5-mark.png" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="" width="500" height="500" loading="eager" decoding="async" />
       </div>
-      <div className="nxt5-sync-art-coordinate"><i /> LE COLLECTIF PREND FORME</div>
     </div>
   );
 }
@@ -82,7 +81,7 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
           <div className="nxt5-sync-copy">
             <p className="nxt5-sync-eyebrow"><span /> LA SUITE SE JOUE ENSEMBLE</p>
             <h1>Cinq rôles.<br />Une même<br /><span>direction.</span></h1>
-            <p className="nxt5-sync-description">Ton roster, tes games, tes prochaines décisions.<br className="nxt5-sync-desktop-break" /> On rassemble tout.</p>
+            <p className="nxt5-sync-description">Ton roster, tes games, tes prochaines décisions.</p>
             <div className="nxt5-sync-disciplines" aria-label="Roster, games, draft et review">
               <span>ROSTER</span><i /><span>GAMES</span><i /><span>DRAFT</span><i /><span>REVIEW</span>
               <ArrowUpRight size={15} aria-hidden="true" />

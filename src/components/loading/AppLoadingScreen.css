@@ -68,8 +68,6 @@
 .nxt5-sync-signal { stroke-dasharray: 10 90; animation: nxt5-sync-flow 3.2s var(--sync-delay) linear infinite; }
 .nxt5-sync-core { position: absolute; left: 50%; top: 71.43%; width: 23.5%; transform: translate(-50%, -50%); }
 .nxt5-sync-core img { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 16px #418eff40); }
-.nxt5-sync-art-coordinate { position: absolute; left: 50%; bottom: -1.5%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; white-space: nowrap; color: #adbcd5; font-size: 8px; font-weight: 650; letter-spacing: .14em; }
-.nxt5-sync-art-coordinate i { display: block; width: 4px; height: 4px; background: #a6afff; transform: rotate(45deg); }
 
 .nxt5-sync-footer { padding-top: 26px; border-top: 1px solid #c1dcff1a; }
 .nxt5-sync-status-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
@@ -112,7 +110,6 @@
   .nxt5-sync-copy h1 { font-size: clamp(44px, 6.8vw, 68px); }
   .nxt5-sync-eyebrow { font-size: 8px; gap: 8px; letter-spacing: .13em; }
   .nxt5-sync-description { font-size: 12px; }
-  .nxt5-sync-desktop-break { display: none; }
   .nxt5-sync-disciplines { gap: 8px; font-size: 8px; }
   .nxt5-sync-disciplines svg { display: none; }
   .nxt5-sync-circuit text { font-size: 16px; letter-spacing: .8px; }
@@ -134,7 +131,6 @@
   .nxt5-sync-art { width: min(100%, 380px); justify-self: center; }
   .nxt5-sync-art-caption { font-size: 9px; }
   .nxt5-sync-circuit text { font-size: 18px; letter-spacing: .7px; }
-  .nxt5-sync-art-coordinate { font-size: 8px; }
   .nxt5-sync-footer { padding-top: 20px; }
   .nxt5-sync-status { gap: 10px; }
   .nxt5-sync-status p { font-size: 12px; }
