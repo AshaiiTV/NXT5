@@ -4,7 +4,7 @@ import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js"
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, SelectInput, TextInput } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, ArrowRight, Pencil, Settings, CalendarDays, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight } from "lucide-react";
 import { apiFetch, apiUploadJson } from "../../api/client.js";
-import { NXT5_IMPORTER_MAC_URL, NXT5_IMPORTER_MAC_INTEL_URL, NXT5_IMPORTER_WINDOWS_URL } from "../../app/constants.jsx";
+import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName, matchHasCategory } from "../../utils/matches.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
@@ -775,68 +775,23 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
   const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
   const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
-  const importChecks = [
-    ["JSON", Boolean(importPreview)],
-    ["Side", Boolean(allyTeamSide)],
-    ["Nom", Boolean(importDetails.label.trim())],
-    ["Profils", laneAssignmentsReady],
-    ["Adversaires", enemyAssignmentsReady],
-  ];
-  const importProgress = importChecks.filter(([, done]) => done).length;
   const importFlowSteps = [
     [Upload, "JSON", "Charge le fichier de la game.", Boolean(importPreview)],
     [Shield, "Side", "Choisis ton équipe dans la game.", Boolean(allyTeamSide)],
     [Users, "Roster", "Valide lanes et profils NXT5.", laneAssignmentsReady && enemyAssignmentsReady],
     [Check, "Résumé", "Nom, catégorie et import final.", importReady],
   ];
-  const latestMatch = teamMatches[0];
   return (
     <div className="nxt5-data-dense nxt5-import-page min-w-0 overflow-hidden">
       <PageHeader eyebrow="Intégration" title="Intégration des games" />
       <div className="grid min-w-0 gap-5">
-        <Surface glow className="min-w-0 p-0">
-          <div className="grid min-w-0 gap-0 xl:grid-cols-[minmax(280px,.72fr)_minmax(0,1fr)]">
-            <div className="border-b border-cyan-200/10 bg-cyan-400/[0.045] p-5 md:p-6 xl:border-b-0 xl:border-r">
-              <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">NXT5 Importer</Badge><Badge tone={importPreview ? "green" : "slate"}>{importPreview ? "JSON chargé" : "Prêt"}</Badge></div>
-              <h3 className="mt-4 text-2xl font-black text-white">Importer sans friction</h3>
-              <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-300">Lance l’app sur l’ordinateur où le client League possède la partie, génère le JSON, puis finalise ici le side, les profils et les catégories.</p>
-              <div className="mt-5 grid gap-2">
-                {importFlowSteps.map(([Icon, title, text, done], index) => <div key={title} className={cx("flex gap-3 rounded-2xl border p-3", done ? "border-cyan-200/20 bg-cyan-300/[0.08]" : "border-white/10 bg-black/22")}>
-                  <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", done ? "border-cyan-200/35 bg-cyan-300/16 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300")}><Icon className="h-4 w-4" /></span>
-                  <div className="min-w-0"><p className="text-sm font-black text-white">{index + 1}. {title}</p><p className="mt-0.5 text-xs font-semibold leading-5 text-slate-300">{text}</p></div>
-                </div>)}
-              </div>
-            </div>
-            <div className="min-w-0 p-5 md:p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <p className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-cyan-100">Action rapide</p>
-                  <h4 className="mt-2 text-xl font-black text-white">Télécharger ou importer le JSON</h4>
-                  <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Télécharge la dernière version pour ton ordinateur, ou charge le JSON d’une partie déjà exportée.</p>
-                </div>
-                <div className="flex flex-wrap gap-2 lg:justify-end">
-                  <a href={NXT5_IMPORTER_WINDOWS_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-300/25 bg-cyan-400/10 px-4 py-3 text-sm font-black text-cyan-50 transition hover:-translate-y-0.5 hover:bg-cyan-400/16"><Download className="h-4 w-4" /> Windows</a>
-                  <a href={NXT5_IMPORTER_MAC_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac Apple Silicon</a>
-                  <a href={NXT5_IMPORTER_MAC_INTEL_URL} download className="inline-flex items-center justify-center gap-2 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/10 px-4 py-3 text-sm font-black text-fuchsia-50 transition hover:-translate-y-0.5 hover:bg-fuchsia-400/16"><Download className="h-4 w-4" /> Mac Intel</a>
-                  <label className={cx("inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-4 py-3 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-white/[0.08]", fileImporting ? "pointer-events-none opacity-60" : "")}>
-                    {fileImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}{fileImporting ? "Chargement..." : "Importer un JSON"}
-                    <input type="file" accept="application/json,.json" className="hidden" disabled={fileImporting || !selectedTeamId} onChange={(event) => { importLocalFile(event.target.files?.[0]); event.target.value = ""; }} />
-                  </label>
-                </div>
-              </div>
-              <JsonUploadProgress progress={uploadProgress} />
-              <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">Imports</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length}</p></div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">Dernière game</p><p className="mt-1 truncate text-sm font-black text-white">{latestMatch ? matchImportTitle(latestMatch) : "Aucune"}</p></div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">État</p><p className="mt-1 text-sm font-black text-cyan-100">{importProgress}/{importChecks.length} étapes validées</p></div>
-              </div>
-            </div>
-          </div>
-        </Surface>
+        <ImporterDownloadPanel fileImporting={fileImporting} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
+          {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
+        </ImporterDownloadPanel>
 
-        <Surface className="min-w-0 p-5">
+        {importPreview && <Surface className="min-w-0 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Charge un JSON, sélectionne le side de ton équipe, puis valide les lanes et profils. La barre ci-dessous montre ce qui manque avant confirmation.</p></div>
+            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Sélectionne le side de ton équipe, puis valide les lanes et profils avant de confirmer l’import.</p></div>
           </div>
           <div className="mt-4 grid gap-2 md:grid-cols-4">
             {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("min-w-0 rounded-2xl p-3", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
@@ -844,7 +799,7 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
               <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{text}</p>
             </div>)}
           </div>
-              {importPreview ? <div className="mt-4 space-y-4">
+              <div className="mt-4 space-y-4">
                 <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
                   <TextInput label="Nom de la game" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1 vs BK, Finale LB..." required icon={FileText} />
                   <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} />
@@ -912,8 +867,8 @@ function Matches({ data, refreshAll, selectedTeamId, pushToast, currentMember, u
                    </div>
                  </div>}
                  <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
-              </div> : <p className="mt-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold leading-6 text-slate-300">Aucun JSON chargé pour le moment.</p>}
-        </Surface>
+              </div>
+        </Surface>}
       </div>
 
       <Surface className="mt-5 p-5">
