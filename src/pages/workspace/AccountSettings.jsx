@@ -4,6 +4,7 @@ import { apiFetch } from "../../api/client.js";
 import { configurePerformanceMode, currentPerformanceMode, setStoredPerformanceMode } from "../../app/performance.js";
 import { Badge, Button, PageHeader, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { cx, preciseErrorText } from "../../app/helpers.js";
+import AccountSubscription from "../../components/account/AccountSubscription.jsx";
 
 function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
@@ -100,6 +101,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
 
   return <div className="nxt5-data-dense min-w-0">
     <PageHeader eyebrow="Compte" title="Paramètres" subtitle="Modifie ton pseudo, ton e-mail de récupération et ton mot de passe NXT5." />
+    <AccountSubscription key={user?.id} />
     <div className="grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
       <Surface className="p-5">
         <div className="flex items-start justify-between gap-3"><div><Badge tone="cyan">Identité</Badge><h3 className="mt-3 text-2xl font-black text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>

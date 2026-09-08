@@ -26,6 +26,7 @@ const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.
 
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
+const AccountSubscriptionsPage = lazy(() => import("./pages/admin/AccountSubscriptionsPage.jsx"));
 const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
@@ -236,7 +237,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
   const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
-  const waitingForBootstrap = !bootstrapReady && (!bootstrapped || loading);
+  const independentAccountPage = active === "account-subscriptions" || active === "account-settings";
+  const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
@@ -290,8 +292,9 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button></div><AdminDashboard /></>;
+    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>Profils et abonnements</Button><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button></div><AdminDashboard navigate={navigate} /></>;
     if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
+    if (active === "account-subscriptions" && isPlatformAdmin) return <AccountSubscriptionsPage navigate={navigate} initialUserId={new URLSearchParams(route.search).get("userId") || ""} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore]);
 
@@ -309,7 +312,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     ? <InactivityReturnModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} />
     : null;
   if (waitingForBootstrap) return null;
-  if (!bootstrapReady) return <div className="relative min-h-screen text-white">
+  if (!bootstrapReady && !independentAccountPage) return <div className="relative min-h-screen text-white">
     <AmbientBackground />
     <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">
       <p role="status" className="mb-4 font-semibold">{loading ? "Chargement de toutes les games…" : "L’historique complet n’a pas pu être chargé."}</p>
@@ -317,7 +320,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
     </main>
   </div>;
-  if (!data.teams.length && active !== "guide" && !(["admin", "access-requests"].includes(active) && isPlatformAdmin)) return <>
+  if (!data.teams.length && active !== "guide" && !independentAccountPage && !(["admin", "access-requests"].includes(active) && isPlatformAdmin)) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
@@ -326,7 +329,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
             <ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
             <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
           </div>
-          <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" onClick={() => navigate("/parametres")}>Paramètres</Button>
+            {isPlatformAdmin && <Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>Profils et abonnements</Button>}
+            <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4" aria-label="Déconnexion"><span className="hidden sm:inline">Déconnexion</span></Button>
+          </div>
         </div>
         <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
         <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />
@@ -373,7 +380,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onImport={() => navigate("/games?import=1")} onClose={hideBeginnerCompass} />}
           <React.Fragment>
             <div key={active} className="nxt5-fade-in min-w-0">
-              <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{data.selectedTeamId === selectedTeamId ? page : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
+              <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? page : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
             </div>
           </React.Fragment>
         </main>
