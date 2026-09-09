@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.11 · 9 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version conserve l’espace Games unifié et les deux offres de lancement, fixe Découverte à 14 jours et prépare le message de fin d’essai sans activer de restriction ; les règles précédentes restent applicables.
+Version 1.12 · 9 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version aligne Tarifs, son formulaire et les choix manuels sur Découverte et le Pass Équipe et retire le contact multi-équipe. Elle conserve l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -200,10 +200,10 @@ Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cet
 
 - Réutiliser `Surface`, `Button`, le fond et la palette du site. Conserver le tarif et sa durée dans deux lignes distinctes, les listes lisibles et le bouton du Pass Équipe comme action principale de la grille.
 - Garder deux colonnes à partir de 768 px, y compris sur grand écran ; empiler les cartes en dessous. Ne pas réserver d’emplacements vides aux anciennes offres.
-- Remplacer les cartes Saison et Structure par un lien discret « Plusieurs équipes ? Parlons de tes besoins » sous la grille. Le lien sélectionne le sujet multi-équipe et conduit au formulaire, avec focus au premier champ et cible de 44 px minimum. Aucun tarif ni fonction multi-équipe future n’y est promis.
+- Limiter la grille, le formulaire de demande et les choix manuels à Découverte et au Pass Équipe, avec les mêmes libellés de prix et de durée. Ne plus afficher de lien pour plusieurs équipes, de choix Structure ou d’ancienne offre. Les anciennes attributions et demandes restent identifiables dans leur historique sans redevenir des choix actuels.
 - La page reste un aperçu administrateur préparant le lancement. Conserver la distinction entre demande d’accès et activation effective : ni essai, ni paiement, ni changement de droits ne démarrent depuis cette page.
 
-`src/app/pricing.js`, `src/pages/public/PricingPage.jsx` et `src/pages/public/pricing.css` portent cette présentation. Le suivi administratif distingue l’intérêt pour un essai, un abonnement et un échange multi-équipe.
+`src/app/pricing.js`, `src/pages/public/PricingPage.jsx` et `src/pages/public/pricing.css` portent cette présentation. Le catalogue partagé de `src/app/pricing.js` fournit également les choix manuels. Le suivi administratif conserve les anciennes demandes, dont les contacts multi-équipe, sans les proposer dans le formulaire actuel.
 
 ### Aperçu de fin d’essai
 

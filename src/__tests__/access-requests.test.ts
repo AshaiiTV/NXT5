@@ -65,7 +65,7 @@ describe('administrator preview access requests', () => {
     expect((await db.query('select * from rate_limits')).rows).toEqual([]);
   });
 
-  it.each(['team_monthly', 'structure'])('allows the administrator to store %s interest and consent without changing team access', async (planCode) => {
+  it.each(['free', 'team_monthly'])('allows the administrator to store %s interest and consent without changing team access', async (planCode) => {
     const usersBefore = (await db.query('select * from users')).rows;
     const response = await submitRequest(request({ ...valid, planCode, email: ' CAMILLE@Example.COM ', teamName: '  Team   NXT  ' }), context);
     expect(response.status).toBe(200);
@@ -91,6 +91,13 @@ describe('administrator preview access requests', () => {
     expect(duplicate.status).toBe(first.status);
     expect(await duplicate.json()).toEqual(await first.json());
     expect((await db.query('select * from access_requests')).rows).toEqual(before);
+  });
+
+  it.each(['team_season', 'structure'])('rejects a new request for the withdrawn %s offer without storing it', async (planCode) => {
+    const response = await submitRequest(request({ ...valid, planCode }), context);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'INVALID_ACCESS_REQUEST', error: 'Offre invalide.' });
+    expect((await db.query('select * from access_requests')).rows).toEqual([]);
   });
 
   it('counts Unicode characters consistently with SQL and accepts normalized values at the limit', async () => {
@@ -180,15 +187,25 @@ describe('administrator access request follow-up', () => {
     expect(body.requests[0]).not.toHaveProperty('updated_by');
   });
 
-  it('preserves Structure in admin follow-up and counts it only after confirmation', async () => {
-    await submitRequest(request({ ...valid, planCode: 'structure', teamName: 'NXT Organisation' }), context);
+  it.each(['team_season', 'structure'])('preserves historical %s requests in admin follow-up and counts them only after confirmation', async (planCode) => {
+    await db.query(`insert into access_requests
+      (contact_name, email, team_name, team_key, role, plan_code, payer, purchase_intent, message, consent_version)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+    [valid.contactName, valid.email, 'NXT Organisation', 'nxt organisation', valid.role, planCode,
+      valid.payer, valid.purchaseIntent, valid.message, 'access-request-2026-09-08']);
     const before = await (await administerRequests(request(undefined, 'GET'), context)).json();
-    expect(before.requests[0]).toMatchObject({ planCode: 'structure', status: 'new' });
+    expect(before.requests[0]).toMatchObject({ planCode, status: 'new' });
     expect(before.stats.confirmedTeams).toBe(0);
-    await administerRequests(request({ id: before.requests[0].id, status: 'confirmed', adminNote: 'Devis accepté après échange.' }), context);
+    const updated = await administerRequests(request({ id: before.requests[0].id, status: 'confirmed', adminNote: 'Ancienne proposition confirmée après échange.' }), context);
+    expect(updated.status).toBe(200);
+    expect((await updated.json()).request).toMatchObject({ planCode, status: 'confirmed' });
     const after = await (await administerRequests(request(undefined, 'GET'), context)).json();
-    expect(after.requests[0]).toMatchObject({ planCode: 'structure', status: 'confirmed', adminNote: 'Devis accepté après échange.' });
+    expect(after.requests[0]).toMatchObject({ planCode, status: 'confirmed', adminNote: 'Ancienne proposition confirmée après échange.' });
     expect(after.stats.confirmedTeams).toBe(1);
+    expect(after.stats.presentedTeams).toBe(1);
+    expect(after.requests[0]).toMatchObject({ contactName: before.requests[0].contactName, email: before.requests[0].email,
+      teamName: before.requests[0].teamName, message: before.requests[0].message,
+      consentVersion: before.requests[0].consentVersion, consentedAt: before.requests[0].consentedAt });
     expect((await db.query('select * from teams')).rows).toEqual([]);
   });
 

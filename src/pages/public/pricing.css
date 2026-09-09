@@ -69,26 +69,6 @@
   margin-top: 4rem;
 }
 
-.nxt5-pricing .pricing-structure-link {
-  display: inline-flex;
-  align-items: center;
-  gap: .625rem;
-  min-height: 44px;
-  max-width: 100%;
-  margin-top: .75rem;
-  padding: .5rem 0;
-  color: #a5f3fc;
-  font-size: .875rem;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: .25rem;
-}
-
-.nxt5-pricing .pricing-structure-link[aria-disabled="true"] {
-  opacity: .5;
-  cursor: wait;
-}
-
 .nxt5-pricing .pricing-request {
   min-width: 0;
   scroll-margin-top: 1.5rem;

@@ -13,7 +13,6 @@ import "./pricing.css";
 const FAQ = [
   ["Comment se passeront les 14 jours de Découverte ?", "Au lancement, ton équipe pourra tester tous les outils du Pass Équipe pendant 14 jours, sans carte bancaire. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
   ["Et après les 14 jours ?", "Après les 14 jours d’accès complet, le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5. Il est proposé à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera volontaire : aucun paiement automatique à la fin de l’essai."],
-  ["Nous avons plusieurs équipes : comment en parler ?", "Choisis « Plusieurs équipes » dans le formulaire et décris ton organisation. Nous pourrons échanger sur tes besoins. Aucune offre multi-équipe ni aucun tarif ne sont annoncés à ce stade."],
   ["Est-ce que je dois payer aujourd’hui ?", "Non. Ces offres sont en cours de validation avec les équipes. La demande d’accès nous permet de comprendre ton besoin et de te recontacter. Elle ne crée ni commande ni abonnement, et aucune carte bancaire n’est demandée."],
   ["Est-ce que chaque joueur devra payer ?", "Non. Découverte et Pass Équipe prévoient une équipe jusqu’à 15 membres, roster et staff compris. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
   ["Ces offres changent-elles déjà mes accès ?", "Non. L’essai et le tarif présentés ici préparent le lancement. Tes accès actuels et tes données restent inchangés. Toute évolution sera précisée avant l’ouverture des offres."],
@@ -52,7 +51,6 @@ export default function PricingPage({ navigate, user }) {
   const formSectionRef = useRef(null);
   const statusRef = useRef(null);
   const pendingRef = useRef(false);
-  const structureSelected = form.planCode === "structure";
 
   useEffect(() => {
     if (error || success) statusRef.current?.focus();
@@ -75,7 +73,7 @@ export default function PricingPage({ navigate, user }) {
     if (pendingRef.current || success) return;
     setError("");
     if (form.contactName.trim().length < 2 || form.teamName.trim().length < 2 || !form.email.trim() || !form.role || !form.purchaseIntent) {
-      setError("Renseigne ton nom, ton e-mail, ton équipe ou ta structure, ton rôle et ton intérêt pour l’offre.");
+      setError("Renseigne ton nom, ton e-mail, ton équipe, ton rôle et ton intérêt pour l’offre.");
       return;
     }
     if (!form.consent) {
@@ -155,7 +153,6 @@ export default function PricingPage({ navigate, user }) {
             ))}
           </div>
           <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Les mêmes outils pour découvrir NXT5 et continuer avec ton équipe, dans le cadre d’un usage normal. Offres préparées pour le lancement : aucun essai ni abonnement n’est activé aujourd’hui.</p>
-          <a href="#demande-acces" className="pricing-structure-link" aria-disabled={saving || undefined} onClick={(event) => { event.preventDefault(); selectPlan("structure"); }}>Plusieurs équipes ? Parlons de tes besoins<ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></a>
         </section>
 
         {user?.is_platform_admin === true && <details className="pricing-faq-item mt-8" data-pass-preview>
@@ -182,7 +179,7 @@ export default function PricingPage({ navigate, user }) {
           <section id="demande-acces" ref={formSectionRef} aria-labelledby="access-request-title" className="pricing-request">
             <Surface>
               <Badge tone="cyan">Préparer ton accès</Badge>
-              <h2 id="access-request-title" className="mt-4 text-3xl font-black tracking-tight">{structureSelected ? "Parlons de ta structure" : "Parlons de ton équipe"}</h2>
+              <h2 id="access-request-title" className="mt-4 text-3xl font-black tracking-tight">Parlons de ton équipe</h2>
               <p className="mt-3 text-sm leading-6 text-slate-300">Dis-nous ce qui t’intéresse. Ta demande nous aide à valider l’offre et à préparer un échange avec toi, sans engagement d’achat.</p>
               {success ? (
                 <div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
@@ -201,22 +198,25 @@ export default function PricingPage({ navigate, user }) {
                       <TextInput label="E-mail de contact *" name="email" autoComplete="email" maxLength={160} value={form.email} onChange={(value) => patch("email", value)} placeholder="toi@exemple.fr" type="email" required />
                     </div>
                     <div className="pricing-form-row">
-                      <TextInput label={structureSelected ? "Nom de la structure *" : "Nom de l’équipe *"} name="teamName" minLength={2} maxLength={100} value={form.teamName} onChange={(value) => patch("teamName", value)} placeholder={structureSelected ? "Ton organisation" : "Ton équipe ou ton projet"} required />
+                      <TextInput label="Nom de l’équipe *" name="teamName" minLength={2} maxLength={100} value={form.teamName} onChange={(value) => patch("teamName", value)} placeholder="Ton équipe ou ton projet" required />
                       <SelectInput label="Ton rôle *" name="role" required value={form.role} onChange={(value) => patch("role", value)}>
                         <option value="" disabled>Choisis ton rôle</option>
                         <option value="captain">Capitaine</option><option value="manager">Manager</option><option value="coach">Coach</option><option value="player">Joueur</option><option value="other">Autre</option>
                       </SelectInput>
                     </div>
-                    <SelectInput label="L’offre qui t’intéresse *" name="planCode" required value={form.planCode} onChange={(value) => patch("planCode", value)}>
-                      {PROPOSED_PLAN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </SelectInput>
+                    <div>
+                      <SelectInput label="L’offre qui t’intéresse *" name="planCode" required value={form.planCode} aria-describedby="pricing-plan-detail" onChange={(value) => patch("planCode", value)}>
+                        {PROPOSED_PLAN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </SelectInput>
+                      <p id="pricing-plan-detail" className="mt-2 text-sm leading-6 text-slate-300">{PROPOSED_PLAN_OPTIONS.find((plan) => plan.value === form.planCode)?.label}</p>
+                    </div>
                     <SelectInput label="Qui prendrait en charge l’offre ?" name="payer" value={form.payer} onChange={(value) => patch("payer", value)}>
                       <option value="unknown">Pas encore décidé</option><option value="self">Moi</option><option value="team">L’équipe, en commun</option><option value="association">Une association ou une structure</option>
                     </SelectInput>
                     <SelectInput label="Ton intérêt pour cette offre *" name="purchaseIntent" required value={form.purchaseIntent} onChange={(value) => patch("purchaseIntent", value)}>
-                      <option value="" disabled>Choisis une réponse</option><option value="yes">{structureSelected ? "Oui, je souhaite en discuter" : form.planCode === "free" ? "Oui, je souhaite essayer" : "Oui, au tarif indiqué"}</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
+                      <option value="" disabled>Choisis une réponse</option><option value="yes">{form.planCode === "free" ? "Oui, je souhaite essayer" : "Oui, au tarif indiqué"}</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
                     </SelectInput>
-                    <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder={structureSelected ? "Nombre d’équipes, organisation du staff et besoins communs…" : "Votre rythme de jeu, le lancement d’un split, un besoin du staff…"} rows={3} />
+                    <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder="Votre rythme de jeu, le lancement d’un split, un besoin du staff…" rows={3} />
                     <div className="pricing-honeypot" aria-hidden="true"><label>Site web<input name="website" type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => patch("website", event.target.value)} /></label></div>
                     <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-300">
                       <input type="checkbox" required checked={form.consent} onChange={(event) => patch("consent", event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-cyan-300" />

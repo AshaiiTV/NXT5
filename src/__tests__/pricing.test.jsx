@@ -51,10 +51,6 @@ function selectPlan(renderer, name) {
   act(() => renderer.root.findAllByType("button").find((button) => button.props["aria-label"] === `Demander un accès — ${name}`).props.onClick());
 }
 
-function selectStructure(renderer) {
-  act(() => renderer.root.findByProps({ href: "#demande-acces" }).props.onClick({ preventDefault() {} }));
-}
-
 function content(node) {
   return typeof node === "string" ? node : (node.children || []).map(content).join(" ");
 }
@@ -91,17 +87,19 @@ describe("commercial validation pricing page", () => {
     const monthly = content(renderer.root.findByProps({ "aria-labelledby": "plan-team_monthly" }));
     expect(monthly).toContain("Pass Équipe");
     expect(monthly).toContain("résiliable à tout moment");
-    const structureLink = renderer.root.findByProps({ href: "#demande-acces" });
-    expect(structureLink.type).toBe("a");
-    expect(content(structureLink).trim()).toBe("Plusieurs équipes ? Parlons de tes besoins");
+    expect(renderer.root.findAllByProps({ href: "#demande-acces" })).toHaveLength(0);
+    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).findAllByType("option").map((option) => [option.props.value, content(option)])).toEqual([
+      ["free", "Découverte — 0 € pendant 14 jours"],
+      ["team_monthly", "Pass Équipe — 9,90 € TTC / mois / équipe"],
+    ]);
     const page = JSON.stringify(renderer.toJSON());
     expect(page).toContain("Aperçu réservé à l’administrateur");
     expect(page).toContain("Aucun paiement aujourd’hui.");
     expect(page).toContain("Tes accès actuels restent inchangés.");
     expect(page).toContain("le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5");
     expect(page).not.toContain("30 jours");
-    expect(page).not.toMatch(/Pass Saison|Pass Structure|29 €|169 €|79 €|5 imports de games au total/);
-    expect(renderer.root.findAllByType("option").some((option) => option.props.value === "team_season")).toBe(false);
+    expect(page).not.toMatch(/Pass Saison|Pass Structure|Plusieurs équipes|plusieurs équipes|Parlons de ta structure|Nom de la structure|29 €|169 €|79 €|5 imports de games au total/);
+    expect(renderer.root.findAllByType("option").some((option) => ["team_season", "structure"].includes(option.props.value))).toBe(false);
     expect(renderer.root.findAllByType("a").some((link) => /checkout|stripe|achat/.test(link.props.href))).toBe(false);
     expect(renderer.root.findAllByType("input").some((input) => /^cc-/.test(input.props.autoComplete))).toBe(false);
     expect(apiFetch).not.toHaveBeenCalled();
@@ -144,19 +142,9 @@ describe("commercial validation pricing page", () => {
     expect(focusInput).toHaveBeenCalledWith({ preventScroll: true });
   });
 
-  it("selects the multi-team discussion from its link and keeps interest explicit on each offer change", () => {
-    const { renderer, scrollIntoView, focusInput } = render();
-    edit(renderer, "Ton intérêt pour cette offre *", "yes");
-    selectStructure(renderer);
-    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe("structure");
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
-    expect(focusInput).toHaveBeenCalledWith({ preventScroll: true });
-    const planOption = renderer.root.findAllByType("option").find((option) => option.props.value === "structure");
-    expect(content(planOption)).toBe("Plusieurs équipes — parlons de tes besoins");
-    const interest = renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" });
-    expect(interest.props.value).toBe("");
-    expect(content(interest.findAllByType("option").find((option) => option.props.value === "yes"))).toBe("Oui, je souhaite en discuter");
-    expect(content(namedInput(renderer, "teamName").parent.parent)).toMatch(/structure/i);
+  it("keeps interest explicit when changing between the trial and the monthly Pass", () => {
+    const { renderer } = render();
+    selectPlan(renderer, "Découverte");
     edit(renderer, "Ton intérêt pour cette offre *", "yes");
     selectPlan(renderer, "Pass Équipe");
     expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("");
@@ -173,12 +161,12 @@ describe("commercial validation pricing page", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
-  it("submits the Structure selected by its CTA and preserves the full request after failure", async () => {
+  it("submits the Pass selected by its CTA and preserves the full request after failure", async () => {
     const { renderer } = render();
-    selectStructure(renderer);
+    selectPlan(renderer, "Pass Équipe");
     fill(renderer);
     editTeam(renderer, "  Association Aurora  ");
-    edit(renderer, "Un besoin, une question ? (facultatif)", "  Deux rosters et un plan de financement.  ");
+    edit(renderer, "Un besoin, une question ? (facultatif)", "  Un roster et son staff.  ");
     apiFetch.mockRejectedValueOnce(Object.assign(new Error("Connection unavailable"), { status: 503 }));
     await act(async () => submit(renderer));
     expect(apiFetch).toHaveBeenCalledTimes(1);
@@ -187,9 +175,9 @@ describe("commercial validation pricing page", () => {
     expect(options.method).toBe("POST");
     expect(JSON.parse(options.body)).toEqual({
       contactName: "Camille", email: "camille@example.fr", teamName: "Association Aurora", role: "manager",
-      planCode: "structure", payer: "association", purchaseIntent: "yes", message: "Deux rosters et un plan de financement.", consent: true, website: "",
+      planCode: "team_monthly", payer: "association", purchaseIntent: "yes", message: "Un roster et son staff.", consent: true, website: "",
     });
-    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe("structure");
+    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe("team_monthly");
     expect(namedInput(renderer, "teamName").props.value).toBe("  Association Aurora  ");
     expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("yes");
     expect(renderer.root.findByProps({ type: "checkbox" }).props.checked).toBe(true);

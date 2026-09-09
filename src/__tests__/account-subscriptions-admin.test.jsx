@@ -134,6 +134,10 @@ describe("manual subscription editor", () => {
   it("offers only the new grades and starts a fourteen-day trial only after explicit configuration", async () => {
     const renderer = await openAccount({ ...emptySubscription, status: "pending", revision: 1 });
     expect(renderer.root.findAllByType("option").map((item) => item.props.value)).toEqual(["free", "team_monthly"]);
+    expect(renderer.root.findAllByType("option").map((item) => item.children.join(""))).toEqual([
+      "Découverte — 0 € pendant 14 jours",
+      "Pass Équipe — 9,90 € TTC / mois / équipe",
+    ]);
     const checkbox = renderer.root.findByProps({ name: "startTrial" });
     expect(checkbox.props.checked).toBe(false);
     expect(input(renderer, "Date de début de l’essai")).toBeUndefined();

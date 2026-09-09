@@ -34,9 +34,9 @@ Le futur essai doit permettre d’éprouver le produit sur plusieurs sessions. S
 - Assistance standard.
 - Résiliation à tout moment, avec accès jusqu’à la fin de la période payée.
 
-### Plusieurs équipes : échange sur les besoins
+### Offres retirées
 
-Le lien « Plusieurs équipes ? Parlons de tes besoins » mène au formulaire d’échange, avec le choix Structure. Aucun prix ni fonction multi-équipe à venir n’est promis. Ce parcours sert à comprendre le nombre d’équipes, leur organisation et leurs besoins avant de définir une éventuelle offre.
+La page Tarifs, son formulaire et les choix manuels se limitent à Découverte et au Pass Équipe. Le lien de contact pour plusieurs équipes et le choix Structure sont retirés. Une éventuelle offre multi-équipe nécessitera une décision ultérieure.
 
 Pass Saison, Pass Structure, annuel et tarif fondateur sont retirés de la commercialisation de lancement. Les codes des demandes commerciales et l’historique des attributions restent conservés. Les [abonnements manuels des profils](abonnements-manuels.md) utilisent désormais seulement Découverte et le Pass Équipe : les anciennes attributions Saison et Structure sont converties en Pass Équipe avec leurs dates, notes et retraits préservés, sans paiement ni droit Stripe.
 
@@ -92,7 +92,7 @@ Arguments concrets :
 
 - Deux cartes : Découverte, 14 jours sans carte bancaire, et Pass Équipe, 9,90 € TTC par mois et par équipe.
 - Prix TTC et durée de l’essai clairement affichés.
-- Lien « Plusieurs équipes ? Parlons de tes besoins » vers le formulaire, sans tarif annoncé.
+- Formulaire limité aux deux offres affichées, sans lien ni demande Structure.
 - Liste factuelle des fonctions incluses.
 - FAQ : renouvellement, résiliation, membres, conservation des données, remboursement et factures.
 - CTA d’essai ou de souscription adapté au parcours réellement activé. Tant que la validation commerciale est interne, conserver « Demander un accès » et expliquer qu’aucun essai ne démarre.
@@ -436,6 +436,6 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 
 ## 17. Décision de lancement
 
-Retenir Découverte, 14 jours d’accès complet sans carte bancaire, puis Pass Équipe à 9,90 € TTC par mois et par équipe pour continuer à utiliser tous les outils. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu. Le lien destiné aux organisations possédant plusieurs équipes recueille leurs besoins sans prix ni engagement fonctionnel. Les autres formules sont hors du lancement.
+Retenir Découverte, 14 jours d’accès complet sans carte bancaire, puis Pass Équipe à 9,90 € TTC par mois et par équipe pour continuer à utiliser tous les outils. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu. Le formulaire et les choix manuels reprennent uniquement ces deux offres, sans lien ni demande Structure. Les autres formules sont hors du lancement.
 
 Le développement du paiement vient après des échanges réels et au moins trois intentions d’achat documentées pour le mensuel. Ce prix reste à tester ; la fidélité des premières équipes et les coûts observés permettront de décider de la suite. La présente révision ne démarre aucun essai, n’encaisse aucun paiement et conserve le périmètre administrateur de la prévisualisation.

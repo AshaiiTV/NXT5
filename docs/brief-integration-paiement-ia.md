@@ -4,7 +4,7 @@ Copier tout le contenu de ce document dans une nouvelle tâche de développement
 
 ---
 
-Ce brief prépare une étape de développement ultérieure ; il n’active rien à lui seul. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation de lancement présente deux cartes : Découverte, 14 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Ce prix est une hypothèse à valider. Le lien « Plusieurs équipes ? Parlons de tes besoins » recueille les besoins d’une organisation, sans tarif annoncé ni promesse de fonctions multi-équipes. Aucun essai d’équipe, paiement ou quota commercial n’est actuellement activé ; les accès actuels restent inchangés. L’ouverture publique, l’essai d’équipe et Stripe décrits ci-dessous relèvent d’une future mission expressément lancée.
+Ce brief prépare une étape de développement ultérieure ; il n’active rien à lui seul. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation de lancement présente deux cartes : Découverte, 14 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Ce prix est une hypothèse à valider. Le formulaire et les choix manuels reprennent uniquement ces deux offres. Le lien pour plusieurs équipes et la demande Structure sont retirés. Aucun essai d’équipe, paiement ou quota commercial n’est actuellement activé ; les accès actuels restent inchangés. L’ouverture publique, l’essai d’équipe et Stripe décrits ci-dessous relèvent d’une future mission expressément lancée.
 
 La décision du 9 septembre 2026 porte sur **tous les outils** : accès complet pendant 14 jours, puis Pass Équipe nécessaire pour continuer. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu ; Champion Pool suit cette règle commune. Le [composant préparé pour les accès Pass](pass-feature-access.md) reste dormant avec `SUBSCRIPTION_RESTRICTIONS_ENABLED = false`. **Ne bloquer aucune fonction tant que les abonnements ne sont pas lancés.** Avant d’activer les restrictions, implémenter et vérifier les dates d’essai, les droits par équipe et les contrôles serveur ; changer cette constante ne suffit pas.
 
@@ -76,9 +76,9 @@ Le code `free` reste utile pour la compatibilité du catalogue et des demandes. 
 
 Le mensuel est la seule offre achetable au lancement. Ne crée aucun produit, Price Stripe ou Checkout pour les anciennes offres saison, annuelle, fondateur ou Structure.
 
-### Besoins de plusieurs équipes — code de demande `structure`
+### Anciennes offres — historique uniquement
 
-Conserve le lien « Plusieurs équipes ? Parlons de tes besoins » et le formulaire de qualification, sans montant ni engagement sur des fonctions à développer. Le code `structure` reste un choix de contact et peut figurer dans l’historique des attributions de profil. Il ne peut plus être attribué à un profil et n’est ni un plan de facturation ni une autorisation multi-équipe.
+Le lien pour plusieurs équipes et le choix `structure` sont retirés de Tarifs et du formulaire. Les nouvelles demandes acceptent uniquement `free` et `team_monthly`, comme les attributions manuelles. Les codes Saison et Structure restent lisibles dans les demandes et audits antérieurs ; ils ne sont ni des choix actuels, ni des plans de facturation, ni des autorisations multi-équipes.
 
 Préserve les demandes et leurs notes, y compris leurs anciennes offres. Ne convertis pas automatiquement une demande Structure en souscription ou en droit. Une éventuelle offre pour plusieurs équipes fera l’objet d’une décision séparée, après validation des besoins ; ses fonctions ne sont pas à construire dans cette mission.
 
@@ -284,7 +284,7 @@ Respecte les helpers actuels `assertSessionSecret`, `requireAuth`, `assertMethod
 
 Retourne uniquement les offres publiques, leurs montants d’affichage, périodicité, fonctions et codes autorisés. Les montants peuvent être définis dans un catalogue serveur versionné, mais le Price Stripe reste la référence à l’achat.
 
-Ne retourne jamais de clé secrète. Expose Découverte comme essai sans paiement et `team_monthly` comme seule offre achetable. Le lien pour plusieurs équipes est un contact sans prix, séparé du catalogue de facturation.
+Ne retourne jamais de clé secrète. Expose Découverte comme essai sans paiement et `team_monthly` comme seule offre achetable. Ne réintroduis pas de contact pour plusieurs équipes dans le catalogue ou le formulaire.
 
 ### `billing-trial-start.ts` — POST authentifié
 
@@ -447,14 +447,14 @@ Adapter la page de prévisualisation existante pour cette future ouverture publi
 - titre : « Choisis la formule adaptée à ton équipe » ;
 - carte Découverte : 14 jours d’accès complet, sans carte bancaire, une équipe et jusqu’à 15 membres ;
 - carte Pass Équipe : 9,90 € TTC par mois et par équipe, jusqu’à 15 membres, résiliable à tout moment ;
-- lien « Plusieurs équipes ? Parlons de tes besoins » vers le formulaire d’échange, sans prix ;
+- formulaire limité à Découverte et au Pass Équipe, sans lien ni choix Structure ;
 - prix TTC clairement visibles ;
 - mêmes fonctions listées pour l’essai et le mensuel ;
 - CTA adapté à l’état connecté ;
 - FAQ sur essai sans carte, fin des 14 jours, membres, renouvellement, résiliation, factures et données ;
 - lien vers CGV, CGU et confidentialité.
 
-N’affiche aucune carte ni offre achetable Saison, Structure, annuelle ou fondateur. Le lien pour plusieurs équipes conserve un parcours de contact, sans bouton d’achat ni redirection vers `/achat`. Ne promets pas de fonctions multi-équipes disponibles. N’ajoute ni faux témoignage, ni compte à rebours, ni réduction artificielle.
+N’affiche aucune carte ni offre achetable Saison, Structure, annuelle ou fondateur. Ne réintroduis pas le lien de contact pour plusieurs équipes ni le choix Structure. Ne promets pas de fonctions multi-équipes disponibles. N’ajoute ni faux témoignage, ni compte à rebours, ni réduction artificielle.
 
 ### `/achat` — authentifié
 
@@ -704,7 +704,7 @@ Mocke Stripe : aucun test automatisé ne doit contacter l’API réelle.
 
 - tarifs publics ;
 - sélection d’offre ;
-- deux cartes visibles, à 14 jours sans carte et 9,90 €/mois/équipe, plus le lien pour plusieurs équipes sans prix ;
+- deux cartes visibles, à 14 jours sans carte et 9,90 €/mois/équipe, avec les mêmes choix dans le formulaire et aucun lien pour plusieurs équipes ;
 - redirection connexion avec retour ;
 - choix d’équipe ;
 - confirmation en attente puis confirmée ;
@@ -805,7 +805,7 @@ La mission est terminée seulement si :
 
 - les pages `/tarifs`, `/achat`, `/achat/confirme`, `/achat/annule`, `/abonnement` et `/conditions-vente` sont accessibles selon leurs règles ;
 - les deux cartes s’affichent correctement : Découverte, 14 jours d’accès complet sans carte, et Pass Équipe à 9,90 € TTC/mois/équipe ;
-- le lien pour plusieurs équipes conserve le recueil de besoins sans prix ; les codes des demandes commerciales et l’audit des anciennes attributions sont préservés sans Checkout ni fonctions multi-équipes ajoutées ;
+- Tarifs, son formulaire et les choix manuels utilisent les deux offres actuelles ; aucun lien de contact multi-équipe ni nouveau choix Structure n’est proposé, et les anciennes demandes ainsi que leur audit restent lisibles ;
 - les attributions manuelles de profils, leurs dates et leur audit sont préservés, sans conversion automatique en souscriptions d’équipe ;
 - Checkout Test fonctionne pour le mensuel uniquement ;
 - le webhook signé est idempotent ;
