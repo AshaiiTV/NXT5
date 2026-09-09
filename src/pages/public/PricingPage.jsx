@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, CheckCircle2, Loader2, Mail, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { PROPOSED_PLANS, PROPOSED_PLAN_OPTIONS } from "../../app/pricing.js";
+import { PASS_FEATURES } from "../../app/pass-access.js";
+import { PassFeaturePreview } from "../../components/subscriptions/PassFeatureGate.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import { LegalLinks, SiteHeader } from "./PublicPages.jsx";
@@ -9,13 +11,13 @@ import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
 import "./pricing.css";
 
 const FAQ = [
-  ["Comment se passeront les 30 jours de Découverte ?", "Au lancement, ton équipe pourra tester tous les outils du Pass Équipe pendant 30 jours, sans carte bancaire. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
-  ["Et après les 30 jours ?", "Tu pourras choisir le Pass Équipe, proposé au lancement à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera une démarche volontaire ; aucun paiement ne sera déclenché à la fin de l’essai."],
+  ["Comment se passeront les 14 jours de Découverte ?", "Au lancement, ton équipe pourra tester tous les outils du Pass Équipe pendant 14 jours, sans carte bancaire. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
+  ["Et après les 14 jours ?", "Après les 14 jours d’accès complet, le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5. Il est proposé à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera volontaire : aucun paiement automatique à la fin de l’essai."],
   ["Nous avons plusieurs équipes : comment en parler ?", "Choisis « Plusieurs équipes » dans le formulaire et décris ton organisation. Nous pourrons échanger sur tes besoins. Aucune offre multi-équipe ni aucun tarif ne sont annoncés à ce stade."],
   ["Est-ce que je dois payer aujourd’hui ?", "Non. Ces offres sont en cours de validation avec les équipes. La demande d’accès nous permet de comprendre ton besoin et de te recontacter. Elle ne crée ni commande ni abonnement, et aucune carte bancaire n’est demandée."],
   ["Est-ce que chaque joueur devra payer ?", "Non. Découverte et Pass Équipe prévoient une équipe jusqu’à 15 membres, roster et staff compris. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
   ["Ces offres changent-elles déjà mes accès ?", "Non. L’essai et le tarif présentés ici préparent le lancement. Tes accès actuels et tes données restent inchangés. Toute évolution sera précisée avant l’ouverture des offres."],
-  ["Que deviennent mes données à la fin de l’essai ou du Pass ?", "Les règles d’accès et de conservation après expiration seront communiquées avant l’ouverture de l’essai et des abonnements. Cette demande d’accès ne modifie pas la conservation actuelle de tes données."],
+  ["Que deviennent mes données à la fin de l’essai ou du Pass ?", "Après les 14 jours de Découverte, un Pass Équipe sera nécessaire pour continuer à utiliser les outils. Les réglages du compte et l’exercice de tes droits sur tes données resteront accessibles. La durée de conservation sera précisée avant le lancement ; aujourd’hui, tes accès et tes données restent inchangés."],
   ["Où trouver les conditions de vente et les factures ?", "Le paiement n’est pas encore ouvert. Les conditions de vente, les règles de remboursement et les informations de facturation seront disponibles avant toute souscription."],
 ];
 
@@ -46,6 +48,7 @@ export default function PricingPage({ navigate, user }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [previewFeature, setPreviewFeature] = useState("workspace");
   const formSectionRef = useRef(null);
   const statusRef = useRef(null);
   const pendingRef = useRef(false);
@@ -125,7 +128,7 @@ export default function PricingPage({ navigate, user }) {
           <aside className="pricing-launch-note" aria-label="Avant le lancement">
             <Users aria-hidden="true" className="h-6 w-6 text-cyan-200" />
             <p className="mt-4 text-lg font-black">Une offre pour l’équipe entière</p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">30 jours pour essayer ensemble, puis un seul abonnement pour le roster et le staff. Le tarif de lancement reste à valider avec les premières équipes.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">14 jours pour essayer ensemble, puis un seul abonnement pour le roster et le staff. Le tarif de lancement reste à valider avec les premières équipes.</p>
             <p className="mt-4 border-t border-cyan-100/15 pt-4 text-sm font-bold leading-6 text-cyan-100">Aucun paiement aujourd’hui.<br />Tes accès actuels restent inchangés.</p>
           </aside>
         </section>
@@ -136,7 +139,7 @@ export default function PricingPage({ navigate, user }) {
               <Surface key={plan.code} className={`pricing-plan pricing-plan--${plan.code}`}>
                 <article aria-labelledby={`plan-${plan.code}`} className="pricing-plan-body">
                   <div>
-                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? "30 jours pour essayer" : "Tarif de lancement"}</p>
+                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? "14 jours pour essayer" : "Tarif de lancement"}</p>
                     <h2 id={`plan-${plan.code}`} className="mt-2 text-2xl font-black">{plan.name}</h2>
                     <p className="pricing-plan-description mt-3 text-sm leading-6 text-slate-300">{plan.description}</p>
                     <p className="mt-5 text-5xl font-black tracking-tight tabular-nums">{plan.price}</p>
@@ -154,6 +157,18 @@ export default function PricingPage({ navigate, user }) {
           <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Les mêmes outils pour découvrir NXT5 et continuer avec ton équipe, dans le cadre d’un usage normal. Offres préparées pour le lancement : aucun essai ni abonnement n’est activé aujourd’hui.</p>
           <a href="#demande-acces" className="pricing-structure-link" aria-disabled={saving || undefined} onClick={(event) => { event.preventDefault(); selectPlan("structure"); }}>Plusieurs équipes ? Parlons de tes besoins<ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></a>
         </section>
+
+        {user?.is_platform_admin === true && <details className="pricing-faq-item mt-8" data-pass-preview>
+          <summary>Aperçu après les 14 jours de Découverte</summary>
+          <div className="space-y-5 pb-6">
+            <p className="max-w-3xl text-sm leading-6 text-slate-300">Simulation réservée à l’administrateur : voici le message prévu pour une équipe sans Pass après son essai. Tous les outils restent accessibles actuellement ; cet aperçu ne modifie aucun accès.</p>
+            <div className="max-w-sm"><SelectInput label="Outil à prévisualiser" name="previewFeature" value={previewFeature} onChange={setPreviewFeature}>
+              {Object.entries(PASS_FEATURES).map(([value, details]) => <option key={value} value={value}>{details.label}</option>)}
+            </SelectInput></div>
+            <PassFeaturePreview feature={previewFeature} onSubscribe={() => selectPlan("team_monthly")} />
+            <p className="text-xs leading-5 text-slate-300">Dans cet aperçu, « Prendre le Pass Équipe » mène au formulaire de demande d’accès. Aucun paiement ni essai n’est activé.</p>
+          </div>
+        </details>}
 
         <div className="pricing-details">
           <section aria-labelledby="pricing-faq-title">

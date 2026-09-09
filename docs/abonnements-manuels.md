@@ -6,6 +6,8 @@ L’administrateur plateforme peut attribuer un abonnement à un compte depuis *
 
 Cette attribution appartient au profil utilisateur. Elle ne crée pas de paiement, de facture ou de renouvellement automatique. Les rôles, appartenances aux équipes et quotas produit restent ceux de l’application actuelle ; attribuer ou retirer un abonnement manuel ne les modifie pas. La future facturation en ligne restera rattachée aux équipes, selon le [brief d’intégration paiement](brief-integration-paiement-ia.md).
 
+La Découverte administrative décrite ici est un code historique de profil sans dates, distinct de la proposition commerciale du 9 septembre 2026 : **14 jours d’accès complet pour l’équipe, puis Pass Équipe requis pour continuer à utiliser les outils**. Attribuer `free` à un profil ne démarre aucun essai et ne lui donne pas une nouvelle validité de 14 jours. Les attributions et données historiques restent inchangées, sans conversion automatique en essai ou souscription d’équipe ; aucun blocage commercial n’est activé avant le lancement.
+
 ## Attribuer ou modifier un abonnement
 
 1. Ouvrir `/admin`, puis **Profils et abonnements**, avec le compte administrateur plateforme.

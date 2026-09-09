@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.10 · 8 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version conserve l’espace Games unifié et simplifie la grille de lancement des tarifs en deux offres ; les règles précédentes restent applicables.
+Version 1.11 · 9 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version conserve l’espace Games unifié et les deux offres de lancement, fixe Découverte à 14 jours et prépare le message de fin d’essai sans activer de restriction ; les règles précédentes restent applicables.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -196,7 +196,7 @@ Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cet
 
 ### Grille des tarifs de lancement
 
-Évolution autorisée le 8 septembre 2026 : présenter deux cartes de même largeur, **Découverte** et **Pass Équipe**. Découverte annonce 30 jours d’accès complet à 0 €, sans carte bancaire et sans passage automatique au payant. Le Pass Équipe annonce 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment. Les deux offres couvrent une équipe jusqu’à 15 membres avec les mêmes outils.
+Évolution autorisée les 8 et 9 septembre 2026 : présenter deux cartes de même largeur, **Découverte** et **Pass Équipe**. Découverte annonce 14 jours d’accès complet à 0 €, sans carte bancaire et sans passage automatique au payant. Après cet essai, le Pass Équipe est nécessaire pour continuer à utiliser les outils ; il n’y a pas de niveau gratuit permanent ni de quota de 10 imports. Le Pass Équipe annonce 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment. Les deux offres couvrent une équipe jusqu’à 15 membres avec les mêmes outils.
 
 - Réutiliser `Surface`, `Button`, le fond et la palette du site. Conserver le tarif et sa durée dans deux lignes distinctes, les listes lisibles et le bouton du Pass Équipe comme action principale de la grille.
 - Garder deux colonnes à partir de 768 px, y compris sur grand écran ; empiler les cartes en dessous. Ne pas réserver d’emplacements vides aux anciennes offres.
@@ -204,6 +204,18 @@ Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cet
 - La page reste un aperçu administrateur préparant le lancement. Conserver la distinction entre demande d’accès et activation effective : ni essai, ni paiement, ni changement de droits ne démarrent depuis cette page.
 
 `src/app/pricing.js`, `src/pages/public/PricingPage.jsx` et `src/pages/public/pricing.css` portent cette présentation. Le suivi administratif distingue l’intérêt pour un essai, un abonnement et un échange multi-équipe.
+
+### Aperçu de fin d’essai
+
+Évolution autorisée le 9 septembre 2026 : préparer un fond flouté et un message invitant à prendre le Pass Équipe après les 14 jours de Découverte. **Les abonnements ne sont pas lancés : aucun outil ne doit être bloqué aujourd’hui.**
+
+- L’aperçu est replié dans la page Tarifs réservée à l’administrateur. Son sélecteur change seulement le texte de la simulation ; il ne modifie aucun accès. Le bouton conduit au formulaire de demande d’accès existant et ne déclenche aucun paiement.
+- Réutiliser `Surface`, `Badge`, `Button` et les icônes Lucide. Le message central reste net, sur fond bleu nuit, avec badge violet, icône cyan et CTA au dégradé de marque. Le flou de 5 px porte uniquement sur des formes décoratives : ne pas monter de vraies données ou des contrôles sous le voile.
+- Le texte annonce les 14 jours d’accès complet, le bénéfice concerné et le Pass Équipe à 9,90 € TTC par mois pour l’équipe. Tous les outils suivent le même futur accès : Champion Pool, compositions, imports, reviews, exports, tendances, planning, statistiques, roster et profils.
+- Sur mobile, garder le message et le bouton entiers, avec une cible d’au moins 44 px et sans débordement. La décoration est ignorée par les technologies d’assistance. Le mode performance supprime le filtre et diminue l’opacité ; aucune animation n’est ajoutée.
+- `PassFeatureGate` restitue directement le contenu pendant la préparation du lancement. La constante source `SUBSCRIPTION_RESTRICTIONS_ENABLED` reste à `false`. Le futur contrôle serveur des droits de l’équipe et le calendrier d’essai doivent être développés avant toute activation ; le flou ne constitue pas une protection des données.
+
+`src/app/pass-access.js`, `src/components/subscriptions/PassFeatureGate.jsx` et `pass-feature-gate.css` portent la règle dormante et sa présentation. Les paramètres du compte et l’exercice des droits sur les données restent hors du futur accès payant aux outils.
 
 ### Cohérence des espaces de travail
 

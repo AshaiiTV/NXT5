@@ -93,7 +93,7 @@ function opggUrlFromRiotId(riotId, region) {
   return `https://www.op.gg/lol/summoners/${String(region || "EUW").toLowerCase()}/${slug}`;
 }
 
-function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false }) {
+function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false }) {
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
   const [playerForm, setPlayerForm] = useState({ name: "", riotId: "", opggUrl: "", role: "TOP", rosterStatus: "AUTO" });
   const [joinCode, setJoinCode] = useState("");
@@ -441,7 +441,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div><PageHeader eyebrow="Équipe" title={hasTeams ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."}>{hasTeams && <Button type="button" variant="ghost" icon={teamSetupOpen ? X : UserPlus} onClick={() => { if (teamSetupOpen) { setTeamSetupOpen(false); openAppPath("/equipes"); } else setTeamSetupOpen(true); }}>{teamSetupOpen ? "Fermer les formulaires" : "Créer ou rejoindre une équipe"}</Button>}</PageHeader>
+  return <div><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams && !setupOnly ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."}>{hasTeams && !setupOnly && <Button type="button" variant="ghost" icon={teamSetupOpen ? X : UserPlus} onClick={() => { if (teamSetupOpen) { setTeamSetupOpen(false); openAppPath("/equipes"); } else setTeamSetupOpen(true); }}>{teamSetupOpen ? "Fermer les formulaires" : "Créer ou rejoindre une équipe"}</Button>}</PageHeader>
     {!hasTeams && <Surface className="mb-5 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -454,8 +454,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
         {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter le roster", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une game", "NXT5 commence alors à expliquer l'équipe."]].map(([number, title, text]) => <div key={title} className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-xs font-black text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
       </div>
     </Surface>}
-    <div className={cx("grid gap-5", (!hasTeams || teamSetupOpen) && "xl:grid-cols-2")}>
-      {(!hasTeams || teamSetupOpen) && <div className="space-y-5">
+    <div className={cx("grid gap-5", (!hasTeams || teamSetupOpen) && !setupOnly && "xl:grid-cols-2")}>
+      {(!hasTeams || teamSetupOpen || setupOnly) && <div className="space-y-5">
         <Surface glow>
           <h3 className="text-xl font-black text-white">Créer une team</h3>
           <p className="mt-1 text-sm text-slate-300">Pour lancer une nouvelle structure, créer son roster et importer ses games.</p>
@@ -480,7 +480,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
       </div>}
 
-      {selectedTeam && <div className="space-y-5">
+      {selectedTeam && !setupOnly && <div className="space-y-5">
         <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} championPool={data.championPool || data.champion_pool || []} />
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">

@@ -12,13 +12,15 @@ Le produit doit être vendu à l’équipe. Le capitaine ou le manager paie et i
 
 Décision du 8 septembre 2026 : simplifier la grille en deux cartes, pour permettre aux premières équipes de tester NXT5 avant de s’engager. **9,90 € reste une hypothèse commerciale à valider auprès d’équipes réelles**, pas un prix déjà validé par des clients.
 
-La page et le formulaire restent une prévisualisation réservée à l’administrateur plateforme. Cette évolution de la proposition commerciale n’active ni paiement, ni essai chronométré, ni nouveaux droits ou quotas. Les accès actuels restent inchangés. Les parcours de paiement et règles d’accès décrits plus bas constituent une étape future.
+La page et le formulaire restent une prévisualisation réservée à l’administrateur plateforme. Cette évolution de la proposition commerciale n’active ni paiement, ni essai chronométré, ni nouveaux droits ou quotas. **Les abonnements ne sont pas lancés : ne bloquer aucune fonction aujourd’hui**, quel que soit le profil ou le nombre d’imports. Les parcours de paiement et règles d’accès décrits plus bas constituent une étape future.
 
-### Découverte — 30 jours gratuits, sans carte bancaire
+Décision du 9 septembre 2026 : **Découverte donne accès à tous les outils pendant 14 jours, puis le Pass Équipe est nécessaire pour continuer à utiliser NXT5**. Il n’y a pas de niveau gratuit permanent ni de quota de dix imports ; Champion Pool suit la même règle que les autres outils. Le [périmètre des fonctions Pass](pass-feature-access.md) détaille le masquage flouté préparé, actuellement désactivé, et les contrôles serveur nécessaires avant lancement.
+
+### Découverte — 14 jours gratuits, sans carte bancaire
 
 - Une équipe et jusqu’à 15 membres.
-- Accès complet aux mêmes fonctions que le Pass Équipe pendant 30 jours : imports, statistiques, reviews, planning, champion pools, compositions, historique, export et accès du staff.
-- Aucun quota réduit à cinq imports, une composition ou trois reviews pendant l’essai.
+- Accès complet aux mêmes fonctions que le Pass Équipe pendant 14 jours : imports, statistiques, reviews, planning, champion pools, compositions, tendances, historique, export et accès du staff.
+- Aucun quota commercial d’imports, de compositions ou de reviews pendant l’essai ; les limites techniques contre les abus restent applicables.
 - Aucun prélèvement automatique à la fin : le passage au Pass Équipe exige une souscription explicite.
 
 Le futur essai doit permettre d’éprouver le produit sur plusieurs sessions. Sa demande dans la prévisualisation ne le démarre pas.
@@ -26,8 +28,8 @@ Le futur essai doit permettre d’éprouver le produit sur plusieurs sessions. S
 ### Pass Équipe — 9,90 € TTC par mois et par équipe
 
 - Une équipe et jusqu’à 15 membres.
-- Imports, statistiques, reviews, planning, champion pools et compositions sans limite fonctionnelle artificielle.
-- Historique complet et export des données.
+- Accès à tous les outils : imports, reviews, compositions, tendances, exports produit, Champion Pool, statistiques, planning, roster, profils joueurs et historique.
+- Aucun quota commercial réduit d’imports, de reviews ou de compositions.
 - Gestion des rôles et accès du staff.
 - Assistance standard.
 - Résiliation à tout moment, avec accès jusqu’à la fin de la période payée.
@@ -55,17 +57,17 @@ Arguments concrets :
 
 ### Essai Découverte, après activation du parcours
 
-- Le capitaine ou le manager démarre explicitement les 30 jours d’essai pour son équipe.
+- Le capitaine ou le manager démarre explicitement les 14 jours d’essai pour son équipe.
 - Les dates de début et de fin sont enregistrées côté serveur, sans collecte de carte bancaire.
 - Les droits fonctionnels sont ceux du Pass Équipe, dans la limite de 15 membres.
 - Le service affiche la date de fin et propose une souscription explicite au mensuel.
-- À l’expiration, les données restent consultables selon la politique de conservation ; aucun paiement n’est créé automatiquement.
+- À l’expiration, le Pass Équipe devient nécessaire pour continuer à utiliser les outils ; les données sont conservées et aucun paiement n’est créé automatiquement. Les fonctions de compte, de sécurité et de droits sur les données restent accessibles.
 - La règle d’éligibilité à un nouvel essai et le traitement des équipes existantes doivent être décidés avant activation, sans réinitialisation implicite.
 
 ### Achat depuis le site public
 
 1. Le visiteur ouvre `/tarifs`.
-2. Il compare les 30 jours de Découverte et le Pass Équipe mensuel à 9,90 € TTC par équipe.
+2. Il compare les 14 jours de Découverte et le Pass Équipe mensuel à 9,90 € TTC par équipe.
 3. Il clique sur « Choisir le Pass Équipe ».
 4. S’il n’est pas connecté, il crée son compte ou se connecte.
 5. Il choisit une équipe existante dont il est capitaine ou en crée une.
@@ -78,7 +80,7 @@ Arguments concrets :
 ### Depuis l’application
 
 - Une page `/abonnement` affiche l’offre de l’équipe, les limites, l’échéance et le payeur.
-- Les boutons bloqués ouvrent une fenêtre courte expliquant la limite et renvoient vers cette page.
+- Après lancement uniquement, les outils sans essai ou Pass valide affichent un aperçu décoratif flouté et un message contextualisé, par exemple « Prends le Pass Équipe pour accéder aux reviews », avec accès au parcours d’abonnement. Aucun contenu protégé réel ne doit être chargé sous le flou.
 - Le bouton « Gérer la facturation » ouvre le portail client Stripe.
 - Le propriétaire peut mettre à jour la carte, télécharger ses factures ou résilier.
 
@@ -88,7 +90,7 @@ Arguments concrets :
 
 #### `/tarifs`
 
-- Deux cartes : Découverte, 30 jours sans carte bancaire, et Pass Équipe, 9,90 € TTC par mois et par équipe.
+- Deux cartes : Découverte, 14 jours sans carte bancaire, et Pass Équipe, 9,90 € TTC par mois et par équipe.
 - Prix TTC et durée de l’essai clairement affichés.
 - Lien « Plusieurs équipes ? Parlons de tes besoins » vers le formulaire, sans tarif annoncé.
 - Liste factuelle des fonctions incluses.
@@ -169,8 +171,8 @@ Cas à traiter :
 - quitter une équipe ne résilie jamais son abonnement ;
 - supprimer une équipe active demande d’abord une confirmation explicite et la résiliation ;
 - transférer la propriété ne transfère pas automatiquement le compte Stripe ;
-- une équipe expirée conserve ses données en lecture seule pendant 90 jours ;
-- après 90 jours, prévenir avant toute suppression conformément à la politique de conservation.
+- une équipe dont l’essai ou le Pass expire doit souscrire pour continuer à utiliser les outils, sans perdre l’accès aux fonctions de compte et aux droits sur les données ;
+- les données existantes ne sont pas supprimées à l’expiration ; leur conservation doit être précisée avant lancement et toute éventuelle suppression doit être annoncée conformément à cette politique.
 
 ## 7. Architecture de paiement
 
@@ -217,13 +219,13 @@ Stripe Checkout est recommandé pour l’achat et Stripe Customer Portal pour la
 - `source` ;
 - `valid_until` nullable.
 
-Une table d’entitlements évite de disperser les conditions `plan === ...` dans tout le code. Les 30 jours de Découverte sont enregistrés séparément côté NXT5 avec `team_id`, début et fin de validité, auteur du démarrage et audit. Ils ne nécessitent ni Customer Stripe ni carte bancaire. Le mensuel est le seul plan achetable ; les anciens codes manuels ne doivent pas être convertis automatiquement.
+Une table d’entitlements évite de disperser les conditions `plan === ...` dans tout le code. Les 14 jours de Découverte sont enregistrés séparément côté NXT5 avec `team_id`, début et fin de validité, auteur du démarrage et audit. Ils ne nécessitent ni Customer Stripe ni carte bancaire. Le mensuel est le seul plan achetable ; les anciens codes manuels ne doivent pas être convertis automatiquement.
 
 ### Fonctions serveur à ajouter
 
 - `billing-checkout-create` : vérifie le rôle, l’équipe et le `price_id`, puis crée Checkout.
 - `billing-portal-create` : crée une session Customer Portal.
-- `billing-trial-start` : démarre les 30 jours sans carte après contrôle du rôle et de l’éligibilité, avec dates serveur et idempotence.
+- `billing-trial-start` : démarre les 14 jours sans carte après contrôle du rôle et de l’éligibilité, avec dates serveur et idempotence.
 - `billing-status` : retourne le statut, la date de fin de l’essai éventuel et les droits de l’équipe.
 - `billing-invoices` : retourne les liens de factures autorisés.
 - `stripe-webhook` : vérifie la signature, enregistre l’événement puis met à jour la souscription.
@@ -248,36 +250,32 @@ Le webhook est la source de vérité pour les droits payants. Le retour navigate
 - `STRIPE_PORTAL_CONFIGURATION_ID` facultatif ;
 - `PUBLIC_SITE_URL`, déjà présent.
 
-## 8. Droits et expiration
+## 8. Droits et expiration — après lancement uniquement
 
-Les limites doivent être contrôlées côté serveur. Masquer un bouton dans React ne protège rien.
+Le catalogue et les composants actuels préparent la présentation ; `SUBSCRIPTION_RESTRICTIONS_ENABLED` reste fixé à `false` dans `src/app/pass-access.js`. Un flou dans React ne protège aucune donnée. Avant toute activation, les droits de l’équipe et les limites doivent être contrôlés côté serveur, y compris par appel direct aux API. Les attributions manuelles de profil ne prouvent pas qu’une équipe possède le Pass.
 
-Points de contrôle :
+| Périmètre après lancement | Essai de 14 jours ou Pass valide | Sans essai ni Pass valide |
+| --- | --- | --- |
+| Tous les outils de l’équipe, dont Champion Pool et les imports | Accès complet | Pass requis pour continuer |
+| Compte, sécurité, confidentialité et droits sur les données | Accessible | Accessible |
+| Souscription et régularisation de la facturation | Selon le rôle autorisé | Selon le rôle autorisé |
 
-- création d’équipe ;
-- ajout d’un membre ;
-- import d’une game ;
-- création de review ;
-- création de composition ;
-- accès à l’historique ;
-- export.
+Les 14 jours et le Pass donnent accès aux mêmes outils, sans quota commercial de dix imports. Les limites techniques contre les abus et les autorisations de rôle restent inchangées.
 
-Découverte et Pass Équipe ont les mêmes droits fonctionnels et la même limite de 15 membres. L’essai est limité dans le temps, sans anciens quotas réduits d’imports, de reviews ou de compositions.
+Découverte et Pass Équipe ont les mêmes droits fonctionnels et la même limite de 15 membres pendant l’essai valide. À l’expiration de l’essai ou de la période payée sans autre droit valide :
 
-À l’expiration de l’essai ou de la période payée :
-
-- ne supprimer aucune donnée immédiatement ;
-- conserver la consultation selon la durée de conservation décidée ;
-- bloquer les nouvelles écritures si aucun droit valide ne subsiste ;
-- permettre l’export et la suppression du compte ;
-- laisser l’accès à la facturation pour souscrire ou régulariser.
+- exiger le Pass pour continuer à utiliser les outils, y compris Champion Pool, planning, statistiques et roster ;
+- présenter l’aperçu flouté contextualisé, sans rendre les outils ou leurs données accessibles sous un simple filtre CSS ;
+- ne supprimer aucune donnée existante ni démarrer un nouvel essai implicitement ;
+- préserver les parcours de données personnelles, d’export RGPD, de confidentialité, de sécurité et de suppression du compte ;
+- laisser l’accès nécessaire à la facturation pour souscrire ou régulariser.
 
 ## 9. E-mails transactionnels
 
 - confirmation d’achat ;
 - facture disponible ;
 - paiement échoué, avec lien sécurisé vers le portail ;
-- confirmation de démarrage et rappel avant fin de l’essai de 30 jours ;
+- confirmation de démarrage et rappel avant fin de l’essai de 14 jours ;
 - confirmation de résiliation ;
 - rappel avant expiration ;
 - confirmation de passage de Découverte au mensuel ;
@@ -337,13 +335,13 @@ Calcul : arrondir au supérieur `coûts / (9,90 − (9,90 × 1,5 % + 0,25))`. Ce
 
 ### Premières équipes
 
-Proposer la même offre de lancement aux premières équipes : 30 jours d’accès complet sans carte, puis une souscription volontaire à 9,90 € TTC par mois. Organiser un retour produit pendant l’essai et après les premiers renouvellements. Aucun tarif fondateur distinct ni prix « à vie » n’est proposé.
+Proposer la même offre de lancement aux premières équipes : 14 jours d’accès complet sans carte, puis une souscription volontaire à 9,90 € TTC par mois. Organiser un retour produit pendant l’essai et après les premiers renouvellements. Aucun tarif fondateur distinct ni prix « à vie » n’est proposé.
 
 ### Vente directe
 
 - contacter des coachs, managers et structures amateur/semi-pro ;
 - faire une démonstration de 20 minutes avec leurs propres usages ;
-- accompagner le démarrage de l’essai de 30 jours sur leurs propres usages ;
+- accompagner le démarrage de l’essai de 14 jours sur leurs propres usages ;
 - demander un retour et l’autorisation d’utiliser un témoignage réel ;
 - suivre prospects, essais, refus et raisons de résiliation dans un tableau simple.
 
@@ -380,7 +378,7 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 - préparer la page Tarifs sans paiement en accès administrateur, puis ouvrir la collecte après une décision explicite ;
 - ajouter « Demander un accès » ou une liste d’attente ;
 - présenter l’offre à 10 équipes ;
-- tester le prix de 9,90 €, l’intérêt d’un essai de 30 jours et la personne qui paie ;
+- tester le prix de 9,90 €, l’intérêt d’un essai de 14 jours et la personne qui paie ;
 - obtenir au moins trois intentions d’achat avant l’intégration complète.
 
 ### Étape 2 — paiement minimum viable, une à deux semaines
@@ -390,7 +388,7 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 - ajouter les tables de facturation ;
 - implémenter Checkout, webhook, statut et portail ;
 - créer les quatre pages d’achat ;
-- protéger les droits et la limite de membres côté serveur ;
+- protéger côté serveur tous les outils de l’équipe, l’échéance de l’essai et la limite de membres applicable ;
 - tester achat, renouvellement, échec, résiliation et remboursement.
 
 ### Étape 3 — premières équipes, quatre semaines
@@ -417,9 +415,11 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 - une page de confirmation ouverte manuellement n’active rien ;
 - une résiliation garde l’accès jusqu’à l’échéance ;
 - un paiement échoué applique une période de grâce définie ;
-- l’essai expire après 30 jours sans prélèvement ni renouvellement automatique ;
+- l’essai expire après 14 jours sans prélèvement ni renouvellement automatique ;
 - un changement de propriétaire ne divulgue aucune facture ;
 - une équipe en essai garde les mêmes fonctions qu’une équipe payante et ne contourne ni l’échéance ni la limite de 15 membres via l’API ;
+- les imports au-delà de dix sont autorisés pendant l’essai et avec le Pass ; aucun niveau gratuit permanent n’est créé ;
+- sans essai ni Pass valide, tous les outils sont protégés contre les appels API directs ; les exports RGPD et la gestion du compte restent accessibles ;
 - les pages achat et facturation fonctionnent sur mobile ;
 - les montants, taxes et dates sont cohérents entre NXT5 et Stripe.
 
@@ -429,13 +429,13 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 2. Vente limitée à la France au lancement ou non.
 3. Prix affichés TTC ou HT selon la clientèle visée.
 4. Durée de grâce après paiement échoué, recommandation : sept jours.
-5. Conservation des données après expiration, recommandation : 90 jours en lecture seule.
+5. Durée de conservation des données après expiration, distincte de l’accès aux outils et avec maintien des droits sur les données.
 6. Politique de remboursement du mensuel.
-7. Déclenchement, éligibilité et traitement des équipes existantes pour l’essai de 30 jours.
+7. Déclenchement, éligibilité et traitement des équipes existantes pour l’essai de 14 jours.
 8. Date d’activation réelle du paiement et de l’essai, après validation commerciale.
 
 ## 17. Décision de lancement
 
-Retenir Découverte, 30 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Le lien destiné aux organisations possédant plusieurs équipes recueille leurs besoins sans prix ni engagement fonctionnel. Les autres formules sont hors du lancement.
+Retenir Découverte, 14 jours d’accès complet sans carte bancaire, puis Pass Équipe à 9,90 € TTC par mois et par équipe pour continuer à utiliser tous les outils. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu. Le lien destiné aux organisations possédant plusieurs équipes recueille leurs besoins sans prix ni engagement fonctionnel. Les autres formules sont hors du lancement.
 
 Le développement du paiement vient après des échanges réels et au moins trois intentions d’achat documentées pour le mensuel. Ce prix reste à tester ; la fidélité des premières équipes et les coûts observés permettront de décider de la suite. La présente révision ne démarre aucun essai, n’encaisse aucun paiement et conserve le périmètre administrateur de la prévisualisation.

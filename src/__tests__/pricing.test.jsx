@@ -3,6 +3,8 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { PROPOSED_PLANS } from "../app/pricing.js";
+import { getPassFeatureAccess } from "../app/pass-access.js";
+import { PassFeaturePreview } from "../components/subscriptions/PassFeatureGate.jsx";
 import PricingPage from "../pages/public/PricingPage.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -17,13 +19,13 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function render() {
+function render(user) {
   const focusInput = vi.fn();
   const focusStatus = vi.fn();
   const scrollIntoView = vi.fn();
   let renderer;
   act(() => {
-    renderer = TestRenderer.create(<PricingPage navigate={vi.fn()} />, {
+    renderer = TestRenderer.create(<PricingPage navigate={vi.fn()} user={user} />, {
       createNodeMock: (element) => element.props.id === "demande-acces"
         ? { scrollIntoView, querySelector: () => ({ focus: focusInput }) }
         : { focus: focusStatus, querySelector: () => null },
@@ -73,10 +75,10 @@ function submit(renderer) {
 }
 
 describe("commercial validation pricing page", () => {
-  it("presents a full 30-day trial and the launch monthly price without checkout or card fields", () => {
+  it("presents a full 14-day trial and the launch monthly price without checkout or card fields", () => {
     const { renderer } = render();
     expect(PROPOSED_PLANS.map((plan) => [plan.code, plan.price, plan.period])).toEqual([
-      ["free", "0 €", "pendant 30 jours"],
+      ["free", "0 €", "pendant 14 jours"],
       ["team_monthly", "9,90 €", "TTC / mois / équipe"],
     ]);
     const cards = renderer.root.findAllByType("article");
@@ -96,11 +98,42 @@ describe("commercial validation pricing page", () => {
     expect(page).toContain("Aperçu réservé à l’administrateur");
     expect(page).toContain("Aucun paiement aujourd’hui.");
     expect(page).toContain("Tes accès actuels restent inchangés.");
+    expect(page).toContain("le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5");
+    expect(page).not.toContain("30 jours");
     expect(page).not.toMatch(/Pass Saison|Pass Structure|29 €|169 €|79 €|5 imports de games au total/);
     expect(renderer.root.findAllByType("option").some((option) => option.props.value === "team_season")).toBe(false);
     expect(renderer.root.findAllByType("a").some((link) => /checkout|stripe|achat/.test(link.props.href))).toBe(false);
     expect(renderer.root.findAllByType("input").some((input) => /^cc-/.test(input.props.autoComplete))).toBe(false);
     expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, { is_platform_admin: false }, { is_platform_admin: "true" }])("does not expose the expired-trial simulation without an administrator identity (%j)", (user) => {
+    const { renderer } = render(user);
+    expect(renderer.root.findAllByProps({ "data-pass-preview": true })).toHaveLength(0);
+    expect(renderer.root.findAllByType(PassFeaturePreview)).toHaveLength(0);
+  });
+
+  it("lets an administrator preview tools and prepare a Pass request without changing access or starting billing", () => {
+    const { renderer, scrollIntoView, focusInput } = render({ is_platform_admin: true });
+    const preview = renderer.root.findByProps({ "data-pass-preview": true });
+    expect(preview.type).toBe("details");
+    expect(preview.props.open).not.toBe(true);
+    expect(content(preview)).toContain("Tous les outils restent accessibles actuellement");
+    expect(content(preview.findByType(PassFeaturePreview))).toContain("Tous les outils");
+
+    edit(renderer, "Outil à prévisualiser", "champion_pool");
+    expect(content(renderer.root.findByType(PassFeaturePreview))).toContain("faire évoluer les champion pools de ton équipe");
+    expect(getPassFeatureAccess("champion_pool")).toMatchObject({ allowed: true, requiresPass: false });
+    selectPlan(renderer, "Découverte");
+    edit(renderer, "Ton intérêt pour cette offre *", "yes");
+    act(() => renderer.root.findByType(PassFeaturePreview).findByType("button").props.onClick());
+    expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).props.value).toBe("team_monthly");
+    expect(renderer.root.findByProps({ label: "Ton intérêt pour cette offre *" }).props.value).toBe("");
+    expect(scrollIntoView).toHaveBeenLastCalledWith({ behavior: "auto", block: "start" });
+    expect(focusInput).toHaveBeenLastCalledWith({ preventScroll: true });
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
+    expect(getPassFeatureAccess("workspace")).toMatchObject({ allowed: true, requiresPass: false });
   });
 
   it.each([["Découverte", "free"], ["Pass Équipe", "team_monthly"]])("selects %s, brings the form into view and focuses its first field", (name, code) => {
