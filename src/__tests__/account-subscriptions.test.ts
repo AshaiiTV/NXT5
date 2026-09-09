@@ -51,7 +51,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 
 import administer from '../../netlify/functions/admin-account-subscriptions';
 import readOwn from '../../netlify/functions/account-subscription';
-import { serializeAccountSubscription, validateSubscriptionMutation } from '../../netlify/functions/_lib/account-subscriptions';
+import { serializeAccountSubscription, serializeSubscriptionHistory, validateSubscriptionMutation } from '../../netlify/functions/_lib/account-subscriptions';
 
 const adminId = '00000000-0000-4000-8000-000000000001';
 const userId = '00000000-0000-4000-8000-000000000002';
@@ -117,7 +117,7 @@ describe('manual account subscription authorization', () => {
 });
 
 describe('manual account subscription assignments', () => {
-  it.each(['free', 'team_monthly', 'team_season', 'structure'])('assigns %s to the account, audits it, and leaves roles, teams and users unchanged', async planCode => {
+  it.each(['free', 'team_monthly'])('assigns %s to the account, audits it, and leaves roles, teams and users unchanged', async planCode => {
     const usersBefore = (await state.db.query('select * from users order by id')).rows;
     const response = await save({ planCode, ...(planCode === 'free' ? { startsAt: null, endsAt: null } : {}) });
     expect(response.status).toBe(200);
@@ -125,7 +125,7 @@ describe('manual account subscription assignments', () => {
     const body = await response.json();
     expect(body.ok).toBe(true);
     expect(body.account).toMatchObject({ id: userId, name: 'Camille Coach', accountName: 'camille', email: 'camille@example.test' });
-    expect(body.account.subscription).toMatchObject({ planCode, effectivePlanCode: planCode, status: 'active', note: 'Accord privé', revision: 2, revokedAt: null });
+    expect(body.account.subscription).toMatchObject({ planCode, effectivePlanCode: planCode === 'free' ? null : planCode, status: planCode === 'free' ? 'pending' : 'active', note: 'Accord privé', revision: 2, revokedAt: null });
     expect(body.history).toHaveLength(1);
     expect(body.history[0]).toMatchObject({ action: 'assign', actorName: 'Admin NXT5', planCode, note: 'Accord privé' });
     expect(body.history[0].createdAt).toBeTruthy();
@@ -146,21 +146,41 @@ describe('manual account subscription assignments', () => {
     expect(account.subscription.status).toBe('active');
   });
 
-  it('starts with active Discovery and falls back to free outside the assigned validity', async () => {
-    expect((await detail()).account.subscription).toMatchObject({ status: 'active', planCode: 'free', effectivePlanCode: 'free', revision: 1, note: '', startsAt: null, endsAt: null, revokedAt: null });
+  it('starts Discovery only when explicitly dated and computes its exact fourteen-day expiry', async () => {
+    const startsAt = new Date(Date.now() - 60_000).toISOString();
+    const endsAt = new Date(Date.parse(startsAt) + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const response = await save({ planCode: 'free', startsAt, endsAt: undefined });
+    expect(response.status).toBe(200);
+    const { account, history } = await response.json();
+    expect(account.subscription).toMatchObject({ planCode: 'free', effectivePlanCode: 'free', status: 'active', startsAt, endsAt, revision: 2 });
+    expect(history[0]).toMatchObject({ action: 'assign', planCode: 'free', startsAt, endsAt });
+    expect((await (await readOwn(request(), context)).json()).subscription).toMatchObject({ startsAt, endsAt, status: 'active' });
+  });
+
+  it('can leave Discovery pending or explicitly schedule it across a daylight-saving change', async () => {
+    const pending = await (await save({ planCode: 'free', startsAt: undefined, endsAt: undefined })).json();
+    expect(pending.account.subscription).toMatchObject({ status: 'pending', startsAt: null, endsAt: null, effectivePlanCode: null });
+    const scheduled = await (await save({ expectedRevision: 2, planCode: 'free', startsAt: '2090-03-20T12:00:00+01:00', endsAt: undefined })).json();
+    expect(scheduled.account.subscription).toMatchObject({ status: 'scheduled', startsAt: '2090-03-20T11:00:00.000Z', endsAt: '2090-04-03T11:00:00.000Z', effectivePlanCode: null });
+    const explicitEnd = validateSubscriptionMutation({ ...assignment, planCode: 'free', startsAt: '2026-03-20T12:00:00+01:00', endsAt: '2026-04-03T13:00:00+02:00' });
+    expect(explicitEnd.endsAt).toBe('2026-04-03T11:00:00.000Z');
+  });
+
+  it('keeps Discovery pending and never falls back to permanent free outside the assigned validity', async () => {
+    expect((await detail()).account.subscription).toMatchObject({ status: 'pending', planCode: 'free', effectivePlanCode: null, revision: 1, note: '', startsAt: null, endsAt: null, revokedAt: null });
     await save({ startsAt: '2090-01-01T00:00:00Z', endsAt: null });
-    expect((await detail()).account.subscription).toMatchObject({ status: 'scheduled', effectivePlanCode: 'free' });
+    expect((await detail()).account.subscription).toMatchObject({ status: 'scheduled', effectivePlanCode: null });
     await save({ expectedRevision: 2, startsAt: '2000-01-01T00:00:00Z', endsAt: '2001-01-01T00:00:00Z' });
-    expect((await detail()).account.subscription).toMatchObject({ status: 'expired', effectivePlanCode: 'free' });
+    expect((await detail()).account.subscription).toMatchObject({ status: 'expired', effectivePlanCode: null });
   });
 
   it('still handles an unassigned legacy account and rejects competing initial assignments', async () => {
     await state.db.query('delete from account_subscriptions where user_id = $1', [userId]);
-    expect((await detail()).account.subscription).toMatchObject({ status: 'none', planCode: 'free', effectivePlanCode: 'free', revision: 0, note: '' });
+    expect((await detail()).account.subscription).toMatchObject({ status: 'none', planCode: 'free', effectivePlanCode: null, revision: 0, note: '' });
     expect((await save({ expectedRevision: 0 })).status).toBe(200);
     const before = await detail();
     expect(before.account.subscription).toMatchObject({ planCode: 'team_monthly', status: 'active', revision: 1 });
-    expect((await save({ expectedRevision: 0, planCode: 'structure' })).status).toBe(409);
+    expect((await save({ expectedRevision: 0, planCode: 'team_monthly' })).status).toBe(409);
     expect(await detail()).toEqual(before);
   });
 
@@ -168,19 +188,19 @@ describe('manual account subscription assignments', () => {
     await save({ startsAt: '2090-01-01T00:00:00Z', endsAt: null });
     const response = await administer(request({ action: 'revoke', userId, note: 'Retiré par le staff', expectedRevision: 2 }), context);
     const body = await response.json();
-    expect(body.account.subscription).toMatchObject({ planCode: 'team_monthly', effectivePlanCode: 'free', status: 'revoked', revision: 3, note: 'Retiré par le staff' });
+    expect(body.account.subscription).toMatchObject({ planCode: 'team_monthly', effectivePlanCode: null, status: 'revoked', revision: 3, note: 'Retiré par le staff' });
     expect(body.account.subscription.revokedAt).toBeTruthy();
     expect(body.history[0]).toMatchObject({ action: 'revoke', note: 'Retiré par le staff', planCode: 'team_monthly' });
     expect(body.history[1]).toMatchObject({ action: 'assign', note: 'Accord privé' });
-    const reassigned = await (await save({ expectedRevision: 3, planCode: 'structure' })).json();
-    expect(reassigned.account.subscription).toMatchObject({ planCode: 'structure', status: 'active', revokedAt: null, revision: 4 });
+    const reassigned = await (await save({ expectedRevision: 3, planCode: 'team_monthly' })).json();
+    expect(reassigned.account.subscription).toMatchObject({ planCode: 'team_monthly', status: 'active', revokedAt: null, revision: 4 });
     expect(reassigned.history).toHaveLength(3);
   });
 
   it('rejects a stale revision when replacing Discovery and does not add audit events', async () => {
     await save();
     const before = await detail();
-    const conflict = await save({ planCode: 'structure' });
+    const conflict = await save({ planCode: 'team_monthly' });
     expect(conflict.status).toBe(409);
     expect(await conflict.json()).toMatchObject({ code: 'SUBSCRIPTION_CONFLICT' });
     expect(await detail()).toEqual(before);
@@ -191,11 +211,11 @@ describe('manual account subscription assignments', () => {
   it('detects a change immediately before the transaction without overwriting it', async () => {
     await save();
     state.beforeBatch = async () => {
-      expect((await save({ planCode: 'structure', note: 'Autre onglet', expectedRevision: 2 })).status).toBe(200);
+      expect((await save({ planCode: 'team_monthly', note: 'Autre onglet', expectedRevision: 2 })).status).toBe(200);
     };
-    expect((await save({ planCode: 'team_season', expectedRevision: 2 })).status).toBe(409);
+    expect((await save({ planCode: 'team_monthly', expectedRevision: 2 })).status).toBe(409);
     const current = await detail();
-    expect(current.account.subscription).toMatchObject({ planCode: 'structure', note: 'Autre onglet', revision: 3 });
+    expect(current.account.subscription).toMatchObject({ planCode: 'team_monthly', note: 'Autre onglet', revision: 3 });
     expect(current.history).toHaveLength(2);
   });
 
@@ -216,12 +236,15 @@ describe('manual account subscription assignments', () => {
   });
 
   it.each([
-    { planCode: 'enterprise' }, { planCode: 'founder_monthly' }, { userId: 'not-a-uuid' },
+    { planCode: 'enterprise' }, { planCode: 'founder_monthly' }, { planCode: 'team_season' }, { planCode: 'structure' }, { userId: 'not-a-uuid' },
     { expectedRevision: undefined }, { expectedRevision: -1 }, { expectedRevision: '0' }, { expectedRevision: 0.5 },
     { startsAt: '2026-02-30T12:00:00Z' }, { startsAt: '2026-02-29T12:00:00Z' },
     { startsAt: '2026-09-08T25:00:00Z' }, { startsAt: '2026-09-08T12:00:00' },
     { endsAt: 'bad' }, { endsAt: '2000-01-01T00:00:00Z' }, { endsAt: '1999-01-01T00:00:00Z' },
-    { planCode: 'free' }, { note: 'x'.repeat(1001) }, { note: 1 }, { note: 'invalid\0note' },
+    { planCode: 'free' }, { planCode: 'free', startsAt: null },
+    { planCode: 'free', startsAt: '2026-03-20T12:00:00+01:00', endsAt: '2026-04-03T12:00:00+02:00' },
+    { planCode: 'free', startsAt: '2026-09-01T00:00:00Z', endsAt: '2026-09-16T00:00:00Z' },
+    { note: 'x'.repeat(1001) }, { note: 1 }, { note: 'invalid\0note' },
     { isPlatformAdmin: true }, { teamId: userId }, { status: 'active' }, { action: 'delete' }
   ])('validates assignment fields before business database access: %j', async change => {
     expect((await save(change)).status).toBe(400);
@@ -271,7 +294,7 @@ describe('subscription reads and privacy', () => {
 
   it('projects only the authenticated account and never exposes private notes, history or actors', async () => {
     await save();
-    await save({ userId: otherId, planCode: 'structure', note: 'Autre note secrète' });
+    await save({ userId: otherId, planCode: 'team_monthly', note: 'Autre note secrète' });
     const response = await readOwn(request(undefined, `?userId=${otherId}`), context);
     const body = await response.json();
     expect(body.subscription).toMatchObject({ planCode: 'team_monthly', status: 'active', revision: 2 });
@@ -281,19 +304,28 @@ describe('subscription reads and privacy', () => {
     expect(JSON.stringify(body)).not.toContain('privé');
     expect(JSON.stringify(body)).not.toContain('Admin NXT5');
     state.auth.mockResolvedValue({ id: adminId });
-    expect((await (await readOwn(request(), context)).json()).subscription).toMatchObject({ status: 'active', effectivePlanCode: 'free', revision: 1 });
+    expect((await (await readOwn(request(), context)).json()).subscription).toMatchObject({ status: 'pending', effectivePlanCode: null, revision: 1 });
   });
 });
 
 describe('subscription validity boundaries', () => {
-  it('uses an inclusive start, exclusive end and gives withdrawal priority', () => {
-    const starts = '2026-09-01T00:00:00Z', ends = '2026-10-01T00:00:00Z';
-    const row = { plan_code: 'team_season', starts_at: starts, ends_at: ends, revision: 1 };
+  it.each(['free', 'team_monthly'])('uses an inclusive start, exclusive end and gives withdrawal priority for %s', planCode => {
+    const starts = '2026-09-01T00:00:00Z', ends = '2026-09-15T00:00:00Z';
+    const row = { plan_code: planCode, starts_at: starts, ends_at: ends, revision: 1 };
     expect(serializeAccountSubscription(row, false, Date.parse(starts) - 1).status).toBe('scheduled');
     expect(serializeAccountSubscription(row, false, Date.parse(starts)).status).toBe('active');
-    expect(serializeAccountSubscription(row, false, Date.parse(ends) - 1).effectivePlanCode).toBe('team_season');
-    expect(serializeAccountSubscription(row, false, Date.parse(ends))).toMatchObject({ status: 'expired', effectivePlanCode: 'free' });
+    expect(serializeAccountSubscription(row, false, Date.parse(ends) - 1).effectivePlanCode).toBe(planCode);
+    expect(serializeAccountSubscription(row, false, Date.parse(ends))).toMatchObject({ status: 'expired', effectivePlanCode: null });
     expect(serializeAccountSubscription({ ...row, revoked_at: starts }, false, Date.parse(starts) - 1).status).toBe('revoked');
+    expect(serializeAccountSubscription({ plan_code: 'free', starts_at: null, ends_at: null, revoked_at: starts }, false, Date.parse(starts))).toMatchObject({ status: 'revoked', effectivePlanCode: null });
+  });
+
+  it('identifies system catalogue migrations while preserving historical plan codes', () => {
+    const migration = serializeSubscriptionHistory({ id: 'event', action: 'account_subscription.migrate', actor_name: null,
+      metadata: { previousPlanCode: 'team_season', planCode: 'team_monthly', startsAt: '2026-09-01T00:00:00Z', endsAt: null } });
+    expect(migration).toMatchObject({ action: 'migrate', actorName: 'Migration du catalogue', previousPlanCode: 'team_season', planCode: 'team_monthly', startsAt: '2026-09-01T00:00:00.000Z', endsAt: null });
+    expect(serializeSubscriptionHistory({ action: 'account_subscription.assign', metadata: { planCode: 'structure' } }))
+      .toMatchObject({ action: 'assign', actorName: 'Administrateur supprimé', planCode: 'structure' });
   });
 
   it('preserves a revocation note when no replacement was supplied', async () => {

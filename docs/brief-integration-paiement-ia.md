@@ -4,11 +4,11 @@ Copier tout le contenu de ce document dans une nouvelle tâche de développement
 
 ---
 
-Ce brief prépare une étape de développement ultérieure ; il n’active rien à lui seul. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation de lancement présente deux cartes : Découverte, 14 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Ce prix est une hypothèse à valider. Le lien « Plusieurs équipes ? Parlons de tes besoins » recueille les besoins d’une organisation, sans tarif annoncé ni promesse de fonctions multi-équipes. Aucun essai chronométré, paiement ou quota commercial n’est actuellement activé ; les accès actuels restent inchangés. L’ouverture publique, l’essai et Stripe décrits ci-dessous relèvent d’une future mission expressément lancée.
+Ce brief prépare une étape de développement ultérieure ; il n’active rien à lui seul. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation de lancement présente deux cartes : Découverte, 14 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Ce prix est une hypothèse à valider. Le lien « Plusieurs équipes ? Parlons de tes besoins » recueille les besoins d’une organisation, sans tarif annoncé ni promesse de fonctions multi-équipes. Aucun essai d’équipe, paiement ou quota commercial n’est actuellement activé ; les accès actuels restent inchangés. L’ouverture publique, l’essai d’équipe et Stripe décrits ci-dessous relèvent d’une future mission expressément lancée.
 
 La décision du 9 septembre 2026 porte sur **tous les outils** : accès complet pendant 14 jours, puis Pass Équipe nécessaire pour continuer. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu ; Champion Pool suit cette règle commune. Le [composant préparé pour les accès Pass](pass-feature-access.md) reste dormant avec `SUBSCRIPTION_RESTRICTIONS_ENABLED = false`. **Ne bloquer aucune fonction tant que les abonnements ne sont pas lancés.** Avant d’activer les restrictions, implémenter et vérifier les dates d’essai, les droits par équipe et les contrôles serveur ; changer cette constante ne suffit pas.
 
-Les [abonnements manuels des profils](abonnements-manuels.md) sont également intégrés : l’administrateur peut attribuer les codes historiques Découverte, Pass Équipe, Pass Saison ou Pass Structure à un compte, avec dates, retrait et audit. Ces attributions persistantes ne sont pas des souscriptions Stripe et ne modifient pas encore les quotas produit. Préserve-les et leur historique. Pass Saison, Pass Structure, annuel et fondateur sont hors du catalogue de lancement : leur éventuelle présence dans les API ou données historiques n’autorise pas leur vente. La présente mission porte sur la facturation des équipes ; définis explicitement sa coexistence avec les abonnements de profils avant tout calcul de droits, sans conversion automatique ni rattachement présumé.
+Les [abonnements manuels des profils](abonnements-manuels.md) sont également intégrés et alignés sur le catalogue actuel : seuls Découverte (`free`) et Pass Équipe (`team_monthly`) peuvent être attribués. Une Découverte sans dates reste `pending`, sans essai démarré. L’administrateur peut choisir explicitement un début ; le serveur calcule alors une fin exactement 14 × 24 heures plus tard. Tout statut autre qu’`active` a un `effectivePlanCode` nul, sans retour à un gratuit permanent. La migration du catalogue convertit les attributions Saison et Structure en Pass Équipe en conservant dates, notes, retraits et historique, avec un événement d’audit et une nouvelle révision. Elle ne modifie pas les demandes commerciales historiques. Ces attributions personnelles ne sont pas des souscriptions Stripe et ne changent aucun accès produit avant lancement. Préserve leur état et leur audit. La présente mission porte sur la facturation des équipes ; définis explicitement sa coexistence avec les abonnements de profils avant tout calcul de droits, sans conversion automatique en souscription d’équipe ni rattachement présumé.
 
 ## Mission
 
@@ -63,7 +63,7 @@ La facturation en ligne décrite ici appartient à l’équipe. Le capitaine ou 
 - aucun prélèvement ni abonnement payant automatique à la fin ;
 - Pass Équipe nécessaire pour continuer à utiliser les outils après expiration ; conservation des données selon la politique retenue, sans accès gratuit permanent aux outils.
 
-Le code `free` reste utile pour la compatibilité du catalogue et des demandes. Il désigne ici une découverte limitée à 14 jours, pas un plan gratuit permanent. Représente distinctement les états non démarré, en essai et expiré. Une demande commerciale et une attribution manuelle à un profil ne démarrent jamais cet essai à elles seules. La règle d’éligibilité, le point de départ exact et le traitement des équipes déjà présentes sont à décider avant activation réelle.
+Le code `free` reste utile pour la compatibilité du catalogue et des demandes. Il désigne ici une découverte limitée à 14 jours, pas un plan gratuit permanent. Représente distinctement les états non démarré, en essai et expiré. Une demande commerciale et une attribution manuelle à un profil ne démarrent jamais cet essai d’équipe à elles seules, même si l’administrateur a daté la Découverte personnelle. La règle d’éligibilité, le point de départ exact et le traitement des équipes déjà présentes sont à décider avant activation réelle.
 
 ### Pass Équipe — `team_monthly`
 
@@ -78,7 +78,7 @@ Le mensuel est la seule offre achetable au lancement. Ne crée aucun produit, Pr
 
 ### Besoins de plusieurs équipes — code de demande `structure`
 
-Conserve le lien « Plusieurs équipes ? Parlons de tes besoins » et le formulaire de qualification, sans montant ni engagement sur des fonctions à développer. Le code `structure` reste un choix de contact et un code historique d’attribution manuelle de profil ; il n’est ni un plan de facturation ni une autorisation multi-équipe.
+Conserve le lien « Plusieurs équipes ? Parlons de tes besoins » et le formulaire de qualification, sans montant ni engagement sur des fonctions à développer. Le code `structure` reste un choix de contact et peut figurer dans l’historique des attributions de profil. Il ne peut plus être attribué à un profil et n’est ni un plan de facturation ni une autorisation multi-équipe.
 
 Préserve les demandes et leurs notes, y compris leurs anciennes offres. Ne convertis pas automatiquement une demande Structure en souscription ou en droit. Une éventuelle offre pour plusieurs équipes fera l’objet d’une décision séparée, après validation des besoins ; ses fonctions ne sont pas à construire dans cette mission.
 
@@ -163,7 +163,7 @@ created_at timestamptz not null default now()
 updated_at timestamptz not null default now()
 ```
 
-Contrainte `plan_code` des nouvelles souscriptions Stripe : `team_monthly`. Les codes historiques des abonnements manuels restent dans leur modèle existant.
+Contrainte `plan_code` des nouvelles souscriptions Stripe : `team_monthly`. Le modèle personnel `account_subscriptions` conserve seulement `free` et `team_monthly` ; les anciens codes restent lisibles dans son audit, séparément des souscriptions Stripe.
 
 Contrainte `status` compatible avec les statuts utiles de Stripe : `incomplete`, `incomplete_expired`, `trialing`, `active`, `past_due`, `canceled`, `unpaid`, `paused`.
 
@@ -181,7 +181,7 @@ created_at timestamptz not null default now()
 check (ends_at > started_at)
 ```
 
-Adapter la clé utilisateur à la convention réelle du dépôt. Enregistrer une durée exacte de 14 jours et un événement d’audit lors du démarrage. Un retry ne doit ni doubler ni prolonger l’essai. Ne créer aucune ligne à partir d’une simple visite, demande commerciale ou attribution manuelle. Les règles anti-réinitialisation et la migration éventuelle des équipes existantes doivent être décidées explicitement avant activation.
+Adapter la clé utilisateur à la convention réelle du dépôt. Enregistrer une durée exacte de 14 jours et un événement d’audit lors du démarrage. Un retry ne doit ni doubler ni prolonger l’essai. Ne créer aucune ligne `team_trials` à partir d’une simple visite, demande commerciale ou attribution manuelle de profil, y compris une Découverte personnelle datée. Les règles anti-réinitialisation et la migration éventuelle des équipes existantes doivent être décidées explicitement avant activation.
 
 ### Table `billing_events`
 
@@ -604,7 +604,7 @@ Pour le rappel de fin d’essai, utiliser une Scheduled Function quotidienne ou 
 - revenu encaissé sur 30 jours si calculable proprement ;
 - répartition par plan.
 
-Ne présente pas une estimation comme un montant comptable. N’affiche pas d’adresse complète, données de carte ou informations inutiles. La section de facturation en lecture seule ne remplace pas **Profils et abonnements**, qui conserve ses fonctions d’attribution et de retrait. Préserve les notes privées, les révisions et l’audit des abonnements manuels de profils, y compris leurs validités sans date de fin. Toute nouvelle dérogation aux droits d’une équipe doit avoir motif, auteur, date de fin et audit.
+Ne présente pas une estimation comme un montant comptable. N’affiche pas d’adresse complète, données de carte ou informations inutiles. La section de facturation en lecture seule ne remplace pas **Profils et abonnements**, qui conserve ses fonctions d’attribution et de retrait. Préserve les notes privées, les révisions et l’audit des abonnements manuels de profils, y compris les validités de Pass sans date de fin et les Découvertes préparées sans dates. Une Découverte démarrée garde sa durée exacte de 14 jours. Toute nouvelle dérogation aux droits d’une équipe doit avoir motif, auteur, date de fin et audit.
 
 ## Analytics respectueux des données
 
@@ -698,7 +698,7 @@ Mocke Stripe : aucun test automatisé ne doit contacter l’API réelle.
 - données existantes conservées ; parcours de compte, de sécurité, de confidentialité, d’export RGPD et de suppression du compte accessibles ;
 - un nouveau navigateur, un retry ou un changement de propriétaire ne remet pas les dates à zéro ;
 - appel direct API refusé comme l’interface lorsqu’aucun droit n’est valide ;
-- aucune demande commerciale ou attribution manuelle de profil ne démarre implicitement l’essai.
+- aucune demande commerciale ou attribution manuelle de profil ne démarre implicitement l’essai d’équipe.
 
 ### Tests React
 
@@ -805,7 +805,7 @@ La mission est terminée seulement si :
 
 - les pages `/tarifs`, `/achat`, `/achat/confirme`, `/achat/annule`, `/abonnement` et `/conditions-vente` sont accessibles selon leurs règles ;
 - les deux cartes s’affichent correctement : Découverte, 14 jours d’accès complet sans carte, et Pass Équipe à 9,90 € TTC/mois/équipe ;
-- le lien pour plusieurs équipes conserve le recueil de besoins sans prix ; les codes et attributions manuelles historiques sont préservés sans Checkout ni fonctions multi-équipes ajoutées ;
+- le lien pour plusieurs équipes conserve le recueil de besoins sans prix ; les codes des demandes commerciales et l’audit des anciennes attributions sont préservés sans Checkout ni fonctions multi-équipes ajoutées ;
 - les attributions manuelles de profils, leurs dates et leur audit sont préservés, sans conversion automatique en souscriptions d’équipe ;
 - Checkout Test fonctionne pour le mensuel uniquement ;
 - le webhook signé est idempotent ;

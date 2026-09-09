@@ -38,7 +38,7 @@ Le futur essai doit permettre d’éprouver le produit sur plusieurs sessions. S
 
 Le lien « Plusieurs équipes ? Parlons de tes besoins » mène au formulaire d’échange, avec le choix Structure. Aucun prix ni fonction multi-équipe à venir n’est promis. Ce parcours sert à comprendre le nombre d’équipes, leur organisation et leurs besoins avant de définir une éventuelle offre.
 
-Pass Saison, Pass Structure, annuel et tarif fondateur sont retirés de la commercialisation de lancement. Les codes et attributions manuelles historiques sont conservés pour compatibilité ; ils ne constituent ni de nouvelles offres achetables ni des droits Stripe.
+Pass Saison, Pass Structure, annuel et tarif fondateur sont retirés de la commercialisation de lancement. Les codes des demandes commerciales et l’historique des attributions restent conservés. Les [abonnements manuels des profils](abonnements-manuels.md) utilisent désormais seulement Découverte et le Pass Équipe : les anciennes attributions Saison et Structure sont converties en Pass Équipe avec leurs dates, notes et retraits préservés, sans paiement ni droit Stripe.
 
 ## 3. Positionnement commercial
 

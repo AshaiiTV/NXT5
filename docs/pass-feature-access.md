@@ -1,6 +1,6 @@
 # NXT5 — préparation des accès Découverte et Pass Équipe
 
-Décision du 9 septembre 2026. Cette préparation n’active aucun abonnement, essai chronométré, paiement ou blocage. **Tous les accès actuels restent inchangés avant lancement**, selon les rôles et autorisations existants.
+Décision du 9 septembre 2026. Cette préparation n’active aucun abonnement d’équipe, essai d’équipe, paiement ou blocage. **Tous les accès actuels restent inchangés avant lancement**, selon les rôles et autorisations existants. Les attributions manuelles des profils restent un parcours administratif distinct.
 
 ## Offre retenue
 
@@ -46,7 +46,7 @@ Le flou est une présentation, pas une protection des données. **Ne pas activer
 4. Un raccordement du navigateur aux droits serveur, avec états de chargement, erreur, absence d’équipe, essai actif, Pass actif et expiration. Ne pas charger les données protégées avant autorisation et ne pas se fier à une date ou à un statut modifiable côté navigateur.
 5. Le parcours de souscription, le traitement des webhooks, l’expiration et la conservation des données, puis une recette complète avant une décision explicite de lancement.
 
-L’architecture du paiement à développer est détaillée dans le [brief d’intégration](brief-integration-paiement-ia.md). Cette livraison ne crée aucun de ces nouveaux contrôles serveur et ne modifie pas les règles des abonnements manuels.
+L’architecture du paiement à développer est détaillée dans le [brief d’intégration](brief-integration-paiement-ia.md). Aucun de ces nouveaux contrôles d’accès serveur n’est activé. Le [catalogue des abonnements manuels](abonnements-manuels.md) est aligné sur Découverte et le Pass Équipe : une Découverte de profil peut être préparée sans dates ou datée explicitement sur 14 jours, mais elle ne démarre aucun essai d’équipe et ne change pas les droits de cet espace.
 
 ## Vérifications
 

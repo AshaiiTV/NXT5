@@ -9,7 +9,7 @@ import { Button, TextInput } from "../components/ui/Core.jsx";
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 const cleanups = [];
 beforeEach(() => {
-  vi.stubGlobal("window", { location: new URL("https://nxt5.test/equipes"), history: { pushState: (_state, _title, path) => { window.location = new URL(path, window.location); } }, dispatchEvent: vi.fn(), scrollTo: vi.fn(), localStorage: { getItem: () => "full" } });
+  vi.stubGlobal("window", { location: new URL("https://nxt5.test/equipes"), history: { pushState: (_state, _title, path) => { window.location = new URL(path, window.location); } }, addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(), scrollTo: vi.fn(), localStorage: { getItem: () => "full" } });
 });
 afterEach(() => { cleanups.splice(0).forEach((fn) => fn()); vi.clearAllMocks(); vi.unstubAllGlobals(); });
 
@@ -60,7 +60,7 @@ describe("joining and creating another team", () => {
 describe("email change reauthentication", () => {
   it("requires the current password only when the email changes and clears it on success", async () => {
     const user = { id: "u1", name: "Joueur", email: "old@example.com", email_verified: true };
-    apiFetch.mockResolvedValueOnce({ subscription: { planCode: "free", effectivePlanCode: "free", status: "none" } });
+    apiFetch.mockResolvedValueOnce({ subscription: { planCode: "free", effectivePlanCode: null, status: "none" } });
     const renderer = await render(<AccountSettings user={user} data={{}} onUserUpdate={vi.fn()} pushToast={vi.fn()} />);
     const emailPassword = () => renderer.root.findAllByType(TextInput).filter((field) => field.props.label === "Mot de passe actuel pour modifier l’e-mail");
     expect(emailPassword()).toHaveLength(0);

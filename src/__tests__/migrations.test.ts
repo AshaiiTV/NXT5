@@ -71,20 +71,104 @@ describe('controlled database migrations', () => {
     const insert = 'insert into account_subscriptions(user_id, plan_code, starts_at, ends_at, note, revision) values ($1,$2,$3,$4,$5,$6)';
     for (const values of [
       ['unknown', null, null, '', 1], ['team_monthly', null, null, '', 1],
-      ['free', '2026-09-01', null, '', 1], ['team_season', '2026-09-01', '2026-09-01', '', 1],
-      ['structure', '2026-09-02', '2026-09-01', '', 1], ['free', null, null, 'x'.repeat(1001), 1],
+      ['free', '2026-09-01', null, '', 1], ['free', null, '2026-09-15', '', 1],
+      ['free', '2026-09-01', '2026-09-16', '', 1],
+      ['team_season', '2026-09-01', '2026-10-01', '', 1],
+      ['structure', '2026-09-01', null, '', 1], ['free', null, null, 'x'.repeat(1001), 1],
       ['free', null, null, '', 0]
     ]) await expect(db.query(insert, [userId, ...values])).rejects.toMatchObject({ code: '23514' });
     await expect(db.query(insert, ['00000000-0000-4000-8000-000000000099', 'free', null, null, '', 1])).rejects.toMatchObject({ code: '23503' });
     await db.query(insert, [userId, 'free', null, null, '🙂'.repeat(1000), 1]);
     expect((await db.query('select plan_code, char_length(note) as length from account_subscriptions')).rows).toEqual([{ plan_code: 'free', length: 1000 }]);
+    await db.exec("set time zone 'Europe/Paris'");
+    await db.query("update account_subscriptions set starts_at = '2026-03-20T12:00:00+01:00', ends_at = '2026-04-03T13:00:00+02:00' where user_id = $1", [userId]);
+    await expect(db.query("update account_subscriptions set ends_at = '2026-04-03T12:00:00+02:00' where user_id = $1", [userId])).rejects.toMatchObject({ code: '23514' });
+  });
+
+  it('migrates retired account plans with exact validity and attribution preservation, a new audit and no automatic trial start', async () => {
+    const { db, client, migrations } = await fixture();
+    const key = 'account-subscriptions-catalog-20260909-v1';
+    const throughCatalog = migrations.slice(0, migrations.findIndex(migration => migration.key === key) + 1);
+    await applyMigrations(client, throughCatalog.slice(0, -1));
+    const adminId = '00000000-0000-4000-8000-000000000001';
+    await db.query("insert into users(id, account_name, name, password_hash) values ($1, 'catalog-admin', 'Admin', 'hash')", [adminId]);
+    let sequence = 10;
+    const convertedIds: string[] = [];
+    for (const plan of ['team_monthly', 'team_season', 'structure']) {
+      for (const status of ['active', 'scheduled', 'expired', 'revoked']) {
+        const id = `00000000-0000-4000-8000-${String(sequence++).padStart(12, '0')}`;
+        await db.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $2, $3)', [id, `${plan}-${status}`, 'hash']);
+        await db.query(`update account_subscriptions set plan_code = $2, starts_at = $3, ends_at = $4, revoked_at = $5,
+          note = $6, updated_by = $7, revision = 17, updated_at = '2026-08-31T12:34:56.123456Z' where user_id = $1`, [
+          id, plan, status === 'scheduled' ? '2090-09-01T09:15:30.123456Z' : '2000-09-01T09:15:30.123456Z',
+          status === 'expired' ? '2001-09-01T10:15:30.654321Z' : status === 'active' ? null : '2099-09-01T10:15:30.654321Z',
+          status === 'revoked' ? '2026-09-07T11:22:33.123456Z' : null, `Conserver ${plan} / ${status} 🙂`, adminId
+        ]);
+        await db.query(`insert into audit_logs(user_id, action, entity_type, entity_id, metadata, created_at)
+          values ($1, 'account_subscription.assign', 'account_subscription', $2, jsonb_build_object('planCode', $3::text), '2026-08-31T12:34:56.123456Z')`, [adminId, id, plan]);
+        if (plan !== 'team_monthly') convertedIds.push(id);
+      }
+    }
+    await db.query("insert into teams(owner_id, name, tag) values ($1, 'Équipe préservée', 'NXT')", [adminId]);
+    const exactStateQuery = `select user_id, plan_code, revision, (to_jsonb(s) - 'plan_code' - 'revision' - 'updated_at')::text as state
+      from account_subscriptions s order by user_id`;
+    const before = (await db.query(exactStateQuery)).rows as any[];
+    const untouchedQuery = 'select row_to_json(s)::text as exact_row from account_subscriptions s where user_id <> all($1::uuid[]) order by user_id';
+    const untouchedBefore = (await db.query(untouchedQuery, [convertedIds])).rows;
+    const auditBefore = (await db.query('select row_to_json(a)::text as exact_row from audit_logs a order by id')).rows;
+    const usersBefore = (await db.query('select * from users order by id')).rows;
+    const teamsBefore = (await db.query('select * from teams order by id')).rows;
+
+    expect(await applyMigrations(client, throughCatalog)).toEqual([key]);
+    expect((await db.query(exactStateQuery)).rows).toEqual(before.map(row => convertedIds.includes(row.user_id)
+      ? { ...row, plan_code: 'team_monthly', revision: row.revision + 1 } : row));
+    expect((await db.query(untouchedQuery, [convertedIds])).rows).toEqual(untouchedBefore);
+    expect((await db.query("select row_to_json(a)::text as exact_row from audit_logs a where action <> 'account_subscription.migrate' order by id")).rows).toEqual(auditBefore);
+    expect((await db.query('select * from users order by id')).rows).toEqual(usersBefore);
+    expect((await db.query('select * from teams order by id')).rows).toEqual(teamsBefore);
+    const audit = (await db.query("select * from audit_logs where action = 'account_subscription.migrate' order by entity_id")).rows as any[];
+    expect(audit).toHaveLength(convertedIds.length);
+    for (const event of audit) {
+      const original = before.find(row => row.user_id === event.entity_id);
+      expect(event).toMatchObject({ user_id: null, entity_type: 'account_subscription', metadata: {
+        previousPlanCode: original.plan_code, planCode: 'team_monthly', previousRevision: 17, revision: 18, migrationKey: key
+      } });
+      expect(event.metadata.startsAt).toContain('.123456');
+    }
+    expect((await db.query('select plan_code, starts_at, ends_at from account_subscriptions where user_id = $1', [adminId])).rows)
+      .toEqual([{ plan_code: 'free', starts_at: null, ends_at: null }]);
+
+    const allBeforeRetry = (await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s order by user_id')).rows;
+    expect(await applyMigrations(client, throughCatalog)).toEqual([]);
+    await db.exec(throughCatalog.at(-1)!.sql);
+    expect((await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s order by user_id')).rows).toEqual(allBeforeRetry);
+    expect((await db.query("select * from audit_logs where action = 'account_subscription.migrate' order by entity_id")).rows).toEqual(audit);
+  });
+
+  it('rolls back catalogue changes and its marker if the migration audit cannot be written', async () => {
+    const { db, client, migrations } = await fixture();
+    const key = 'account-subscriptions-catalog-20260909-v1';
+    const throughCatalog = migrations.slice(0, migrations.findIndex(migration => migration.key === key) + 1);
+    await applyMigrations(client, throughCatalog.slice(0, -1));
+    const userId = '00000000-0000-4000-8000-000000000001';
+    await db.query("insert into users(id, account_name, name, password_hash) values ($1, 'rollback-catalog', 'Rollback', 'hash')", [userId]);
+    await db.query("update account_subscriptions set plan_code = 'structure', starts_at = '2026-09-01T12:34:56.123456Z', note = 'Conserver' where user_id = $1", [userId]);
+    const before = (await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s')).rows;
+    await db.exec("alter table audit_logs add constraint reject_catalog_audit check (action <> 'account_subscription.migrate')");
+    await expect(applyMigrations(client, throughCatalog)).rejects.toMatchObject({ code: '23514' });
+    expect((await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s')).rows).toEqual(before);
+    expect((await db.query('select migration_key from app_schema_migrations where migration_key = $1', [key])).rows).toEqual([]);
+    expect((await db.query('select * from audit_logs')).rows).toEqual([]);
+    await db.exec('alter table audit_logs drop constraint reject_catalog_audit');
+    expect(await applyMigrations(client, throughCatalog)).toEqual([key]);
+    expect((await db.query('select plan_code, revision from account_subscriptions')).rows).toEqual([{ plan_code: 'team_monthly', revision: 2 }]);
   });
 
   it('backfills Discovery only for missing subscriptions and preserves every existing plan and state exactly', async () => {
     const { db, client, migrations } = await fixture();
     const key = 'account-subscriptions-discovery-default-20260908-v1';
-    expect(migrations.at(-1)?.key).toBe(key);
-    await applyMigrations(client, migrations.slice(0, -1));
+    const throughDefault = migrations.slice(0, migrations.findIndex(migration => migration.key === key) + 1);
+    await applyMigrations(client, throughDefault.slice(0, -1));
     const missingIds = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'];
     for (const [index, id] of missingIds.entries()) {
       await db.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $2, $3)', [id, `missing-${index}`, 'hash']);
@@ -113,7 +197,7 @@ describe('controlled database migrations', () => {
     const teamsBefore = (await db.query('select * from teams order by id')).rows;
     const auditBefore = (await db.query('select * from audit_logs order by id')).rows;
 
-    expect(await applyMigrations(client, migrations)).toEqual([key]);
+    expect(await applyMigrations(client, throughDefault)).toEqual([key]);
     expect((await db.query(existingQuery, [missingIds])).rows).toEqual(existingBefore);
     expect((await db.query('select user_id, plan_code, starts_at, ends_at, revoked_at, note, updated_by, revision from account_subscriptions where user_id = any($1::uuid[]) order by user_id', [missingIds])).rows)
       .toEqual(missingIds.map(user_id => ({ user_id, plan_code: 'free', starts_at: null, ends_at: null, revoked_at: null, note: '', updated_by: null, revision: 1 })));
@@ -124,14 +208,14 @@ describe('controlled database migrations', () => {
     expect((await db.query('select * from audit_logs order by id')).rows).toEqual(auditBefore);
 
     const allBefore = (await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s order by user_id')).rows;
-    expect(await applyMigrations(client, migrations)).toEqual([]);
+    expect(await applyMigrations(client, throughDefault)).toEqual([]);
     // The SQL itself can also be safely retried without resetting any row,
     // including microsecond timestamps that JavaScript Date would truncate.
-    await db.exec(migrations.at(-1)!.sql);
+    await db.exec(throughDefault.at(-1)!.sql);
     expect((await db.query('select row_to_json(s)::text as exact_row from account_subscriptions s order by user_id')).rows).toEqual(allBefore);
   });
 
-  it('gives each newly inserted account active Discovery without validity dates or an administrator actor', async () => {
+  it('gives each newly inserted account pending Discovery without validity dates or an administrator actor', async () => {
     const { db, client, migrations } = await fixture();
     await applyMigrations(client, migrations);
     await db.exec(`insert into users(id, account_name, name, password_hash) values

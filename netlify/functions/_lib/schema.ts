@@ -3,7 +3,7 @@ import { sql } from './db';
 
 export const ACCESS_REQUESTS_SCHEMA_VERSION = 'pricing-access-requests-structure-20260908-v1';
 let accessRequestsReady: Promise<void> | undefined;
-export const ACCOUNT_SUBSCRIPTIONS_SCHEMA_VERSION = 'account-subscriptions-20260908-v1';
+export const ACCOUNT_SUBSCRIPTIONS_SCHEMA_VERSION = 'account-subscriptions-catalog-20260909-v1';
 let accountSubscriptionsReady: Promise<void> | undefined;
 
 export function ensureAccountSubscriptionsSchema(): Promise<void> {
