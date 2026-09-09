@@ -10,6 +10,7 @@ import { DraftWorkspace } from "../pages/workspace/DraftWorkspace.jsx";
 import { TrendsPage } from "../pages/workspace/TrendsPage.jsx";
 import { ChampionLanePanel, ParticipantCompareCard, PlayerUltimateProfile } from "../pages/workspace/PlayerUltimateProfile.jsx";
 import { createPlanningStore } from "../utils/planning-store.js";
+import { Teams } from "../pages/workspace/Teams.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
 const cleanups = [];
@@ -19,6 +20,17 @@ const props = () => ({ data: { ...DEFAULT_DATA, teams: [{ id: "a", name: "Équip
 async function render(element) { let renderer; await act(async () => { renderer = TestRenderer.create(<Suspense fallback="loading">{element}</Suspense>); }); cleanups.push(() => act(() => renderer.unmount())); return renderer; }
 
 describe("extracted workspace pages", () => {
+  it("keeps creation and join forms usable without mounting the roster in setup-only mode", async () => {
+    const settings = props();
+    settings.data.players = [{ id: "player", team_id: "a", name: "Roster privé", role: "MID" }];
+    const renderer = await render(<Teams {...settings} setupOnly routeSearch="?create=1" />);
+    expect(renderer.root.findAllByType("form")).toHaveLength(2);
+    const content = JSON.stringify(renderer.toJSON());
+    expect(content).toContain("Créer une team");
+    expect(content).toContain("Rejoindre une team");
+    expect(content).not.toContain("Roster privé");
+    expect(content).not.toContain("Décisions staff de la semaine");
+  });
   it.each([DraftWorkspace, TrendsPage, PlayerUltimateProfile])("renders %s without eagerly loading other pages", async (Page) => {
     const renderer = await render(<Page {...props()} />);
     expect(renderer.toJSON()).toBeTruthy();

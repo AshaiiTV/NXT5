@@ -4,7 +4,9 @@ Copier tout le contenu de ce document dans une nouvelle tâche de développement
 
 ---
 
-Ce brief prépare une étape de développement ultérieure ; il n’active rien à lui seul. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation de lancement présente deux cartes : Découverte, 30 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Ce prix est une hypothèse à valider. Le lien « Plusieurs équipes ? Parlons de tes besoins » recueille les besoins d’une organisation, sans tarif annoncé ni promesse de fonctions multi-équipes. Aucun essai chronométré, paiement ou quota commercial n’est actuellement activé ; les accès actuels restent inchangés. L’ouverture publique, l’essai et Stripe décrits ci-dessous relèvent d’une future mission expressément lancée.
+Ce brief prépare une étape de développement ultérieure ; il n’active rien à lui seul. L’état actuel est décrit dans [la validation commerciale](validation-commerciale.md) : Tarifs, son formulaire et le suivi des demandes restent réservés à l’administrateur plateforme. La prévisualisation de lancement présente deux cartes : Découverte, 14 jours d’accès complet sans carte bancaire, et Pass Équipe à 9,90 € TTC par mois et par équipe. Ce prix est une hypothèse à valider. Le lien « Plusieurs équipes ? Parlons de tes besoins » recueille les besoins d’une organisation, sans tarif annoncé ni promesse de fonctions multi-équipes. Aucun essai chronométré, paiement ou quota commercial n’est actuellement activé ; les accès actuels restent inchangés. L’ouverture publique, l’essai et Stripe décrits ci-dessous relèvent d’une future mission expressément lancée.
+
+La décision du 9 septembre 2026 porte sur **tous les outils** : accès complet pendant 14 jours, puis Pass Équipe nécessaire pour continuer. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu ; Champion Pool suit cette règle commune. Le [composant préparé pour les accès Pass](pass-feature-access.md) reste dormant avec `SUBSCRIPTION_RESTRICTIONS_ENABLED = false`. **Ne bloquer aucune fonction tant que les abonnements ne sont pas lancés.** Avant d’activer les restrictions, implémenter et vérifier les dates d’essai, les droits par équipe et les contrôles serveur ; changer cette constante ne suffit pas.
 
 Les [abonnements manuels des profils](abonnements-manuels.md) sont également intégrés : l’administrateur peut attribuer les codes historiques Découverte, Pass Équipe, Pass Saison ou Pass Structure à un compte, avec dates, retrait et audit. Ces attributions persistantes ne sont pas des souscriptions Stripe et ne modifient pas encore les quotas produit. Préserve-les et leur historique. Pass Saison, Pass Structure, annuel et fondateur sont hors du catalogue de lancement : leur éventuelle présence dans les API ou données historiques n’autorise pas leur vente. La présente mission porte sur la facturation des équipes ; définis explicitement sa coexistence avec les abonnements de profils avant tout calcul de droits, sans conversion automatique ni rattachement présumé.
 
@@ -25,7 +27,7 @@ Lis d’abord entièrement les fichiers d’instructions du dépôt, puis inspec
 3. Stripe Checkout encaisse le paiement ;
 4. un webhook signé met à jour la base ;
 5. les droits de l’équipe sont calculés côté serveur ;
-6. l’essai de 30 jours sans carte bancaire, son expiration et la limite commune de 15 membres sont contrôlés côté serveur ;
+6. l’essai de 14 jours sans carte bancaire, son expiration et la limite commune de 15 membres sont contrôlés côté serveur ;
 7. le payeur peut gérer l’abonnement et télécharger ses factures via Stripe Customer Portal ;
 8. l’application gère correctement renouvellement, résiliation, échec de paiement et expiration ;
 9. les pages et e-mails utilisent un français sobre, sans faux argument marketing ;
@@ -53,22 +55,22 @@ La facturation en ligne décrite ici appartient à l’équipe. Le capitaine ou 
 
 ### Découverte — code de présentation `free`
 
-- 30 jours gratuits, sans carte bancaire ;
+- 14 jours gratuits, sans carte bancaire ;
 - une équipe et 15 membres maximum ;
-- mêmes fonctions que le Pass Équipe pendant l’essai : imports, statistiques, reviews, compositions, planning, champion pools, historique, export et accès du staff ;
+- tous les outils, comme le Pass Équipe : imports, statistiques, reviews, compositions, tendances, planning, Champion Pool, roster, profils joueurs, historique, exports produit et accès du staff ;
 - aucun quota réduit d’imports, de reviews ou de compositions ;
 - démarrage explicite par un utilisateur autorisé, enregistré côté serveur ;
 - aucun prélèvement ni abonnement payant automatique à la fin ;
-- conservation des données en lecture seule après expiration selon la politique retenue.
+- Pass Équipe nécessaire pour continuer à utiliser les outils après expiration ; conservation des données selon la politique retenue, sans accès gratuit permanent aux outils.
 
-Le code `free` reste utile pour la compatibilité du catalogue et des demandes. Il désigne ici une découverte limitée à 30 jours, pas un plan gratuit permanent. Représente distinctement les états non démarré, en essai et expiré. Une demande commerciale et une attribution manuelle à un profil ne démarrent jamais cet essai à elles seules. La règle d’éligibilité, le point de départ exact et le traitement des équipes déjà présentes sont à décider avant activation réelle.
+Le code `free` reste utile pour la compatibilité du catalogue et des demandes. Il désigne ici une découverte limitée à 14 jours, pas un plan gratuit permanent. Représente distinctement les états non démarré, en essai et expiré. Une demande commerciale et une attribution manuelle à un profil ne démarrent jamais cet essai à elles seules. La règle d’éligibilité, le point de départ exact et le traitement des équipes déjà présentes sont à décider avant activation réelle.
 
 ### Pass Équipe — `team_monthly`
 
 - 9,90 € TTC par mois et par équipe ;
 - renouvellement automatique après souscription explicite ;
 - une équipe et 15 membres maximum ;
-- imports, statistiques, reviews, compositions, planning, champion pools et historique sans quota produit artificiel ;
+- tous les outils, dont imports, statistiques, reviews, compositions, tendances, planning, Champion Pool, roster, profils joueurs et historique, sans quota produit artificiel ;
 - export des données, rôles et accès du staff, assistance standard ;
 - résiliation à tout moment avec accès jusqu’à la fin de la période payée.
 
@@ -179,7 +181,7 @@ created_at timestamptz not null default now()
 check (ends_at > started_at)
 ```
 
-Adapter la clé utilisateur à la convention réelle du dépôt. Enregistrer une durée exacte de 30 jours et un événement d’audit lors du démarrage. Un retry ne doit ni doubler ni prolonger l’essai. Ne créer aucune ligne à partir d’une simple visite, demande commerciale ou attribution manuelle. Les règles anti-réinitialisation et la migration éventuelle des équipes existantes doivent être décidées explicitement avant activation.
+Adapter la clé utilisateur à la convention réelle du dépôt. Enregistrer une durée exacte de 14 jours et un événement d’audit lors du démarrage. Un retry ne doit ni doubler ni prolonger l’essai. Ne créer aucune ligne à partir d’une simple visite, demande commerciale ou attribution manuelle. Les règles anti-réinitialisation et la migration éventuelle des équipes existantes doivent être décidées explicitement avant activation.
 
 ### Table `billing_events`
 
@@ -229,7 +231,7 @@ type PlanCode = 'free' | 'team_monthly';
 type TeamBillingStatus = {
   teamId: string;
   planCode: PlanCode;
-  access: 'not_started' | 'trial' | 'active' | 'grace' | 'read_only' | 'expired';
+  access: 'not_started' | 'trial' | 'active' | 'grace' | 'expired';
   trialEndsAt: string | null;
   stripeStatus: string | null;
   currentPeriodEnd: string | null;
@@ -263,12 +265,13 @@ Règles d’accès :
 - un essai NXT5 entre `started_at` inclus et `ends_at` exclu donne les mêmes fonctions et la même limite de 15 membres que le mensuel ;
 - une souscription Stripe `active` donne l’accès complet ; ne crée pas d’essai Stripe nécessitant une carte pour Découverte ;
 - `past_due` donne une grâce de sept jours à partir de la première échéance impayée si cette date peut être déterminée ;
-- après la grâce : lecture seule ;
+- après la grâce : accès aux outils expiré si aucun autre droit valide ne subsiste ;
 - `cancel_at_period_end=true` conserve l’accès jusqu’à `current_period_end` ;
-- `canceled`, `unpaid` ou abonnement expiré : lecture seule si aucun autre droit explicite ne subsiste ;
+- `canceled`, `unpaid` ou abonnement expiré : Pass requis pour utiliser les outils si aucun autre droit explicite ne subsiste ;
 - l’expiration de l’essai ne crée ni prélèvement ni abonnement ;
 - une souscription valide prend le relais de l’essai sans réinitialiser sa durée ni supprimer de données ;
-- sans accès payant ni essai valide : état non démarré ou expiré, jamais des droits gratuits illimités ;
+- sans accès payant ni essai valide : état non démarré ou expiré, sans niveau gratuit permanent ;
+- les parcours de compte, de confidentialité, de sécurité, d’export RGPD et de suppression du compte restent accessibles indépendamment du Pass ;
 - une dérogation administrateur doit être explicite, datée et auditée ; les abonnements manuels de profils ne deviennent pas implicitement des dérogations d’équipe.
 
 N’éparpille pas les règles dans les endpoints. Tous doivent appeler ce service.
@@ -285,7 +288,7 @@ Ne retourne jamais de clé secrète. Expose Découverte comme essai sans paiemen
 
 ### `billing-trial-start.ts` — POST authentifié
 
-Body : `{ "teamId": "uuid" }`. Vérifier la session, le rôle, l’équipe et l’éligibilité côté serveur ; enregistrer atomiquement le démarrage et l’échéance à 30 jours, puis auditer l’action. Refuser la relance d’un essai terminé selon la règle choisie ; un double clic ou retry retourne le même essai sans extension. N’appelle pas Stripe et ne demande aucune carte. Une soumission du formulaire commercial ne peut pas invoquer implicitement ce parcours.
+Body : `{ "teamId": "uuid" }`. Vérifier la session, le rôle, l’équipe et l’éligibilité côté serveur ; enregistrer atomiquement le démarrage et l’échéance à 14 jours, puis auditer l’action. Refuser la relance d’un essai terminé selon la règle choisie ; un double clic ou retry retourne le même essai sans extension. N’appelle pas Stripe et ne demande aucune carte. Une soumission du formulaire commercial ne peut pas invoquer implicitement ce parcours.
 
 ### `billing-status.ts` — GET authentifié
 
@@ -396,7 +399,7 @@ Exigences :
 
 ## Application des droits côté serveur
 
-Ajoute les contrôles sans casser la lecture des données existantes. Toutes les mutations d’imports, de reviews, de compositions, de planning et de champion pools doivent vérifier un essai valide, une souscription valide ou une dérogation d’équipe explicite. Ne rétablis pas les anciens quotas de cinq imports, trois reviews ou une composition.
+Lors de la future activation, protège l’utilisation de tous les outils de l’équipe, en lecture comme en écriture, par un essai valide, une souscription valide ou une dérogation d’équipe explicite. Cela couvre notamment imports, reviews, exports produit, tendances, compositions, Champion Pool, planning, statistiques, roster et profils joueurs. Préserve les données existantes ; leur conservation ne signifie pas que les outils restent utilisables gratuitement. Ne crée aucun quota commercial de dix imports ni aucun niveau gratuit permanent. Les endpoints de compte, sécurité, confidentialité et droits sur les données suivent leurs autorisations actuelles indépendamment du Pass.
 
 ### Création d’équipe et essai
 
@@ -406,18 +409,18 @@ Dans `teams-create.ts` et le démarrage d’essai, appliquer la règle d’élig
 
 Avant l’ajout ou l’acceptation d’une invitation, compter les membres actuels et appliquer la même limite de 15 pendant l’essai ou le mensuel. Ne bloque pas le départ ou la suppression d’un membre. Gérer les ajouts concurrents atomiquement.
 
-### Imports, reviews, compositions et export
+### Tous les outils de l’équipe
 
-Pendant les 30 jours et pendant une période payée valide, proposer les mêmes fonctions sans quotas commerciaux réduits. Les protections techniques existantes contre les abus restent applicables. Une correction ou un réimport du même match garde son comportement actuel. L’export est inclus dans les deux offres ; maintenir aussi l’accès nécessaire aux données personnelles et à la suppression du compte après expiration.
+Pendant les 14 jours et pendant une période payée valide, proposer tous les outils sans quotas commerciaux réduits. Les protections techniques existantes contre les abus restent applicables. Une correction ou un réimport du même match garde son comportement actuel. Les exports produit sont inclus dans les deux offres ; les distinguer des exports de données personnelles et autres parcours de droits sur les données qui restent accessibles après expiration.
 
 ### Expiration
 
 Si aucun droit valide ne subsiste :
 
 - ne rien supprimer ;
-- garder les données consultables selon la politique de conservation ;
-- autoriser suppression et export prévu par cette politique ;
-- bloquer les nouvelles écritures ;
+- conserver les données selon la politique retenue sans continuer à exposer les outils gratuitement ;
+- autoriser les parcours de compte, de sécurité, de confidentialité, d’export RGPD et de suppression du compte ;
+- bloquer l’accès aux outils en lecture et en écriture, y compris les appels API directs ;
 - afficher l’échéance atteinte et proposer la souscription ou la régularisation ;
 - ne jamais empêcher l’accès à la page de facturation ou au portail.
 
@@ -425,7 +428,7 @@ Les erreurs API doivent utiliser le statut HTTP `402` ou `403` de manière cohé
 
 ```json
 {
-  "error": "Les 30 jours de Découverte sont terminés.",
+  "error": "Les 14 jours de Découverte sont terminés.",
   "code": "TEAM_ACCESS_EXPIRED",
   "upgradePath": "/abonnement"
 }
@@ -442,13 +445,13 @@ Réserver `PLAN_LIMIT_REACHED` à une limite réellement atteinte, comme les 15 
 Adapter la page de prévisualisation existante pour cette future ouverture publique, en conservant une présentation responsive comprenant :
 
 - titre : « Choisis la formule adaptée à ton équipe » ;
-- carte Découverte : 30 jours d’accès complet, sans carte bancaire, une équipe et jusqu’à 15 membres ;
+- carte Découverte : 14 jours d’accès complet, sans carte bancaire, une équipe et jusqu’à 15 membres ;
 - carte Pass Équipe : 9,90 € TTC par mois et par équipe, jusqu’à 15 membres, résiliable à tout moment ;
 - lien « Plusieurs équipes ? Parlons de tes besoins » vers le formulaire d’échange, sans prix ;
 - prix TTC clairement visibles ;
 - mêmes fonctions listées pour l’essai et le mensuel ;
 - CTA adapté à l’état connecté ;
-- FAQ sur essai sans carte, fin des 30 jours, membres, renouvellement, résiliation, factures et données ;
+- FAQ sur essai sans carte, fin des 14 jours, membres, renouvellement, résiliation, factures et données ;
 - lien vers CGV, CGU et confidentialité.
 
 N’affiche aucune carte ni offre achetable Saison, Structure, annuelle ou fondateur. Le lien pour plusieurs équipes conserve un parcours de contact, sans bouton d’achat ni redirection vers `/achat`. Ne promets pas de fonctions multi-équipes disponibles. N’ajoute ni faux témoignage, ni compte à rebours, ni réduction artificielle.
@@ -506,7 +509,8 @@ Pour coach/analyste autorisé à voir le statut : afficher uniquement l’offre 
 
 - ajouter « Abonnement » dans la zone Paramètres/Gestion, sans surcharger la navigation principale ;
 - afficher un badge discret « Découverte », « Équipe » ou « Expiré » ;
-- créer un composant commun `PlanLimitNotice` ;
+- réutiliser le composant `PassFeatureGate` et sa présentation `PassFeaturePreview`, après raccordement à des droits d’équipe validés côté serveur ;
+- après expiration, afficher le décor flouté et un message contextualisé invitant à prendre le Pass Équipe ; ne jamais charger ou monter des données protégées sous un simple flou CSS ;
 - lors d’une erreur `PLAN_LIMIT_REACHED` ou `TEAM_ACCESS_EXPIRED`, ouvrir un message clair adapté à la limite ou à l’échéance, avec lien vers `/abonnement` ;
 - ne pas parsemer de bannières d’achat sur toutes les pages ;
 - ne jamais cacher les fonctions de suppression, sécurité ou gestion du compte derrière un paywall.
@@ -519,13 +523,13 @@ Chaque page de facturation doit gérer :
 - aucune équipe ;
 - rôle insuffisant ;
 - essai non démarré ;
-- essai de 30 jours actif ;
+- essai de 14 jours actif ;
 - Checkout en cours ;
 - paiement en confirmation ;
 - actif ;
 - fin de période programmée ;
 - paiement échoué avec grâce ;
-- lecture seule après grâce ;
+- accès aux outils expiré après grâce ;
 - essai expiré sans souscription ;
 - erreur Stripe temporaire ;
 - configuration serveur manquante.
@@ -547,7 +551,7 @@ Inclure les sections :
 - fourniture du service ;
 - renouvellement ;
 - résiliation ;
-- essai de 30 jours sans carte et sans prélèvement automatique ;
+- essai de 14 jours sans carte et sans prélèvement automatique ;
 - remboursement ;
 - droit de rétractation et commencement immédiat du service numérique ;
 - disponibilité ;
@@ -650,7 +654,7 @@ Conserve tous les tests actuels et ajoute des tests ciblés.
 - passage de l’essai à une souscription sans remise à zéro ;
 - grâce de sept jours ;
 - fin de période après résiliation ;
-- démarrage idempotent et expiration exacte des 30 jours d’essai ;
+- démarrage idempotent et expiration exacte des 14 jours d’essai ;
 - mapping Price ID vers plan ;
 - filtrage des données selon le rôle.
 
@@ -688,10 +692,10 @@ Mocke Stripe : aucun test automatisé ne doit contacter l’API réelle.
 ### Tests des droits
 
 - même accès complet pour un essai valide et le mensuel actif ;
-- plus de cinq imports, trois reviews et une composition autorisés pendant l’essai ;
+- tous les outils accessibles pendant l’essai, dont Champion Pool, tendances et planning ; plus de dix imports et plusieurs reviews/compositions autorisés ;
 - 15e membre accepté, 16e refusé, y compris ajouts concurrents ;
-- essai expiré en lecture seule, sans paiement automatique ;
-- données existantes, suppression et export conservés selon la politique retenue ;
+- après 14 jours sans droit valide : outils inaccessibles, sans paiement automatique ni niveau gratuit permanent ;
+- données existantes conservées ; parcours de compte, de sécurité, de confidentialité, d’export RGPD et de suppression du compte accessibles ;
 - un nouveau navigateur, un retry ou un changement de propriétaire ne remet pas les dates à zéro ;
 - appel direct API refusé comme l’interface lorsqu’aucun droit n’est valide ;
 - aucune demande commerciale ou attribution manuelle de profil ne démarre implicitement l’essai.
@@ -700,13 +704,14 @@ Mocke Stripe : aucun test automatisé ne doit contacter l’API réelle.
 
 - tarifs publics ;
 - sélection d’offre ;
-- deux cartes visibles, à 30 jours sans carte et 9,90 €/mois/équipe, plus le lien pour plusieurs équipes sans prix ;
+- deux cartes visibles, à 14 jours sans carte et 9,90 €/mois/équipe, plus le lien pour plusieurs équipes sans prix ;
 - redirection connexion avec retour ;
 - choix d’équipe ;
 - confirmation en attente puis confirmée ;
 - essai non démarré, actif, expiré, puis abonnement actif, résilié et `past_due` ;
 - rôle insuffisant ;
-- affichage de `PlanLimitNotice` ;
+- affichage de `PassFeatureGate` avec `PassFeaturePreview`, sans montage du contenu protégé ;
+- avant lancement, les fonctions réelles restent accessibles, sans flou ni démarrage automatique d’essai, quelle que soit l’attribution manuelle de profil ;
 - navigation clavier et libellés accessibles.
 
 ### Validation finale
@@ -724,7 +729,7 @@ Effectuer également un parcours Stripe Test manuel complet avec Stripe CLI :
 stripe listen --forward-to http://localhost:8888/.netlify/functions/stripe-webhook
 ```
 
-Tester au minimum paiement réussi, carte refusée, renouvellement, `invoice.payment_failed`, résiliation, remboursement et essai de 30 jours sans carte (expiration simulée). Documenter les commandes utilisées sans inclure de secret.
+Tester au minimum paiement réussi, carte refusée, renouvellement, `invoice.payment_failed`, résiliation, remboursement et essai de 14 jours sans carte (expiration simulée). Documenter les commandes utilisées sans inclure de secret.
 
 ## Documentation à livrer
 
@@ -790,7 +795,7 @@ Si ces informations ne sont pas fournies, utilise des placeholders clairement bl
 - compte Stripe et identifiant Price mensuel réel ;
 - règle d’éligibilité et point de départ de l’essai, traitement des équipes existantes et politique de conservation à son terme.
 
-La durée de 30 jours, l’absence de carte, l’accès complet jusqu’à 15 membres et le mensuel à 9,90 € TTC sont déjà retenus pour la proposition de lancement ; ne réintroduis pas les anciennes formules pour combler une décision manquante.
+La durée de 14 jours, l’absence de carte, l’accès complet jusqu’à 15 membres et le mensuel à 9,90 € TTC sont déjà retenus pour la proposition de lancement ; ne réintroduis pas les anciennes formules pour combler une décision manquante.
 
 Tu peux achever toute l’intégration en mode Test sans ces valeurs. Tu ne dois pas activer le Live Mode ni publier des CGV contenant des données inventées.
 
@@ -799,13 +804,15 @@ Tu peux achever toute l’intégration en mode Test sans ces valeurs. Tu ne dois
 La mission est terminée seulement si :
 
 - les pages `/tarifs`, `/achat`, `/achat/confirme`, `/achat/annule`, `/abonnement` et `/conditions-vente` sont accessibles selon leurs règles ;
-- les deux cartes s’affichent correctement : Découverte, 30 jours d’accès complet sans carte, et Pass Équipe à 9,90 € TTC/mois/équipe ;
+- les deux cartes s’affichent correctement : Découverte, 14 jours d’accès complet sans carte, et Pass Équipe à 9,90 € TTC/mois/équipe ;
 - le lien pour plusieurs équipes conserve le recueil de besoins sans prix ; les codes et attributions manuelles historiques sont préservés sans Checkout ni fonctions multi-équipes ajoutées ;
 - les attributions manuelles de profils, leurs dates et leur audit sont préservés, sans conversion automatique en souscriptions d’équipe ;
 - Checkout Test fonctionne pour le mensuel uniquement ;
 - le webhook signé est idempotent ;
 - un essai valide et une souscription active donnent les mêmes fonctions et la limite de 15 membres côté serveur ;
-- l’essai expire après 30 jours sans prélèvement automatique et sans remise à zéro implicite ;
+- l’essai expire après 14 jours sans prélèvement automatique et sans remise à zéro implicite ;
+- à l’expiration sans droit valide, tous les outils exigent le Pass, dont Champion Pool ; aucun niveau gratuit permanent ou quota de dix imports n’est ajouté ;
+- compte, sécurité, confidentialité, export RGPD et suppression du compte restent accessibles indépendamment du Pass ;
 - aucune donnée existante n’est supprimée lors d’une expiration ;
 - Stripe Customer Portal fonctionne ;
 - les factures sont visibles uniquement par les rôles autorisés ;

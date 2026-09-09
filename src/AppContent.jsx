@@ -14,6 +14,8 @@ import { useTeamData } from "./hooks/useTeamData.js";
 import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 import { matchDisplayName } from "./utils/matches.js";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
+import PassFeatureGate from "./components/subscriptions/PassFeatureGate.jsx";
+import { isPassFeatureLocked } from "./app/pass-access.js";
 const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
 const PlayerUltimateProfile = lazy(() => import("./pages/workspace/PlayerUltimateProfile.jsx").then((module) => ({ default: module.PlayerUltimateProfile })));
 const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((module) => ({ default: module.TrendsPage })));
@@ -281,9 +283,14 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
   const currentMember = currentTeam ?(data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
   const assistantSelectedEntity = assistantEntityForRoute(route, data, currentTeam?.id || selectedTeamId);
+  // The launch switch stays off. Team entitlements must come from the server at launch;
+  // manual subscriptions on a personal profile are not team access rights.
+  const workspaceLocked = Boolean(currentTeam) && isPassFeatureLocked("workspace");
+  const teamSetupOnly = active === "teams" && workspaceLocked && (new URLSearchParams(route.search).get("create") === "1" || new URLSearchParams(route.search).has("invite"));
+  const workspacePage = ["teams", "team-management", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
 
   const page = useMemo(() => {
-    if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
+    if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} />;
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
@@ -296,12 +303,13 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
     if (active === "account-subscriptions" && isPlatformAdmin) return <AccountSubscriptionsPage navigate={navigate} initialUserId={new URLSearchParams(route.search).get("userId") || ""} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly]);
+  const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{page}</PassFeatureGate> : page;
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
-  const showBeginnerCompass = Boolean(currentTeam && !beginnerCompassHidden && currentTeamMatches.length < 5);
-  const assistantWidget = <>
+  const showBeginnerCompass = Boolean(currentTeam && !workspaceLocked && !beginnerCompassHidden && currentTeamMatches.length < 5);
+  const assistantWidget = !workspaceLocked && <>
     <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("group fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-[80] h-14 items-center gap-2 rounded-2xl border border-cyan-200/30 bg-[#071120]/95 px-4 text-sm font-black text-white shadow-[0_18px_50px_rgba(0,0,0,.55),0_0_28px_rgba(34,211,238,.16)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-100/55 hover:bg-[#0a1a2d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/75 sm:right-5 lg:right-6", assistantOpen ? "hidden sm:inline-flex" : "inline-flex")}>
       <span className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/12 text-cyan-100 transition group-hover:bg-cyan-300/18">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
       <span className="hidden sm:inline">{assistantOpen ? "Fermer" : "Assistant"}</span>
@@ -380,7 +388,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onImport={() => navigate("/games?import=1")} onClose={hideBeginnerCompass} />}
           <React.Fragment>
             <div key={active} className="nxt5-fade-in min-w-0">
-              <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? page : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
+              <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? guardedPage : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
             </div>
           </React.Fragment>
         </main>

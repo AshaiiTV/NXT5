@@ -1,0 +1,84 @@
+.pass-feature-preview-layout {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 350px;
+  isolation: isolate;
+}
+
+.pass-feature-preview-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  filter: blur(5px);
+  opacity: .28;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pass-feature-preview-bars,
+.pass-feature-preview-chart {
+  display: flex;
+  gap: 16px;
+}
+
+.pass-feature-preview-bars span {
+  height: 44px;
+  flex: 1;
+  border-radius: 12px;
+  background: rgba(165, 243, 252, .22);
+}
+
+.pass-feature-preview-chart {
+  flex: 1;
+  align-items: end;
+}
+
+.pass-feature-preview-chart span {
+  flex: 1;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(0deg, rgba(59, 130, 246, .2), #67e8f9);
+}
+
+.pass-feature-preview-chart span:nth-child(even) {
+  background: linear-gradient(0deg, rgba(167, 139, 250, .2), #a78bfa);
+}
+
+.pass-feature-preview-lines { display: grid; gap: 12px; }
+.pass-feature-preview-lines span { height: 8px; width: 85%; background: rgba(207, 250, 254, .4); border-radius: 4px; }
+.pass-feature-preview-lines span:nth-child(2) { width: 60%; }
+
+.pass-feature-preview-message {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  max-width: 480px;
+  padding: 24px 16px;
+  text-align: center;
+  background: radial-gradient(ellipse, rgba(5, 11, 24, .98) 20%, rgba(5, 11, 24, .84) 55%, transparent 75%);
+}
+
+.pass-feature-preview-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid rgba(207, 250, 254, .36);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+html.nxt5-low-gpu .pass-feature-preview-backdrop { filter: none; opacity: .08; }
+
+@media (max-width: 640px) {
+  .pass-feature-preview-message { padding: 20px 0; }
+  .pass-feature-preview-message .nxt5-control { width: 100%; }
+  .pass-feature-preview-backdrop { gap: 16px; padding: 12px; }
+}

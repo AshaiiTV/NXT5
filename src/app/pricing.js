@@ -1,3 +1,5 @@
+import { DISCOVERY_TRIAL_DAYS } from "./pass-access.js";
+
 // Launch proposals for commercial validation. These values do not start a trial or change access.
 const TEAM_FEATURES = [
   "1 équipe · jusqu’à 15 membres",
@@ -12,8 +14,8 @@ export const PROPOSED_PLANS = [
     code: "free",
     name: "Découverte",
     price: "0 €",
-    period: "pendant 30 jours",
-    description: "30 jours d’accès complet pour tester NXT5 avec ton équipe.",
+    period: `pendant ${DISCOVERY_TRIAL_DAYS} jours`,
+    description: `${DISCOVERY_TRIAL_DAYS} jours d’accès complet à tous les outils, puis un Pass Équipe pour continuer.`,
     terms: "Sans carte bancaire · sans passage automatique au payant",
     features: TEAM_FEATURES,
   },
