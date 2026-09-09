@@ -1,9 +1,8 @@
 import { DISCOVERY_TRIAL_DAYS } from "./pass-access.js";
+import { PROPOSED_PLANS } from "./pricing.js";
 
-export const SUBSCRIPTION_PLANS = [
-  { code: "free", label: "Découverte", days: DISCOVERY_TRIAL_DAYS },
-  { code: "team_monthly", label: "Pass Équipe", months: 1 },
-];
+// Manual grades use the same current catalogue as the Tarifs page.
+export const SUBSCRIPTION_PLANS = PROPOSED_PLANS.map(({ code, name, days, months }) => ({ code, label: name, days, months }));
 
 const LEGACY_PLAN_LABELS = { team_season: "Pass Saison (ancienne offre)", structure: "Pass Structure (ancienne offre)" };
 export function getSubscriptionPlanLabel(planCode) {

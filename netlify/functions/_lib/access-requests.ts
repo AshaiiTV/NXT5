@@ -1,6 +1,8 @@
 export const ACCESS_REQUEST_CONSENT_VERSION = 'access-request-2026-09-08';
 export const ACCESS_REQUEST_MAX_BYTES = 12 * 1024;
 export const ACCESS_REQUEST_STATUSES = ['new', 'contacted', 'confirmed', 'declined'] as const;
+// New requests follow the current tariff catalog; historical requests keep their original offer.
+export const ACCESS_REQUEST_PLANS = ['free', 'team_monthly'] as const;
 
 const PUBLIC_FIELDS = new Set(['contactName', 'email', 'teamName', 'role', 'planCode', 'payer', 'purchaseIntent', 'message', 'consent', 'website']);
 
@@ -43,7 +45,7 @@ export function validateAccessRequest(body: Record<string, unknown>) {
     teamName,
     teamKey,
     role: choice(body.role, ['captain', 'manager', 'coach', 'player', 'other'], 'Rôle'),
-    planCode: choice(body.planCode, ['free', 'team_monthly', 'team_season', 'structure'], 'Offre'),
+    planCode: choice(body.planCode, ACCESS_REQUEST_PLANS, 'Offre'),
     payer: choice(body.payer, ['self', 'team', 'association', 'unknown'], 'Payeur'),
     purchaseIntent: choice(body.purchaseIntent, ['yes', 'maybe', 'discover'], 'Intention'),
     message: body.message === undefined ? '' : textField(body.message, 'Le message', 0, 2000, true)

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, History, Loader2, RefreshCw, Search, ShieldCheck, UserRound, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
-import { SUBSCRIPTION_PLANS, createSubscriptionForm, defaultSubscriptionEndDate, getSubscriptionPlanLabel, getSubscriptionPresentation, localDateInput, notifySubscriptionUpdated, subscriptionDateToISO, subscriptionFormDates, subscriptionPeriodLabel } from "../../app/subscriptions.js";
+import { createSubscriptionForm, defaultSubscriptionEndDate, getSubscriptionPlanLabel, getSubscriptionPresentation, localDateInput, notifySubscriptionUpdated, subscriptionDateToISO, subscriptionFormDates, subscriptionPeriodLabel } from "../../app/subscriptions.js";
+import { PROPOSED_PLAN_OPTIONS } from "../../app/pricing.js";
 import { DISCOVERY_TRIAL_DAYS } from "../../app/pass-access.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import "./account-subscriptions.css";
@@ -225,7 +226,10 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "" 
             <p className="as-caption">La formule enregistrée remplace l’attribution actuelle de ce profil.</p>
             <fieldset disabled={blocked || conflict || confirmRevoke}>
               <legend className="sr-only">Abonnement de {accountLabel(account)}</legend>
-              <SelectInput label="Formule attribuée" name="planCode" value={form.planCode} onChange={(value) => patch("planCode", value)}>{SUBSCRIPTION_PLANS.map((plan) => <option key={plan.code} value={plan.code}>{plan.label}{plan.days ? ` — ${plan.days} jours` : ""}</option>)}</SelectInput>
+              <div>
+                <SelectInput label="Formule attribuée" name="planCode" value={form.planCode} aria-describedby="manual-plan-detail" onChange={(value) => patch("planCode", value)}>{PROPOSED_PLAN_OPTIONS.map((plan) => <option key={plan.value} value={plan.value}>{plan.label}</option>)}</SelectInput>
+                <p id="manual-plan-detail" className="as-caption mt-2">{PROPOSED_PLAN_OPTIONS.find((plan) => plan.value === form.planCode)?.label}</p>
+              </div>
               {paid ? <>
                 <div className="as-date-fields"><TextInput label="Date de début" name="startsAt" type="date" required value={form.startDate} onChange={(value) => patch("startDate", value)} /><TextInput label="Date de fin incluse" name="endsAt" type="date" required={!form.noEndDate} disabled={form.noEndDate} min={form.startDate || undefined} value={form.noEndDate ? "" : form.endDate} onChange={(value) => patch("endDate", value)} /></div>
                 <label className="as-checkbox"><input type="checkbox" checked={form.noEndDate} onChange={(event) => patch("noEndDate", event.target.checked)} /><span>Sans date de fin</span></label>

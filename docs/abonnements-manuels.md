@@ -123,6 +123,6 @@ Les attributions et retraits sont audités avec leur auteur et leur date. Conser
 
 Les demandes d’accès de [la validation commerciale](validation-commerciale.md) restent un parcours séparé. Leur réception ou leur confirmation commerciale n’attribue aucun abonnement. L’administrateur choisit explicitement un compte dans **Profils et abonnements** pour effectuer une attribution.
 
-Seules Découverte et le Pass Équipe sont disponibles pour une attribution manuelle. Le choix Structure reste un besoin de contact dans le formulaire commercial ; les codes historiques des demandes et de l’audit restent lisibles. La conversion des anciens profils Structure en Pass Équipe ne met pas en place de facturation centralisée, d’administration de structure ou de droits multi-équipes.
+Seules Découverte et le Pass Équipe sont disponibles pour une attribution manuelle, avec les mêmes libellés tarifaires que dans Tarifs. Le formulaire commercial propose également ces deux offres ; aucun nouveau choix Structure n’est proposé ni accepté. Les codes historiques des demandes et de l’audit restent lisibles. La conversion des anciens profils Structure en Pass Équipe ne met pas en place de facturation centralisée, d’administration de structure ou de droits multi-équipes.
 
 Lors de l’intégration future de Stripe, conserver les abonnements manuels et leur audit. Définir explicitement comment ils coexistent avec les souscriptions d’équipe avant d’en déduire des droits ou des limites produit.

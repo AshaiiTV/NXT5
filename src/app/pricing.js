@@ -13,6 +13,7 @@ export const PROPOSED_PLANS = [
   {
     code: "free",
     name: "Découverte",
+    days: DISCOVERY_TRIAL_DAYS,
     price: "0 €",
     period: `pendant ${DISCOVERY_TRIAL_DAYS} jours`,
     description: `${DISCOVERY_TRIAL_DAYS} jours d’accès complet à tous les outils, puis un Pass Équipe pour continuer.`,
@@ -22,6 +23,7 @@ export const PROPOSED_PLANS = [
   {
     code: "team_monthly",
     name: "Pass Équipe",
+    months: 1,
     price: "9,90 €",
     period: "TTC / mois / équipe",
     description: "Pour continuer à organiser tes sessions et suivre ton roster après l’essai.",
@@ -30,10 +32,7 @@ export const PROPOSED_PLANS = [
   },
 ];
 
-export const PROPOSED_PLAN_OPTIONS = [
-  ...PROPOSED_PLANS.map((plan) => ({
-    value: plan.code,
-    label: `${plan.name} — ${plan.price} ${plan.period}`,
-  })),
-  { value: "structure", label: "Plusieurs équipes — parlons de tes besoins" },
-];
+export const PROPOSED_PLAN_OPTIONS = PROPOSED_PLANS.map((plan) => ({
+  value: plan.code,
+  label: `${plan.name} — ${plan.price} ${plan.period}`,
+}));
