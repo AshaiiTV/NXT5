@@ -7,16 +7,16 @@ afterEach(() => { vi.resetModules(); query.mockReset(); baseReady.mockReset(); }
 
 describe('manual subscription schema readiness', () => {
   it('requires its migration before reads or writes and retries after deployment', async () => {
-    query.mockResolvedValueOnce([]).mockResolvedValueOnce([{ migration_key: 'account-subscriptions-20260908-v1' }]);
+    query.mockResolvedValueOnce([]).mockResolvedValueOnce([{ migration_key: 'account-subscriptions-catalog-20260909-v1' }]);
     const { ensureAccountSubscriptionsSchema } = await import('../../netlify/functions/_lib/schema');
     await expect(ensureAccountSubscriptionsSchema()).rejects.toMatchObject({ status: 503, code: 'SCHEMA_MIGRATION_REQUIRED' });
     await expect(ensureAccountSubscriptionsSchema()).resolves.toBeUndefined();
     expect(query).toHaveBeenCalledTimes(2);
-    expect(query.mock.calls[0][1]).toBe('account-subscriptions-20260908-v1');
+    expect(query.mock.calls[0][1]).toBe('account-subscriptions-catalog-20260909-v1');
   });
 
   it('shares a read-only readiness check across concurrent requests', async () => {
-    query.mockResolvedValue([{ migration_key: 'account-subscriptions-20260908-v1' }]);
+    query.mockResolvedValue([{ migration_key: 'account-subscriptions-catalog-20260909-v1' }]);
     const { ensureAccountSubscriptionsSchema } = await import('../../netlify/functions/_lib/schema');
     await Promise.all([ensureAccountSubscriptionsSchema(), ensureAccountSubscriptionsSchema(), ensureAccountSubscriptionsSchema()]);
     expect(query).toHaveBeenCalledOnce();

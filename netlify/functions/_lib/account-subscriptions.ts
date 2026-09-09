@@ -1,4 +1,6 @@
-export const ACCOUNT_SUBSCRIPTION_PLANS = ['free', 'team_monthly', 'team_season', 'structure'] as const;
+export const ACCOUNT_SUBSCRIPTION_PLANS = ['free', 'team_monthly'] as const;
+export const ACCOUNT_DISCOVERY_TRIAL_DAYS = 14;
+const DISCOVERY_TRIAL_MS = ACCOUNT_DISCOVERY_TRIAL_DAYS * 24 * 60 * 60 * 1000;
 type PlanCode = typeof ACCOUNT_SUBSCRIPTION_PLANS[number];
 type Mutation = {
   action: 'assign' | 'revoke'; userId: string; expectedRevision: number;
@@ -50,8 +52,15 @@ export function validateSubscriptionMutation(body: Record<string, unknown>, now 
   if (!ACCOUNT_SUBSCRIPTION_PLANS.includes(body.planCode as PlanCode)) invalidSubscription('Offre invalide.');
   const planCode = body.planCode as PlanCode;
   if (planCode === 'free') {
-    if (body.startsAt != null || body.endsAt != null) invalidSubscription('Découverte ne nécessite pas de dates de validité.');
-    return { action: 'assign', userId, expectedRevision: body.expectedRevision, planCode, startsAt: null, endsAt: null, note };
+    if (body.startsAt == null) {
+      if (body.endsAt != null) invalidSubscription('Précise le début des 14 jours de Découverte avant leur fin.');
+      return { action: 'assign', userId, expectedRevision: body.expectedRevision, planCode, startsAt: null, endsAt: null, note };
+    }
+    const startsAt = dateInput(body.startsAt, 'Le début');
+    const expectedEnd = Date.parse(startsAt) + DISCOVERY_TRIAL_MS;
+    const endsAt = body.endsAt == null ? new Date(expectedEnd).toISOString() : dateInput(body.endsAt, 'La fin');
+    if (Date.parse(endsAt) !== expectedEnd) invalidSubscription('Découverte dure exactement 14 jours à partir du début indiqué.');
+    return { action: 'assign', userId, expectedRevision: body.expectedRevision, planCode, startsAt, endsAt, note };
   }
   const startsAt = body.startsAt == null ? new Date(now).toISOString() : dateInput(body.startsAt, 'Le début');
   const endsAt = body.endsAt == null ? null : dateInput(body.endsAt, 'La fin');
@@ -68,10 +77,11 @@ export function serializeAccountSubscription(row: Record<string, any> | null | u
   const planCode: PlanCode = row?.plan_code || 'free';
   const startsAt = iso(row?.starts_at), endsAt = iso(row?.ends_at), revokedAt = iso(row?.revoked_at);
   const status = !row ? 'none' : revokedAt ? 'revoked'
+    : planCode === 'free' && !startsAt && !endsAt ? 'pending'
     : startsAt && Date.parse(startsAt) > now ? 'scheduled'
     : endsAt && Date.parse(endsAt) <= now ? 'expired' : 'active';
   return {
-    planCode, effectivePlanCode: status === 'active' ? planCode : 'free', status,
+    planCode, effectivePlanCode: status === 'active' ? planCode : null, status,
     startsAt, endsAt, revokedAt, updatedAt: iso(row?.updated_at), revision: Number(row?.revision || 0),
     ...(admin ? { note: row?.note || '' } : {})
   };
@@ -86,9 +96,11 @@ export function serializeSubscriptionAccount(row: Record<string, any>) {
 
 export function serializeSubscriptionHistory(row: Record<string, any>) {
   const metadata = row.metadata || {};
+  const migration = row.action === 'account_subscription.migrate';
   return {
-    id: row.id, action: row.action === 'account_subscription.revoke' ? 'revoke' : 'assign',
-    actorName: row.actor_name || 'Administrateur supprimé', planCode: metadata.planCode,
+    id: row.id, action: migration ? 'migrate' : row.action === 'account_subscription.revoke' ? 'revoke' : 'assign',
+    actorName: row.actor_name || (migration ? 'Migration du catalogue' : 'Administrateur supprimé'), planCode: metadata.planCode,
+    ...(migration ? { previousPlanCode: metadata.previousPlanCode } : {}),
     startsAt: iso(metadata.startsAt), endsAt: iso(metadata.endsAt), note: metadata.note || '', createdAt: iso(row.created_at)
   };
 }

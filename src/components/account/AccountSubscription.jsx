@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
-import { getSubscriptionPresentation, notifySubscriptionUpdated, SUBSCRIPTION_PLANS, SUBSCRIPTION_UPDATED_EVENT } from "../../app/subscriptions.js";
+import { getSubscriptionPresentation, notifySubscriptionUpdated, subscriptionPeriodLabel, SUBSCRIPTION_UPDATED_EVENT } from "../../app/subscriptions.js";
+import { DISCOVERY_TRIAL_DAYS } from "../../app/pass-access.js";
 import { Badge, Button, Surface } from "../ui/Core.jsx";
-
-function dateLabel(value, inclusiveEnd = false) {
-  const date = new Date(new Date(value).getTime() - (inclusiveEnd ? 1 : 0));
-  return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(date);
-}
 
 export default function AccountSubscription({ compact = false }) {
   const [subscription, setSubscription] = useState(null);
@@ -16,12 +12,13 @@ export default function AccountSubscription({ compact = false }) {
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
-    if (!compact || typeof window === "undefined") return;
+    if (typeof window === "undefined") return;
     const reload = () => setRefresh((value) => value + 1);
-    window.addEventListener(SUBSCRIPTION_UPDATED_EVENT, reload);
+    // The full view announces successful updates; only the badge listens to them.
+    if (compact) window.addEventListener(SUBSCRIPTION_UPDATED_EVENT, reload);
     window.addEventListener("focus", reload);
     return () => {
-      window.removeEventListener(SUBSCRIPTION_UPDATED_EVENT, reload);
+      if (compact) window.removeEventListener(SUBSCRIPTION_UPDATED_EVENT, reload);
       window.removeEventListener("focus", reload);
     };
   }, [compact]);
@@ -32,7 +29,7 @@ export default function AccountSubscription({ compact = false }) {
     setError("");
     apiFetch("account-subscription")
       .then((result) => {
-        if (!result?.subscription || !["none", "active", "scheduled", "expired", "revoked"].includes(result.subscription.status)) {
+        if (!result?.subscription || !["none", "pending", "active", "scheduled", "expired", "revoked"].includes(result.subscription.status)) {
           throw new Error("L’abonnement n’a pas pu être vérifié.");
         }
         if (current) {
@@ -46,13 +43,14 @@ export default function AccountSubscription({ compact = false }) {
   }, [compact, refresh]);
 
   const presentation = subscription ? getSubscriptionPresentation(subscription) : null;
-  const hasPass = subscription && subscription.planCode !== "free";
+  const hasAttribution = subscription && subscription.status !== "none";
+  const isDiscovery = hasAttribution && subscription.planCode === "free";
 
   if (compact) {
-    const currentPlan = SUBSCRIPTION_PLANS.find((plan) => plan.code === subscription?.effectivePlanCode);
     if (loading) return <span role="status"><Badge tone="slate">Abonnement…</Badge></span>;
-    if (error || !currentPlan) return <button type="button" className="min-h-11 rounded-xl" onClick={() => setRefresh((value) => value + 1)} title="Réessayer de charger ton abonnement" aria-label="Abonnement indisponible. Réessayer"><Badge tone="slate">Indisponible</Badge></button>;
-    return <span aria-label={`Abonnement en cours : ${currentPlan.label}`}><Badge tone="cyan">{currentPlan.label}</Badge></span>;
+    if (error || !presentation) return <button type="button" className="min-h-11 rounded-xl" onClick={() => setRefresh((value) => value + 1)} title="Réessayer de charger ton abonnement" aria-label="Abonnement indisponible. Réessayer"><Badge tone="slate">Indisponible</Badge></button>;
+    const statusSuffix = subscription.status === "active" || subscription.status === "none" ? "" : ` · ${presentation.statusLabel}`;
+    return <span aria-label={`Abonnement : ${presentation.label}${subscription.status === "none" ? "" : ` · ${presentation.statusLabel}`}`}><Badge tone={presentation.tone}>{presentation.label}{statusSuffix}</Badge></span>;
   }
 
   return <Surface className="mb-5"><section aria-labelledby="account-subscription-title">
@@ -64,14 +62,19 @@ export default function AccountSubscription({ compact = false }) {
     {error && <p className="mt-4 text-sm text-rose-200" role="alert">{error}</p>}
     {subscription && <div className="mt-4 border-t border-white/10 pt-4">
       <div className="flex flex-wrap items-center gap-3"><p className="text-2xl font-black">{presentation.label}</p><Badge tone={presentation.tone}>{presentation.statusLabel}</Badge></div>
-      {hasPass ? <>
-        <dl className="mt-4 flex flex-wrap gap-x-10 gap-y-4 text-sm">
-          <div><dt className="text-slate-400">Début</dt><dd className="mt-1 font-bold">{dateLabel(subscription.startsAt)}</dd></div>
-          <div><dt className="text-slate-400">Fin incluse</dt><dd className="mt-1 font-bold">{subscription.endsAt ? dateLabel(subscription.endsAt, true) : "Sans date de fin"}</dd></div>
+      {hasAttribution ? <>
+        {isDiscovery && <p className="mt-3 text-sm leading-6 text-slate-300">Découverte comprend {DISCOVERY_TRIAL_DAYS} jours d’accès à tous les outils. Après cet essai, le Pass Équipe sera nécessaire pour continuer à les utiliser lorsque les abonnements seront lancés.</p>}
+        <dl className="mt-4 text-sm leading-6">
+          <div><dt className="text-slate-400">{isDiscovery ? "Période de l’essai" : "Période du Pass"}</dt><dd className="mt-1 font-bold">{subscriptionPeriodLabel(subscription)}</dd></div>
         </dl>
-        {subscription.status !== "active" && <p className="mt-3 text-sm text-slate-300">{subscription.status === "scheduled" ? "Ce Pass prendra effet à la date de début indiquée." : "Ce Pass n’est plus actif."}</p>}
-        <p className="mt-3 text-sm text-slate-400">Attribution manuelle, sans reconduction automatique. Pour une modification, contacte l’administration.</p>
-      </> : <p className="mt-3 text-sm text-slate-300">Aucun Pass actif n’est attribué à ton profil.</p>}
+        {isDiscovery ? <>
+          {subscription.status === "pending" && <p className="mt-3 text-sm text-slate-300">Ton essai n’a pas encore commencé. Aucune période n’est décomptée.</p>}
+          {subscription.status === "scheduled" && <p className="mt-3 text-sm text-slate-300">Cet essai prendra effet à la date de début indiquée.</p>}
+          {subscription.status === "revoked" && <p className="mt-3 text-sm text-slate-300">L’attribution de cet essai a été retirée.</p>}
+        </> : subscription.status !== "active" && <p className="mt-3 text-sm text-slate-300">{subscription.status === "scheduled" ? "Ce Pass prendra effet à la date de début indiquée." : "Ce Pass n’est plus actif."}</p>}
+      </> : <p className="mt-3 text-sm text-slate-300">Aucun abonnement n’est attribué à ton profil.</p>}
+      <p className="mt-3 text-sm leading-6 text-cyan-100">Les abonnements ne sont pas encore lancés : tous les outils restent accessibles, quel que soit le statut indiqué ici.</p>
+      <p className="mt-3 text-sm leading-6 text-slate-400">Une attribution manuelle ne déclenche aucun paiement ni reconduction automatique. Pour une modification, contacte l’administration.</p>
     </div>}
   </section></Surface>;
 }

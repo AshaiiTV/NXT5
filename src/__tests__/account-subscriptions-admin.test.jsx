@@ -10,7 +10,7 @@ vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
 const renderers = [];
 afterEach(() => { renderers.splice(0).forEach((renderer) => act(() => renderer.unmount())); vi.resetAllMocks(); });
 
-const emptySubscription = { planCode: "free", effectivePlanCode: "free", status: "none", startsAt: null, endsAt: null, revokedAt: null, note: "", updatedAt: null, revision: 0 };
+const emptySubscription = { planCode: "free", effectivePlanCode: null, status: "none", startsAt: null, endsAt: null, revokedAt: null, note: "", updatedAt: null, revision: 0 };
 const activeSubscription = { planCode: "team_monthly", effectivePlanCode: "team_monthly", status: "active", startsAt: subscriptionDateToISO("2026-09-01"), endsAt: subscriptionDateToISO("2026-09-30", true), revokedAt: null, note: "Accord initial", updatedAt: "2026-09-01T10:00:00Z", revision: 4 };
 const account = { id: "user-1", name: "Camille Dupont", accountName: "Camille-Staff", email: "camille.long-contact@example.test", subscription: activeSubscription };
 const otherAccount = { id: "user-2", name: "Luna Martin", accountName: "Luna", email: "luna@example.test", subscription: emptySubscription };
@@ -131,9 +131,32 @@ describe("manual subscriptions account search", () => {
 });
 
 describe("manual subscription editor", () => {
+  it("offers only the new grades and starts a fourteen-day trial only after explicit configuration", async () => {
+    const renderer = await openAccount({ ...emptySubscription, status: "pending", revision: 1 });
+    expect(renderer.root.findAllByType("option").map((item) => item.props.value)).toEqual(["free", "team_monthly"]);
+    const checkbox = renderer.root.findByProps({ name: "startTrial" });
+    expect(checkbox.props.checked).toBe(false);
+    expect(input(renderer, "Date de début de l’essai")).toBeUndefined();
+    await act(async () => checkbox.props.onChange({ target: { checked: true } }));
+    await edit(renderer, "Date de début de l’essai", "2030-09-08");
+    expect(input(renderer, "Date de fin incluse")).toBeUndefined();
+    apiFetch.mockResolvedValueOnce(saved({ ...emptySubscription, status: "scheduled", revision: 2 }));
+    await submit(renderer);
+    expect(requestBody()).toMatchObject({ planCode: "free", startsAt: subscriptionDateToISO("2030-09-08"), expectedRevision: 1 });
+    expect(Date.parse(requestBody().endsAt) - Date.parse(requestBody().startsAt)).toBe(14 * 86400000);
+  });
+
+  it("shows a migration and keeps historical grades out of the new selector", async () => {
+    apiFetch.mockResolvedValueOnce(detail({ history: [{ id: "migration", action: "migrate", previousPlanCode: "team_season", planCode: "team_monthly", actorName: "Migration du catalogue", startsAt: activeSubscription.startsAt, endsAt: activeSubscription.endsAt, createdAt: "2026-09-09T12:00:00Z" }] }));
+    const renderer = await render({ initialUserId: account.id });
+    expect(text(renderer)).toContain("Pass Saison (ancienne offre) → Pass Équipe");
+    expect(text(renderer)).toContain("Migration du catalogue");
+    expect(renderer.root.findAllByType("option").map((item) => item.props.value)).toEqual(["free", "team_monthly"]);
+  });
+
   it("assigns a paid plan with inclusive dates, a private note and the expected revision once", async () => {
     const renderer = await openAccount(emptySubscription);
-    await edit(renderer, "Formule attribuée", "structure");
+    await edit(renderer, "Formule attribuée", "team_monthly");
     await edit(renderer, "Date de début", "2030-01-31");
     expect(input(renderer, "Date de fin incluse").props.value).toBe("2030-02-27");
     await edit(renderer, "Date de fin incluse", "2030-03-31");
@@ -142,36 +165,36 @@ describe("manual subscription editor", () => {
     apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
     await act(async () => { const form = renderer.root.findByType("form"); form.props.onSubmit({ preventDefault: vi.fn() }); form.props.onSubmit({ preventDefault: vi.fn() }); });
     expect(apiFetch.mock.calls.filter((call) => call[1]?.method === "POST")).toHaveLength(1);
-    expect(requestBody()).toEqual({ userId: account.id, action: "assign", planCode: "structure", startsAt: subscriptionDateToISO("2030-01-31"), endsAt: subscriptionDateToISO("2030-03-31", true), note: "Accord de la structure", expectedRevision: 0 });
+    expect(requestBody()).toEqual({ userId: account.id, action: "assign", planCode: "team_monthly", startsAt: subscriptionDateToISO("2030-01-31"), endsAt: subscriptionDateToISO("2030-03-31", true), note: "Accord de la structure", expectedRevision: 0 });
     expect(renderer.root.findByType("form").findByType("fieldset").props.disabled).toBe(true);
     expect(button(renderer, "Enregistrement…").props.disabled).toBe(true);
-    const updated = { ...activeSubscription, planCode: "structure", effectivePlanCode: "free", status: "scheduled", startsAt: subscriptionDateToISO("2030-01-31"), endsAt: subscriptionDateToISO("2030-03-31", true), revision: 1, note: "Accord de la structure" };
+    const updated = { ...activeSubscription, planCode: "team_monthly", effectivePlanCode: null, status: "scheduled", startsAt: subscriptionDateToISO("2030-01-31"), endsAt: subscriptionDateToISO("2030-03-31", true), revision: 1, note: "Accord de la structure" };
     await act(async () => resolveSave(saved(updated)));
     expect(text(renderer)).toContain("Abonnement enregistré pour Camille Dupont.");
-    expect(text(renderer)).toContain("Pass Structure");
+    expect(text(renderer)).toContain("Pass Équipe");
     expect(text(renderer)).toContain("À venir");
     expect(renderer.root.findByType("form").findByType("fieldset").props.disabled).toBe(false);
   });
 
-  it("defaults Saison to six calendar months and allows explicit unlimited duration", async () => {
+  it("defaults Pass Équipe to one calendar month and allows explicit unlimited duration", async () => {
     const renderer = await openAccount(emptySubscription);
-    await edit(renderer, "Formule attribuée", "team_season");
+    await edit(renderer, "Formule attribuée", "team_monthly");
     await edit(renderer, "Date de début", "2030-09-08");
-    expect(input(renderer, "Date de fin incluse").props.value).toBe("2031-03-07");
+    expect(input(renderer, "Date de fin incluse").props.value).toBe("2030-10-07");
     expect(renderer.root.findByProps({ type: "checkbox" }).props.checked).toBe(false);
     await act(async () => renderer.root.findByProps({ type: "checkbox" }).props.onChange({ target: { checked: true } }));
     expect(input(renderer, "Date de fin incluse").props.disabled).toBe(true);
-    apiFetch.mockResolvedValueOnce(saved({ ...activeSubscription, planCode: "team_season", endsAt: null, revision: 1 }));
+    apiFetch.mockResolvedValueOnce(saved({ ...activeSubscription, planCode: "team_monthly", endsAt: null, revision: 1 }));
     await submit(renderer);
-    expect(requestBody()).toMatchObject({ planCode: "team_season", startsAt: subscriptionDateToISO("2030-09-08"), endsAt: null });
+    expect(requestBody()).toMatchObject({ planCode: "team_monthly", startsAt: subscriptionDateToISO("2030-09-08"), endsAt: null });
   });
 
-  it("normalizes free assignments to no paid period", async () => {
+  it("prepares Discovery without starting a trial by default", async () => {
     const renderer = await openAccount();
     await edit(renderer, "Formule attribuée", "free");
     expect(input(renderer, "Date de début")).toBeUndefined();
-    expect(text(renderer)).toContain("Découverte n’accorde aucun accès payant");
-    apiFetch.mockResolvedValueOnce(saved({ ...emptySubscription, status: "active", revision: 5 }));
+    expect(text(renderer)).toContain("aucun compte à rebours ne démarre");
+    apiFetch.mockResolvedValueOnce(saved({ ...emptySubscription, status: "pending", revision: 5 }));
     await submit(renderer);
     expect(requestBody()).toMatchObject({ planCode: "free", startsAt: null, endsAt: null, expectedRevision: 4 });
   });
@@ -192,7 +215,7 @@ describe("manual subscription editor", () => {
 
   it("warns when a future assignment replaces a currently active paid pass", async () => {
     const renderer = await openAccount();
-    await edit(renderer, "Formule attribuée", "team_season");
+    await edit(renderer, "Formule attribuée", "team_monthly");
     await edit(renderer, "Date de début", "2099-01-01");
     expect(text(renderer)).toContain("Cette attribution remplace le Pass actuel. Aucun Pass ne sera actif avant le");
     expect(apiFetch.mock.calls.filter((call) => call[1]?.method === "POST")).toHaveLength(0);
@@ -200,14 +223,14 @@ describe("manual subscription editor", () => {
 
   it("retains the paid plan, dates and note after a failed save and retries with the same revision", async () => {
     const renderer = await openAccount();
-    await edit(renderer, "Formule attribuée", "structure");
+    await edit(renderer, "Formule attribuée", "team_monthly");
     await edit(renderer, "Date de début", "2030-09-08");
     await edit(renderer, "Date de fin incluse", "2030-12-31");
     await edit(renderer, "Note privée", "À conserver");
     apiFetch.mockRejectedValueOnce(new Error("Service indisponible"));
     await submit(renderer);
     expect(text(renderer)).toContain("Service indisponible");
-    expect(renderer.root.findByType(SelectInput).props.value).toBe("structure");
+    expect(renderer.root.findByType(SelectInput).props.value).toBe("team_monthly");
     expect(input(renderer, "Date de début").props.value).toBe("2030-09-08");
     expect(input(renderer, "Date de fin incluse").props.value).toBe("2030-12-31");
     expect(renderer.root.findByType(TextAreaInput).props.value).toBe("À conserver");
@@ -267,7 +290,7 @@ describe("manual subscription editor", () => {
     expect(requestBody()).toEqual({ userId: account.id, action: "revoke", note: "Fin de l’accord", expectedRevision: 4 });
     expect(text(renderer)).toContain("Retrait indisponible");
     expect(button(renderer, "Confirmer le retrait")).toBeTruthy();
-    const revoked = { ...activeSubscription, effectivePlanCode: "free", status: "revoked", revokedAt: "2026-09-08T12:00:00Z", revision: 5 };
+    const revoked = { ...activeSubscription, effectivePlanCode: null, status: "revoked", revokedAt: "2026-09-08T12:00:00Z", revision: 5 };
     apiFetch.mockResolvedValueOnce(saved(revoked));
     await click(renderer, "Confirmer le retrait");
     expect(text(renderer)).toContain("Abonnement retiré pour Camille Dupont.");

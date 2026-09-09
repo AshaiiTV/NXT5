@@ -71,15 +71,23 @@ Cette commande applique le schéma et les migrations versionnées dans une trans
 
 La première phase du [plan de financement](docs/plan-financement.md) est préparée en accès administrateur uniquement : `/tarifs` permet de prévisualiser les offres envisagées et le formulaire, et `/admin/demandes-acces` permet de suivre les demandes. Les deux pages sont accessibles depuis le tableau de bord d’administration, sans lien public. La soumission comme la gestion des demandes exigent un compte administrateur côté serveur.
 
-La proposition de lancement comporte deux cartes : **Découverte, 14 jours d’accès complet sans carte bancaire**, et **Pass Équipe à 9,90 € TTC/mois/équipe**, résiliable à tout moment, avec les mêmes fonctions et jusqu’à 15 membres. Le prix reste une hypothèse à valider. Un lien « Plusieurs équipes ? Parlons de tes besoins » mène au formulaire sans tarif annoncé. Saison, Structure, annuel et fondateur sont hors de la grille ; les codes et abonnements manuels historiques restent compatibles.
+La proposition de lancement comporte deux cartes : **Découverte, 14 jours d’accès complet sans carte bancaire**, et **Pass Équipe à 9,90 € TTC/mois/équipe**, résiliable à tout moment, avec les mêmes fonctions et jusqu’à 15 membres. Le prix reste une hypothèse à valider. Un lien « Plusieurs équipes ? Parlons de tes besoins » mène au formulaire sans tarif annoncé. Saison, Structure, annuel et fondateur sont hors de la grille. Les anciennes demandes commerciales et leur historique sont conservés.
 
 La décision du 9 septembre 2026 prévoit **14 jours d’accès complet à tous les outils, puis le Pass Équipe pour continuer à utiliser NXT5**. L’essai et le Pass incluent imports, reviews, exports produit, tendances, compositions, Champion Pool, planning, statistiques, roster et profils joueurs. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu. Les exports de données personnelles, la confidentialité, la sécurité et la gestion du compte restent accessibles indépendamment du Pass.
 
-Les fonctions enregistrent les demandes dans Neon ; aucun essai chronométré, paiement, e-mail automatique ou quota commercial n’est activé. **Les abonnements ne sont pas lancés : aucune fonction n’est bloquée aujourd’hui**, même sans abonnement. Le futur masquage flouté et son message Pass sont préparés avec `SUBSCRIPTION_RESTRICTIONS_ENABLED = false` dans `src/app/pass-access.js`. Ils ne constituent pas un contrôle d’accès serveur. Voir [le périmètre des fonctions Pass](docs/pass-feature-access.md) pour les règles, la prévisualisation et les conditions d’une future activation.
+Les fonctions enregistrent les demandes dans Neon ; aucun essai d’équipe, paiement, e-mail automatique ou quota commercial n’est activé par ce formulaire. **Les abonnements ne sont pas lancés : aucune fonction n’est bloquée aujourd’hui**, même sans abonnement. Le futur masquage flouté et son message Pass sont préparés avec `SUBSCRIPTION_RESTRICTIONS_ENABLED = false` dans `src/app/pass-access.js`. Ils ne constituent pas un contrôle d’accès serveur. Voir [le périmètre des fonctions Pass](docs/pass-feature-access.md) pour les règles, la prévisualisation et les conditions d’une future activation.
 
 La migration additive `database/migrations/20260908_access_requests.sql` est incluse dans `npm run db:migrate`. Le déploiement de production existant l’appliquera avant publication. Aucune variable Stripe n’est nécessaire ; la connexion Neon et la configuration d’administration existantes suffisent. La purge planifiée supprime quotidiennement les demandes de plus de six mois.
 
 Voir [le guide de validation commerciale](docs/validation-commerciale.md) pour la recette, les entretiens et les critères de passage au paiement.
+
+## Abonnements manuels des profils
+
+Dans **Profils et abonnements** (`/admin/abonnements`), l’administrateur attribue désormais uniquement **Découverte — 14 jours** ou **Pass Équipe**. Découverte peut rester préparée sans dates, au statut `pending`, ou être démarrée explicitement pour 14 × 24 heures ; le serveur calcule son échéance. Aucun essai ne démarre automatiquement pour les profils existants ou les nouveaux comptes.
+
+Les anciennes attributions Saison et Structure sont converties en Pass Équipe en conservant leurs dates, notes et retraits. La conversion est auditée, incrémente la révision et préserve l’historique antérieur. Le titulaire retrouve la formule et son statut actualisés dans son compte. Une attribution expirée, programmée, retirée ou non démarrée n’a aucun plan effectif ; elle ne rétablit pas un gratuit permanent.
+
+Ces attributions restent personnelles : elles ne facturent pas une équipe et ne changent aucun accès avant le lancement. Voir [le guide des abonnements manuels](docs/abonnements-manuels.md) pour l’administration, les migrations et le contrat des API.
 
 ## Test rapide du suivi d’équipe
 
