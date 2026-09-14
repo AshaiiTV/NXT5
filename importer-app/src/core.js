@@ -451,6 +451,21 @@ export class StateStore {
   snapshot() {
     return structuredClone(this.value);
   }
+  async getExportPath(gameId, fallbackDirectory) {
+    let directory = fallbackDirectory;
+    // History is persisted only after a successful write, including before an app restart.
+    const previousFile = this.value.history[0]?.filePath;
+    if (previousFile) {
+      const previousDirectory = path.dirname(previousFile);
+      try {
+        if ((await fs.stat(previousDirectory)).isDirectory())
+          directory = previousDirectory;
+      } catch {
+        // A removed folder or disconnected drive must not block the save dialog.
+      }
+    }
+    return path.join(directory, `nxt5-${gameId}.json`);
+  }
   update(transform) {
     const operation = this.queue.then(async () => {
       const next = cleanState(transform(this.snapshot()));

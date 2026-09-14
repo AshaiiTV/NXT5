@@ -12,7 +12,7 @@ export default async function handler(request: Request, context: Context): Promi
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
-    const body = await readJson(request);
+    const body = await readJson(request, 8192);
     const name = String(body.name || '').trim().replace(/\s+/g, ' ');
     const email = normalizeEmail(body.email);
 

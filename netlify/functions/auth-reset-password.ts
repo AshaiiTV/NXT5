@@ -6,7 +6,7 @@ export default async function handler(request: Request): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
-    const body = await readJson(request);
+    const body = await readJson(request, 4096);
     const token = String(body.token || '').trim();
     const nextPassword = String(body.nextPassword || '');
 

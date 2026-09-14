@@ -8,6 +8,7 @@ export function useTeamData(planningStore) {
   const [data, setData] = useState(DEFAULT_DATA);
   const [selectedTeamId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [apiError, setApiError] = useState("");
   const selected = useRef(null);
@@ -19,12 +20,15 @@ export function useTeamData(planningStore) {
 
   const setSelectedTeamId = useCallback((id) => {
     selected.current = id;
+    // Do not let the team page reselect a deleted team from the previous snapshot.
+    if (!id) setData(DEFAULT_DATA);
     setSelectedId(id);
     if (id && latestData.current.selectedTeamId === id && pendingTeam.current !== undefined && pendingTeam.current !== id) {
       generation.current += 1;
       request.current?.abort();
       pendingTeam.current = undefined;
       setLoading(false);
+      setLoadingProgress(null);
     }
   }, []);
 
@@ -36,6 +40,7 @@ export function useTeamData(planningStore) {
     request.current = controller;
     pendingTeam.current = teamId;
     setLoading(true);
+    setLoadingProgress(null);
     setApiError("");
     const isCurrent = () => ticket === generation.current && selected.current === teamId;
     try {
@@ -43,8 +48,8 @@ export function useTeamData(planningStore) {
       if (teamId) params.set("teamId", teamId);
       const result = await apiFetch(`bootstrap?${params}`, { signal: controller.signal });
       if (!isCurrent()) return;
-      const activeTeam = result.selectedTeamId || result.teams?.[0]?.id || null;
-      if (teamId && activeTeam !== teamId) throw new Error("Les données reçues ne correspondent pas à l’équipe active.");
+      const activeTeam = result.teams?.length === 0 ? null : result.selectedTeamId || result.teams?.[0]?.id || null;
+      if (teamId && activeTeam !== teamId && result.teams?.length !== 0) throw new Error("Les données reçues ne correspondent pas à l’équipe active.");
       const total = Number(result.pagination?.total ?? result.matches?.length ?? 0);
       if (!Number.isSafeInteger(total) || total < 0) throw new Error("Le nombre de games reçu est invalide. Réessaie.");
       const matches = new Map();
@@ -55,6 +60,7 @@ export function useTeamData(planningStore) {
         }
       };
       append(result);
+      setLoadingProgress({ loaded: matches.size, total });
       let pagination = result.pagination;
       while (pagination?.hasMore) {
         const offset = Number(pagination.nextOffset);
@@ -71,6 +77,7 @@ export function useTeamData(planningStore) {
           throw new Error("L’historique a changé pendant le chargement. Réessaie pour analyser toutes les games.");
         }
         append(page);
+        setLoadingProgress({ loaded: matches.size, total });
         pagination = page.pagination;
       }
       if (matches.size !== total) {
@@ -84,7 +91,17 @@ export function useTeamData(planningStore) {
       selected.current = activeTeam;
       setSelectedId(activeTeam);
     } catch (error) {
-      if (isCurrent()) setApiError(error.message || "Impossible de charger toutes les games de cette équipe.");
+      if (isCurrent()) {
+        if (teamId && error.status === 403) {
+          // A deleted team or revoked membership must not leave its workspace visible.
+          selected.current = null;
+          setData(DEFAULT_DATA);
+          setSelectedId(null);
+          await refreshAll();
+          return;
+        }
+        setApiError(error.message || "Impossible de charger toutes les games de cette équipe.");
+      }
     } finally {
       if (ticket === generation.current) {
         pendingTeam.current = undefined;
@@ -99,6 +116,6 @@ export function useTeamData(planningStore) {
     if (selectedTeamId && data.selectedTeamId !== selectedTeamId && pendingTeam.current !== selectedTeamId) refreshAll({ teamId: selectedTeamId });
   }, [selectedTeamId, data.selectedTeamId, refreshAll]);
 
-  return { data, setData, selectedTeamId, setSelectedTeamId, loading, bootstrapped,
+  return { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped,
     bootstrapReady: data.historyComplete === true, apiError, refreshAll };
 }

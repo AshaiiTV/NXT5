@@ -38,7 +38,7 @@ beforeAll(async () => {
     const statement = parts.reduce((text, part, index) => text + (index ? `$${index}` : '') + part, '');
     return (await db.query(statement, values)).rows;
   });
-});
+}, 30_000);
 
 beforeEach(async () => {
   await db.exec('delete from access_requests; delete from rate_limits;');
@@ -91,6 +91,23 @@ describe('administrator preview access requests', () => {
     expect(duplicate.status).toBe(first.status);
     expect(await duplicate.json()).toEqual(await first.json());
     expect((await db.query('select * from access_requests')).rows).toEqual(before);
+  });
+
+  it('counts Unicode characters consistently with SQL and accepts normalized values at the limit', async () => {
+    const response = await submitRequest(request({ ...valid, contactName: '🤖'.repeat(80), teamName: 'İ'.repeat(50), email: 'İ@EXAMPLE.TEST' }), context);
+    expect(response.status).toBe(200);
+    expect((await db.query('select char_length(contact_name) as contact_length, char_length(team_key) as key_length, email from access_requests')).rows)
+      .toEqual([{ contact_length: 80, key_length: 100, email: 'i\u0307@example.test' }]);
+  });
+
+  it.each([
+    { contactName: '🤖' }, { teamName: '🤖' },
+    { teamName: 'İ'.repeat(60) }, { email: `${'İ'.repeat(80)}@example.test` }
+  ])('rejects Unicode lengths incompatible with storage as validation errors: %j', async (change) => {
+    const response = await submitRequest(request({ ...valid, ...change }), context);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'INVALID_ACCESS_REQUEST' });
+    expect((await db.query('select * from access_requests')).rows).toEqual([]);
   });
 
   it('silently ignores a filled honeypot without storing it', async () => {

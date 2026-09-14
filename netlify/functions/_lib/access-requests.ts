@@ -11,7 +11,9 @@ export function invalidAccessRequest(message: string): never {
 function textField(value: unknown, label: string, min: number, max: number, multiline = false): string {
   if (typeof value !== 'string') invalidAccessRequest(`${label} invalide.`);
   const text = multiline ? value.trim() : value.normalize('NFKC').trim().replace(/\s+/g, ' ');
-  if (text.length < min || text.length > max || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) {
+  // Match PostgreSQL char_length instead of counting UTF-16 code units.
+  const length = [...text].length;
+  if (length < min || length > max || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) {
     invalidAccessRequest(`${label} doit contenir entre ${min} et ${max} caractères.`);
   }
   return text;
@@ -29,14 +31,17 @@ export function validateAccessRequest(body: Record<string, unknown>) {
   if (website) return null;
   if (body.consent !== true) invalidAccessRequest('Ton accord est nécessaire pour être recontacté au sujet de cette demande.');
   const contactName = textField(body.contactName, 'Le nom de contact', 2, 80);
-  const email = textField(body.email, 'L’adresse e-mail', 3, 160).toLowerCase();
+  const emailInput = textField(body.email, 'L’adresse e-mail', 3, 160);
+  // Lowercasing can expand Unicode characters; check the exact stored values.
+  const email = textField(emailInput.toLowerCase(), 'L’adresse e-mail', 3, 160);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) invalidAccessRequest('Adresse e-mail invalide.');
   const teamName = textField(body.teamName, 'Le nom de l’équipe', 2, 100);
+  const teamKey = textField(teamName.toLowerCase(), 'Le nom de l’équipe', 2, 100);
   return {
     contactName,
     email,
     teamName,
-    teamKey: teamName.toLowerCase(),
+    teamKey,
     role: choice(body.role, ['captain', 'manager', 'coach', 'player', 'other'], 'Rôle'),
     planCode: choice(body.planCode, ['free', 'team_monthly', 'team_season'], 'Offre'),
     payer: choice(body.payer, ['self', 'team', 'association', 'unknown'], 'Payeur'),

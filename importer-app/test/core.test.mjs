@@ -347,6 +347,90 @@ test("durable state serializes concurrent updates, bounds history and survives r
   assert.deepEqual(await fs.readdir(directory), ["preferences.json"]);
 });
 
+test("the first export uses the fallback directory and the current game's filename", async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "nxt5-save-path-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const store = new StateStore(path.join(directory, "preferences.json"));
+  await store.load();
+  const downloads = path.join(directory, "Downloads");
+  assert.equal(
+    await store.getExportPath(ID, downloads),
+    path.join(downloads, `nxt5-${ID}.json`),
+  );
+});
+
+test("the latest successful folder survives restart and unavailable folders fall back", async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "nxt5-save-folder-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const store = new StateStore(path.join(directory, "preferences.json"));
+  await store.load();
+  const downloads = path.join(directory, "Downloads");
+  const olderFolder = path.join(directory, "Previous games");
+  const latestFolder = path.join(directory, "Matchs équipe");
+  for (const folder of [olderFolder, latestFolder]) {
+    await fs.mkdir(folder);
+    const h = harness({
+      chooseSave: async () => ({ canceled: false, filePath: path.join(folder, "custom-name.json") }),
+      writeFile: atomicWrite,
+      addHistory: (entry) => store.addExport(entry),
+    });
+    await h.run();
+  }
+  const reloaded = new StateStore(store.filePath);
+  await reloaded.load();
+  const nextGame = "EUW1_7861632139";
+  const expectedName = `nxt5-${nextGame}.json`;
+  assert.equal(await reloaded.getExportPath(nextGame, downloads), path.join(latestFolder, expectedName));
+
+  // Moving or deleting the previous JSON should not forget its existing folder.
+  await fs.unlink(path.join(latestFolder, "custom-name.json"));
+  assert.equal(await reloaded.getExportPath(nextGame, downloads), path.join(latestFolder, expectedName));
+
+  // The latest folder is authoritative: an older valid history entry is not a fallback.
+  await fs.rmdir(latestFolder);
+  assert.equal(await reloaded.getExportPath(nextGame, downloads), path.join(downloads, expectedName));
+  await fs.writeFile(latestFolder, "A file now occupies the former folder path.");
+  assert.equal(await reloaded.getExportPath(nextGame, downloads), path.join(downloads, expectedName));
+});
+
+test("cancellation and failed writes preserve the successful folder after restart", async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "nxt5-save-failed-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const store = new StateStore(path.join(directory, "preferences.json"));
+  await store.load();
+  const confirmedFolder = path.join(directory, "Confirmed");
+  const otherFolder = path.join(directory, "Other");
+  await fs.mkdir(confirmedFolder);
+  await fs.mkdir(otherFolder);
+  const deps = { writeFile: atomicWrite, addHistory: (entry) => store.addExport(entry) };
+  const saved = harness({
+    ...deps,
+    chooseSave: async () => ({ canceled: false, filePath: path.join(confirmedFolder, "saved.json") }),
+  });
+  await saved.run();
+  const canceled = harness({
+    ...deps,
+    chooseSave: async () => ({ canceled: true, filePath: path.join(otherFolder, "canceled.json") }),
+  });
+  assert.deepEqual(await canceled.run(), { canceled: true });
+  const blockedFile = path.join(otherFolder, "blocked.json");
+  await fs.mkdir(blockedFile);
+  const failed = harness({
+    ...deps,
+    chooseSave: async () => ({ canceled: false, filePath: blockedFile }),
+  });
+  await assert.rejects(failed.run());
+
+  const reloaded = new StateStore(store.filePath);
+  await reloaded.load();
+  assert.equal(reloaded.snapshot().history.length, 1);
+  assert.equal(
+    await reloaded.getExportPath(ID, path.join(directory, "Downloads")),
+    path.join(confirmedFolder, `nxt5-${ID}.json`),
+  );
+  await assert.rejects(fs.access(path.join(otherFolder, "canceled.json")), { code: "ENOENT" });
+});
+
 test("atomic writes preserve the old file when commit fails and clean temporary files", async (t) => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "nxt5-atomic-"));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));

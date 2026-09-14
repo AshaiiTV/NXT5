@@ -1,8 +1,19 @@
-# NXT5 Importer 0.3.1
+# NXT5 Importer 0.3.3
 
-![Nouvelle interface de NXT5 Importer](docs/images/exporter.png)
+- La fenêtre d’enregistrement réutilise le dossier du dernier export réussi, y compris après fermeture et réouverture de l’application.
+- Une annulation ou un échec d’enregistrement conserve le dossier précédent. Si ce dossier n’existe plus, la fenêtre propose Téléchargements.
+
+# NXT5 Importer 0.3.2
+
+![Interface NXT5 Importer alignée sur le site](docs/images/exporter.png)
 
 *Aperçu Electron avec connexion client simulée pour la validation.*
+
+- Alignement sur la direction artistique du site : fond bleu nuit, surfaces bleu-encre, textes clairs et accents cyan.
+- Reprise du dégradé cyan/bleu/fuchsia des boutons du site, de ses bordures, rayons et états de focus.
+- Typographie Inter sur toute l’interface ; retrait de Space Grotesk et des teintes lavande des textes et panneaux.
+
+# NXT5 Importer 0.3.1
 
 - Nouvelle composition esport premium : navigation horizontale, noir profond et accents violet/cyan.
 - Titres Space Grotesk et texte Inter, avec polices embarquées pour un affichage cohérent hors ligne.
@@ -10,8 +21,6 @@
 - Interface et états adaptés à la taille minimale de fenêtre, avec navigation clavier et animations réduites selon les préférences système.
 
 # NXT5 Importer 0.3.0
-
-*Aperçu de l’interface, avec un client LoL simulé pour la vérification.*
 
 ## Interface
 

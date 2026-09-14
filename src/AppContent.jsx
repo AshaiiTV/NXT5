@@ -1,16 +1,17 @@
 import React, { startTransition, useCallback, useEffect, useState, Suspense, useMemo, lazy } from "react";
 import { apiFetch, API_BASE } from "./api/client.js";
-import { NAV, DEFAULT_DATA } from "./app/constants.jsx";
+import { NAV } from "./app/constants.jsx";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
-import { Loader2, ArrowRight, Check, Crown, FileText, Swords, Users, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
+import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
 import { cx, preciseErrorText } from "./app/helpers.js";
 import { createPlanningStore, upsertAvailability } from "./utils/planning-store.js";
 import { useTeamData } from "./hooks/useTeamData.js";
+import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 import { matchDisplayName } from "./utils/matches.js";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
 const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
@@ -26,6 +27,8 @@ const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
 const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
+const SocialPage = lazy(() => import("./pages/public/SocialPage.jsx"));
+const IntegrationsPage = lazy(() => import("./pages/admin/IntegrationsPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
 
@@ -192,103 +195,6 @@ function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
   </div>;
 }
 
-function loadingStepState(done, active) {
-  if (done) return "done";
-  if (active) return "active";
-  return "pending";
-}
-
-function AppLoadingScreen({ phase = "session", data = DEFAULT_DATA, ready = false }) {
-  const roles = [
-    ["TOP", "top"],
-    ["JGL", "jungle"],
-    ["MID", "mid"],
-    ["ADC", "adc"],
-    ["SUP", "support"],
-  ];
-  const hasRoster = Boolean((data.teams || []).length || (data.players || []).length || (data.teamMembers || []).length);
-  const hasGames = Boolean((data.matches || []).length);
-  const hasDraft = Boolean((data.championPool || []).length || (data.compositions || []).length);
-  const hasReview = Boolean((data.reports || []).length || (data.matchArchives || []).length || hasGames);
-  const activeIndex = phase === "session" ? 0 : hasReview ? 4 : hasDraft ? 3 : hasGames ? 2 : hasRoster ? 1 : 0;
-  const stages = [
-    ["Roster", "R\u00f4les align\u00e9s", Users, phase !== "session" && hasRoster],
-    ["Games", "Timelines index\u00e9es", Swords, hasGames],
-    ["Draft", "Priorit\u00e9s charg\u00e9es", Crown, hasDraft],
-    ["Review", "Signaux pr\u00eats", FileText, hasReview],
-  ];
-  const targetDoneCount = stages.reduce((count, [, , , done]) => count + (done ? 1 : 0), 0);
-  const [visibleDoneCount, setVisibleDoneCount] = useState(0);
-  const readyVisible = ready && visibleDoneCount >= targetDoneCount;
-  const progressValue = readyVisible ? 100 : Math.min(92, Math.max(12, Math.round((visibleDoneCount / Math.max(stages.length, 1)) * 100)));
-
-  useEffect(() => {
-    if (visibleDoneCount > targetDoneCount) {
-      setVisibleDoneCount(targetDoneCount);
-      return undefined;
-    }
-    if (visibleDoneCount >= targetDoneCount) return undefined;
-    const timer = window.setTimeout(() => {
-      setVisibleDoneCount((count) => Math.min(count + 1, targetDoneCount));
-    }, 190);
-    return () => window.clearTimeout(timer);
-  }, [targetDoneCount, visibleDoneCount]);
-
-  return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#020511] px-4 py-6 text-white sm:px-6">
-      <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(103,232,249,.14),transparent_34%),radial-gradient(circle_at_74%_30%,rgba(217,70,239,.10),transparent_30%),linear-gradient(90deg,rgba(2,5,17,.86),transparent_42%,rgba(2,5,17,.84))]" />
-      <div className="nxt5-warroom relative z-10 w-full">
-        <div className="nxt5-warroom-header">
-          <Nxt5Wordmark className="nxt5-loader-wordmark h-12 w-48 object-left sm:h-14 sm:w-56" />
-        </div>
-
-        <div className="nxt5-warroom-copy">
-          <p>Ouverture espace staff</p>
-          <h1 className="nxt5-loader-title">Synchronisation en cours</h1>
-        </div>
-
-        <div className="nxt5-warroom-grid">
-          <div className="nxt5-player-board" aria-hidden="true">
-            <div className="nxt5-player-board-noise" />
-            <div className="nxt5-player-columns">
-              {roles.map(([role], index) => (
-                <span key={role} className={cx("nxt5-player-column", `nxt5-player-column-${index + 1}`, hasRoster && "is-loaded")} style={{ "--delay": `${index * 160}ms`, "--fill-delay": `${index * 130}ms` }}>
-                  <strong>{role}</strong>
-                </span>
-              ))}
-            </div>
-            <div className="nxt5-player-board-title">
-              <span>{readyVisible ? "Chargement termin\u00e9" : "Chargement roster"}</span>
-              <div className={cx("nxt5-player-progress", readyVisible && "is-complete")} style={{ "--progress": `${progressValue}%` }}>
-                <i />
-              </div>
-            </div>
-          </div>
-
-          <div className="nxt5-warroom-panel">
-            {stages.map(([stage, detail, Icon, done], index) => {
-              const visibleDone = done && index < visibleDoneCount;
-              const state = loadingStepState(visibleDone, index === activeIndex && !visibleDone);
-              return <div key={stage} className={cx("nxt5-warroom-step", `is-${state}`)} style={{ "--delay": `${index * 180}ms` }}>
-                {state === "done" ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                <div>
-                  <p>{stage}</p>
-                  <span>{detail}</span>
-                </div>
-              </div>;
-            })}
-            <div className={cx("nxt5-warroom-ready", readyVisible ? "is-done" : ready && "is-active")}>
-              <Check className="h-4 w-4" />
-              <span>{"Pr\u00eat"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function assistantEntityForRoute(route, data, selectedTeamId) {
   const params = new URLSearchParams(route?.search || "");
   const teamMatches = (data.matches || []).filter((item) => String(item.team_id || "") === String(selectedTeamId || ""));
@@ -316,7 +222,7 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
   return null;
 }
 
-function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+function MainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, navigate, route }) {
   const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
@@ -331,7 +237,9 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
-  const { data, setData, selectedTeamId, setSelectedTeamId, loading, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
+  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
+  const waitingForBootstrap = !bootstrapReady && (!bootstrapped || loading);
+  useAppLoading(waitingForBootstrap && active !== "account-settings" && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
@@ -371,6 +279,10 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }, [route.path, navigate]);
 
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
+  const isStandalonePage = ["guide", "account-settings"].includes(active) || (isPlatformAdmin && ["admin", "access-requests"].includes(active));
+  useEffect(() => {
+    if (!currentTeam) setSidebarOpen(false);
+  }, [currentTeam]);
   const currentMember = currentTeam ?(data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
   const assistantSelectedEntity = assistantEntityForRoute(route, data, currentTeam?.id || selectedTeamId);
 
@@ -383,11 +295,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "draft") return <DraftWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
-    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button></div><AdminDashboard /></>;
+    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} />;
+    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button><Button variant="ghost" onClick={() => navigate("/admin/integrations")}>Intégrations Shopify et réseaux</Button></div><AdminDashboard /></>;
     if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, onAccountDeleted, navigate, isPlatformAdmin, planningStore]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
@@ -402,16 +314,26 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
     ? <InactivityReturnModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} />
     : null;
-  if (!bootstrapped) return <AppLoadingScreen phase="bootstrap" data={data} ready={bootstrapReady} />;
+  // Account access must not depend on an existing team, imported history, or email verification.
+  if (active === "account-settings") return <div className="relative min-h-screen text-white">
+    <AmbientBackground />
+    <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-6">
+      <Button type="button" variant="ghost" onClick={() => setActive("teams")} className="mb-5">Retour aux équipes</Button>
+      <Suspense fallback={<SkeletonRows count={3} />}>{page}</Suspense>
+    </main>
+    <LegalLinks navigate={navigate} />
+  </div>;
+  if (waitingForBootstrap) return null;
   if (!bootstrapReady) return <div className="relative min-h-screen text-white">
     <AmbientBackground />
     <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">
       <p role="status" className="mb-4 font-semibold">{loading ? "Chargement de toutes les games…" : "L’historique complet n’a pas pu être chargé."}</p>
       <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
+      <Button variant="ghost" onClick={() => setActive("account-settings")} className="mr-3">Paramètres</Button>
       <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
     </main>
   </div>;
-  if (!data.teams.length && active !== "guide" && !(["admin", "access-requests"].includes(active) && isPlatformAdmin)) return <>
+  if (!currentTeam) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
@@ -420,10 +342,21 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
             <ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
             <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
           </div>
-          <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="ghost" onClick={() => setActive("account-settings")} disabled={active === "account-settings"}>Paramètres</Button>
+            <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
+          </div>
         </div>
         <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-        <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />
+        <nav aria-label="Navigation du compte" className="mb-6 flex flex-wrap gap-2">
+          {active !== "teams" && <Button variant="ghost" onClick={() => setActive("teams")}>Créer ou rejoindre une équipe</Button>}
+          <Button variant="ghost" onClick={() => setActive("guide")} disabled={active === "guide"}>Guide</Button>
+          {isPlatformAdmin && <Button variant="ghost" onClick={() => setActive("admin")} disabled={active === "admin"}>Administration</Button>}
+        </nav>
+        {isStandalonePage && <p className="mb-6 text-sm text-slate-300">Crée ou rejoins une équipe pour accéder au planning et à l’espace équipe.</p>}
+        <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>
+          {isStandalonePage ? page : <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />}
+        </Suspense>
       </main>
       <LegalLinks navigate={navigate} />
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
@@ -436,6 +369,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <Sidebar
+        currentTeam={currentTeam}
         active={active}
         setActive={setActive}
         open={sidebarOpen}
@@ -481,23 +415,30 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   );
 }
 
-const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate }) {
+const AccountDeletionReceipt = lazy(() => import("./pages/workspace/AccountDeletion.jsx").then((module) => ({ default: module.AccountDeletionReceipt })));
+
+const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate, onAccountDeleted }) {
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
   const unknownRoute = !isKnownPath(route.path);
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
 
-  // Public pages do not depend on the session check and should render immediately.
-  // Keep the full-screen loader only when opening the authenticated workspace.
-  if (checkingSession && routeIsPrivate) return <AppLoadingScreen />;
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/tarifs", "/verify-email", "/verified"].includes(route.path);
+  useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
+
+  // Public pages render during the session check. The shared screen remains
+  // mounted while a private route passes from session checking to bootstrap.
+  if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (route.path === "/admin/integrations") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des intégrations…</div>}><IntegrationsPage navigate={navigate} /></Suspense>;
+  if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
   if (route.path === "/tarifs") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des tarifs…</div>}><PricingPage navigate={navigate} user={user} /></Suspense>;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
-  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} navigate={navigate} route={route} />;
   if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
   if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} />;
   if (mode) return <AuthPage mode={mode} onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
@@ -509,6 +450,8 @@ export default function NXT5() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [accountDeletionReceipt, setAccountDeletionReceipt] = useState(null);
+  useAppLoading(accountDeletionReceipt ? null : undefined);
   const [route, setRoute] = useState(readRoute);
 
   const navigate = useCallback((path, options = {}) => {
@@ -525,8 +468,18 @@ export default function NXT5() {
   }, []);
   const removeToast = useCallback((id) => { setToasts((current) => current.filter((item) => item.id !== id)); }, []);
   const handleAuth = useCallback((nextUser) => {
+    setAccountDeletionReceipt(null);
     setUser(nextUser);
   }, []);
+  const handleUserUpdate = useCallback((nextUser) => {
+    setUser((current) => current?.id === nextUser?.id ? nextUser : current);
+  }, []);
+  const handleAccountDeleted = useCallback((receipt) => {
+    setUser(null);
+    setToasts([]);
+    setAccountDeletionReceipt(receipt);
+    navigate("/connexion", { replace: true });
+  }, [navigate]);
   const handleLogout = useCallback(() => setUser(null), []);
 
   useEffect(() => {
@@ -546,7 +499,22 @@ export default function NXT5() {
 
   useEffect(() => {
     let mounted = true;
-    apiFetch("auth-me").then((result) => { if (mounted) setUser(result.user); }).catch(() => { if (mounted) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
+    (async () => {
+      let pending = "";
+      try { pending = window.sessionStorage.getItem("nxt5_account_deletion_pending") || ""; } catch {}
+      if (pending) {
+        try {
+          const result = await apiFetch("auth-delete-account", { method: "POST", body: JSON.stringify({ action: "status", confirmationToken: pending }) });
+          if (result?.ok && result.receipt?.reference) {
+            try { window.sessionStorage.removeItem("nxt5_account_deletion_pending"); } catch {}
+            if (mounted) handleAccountDeleted(result.receipt);
+            return;
+          }
+        } catch {}
+      }
+      const result = await apiFetch("auth-me");
+      if (mounted) setUser(result.user);
+    })().catch(() => { if (mounted) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
     return () => { mounted = false; };
   }, []);
 
@@ -572,6 +540,8 @@ export default function NXT5() {
       "/conditions": "Conditions générales d’utilisation — NXT5",
       "/reglement": "Règlement — NXT5",
       "/contact": "Contact — NXT5",
+      "/reseaux": "Réseaux — NXT5",
+      "/admin/integrations": "Intégrations — NXT5",
     };
     document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
   }, [route.path]);
@@ -592,5 +562,6 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  if (accountDeletionReceipt) return <><AmbientBackground /><Suspense fallback={<p role="status">Compte supprimé. Chargement du reçu…</p>}><AccountDeletionReceipt receipt={accountDeletionReceipt} onContinue={() => { setAccountDeletionReceipt(null); navigate("/connexion", { replace: true }); }} /></Suspense></>;
+  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleUserUpdate} onAccountDeleted={handleAccountDeleted} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

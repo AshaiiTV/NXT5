@@ -8,7 +8,7 @@ export default async function handler(request: Request, context: Context): Promi
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
-    const body = await readJson(request);
+    const body = await readJson(request, 4096);
     const currentPassword = String(body.currentPassword || '');
     const nextPassword = String(body.nextPassword || '');
 

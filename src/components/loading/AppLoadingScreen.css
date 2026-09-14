@@ -1,0 +1,166 @@
+.nxt5-sync-screen {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 100svh;
+  overflow: hidden;
+  background: var(--nxt5-bg, #020611);
+  color: var(--nxt5-text, #f8fafc);
+}
+
+.nxt5-sync-ambient {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 77% 48%, #31205d33, transparent 41%),
+    radial-gradient(ellipse at 50% 14%, #13638624, transparent 52%),
+    linear-gradient(125deg, #04101d 0%, #020611 46%, #070918 100%);
+}
+
+.nxt5-sync-ambient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .25;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.96' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' opacity='.17' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+}
+
+.nxt5-sync-shell {
+  width: min(100%, 1440px);
+  min-height: 100svh;
+  margin: auto;
+  padding: clamp(24px, 4.4vh, 48px) clamp(24px, 6.2vw, 88px) 28px;
+  display: flex;
+  flex-direction: column;
+}
+
+.nxt5-sync-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.nxt5-sync-wordmark { display: block; width: 145px; height: auto; object-fit: contain; filter: none; }
+.nxt5-sync-header-label { display: flex; align-items: center; gap: 9px; color: #b8c9de; font-size: 10px; font-weight: 700; letter-spacing: .18em; }
+.nxt5-sync-header-label > span { width: 5px; height: 5px; border-radius: 50%; background: #67e8f9; box-shadow: 0 0 12px #67e8f966; }
+
+.nxt5-sync-main {
+  display: grid;
+  grid-template-columns: 1fr 1.14fr;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  padding: 56px 0 48px;
+}
+
+.nxt5-sync-copy { position: relative; z-index: 1; }
+.nxt5-sync-eyebrow { display: flex; align-items: center; gap: 12px; margin: 0 0 24px; color: #b9d9e8; font-size: 10px; font-weight: 800; letter-spacing: .2em; }
+.nxt5-sync-eyebrow > span { width: 24px; height: 1px; background: #67e8f9; }
+.nxt5-sync-copy h1 { margin: 0; font-size: clamp(48px, 5.9vw, 82px); font-weight: 900; line-height: 1.04; letter-spacing: -.055em; }
+.nxt5-sync-copy h1 > span { background: linear-gradient(100deg, #9df0fa 4%, #98c6ff 48%, #c6acff 89%); background-clip: text; -webkit-background-clip: text; color: transparent; }
+.nxt5-sync-description { max-width: 440px; margin: 24px 0 0; color: #bed0e1; font-size: 14px; line-height: 1.85; }
+.nxt5-sync-disciplines { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 28px; color: #c5d5e9; font-size: 9px; font-weight: 750; letter-spacing: .13em; }
+.nxt5-sync-disciplines i { width: 2px; height: 2px; background: #8099b4; border-radius: 50%; }
+.nxt5-sync-disciplines svg { margin-left: 8px; color: #97afc9; }
+
+.nxt5-sync-art { position: relative; width: 100%; aspect-ratio: 640 / 490; align-self: center; }
+.nxt5-sync-art::before { content: ""; position: absolute; inset: 35% 10% -5%; background: radial-gradient(ellipse, #344a9a25, #3614530c 55%, transparent 72%); }
+.nxt5-sync-art-grid { position: absolute; inset: 0; background-image: radial-gradient(#b7c9ed36 .75px, transparent .75px); background-size: 18px 18px; mask-image: radial-gradient(ellipse at 50% 55%, black, transparent 70%); }
+.nxt5-sync-art-caption { position: absolute; top: 2%; left: 4.5%; right: 4.5%; display: flex; justify-content: space-between; color: #adbed6; font-size: 9px; font-weight: 700; letter-spacing: .19em; }
+.nxt5-sync-circuit { position: relative; width: 100%; height: 100%; overflow: visible; }
+.nxt5-sync-signal { stroke-dasharray: 10 90; animation: nxt5-sync-flow 3.2s var(--sync-delay) linear infinite; }
+.nxt5-sync-core { position: absolute; left: 50%; top: 71.43%; width: 23.5%; transform: translate(-50%, -50%); }
+.nxt5-sync-core img { display: block; width: 100%; height: auto; filter: drop-shadow(0 0 16px #418eff40); }
+
+.nxt5-sync-footer { padding-top: 26px; border-top: 1px solid #c1dcff1a; }
+.nxt5-sync-status-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.nxt5-sync-status { display: flex; align-items: center; gap: 15px; }
+.nxt5-sync-status p { margin: 0; font-size: 15px; font-weight: 750; letter-spacing: -.015em; }
+.nxt5-sync-status div > span { display: block; margin-top: 5px; color: #bccce0; font-size: 12px; }
+.nxt5-sync-status-light { display: flex; align-items: center; justify-content: center; gap: 3px; width: 32px; height: 32px; border: 1px solid #92deef2b; border-radius: 9px; background: #67e8f908; }
+.nxt5-sync-status-light i { display: block; width: 2px; height: 12px; background: #9befff; border-radius: 2px; animation: nxt5-sync-level 1.2s ease-in-out infinite alternate; }
+.nxt5-sync-status-light i:nth-child(2) { height: 18px; animation-delay: -.4s; }
+.nxt5-sync-status-light i:nth-child(3) { height: 9px; animation-delay: -.8s; }
+.nxt5-sync-count { flex-shrink: 0; display: grid; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
+.nxt5-sync-count > strong { color: #d8e8fb; font-size: 20px; font-weight: 600; letter-spacing: -.025em; line-height: 1; }
+.nxt5-sync-count > strong > span { color: #aabbcf; font-size: 14px; }
+.nxt5-sync-count > span { color: #adbfd6; font-size: 8px; font-weight: 700; letter-spacing: .12em; }
+.nxt5-sync-progress { position: relative; height: 2px; overflow: hidden; margin-top: 22px; border-radius: 2px; background: #c1dcff1a; }
+.nxt5-sync-progress > span { display: block; width: 100%; height: 100%; transform-origin: left; background: linear-gradient(90deg, #67e8f9, #a7b3ff 65%, #dfa0fa); }
+.nxt5-sync-progress:not(.is-determinate) > span { width: 35%; animation: nxt5-sync-progress 2.6s ease-in-out infinite; }
+.nxt5-sync-progress.is-determinate > span { transition: transform 180ms ease-out; }
+.nxt5-sync-footer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 22px; }
+.nxt5-sync-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 26px; margin: 0; padding: 0; list-style: none; }
+.nxt5-sync-steps li { display: flex; align-items: center; gap: 8px; color: #acbbd0; font-size: 11px; }
+.nxt5-sync-step-number { display: grid; place-items: center; min-width: 21px; height: 21px; font-size: 9px; font-variant-numeric: tabular-nums; border: 1px solid #b8d3f323; border-radius: 50%; }
+.nxt5-sync-steps .is-current { color: #dafaff; font-weight: 650; }
+.nxt5-sync-steps .is-current .nxt5-sync-step-number { background: #67e8f911; border-color: #9fecff69; color: #aaf3ff; }
+.nxt5-sync-steps .is-done .nxt5-sync-step-number { border-color: transparent; color: #9fe5ed; }
+.nxt5-sync-signature { margin: 0; color: #bccce0; font-size: 9px; font-weight: 650; letter-spacing: .16em; white-space: nowrap; }
+.nxt5-sync-signature > span { color: #a9b5fd; }
+
+@keyframes nxt5-sync-flow { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes nxt5-sync-level { from { transform: scaleY(.45); } to { transform: scaleY(1); } }
+@keyframes nxt5-sync-progress { from { transform: translateX(-110%); } to { transform: translateX(390%); } }
+
+@media (min-width: 1440px) {
+  .nxt5-sync-main { gap: 40px; }
+}
+
+@media (max-width: 1023px) {
+  .nxt5-sync-shell { padding-inline: 36px; }
+  .nxt5-sync-main { gap: 0; padding-block: 56px; }
+  .nxt5-sync-copy h1 { font-size: clamp(44px, 6.8vw, 68px); }
+  .nxt5-sync-eyebrow { font-size: 8px; gap: 8px; letter-spacing: .13em; }
+  .nxt5-sync-description { font-size: 12px; }
+  .nxt5-sync-disciplines { gap: 8px; font-size: 8px; }
+  .nxt5-sync-disciplines svg { display: none; }
+  .nxt5-sync-circuit text { font-size: 16px; letter-spacing: .8px; }
+  .nxt5-sync-signature { font-size: 8px; letter-spacing: .1em; }
+  .nxt5-sync-steps { gap: 18px; }
+}
+
+@media (max-width: 639px) {
+  .nxt5-sync-shell { padding: 24px 24px 22px; }
+  .nxt5-sync-wordmark { width: 108px; }
+  .nxt5-sync-header-label { font-size: 8px; letter-spacing: .1em; gap: 7px; }
+  .nxt5-sync-main { grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 40px 0 28px; }
+  .nxt5-sync-eyebrow { margin-bottom: 18px; font-size: 8px; letter-spacing: .17em; }
+  .nxt5-sync-copy h1 { font-size: clamp(42px, 11.6vw, 65px); line-height: 1.02; }
+  .nxt5-sync-copy h1 > br:nth-of-type(2) { display: none; }
+  .nxt5-sync-copy h1 > span::before { content: " "; }
+  .nxt5-sync-description { margin-top: 18px; max-width: 300px; font-size: 12px; line-height: 1.75; }
+  .nxt5-sync-disciplines { display: none; }
+  .nxt5-sync-art { width: min(100%, 380px); justify-self: center; }
+  .nxt5-sync-art-caption { font-size: 9px; }
+  .nxt5-sync-circuit text { font-size: 18px; letter-spacing: .7px; }
+  .nxt5-sync-footer { padding-top: 20px; }
+  .nxt5-sync-status { gap: 10px; }
+  .nxt5-sync-status p { font-size: 12px; }
+  .nxt5-sync-status div > span { font-size: 10px; }
+  .nxt5-sync-status-light { width: 28px; height: 28px; flex-shrink: 0; }
+  .nxt5-sync-count > strong { font-size: 17px; }
+  .nxt5-sync-count > strong > span { font-size: 12px; }
+  .nxt5-sync-count > span { font-size: 8px; letter-spacing: .07em; }
+  .nxt5-sync-progress { margin-top: 18px; }
+  .nxt5-sync-footer-bottom { margin-top: 18px; }
+  .nxt5-sync-steps { justify-content: space-between; gap: 8px; width: 100%; }
+  .nxt5-sync-steps li { gap: 5px; font-size: 9px; }
+  .nxt5-sync-step-number { min-width: 18px; height: 18px; font-size: 8px; }
+  .nxt5-sync-signature { display: none; }
+}
+
+@media (max-width: 374px) {
+  .nxt5-sync-shell { padding-inline: 18px; }
+  .nxt5-sync-main { padding-top: 32px; gap: 20px; }
+  .nxt5-sync-copy h1 { font-size: 39px; }
+  .nxt5-sync-status div > span { max-width: 172px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nxt5-sync-screen *, .nxt5-sync-screen *::before, .nxt5-sync-screen *::after { animation: none !important; transition: none !important; }
+  .nxt5-sync-progress:not(.is-determinate) > span { width: 100%; opacity: .5; }
+  .nxt5-sync-signal { stroke-dasharray: none; opacity: .45; }
+}
+
+html.nxt5-low-gpu .nxt5-sync-screen *, html.nxt5-low-gpu .nxt5-sync-screen *::before, html.nxt5-low-gpu .nxt5-sync-screen *::after { animation: none !important; transition: none !important; filter: none; }
+html.nxt5-low-gpu .nxt5-sync-ambient::after { display: none; }
+html.nxt5-low-gpu .nxt5-sync-progress:not(.is-determinate) > span { width: 100%; opacity: .5; }
+html.nxt5-low-gpu .nxt5-sync-signal { stroke-dasharray: none; opacity: .45; }

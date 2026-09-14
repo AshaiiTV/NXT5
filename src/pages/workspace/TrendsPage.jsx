@@ -10,6 +10,7 @@ import { championAssetId, championPortraitSources, championDisplayName, composit
 import { roleLabel } from "./shell-shared.jsx";
 import { hasTrendTimeline, sortTrendMatches } from "../../utils/trends.js";
 import { TrendEvolution, TrendPeriodFilter } from "../../components/trends/TrendEvolution.jsx";
+import { ProgressionObjectives } from "../../components/trends/ProgressionObjectives.jsx";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngPanel, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngDownload } from "../../utils/png-report.js";
 
 const BlockComparisonPanel = lazyNamed(loadNextPhase, "BlockComparisonPanel");
@@ -1135,77 +1136,13 @@ function TrendsPage({ data, selectedTeamId }) {
     {trendPanel === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">Chargement de la comparaison…</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={matches} categories={matchCategories} /></Suspense>}
     {trendPanel === "draft" && <DraftTrendsModule model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} />}
     {trendPanel === "ai-objectives" && <Surface className="p-3">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-        <div className="min-w-0">
-          <Badge tone="purple">Objectifs</Badge>
-          <h3 className="mt-2 text-2xl font-black leading-tight text-white">Plan de progression du bloc</h3>
-          <p className="mt-1 max-w-4xl text-sm font-semibold leading-6 text-slate-300">Choisis un objectif d’équipe et une cible par rôle pour les prochaines games.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="slate">{matches.length} games</Badge>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(18rem,.8fr)]">
-        <article className="relative min-w-0 overflow-hidden rounded-2xl border border-fuchsia-200/20 bg-[linear-gradient(135deg,rgba(34,211,238,.10),rgba(6,10,24,.90)_48%,rgba(217,70,239,.12))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.065)]">
-          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-100/70 to-cyan-100/55" />
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone={teamAiObjective.toneName}>Objectif équipe</Badge>
-                <Badge tone="cyan">Prochain bloc</Badge>
-              </div>
-              <h4 className="mt-3 break-words text-2xl font-black leading-tight text-white">{teamAiObjective.title}</h4>
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{teamAiObjective.why}</p>
-            </div>
-            <button type="button" onClick={() => openTrendSources({ title: "Sources objectif", subtitle: teamAiObjective.title, games: teamAiObjective.sourceGames })} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Sources</button>
-          </div>
-          <div className="mt-4 grid gap-3">
-            <div className="rounded-xl border border-white/10 bg-black/24 p-3">
-              <p className="text-[0.64rem] font-black uppercase tracking-[0.16em] text-slate-400">Cible mesurable</p>
-              <p className="mt-2 text-lg font-black text-white">{teamAiObjective.target}</p>
-              <p className="mt-1 text-sm font-semibold text-cyan-100">Actuel : {teamAiObjective.current}</p>
-            </div>
-          </div>
-        </article>
-        <aside className="grid min-w-0 content-start gap-3 rounded-2xl border border-cyan-200/14 bg-[linear-gradient(145deg,rgba(8,18,34,.76),rgba(4,8,18,.92))] p-3">
-          <div>
-            <Badge tone="cyan">Pour le staff</Badge>
-            <h4 className="mt-2 text-lg font-black text-white">Prochain bloc</h4>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">Une consigne claire, un point de contrôle, puis les games sources pour vérifier en review.</p>
-          </div>
-          <div className="grid gap-2">
-            {[
-              ["Décision", teamAiObjective.title, teamAiObjective.toneName],
-              ["Exécution", teamAiObjective.target, "cyan"],
-              ["Contrôle", `À juger sur les ${Math.min(3, Math.max(1, matches.length))} prochaines games`, "slate"]
-            ].map(([label, value, toneName]) => <div key={label} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3 border-t border-white/10 pt-2 first:border-t-0 first:pt-0">
-              <p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
-              <p className={cx("min-w-0 break-words text-sm font-black leading-5", toneName === "green" ? "text-emerald-100" : toneName === "orange" ? "text-amber-100" : toneName === "red" ? "text-rose-100" : toneName === "cyan" ? "text-cyan-100" : "text-white")}>{value}</p>
-            </div>)}
-          </div>
-          <button type="button" onClick={() => openTrendSources({ title: "Games sources", subtitle: teamAiObjective.title, games: teamAiObjective.sourceGames })} className="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-cyan-50 transition hover:bg-cyan-300/14"><FileText className="h-4 w-4" /> Ouvrir les sources</button>
-        </aside>
-      </div>
-      <div className="mt-3 grid gap-2 lg:grid-cols-5">
-        {roleAiObjectives.map((item) => <article key={item.role} className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.028] p-3">
-          <div className="flex items-start justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-2">
-              <span className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-xl border", tone(item.toneName))}><RoleIcon role={item.role} className="h-5 w-5" /></span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-black text-white">{roleLabel(item.role)}</span>
-                <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.12em] text-slate-400">{item.current}</span>
-              </span>
-            </span>
-            <button type="button" onClick={() => setProfileContractsOpen(true)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-cyan-100 transition hover:bg-cyan-300/10" title="Voir les contrats joueurs"><FileText className="h-3.5 w-3.5" /></button>
-          </div>
-          <h5 className="mt-3 break-words text-base font-black leading-5 text-white">{item.title}</h5>
-          <p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{item.why}</p>
-          <div className="mt-3 rounded-xl border border-white/10 bg-black/22 p-2.5">
-            <p className="text-[0.56rem] font-black uppercase tracking-[0.14em] text-slate-400">Cible</p>
-            <p className="mt-1 text-xs font-black leading-5 text-cyan-50">{item.target}</p>
-          </div>
-        </article>)}
-      </div>
+      <ProgressionObjectives
+        teamObjective={teamAiObjective}
+        roleObjectives={roleAiObjectives}
+        gamesCount={matches.length}
+        onOpenSources={openTrendSources}
+        onOpenContracts={() => setProfileContractsOpen(true)}
+      />
       {profileContractsOpen && <div className="nxt5-fade-in nxt5-sidebar-aware-overlay fixed inset-0 z-[220] flex items-end justify-center bg-[#020612]/95 p-3 backdrop-blur-xl sm:items-center">
         <button type="button" aria-label="Fermer les contrats" onClick={() => setProfileContractsOpen(false)} className="absolute inset-0 cursor-default" />
         <section className="nxt5-enter-fast relative z-10 flex max-h-[88vh] w-full max-w-6xl min-w-0 flex-col overflow-hidden rounded-[1.5rem] border border-cyan-200/22 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.78),0_0_48px_rgba(34,211,238,.14)]">

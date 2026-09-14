@@ -14,7 +14,9 @@ Préparation de la phase 1 du [plan de financement](plan-financement.md), 8 sept
 
 ## Installer et vérifier la prévisualisation interne
 
-Le code est préparé localement ; sa présence dans ce checkout ne signifie pas que le site en ligne a changé.
+La publication passe par la fusion de la branche vérifiée dans `main`, puis par le déploiement de production Netlify. Un push sur une branche de travail ne met pas à jour `nxt5.org`.
+
+Après publication, ouvrir `/admin` avec le compte administrateur plateforme : les boutons « Voir les tarifs » et « Demandes d’accès » donnent accès aux nouvelles pages. Leurs URL directes sont `/tarifs` et `/admin/demandes-acces`.
 
 1. Exécuter `npm run verify` avec Node 24.
 2. Pour une recette complète, utiliser une base dédiée et `npm run db:migrate` avec sa connexion. Ne jamais utiliser les identifiants de production pour les tests.
@@ -27,7 +29,7 @@ Au prochain déploiement de production, la commande existante `npm run verify &&
 
 Aucun secret Stripe ou prestataire de paiement n’est nécessaire. Les connexions Neon et les variables `PLATFORM_ADMIN_USER_ID` / `PLATFORM_ADMIN_EMAIL` déjà utilisées par l’administration gardent leurs règles actuelles.
 
-Validation avant push : `npm run verify` réussit dans un instantané isolé du contenu de la branche, avec 302 tests, le contrôle TypeScript et le build de production. Les tests d’API et de migration exécutent les requêtes SQL sur PostgreSQL embarqué PGlite. Les tests vérifient le refus des visiteurs et comptes ordinaires, l’autorisation de l’administrateur et l’absence de lecture du formulaire ou de consommation du quota avant autorisation.
+Validation avant publication : après intégration des dernières modifications de `main`, les contrôles TypeScript, tests et build de production sont exécutés dans un checkout isolé. La recette locale limite Vitest à deux workers pour éviter les dépassements de délai liés à la charge de la machine ; les 379 tests de la suite puis les 35 tests API, dont cinq nouveaux cas Unicode, réussissent. Les tests d’API et de migration exécutent les requêtes SQL sur PostgreSQL embarqué PGlite. Ils vérifient le refus des visiteurs et comptes ordinaires, l’autorisation de l’administrateur et l’absence de lecture du formulaire ou de consommation du quota avant autorisation. Les tests de routage utilisent le fournisseur de chargement partagé : Tarifs libère cet écran dès la session administrateur validée, sans attendre les données de l’espace équipe. La CI et Netlify exécutent `npm run verify` avant publication.
 
 Dans Chromium, les trois profils ont été contrôlés avec des réponses de session simulées : connexion requise pour les visiteurs, refus pour les comptes ordinaires, accès aux deux pages pour l’administrateur, aucun aperçu pendant la vérification de session. Les deux pages ont aussi été contrôlées à 360, 390, 768, 1024 et 1440 pixels, sans débordement horizontal ni erreur JavaScript. Aucune base Neon externe n’a été migrée ou utilisée pour cette recette ; le fonctionnement sur l’environnement déployé reste à vérifier lors de la publication.
 

@@ -1,3 +1,4 @@
+import { emailAction } from './_lib/email-template.js';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -23,17 +24,18 @@ async function notifyMatchImport({ request, teamId, matchId, gameId }) {
   const siteUrl = String(process.env.PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '');
   const safeMatchId = escapeHtml(gameId || matchId);
   const html = `
-    <p>Un nouveau match a été importé dans votre équipe.</p>
-    <p><strong>Match ID :</strong> ${safeMatchId}</p>
-    <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
-    <p><a href="${escapeHtml(`${siteUrl}/integration`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir le match sur NXT5</a></p>
+    <p style="margin:0 0 16px">Un nouveau match a été importé dans votre équipe.</p>
+    <p style="margin:0 0 16px"><strong>Match ID :</strong> ${safeMatchId}</p>
+    <p style="margin:0 0 16px"><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+    ${emailAction({ href: `${siteUrl}/integration`, label: "Voir le match sur NXT5" })}
     <hr style="border:0;border-top:1px solid rgba(148,163,184,.18);margin:22px 0">
-    <p style="font-size:12px;color:#888">Pour ne plus recevoir ces emails, rendez-vous dans vos préférences NXT5.</p>
+    <p style="margin:0;color:#B8C6DC;font-size:12px;line-height:20px">Gère ces e-mails dans <a href="${escapeHtml(`${siteUrl}/parametres`)}" style="color:#67E8F9;text-decoration:underline">tes préférences de notification</a>.</p>
   `;
   await Promise.all(emails.map((email) => sendNotification({
     to: email,
     subject: `[NXT5] Nouveau match importé — ${gameId || matchId}`,
-    html
+    html,
+    siteUrl
   })));
 }
 

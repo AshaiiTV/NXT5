@@ -1,3 +1,4 @@
+import "./auth.css";
 import React, { useState } from "react";
 import { Activity, ArrowRight, BarChart3, Check, ChevronRight, Crown, Eye, FileText, Flame, Gauge, Loader2, Lock, Mail, Shield, Swords, Target, Upload, UserPlus, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
@@ -91,7 +92,7 @@ function StatStrip() {
   );
 }
 
-export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate }) {
+export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate, target, rel }) {
   const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0";
   const variants = {
     primary: "border border-cyan-100/36 bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500 text-white shadow-[0_0_30px_rgba(34,211,238,.32)] hover:-translate-y-0.5 hover:saturate-150 hover:shadow-[0_0_46px_rgba(217,70,239,.28)]",
@@ -99,12 +100,12 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
   };
 
   function go(event) {
-    if (!navigate || !isSafeInternalPath(href)) return;
+    if (!navigate || !isSafeInternalPath(href) || target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
     navigate(href);
   }
 
-  return <a href={href} onClick={go} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
+  return <a href={href} onClick={go} target={target} rel={target === "_blank" ? "noopener noreferrer" : rel} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
 }
 
 export function SiteHeader({ children, navigate }) {
@@ -130,6 +131,7 @@ export function LegalLinks({ navigate }) {
     ["/conditions", "CGU"],
     ["/reglement", "Règlement"],
     ["/contact", "Contact"],
+    ["/reseaux", "Réseaux"],
   ];
   return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-300">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="border-transparent bg-transparent px-0 py-0 text-xs text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-300">NXT5 n’est pas affilié à Riot Games.</span></footer>;
 }
@@ -563,7 +565,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-auth relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(217,70,239,.14),transparent_28%,transparent_67%,rgba(34,211,238,.12))]" />
       <SiteHeader navigate={navigate}>
@@ -572,8 +574,8 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
         </LinkButton>
       </SiteHeader>
 
-      <main className="relative z-10 mx-auto grid min-h-[calc(100vh-108px)] w-full max-w-7xl items-center gap-8 px-3 pb-12 sm:px-5 sm:pb-16 lg:grid-cols-[.85fr_1.15fr]">
-        <div className="nxt5-enter">
+      <main className="nxt5-auth-layout">
+        <div className="nxt5-auth-intro nxt5-enter">
           <Badge tone={isRegister ?"purple" : "cyan"} pulse>{isRegister ?"Création de compte" : "Connexion"}</Badge>
           <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.055em] md:text-7xl">
             {isRegister ?"Crée ton espace NXT5." : "Retourne dans ton espace NXT5."}
@@ -583,29 +585,31 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
               ?"Ajoute ton e-mail, choisis ton pseudo, puis lance ton espace équipe."
               : "Connecte-toi pour retrouver tes teams, tes imports et tes reviews."}
           </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[[BarChart3, "Profil de jeu"], [Shield, "Draft & rôles"], [Users, "Progression team" ]].map(([Icon, label], index) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Icon className={cx("h-5 w-5", index === 0 ? "text-cyan-200" : "text-cyan-200")} /><p className="mt-3 text-sm font-black text-white">{label}</p></div>)}
-          </div>
+          <ul className="nxt5-auth-benefits">
+            <li><BarChart3 aria-hidden="true" /><div><strong>Ton profil de jeu</strong><p>Rassemble tes rôles, tes champions et ta progression.</p></div></li>
+            <li><Shield aria-hidden="true" /><div><strong>Une préparation commune</strong><p>Prépare les drafts et donne une direction à tes matchs.</p></div></li>
+            <li><Users aria-hidden="true" /><div><strong>Ton équipe au même endroit</strong><p>Partage les reviews et avancez vers vos objectifs.</p></div></li>
+          </ul>
         </div>
 
-        <Surface glow className="mx-auto w-full max-w-xl">
-          <h2 className="text-3xl font-black text-white">{isRegister ?"Créer un compte" : "Connexion"}</h2>
-          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton e-mail sert à te connecter et à récupérer ton compte." : "Entre ton e-mail et ton mot de passe pour accéder au tableau de bord."}</p>
-          <div className="mt-5 flex rounded-2xl border border-white/10 bg-black/[0.18] p-1">
-            <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Connexion</a>
-            <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Créer un compte</a>
+        <Surface glow className="nxt5-auth-card nxt5-enter">
+          <h2 className="nxt5-auth-heading">{isRegister ?"Créer un compte" : "Connexion"}</h2>
+          <p className="nxt5-auth-description">{isRegister ?"Ton e-mail sert à te connecter et à récupérer ton compte." : "Entre ton e-mail et ton mot de passe pour accéder au tableau de bord."}</p>
+          <div className="nxt5-auth-tabs" role="navigation" aria-label="Accès au compte">
+            <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")} aria-current={!isRegister ? "page" : undefined}>Connexion</a>
+            <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")} aria-current={isRegister ? "page" : undefined}>Créer un compte</a>
           </div>
-          <form onSubmit={submit} className="mt-5 space-y-4">
-            <TextInput label={isRegister ? "E-mail" : "E-mail ou ancien pseudo"} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : "joueur@exemple.com ou ancien pseudo"} type={isRegister ? "email" : "text"} required icon={Mail} />
-            {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" required icon={UserPlus} />}
-            <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
+          <form onSubmit={submit} className="nxt5-auth-form" aria-busy={loading}>
+            <TextInput name="email" autoComplete={isRegister ? "email" : "username"} autoCapitalize="none" spellCheck={false} disabled={loading} label={isRegister ? "E-mail" : "E-mail ou ancien pseudo"} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : "joueur@exemple.com ou ancien pseudo"} type={isRegister ? "email" : "text"} required icon={Mail} />
+            {isRegister && <TextInput name="displayName" autoComplete="nickname" disabled={loading} label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" required icon={UserPlus} />}
+            <TextInput name="password" autoComplete={isRegister ? "new-password" : "current-password"} disabled={loading} label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
             <PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Garde cette session active plus longtemps sur cet appareil." />
-            {isRegister && <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-left"><input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required className="mt-1 h-4 w-4 shrink-0 accent-cyan-300" /><span className="text-sm font-semibold leading-6 text-slate-300">J’accepte les <a href="/conditions" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">conditions générales d’utilisation</a>, le <a href="/reglement" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">règlement NXT5</a> et reconnais avoir lu la <a href="/confidentialite" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">politique de confidentialité</a> (version {LEGAL_VERSION}).</span></label>}
-            {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
-            <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
+            {isRegister && <label className="nxt5-auth-legal"><input type="checkbox" disabled={loading} checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required className="mt-1 h-4 w-4 shrink-0 accent-cyan-300" /><span className="text-sm font-semibold leading-6 text-slate-300">J’accepte les <a href="/conditions" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">conditions générales d’utilisation</a>, le <a href="/reglement" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">règlement NXT5</a> et reconnais avoir lu la <a href="/confidentialite" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">politique de confidentialité</a> (version {LEGAL_VERSION}).</span></label>}
+            {error && <div className="nxt5-auth-error" role="alert">{error}</div>}
+            <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="nxt5-auth-submit">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
           </form>
-          {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-cyan-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
-          <p className="mt-4 text-center text-sm font-semibold text-slate-300">
+          {!isRegister && <div className="mt-4 text-center"><a className="nxt5-auth-forgot" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
+          <p className="nxt5-auth-footer">
             {isRegister ?"Déjà inscrit ?" : "Pas encore de compte ?"}
             <a className="font-black text-cyan-200 hover:text-white" href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`}>{isRegister ?" Connexion" : " Créer un compte"}</a>
           </p>

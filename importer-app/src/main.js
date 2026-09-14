@@ -421,10 +421,10 @@ const importer = createImportService({
   },
   fetchLocal: localMatch,
   buildTimelineSummary,
-  chooseSave: (gameId) =>
+  chooseSave: async (gameId) =>
     dialog.showSaveDialog(mainWindow, {
       title: "Enregistrer le JSON NXT5",
-      defaultPath: path.join(app.getPath("downloads"), `nxt5-${gameId}.json`),
+      defaultPath: await store.getExportPath(gameId, app.getPath("downloads")),
       filters: [{ name: "NXT5 JSON", extensions: ["json"] }],
       properties: ["createDirectory", "showOverwriteConfirmation"],
     }),
