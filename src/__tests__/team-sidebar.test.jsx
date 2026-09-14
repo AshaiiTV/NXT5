@@ -38,7 +38,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function open(path = "/equipes") {
+async function open(path = "/equipes", pendingDeletionToken = null) {
   const listeners = new Map(), requests = [];
   const history = (_state, _title, path) => { window.location = new URL(path, window.location); };
   vi.stubGlobal("window", {
@@ -51,6 +51,7 @@ async function open(path = "/equipes") {
     removeEventListener: (name) => listeners.delete(name),
     dispatchEvent: (event) => listeners.get(event.type)?.(event),
     localStorage: { getItem: () => "1", setItem: vi.fn() },
+    sessionStorage: { getItem: () => pendingDeletionToken, removeItem: vi.fn() },
   });
   vi.stubGlobal("document", { title: "" });
   apiFetch.mockImplementation((path, options) => {
@@ -83,6 +84,24 @@ function click(label) {
 }
 
 describe("team sidebar access", () => {
+  it("opens settings for an unverified account before team bootstrap completes", async () => {
+    const app = await open("/parametres");
+    await app.resolve(0, { user: { ...user, email_verified: false } });
+    expectNoTeamNavigation();
+    expect(renderer.root.findAllByType(AccountSettings)).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
+  });
+
+  it("releases the loading overlay when recovering a completed deletion", async () => {
+    const app = await open("/parametres", "a".repeat(43));
+    expect(app.requests[0].path).toBe("auth-delete-account");
+    await app.resolve(0, { ok: true, receipt: { reference: "receipt-123", completedAt: "2026-09-14T12:00:00Z", summary: {} } });
+    expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
+    expect(JSON.stringify(renderer.toJSON())).toContain("receipt-123");
+    expect(app.requests).toHaveLength(1);
+    expect(window.location.pathname).toBe("/connexion");
+  });
+
   it("stays absent during session and initial team loading, including a failed bootstrap", async () => {
     const app = await open("/planning");
     expectNoTeamNavigation();
@@ -117,7 +136,7 @@ describe("team sidebar access", () => {
     expectNoTeamNavigation();
     if (page === "account-settings") expect(renderer.root.findAllByType(AccountSettings)).toHaveLength(1);
     else expect(renderer.root.findAllByProps({ "data-page": page })).toHaveLength(1);
-    await click("Créer ou rejoindre une équipe");
+    await click(page === "account-settings" ? "Retour aux équipes" : "Créer ou rejoindre une équipe");
     expectNoTeamNavigation();
     expect(renderer.root.findAllByType(Teams)).toHaveLength(1);
     expect(window.location.pathname).toBe("/equipes");

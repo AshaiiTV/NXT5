@@ -222,7 +222,7 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
   return null;
 }
 
-function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+function MainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, navigate, route }) {
   const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
@@ -239,7 +239,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
   const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
   const waitingForBootstrap = !bootstrapReady && (!bootstrapped || loading);
-  useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
+  useAppLoading(waitingForBootstrap && active !== "account-settings" && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
   const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
@@ -295,11 +295,11 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "draft") return <DraftWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
-    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
+    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} />;
     if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button><Button variant="ghost" onClick={() => navigate("/admin/integrations")}>Intégrations Shopify et réseaux</Button></div><AdminDashboard /></>;
     if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, onAccountDeleted, navigate, isPlatformAdmin, planningStore]);
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
@@ -314,12 +314,22 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
     ? <InactivityReturnModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} />
     : null;
+  // Account access must not depend on an existing team, imported history, or email verification.
+  if (active === "account-settings") return <div className="relative min-h-screen text-white">
+    <AmbientBackground />
+    <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-6">
+      <Button type="button" variant="ghost" onClick={() => setActive("teams")} className="mb-5">Retour aux équipes</Button>
+      <Suspense fallback={<SkeletonRows count={3} />}>{page}</Suspense>
+    </main>
+    <LegalLinks navigate={navigate} />
+  </div>;
   if (waitingForBootstrap) return null;
   if (!bootstrapReady) return <div className="relative min-h-screen text-white">
     <AmbientBackground />
     <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">
       <p role="status" className="mb-4 font-semibold">{loading ? "Chargement de toutes les games…" : "L’historique complet n’a pas pu être chargé."}</p>
       <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
+      <Button variant="ghost" onClick={() => setActive("account-settings")} className="mr-3">Paramètres</Button>
       <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
     </main>
   </div>;
@@ -405,7 +415,9 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   );
 }
 
-const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate }) {
+const AccountDeletionReceipt = lazy(() => import("./pages/workspace/AccountDeletion.jsx").then((module) => ({ default: module.AccountDeletionReceipt })));
+
+const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate, onAccountDeleted }) {
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
@@ -426,7 +438,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
-  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} navigate={navigate} route={route} />;
   if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
   if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} />;
   if (mode) return <AuthPage mode={mode} onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
@@ -438,6 +450,8 @@ export default function NXT5() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [accountDeletionReceipt, setAccountDeletionReceipt] = useState(null);
+  useAppLoading(accountDeletionReceipt ? null : undefined);
   const [route, setRoute] = useState(readRoute);
 
   const navigate = useCallback((path, options = {}) => {
@@ -454,8 +468,18 @@ export default function NXT5() {
   }, []);
   const removeToast = useCallback((id) => { setToasts((current) => current.filter((item) => item.id !== id)); }, []);
   const handleAuth = useCallback((nextUser) => {
+    setAccountDeletionReceipt(null);
     setUser(nextUser);
   }, []);
+  const handleUserUpdate = useCallback((nextUser) => {
+    setUser((current) => current?.id === nextUser?.id ? nextUser : current);
+  }, []);
+  const handleAccountDeleted = useCallback((receipt) => {
+    setUser(null);
+    setToasts([]);
+    setAccountDeletionReceipt(receipt);
+    navigate("/connexion", { replace: true });
+  }, [navigate]);
   const handleLogout = useCallback(() => setUser(null), []);
 
   useEffect(() => {
@@ -475,7 +499,22 @@ export default function NXT5() {
 
   useEffect(() => {
     let mounted = true;
-    apiFetch("auth-me").then((result) => { if (mounted) setUser(result.user); }).catch(() => { if (mounted) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
+    (async () => {
+      let pending = "";
+      try { pending = window.sessionStorage.getItem("nxt5_account_deletion_pending") || ""; } catch {}
+      if (pending) {
+        try {
+          const result = await apiFetch("auth-delete-account", { method: "POST", body: JSON.stringify({ action: "status", confirmationToken: pending }) });
+          if (result?.ok && result.receipt?.reference) {
+            try { window.sessionStorage.removeItem("nxt5_account_deletion_pending"); } catch {}
+            if (mounted) handleAccountDeleted(result.receipt);
+            return;
+          }
+        } catch {}
+      }
+      const result = await apiFetch("auth-me");
+      if (mounted) setUser(result.user);
+    })().catch(() => { if (mounted) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
     return () => { mounted = false; };
   }, []);
 
@@ -523,5 +562,6 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  if (accountDeletionReceipt) return <><AmbientBackground /><Suspense fallback={<p role="status">Compte supprimé. Chargement du reçu…</p>}><AccountDeletionReceipt receipt={accountDeletionReceipt} onContinue={() => { setAccountDeletionReceipt(null); navigate("/connexion", { replace: true }); }} /></Suspense></>;
+  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleUserUpdate} onAccountDeleted={handleAccountDeleted} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

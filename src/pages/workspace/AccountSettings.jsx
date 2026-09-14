@@ -5,7 +5,9 @@ import { configurePerformanceMode, currentPerformanceMode, setStoredPerformanceM
 import { Badge, Button, PageHeader, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { cx, preciseErrorText } from "../../app/helpers.js";
 
-function AccountSettings({ user, onUserUpdate, pushToast }) {
+import { AccountDeletion } from "./AccountDeletion.jsx";
+
+function AccountSettingsFields({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [emailPassword, setEmailPassword] = useState("");
   const emailChanging = profileForm.email.trim().toLowerCase() !== String(user?.email || "").trim().toLowerCase();
@@ -159,6 +161,10 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
       </Surface>
     </div>
   </div>;
+}
+
+function AccountSettings(props) {
+  return <><AccountSettingsFields {...props} /><div className="nxt5-data-dense mt-5 min-w-0"><AccountDeletion onDeleted={props.onAccountDeleted} /></div></>;
 }
 
 export { AccountSettings };
