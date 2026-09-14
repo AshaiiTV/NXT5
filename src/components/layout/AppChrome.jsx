@@ -72,7 +72,8 @@ export function ApiBanner({ error, onRetry, retrying = false }) {
   return <div className="nxt5-enter-fast mb-5 rounded-3xl border border-amber-300/25 bg-amber-500/10 p-4 text-amber-100 shadow-xl shadow-amber-950/10"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex items-start gap-3"><div className="rounded-2xl bg-amber-200/10 p-2"><AlertTriangle className="h-5 w-5" /></div><div><p className="font-black">Endpoint/API non disponible</p><p className="mt-1 text-sm leading-6 text-amber-100/75">{error}</p></div></div>{onRetry && <Button type="button" variant="ghost" icon={retrying ? Upload : RefreshCw} disabled={retrying} onClick={onRetry} className="shrink-0 border-amber-200/20 bg-amber-200/10 text-amber-50 hover:border-amber-200/45 hover:bg-amber-200/15">{retrying ? "Chargement..." : "Réessayer"}</Button>}</div></div>;
 }
 
-export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer, roleLabel, isPlatformAdmin = false }) {
+export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentTeam, currentMember, linkedPlayer, roleLabel, isPlatformAdmin = false }) {
+  if (!currentTeam?.id) return null;
   const status = profileStatusLabel(currentMember);
   const navItems = NAV.filter((item) => PRIMARY_NAV_IDS.includes(item.id) && !item.hidden);
   const moreItems = NAV.filter((item) => MORE_NAV_IDS.includes(item.id) && !item.hidden);

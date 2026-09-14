@@ -279,6 +279,10 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }, [route.path, navigate]);
 
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
+  const isStandalonePage = ["guide", "account-settings"].includes(active) || (isPlatformAdmin && ["admin", "access-requests"].includes(active));
+  useEffect(() => {
+    if (!currentTeam) setSidebarOpen(false);
+  }, [currentTeam]);
   const currentMember = currentTeam ?(data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
   const assistantSelectedEntity = assistantEntityForRoute(route, data, currentTeam?.id || selectedTeamId);
 
@@ -319,7 +323,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
     </main>
   </div>;
-  if (!data.teams.length && active !== "guide" && !(["admin", "access-requests"].includes(active) && isPlatformAdmin)) return <>
+  if (!currentTeam) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
@@ -328,10 +332,21 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
             <ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
             <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
           </div>
-          <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="ghost" onClick={() => setActive("account-settings")} disabled={active === "account-settings"}>Paramètres</Button>
+            <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4"><span className="hidden sm:inline">Déconnexion</span></Button>
+          </div>
         </div>
         <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-        <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />
+        <nav aria-label="Navigation du compte" className="mb-6 flex flex-wrap gap-2">
+          {active !== "teams" && <Button variant="ghost" onClick={() => setActive("teams")}>Créer ou rejoindre une équipe</Button>}
+          <Button variant="ghost" onClick={() => setActive("guide")} disabled={active === "guide"}>Guide</Button>
+          {isPlatformAdmin && <Button variant="ghost" onClick={() => setActive("admin")} disabled={active === "admin"}>Administration</Button>}
+        </nav>
+        {isStandalonePage && <p className="mb-6 text-sm text-slate-300">Crée ou rejoins une équipe pour accéder au planning et à l’espace équipe.</p>}
+        <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>
+          {isStandalonePage ? page : <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />}
+        </Suspense>
       </main>
       <LegalLinks navigate={navigate} />
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
@@ -344,6 +359,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <Sidebar
+        currentTeam={currentTeam}
         active={active}
         setActive={setActive}
         open={sidebarOpen}

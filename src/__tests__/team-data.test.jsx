@@ -52,6 +52,64 @@ function expectRequest(request, { offset = 0, teamId, matchesOnly = false } = {}
   expect(url.searchParams.get("matchesOnly")).toBe(matchesOnly ? "1" : null);
 }
 
+describe("team membership lifecycle in React", () => {
+  const empty = () => page(null, [], 0, { teams: [], players: [], reports: [] });
+
+  it("finishes the initial bootstrap for an account without a team", async () => {
+    const app = mount();
+    expect(app.state.bootstrapReady).toBe(false);
+    await app.resolve(0, empty());
+    expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.selectedTeamId).toBeNull();
+    expect(app.state.data.teams).toEqual([]);
+    expect(app.state.apiError).toBe("");
+  });
+
+  it("accepts an authoritative empty membership list despite a stale selection", async () => {
+    const app = mount();
+    await app.resolve(0, page("a", games("a", 2)));
+    app.refresh();
+    await app.resolve(1, empty());
+    expect(app.state.selectedTeamId).toBeNull();
+    expect(app.state.data).toMatchObject({ teams: [], players: [], matches: [], reports: [], selectedTeamId: null });
+    expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.apiError).toBe("");
+  });
+
+  it("clears revoked team data while reloading memberships, then selects a remaining team", async () => {
+    const app = mount();
+    await app.resolve(0, page("a", games("a", 2)));
+    app.refresh();
+    await app.reject(1, Object.assign(new Error("Accès refusé"), { status: 403 }));
+    expect(app.state.bootstrapReady).toBe(false);
+    expect(app.state.selectedTeamId).toBeNull();
+    expect(app.state.data.teams).toEqual([]);
+    expect(app.state.data.matches).toEqual([]);
+    expectRequest(app.requests[2]);
+    expect(new URL(app.requests[2].url, "https://nxt5.test").searchParams.has("teamId")).toBe(false);
+    await app.resolve(2, page("b", games("b", 1), 0, { teams: [teams[1]] }));
+    expect(app.state.selectedTeamId).toBe("b");
+    expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.apiError).toBe("");
+  });
+
+  it("does not restore revoked team data if the membership reload fails", async () => {
+    const app = mount();
+    await app.resolve(0, page("a", games("a", 2)));
+    app.refresh();
+    await app.reject(1, Object.assign(new Error("Accès refusé"), { status: 403 }));
+    await app.reject(2);
+    expect(app.state.bootstrapReady).toBe(false);
+    expect(app.state.data.teams).toEqual([]);
+    expect(app.state.apiError).toBeTruthy();
+    expect(app.requests).toHaveLength(3);
+    app.refresh();
+    await app.resolve(3, empty());
+    expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.data.teams).toEqual([]);
+  });
+});
+
 describe("complete team history lifecycle in React", () => {
   it("automatically loads more than 100 games and publishes only the complete history", async () => {
     const app = mount();
