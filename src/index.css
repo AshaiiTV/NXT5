@@ -15,7 +15,7 @@
   --nxt5-accent-2: #a78bfa;
   --nxt5-danger: #fda4af;
   --nxt5-radius-panel: 1.25rem;
-  --nxt5-radius-control: 0.75rem;
+  --nxt5-radius-control: 0.5rem;
   --nxt5-shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
@@ -286,6 +286,22 @@ body {
   transform: translateY(-1px);
 }
 
+/* Shared control geometry; panels, avatars and switch tracks keep their shape. */
+.nxt5-cyber-button { border-width: 1px; border-style: solid; }
+.nxt5-cyber-button:disabled:hover { transform: none; }
+.nxt5-field-control { min-width: 0; width: 100%; }
+.nxt5-field-control > input { min-width: 0; }
+.nxt5-field-control.has-leading-icon > input { padding-inline-start: 2.75rem; }
+.nxt5-field-control.has-password-toggle > input { padding-inline-end: 3.5rem; }
+.nxt5-profile-pictogram { display: inline-flex; align-items: center; justify-content: center; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-size: 1.25rem; line-height: 1; }
+@media (max-width: 640px) {
+  button.nxt5-cyber-button { min-height: 44px; }
+  .nxt5-field-control > input { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nxt5-cyber-button, .nxt5-cyber-button:hover { transform: none; transition: none !important; }
+}
+
 .nxt5-input-shell,
 input.nxt5-control,
 select.nxt5-control,
@@ -319,7 +335,7 @@ textarea.nxt5-control:focus {
 }
 
 .nxt5-tab-nav [role="tab"] {
-  border-radius: 0.7rem !important;
+  border-radius: var(--nxt5-radius-control) !important;
 }
 
 .nxt5-sidebar,

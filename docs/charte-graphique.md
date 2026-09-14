@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.6 · 8 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées et du favicon de chargement. Checkout actualisé sur `2aac365`.
+Version 1.7 · 14 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées et du favicon de chargement. Checkout actualisé sur `2aac365`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -132,9 +132,9 @@ Les titres de page ont des surcharges mobile : ne pas reproduire cette échelle 
 | Élément | Référence |
 | --- | --- |
 | Panneau principal | `--nxt5-radius-panel: 1.25rem` = 20 px ; 16 px à 640 px et moins. |
-| Contrôle et bouton | `--nxt5-radius-control: 0.75rem` = 12 px. |
+| Contrôle et bouton | `--nxt5-radius-control: 0.5rem` = 8 px. |
 | Panneau imbriqué | `0.95rem` = 15,2 px ; plus sobre que son parent. |
-| Conteneur d’onglets / onglet | 16 px / 11,2 px. |
+| Conteneur d’onglets / onglet | 16 px / 8 px ; 12 px pour le conteneur des onglets d’authentification. |
 | Badge | Arrondi complet. |
 | Ombre de surface | `0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.045)`. |
 | Fond de surface principale | Dégradé à 145° : `rgba(10,22,42,.94)`, `rgba(5,11,24,.92)` à 62 %, `rgba(12,9,28,.9)` ; base `--nxt5-surface`. |
@@ -290,3 +290,14 @@ La référence initiale est issue de la lecture du code et d’une vérification
 Mécanisme de lecture documenté par OpenAI : [instructions de projet avec AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
 Lors d’une évolution visuelle demandée, mettre à jour ce Markdown, sa version et les exemples concernés, puis régénérer la synthèse PDF. Ne pas remplacer une règle simplement parce qu’une page isolée s’en écarte.
+
+
+## Évolution visuelle autorisée : comptes et emails (14 septembre 2026)
+
+Cette mise à jour remplace les anciennes valeurs d’arrondi des contrôles mentionnées dans l’audit initial : le token `--nxt5-radius-control` passe à `0.5rem` (8 px). Boutons d’action, champs, onglets et navigation utilisent ce même rayon et des bordures de 1 px. Les panneaux conservent leur rayon de 20 px (16 px sur mobile), les avatars et les interrupteurs leur silhouette actuelle. Les balayages lumineux des boutons restent désactivés.
+
+La création de compte et la connexion utilisent une composition dédiée : une colonne sous 1024 px, deux colonnes au-delà, carte de formulaire de 34 rem maximum et champs toujours sur une seule colonne. Champs et action principale mesurent au moins 52 px de haut ; les champs sont à 16 px et réservent explicitement l’espace des icônes et du bouton de visibilité du mot de passe. Les bénéfices détaillés sont réservés au bureau pour garder l’accès au formulaire rapide sur mobile. Consentement, erreurs, chargement et focus clavier restent visibles.
+
+L’entrée « Profil » de la sidebar utilise le pictogramme emoji de silhouette utilisateur (U+1F464), décoratif et accompagné du libellé existant. Cette exception ne change pas la famille d’icônes du reste de l’interface.
+
+Les emails de vérification, réinitialisation, rappel d’inactivité, import de match et nouvelle review partagent `netlify/functions/_lib/email-template.js` : fond nuit #020611, carte #070E1D, bordure #24354B, wordmark PNG officiel, filet cyan / bleu / fuchsia, textes clairs et CTA rectangulaire à rayon 8 px. Le CTA email emploie un dégradé assombri #164E63 / #1E3A8A / #701A75 pour garder son libellé blanc lisible, avec une couleur de secours pour les clients sans dégradés. Aucun accent vert décoratif. Structure en tableaux, styles essentiels inline, largeur fluide plafonnée à 600 px, version texte et URL de secours. Les liens de sécurité conservent leurs durées de validité (24 h et 30 min).
