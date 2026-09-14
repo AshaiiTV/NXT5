@@ -1300,8 +1300,8 @@ function roleDiffRows(match) {
   });
 }
 
-function timelineTeamLabel(teamKey) {
-  if (teamKey === "ALLY") return "NXT5";
+function timelineTeamLabel(teamKey, teamName) {
+  if (teamKey === "ALLY") return String(teamName || "").trim() || "Notre équipe";
   if (teamKey === "ENEMY") return "Adversaire";
   return "Contesté";
 }
@@ -1352,7 +1352,7 @@ function killScoreAtTimestamp(kills, timestamp) {
   }, { ally: 0, enemy: 0 });
 }
 
-function fightWindows(match) {
+function fightWindows(match, teamName) {
   const kills = championKillEvents(match);
   const groups = [];
   let current = [];
@@ -1379,7 +1379,7 @@ function fightWindows(match) {
       time,
       teamKey,
       toneName: timelineTeamTone(teamKey),
-      title: teamKey === "NEUTRAL" ? "Fight échangé" : `${timelineTeamLabel(teamKey)} gagne le fight`,
+      title: teamKey === "NEUTRAL" ? "Fight échangé" : `${timelineTeamLabel(teamKey, teamName)} gagne le fight`,
       context: `${allyKills}-${enemyKills} kills sur la fenêtre`,
       detail: victims.length ? `Morts: ${victims.join(" · ")}` : `Fight #${index + 1}`,
       allyKills,
@@ -1397,7 +1397,7 @@ function importantBuildingEvents(match) {
   }).slice(0, 6);
 }
 
-function timelineMilestones(match) {
+function timelineMilestones(match, teamName) {
   const objectives = objectiveContext(match).map((event) => ({
     ...event,
     kind: "objective",
@@ -1405,7 +1405,7 @@ function timelineMilestones(match) {
     detail: event.context,
     toneName: timelineTeamTone(event.teamKey),
   }));
-  const fights = fightWindows(match).filter((event) => event.killCount >= 3 || Math.abs(event.allyKills - event.enemyKills) >= 2);
+  const fights = fightWindows(match, teamName).filter((event) => event.killCount >= 3 || Math.abs(event.allyKills - event.enemyKills) >= 2);
   const towers = importantBuildingEvents(match).map((event) => ({
     ...event,
     kind: "tower",
@@ -1417,12 +1417,12 @@ function timelineMilestones(match) {
   return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0)).slice(0, 18);
 }
 
-function MatchTimelineReview({ match }) {
+function MatchTimelineReview({ match, teamName }) {
   const status = timelineStatus(match);
   const objectives = objectiveContext(match);
   const kills = championKillEvents(match);
-  const fights = fightWindows(match);
-  const events = timelineMilestones(match);
+  const fights = fightWindows(match, teamName);
+  const events = timelineMilestones(match, teamName);
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const finalGoldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
@@ -1441,28 +1441,34 @@ function MatchTimelineReview({ match }) {
     { id: "late", label: "Late", range: "24+", toneName: "yellow" },
   ].map((phase) => ({ ...phase, events: events.filter((event) => timelinePhaseMeta(event.timestamp).id === phase.id) }));
   const highlight = events.find((event) => event.teamKey === "ENEMY" && ["objective", "fight"].includes(event.kind)) || events.find((event) => event.teamKey === "ALLY" && ["objective", "fight"].includes(event.kind)) || events[0];
-  return <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045]">
-    <div className="border-b border-white/10 bg-black/18 p-4">
+  return <details key={match.id || match.game_id} className="group mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045]">
+    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-[1.35rem] p-4 hover:bg-white/[0.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-200/70 [&::-webkit-details-marker]:hidden">
+      <span className="min-w-0">
+        <span className="block text-lg font-black text-white">Lecture chronologique</span>
+        <span className="mt-1 block text-xs font-semibold text-slate-300">{events.length} moments · {status.label}</span>
+      </span>
+      <ChevronDown aria-hidden="true" className="h-5 w-5 shrink-0 text-cyan-200 group-open:rotate-180" />
+    </summary>
+    <div className="border-y border-white/10 bg-black/18 p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2"><Badge tone="cyan">Déroulé coach</Badge><Badge tone={status.toneName}>{status.label}</Badge><Badge tone="purple">{kills.length} kills</Badge><Badge tone="slate">{events.length} moments</Badge></div>
-          <h4 className="mt-3 text-2xl font-black text-white">Lecture chronologique</h4>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey)} · ${highlight.title}` : "Aucun moment clé détecté dans la timeline importée."}</p>
+          <p className="mt-3 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : "Aucun moment clé détecté dans la timeline importée."}</p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-3 xl:w-[34rem]">
           {goldMarks.map((item) => <TimelineGoldCheckpoint key={item.minute} minute={item.minute} diff={item.diff} />)}
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <TimelineReadoutCard icon={Gauge} label="Économie finale" value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? "Avantage NXT5" : "Avantage adverse"} toneName={diffTone(finalGoldDiff)} />
-        <TimelineReadoutCard icon={Target} label="Objectifs neutres" value={`${allyObjectives}-${enemyObjectives}`} detail="NXT5 - Adversaire" toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
+        <TimelineReadoutCard icon={Gauge} label="Économie finale" value={formatSignedShort(finalGoldDiff)} detail={`Avantage ${timelineTeamLabel(finalGoldDiff >= 0 ? "ALLY" : "ENEMY", teamName)}`} toneName={diffTone(finalGoldDiff)} />
+        <TimelineReadoutCard icon={Target} label="Objectifs neutres" value={`${allyObjectives}-${enemyObjectives}`} detail={`${timelineTeamLabel("ALLY", teamName)} - ${timelineTeamLabel("ENEMY", teamName)}`} toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
         <TimelineReadoutCard icon={Swords} label="Fights détectés" value={`${allyFights}-${enemyFights}`} detail="Fenêtres multi-kills" toneName={allyFights >= enemyFights ? "green" : "red"} />
       </div>
     </div>
     {events.length ? <div className="grid gap-3 p-4 xl:grid-cols-3">
-      {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} />)}
+      {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />)}
     </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun déroulé exploitable dans ce JSON pour les moments clés.</p>}
-  </div>;
+  </details>;
 }
 
 function TimelineGoldCheckpoint({ minute, diff }) {
@@ -1491,7 +1497,7 @@ function TimelineEventGlyph({ event }) {
   return <Shield className="h-4 w-4" />;
 }
 
-function TimelineEventCard({ event, index, kills, match }) {
+function TimelineEventCard({ event, index, kills, match, teamName }) {
   const toneName = event.toneName || timelineTeamTone(event.teamKey);
   const score = killScoreAtTimestamp(kills, event.timestamp);
   const gold = timelineGoldDiff(match, event.timestamp);
@@ -1508,7 +1514,7 @@ function TimelineEventCard({ event, index, kills, match }) {
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={toneName}>{event.time}</Badge>
           <Badge tone="slate">#{index + 1}</Badge>
-          <Badge tone={toneName}>{timelineTeamLabel(event.teamKey)}</Badge>
+          <Badge tone={toneName}>{timelineTeamLabel(event.teamKey, teamName)}</Badge>
         </div>
         <p className="mt-2 truncate text-sm font-black text-white">{event.title}</p>
         <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{event.context || event.detail || kindLabel}</p>
@@ -1523,7 +1529,7 @@ function TimelineEventCard({ event, index, kills, match }) {
   </article>;
 }
 
-function TimelinePhaseColumn({ phase, kills, match }) {
+function TimelinePhaseColumn({ phase, kills, match, teamName }) {
   return <section className="min-w-0 rounded-2xl border border-white/10 bg-black/18 p-3">
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="min-w-0">
@@ -1533,7 +1539,7 @@ function TimelinePhaseColumn({ phase, kills, match }) {
       <Badge tone={phase.toneName}>{phase.events.length}</Badge>
     </div>
     <div className="space-y-2">
-      {phase.events.length ? phase.events.map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
+      {phase.events.length ? phase.events.map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
     </div>
   </section>;
 }
@@ -2043,7 +2049,7 @@ function MatchDataPanel({ match, teamName }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button></div></div><MatchCoachBrief match={match} /><MatchVersusOverview match={match} teamName={teamName} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 className="mt-3 truncate text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div><div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button></div></div><MatchCoachBrief match={match} /><GameSummaryPanel match={match} /><MatchVersusOverview match={match} teamName={teamName} /><div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /><MatchTimelineReview match={match} teamName={teamName} /></Surface>;
 }
 
 function archiveMatchIds(archive) {
