@@ -1,5 +1,6 @@
 export const API_BASE = "/.netlify/functions";
 const DEFAULT_API_TIMEOUT_MS = 20000;
+const UPLOAD_TIMEOUT_MS = 120000;
 
 function attachApiErrorMetadata(error, payload, status) {
   error.status = status;
@@ -12,7 +13,7 @@ function attachApiErrorMetadata(error, payload, status) {
 }
 
 function apiPayloadMessage(payload, status) {
-  if (payload?.code === "SESSION_SECRET_MISCONFIGURED") return "Session serveur mal configurée : SESSION_SECRET manque ou est trop court dans Netlify.";
+  if (payload?.code === "SESSION_SECRET_MISCONFIGURED") return "La connexion est temporairement indisponible. Réessaie dans quelques instants.";
   return payload?.error || apiFallbackMessage(status);
 }
 
@@ -22,9 +23,18 @@ function apiFallbackMessage(status) {
     : `Erreur ${status}.`;
 }
 
+function invalidApiResponse(status) {
+  return attachApiErrorMetadata(new Error("NXT5 a reçu une réponse inattendue. Recharge la page puis réessaie."), { code: "INVALID_API_RESPONSE" }, status);
+}
+
+function validPayload(payload) {
+  return payload !== null && typeof payload === "object";
+}
+
 export async function apiFetch(path, options = {}) {
-  let response;
-  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, ...fetchOptions } = options;
+  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, headers: customHeaders, ...fetchOptions } = options;
+  const headers = new Headers(customHeaders);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   const controller = timeoutMs ? new AbortController() : null;
   let timeoutId = null;
   const abortFromCaller = () => controller?.abort(signal?.reason);
@@ -37,35 +47,35 @@ export async function apiFetch(path, options = {}) {
   }
   try {
     const url = String(path || "").startsWith("/") ? path : `${API_BASE}/${path}`;
-    response = await fetch(url, {
+    const response = await fetch(url, {
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(fetchOptions.headers || {}),
-      },
       ...fetchOptions,
+      headers,
       signal: controller?.signal || signal,
     });
+    if (response.status === 204) return null;
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      if (controller?.signal.aborted || signal?.aborted || error?.name === "AbortError") throw error;
+      if (response.ok) throw invalidApiResponse(response.status);
+    }
+    if (!response.ok) {
+      throw attachApiErrorMetadata(new Error(apiPayloadMessage(payload, response.status)), payload, response.status);
+    }
+    if (!validPayload(payload)) throw invalidApiResponse(response.status);
+    return payload;
   } catch (err) {
-    const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError" || controller?.signal?.aborted;
-    throw new Error(timedOut ? "NXT5 met trop longtemps à répondre. Réessaie dans quelques instants." : "Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants.");
+    if (signal?.aborted) throw signal.reason || new DOMException("Request cancelled", "AbortError");
+    if (err?.status !== undefined) throw err;
+    const timedOut = controller?.signal?.aborted || err?.name === "TimeoutError";
+    throw Object.assign(new Error(timedOut ? "NXT5 met trop longtemps à répondre. Réessaie dans quelques instants." : "Impossible de joindre NXT5 pour le moment. Réessaie dans quelques instants."), { code: timedOut ? "API_TIMEOUT" : "NETWORK_ERROR" });
   } finally {
     if (timeoutId) globalThis.clearTimeout(timeoutId);
     if (controller && signal) signal.removeEventListener("abort", abortFromCaller);
   }
 
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    throw attachApiErrorMetadata(new Error(apiPayloadMessage(payload, response.status)), payload, response.status);
-  }
-
-  return payload;
 }
 
 export function apiUploadJson(path, data, onProgress) {
@@ -73,6 +83,7 @@ export function apiUploadJson(path, data, onProgress) {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}/${path}`);
     xhr.withCredentials = true;
+    xhr.timeout = UPLOAD_TIMEOUT_MS;
     xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.upload.onprogress = (event) => {
@@ -82,6 +93,8 @@ export function apiUploadJson(path, data, onProgress) {
     };
     xhr.upload.onload = () => onProgress?.({ phase: "server", percent: 100 });
     xhr.onerror = () => reject(new Error("Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants."));
+    xhr.ontimeout = () => reject(Object.assign(new Error("L’import met trop longtemps à répondre. Vérifie la liste des games avant de réessayer."), { code: "API_TIMEOUT" }));
+    xhr.onabort = () => reject(new DOMException("Import annulé.", "AbortError"));
     xhr.onload = () => {
       let payload = null;
       try {
@@ -91,6 +104,10 @@ export function apiUploadJson(path, data, onProgress) {
       }
       if (xhr.status < 200 || xhr.status >= 300) {
         reject(attachApiErrorMetadata(new Error(apiPayloadMessage(payload, xhr.status)), payload, xhr.status));
+        return;
+      }
+      if (xhr.status !== 204 && !validPayload(payload)) {
+        reject(invalidApiResponse(xhr.status));
         return;
       }
       resolve(payload);

@@ -1,73 +1,87 @@
-import type { Handler, HandlerEvent, HandlerResponse } from "@netlify/functions";
-
 const ALLOWED_HOSTS = new Set([
   'ddragon.leagueoflegends.com',
   'raw.communitydragon.org',
   'raw.githubusercontent.com'
 ]);
-
-const ALLOWED_CONTENT_TYPES = [
-  'image/png',
-  'image/jpeg',
-  'image/jpg',
-  'image/webp'
-];
-
+const ALLOWED_CONTENT_TYPES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp']);
 const MAX_ASSET_BYTES = 2 * 1024 * 1024;
+const ASSET_TIMEOUT_MS = 10_000;
 const GITHUB_IMAGE_PATH_RE = /\.(png|jpe?g|webp)$/i;
 
-function response(statusCode: number, body: string, headers: Record<string, string> = {}, isBase64Encoded = false): HandlerResponse {
-  return {
-    statusCode,
-    isBase64Encoded,
+function response(status: number, body: BodyInit, headers: Record<string, string> = {}): Response {
+  return new Response(body, {
+    status,
     headers: {
-      'Cache-Control': statusCode === 200 ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-store',
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': status === 200 ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-store',
       'X-Content-Type-Options': 'nosniff',
+      'Cross-Origin-Resource-Policy': 'same-origin',
       ...headers
-    },
-    body
-  };
+    }
+  });
 }
 
-export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
+export default async function handler(request: Request): Promise<Response> {
+  if (request.method !== 'GET') return response(405, 'Method not allowed', { Allow: 'GET' });
+  let target: URL;
   try {
-    const rawUrl = event.queryStringParameters?.url || '';
-    const target = new URL(rawUrl);
-    if (target.protocol !== 'https:' || !ALLOWED_HOSTS.has(target.hostname)) {
-      return response(400, 'Asset host not allowed');
-    }
-    if (target.hostname === 'raw.githubusercontent.com' && !GITHUB_IMAGE_PATH_RE.test(target.pathname)) {
-      return response(400, 'GitHub asset path not allowed');
-    }
+    target = new URL(new URL(request.url).searchParams.get('url') || '');
+  } catch {
+    return response(400, 'Invalid asset request');
+  }
+  if (target.protocol !== 'https:' || !ALLOWED_HOSTS.has(target.hostname) || target.username || target.password || target.port) {
+    return response(400, 'Asset host not allowed');
+  }
+  if (target.hostname === 'raw.githubusercontent.com' && !GITHUB_IMAGE_PATH_RE.test(target.pathname)) {
+    return response(400, 'GitHub asset path not allowed');
+  }
 
-    const upstream = await fetch(target.toString(), {
-      headers: {
-        Accept: 'image/avif,image/webp,image/png,image/jpeg,*/*'
-      }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ASSET_TIMEOUT_MS);
+  try {
+    const upstream = await fetch(target, {
+      // Following a redirect would bypass the destination allowlist above.
+      redirect: 'manual',
+      signal: controller.signal,
+      headers: { Accept: 'image/webp,image/png,image/jpeg' }
     });
-
     if (!upstream.ok) {
-      return response(upstream.status, `Asset unavailable: ${upstream.statusText || upstream.status}`);
+      await upstream.body?.cancel();
+      return response(upstream.status === 404 ? 404 : 502, 'Asset unavailable');
     }
-
-    const contentType = (upstream.headers.get('content-type') || 'application/octet-stream').split(';')[0].toLowerCase();
-    if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
+    const contentType = (upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+      await upstream.body?.cancel();
       return response(415, 'Unsupported asset type');
     }
-
-    const contentLength = Number(upstream.headers.get('content-length') || 0);
-    if (contentLength > MAX_ASSET_BYTES) {
+    if (Number(upstream.headers.get('content-length')) > MAX_ASSET_BYTES) {
+      await upstream.body?.cancel();
       return response(413, 'Asset too large');
     }
+    if (!upstream.body) return response(502, 'Asset unavailable');
 
-    const bytes = Buffer.from(await upstream.arrayBuffer());
-    if (bytes.byteLength > MAX_ASSET_BYTES) {
-      return response(413, 'Asset too large');
+    const reader = upstream.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_ASSET_BYTES) {
+          await reader.cancel();
+          return response(413, 'Asset too large');
+        }
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
     }
-    return response(200, bytes.toString('base64'), {
-      'Content-Type': contentType
-    }, true);
-  } catch (error) {
-    return response(400, error instanceof Error ? error.message : 'Invalid asset request');
+    if (!size) return response(502, 'Asset unavailable');
+    return response(200, new Uint8Array(Buffer.concat(chunks, size)), { 'Content-Type': contentType });
+  } catch {
+    return response(controller.signal.aborted ? 504 : 502, 'Asset unavailable');
+  } finally {
+    clearTimeout(timeout);
   }
-};
+}

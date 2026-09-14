@@ -83,12 +83,17 @@ export function isKnownPath(pathname = window.location.pathname) {
 }
 
 export function isSafeInternalPath(path = "") {
-  return typeof path === "string" && path.startsWith("/") && !path.startsWith("//");
+  if (typeof path !== "string" || !path.startsWith("/") || path.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(path)) return false;
+  try {
+    return new URL(path, "https://nxt5.invalid").origin === "https://nxt5.invalid";
+  } catch {
+    return false;
+  }
 }
 
 export function buildLoginRedirect(path, search = "") {
   const target = `${path}${search || ""}`;
-  return `/connexion?next=${encodeURIComponent(target)}`;
+  return `/connexion?next=${encodeURIComponent(isSafeInternalPath(target) ? target : "/equipes")}`;
 }
 
 export function readRoute() {
@@ -96,7 +101,7 @@ export function readRoute() {
 }
 
 export function openAppPath(path) {
-  window.history.pushState({}, "", path);
+  window.history.pushState({}, "", isSafeInternalPath(path) ? path : "/equipes");
   window.dispatchEvent(new Event("popstate"));
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  window.scrollTo({ top: 0, behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth" });
 }
