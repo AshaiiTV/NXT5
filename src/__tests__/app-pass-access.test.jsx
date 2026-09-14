@@ -31,7 +31,7 @@ vi.mock("../pages/workspace/DraftWorkspace.jsx", () => ({ DraftWorkspace: () => 
 vi.mock("../pages/workspace/PlayerUltimateProfile.jsx", () => ({ PlayerUltimateProfile: () => <section data-page="profile" /> }));
 vi.mock("../pages/workspace/AccountSettings.jsx", () => ({ AccountSettings: () => <section data-page="settings" /> }));
 vi.mock("../pages/GuidePage.jsx", () => ({ default: () => <section data-page="guide" /> }));
-vi.mock("../pages/admin/AdministrationPage.jsx", () => ({ default: () => <section data-page="admin" /> }));
+vi.mock("../pages/admin/AdminDashboard.jsx", () => ({ default: () => <section data-page="admin" /> }));
 vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data-page="audience" /> }));
 vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: () => <section data-page="billing" /> }));
 
@@ -58,6 +58,7 @@ async function open(path, { noTeam = false, admin = false } = {}) {
     selectedTeamId, setSelectedTeamId: vi.fn(), bootstrapReady: true, bootstrapped: true,
   });
   await act(async () => { renderer = TestRenderer.create(<AppLoadingProvider><Suspense fallback="loading"><AppContent /></Suspense></AppLoadingProvider>); });
+  await act(async () => { await vi.dynamicImportSettled(); });
   return renderer;
 }
 
@@ -97,6 +98,10 @@ describe("future expiration routing, simulated only in tests", () => {
     await open(path, { admin });
     expect(renderer.root.findAllByProps({ "data-page": page })).toHaveLength(1);
     expect(JSON.stringify(renderer.toJSON())).not.toContain("Prendre le Pass Équipe");
+    if (admin) {
+      expect(useTeamData).not.toHaveBeenCalled();
+      expect(renderer.root.findAllByProps({ className: "administration-shell" })).toHaveLength(1);
+    }
   });
 
   it.each(["/equipes?create=1", "/equipes?invite=team-code"])("keeps %s as setup only for an existing team", async (path) => {

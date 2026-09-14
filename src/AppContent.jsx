@@ -1,11 +1,12 @@
 import React, { startTransition, useCallback, useEffect, useState, Suspense, useMemo, lazy } from "react";
 import { apiFetch, API_BASE } from "./api/client.js";
 import { NAV } from "./app/constants.jsx";
+import { adminPageFromRoute } from "./app/admin-navigation.js";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
-import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks, SiteHeader } from "./pages/public/PublicPages.jsx";
+import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
 import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
@@ -27,13 +28,8 @@ const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx")
 
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 
-const AdminDashboard = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
-const AudiencePage = lazy(() => import("./pages/admin/AudiencePage.jsx"));
-const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
-const AccountSubscriptionsPage = lazy(() => import("./pages/admin/AccountSubscriptionsPage.jsx"));
-const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
+const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
 const SocialPage = lazy(() => import("./pages/public/SocialPage.jsx"));
-const IntegrationsPage = lazy(() => import("./pages/admin/IntegrationsPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
 
@@ -243,7 +239,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
   const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
-  const independentAccountPage = active === "account-subscriptions" || active === "account-settings";
+  const independentAccountPage = active === "account-settings";
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -277,7 +273,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     try { window.localStorage.setItem("nxt5_beginner_compass_hidden", "1"); } catch {}
   }
 
-  async function logout() { try { await apiFetch("auth-logout", { method: "POST" }); } catch {} pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." }); navigate("/connexion", { replace: true }); onLogout(); }
+  const logout = onLogout;
   useEffect(() => { startTransition(() => setActiveState(new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path))); }, [route.path, route.search]);
   useEffect(() => {
     if (route.path === "/champion-pool" || route.path === "/draft") navigate("/draft/pool", { replace: true });
@@ -303,9 +299,6 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4"><Button variant="ghost" onClick={() => navigate("/admin/integrations")}>Intégrations Shopify et réseaux</Button></div><AdminDashboard route={route} navigate={navigate} /></>;
-    if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
-    if (active === "account-subscriptions" && isPlatformAdmin) return <AccountSubscriptionsPage navigate={navigate} initialUserId={new URLSearchParams(route.search).get("userId") || ""} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly]);
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{page}</PassFeatureGate> : page;
@@ -332,7 +325,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
     </main>
   </div>;
-  if (!data.teams.length && active !== "guide" && !independentAccountPage && !(["admin", "access-requests"].includes(active) && isPlatformAdmin)) return <>
+  if (!data.teams.length && active !== "guide" && !independentAccountPage) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
@@ -412,8 +405,9 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const routeIsPrivate = isAppPath(route.path);
   const unknownRoute = !isKnownPath(route.path);
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
+  const adminPage = adminPageFromRoute(route);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/tarifs", "/admin/frequentation", "/verify-email", "/verified"].includes(route.path);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/verify-email", "/verified"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
@@ -421,10 +415,8 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
-  if (route.path === "/admin/frequentation") return <div className="relative min-h-screen text-white"><AmbientBackground /><SiteHeader navigate={navigate}><Badge tone="cyan">Administration</Badge></SiteHeader><main className="relative z-10 mx-auto max-w-7xl px-3 pb-16 pt-4 sm:px-6"><Suspense fallback={<div role="status" className="p-6 text-slate-200">Chargement de la fréquentation…</div>}><AudiencePage navigate={navigate} /></Suspense></main><LegalLinks navigate={navigate} /></div>;
-  if (route.path === "/admin/integrations") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des intégrations…</div>}><IntegrationsPage navigate={navigate} /></Suspense>;
+  if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label="Chargement de l’administration"><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
   if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
-  if (route.path === "/tarifs") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des tarifs…</div>}><PricingPage navigate={navigate} user={user} /></Suspense>;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
@@ -458,7 +450,16 @@ export default function NXT5() {
   const handleAuth = useCallback((nextUser) => {
     setUser(nextUser);
   }, []);
-  const handleLogout = useCallback(() => setUser(null), []);
+  const handleLogout = useCallback(async () => {
+    try { await apiFetch("auth-logout", { method: "POST" }); }
+    catch {
+      pushToast({ type: "red", title: "Déconnexion impossible", text: "La session n’a pas pu être fermée. Réessaie." });
+      return;
+    }
+    setUser(null);
+    navigate("/connexion", { replace: true });
+    pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." });
+  }, [navigate, pushToast]);
 
   useEffect(() => {
     configurePerformanceMode();
@@ -506,8 +507,9 @@ export default function NXT5() {
       "/reseaux": "Réseaux — NXT5",
       "/admin/integrations": "Intégrations — NXT5",
     };
-    document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
-  }, [route.path]);
+    const adminPage = adminPageFromRoute(route);
+    document.title = adminPage ? `${adminPage.label} · Administration — NXT5` : publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
+  }, [route.path, route.search]);
 
   useEffect(() => {
     if (!checkingSession && user && (route.path === "/" || authModeFromPath(route.path))) {

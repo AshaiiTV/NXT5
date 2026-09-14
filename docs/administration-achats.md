@@ -1,8 +1,21 @@
-# Administration : achats et vue d'ensemble
+# Administration : achats et navigation
 
-La page `/admin` expose deux onglets : `?tab=achats` pour les commandes et
-`?tab=vue-ensemble` pour les statistiques commerciales et le pilotage existant.
-Les demandes d'acces restent disponibles dans `/admin/demandes-acces`.
+La page `/admin` ouvre la synthèse du pilotage. L’administration possède une
+navigation unique en trois groupes, définie dans `src/app/admin-navigation.js` :
+
+- **Pilotage** : vue d’ensemble, équipes, usage du produit, fréquentation du site.
+- **Ventes et accès** : achats, demandes d’accès, profils et abonnements, offres et tarifs, préparation de la vente.
+- **Configuration** : rappels e-mail et intégrations.
+
+La page `/admin/achats` affiche l’historique des commandes en premier. Le
+« Bilan des achats » suit dans une section repliée par défaut ; il regroupe les
+indicateurs commerciaux et leur évolution. Les demandes d’accès restent dans
+`/admin/demandes-acces`, les profils et abonnements dans `/admin/abonnements`
+et les offres et tarifs sont dans `/admin/tarifs`.
+
+Les liens historiques `/admin?tab=achats`, `/admin?tab=vue-ensemble` et `/tarifs`
+restent utilisables et ouvrent respectivement les achats, la synthèse du pilotage
+et les offres et tarifs. Ils ne créent pas de deuxième navigation par onglets.
 
 ## Donnees de commandes
 
@@ -39,5 +52,15 @@ partiels et les autres devises demandent une extension du contrat de donnees.
 - Les commandes remboursees sont exclues des statistiques d'achats payes, y compris des periodes passees. Il ne s'agit pas d'un journal comptable des mouvements de tresorerie.
 
 Les petites largeurs affichent chaque commande en carte avec tous ses champs.
-La navigation principale suit le modele clavier des onglets et l'URL permet
-les liens directs ainsi que le retour navigateur.
+La navigation de l’administration utilise une sidebar à partir de 1024 px,
+puis un sélecteur natif avec groupes sous ce seuil. Chaque rubrique a son URL,
+ce qui permet les liens directs et le retour navigateur ; seule la page active
+est montée. Les liens signalent la page courante avec `aria-current`, le focus
+rejoint le contenu lors d’un changement de rubrique et le bilan repliable reste
+accessible au clavier avec le contrôle natif `details` / `summary`.
+
+La navigation doit respecter les protections existantes des pages Demandes
+d’accès et Profils et abonnements. Le menu et le sélecteur mobile ne doivent
+pas abandonner silencieusement un brouillon, ni contourner une sauvegarde en
+cours. Les confirmations de sortie s’appliquent aux nouveaux accès comme aux
+liens existants.

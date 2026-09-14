@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.14 · 14 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version regroupe le footer et harmonise les pages d’information et de communauté. Elle conserve l’alignement de Tarifs sur Découverte et le Pass Équipe, le retrait du contact multi-équipe, l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
+Version 1.15 · 14 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version organise l’administration autour d’une navigation unique et conserve le footer regroupé ainsi que les pages d’information et de communauté harmonisées. Elle conserve l’alignement de Tarifs sur Découverte et le Pass Équipe, le retrait du contact multi-équipe, l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -243,6 +243,24 @@ Les règles locales de `compositions.css`, `champion-pool.css` et `Planning.css`
 - Réutiliser `SiteHeader`, `LinkButton`, `Surface`, `Badge` et `PageHeader`. Conserver la palette, les boutons de 2 px et le dégradé de marque à texte sombre. Les liens externes ouvrent un nouvel onglet annoncé et utilisent `noopener noreferrer` ; les liens internes conservent le clic modifié et l’accès clavier.
 - La feuille locale `src/pages/public/public-information.css` définit cette composition et son empilement mobile, sans modifier le style des espaces de travail. Les contrôles ont une hauteur minimale de 44 px ; les mouvements d’entrée réutilisent les classes et préférences globales.
 
+### Organisation de l’administration
+
+Évolution autorisée le 14 septembre 2026 : l’administration utilise un cadre autonome avec une seule navigation par rubriques. Ne pas superposer la sidebar de l’espace équipe, une navigation principale et des onglets internes. La palette et les surfaces restent celles du site ; les boutons gardent leur rayon de 2 px et les champs leur rayon de 12 px.
+
+| Groupe | Pages et chemins |
+| --- | --- |
+| Pilotage | Vue d’ensemble (`/admin`), Équipes (`/admin/equipes`), Usage du produit (`/admin/usage`), Fréquentation du site (`/admin/frequentation`). |
+| Ventes et accès | Achats (`/admin/achats`), Demandes d’accès (`/admin/demandes-acces`), Profils et abonnements (`/admin/abonnements`), Offres et tarifs (`/admin/tarifs`), Préparer la vente (`/admin/preparer-vente`). |
+| Configuration | Rappels e-mail (`/admin/rappels`), Intégrations (`/admin/integrations`). |
+
+- À partir de 1024 px, afficher ces trois groupes dans une sidebar unique. Sous 1024 px, utiliser un sélecteur natif « Rubrique » avec les mêmes groupes en `optgroup`, sans rangée d’onglets à faire défiler.
+- Chaque rubrique possède un chemin stable, un titre explicite et un seul contenu de page monté. La navigation de l’administration est composée de liens avec `aria-current="page"`, pas de `tablist` ou de `tabpanel`. Le lien d’évitement et le focus du contenu accompagnent la navigation clavier ; le retour à l’app reste accessible.
+- `/admin` ouvre la synthèse du pilotage. Les priorités mènent directement à `/admin/equipes?filtre=…`. La liste conserve recherche, tri, filtres et accès à la fiche d’équipe ; le retour de fiche replace le focus sur son titre.
+- La page Achats affiche d’abord l’historique des commandes. Le « Bilan des achats » vient ensuite, replié par défaut dans un contrôle natif `details` / `summary`. Les chiffres commerciaux restent dans cette page.
+- Conserver la page Profils et abonnements ainsi que ses fonctions de gestion manuelle dans Ventes et accès. Les demandes et les abonnements gardent leurs brouillons et leurs protections de sauvegarde : le nouveau menu, le sélecteur mobile et les autres chemins de navigation doivent respecter les confirmations existantes de sortie d’un brouillon et les enregistrements en cours.
+- Les anciens liens `/tarifs`, `/admin?tab=achats` et `/admin?tab=vue-ensemble` restent reconnus, respectivement pour les tarifs, les achats et la synthèse. `/admin/demandes-acces` et `/admin/abonnements` restent accessibles. Ces liens ne réintroduisent pas d’onglets dans l’interface.
+- `src/app/admin-navigation.js` est la source commune des groupes, libellés et routes. `AdministrationPage.jsx` et `administration.css` organisent le cadre ; `AdminDashboard.jsx` reçoit la vue active et monte uniquement son contenu. `src/components/admin/AdminNavigationContext.jsx` relaie les protections de navigation des pages d’édition.
+
 ## 7. Composants à employer
 
 Les composants de référence se trouvent dans `src/components/ui/Core.jsx`.
@@ -299,6 +317,7 @@ Exemple d’assemblage, à adapter aux vraies données et au cadre de page. `Pag
 - Pour les games importées, la disposition suit aussi la largeur du conteneur : à partir de 880 px, aligner les informations sous des en-têtes de colonnes ; en dessous, recomposer chaque ligne en plusieurs rangées sans sous-carte. Sous 600 px, empiler recherche et tri, répartir les filtres sur deux colonnes avec le côté en pleine largeur, et donner toute la largeur à la navigation de pagination. Conserver la composition, la date, le résultat et le statut de review sans défilement horizontal global.
 - Dans Games, conserver les mêmes paliers de conteneur que la liste partagée. Sous 880 px, empiler les zones d’édition et les équipes du formulaire de postes. Sous 600 px, Catégorie et Côté prennent toute la largeur, Résultat et Review partagent une rangée, et les champs poste / profil s’empilent. Le bouton de menu reste discret et accessible ; son contenu et les actions d’édition reviennent à la ligne. Garder les noms, les catégories et les champs de profil lisibles sans débordement global.
 - Les noms de joueurs, titres et boutons peuvent revenir à la ligne. Réserver la troncature aux endroits où l’intégralité reste accessible. Les onglets `TabNav` gardent leurs libellés entiers ; sur mobile, leur propre conteneur défile horizontalement sans provoquer de débordement de page.
+- L’administration possède son propre cadre : une sidebar unique à partir de 1024 px et un sélecteur natif « Rubrique » en dessous. Elle ne cumule pas le menu de l’espace équipe et des rangées d’onglets internes. Les libellés, le retour à l’app et la protection des modifications en cours restent accessibles sur mobile.
 - Les tables larges utilisent un conteneur `nxt5-responsive-scroll`. Sur mobile, certaines tables gardent une largeur interne minimale de 680 px : faire défiler le tableau, pas toute la page.
 - Champs à 16 px à 640 px et moins : cette taille doit gagner dans la cascade, y compris sur les champs partagés et les contrôles denses. Les boutons partagés et les actions des panneaux sur mobile ont un minimum de 44 px de hauteur. Les actions à icône concernées (mot de passe, notification, menu, picks) offrent 44 × 44 px et un nom accessible. Ce minimum ne certifie pas chaque contrôle du site ; vérifier également la largeur et l’espacement dans son contexte.
 - Conserver le focus clavier visible. Le style global utilise un contour cyan de 2 px, décalé de 2 px ; les champs ajoutent une bordure cyan et un anneau de 3 px.
@@ -350,6 +369,7 @@ Sources principales :
 - `src/styles/champion-pool.css` : lisibilité, contrôles et largeur du Champion Pool.
 - `src/pages/workspace/Planning.jsx` et `Planning.css` : planning, légende et mode d’édition tactile.
 - `src/pages/admin/AdminDashboard.jsx` et `src/pages/workspace/AccountSettings.jsx` : contrôles, graphiques et états de réglage.
+- `src/app/admin-navigation.js`, `src/pages/admin/AdministrationPage.jsx` et `src/pages/admin/administration.css` : groupes, routes, cadre unique et navigation mobile de l’administration. `src/components/admin/AdminNavigationContext.jsx` relaie les protections de brouillon et de sauvegarde des pages Demandes d’accès et Profils et abonnements.
 - `src/pages/workspace/ImporterDownloadPanel.jsx` et `src/pages/workspace/GameWorkspace.jsx` : espace Games unifié, statistiques, groupes, import à la demande et gestion discrète avec formulaires contextuels.
 - `src/components/layout/AppChrome.jsx` et `src/app/performance.js` : shell et mode performance.
 - `tailwind.config.js` et `index.html` : configuration et pile de chargement.

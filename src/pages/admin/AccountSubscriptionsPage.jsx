@@ -7,6 +7,7 @@ import { DISCOVERY_TRIAL_DAYS } from "../../app/pass-access.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, SkeletonRows, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import "./account-subscriptions.css";
 import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
+import { useAdminNavigationGuard } from "../../components/admin/AdminNavigationContext.jsx";
 
 const ENDPOINT = "admin-account-subscriptions";
 const PAGE_SIZE = 10;
@@ -37,7 +38,7 @@ function SubscriptionHistory({ history }) {
   </section>;
 }
 
-export default function AccountSubscriptionsPage({ navigate, initialUserId = "" }) {
+export default function AccountSubscriptionsPage({ navigate, initialUserId = "", embedded = false }) {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -184,9 +185,10 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "" 
     try { trialPeriod = subscriptionPeriodLabel({ planCode: "free", ...subscriptionFormDates(form) }); } catch { /* Keep the date field editable; submit reports invalid dates. */ }
   }
 
+  useAdminNavigationGuard({ dirty, disabled: busy });
   return <div className="nxt5-data-dense account-subscriptions-page">
-    <PageHeader eyebrow="Administration" title="Profils et abonnements" subtitle="Attribue et suis manuellement les formules des comptes NXT5." />
-    <AdminTabNav activeId="account-subscriptions" navigate={navigate} disabled={busy} dirty={dirty} />
+    <PageHeader eyebrow="Ventes et accès" title="Profils et abonnements" subtitle="Attribue et suis manuellement les formules des comptes NXT5." />
+    {!embedded && <AdminTabNav activeId="account-subscriptions" navigate={navigate} disabled={busy} dirty={dirty} />}
     <p className="as-notice"><ShieldCheck aria-hidden="true" /><span>Découverte : {DISCOVERY_TRIAL_DAYS} jours d’accès complet, puis Pass Équipe pour continuer. Les outils restent ouverts à tous avant le lancement. Les attributions manuelles ne déclenchent aucun paiement ni renouvellement automatique.</span></p>
     <p className="as-announcement" role="status" aria-live="polite">{announcement}</p>
 

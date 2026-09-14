@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, ClipboardList, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import AdminTabNav from "../../components/admin/AdminTabNav.jsx";
+import { useAdminNavigationGuard } from "../../components/admin/AdminNavigationContext.jsx";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, SkeletonRows, Surface, TextAreaInput } from "../../components/ui/Core.jsx";
 import "./access-requests.css";
 
@@ -77,7 +78,7 @@ function RequestCard({ request, busy, onSave, onDelete, onDirtyChange }) {
   </article>;
 }
 
-export default function AccessRequestsPage({ navigate }) {
+export default function AccessRequestsPage({ navigate, embedded = false }) {
   const [data, setData] = useState(null);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
@@ -125,9 +126,12 @@ export default function AccessRequestsPage({ navigate }) {
   const pagination = data?.pagination;
   const stats = data?.stats;
   const blocked = loading || Boolean(busy);
+  useAdminNavigationGuard({ dirty: dirtyRequests.size > 0, disabled: Boolean(busy) });
   return <div className="nxt5-data-dense access-requests-page">
-    <PageHeader eyebrow="Administration · Validation commerciale" title="Demandes d’accès" subtitle="Prépare le suivi des demandes dans la prévisualisation réservée à l’administrateur." />
-    <AdminTabNav activeId="access-requests" navigate={navigate} disabled={Boolean(busy)} dirty={dirtyRequests.size > 0} />
+    <PageHeader eyebrow="Ventes et accès" title="Demandes d’accès" subtitle="Retrouve les demandes reçues et mets à jour les échanges, les statuts et les notes de suivi.">
+      {embedded && <Button type="button" variant="ghost" disabled={Boolean(busy)} onClick={() => navigate("/admin/tarifs")}>Voir les offres</Button>}
+    </PageHeader>
+    {!embedded && <AdminTabNav activeId="access-requests" navigate={navigate} disabled={Boolean(busy)} dirty={dirtyRequests.size > 0} />}
     <div className="access-requests-notice"><Badge tone="cyan">Prévisualisation interne</Badge><p>La collecte publique est fermée. Seul l’administrateur peut consulter les tarifs et envoyer une demande de test. Le suivi reste manuel, sans e-mail automatique ni abonnement.</p></div>
     <div className="access-requests-live" role="status" aria-live="polite">{announcement || (loading ? "Chargement des demandes…" : "")}</div>
     {error && <div className="access-requests-error" role="alert"><p>{error}{data && " Les données ci-dessous datent de la dernière lecture réussie."}</p><Button type="button" variant="ghost" disabled={blocked} onClick={load}>Réessayer</Button></div>}
