@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.7 · 14 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées et du favicon de chargement. Checkout actualisé sur `2aac365`.
+Version 1.8 · 14 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de la lecture d’une game. Checkout actualisé sur `2aac365`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -176,6 +176,12 @@ Cette règle concerne la zone de téléchargement du site ; elle ne modifie pas 
 - Différencier un historique vide d’une recherche sans résultat et proposer une action utile pour élargir le périmètre. Annoncer les changements de résultats poliment, sans mouvement décoratif supplémentaire.
 
 Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cette composition ; `src/utils/imported-games.js` porte les règles de recherche, de filtre et de tri. Réutiliser les portraits de champions et les contrôles partagés.
+
+### Lecture d’une game
+
+Évolution autorisée le 14 septembre 2026 : afficher le « Résumé game » avant la vue 5v5 et sa frise des objectifs. Les statistiques et les détails viennent ensuite. La « Lecture chronologique » occupe la dernière position, dans un bloc replié par défaut avec un contrôle natif `details` / `summary`, utilisable au clavier et sur mobile. Le contrôle conserve un focus cyan visible et indique le nombre de moments disponibles. Changer de game replie ce bloc. La draft reste disponible.
+
+Les titres de fights, badges et repères de cette lecture utilisent le nom de l’équipe sélectionnée ; en son absence, afficher « Notre équipe ». Ne pas utiliser « NXT5 » comme nom d’équipe implicite.
 
 ## 7. Composants à employer
 
