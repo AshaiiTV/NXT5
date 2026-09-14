@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { apiFetch } from "./api/client.js";
 import { Badge, Button, SelectInput, Surface, TextInput } from "./components/ui/Core.jsx";
+import { RoleIcon } from "./components/brand/BrandAssets.jsx";
+import "./components/trends/block-comparison.css";
 import { sortTrendMatches, trendMatchTimestamp } from "./utils/trends.js";
 
 const ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
@@ -224,58 +226,91 @@ function blockDelta(before, after) {
   return Number.isFinite(before) && Number.isFinite(after) ? after - before : null;
 }
 
+function BlockComparisonRows({ rows }) {
+  return <div className="block-comparison-rows">
+    <div className="block-comparison-columns" aria-hidden="true"><span>Repère</span><span>Référence</span><span>Observé</span><span>Évolution</span></div>
+    {rows.map(({ label, detail, before, after, suffix = "", digits = 0, deltaSuffix = "", delta: rawDelta, inverse = false, role, beforeDetail, afterDetail }) => {
+      const roundedBefore = Number.isFinite(before) ? Number(before.toFixed(digits)) : null;
+      const roundedAfter = Number.isFinite(after) ? Number(after.toFixed(digits)) : null;
+      const delta = rawDelta !== undefined ? rawDelta : blockDelta(roundedBefore, roundedAfter);
+      const change = Number.isFinite(delta) ? delta === 0 ? "Stable" : (inverse ? delta < 0 : delta > 0) ? "Favorable" : "Défavorable" : "Indisponible";
+      return <div key={label} className="block-comparison-row">
+        <div className="block-comparison-metric">
+          {role && <span aria-hidden="true"><RoleIcon role={role} className="h-6 w-6" lightweight /></span>}
+          <div><h5>{label}</h5>{detail && <p>{detail}</p>}</div>
+        </div>
+        <dl className="block-comparison-values">
+          <div><dt>Référence</dt><dd>{blockMetric(before, suffix, digits)}{beforeDetail && <small>{beforeDetail}</small>}</dd></div>
+          <div><dt>Observé</dt><dd className="block-comparison-observed">{blockMetric(after, suffix, digits)}{afterDetail && <small>{afterDetail}</small>}</dd></div>
+          <div><dt>Évolution</dt><dd className={toneForDelta(delta, inverse)}>{Number.isFinite(delta) ? `${delta > 0 ? "+" : ""}${blockMetric(delta, deltaSuffix, digits)}` : "—"}<small>{change}</small></dd></div>
+        </dl>
+      </div>;
+    })}
+  </div>;
+}
+
 export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const [leftKey, setLeftKey] = useState("previous");
   const [rightKey, setRightKey] = useState("recent");
-  const options = [{ value: "previous", label: "5 précédentes" }, { value: "recent", label: "5 dernières" }, { value: "all", label: "Toutes les games" }, ...categories.map((category) => ({ value: `category:${category.id}`, label: category.name }))];
-  const leftMatches = blockMatches(matches, categories, leftKey);
-  const rightMatches = blockMatches(matches, categories, rightKey);
+  const options = [{ value: "previous", label: "5 games précédentes" }, { value: "recent", label: "5 dernières games" }, { value: "all", label: "Toutes les games" }, ...categories.map((category) => ({ value: `category:${category.id}`, label: category.name }))];
+  const referenceKey = options.some((option) => option.value === leftKey) ? leftKey : "previous";
+  const observedKey = options.some((option) => option.value === rightKey) ? rightKey : "recent";
+  const leftMatches = blockMatches(matches, categories, referenceKey);
+  const rightMatches = blockMatches(matches, categories, observedKey);
   const left = blockSnapshot(leftMatches);
   const right = blockSnapshot(rightMatches);
   const overlap = blockOverlapCount(leftMatches, rightMatches);
+  const gameCount = (count) => `${count} game${count > 1 ? "s" : ""}`;
+  const sideCount = (games, side) => gameCount(games.filter((match) => String(match.side || "").toLowerCase().includes(side)).length);
   const metrics = [
-    ["Winrate", left.wr, right.wr, "%", false, 0, " pts"],
-    ["Écart d'or moyen", left.gold, right.gold, "", false, 0, ""],
-    ["Écart dégâts moyen", left.damage, right.damage, "", false, 0, ""],
-    ["Écart vision moyen", left.vision, right.vision, "", false, 0, ""],
-    ["Morts équipe / game", left.deaths, right.deaths, "", true, 1, ""],
+    { label: "Taux de victoire", detail: "Victoires / games du bloc", before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
+    { label: "Écart d’or moyen", detail: "Notre équipe − adversaire · or / game", before: left.gold, after: right.gold, deltaSuffix: " or" },
+    { label: "Écart de dégâts moyen", detail: "Notre équipe − adversaire · dégâts / game", before: left.damage, after: right.damage, deltaSuffix: " dég." },
+    { label: "Écart de vision moyen", detail: "Notre équipe − adversaire · score / game", before: left.vision, after: right.vision, deltaSuffix: " pts" },
+    { label: "Morts de l’équipe", detail: "Moyenne / game · moins est favorable", before: left.deaths, after: right.deaths, inverse: true, digits: 1 },
   ];
-  return <Panel>
-    <div className="border-b border-white/10 p-4 sm:p-5">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div><p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">Comparaison</p><h3 className="mt-2 text-xl font-black text-white">Ce qui change entre tes blocs</h3><p className="mt-1 text-sm font-semibold text-slate-400">Les mêmes repères, du bloc de référence au bloc observé.</p></div>
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,14rem)_auto_minmax(0,14rem)] sm:items-end">
-          <SelectInput label="Avant" value={leftKey} onChange={setLeftKey}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SelectInput>
-          <ArrowRight className="mb-3 hidden h-4 w-4 text-slate-500 sm:block" />
-          <SelectInput label="Après" value={rightKey} onChange={setRightKey}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SelectInput>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {[["Avant", leftMatches, left], ["Après", rightMatches, right]].map(([label, games, snapshot]) => <div key={label} className="min-w-0 border-l border-white/10 pl-3">
-          <div className="flex items-center justify-between gap-3"><span className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">{label}</span><span className="text-sm font-black text-white">{snapshot.games} game{snapshot.games > 1 ? "s" : ""}</span></div>
-          <p className="mt-1 text-xs font-semibold text-slate-300">{games.length ? blockDateRange(games) : "Aucune game dans ce bloc"}</p>
-        </div>)}
-      </div>
-      {(!left.games || !right.games) ? <p className="mt-3 text-xs font-semibold leading-5 text-amber-100">Sélectionne deux blocs non vides pour calculer les écarts.{leftKey === "previous" && !left.games ? " Le bloc précédent apparaît à partir de la 6e game." : ""}</p> : overlap > 0 ? <p className="mt-3 flex items-start gap-2 text-xs font-semibold leading-5 text-amber-100"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{overlap} game{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</p> : <p className="mt-3 text-xs font-semibold text-slate-400">Aucune game commune aux deux blocs.</p>}
+  const roleMetrics = right.roles.map((role) => {
+    const previous = left.roles.find((item) => item.role === role.role);
+    return { label: role.role, role: role.role, before: previous?.kp, after: role.kp, suffix: "%", digits: 1, deltaSuffix: " pts", delta: blockDelta(previous?.kp, role.kp), beforeDetail: gameCount(previous?.games || 0), afterDetail: gameCount(role.games) };
+  });
+  const sideMetrics = [
+    { label: "Côté bleu", before: left.blue, after: right.blue, suffix: "%", deltaSuffix: " pts", beforeDetail: sideCount(leftMatches, "blue"), afterDetail: sideCount(rightMatches, "blue") },
+    { label: "Côté rouge", before: left.red, after: right.red, suffix: "%", deltaSuffix: " pts", beforeDetail: sideCount(leftMatches, "red"), afterDetail: sideCount(rightMatches, "red") },
+  ];
+  return <Panel className="block-comparison">
+    <div className="block-comparison-heading">
+      <h3>Comparer deux blocs de games</h3>
+      <p>Choisis une référence, puis le bloc à observer pour lire l’évolution de l’équipe.</p>
     </div>
-    <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(21rem,.8fr)]">
-      <div className="nxt5-responsive-scroll min-w-0 overflow-x-auto p-4 sm:p-5">
-        <div className="min-w-[26rem]">
-        <div className="nxt5-keep-grid grid grid-cols-[minmax(8rem,1fr)_5rem_5rem_5rem] gap-2 border-b border-white/10 pb-2 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-500"><span>Repère</span><span className="text-right">Avant</span><span className="text-right">Après</span><span className="text-right">Écart</span></div>
-        {metrics.map(([label, before, after, suffix, inverse, digits, deltaSuffix]) => {
-          const roundedBefore = Number.isFinite(before) ? Number(before.toFixed(digits)) : null;
-          const roundedAfter = Number.isFinite(after) ? Number(after.toFixed(digits)) : null;
-          const delta = blockDelta(roundedBefore, roundedAfter);
-          return <div key={label} className="nxt5-keep-grid grid grid-cols-[minmax(8rem,1fr)_5rem_5rem_5rem] items-center gap-2 border-b border-white/[0.07] py-3 last:border-b-0"><span className="text-sm font-bold text-slate-200">{label}</span><span className="text-right text-sm font-black text-slate-400">{blockMetric(before, suffix, digits)}</span><span className="text-right text-sm font-black text-white">{blockMetric(after, suffix, digits)}</span><span className={cx("text-right text-sm font-black", toneForDelta(delta, inverse))}>{Number.isFinite(delta) ? signed(delta, deltaSuffix) : "—"}</span></div>;
-        })}
-        </div>
-      </div>
-      <div className="border-t border-white/10 bg-white/[0.025] p-4 sm:p-5 lg:border-l lg:border-t-0">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Sides</p><p className="mt-1 text-sm font-semibold text-slate-300">WR du bloc après</p></div><Trophy className="h-5 w-5 text-cyan-100" /></div>
-        <div className="mt-4 grid grid-cols-2 gap-3"><div><p className="text-xs font-black text-cyan-100">Blue side</p><p className="mt-1 text-2xl font-black text-white">{right.blue ?? "-"}{right.blue !== null ? "%" : ""}</p></div><div><p className="text-xs font-black text-rose-100">Red side</p><p className="mt-1 text-2xl font-black text-white">{right.red ?? "-"}{right.red !== null ? "%" : ""}</p></div></div>
-        <div className="mt-5 border-t border-white/10 pt-4"><p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">Participation aux kills par rôle</p><p className="mt-1 text-xs font-semibold text-slate-500">Écart en points · avant → après</p>{right.roles.map((role) => { const previous = left.roles.find((item) => item.role === role.role); const delta = blockDelta(previous?.kp, role.kp); return <div key={role.role} className="nxt5-keep-grid mt-3 grid grid-cols-[3rem_1fr_auto] items-center gap-3"><span className="text-xs font-black text-white">{role.role}</span><span className="min-w-0"><span className="block text-xs font-semibold text-slate-400">{blockMetric(previous?.kp, "%", 1)} → {blockMetric(role.kp, "%", 1)}</span><span className="mt-1 block text-[0.6rem] font-semibold text-slate-500">{previous?.games || 0} → {role.games} games</span></span><span className={cx("text-xs font-black", toneForDelta(delta))}>{Number.isFinite(delta) ? signed(delta, " pts") : "—"}</span></div>; })}</div>
-      </div>
+    <div className="block-comparison-selection">
+      {[{ label: "Bloc de référence", key: referenceKey, setKey: setLeftKey, games: leftMatches, snapshot: left }, { label: "Bloc observé", key: observedKey, setKey: setRightKey, games: rightMatches, snapshot: right }].map(({ label, key, setKey, games, snapshot }) => <div key={label} className="block-comparison-selector">
+        <SelectInput label={label} value={key} onChange={setKey}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SelectInput>
+        <p className="block-comparison-sample"><strong>{gameCount(snapshot.games)}</strong><span>{games.length ? blockDateRange(games) : "Aucune game dans ce bloc"}</span></p>
+      </div>)}
+      <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => { setLeftKey(observedKey); setRightKey(referenceKey); }} className="block-comparison-swap">Inverser les blocs</Button>
     </div>
+    <div className="block-comparison-context" aria-live="polite">
+      {(!left.games || !right.games) ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>Sélectionne deux blocs non vides pour calculer les écarts.{(referenceKey === "previous" && !left.games) || (observedKey === "previous" && !right.games) ? " Le bloc précédent apparaît à partir de la 6e game." : ""}</span></p> : overlap > 0 ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{overlap} game{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</span></p> : <p>Aucune game commune aux deux blocs.</p>}
+      <p><strong>Évolution = bloc observé − référence.</strong> Les taux évoluent en points de pourcentage. Les games sont classées par date de jeu.</p>
+    </div>
+    <div className="block-comparison-section">
+      <h4>Résultats de l’équipe</h4>
+      <p className="block-comparison-description">Les écarts d’or, de dégâts et de vision mesurent l’avance sur l’adversaire en fin de game.</p>
+      <BlockComparisonRows rows={metrics} />
+    </div>
+    <div className="block-comparison-secondary">
+      <section className="block-comparison-section block-comparison-roles">
+        <h4>Participation aux kills par rôle</h4>
+        <p className="block-comparison-description">Moyenne du bloc, en %. Le nombre de games précise l’échantillon de chaque rôle.</p>
+        <BlockComparisonRows rows={roleMetrics} />
+      </section>
+      <section className="block-comparison-section block-comparison-sides">
+        <h4>Taux de victoire par côté</h4>
+        <p className="block-comparison-description">Compare les résultats sur le côté bleu et sur le côté rouge.</p>
+        <BlockComparisonRows rows={sideMetrics} />
+      </section>
+    </div>
+    <p className="block-comparison-footnote">— : donnée indisponible. « Favorable » indique le sens de la variation ; tiens compte du nombre de games et des adversaires avant de conclure.</p>
   </Panel>;
 }
 
