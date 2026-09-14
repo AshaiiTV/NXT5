@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.12 · 9 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version aligne Tarifs, son formulaire et les choix manuels sur Découverte et le Pass Équipe et retire le contact multi-équipe. Elle conserve l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
+Version 1.13 · 14 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version aligne Tarifs, son formulaire et les choix manuels sur Découverte et le Pass Équipe et retire le contact multi-équipe. Elle conserve l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -127,14 +127,15 @@ Les titres de page ont des surcharges mobile : ne pas reproduire cette échelle 
 
 ## 6. Formes, surfaces et espacement
 
-**Le rendu de référence utilise des coins arrondis.** Les anciens `clip-path` aux angles coupés sont neutralisés par des règles `!important`.
+**Les boutons ont des angles quasi droits (2 px) ; les panneaux et champs gardent leurs coins arrondis.** Les anciens `clip-path` aux angles coupés sont neutralisés par des règles `!important`.
 
 | Élément | Référence |
 | --- | --- |
 | Panneau principal | `--nxt5-radius-panel: 1.25rem` = 20 px ; 16 px à 640 px et moins. |
-| Contrôle et bouton | `--nxt5-radius-control: 0.75rem` = 12 px. |
+| Champ | `--nxt5-radius-control: 0.75rem` = 12 px. |
+| Bouton | `--nxt5-radius-button: 0.125rem` = 2 px. |
 | Panneau imbriqué | `0.95rem` = 15,2 px ; plus sobre que son parent. |
-| Conteneur d’onglets / onglet | 16 px / 11,2 px. |
+| Conteneur d’onglets / onglet | 16 px / 2 px. |
 | Badge | Arrondi complet. |
 | Ombre de surface | `0 18px 48px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.045)`. |
 | Fond de surface principale | Dégradé à 145° : `rgba(10,22,42,.94)`, `rgba(5,11,24,.92)` à 62 %, `rgba(12,9,28,.9)` ; base `--nxt5-surface`. |
@@ -352,3 +353,10 @@ La référence initiale est issue de la lecture du code et d’une vérification
 Mécanisme de lecture documenté par OpenAI : [instructions de projet avec AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
 
 Lors d’une évolution visuelle demandée, mettre à jour ce Markdown, sa version et les exemples concernés, puis régénérer la synthèse PDF. Ne pas remplacer une règle simplement parce qu’une page isolée s’en écarte.
+
+
+## Correction des boutons : angles quasi droits (14 septembre 2026)
+
+Les boutons partagés, liens présentés comme boutons, onglets et boutons de navigation utilisent `--nxt5-radius-button: 0.125rem` (2 px). Le rayon précédent de 12 px, et la proposition intermédiaire de 8 px, restaient trop arrondis. Les actions « Copier Main Team » et « Copier Subs » de la page Équipe suivent cette règle commune, dans leurs états actif et désactivé.
+
+Les champs gardent le token `--nxt5-radius-control` ; les panneaux, avatars, badges et pistes des interrupteurs conservent leur forme. Le badge d’équipe « AH » de la capture est un badge, pas un bouton. Le CTA conserve son texte bleu nuit sur le dégradé de marque et son contraste corrigé. Les variantes de bouton ne peuvent pas réintroduire un rayon plus grand que 2 px.

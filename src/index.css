@@ -17,6 +17,7 @@
   --nxt5-primary-gradient: linear-gradient(to right, #22d3ee, #3b82f6, #d946ef);
   --nxt5-radius-panel: 1.25rem;
   --nxt5-radius-control: 0.75rem;
+  --nxt5-radius-button: 0.125rem;
   --nxt5-shadow-panel: 0 18px 48px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
@@ -265,9 +266,12 @@ body {
   backdrop-filter: none;
 }
 
-.nxt5-data-dense :where(section, article, form)[class*="rounded"][class*="border"],
-.nxt5-panel :where(button, a)[class*="rounded"][class*="border"] {
+.nxt5-data-dense :where(section, article, form)[class*="rounded"][class*="border"] {
   border-radius: var(--nxt5-radius-control) !important;
+}
+
+.nxt5-panel :where(button, a)[class*="rounded"]:not([class*="rounded-full"]) {
+  border-radius: var(--nxt5-radius-button) !important;
 }
 
 .nxt5-cyber-button,
@@ -276,6 +280,10 @@ body {
   border-radius: var(--nxt5-radius-control) !important;
   box-shadow: none !important;
   transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform 160ms ease !important;
+}
+
+.nxt5-cyber-button {
+  border-radius: var(--nxt5-radius-button) !important;
 }
 
 .nxt5-button-primary {
@@ -324,7 +332,7 @@ textarea.nxt5-control:focus {
 }
 
 .nxt5-tab-nav [role="tab"] {
-  border-radius: 0.7rem !important;
+  border-radius: var(--nxt5-radius-button) !important;
 }
 
 @media (max-width: 640px) {
@@ -356,7 +364,7 @@ textarea.nxt5-control:focus {
 
 .nxt5-sidebar nav button,
 .nxt5-sidebar > div > button {
-  border-radius: var(--nxt5-radius-control) !important;
+  border-radius: var(--nxt5-radius-button) !important;
 }
 
 .nxt5-page-header {
