@@ -71,7 +71,7 @@ export function isAdminPath(pathname = window.location.pathname) {
 
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/tarifs" || path === "/integration" || path === "/statistiques") return true;
+  if (path === "/tarifs" || path === "/integration" || path === "/statistiques" || path === "/admin/integrations") return true;
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return true;
   return NAV.some((item) => item.path === path);

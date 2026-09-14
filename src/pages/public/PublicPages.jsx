@@ -91,7 +91,7 @@ function StatStrip() {
   );
 }
 
-export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate, ...props }) {
+export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate, target, rel, ...props }) {
   const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0";
   const variants = {
     primary: "nxt5-button-primary border border-cyan-100/36",
@@ -99,12 +99,12 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
   };
 
   function go(event) {
-    if (!navigate || !isSafeInternalPath(href)) return;
+    if (!navigate || !isSafeInternalPath(href) || target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
     navigate(href);
   }
 
-  return <a {...props} href={href} onClick={go} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
+  return <a {...props} href={href} onClick={go} target={target} rel={target === "_blank" ? "noopener noreferrer" : rel} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
 }
 
 export function SiteHeader({ children, navigate }) {
@@ -130,6 +130,7 @@ export function LegalLinks({ navigate }) {
     ["/conditions", "CGU"],
     ["/reglement", "Règlement"],
     ["/contact", "Contact"],
+    ["/reseaux", "Réseaux"],
   ];
   return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-300">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="border-transparent bg-transparent px-0 py-0 text-xs text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-300">NXT5 n’est pas affilié à Riot Games.</span></footer>;
 }

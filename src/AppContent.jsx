@@ -30,6 +30,8 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdministrationPage.jsx")
 const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
 const AccountSubscriptionsPage = lazy(() => import("./pages/admin/AccountSubscriptionsPage.jsx"));
 const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
+const SocialPage = lazy(() => import("./pages/public/SocialPage.jsx"));
+const IntegrationsPage = lazy(() => import("./pages/admin/IntegrationsPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
 
@@ -299,7 +301,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-    if (active === "admin" && isPlatformAdmin) return <AdminDashboard route={route} navigate={navigate} />;
+    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4"><Button variant="ghost" onClick={() => navigate("/admin/integrations")}>Intégrations Shopify et réseaux</Button></div><AdminDashboard route={route} navigate={navigate} /></>;
     if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
     if (active === "account-subscriptions" && isPlatformAdmin) return <AccountSubscriptionsPage navigate={navigate} initialUserId={new URLSearchParams(route.search).get("userId") || ""} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
@@ -417,6 +419,8 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (route.path === "/admin/integrations") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des intégrations…</div>}><IntegrationsPage navigate={navigate} /></Suspense>;
+  if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
   if (route.path === "/tarifs") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des tarifs…</div>}><PricingPage navigate={navigate} user={user} /></Suspense>;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
@@ -496,6 +500,8 @@ export default function NXT5() {
       "/conditions": "Conditions générales d’utilisation — NXT5",
       "/reglement": "Règlement — NXT5",
       "/contact": "Contact — NXT5",
+      "/reseaux": "Réseaux — NXT5",
+      "/admin/integrations": "Intégrations — NXT5",
     };
     document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
   }, [route.path]);
