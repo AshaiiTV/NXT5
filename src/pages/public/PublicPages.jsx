@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Activity, ArrowRight, BarChart3, Check, ChevronRight, Crown, Eye, FileText, Flame, Gauge, Loader2, Lock, Mail, Shield, Swords, Target, Upload, UserPlus, Users } from "lucide-react";
+import { Activity, ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, ChevronRight, Crown, Eye, FileText, Flame, Gauge, Loader2, Lock, Mail, Shield, Swords, Target, Upload, UserPlus, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { DISCORD_INVITE_URL } from "../../app/constants.jsx";
 import { cx, errorToast, readRememberPreference, tone, writeRememberPreference } from "../../app/helpers.js";
@@ -7,6 +7,7 @@ import { isSafeInternalPath } from "../../app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
+import "./public-information.css";
 function MarketingPreview() {
   const metrics = [
     [Upload, "Intégration", "Importer les games"],
@@ -122,17 +123,48 @@ export function SiteHeader({ children, navigate }) {
   );
 }
 
+const INFORMATION_GROUPS = [
+  { href: "/mentions-legales", label: "Cadre légal", pages: [["/mentions-legales", "Mentions légales"], ["/conditions", "Conditions d’utilisation"], ["/reglement", "Règlement NXT5"]] },
+  { href: "/confidentialite", label: "Données & cookies", pages: [["/confidentialite", "Confidentialité"], ["/cookies", "Cookies et préférences"]] },
+  { href: "/reseaux", label: "Réseaux & contact", pages: [["/reseaux", "La communauté"], ["/contact", "Contacter l’équipe"]] },
+];
+
+export function PublicTextLink({ href, navigate, children, ...props }) {
+  function go(event) {
+    if (event.defaultPrevented || !navigate || !isSafeInternalPath(href) || props.target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    navigate(href);
+  }
+  return <a {...props} href={href} onClick={go}>{children}</a>;
+}
+
+export function PublicInformationNav({ navigate, activePath }) {
+  return (
+    <nav aria-label="Rubriques d’information" className="nxt5-information-nav">
+      {INFORMATION_GROUPS.map((group) => (
+        <PublicTextLink key={group.href} href={group.href} navigate={navigate}
+          aria-current={group.pages.some(([path]) => path === activePath) ? "location" : undefined}>
+          {group.label}
+        </PublicTextLink>
+      ))}
+    </nav>
+  );
+}
+
 export function LegalLinks({ navigate }) {
-  const links = [
-    ["/mentions-legales", "Mentions légales"],
-    ["/confidentialite", "Confidentialité"],
-    ["/cookies", "Cookies"],
-    ["/conditions", "CGU"],
-    ["/reglement", "Règlement"],
-    ["/contact", "Contact"],
-    ["/reseaux", "Réseaux"],
-  ];
-  return <footer className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-2 px-5 py-8 text-xs font-bold text-slate-300">{links.map(([href, label]) => <LinkButton key={href} href={href} navigate={navigate} variant="ghost" className="border-transparent bg-transparent px-0 py-0 text-xs text-slate-300 shadow-none hover:translate-y-0 hover:border-transparent hover:bg-transparent hover:text-cyan-100">{label}</LinkButton>)}<span className="text-slate-300">NXT5 n’est pas affilié à Riot Games.</span></footer>;
+  return (
+    <footer className="nxt5-footer">
+      <div className="nxt5-footer-main">
+        <p className="nxt5-footer-signature">Cinq rôles. Une même direction.</p>
+        <nav aria-label="Informations et contact">
+          {INFORMATION_GROUPS.map(({ href, label }) => (
+            <PublicTextLink key={href} href={href} navigate={navigate}>{label}</PublicTextLink>
+          ))}
+        </nav>
+      </div>
+      <p className="nxt5-footer-disclaimer">NXT5 n’est pas affilié à Riot Games.</p>
+    </footer>
+  );
 }
 
 export const LEGAL_VERSION = "2026-09-05";
@@ -259,8 +291,10 @@ export const LEGAL_PAGES = {
 
 export function LegalPage({ route, navigate, user }) {
   const page = LEGAL_PAGES[route.path] || LEGAL_PAGES["/mentions-legales"];
+  const group = INFORMATION_GROUPS.find((item) => item.pages.some(([path]) => path === route.path)) || INFORMATION_GROUPS[0];
+  const sectionId = (index) => `document-${route.path.replace(/\//g, "")}-${index + 1}`;
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-information-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
         {user ? (
@@ -272,32 +306,53 @@ export function LegalPage({ route, navigate, user }) {
           </>
         )}
       </SiteHeader>
-      <main className="relative z-10 mx-auto max-w-5xl px-5 pb-12 pt-6">
-        <Surface glow className="p-6 md:p-9">
-          <Badge tone="purple">{page.eyebrow}</Badge>
-          <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">{page.title}</h1>
-          <p className="mt-5 max-w-3xl text-lg font-semibold leading-8 text-slate-200">{page.intro}</p>
-          <div className="mt-8 divide-y divide-white/10 border-y border-white/10">
-            {page.sections.map(([title, text]) => <section key={title} className="py-6"><h2 className="text-2xl font-black text-white">{title}</h2><p className="mt-3 text-base font-semibold leading-8 text-slate-200">{text}</p></section>)}
-          </div>
-          {!!page.resources?.length && <section className="mt-8 border-l-2 border-cyan-200/30 pl-5"><h2 className="text-xl font-black text-white">Références et garanties</h2><div className="mt-4 flex flex-wrap gap-2">{page.resources.map(([label, href]) => <a key={href} href={href} target="_blank" rel="noreferrer" className="rounded-xl border border-cyan-200/20 bg-black/20 px-3 py-2 text-sm font-black text-cyan-100 transition hover:border-cyan-200/45 hover:bg-cyan-300/10">{label}</a>)}</div></section>}
-          {page.contact && <div className="mt-8 border-l-2 border-violet-300/30 pl-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div><Badge tone="purple">Discord</Badge><h2 className="mt-3 text-2xl font-black text-white">Rejoindre le serveur NXT5</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-200">{DISCORD_INVITE_URL ? "Ouvre Discord pour contacter le support ou rejoindre la communauté." : "Le bouton est prêt. Il manque juste le lien d’invitation Discord final."}</p></div>
-              {DISCORD_INVITE_URL ? <LinkButton href={DISCORD_INVITE_URL} target="_blank" rel="noreferrer" icon={Users}>Ouvrir Discord</LinkButton> : <Button type="button" variant="ghost" disabled icon={Users}>Discord à connecter</Button>}
-            </div>
-          </div>}
-          <div className="mt-8 flex flex-wrap gap-3">
-            {user ? (
-              <LinkButton href="/equipes" navigate={navigate} icon={ArrowRight}>Retour à l’app</LinkButton>
-            ) : (
-              <>
-                <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
-                <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Connexion</LinkButton>
-              </>
-            )}
-          </div>
-        </Surface>
+      <main className="nxt5-information-main">
+        <PublicInformationNav navigate={navigate} activePath={route.path} />
+        <header className="nxt5-information-hero nxt5-enter">
+          <Badge tone="cyan">{page.eyebrow}</Badge>
+          <h1 id="document-title" className="nxt5-metal-text">{page.title}</h1>
+          <p>{page.intro}</p>
+          {!page.contact && <div className="nxt5-document-meta"><FileText aria-hidden="true" size={16} /><span>Version applicable : {LEGAL_VERSION}</span></div>}
+        </header>
+        <div className="nxt5-legal-layout">
+          <aside className="nxt5-document-sidebar">
+            <nav aria-label={group.label} className="nxt5-document-menu">
+              <p className="nxt5-information-label">Dans cette rubrique</p>
+              {group.pages.map(([href, label]) => (
+                <PublicTextLink key={href} href={href} navigate={navigate} aria-current={route.path === href ? "page" : undefined}>
+                  <span>{label}</span><ChevronRight aria-hidden="true" size={16} />
+                </PublicTextLink>
+              ))}
+            </nav>
+            <details key={route.path} className="nxt5-document-outline">
+              <summary>Sommaire du document<ChevronDown aria-hidden="true" size={16} /></summary>
+              <nav aria-label="Sommaire du document">
+                <ol>{page.sections.map(([title], index) => (
+                  <li key={title}><a href={`#${sectionId(index)}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{title}</a></li>
+                ))}</ol>
+              </nav>
+            </details>
+            {!page.contact && <PublicTextLink href="/contact" navigate={navigate} className="nxt5-document-help">Une question ? Contacte l’équipe<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>}
+          </aside>
+          <Surface className="nxt5-document-surface">
+            <article aria-labelledby="document-title" className="nxt5-document-body">
+              {page.sections.map(([title, text], index) => (
+                <section id={sectionId(index)} key={title} tabIndex={-1} className="nxt5-document-section">
+                  <h2><span aria-hidden="true" className="nxt5-section-number">{String(index + 1).padStart(2, "0")}</span>{title}</h2>
+                  <p>{text}</p>
+                </section>
+              ))}
+              {!!page.resources?.length && <section className="nxt5-document-resources">
+                <h2>Références et garanties</h2>
+                <ul>{page.resources.map(([label, href]) => (
+                  <li key={href}><a href={href} target="_blank" rel="noopener noreferrer"><span>{label}<span className="sr-only"> (nouvel onglet)</span></span><ArrowUpRight aria-hidden="true" size={16} /></a></li>
+                ))}</ul>
+              </section>}
+              {page.contact && <div className="nxt5-document-contact"><LinkButton href="/reseaux" navigate={navigate} icon={Users}>Réseaux et contact NXT5</LinkButton><p>Retrouve le lien Discord officiel et les conseils pour contacter l’équipe en privé.</p></div>}
+              <a href="#document-title" className="nxt5-back-to-top">Retour en haut du document</a>
+            </article>
+          </Surface>
+        </div>
       </main>
       <LegalLinks navigate={navigate} />
     </div>

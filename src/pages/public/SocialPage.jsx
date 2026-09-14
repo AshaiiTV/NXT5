@@ -1,48 +1,80 @@
 import React from "react";
-import { ArrowUpRight, MessageCircle, Radio } from "lucide-react";
+import { ArrowUpRight, ChevronDown, LifeBuoy, MessageCircle, Radio, Shield, Users } from "lucide-react";
 import { getSocialLinks } from "../../app/social-links.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
-import { Badge, Surface } from "../../components/ui/Core.jsx";
-import { LegalLinks, LinkButton, SiteHeader } from "./PublicPages.jsx";
+import { Badge, PageHeader, Surface } from "../../components/ui/Core.jsx";
+import { LEGAL_PAGES, LegalLinks, LinkButton, PublicInformationNav, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
+
+const COMMUNITY_USES = [
+  [Users, "Rencontre la communauté", "Échange avec les joueurs et le staff."],
+  [MessageCircle, "Fais avancer NXT5", "Partage tes retours et tes idées."],
+  [LifeBuoy, "Trouve un coup de main", "Pose tes questions sur le site et ses outils."],
+];
 
 export default function SocialPage({ navigate, user }) {
   const links = getSocialLinks();
+  const discord = links.find((network) => network.id === "discord");
+  const otherNetworks = links.filter((network) => network.id !== "discord");
+  const supportSections = LEGAL_PAGES["/contact"].sections.slice(1);
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-[#020611] text-white">
+    <div className="nxt5-information-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
         <LinkButton href={user ? "/equipes" : "/connexion"} navigate={navigate} variant="ghost">
           {user ? "Retour à l’app" : "Connexion"}
         </LinkButton>
       </SiteHeader>
-      <main className="relative z-10 mx-auto max-w-5xl px-5 pb-12 pt-8 sm:pt-14">
-        <Badge tone="cyan">La communauté NXT5</Badge>
-        <h1 className="mt-5 text-4xl font-black tracking-tight sm:text-6xl">Réseaux</h1>
-        <p className="mt-5 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-          La partie continue ensemble. Rejoins la communauté et suis les actualités de NXT5.
-        </p>
-        <p id="social-new-tab" className="mt-3 text-sm leading-6 text-slate-300">
-          Chaque lien ouvre la plateforme concernée dans un nouvel onglet.
-        </p>
-        <div className="mt-9 grid gap-5 md:grid-cols-2">
-          {links.map((network) => (
-            <Surface key={network.id} glow className={network.id === "discord" ? "md:col-span-2" : ""}>
-              <div className="flex flex-col items-start gap-5 p-2 sm:p-4">
-                <div className="flex items-center gap-3 text-cyan-100">
-                  {network.id === "discord" ? <MessageCircle aria-hidden="true" className="h-6 w-6" /> : <Radio aria-hidden="true" className="h-6 w-6" />}
-                  <h2 className="text-2xl font-black">{network.label}</h2>
-                </div>
-                <p className="max-w-2xl text-sm leading-7 text-slate-200">{network.description}</p>
-                <a href={network.href} target="_blank" rel="noopener noreferrer" aria-describedby="social-new-tab"
-                  className="nxt5-control inline-flex min-h-12 max-w-full items-center gap-3 rounded-xl border border-cyan-200/30 bg-cyan-300/10 px-5 py-3 text-sm font-black text-cyan-100 transition hover:bg-cyan-300/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
-                  <span className="min-w-0 break-words">{network.id === "discord" ? "Rejoindre le Discord" : `Suivre NXT5 sur ${network.label}`}</span>
-                  <ArrowUpRight aria-hidden="true" className="h-5 w-5 shrink-0" />
-                </a>
-              </div>
+      <main className="nxt5-information-main">
+        <PublicInformationNav navigate={navigate} activePath="/reseaux" />
+        <header className="nxt5-information-hero nxt5-enter">
+          <Badge tone="cyan">La communauté NXT5</Badge>
+          <h1 className="nxt5-metal-text">Réseaux & contact</h1>
+          <p>La partie continue ensemble. Retrouve la communauté, partage tes retours et contacte l’équipe, au même endroit.</p>
+        </header>
+
+        {discord && <Surface glow className="nxt5-community-feature nxt5-enter">
+          <div className="nxt5-community-layout">
+            <div className="nxt5-community-intro">
+              <div className="nxt5-community-platform"><MessageCircle aria-hidden="true" size={24} /><span>Discord officiel</span></div>
+              <h2>On se retrouve<br />sur Discord.</h2>
+              <p>{discord.description}</p>
+              <LinkButton href={discord.href} target="_blank" icon={ArrowUpRight} aria-describedby="social-new-tab">Rejoindre le Discord</LinkButton>
+            </div>
+            <ul className="nxt5-community-uses">{COMMUNITY_USES.map(([Icon, title, text]) => (
+              <li key={title}><Icon aria-hidden="true" size={22} /><div><h3>{title}</h3><p>{text}</p></div></li>
+            ))}</ul>
+          </div>
+        </Surface>}
+
+        {!!otherNetworks.length && <section className="nxt5-other-networks" aria-labelledby="other-networks-title">
+          <h2 id="other-networks-title">Retrouve-nous aussi ici</h2>
+          <Surface><ul className="nxt5-network-list">{otherNetworks.map((network) => (
+            <li key={network.id}><a href={network.href} target="_blank" rel="noopener noreferrer" aria-describedby="social-new-tab">
+              <Radio aria-hidden="true" size={22} /><span><strong>{network.label}</strong><span>{network.description}</span></span><ArrowUpRight aria-hidden="true" size={20} />
+            </a></li>
+          ))}</ul></Surface>
+        </section>}
+        {!links.length && <Surface><p className="nxt5-community-empty">Les liens de la communauté seront disponibles prochainement.</p></Surface>}
+        <p id="social-new-tab" className="nxt5-social-link-note"><ArrowUpRight aria-hidden="true" size={15} />Les liens vers les réseaux s’ouvrent dans un nouvel onglet.</p>
+
+        <section id="contact" className="nxt5-contact-section" aria-label="Contacter NXT5">
+          <PageHeader eyebrow="Besoin d’aide ?" title="Un message, au bon endroit." subtitle="Un problème technique, une idée ou une demande liée à ton compte ? Voici comment contacter l’équipe." />
+          <div className="nxt5-contact-layout">
+            <div className="nxt5-contact-privacy">
+              <Shield aria-hidden="true" size={24} />
+              <h3>Ce qui est privé<br />reste en privé.</h3>
+              <p>Pour ton compte ou tes données personnelles, contacte l’équipe NXT5 par message privé sur Discord. Ne publie jamais de mot de passe ni de donnée sensible dans un salon public.</p>
+              <PublicTextLink href="/confidentialite" navigate={navigate}>Consulter la confidentialité<ArrowUpRight aria-hidden="true" size={16} /></PublicTextLink>
+            </div>
+            <Surface className="nxt5-support-surface">
+              {supportSections.map(([title, text]) => <details key={title} className="nxt5-support-item">
+                <summary>{title}<ChevronDown aria-hidden="true" size={18} /></summary>
+                <p>{text}</p>
+              </details>)}
             </Surface>
-          ))}
-        </div>
-        {!links.length && <Surface className="mt-8"><p>Les liens de la communauté seront disponibles prochainement.</p></Surface>}
+          </div>
+          <p className="nxt5-community-rules">Un espace pour échanger dans le respect de chacun. <PublicTextLink href="/reglement" navigate={navigate}>Lire le règlement NXT5</PublicTextLink></p>
+        </section>
       </main>
       <LegalLinks navigate={navigate} />
     </div>

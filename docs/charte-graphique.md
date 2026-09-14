@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.13 · 14 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version aligne Tarifs, son formulaire et les choix manuels sur Découverte et le Pass Équipe et retire le contact multi-équipe. Elle conserve l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
+Version 1.14 · 14 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version regroupe le footer et harmonise les pages d’information et de communauté. Elle conserve l’alignement de Tarifs sur Découverte et le Pass Équipe, le retrait du contact multi-équipe, l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -232,6 +232,16 @@ Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cet
 - **Compte et pages publiques** : réserver vert et ambre à des états réels. Les repères de présentation et de sécurité utilisent cyan, bleu, violet ou fuchsia. Les sections légales sont ouvertes dans un seul `Surface`. Le choix de rendu complet ou performance utilise un fond cyan translucide et un état sélectionné explicite.
 
 Les règles locales de `compositions.css`, `champion-pool.css` et `Planning.css` complètent les composants partagés sans reproduire les anciennes piles de cartes lumineuses.
+
+### Pages d’information et pied de page
+
+Évolution autorisée le 14 septembre 2026 : limiter le footer à trois accès textuels, sans boutons encadrés ni succession de sept titres : « Cadre légal », « Données & cookies » et « Réseaux & contact ». Conserver la signature discrète et la mention de non-affiliation à Riot Games.
+
+- La navigation publique reprend ces trois rubriques et indique la rubrique courante. Mentions légales, CGU et règlement restent accessibles dans Cadre légal ; confidentialité et cookies partagent leur navigation. Toutes les adresses existantes restent disponibles et les textes juridiques ne sont pas modifiés par cette évolution visuelle.
+- Les documents présentent une introduction ouverte, une navigation latérale sur grand écran, un sommaire repliable et un seul `Surface` de lecture. Les sections numérotées sont séparées par des filets ; le texte courant reste à 16 px, de graisse normale, avec une longueur de ligne maîtrisée. Sur mobile, la navigation précède le document sans colonne latérale.
+- Réseaux et contact partagent une page : un seul panneau met Discord en avant, puis les réseaux réellement configurés et le support. Les motifs de contact se déplient dans un panneau commun. Ne pas inventer de profils, de compteurs de communauté ou de délais de support.
+- Réutiliser `SiteHeader`, `LinkButton`, `Surface`, `Badge` et `PageHeader`. Conserver la palette, les boutons de 2 px et le dégradé de marque à texte sombre. Les liens externes ouvrent un nouvel onglet annoncé et utilisent `noopener noreferrer` ; les liens internes conservent le clic modifié et l’accès clavier.
+- La feuille locale `src/pages/public/public-information.css` définit cette composition et son empilement mobile, sans modifier le style des espaces de travail. Les contrôles ont une hauteur minimale de 44 px ; les mouvements d’entrée réutilisent les classes et préférences globales.
 
 ## 7. Composants à employer
 
