@@ -77,7 +77,7 @@ function HealthScore({ score = 0 }) {
   return <div className="flex flex-wrap items-center gap-4 border-l-2 border-violet-300/25 pl-4"><div className={cx("grid h-20 w-20 shrink-0 place-items-center rounded-full border-4 border-current bg-black/25", toneClass)}><span className="text-2xl font-black">{score}</span></div><div><p className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Indice d’activation</p><p className={cx("mt-1 text-xl font-black", toneClass)}>{label}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Roster 25 · liaison 15 · activité 25 · workflow 20 · qualité 15</p></div></div>;
 }
 
-export default function AdminDashboard({ navigate }) {
+export default function AdminDashboard({ navigate, embedded = false }) {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -114,8 +114,8 @@ export default function AdminDashboard({ navigate }) {
     [Gamepad2, "Games", dashboard?.totals?.matches, dashboard?.growth?.days7?.matches, dashboard?.growth?.days30?.matches, "cyan"],
   ], [dashboard]);
 
-  if (loading && !dashboard) return <><PageHeader eyebrow="Administration" title="Vue d’ensemble plateforme" subtitle="Chargement des indicateurs globaux…" /><AdminTabNav activeId="admin" navigate={navigate} /><SkeletonRows count={5} /></>;
-  if (error && !dashboard) return <><PageHeader eyebrow="Administration" title="Vue d’ensemble plateforme" /><AdminTabNav activeId="admin" navigate={navigate} /><Surface><EmptyState icon={AlertTriangle} title="Dashboard indisponible" text={error} action={<Button icon={RefreshCw} onClick={load}>Réessayer</Button>} /></Surface></>;
+  if (loading && !dashboard) return <><PageHeader eyebrow="Statistiques" title="Activité de la plateforme" subtitle="Chargement des indicateurs globaux…" />{!embedded && <AdminTabNav activeId="admin" navigate={navigate} />}<SkeletonRows count={5} /></>;
+  if (error && !dashboard) return <><PageHeader eyebrow="Statistiques" title="Activité de la plateforme" />{!embedded && <AdminTabNav activeId="admin" navigate={navigate} />}<Surface><EmptyState icon={AlertTriangle} title="Dashboard indisponible" text={error} action={<Button icon={RefreshCw} onClick={load}>Réessayer</Button>} /></Surface></>;
 
   const activity = dashboard?.activity || {};
   const averages = dashboard?.averages || {};
@@ -134,8 +134,8 @@ export default function AdminDashboard({ navigate }) {
   const teamMatches = teamDetail?.matches || {};
   const teamPlayers = Number(teamTotals.players || 0);
   return <div className="nxt5-data-dense min-w-0">
-    <PageHeader eyebrow="Administration" title="Vue d’ensemble" subtitle="Données générales de NXT5. Cet espace est réservé à l’administrateur."><Button variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></PageHeader>
-    <AdminTabNav activeId="admin" navigate={navigate} />
+    <PageHeader eyebrow="Statistiques" title="Activité de la plateforme" subtitle="Données générales de NXT5. Cet espace est réservé à l’administrateur."><Button variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></PageHeader>
+    {!embedded && <AdminTabNav activeId="admin" navigate={navigate} />}
     {error && <div className="mb-4 rounded-xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-semibold text-rose-100">{error}</div>}
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{kpis.map(([icon, label, value, g7, g30, tone]) => <KpiCard key={label} icon={icon} label={label} value={value} growth7={g7} growth30={g30} tone={tone} />)}</div>
 

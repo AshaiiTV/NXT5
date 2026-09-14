@@ -3,7 +3,7 @@ import { BarChart3, ClipboardList, Tags, Users } from "lucide-react";
 import { Button, TabNav } from "../ui/Core.jsx";
 
 const TABS = [
-  { id: "admin", label: "Vue d’ensemble", icon: BarChart3, path: "/admin" },
+  { id: "admin", label: "Administration", icon: BarChart3, path: "/admin" },
   { id: "account-subscriptions", label: "Profils et abonnements", icon: Users, path: "/admin/abonnements" },
   { id: "access-requests", label: "Demandes d’accès", icon: ClipboardList, path: "/admin/demandes-acces" },
   { id: "pricing", label: "Tarifs", icon: Tags, path: "/tarifs" },

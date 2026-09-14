@@ -30,7 +30,7 @@ vi.mock("../pages/workspace/DraftWorkspace.jsx", () => ({ DraftWorkspace: () => 
 vi.mock("../pages/workspace/PlayerUltimateProfile.jsx", () => ({ PlayerUltimateProfile: () => <section data-page="profile" /> }));
 vi.mock("../pages/workspace/AccountSettings.jsx", () => ({ AccountSettings: () => <section data-page="settings" /> }));
 vi.mock("../pages/GuidePage.jsx", () => ({ default: () => <section data-page="guide" /> }));
-vi.mock("../pages/admin/AdminDashboard.jsx", () => ({ default: () => <section data-page="admin" /> }));
+vi.mock("../pages/admin/AdministrationPage.jsx", () => ({ default: () => <section data-page="admin" /> }));
 vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: () => <section data-page="billing" /> }));
 
 let renderer;
