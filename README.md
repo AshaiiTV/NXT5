@@ -152,6 +152,6 @@ Le déploiement de production effectue aussi la [réécriture unique des reviews
 
 ## Statistiques de fréquentation et cookies
 
-L’administrateur de plateforme dispose de **Administration → Fréquentation du site** (`/admin/frequentation`) : périodes 7/30/90 jours, comparaison, acquisition, campagnes, pages, engagement, conversions, appareils, pays, carte horaire et export CSV. La collecte interne reste désactivée sans consentement, et « Mes cookies » permet de modifier ou retirer son choix. Les données sont pseudonymisées et distinctes des comptes et des équipes.
+L’administrateur de plateforme dispose de **Administration → Fréquentation du site** (`/admin/frequentation`) : périodes 7/30/90 jours, comparaison, acquisition, campagnes, pages, engagement, conversions, appareils, pays, carte horaire et export CSV. La collecte interne reste désactivée sans consentement, et « Gérer mes cookies » dans le pied de page permet de modifier ou retirer son choix. Le bandeau et le bouton flottant disparaissent une fois le choix enregistré. Les données sont pseudonymisées et distinctes des comptes et des équipes.
 
 Avant la mise en ligne, appliquer la migration `audience-20260914-v1` via le flux habituel `npm run db:migrate`, puis déployer le front et les fonctions ensemble. Aucun nouveau secret ni service tiers n’est requis. Voir [le contrat, les durées et les consignes d’exploitation](docs/audience-api.md). Les chiffres démarrent avec les premières visites consenties ; les visites antérieures ne sont pas reconstituées.

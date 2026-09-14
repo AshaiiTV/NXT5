@@ -63,9 +63,9 @@ export default function CookieConsent({ route, ready, excluded = false }) {
   }
   const showBanner = ready && !excluded && state.loaded && !state.choice && !settingsOpen;
   return <>
-    <button type="button" className="nxt5-cookie-settings" onClick={openSettings} aria-haspopup="dialog" aria-expanded={settingsOpen}>
+    {ready && !excluded && state.loaded && !state.choice && <button type="button" className="nxt5-cookie-settings" onClick={openSettings} aria-haspopup="dialog" aria-expanded={settingsOpen}>
       <Cookie size={17} aria-hidden="true" /><span>Mes cookies</span>
-    </button>
+    </button>}
     <p className="sr-only" role="status">{notice}</p>
     {showBanner && <section className="nxt5-cookie-banner" aria-labelledby="cookie-banner-title" aria-describedby="cookie-banner-description">
       <div className="nxt5-cookie-heading"><span className="nxt5-cookie-icon"><ShieldCheck size={23} aria-hidden="true" /></span><div><p className="nxt5-cookie-eyebrow">Ta confidentialité</p><h2 id="cookie-banner-title">Les cookies, c’est toi qui choisis.</h2></div></div>
