@@ -1,5 +1,6 @@
 import {
   Activity,
+  BarChart3,
   BookOpen,
   CalendarDays,
   FileText,
@@ -27,6 +28,7 @@ export const NAV = [
   { id: "guide", label: "Guide", hint: "Mode d’emploi", icon: BookOpen, shortcut: "A", path: "/guide", hidden: true },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
+  { id: "audience", label: "Fréquentation", hint: "Audience et conversions", icon: BarChart3, path: "/admin/frequentation", hidden: true },
   { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
   { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
   { id: "account-subscriptions", label: "Profils et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },

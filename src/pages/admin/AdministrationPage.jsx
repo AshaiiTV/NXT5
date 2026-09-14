@@ -24,6 +24,7 @@ export default function AdministrationPage({ route, navigate }) {
 
   return <div className="nxt5-data-dense administration-page">
     <PageHeader eyebrow="Espace administrateur" title="Administration" subtitle="Consulte les commandes et suis l’activité de NXT5 dans deux vues dédiées.">
+      <Button variant="ghost" icon={BarChart3} onClick={() => navigate("/admin/frequentation")}>Fréquentation du site</Button>
       <Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>Profils et abonnements</Button>
       <Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button>
       <Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button>

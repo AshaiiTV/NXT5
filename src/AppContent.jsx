@@ -3,8 +3,9 @@ import { apiFetch, API_BASE } from "./api/client.js";
 import { NAV } from "./app/constants.jsx";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
+import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
-import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
+import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks, SiteHeader } from "./pages/public/PublicPages.jsx";
 import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
@@ -27,6 +28,7 @@ const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx")
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
+const AudiencePage = lazy(() => import("./pages/admin/AudiencePage.jsx"));
 const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
 const AccountSubscriptionsPage = lazy(() => import("./pages/admin/AccountSubscriptionsPage.jsx"));
 const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
@@ -411,7 +413,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const unknownRoute = !isKnownPath(route.path);
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/tarifs", "/verify-email", "/verified"].includes(route.path);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/tarifs", "/admin/frequentation", "/verify-email", "/verified"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
@@ -419,6 +421,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (route.path === "/admin/frequentation") return <div className="relative min-h-screen text-white"><AmbientBackground /><SiteHeader navigate={navigate}><Badge tone="cyan">Administration</Badge></SiteHeader><main className="relative z-10 mx-auto max-w-7xl px-3 pb-16 pt-4 sm:px-6"><Suspense fallback={<div role="status" className="p-6 text-slate-200">Chargement de la fréquentation…</div>}><AudiencePage navigate={navigate} /></Suspense></main><LegalLinks navigate={navigate} /></div>;
   if (route.path === "/admin/integrations") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des intégrations…</div>}><IntegrationsPage navigate={navigate} /></Suspense>;
   if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
   if (route.path === "/tarifs") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des tarifs…</div>}><PricingPage navigate={navigate} user={user} /></Suspense>;
@@ -522,5 +525,5 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} /><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

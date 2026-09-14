@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, CheckCircle2, Loader2, Mail, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { trackAudienceEvent } from "../../app/audience-client.js";
 import { PROPOSED_PLANS, PROPOSED_PLAN_OPTIONS } from "../../app/pricing.js";
 import { PASS_FEATURES } from "../../app/pass-access.js";
 import { PassFeaturePreview } from "../../components/subscriptions/PassFeatureGate.jsx";
@@ -94,6 +95,7 @@ export default function PricingPage({ navigate, user }) {
         }),
       });
       if (result?.ok !== true) throw new Error("Unconfirmed access request");
+      if (!user?.is_platform_admin) void trackAudienceEvent("access_request");
       setSuccess(true);
     } catch (err) {
       setError(requestError(err));

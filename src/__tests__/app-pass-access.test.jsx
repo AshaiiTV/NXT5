@@ -15,6 +15,7 @@ vi.mock("../app/pass-access.js", async (importOriginal) => {
 });
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../app/performance.js", () => ({ configurePerformanceMode: vi.fn(), PERFORMANCE_MODE_STORAGE_KEY: "performance" }));
+vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
 vi.mock("../hooks/useTeamData.js", () => ({ useTeamData: vi.fn() }));
 vi.mock("../components/layout/AppChrome.jsx", () => ({
   AmbientBackground: () => null, Sidebar: () => <nav data-navigation="true" />,
@@ -31,6 +32,7 @@ vi.mock("../pages/workspace/PlayerUltimateProfile.jsx", () => ({ PlayerUltimateP
 vi.mock("../pages/workspace/AccountSettings.jsx", () => ({ AccountSettings: () => <section data-page="settings" /> }));
 vi.mock("../pages/GuidePage.jsx", () => ({ default: () => <section data-page="guide" /> }));
 vi.mock("../pages/admin/AdministrationPage.jsx", () => ({ default: () => <section data-page="admin" /> }));
+vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data-page="audience" /> }));
 vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: () => <section data-page="billing" /> }));
 
 let renderer;
@@ -90,7 +92,7 @@ describe("future expiration routing, simulated only in tests", () => {
     expect(JSON.stringify(renderer.toJSON())).toContain("Prendre le Pass Équipe");
   });
 
-  it.each([["/parametres", "settings", false], ["/guide", "guide", false], ["/admin", "admin", true], ["/admin/abonnements", "billing", true]])("keeps %s accessible", async (path, page, admin) => {
+  it.each([["/parametres", "settings", false], ["/guide", "guide", false], ["/admin", "admin", true], ["/admin/abonnements", "billing", true], ["/admin/frequentation", "audience", true]])("keeps %s accessible", async (path, page, admin) => {
     simulation.expired = true;
     await open(path, { admin });
     expect(renderer.root.findAllByProps({ "data-page": page })).toHaveLength(1);

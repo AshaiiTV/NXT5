@@ -8,6 +8,7 @@ import { apiFetch } from "../api/client.js";
 const visual = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../app/performance.js", () => ({ configurePerformanceMode: vi.fn(), PERFORMANCE_MODE_STORAGE_KEY: "performance" }));
+vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
 vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({
   default: function LoadingScreen({ phase, progress }) {
     const identity = useRef(Symbol("loader"));

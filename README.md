@@ -148,3 +148,10 @@ Le front ne stocke aucune donnée métier en localStorage. Les données importan
 Pour créer un compte, les fonctions Netlify doivent recevoir `DATABASE_URL` et `npm run db:migrate` doit avoir réussi sur cette base. Sans le marqueur de migration attendu, les fonctions répondent temporairement 503.
 
 Le déploiement de production effectue aussi la [réécriture unique des reviews historiques](docs/review-backfill.md), avec sauvegarde des anciennes versions et conservation des notes.
+
+
+## Statistiques de fréquentation et cookies
+
+L’administrateur de plateforme dispose de **Administration → Fréquentation du site** (`/admin/frequentation`) : périodes 7/30/90 jours, comparaison, acquisition, campagnes, pages, engagement, conversions, appareils, pays, carte horaire et export CSV. La collecte interne reste désactivée sans consentement, et « Mes cookies » permet de modifier ou retirer son choix. Les données sont pseudonymisées et distinctes des comptes et des équipes.
+
+Avant la mise en ligne, appliquer la migration `audience-20260914-v1` via le flux habituel `npm run db:migrate`, puis déployer le front et les fonctions ensemble. Aucun nouveau secret ni service tiers n’est requis. Voir [le contrat, les durées et les consignes d’exploitation](docs/audience-api.md). Les chiffres démarrent avec les premières visites consenties ; les visites antérieures ne sont pas reconstituées.

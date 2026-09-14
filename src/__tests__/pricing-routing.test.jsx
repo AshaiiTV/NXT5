@@ -13,7 +13,9 @@ import { Button } from "../components/ui/Core.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../app/performance.js", () => ({ configurePerformanceMode: vi.fn(), PERFORMANCE_MODE_STORAGE_KEY: "performance" }));
+vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
 vi.mock("../pages/public/PricingPage.jsx", () => ({ default: ({ user }) => <main data-pricing="true">Tarifs {user?.name || "visiteur"}</main> }));
+vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data-audience="true">Fréquentation du site</section> }));
 vi.mock("../pages/admin/AccessRequestsPage.jsx", () => ({ default: () => <section data-leads="true">Demandes d’accès</section> }));
 vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: ({ initialUserId }) => <section data-subscriptions="true" data-selected-user={initialUserId}>Profils et abonnements</section> }));
 vi.mock("../pages/workspace/AccountSettings.jsx", () => ({ AccountSettings: () => <section data-account-settings="true">Paramètres du compte</section> }));
@@ -23,7 +25,7 @@ vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({ default: ({ phase
 vi.mock("../hooks/useTeamData.js", () => ({ useTeamData: vi.fn(() => ({ data: DEFAULT_DATA, bootstrapped: true, bootstrapReady: true })) }));
 
 const admin = { id: "admin", name: "Administrateur", email: "admin@example.test", email_verified: true, is_platform_admin: true };
-const restrictedPaths = ["/tarifs", "/admin/demandes-acces", "/admin/abonnements"];
+const restrictedPaths = ["/tarifs", "/admin/demandes-acces", "/admin/abonnements", "/admin/frequentation"];
 
 let renderer;
 afterEach(() => {
@@ -46,12 +48,14 @@ async function open(path) {
   return renderer;
 }
 
-describe("pricing and access-request routes", () => {
-  it("classifies both pages as private administrator routes", () => {
-    expect(isKnownPath("/tarifs/")).toBe(true);
-    expect(isAppPath("/tarifs")).toBe(true);
-    expect(PUBLIC_ROUTES).not.toContain("/tarifs");
-    for (const path of restrictedPaths) expect(isAdminPath(`${path}/`)).toBe(true);
+describe("private administrator routes", () => {
+  it("classifies all administrator pages as known private routes", () => {
+    for (const path of restrictedPaths) {
+      expect(isKnownPath(`${path}/`)).toBe(true);
+      expect(isAppPath(path)).toBe(true);
+      expect(PUBLIC_ROUTES).not.toContain(path);
+      expect(isAdminPath(`${path}/`)).toBe(true);
+    }
     expect(isAdminPath("/contact")).toBe(false);
     expect(isAppPath("/admin/demandes-acces")).toBe(true);
     expect(pageFromPath("/admin/demandes-acces")).toBe("access-requests");
@@ -60,6 +64,8 @@ describe("pricing and access-request routes", () => {
     expect(isAppPath("/admin/abonnements")).toBe(true);
     expect(pageFromPath("/admin/abonnements")).toBe("account-subscriptions");
     expect(pathFromPage("account-subscriptions")).toBe("/admin/abonnements");
+    expect(pageFromPath("/admin/frequentation")).toBe("audience");
+    expect(pathFromPage("audience")).toBe("/admin/frequentation");
   });
 
   it.each(restrictedPaths)("does not show %s while the session check is pending", async (path) => {
@@ -68,6 +74,7 @@ describe("pricing and access-request routes", () => {
     expect(renderer.root.findAllByProps({ "data-pricing": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-leads": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-subscriptions": "true" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ "data-audience": "true" })).toHaveLength(0);
     expect(renderer.root.findByProps({ "data-loader": "true" }).props["data-phase"]).toBe("session");
     expect(apiFetch.mock.calls.map(([endpoint]) => endpoint)).toEqual(["auth-me"]);
   });
@@ -91,6 +98,22 @@ describe("pricing and access-request routes", () => {
     await open("/admin/demandes-acces");
     expect(renderer.root.findAllByProps({ "data-leads": "true" })).toHaveLength(1);
     expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
+  });
+
+  it("releases the session loader and opens audience statistics without team data", async () => {
+    let resolveSession;
+    apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveSession = resolve; }));
+    useTeamData.mockReturnValue({ data: DEFAULT_DATA, loading: true, bootstrapReady: false, bootstrapped: false });
+    await open("/admin/frequentation");
+    expect(renderer.root.findByProps({ "data-loader": "true" }).props["data-phase"]).toBe("session");
+    expect(renderer.root.findAllByProps({ "data-audience": "true" })).toHaveLength(0);
+
+    await act(async () => resolveSession({ user: admin }));
+    expect(renderer.root.findAllByProps({ "data-audience": "true" })).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
+    expect(useTeamData).not.toHaveBeenCalled();
+    expect(apiFetch.mock.calls.map(([path]) => path)).toEqual(["auth-me"]);
+    expect(window.history.replaceState).not.toHaveBeenCalled();
   });
 
   it("opens a specific subscription profile without waiting for team data", async () => {
@@ -128,6 +151,7 @@ describe("pricing and access-request routes", () => {
     expect(renderer.root.findAllByProps({ "data-pricing": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-leads": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-subscriptions": "true" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ "data-audience": "true" })).toHaveLength(0);
   });
 
   it.each(restrictedPaths)("keeps %s hidden and asks anonymous visitors to sign in", async (path) => {
@@ -136,6 +160,7 @@ describe("pricing and access-request routes", () => {
     expect(renderer.root.findAllByProps({ "data-pricing": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-leads": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-subscriptions": "true" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ "data-audience": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
     expect(window.history.replaceState).toHaveBeenCalledWith({}, "", `/connexion?next=${encodeURIComponent(path)}`);
   });
@@ -147,13 +172,15 @@ describe("pricing and access-request routes", () => {
     expect(renderer.root.findAllByProps({ "data-pricing": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-leads": "true" })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ "data-subscriptions": "true" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ "data-audience": "true" })).toHaveLength(0);
     expect(window.history.replaceState).toHaveBeenCalledWith({}, "", `/connexion?next=${encodeURIComponent(path)}`);
   });
 
-  it("does not treat a truthy string as administrator authorization", async () => {
+  it.each(restrictedPaths)("does not treat a truthy string as administrator authorization for %s", async (path) => {
     apiFetch.mockResolvedValue({ user: { ...admin, is_platform_admin: "true" } });
-    await open("/tarifs");
+    await open(path);
     expect(renderer.root.findAllByProps({ "data-pricing": "true" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ "data-audience": "true" })).toHaveLength(0);
     expect(JSON.stringify(renderer.toJSON())).toContain("introuvable");
     expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
   });
@@ -162,6 +189,7 @@ describe("pricing and access-request routes", () => {
     const html = renderToStaticMarkup(<><HomeScreen navigate={vi.fn()} /><LegalLinks navigate={vi.fn()} /></>);
     expect(html).not.toContain('href="/tarifs"');
     expect(html).not.toContain('href="/admin/demandes-acces"');
+    expect(html).not.toContain('href="/admin/frequentation"');
     expect(html).toContain('href="/connexion"');
   });
 });
