@@ -25,27 +25,21 @@ export function TrendNavigation({ items, activeId, onChange }) {
   </div>;
 }
 
-export function TrendMetrics({ items }) {
-  return <dl className="trends-metrics">{items.map((item) => <div key={item.label}>
-    <dt>{item.label}</dt><dd className={item.toneName ? `trends-value-${item.toneName}` : ""}>{item.value}</dd><p>{item.detail}</p>
-  </div>)}</dl>;
-}
-
-export function TrendsOverview({ metrics, objective, plan, roles, briefs, sides, alerts, onOpenSources, onObjectives }) {
+export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenSources, onObjectives }) {
   const open = (item) => onOpenSources({ title: item.label || item.title, subtitle: item.title, games: item.sourceGames });
   return <div className="trends-overview">
-    <Surface><section aria-labelledby="trend-summary-title"><div className="trends-section-heading"><h3 id="trend-summary-title">Le bloc en un regard</h3><span>Sur la sélection active</span></div><TrendMetrics items={metrics} /></section></Surface>
+    <header className="trends-overview-intro"><h3>Le briefing de la review</h3><p>Les pistes à discuter en équipe et les games qui permettent de les vérifier.</p></header>
 
     <Surface><section className="trends-priority" aria-labelledby="trend-priority-title">
       <div><p className="trends-eyebrow"><Target aria-hidden="true" /> Axe de travail proposé</p><h3 id="trend-priority-title">{objective.title}</h3><p className="trends-copy">{objective.why}</p><button type="button" className="trends-text-action" onClick={() => onOpenSources({ title: "Sources objectif", subtitle: objective.title, games: objective.sourceGames })}><FileText aria-hidden="true" /> Voir les games sources</button></div>
-      <div className="trends-priority-target"><p className="trends-eyebrow">Cible collective</p><strong>{String(objective.target).replaceAll("<=", "≤").replaceAll(">=", "≥")}</strong><p>Actuel : <b>{objective.current}</b></p><Button type="button" variant="ghost" icon={ArrowRight} onClick={onObjectives}>Voir les objectifs par rôle</Button></div>
+      <div className="trends-priority-target"><p className="trends-eyebrow">Préparer la suite</p><strong>Transformer ce constat en consignes</strong><p>Retrouve les cibles de l’équipe et de chaque joueur dans Objectifs.</p><Button type="button" variant="ghost" icon={ArrowRight} onClick={onObjectives}>Voir les objectifs par rôle</Button></div>
     </section></Surface>
 
     <Surface><section aria-labelledby="trend-plan-title">
       <div className="trends-section-heading"><div><p className="trends-eyebrow">Plan de jeu récurrent</p><h3 id="trend-plan-title">{plan.title}</h3></div><Badge tone={plan.toneName}>{plan.value}</Badge></div>
       <p className="trends-copy">{plan.text}</p>
       <button type="button" className="trends-text-action" onClick={() => open(plan)}><FileText aria-hidden="true" /> Examiner les games de ce plan</button>
-      <div className="trends-role-heading"><h4>Contribution de chaque rôle</h4><p>Parts de l’or et des dégâts de l’équipe, en moyenne par game.</p></div>
+      <details className="trends-role-details"><summary>Comprendre la contribution des rôles</summary><p className="trends-copy">Les ressources et les champions éclairent la place de chacun dans ce plan de jeu.</p>
       <div className="trends-role-columns" aria-hidden="true"><span>Rôle et champions</span><span>Lecture du rôle</span><span>Part d’or</span><span>Part de dégâts</span><span>Sources</span></div>
       <div className="trends-roles">{[...roles].sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role)).map((row) => <article className="trends-role" key={row.role}>
         <div className="trends-role-name"><RoleIcon role={row.role} lightweight /><div><h5>{roleLabel(row.role)}</h5><p>{row.championText || "Champions non renseignés"}</p></div></div>
@@ -55,13 +49,13 @@ export function TrendsOverview({ metrics, objective, plan, roles, briefs, sides,
         <button type="button" className="trends-text-action" aria-label={`Voir les sources du rôle ${roleLabel(row.role)}`} onClick={() => onOpenSources({ title: roleLabel(row.role), subtitle: row.functionLabel, games: row.sourceGames })}><FileText aria-hidden="true" /><span>Sources</span></button>
       </article>)}</div>
       {!roles.length && <p className="trends-copy">Les participants ne sont pas encore renseignés sur cette sélection.</p>}
+      </details>
     </section></Surface>
 
     <Surface><section aria-labelledby="trend-review-title"><div className="trends-section-heading"><div><h3 id="trend-review-title">Les points à vérifier en review</h3><p>Ouvre un axe pour lire le constat et retrouver ses sources.</p></div></div>
-      <div className="trends-review-list">{briefs.map((brief) => <details key={brief.label}><summary><span className="trends-eyebrow">{brief.label}</span><strong>{brief.title}</strong><span>{brief.sourceGames?.length || 0} games</span></summary><div className="trends-review-content"><p>{brief.text}</p>{brief.evidence?.length > 0 && <ul>{brief.evidence.map((item) => <li key={item}>{item}</li>)}</ul>}<button type="button" className="trends-text-action" onClick={() => open(brief)}><FileText aria-hidden="true" /> Voir les games sources</button></div></details>)}</div>
+      <div className="trends-review-list">{briefs.filter((brief) => !["Bilan", "Plan de jeu"].includes(brief.label)).map((brief) => <details key={brief.label}><summary><span className="trends-eyebrow">{brief.label}</span><strong>{brief.title}</strong><span>{brief.sourceGames?.length || 0} games</span></summary><div className="trends-review-content"><p>{brief.text}</p>{brief.evidence?.length > 0 && <ul>{brief.evidence.map((item) => <li key={item}>{item}</li>)}</ul>}<button type="button" className="trends-text-action" onClick={() => open(brief)}><FileText aria-hidden="true" /> Voir les games sources</button></div></details>)}</div>
       {alerts.length > 0 && <div className="trends-alerts"><h4>Points de vigilance</h4>{alerts.slice(0, 3).map((alert) => <article key={alert.title}><alert.icon aria-hidden="true" /><div><h5>{alert.title}</h5><p>{alert.text}</p><p>{alert.action}</p></div></article>)}</div>}
     </section></Surface>
 
-    <Surface><section aria-labelledby="trend-sides-title"><div className="trends-section-heading"><h3 id="trend-sides-title">Résultats par côté</h3><span>Comparer avec le nombre de games</span></div><div className="trends-sides">{sides.map((side) => <div key={side.side} className={side.side === "Blue" ? "trends-side-blue" : "trends-side-red"}><h4>{side.side === "Blue" ? "Côté bleu" : "Côté rouge"}</h4><strong>{side.games ? `${side.wr}%` : "—"}</strong><span>de victoires</span><div className="trends-side-track" aria-hidden="true"><i style={{ width: `${side.games ? side.wr : 0}%` }} /></div><p>{side.games ? `${side.wins} victoire${side.wins > 1 ? "s" : ""} · ${side.games - side.wins} défaite${side.games - side.wins > 1 ? "s" : ""} · ${side.games} games` : "Aucune game de ce côté"}</p></div>)}</div></section></Surface>
   </div>;
 }

@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, AlertTriangle, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
 import { openAppPath } from "../../app/routing.js";
 import { Button, EmptyState, SkeletonRows, Surface, PageHeader, SelectInput } from "../../components/ui/Core.jsx";
@@ -116,6 +116,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const [trendSourceModal, setTrendSourceModal] = useState(null);
 
   const [trendPanel, setTrendPanel] = useState("coach");
+  const focusObjectives = useRef(false);
   const [profileContractsOpen, setProfileContractsOpen] = useState(false);
   const [trendPeriod, setTrendPeriod] = useState("all");
   const [exportState, setExportState] = useState("");
@@ -129,6 +130,12 @@ function TrendsPage({ data, selectedTeamId }) {
     setTrendPanel("coach");
   }, [selectedTeamId]);
   useEffect(() => { setTrendSourceModal(null); setProfileContractsOpen(false); setExportState(""); }, [matches]);
+  useEffect(() => {
+    if (trendPanel === "ai-objectives" && focusObjectives.current) {
+      document.getElementById("trend-panel-ai-objectives")?.focus();
+      focusObjectives.current = false;
+    }
+  }, [trendPanel]);
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const rows = useMemo(() => matches.flatMap((match) => (match.participants || []).map((row) => ({ ...row, match }))), [matches]);
   const ally = useMemo(() => rows.filter((row) => row.team_key === "ALLY"), [rows]);
@@ -524,7 +531,7 @@ function TrendsPage({ data, selectedTeamId }) {
     {
       toneName: averageFirstObjective && averageFirstObjective <= 9.5 ? "green" : averageFirstObjective && averageFirstObjective <= 12 ? "orange" : "red",
       label: "Objectifs",
-      title: `Tempo objectifs : ${formatMinute(averageFirstObjective)}`,
+      title: Number.isFinite(averageFirstObjective) ? `Tempo objectifs : ${formatMinute(averageFirstObjective)}` : "Timing indisponible",
       text: `${objectiveRatio(objectiveTotals.dragons, matches.length)} drakes/game, ${objectiveRatio(objectiveTotals.grubs, matches.length)} grubs/game, ${objectiveRatio(objectiveTotals.towers, matches.length)} tours/game. ${earlyObjectiveRate === null ? "Timing du premier objectif indisponible" : `${earlyObjectiveLabel} avant 9:30 parmi les ${objectiveTimingValues.length} games avec timing connu`}${bestSide ? ` ; meilleur side actuel : ${bestSide.side} (${bestSide.wr}% de victoires sur ${bestSide.games}G)` : ""}.`,
       evidence: [`Nashor ${objectiveRatio(objectiveTotals.barons, matches.length)}/game`, `Herald ${objectiveRatio(objectiveTotals.heralds, matches.length)}/game`, `${objectiveTimingValues.length}/${matches.length} timings`],
       sourceGames: objectiveSourceGames,
@@ -879,21 +886,15 @@ function TrendsPage({ data, selectedTeamId }) {
   const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
   const trendPanelOptions = [
-    ["coach", "Synthèse", Gauge, "Bilan et axes de travail"],
-    ["evolution", "Évolution", Activity, "Dynamique et résultats"],
-    ["comparison", "Comparer", RefreshCw, "Deux blocs de games"],
+    ["coach", "Synthèse", Gauge, "Préparer la review"],
+    ["evolution", "Évolution", Activity, "Suivre game après game"],
+    ["comparison", "Comparer", RefreshCw, "Confronter deux sélections"],
     ["draft", "Draft", Crown, "Champions et compositions"],
     ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
   ];
-  const overviewMetrics = [
-    { label: "Taux de victoire", value: `${winrate}%`, detail: `${wins} victoire${wins > 1 ? "s" : ""} · ${losses} défaite${losses > 1 ? "s" : ""}` },
-    { label: "Écart d’or", value: formatGoldDiff(avgInt(goldDiff)), detail: "Face aux adversaires · moyenne / game", toneName: diffTone(goldDiff) },
-    { label: "Morts de l’équipe", value: deathsPerGame.toLocaleString("fr-FR"), detail: "Moyenne / game" },
-    { label: "Premier objectif", value: formatMinute(averageFirstObjective), detail: earlyObjectiveRate === null ? "Timing indisponible" : `${earlyObjectiveLabel} avant 9:30 · ${objectiveTimingValues.length} games mesurées` },
-  ];
   const showObjectives = () => {
+    focusObjectives.current = true;
     setTrendPanel("ai-objectives");
-    requestAnimationFrame(() => document.getElementById("trend-panel-ai-objectives")?.focus());
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
@@ -913,14 +914,14 @@ function TrendsPage({ data, selectedTeamId }) {
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={label} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
       {trendPanel === id && <>
-        {id === "coach" && <TrendsOverview metrics={overviewMetrics} objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} sides={sideStats} alerts={staffAlerts} onOpenSources={openTrendSources} onObjectives={showObjectives} />}
-        {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} onOpenSources={(games) => openTrendSources({ title: "Dynamique récente", subtitle: "Deux blocs consécutifs de même taille, dans la sélection active.", games: sourceGamesForMatches(games) })} />}
+        {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onObjectives={showObjectives} />}
+        {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
         {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">Chargement de la comparaison…</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={matches} categories={matchCategories} /></Suspense>}
         {id === "draft" && <DraftTrendsModule model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} />}
         {id === "ai-objectives" && <Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface>}
       </>}
     </div>)}
-    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires, en moyenne à la fin des games. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les games sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
+    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des games : une valeur par game dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les games sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
     {profileContractsOpen && <TrendContractsDialog objectives={profileAiObjectives} onClose={() => setProfileContractsOpen(false)} onOpenSources={openTrendSources} />}
     {trendSourceModal && <TrendSourcesDialog source={trendSourceModal} onClose={() => setTrendSourceModal(null)} onOpenGame={openSourceGame} signals={sourceGameSignals} read={sourceGameRead} />}
   </div>;

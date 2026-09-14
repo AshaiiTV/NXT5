@@ -23,12 +23,6 @@
 .nxt5-trends-page .trends-section-heading, .nxt5-trend-dialog .trends-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 18px; }
 .trends-section-heading h3 { font-size: 20px; font-weight: 750; line-height: 1.4; color: #f8fafc; }
 .trends-section-heading > span, .trends-section-heading p { color: #c2d0e3; font-size: 13px; line-height: 1.6; }
-.nxt5-trends-page .trends-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px; padding: 12px 0 4px; }
-.trends-metrics > div { min-width: 0; border-left: 1px solid var(--nxt5-border); padding-left: 20px; }
-.trends-metrics > div:first-child { padding-left: 0; border: 0; }
-.trends-metrics dt { font-size: 14px; color: #dbe8f8; }
-.trends-metrics dd { margin-top: 8px; font-size: clamp(26px,3.2cqi,38px); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.035em; line-height: 1.25; }
-.trends-metrics p { margin-top: 8px; font-size: 12px; line-height: 1.6; color: #c2d0e3; }
 .trends-value-green { color: #6ee7b7; }
 .trends-value-red { color: #fda4af; }
 .trends-value-cyan { color: #a5f3fc; }
@@ -75,17 +69,6 @@
 .trends-alerts article > svg { width: 18px; height: 18px; margin-top: 3px; flex-shrink: 0; color: #fde68a; }
 .trends-alerts h5 { font-size: 14px; font-weight: 650; }
 .trends-alerts p { color: #dbe8f8; font-size: 13px; line-height: 1.6; margin-top: 4px; }
-.trends-sides { display: flex; gap: 32px; }
-.trends-sides > div { flex: 1; min-width: 0; }
-.trends-sides h4 { font-size: 14px; font-weight: 650; }
-.trends-sides strong { display: inline-block; margin: 8px 8px 0 0; font-size: 28px; font-variant-numeric: tabular-nums; }
-.trends-sides span, .trends-sides p { color: #c2d0e3; font-size: 13px; line-height: 1.6; }
-.trends-side-track { height: 6px; background: rgba(255,255,255,.06); border-radius: 4px; margin: 12px 0; overflow: hidden; }
-.trends-side-track i { display: block; height: 100%; }
-.trends-side-blue h4 { color: #7dd3fc; }
-.trends-side-blue i { background: #38bdf8; }
-.trends-side-red h4 { color: #fda4af; }
-.trends-side-red i { background: #fb7185; }
 .trends-reading-help { margin-top: 24px; font-size: 13px; color: #c2d0e3; line-height: 1.7; }
 .trends-reading-help summary, .trends-source-context summary { min-height: 44px; padding: 10px 0; cursor: pointer; font-weight: 650; color: #dbe8f8; }
 .trends-reading-help p { margin-bottom: 10px; max-width: 100ch; }
@@ -143,15 +126,10 @@
   .trends-tabs { display: none; }
   .trends-mobile-navigation { display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #c2d0e3; }
   .trends-mobile-navigation select { width: 100%; min-height: 48px; border: 1px solid #31475f; border-radius: var(--nxt5-radius-control, 12px); padding: 10px 12px; background: #071221; color: #f8fafc; font-size: 16px; }
-  .nxt5-trends-page .trends-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px 16px; }
-  .trends-metrics > div { border: 0; padding: 0; }
-  .trends-metrics dt { font-size: 13px; }
   .nxt5-trends-page .trends-priority { grid-template-columns: minmax(0,1fr); gap: 24px; }
   .trends-priority-target { padding-left: 16px; }
   .trends-review-list summary { display: block; }
   .trends-review-list summary > strong { display: block; margin: 6px 0; min-width: 0; }
-  .trends-sides { flex-direction: column; gap: 24px; }
-  .trends-sides > div + div { border-top: 1px solid var(--nxt5-border); padding-top: 20px; }
 }
 @container trends-page (max-width: 419px) {
   .nxt5-trends-page .trends-role { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -165,3 +143,9 @@
   .trends-source-tools, .trends-contract-content { grid-template-columns: minmax(0,1fr); }
   .trends-source-signals { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
+
+.trends-overview-intro h3 { font-size: 22px; font-weight: 750; line-height: 1.4; }
+.trends-overview-intro p { margin-top: 6px; max-width: 80ch; color: #c2d0e3; font-size: 14px; line-height: 1.7; }
+.trends-role-details { margin-top: 20px; border-top: 1px solid var(--nxt5-border); }
+.trends-role-details > summary { min-height: 48px; padding: 16px 0; cursor: pointer; font-size: 14px; font-weight: 650; color: #dbe8f8; }
+.trends-role-details[open] > summary { margin-bottom: 4px; }

@@ -280,7 +280,7 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   return <Panel className="block-comparison">
     <div className="block-comparison-heading">
       <h3>Comparer deux blocs de games</h3>
-      <p>Choisis une référence, puis le bloc à observer pour lire l’évolution de l’équipe.</p>
+      <p>Mesure les écarts entre deux périodes ou deux catégories de games. Les moyennes et les variations se lisent ici côte à côte.</p>
     </div>
     <div className="block-comparison-selection">
       {[{ label: "Bloc de référence", key: referenceKey, setKey: setLeftKey, games: leftMatches, snapshot: left }, { label: "Bloc observé", key: observedKey, setKey: setRightKey, games: rightMatches, snapshot: right }].map(({ label, key, setKey, games, snapshot }) => <div key={label} className="block-comparison-selector">

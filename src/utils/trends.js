@@ -84,6 +84,52 @@ function knownResult(match) {
   return null;
 }
 
+export const TREND_SERIES_METRICS = [
+  { key: "gold", label: "Écart d’or", unit: "or", signed: true, description: "Or de ton équipe − or adverse, en fin de game. Au-dessus de zéro : ton équipe termine avec plus d’or." },
+  { key: "deaths", label: "Morts de l’équipe", unit: "morts", signed: false, description: "Total des morts de tes cinq joueurs en fin de game. Une valeur plus basse signifie moins de morts." },
+  { key: "vision", label: "Écart de vision", unit: "pts de vision", signed: true, description: "Score de vision de ton équipe − score adverse, en fin de game. Au-dessus de zéro : ton équipe a le score le plus élevé." },
+];
+
+/** Every selected game, oldest first. Unknown dates remain accessible outside the curve. */
+export function buildTrendSeries(matches = [], metricKey = "gold") {
+  const metric = TREND_SERIES_METRICS.find(({ key }) => key === metricKey) || TREND_SERIES_METRICS[0];
+  const occurrences = new Map();
+  const points = matches.map((match, sourceIndex) => {
+    const identity = match?.id ?? match?.game_id;
+    const base = identity == null ? `row:${sourceIndex}` : `game:${identity}`;
+    const occurrence = occurrences.get(base) || 0;
+    occurrences.set(base, occurrence + 1);
+    return {
+      key: `${base}:${occurrence}`,
+      match,
+      sourceIndex,
+      timestamp: trendMatchTimestamp(match),
+      value: metric.key === "deaths" ? completeTeamTotal(match, "ALLY", "deaths") : teamDifference(match, metric.key),
+      result: knownResult(match),
+    };
+  }).sort((a, b) => {
+    if (a.timestamp === b.timestamp) return a.sourceIndex - b.sourceIndex;
+    if (a.timestamp === null) return 1;
+    if (b.timestamp === null) return -1;
+    return a.timestamp - b.timestamp;
+  });
+  const dated = points.filter(({ timestamp }) => timestamp !== null);
+  const undated = points.filter(({ timestamp }) => timestamp === null);
+  // Start a new segment after each missing value. A singleton is a point, never a line.
+  const segments = [];
+  let segment = [];
+  for (const point of dated) {
+    if (point.value === null) {
+      if (segment.length) segments.push(segment);
+      segment = [];
+    } else {
+      segment.push(point);
+    }
+  }
+  if (segment.length) segments.push(segment);
+  return { metric, points, dated, undated, segments, availableCount: dated.filter(({ value }) => value !== null).length };
+}
+
 function averageMetric(matches, valueForMatch) {
   const values = matches.map(valueForMatch).filter((value) => value !== null);
   return { value: values.length ? values.reduce((total, value) => total + value, 0) / values.length : null, count: values.length };
