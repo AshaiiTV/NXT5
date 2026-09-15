@@ -6,6 +6,8 @@ Branche : `codex/discord-publications-20260915`, préparée depuis `origin/main`
 
 ## Périmètre livré
 
+Le produit cible toutes les équipes NXT5 : une seule application Discord est administrée par NXT5, puis chaque propriétaire/capitaine invite le bot, relie son équipe et choisit ses propres salons et règles. La sélection d’une équipe pilote sert uniquement à valider le fonctionnement avant ouverture générale.
+
 | Lot du plan | Réalisation |
 | --- | --- |
 | Moteur NXT5 commun | Un même modèle alimente la fiche game, les lectures existantes et Discord ; les données manquantes restent distinctes de zéro. |
@@ -39,13 +41,13 @@ Preuves machine : [vérification complète](../artifacts/discord-render/verifica
 
 Les essais locaux n’ont appliqué aucune migration distante et n’ont envoyé aucun message Discord réel.
 
-Pour terminer l’installation réelle, il reste à renseigner l’équipe pilote, son serveur et ses salons, puis configurer l’application Discord et ses secrets dans l’environnement serveur. La migration, l’enregistrement des commandes, la liaison et l’activation suivent le [guide d’exploitation](discord-operations.md).
+Pour terminer l’installation réelle, il reste à configurer l’application Discord commune, ses secrets serveur, l’installation publique et les commandes globales. La migration, la validation technique sur un serveur de test, puis la liaison autonome et le choix des salons par chaque équipe suivent le [guide d’exploitation](discord-operations.md). L’administrateur NXT5 n’a pas à collecter les serveurs et salons de toutes les équipes.
 
 Le pilote doit ensuite vérifier un import réel, un réimport identique, une correction, la pause/reprise, un retrait et l’affichage dans Discord mobile, puis effectuer l’exercice de restauration du guide. Les délais et coûts sont à mesurer avant une ouverture générale. L’objectif proposé reste 95 % des publications sous deux minutes après disponibilité dans NXT5 ; il n’est pas encore mesuré sur une équipe réelle.
 
 ## Limites de cette première version
 
-- Une équipe active par serveur Discord ; au maximum dix destinations par équipe.
+- Un serveur connecté par équipe, une équipe active par serveur Discord ; au maximum dix salons par équipe.
 - Aucun rattrapage automatique de tout l’historique à l’activation.
 - Le premier PNG est une fiche détaillée, sans variante compacte distincte. Le navigateur peut enrichir les données d’icônes ; le serveur utilise les libellés de sorts et un renvoi NXT5 pour les builds, sans dépendre d’un téléchargement externe.
 - La supervision livrée repose sur le diagnostic, l’historique et les journaux. Les alertes indépendantes de Discord, le suivi du dernier passage planifié et le relevé régulier des délais/coûts restent à mettre en place avec l’opérateur avant ouverture générale.

@@ -4,11 +4,15 @@ Version V1 · 15 septembre 2026.
 
 Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
 
-## 1. Livrable et limites du pilote
+## 1. Bot commun à toutes les équipes
 
 Le bot transforme une game NXT5 en message Discord, PNG et lien vers la bonne équipe/game. Les imports par fichier et par identifiant utilisent le même circuit. Les corrections mettent à jour le message existant ; un réimport sans changement de contenu reste silencieux.
 
-Le pilote doit commencer avec **une équipe, un serveur et un salon réservé à cette équipe**. Le code permet plusieurs équipes indépendantes, avec une seule équipe connectée par serveur Discord et jusqu’à dix destinations distinctes par équipe. Une destination possède un filtre de catégories, l’activation automatique, une option pour les pistes de review et une éventuelle mention de rôle.
+Le produit utilise **une application Discord NXT5 commune à toutes les équipes**. Son propriétaire configure une fois les identifiants, le jeton, le serveur applicatif et les commandes. Chaque responsable d’équipe utilise ensuite le même lien d’invitation, choisit son serveur Discord, relie son équipe NXT5 et configure ses propres salons. Aucune équipe, aucun serveur et aucun salon ne sont inscrits dans une liste centrale préalable ; les responsables d’équipe n’ont pas à créer une application Discord ni à fournir un jeton.
+
+Dans NXT5, le propriétaire ou un capitaine configure les destinations. Discord exige aussi qu’un responsable autorise l’installation et la liaison dans son serveur. Une destination possède un filtre de catégories, l’activation automatique, une option pour les pistes de review et une éventuelle mention de rôle. Par exemple, une équipe peut choisir `#scrims` pour sa catégorie Scrim et `#officiels` pour ses matchs officiels ; une autre choisit librement des salons différents.
+
+Le code permet plusieurs équipes indépendantes, avec **un serveur connecté par équipe, une équipe connectée par serveur et jusqu’à dix salons par équipe**. Les clubs souhaitant plusieurs équipes NXT5 sur un même serveur, ou une équipe diffusant dans plusieurs serveurs, nécessitent une évolution du modèle de connexion et des commandes. Le pilote limité à une équipe et un salon reste une étape de validation technique ; il ne définit pas la population du produit.
 
 L’activation ne publie pas l’historique. Une ancienne game peut être partagée explicitement depuis son aperçu. Une destination manuelle continue à recevoir les corrections d’une game déjà partagée. Ajouter une catégorie ou une destination ne déplace pas silencieusement une publication existante dans un nouveau salon.
 
@@ -136,6 +140,26 @@ Le bundlage du script de benchmark résout ses imports TypeScript ; les biblioth
 La commande `npm run db:migrate` **modifie la base désignée par `DATABASE_URL`**. Dans ce dépôt, le contexte Netlify `production` l’exécute après `npm run verify`. Le registre vérifie le checksum de chaque migration : une migration déjà appliquée ne doit plus être modifiée ; les changements suivants nécessitent un nouveau fichier.
 
 ## 6. Créer et installer l’application Discord
+
+### Configuration centrale du bot public NXT5
+
+Cette opération appartient à l’administrateur de NXT5 et se fait une fois pour le service :
+
+1. Créer ou utiliser l’application officielle **NXT5** dans le [portail développeur Discord](https://discord.com/developers/applications).
+2. Activer l’installation sur serveur (**Guild Install**) et l’option **Public Bot** pour permettre aux responsables des autres serveurs d’inviter le bot. Le parcours actuel utilise l’installation directe, avec `bot_require_code_grant=false`. [Paramètres d’application Discord](https://docs.discord.com/developers/resources/application).
+3. Définir les scopes `bot` et `applications.commands`, avec les permissions de salon détaillées ci-dessous. Le lien d’installation généré par NXT5 laisse le choix du serveur à son responsable. [Installation d’une application](https://docs.discord.com/developers/quick-start/getting-started).
+4. Configurer les secrets et l’endpoint d’interactions une fois dans l’environnement NXT5, puis vérifier le PING Discord.
+5. Pour l’ouverture à toutes les équipes, enregistrer les commandes globalement avec la commande ci-dessous. Les nouvelles installations disposent alors des commandes sans opération serveur par serveur. [Portée des commandes Discord](https://docs.discord.com/developers/interactions/application-commands).
+
+```sh
+node tools/register-discord-commands.mjs --global
+```
+
+Cette commande remplace la liste globale des commandes de cette application. Elle est exécutée par l’opérateur NXT5 avec les identifiants de l’application officielle, pas par chaque équipe. Le code inclut déjà ce mode ; sa présence dans ce guide ne signifie pas qu’il a été exécuté.
+
+Le parcours autonome de chaque équipe est : **Installer le bot → choisir le serveur → relier l’équipe avec le code NXT5 → choisir les salons/règles → activer**. Le serveur et les salons de toutes les équipes ne sont pas demandés à l’administrateur NXT5 avant la configuration centrale.
+
+### Validation technique sur une application de test
 
 1. Créer l’application de test dans le [portail développeur Discord](https://discord.com/developers/applications).
 2. Créer ou activer le bot de cette application.
