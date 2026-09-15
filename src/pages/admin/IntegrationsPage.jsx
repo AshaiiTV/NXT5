@@ -4,6 +4,7 @@ import { apiFetch } from "../../api/client.js";
 import { Badge, Button, PageHeader, Surface } from "../../components/ui/Core.jsx";
 import { LinkButton } from "../public/PublicPages.jsx";
 import checklistUrl from "../../../docs/shopify-et-checklist-juridique.md?url";
+import { DiscordAdminStatus } from "../../components/discord/DiscordSettings.jsx";
 
 const LEGAL_TASKS = [
   ["Identité du vendeur", "Nom et prénoms avec la mention EI, adresse professionnelle, SIREN/SIRET, immatriculation, e-mail et téléphone. Confirmer le régime de TVA."],
@@ -53,7 +54,7 @@ export default function IntegrationsPage({ navigate }) {
       <PageHeader
         eyebrow="Configuration"
         title="Intégrations"
-        subtitle="Vérifie la connexion de la boutique Shopify et retrouve les liens vers les réseaux sociaux."
+        subtitle="Vérifie les connexions Shopify et Discord, et retrouve les liens vers les réseaux sociaux."
       />
       <Surface glow>
         <div className="space-y-5 p-2 sm:p-4">
@@ -82,6 +83,7 @@ export default function IntegrationsPage({ navigate }) {
           </div>
         </div>
       </Surface>
+      <DiscordAdminStatus />
       <Surface>
         <div className="space-y-4 p-2 sm:p-4">
           <h3 className="text-xl font-black">Réseaux sociaux</h3>

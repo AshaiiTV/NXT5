@@ -1,3 +1,4 @@
+import { buildGamePublicationSnapshot } from "../../../shared/publications/game-publication.js";
 import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumeric, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
@@ -16,15 +17,35 @@ import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
 import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import DiscordGameShare from "../../components/discord/DiscordGameShare.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
 
-async function exportStatsPng({ title, subtitle, matches, filename, teamName = "Notre équipe", group = false }) {
+async function exportStatsPng({ title, subtitle, matches, filename, team, categories = [], teamName = "Notre équipe", group = false }) {
+  const singleMatch = !group && Array.isArray(matches) && matches.filter(Boolean).length === 1 ? matches.filter(Boolean)[0] : null;
+  if (singleMatch) {
+    const { downloadGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
+    return downloadGamePublicationPng(buildGamePublicationSnapshot({ team: team || { name: teamName }, match: singleMatch, categories }), filename, {
+      async loadAssets(snapshot) {
+        const champions = new Map();
+        const items = new Map();
+        const load = async (sources) => {
+          for (const url of sources.slice(0, 2)) { const image = await pngLoadImage(url); if (image) return image; }
+          return null;
+        };
+        const championNames = [...new Set(snapshot.participants.map((row) => row.champion).filter(Boolean))];
+        const itemIds = [...new Set(snapshot.participants.flatMap((row) => [...row.items, row.trinket]).filter((id) => id > 0))];
+        await Promise.all([
+          ...championNames.map(async (name) => champions.set(name, await load(championPortraitSources(name, name)))),
+          ...itemIds.map(async (id) => items.set(id, await load(itemIconSources(id)))),
+        ]);
+        return { champions, items };
+      },
+    });
+  }
   const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
   if (!scoped.length) throw new Error("Aucune game à exporter.");
-  const firstMatch = scoped[0];
-  const singleGame = !group && scoped.length === 1;
   const games = scoped.length;
   const number = pngNumeric;
   const rawFor = (row) => {
@@ -69,36 +90,6 @@ async function exportStatsPng({ title, subtitle, matches, filename, teamName = "
   };
   const sideLabel = (match, teamKey = "ALLY") => side(match, teamKey) === "blue" ? "Côté bleu" : side(match, teamKey) === "red" ? "Côté rouge" : "Côté inconnu";
   const sideColor = (match, teamKey = "ALLY") => side(match, teamKey) === "red" ? PNG_THEME.red : side(match, teamKey) === "blue" ? PNG_THEME.cyan : PNG_THEME.muted;
-  const opponentName = firstMatch.opponent || "Adversaires";
-  const nameForTeam = (teamKey) => teamKey === "ALLY" ? teamName : opponentName;
-  const roleOrder = ["TOP", "JGL", "MID", "ADC", "SUP"];
-  const sortPlayers = (items) => [...items].sort((a, b) => {
-    const order = (row) => { const index = roleOrder.indexOf(normalizeProfileRole(row.role)); return index < 0 ? 99 : index; };
-    return order(a) - order(b);
-  });
-  const rowName = (row) => row?.summoner_name || row?.riot_id || row?.player_name || "Joueur inconnu";
-  const cs = (row) => {
-    for (const source of sourcesFor(row)) {
-      const direct = number(source.cs ?? source.creep_score ?? source.total_cs);
-      if (direct !== null) return direct;
-      const lane = number(source.totalMinionsKilled);
-      const jungle = number(source.neutralMinionsKilled);
-      if (lane !== null && jungle !== null) return lane + jungle;
-    }
-    return null;
-  };
-  const participation = (row, match) => {
-    const direct = row.kill_participation ?? row.kp;
-    if (direct !== null && direct !== undefined && String(direct).trim() !== "") {
-      const parsed = number(String(direct).replace("%", "").replace(",", "."));
-      if (parsed !== null) return String(direct).includes("%") || parsed > 1 ? parsed : parsed * 100;
-    }
-    const kills = stat(row, "kills");
-    const assists = stat(row, "assists");
-    const teamKills = total(match, row.team_key, "kills");
-    return kills !== null && assists !== null && teamKills !== null && teamKills > 0 ? (kills + assists) / teamKills * 100 : null;
-  };
-  const finalBuild = (row) => [...itemSlots(row).filter(Boolean), ...(trinketItemId(row) ? [trinketItemId(row)] : [])];
   const championCounts = (teamKey) => Array.from(scoped.flatMap((match) => rowsFor(match, teamKey)).reduce((map, row) => {
     if (row.champion) map.set(row.champion, (map.get(row.champion) || 0) + 1);
     return map;
@@ -111,13 +102,7 @@ async function exportStatsPng({ title, subtitle, matches, filename, teamName = "
     if (urls.length) imageGroups.set(JSON.stringify(urls), urls);
   };
   addImageGroup("/assets/nxt5-wordmark.png");
-  if (singleGame) {
-    (firstMatch.participants || []).forEach((row) => {
-      addImageGroup(championPortraitSources(row, row.champion));
-      summonerSpellIds(row).filter(Boolean).forEach((spell) => addImageGroup(summonerSpellIconSources(spell)));
-      finalBuild(row).forEach((item) => addImageGroup(itemIconSources(item)));
-    });
-  } else championLists.flat().forEach(([champion]) => addImageGroup(championPortraitSources(champion, champion)));
+  championLists.flat().forEach(([champion]) => addImageGroup(championPortraitSources(champion, champion)));
   await Promise.all([...imageGroups.values()].map(async (urls) => {
     for (const url of urls) {
       const image = imageCache.has(url) ? imageCache.get(url) : await pngLoadImage(url);
@@ -138,173 +123,101 @@ async function exportStatsPng({ title, subtitle, matches, filename, teamName = "
     const image = (Array.isArray(sources) ? sources : [sources]).map((url) => imageCache.get(url)).find(Boolean);
     if (image) pngImageCover(ctx, image, x, y, size, size, radius);
   };
-  const header = () => pngHeader(ctx, { width: W, margin: M, title: title || (singleGame ? matchDisplayName(firstMatch) : "Groupe de games"), eyebrow: singleGame ? "Game" : "Groupe de games", subtitle: [teamName, pngDateRange(scoped), subtitle].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(" · "), logo: imageCache.get("/assets/nxt5-wordmark.png") });
+  const header = () => pngHeader(ctx, { width: W, margin: M, title: title || "Groupe de games", eyebrow: "Groupe de games", subtitle: [teamName, pngDateRange(scoped), subtitle].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(" · "), logo: imageCache.get("/assets/nxt5-wordmark.png") });
   const pages = [];
-  if (singleGame) {
-    const teamKeys = side(firstMatch, "ALLY") === "red" ? ["ENEMY", "ALLY"] : ["ALLY", "ENEMY"];
-    const teams = teamKeys.map((teamKey) => ({ teamKey, rows: sortPlayers(rowsFor(firstMatch, teamKey)).map((row) => {
-      const name = wrap(rowName(row), 332, 22, 700);
-      const champion = wrap(`${row.role || "Rôle inconnu"} · ${row.champion ? championDisplayName(row.champion) : "Champion inconnu"}`, 332, 20);
-      return { row, name, champion, height: Math.max(116, name.length * 27 + champion.length * 25 + 50) };
-    }) }));
-    const bodyHeight = teams.reduce((sum, team) => sum + 110 + Math.max(80, team.rows.reduce((height, row) => height + row.height, 0)) + 24, 0);
-    const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, 600 + bodyHeight + 96);
+  const measures = [["Kills", "kills", 1], ["Morts", "deaths", 1], ["Assists", "assists", 1], ["Or", "gold", 0], ["Dégâts champions", "damage", 0], ["Score de vision", "vision", 1]].map(([label, key, digits]) => {
+    const pairs = paired(key);
+    return { label, digits, count: pairs.length, ally: pngMean(pairs.map((pair) => pair.ally)), enemy: pngMean(pairs.map((pair) => pair.enemy)), diff: pngMean(pairs.map((pair) => pair.ally - pair.enemy)) };
+  });
+  const durationValues = scoped.map(durationSeconds).filter((value) => value !== null);
+  const gameRows = scoped.map((match) => ({ match, names: wrap(matchDisplayName(match, "Game"), 464, 22, 700) })).map((row) => ({ ...row, height: Math.max(82, row.names.length * 27 + 38) }));
+  const championRows = Array.from({ length: Math.max(...championLists.map((list) => list.length)) }, (_, index) => ({ entries: championLists.map((list) => list[index]), height: 64 }));
+  // Every game and champion is exported. Long selections continue on numbered PNGs.
+  const plan = [{ parts: [], end: 844, first: true }];
+  for (const section of [{ key: "games", rows: gameRows }, { key: "champions", rows: championRows }]) {
+    const remaining = [...section.rows];
+    if (!remaining.length) continue;
+    while (remaining.length) {
+      let page = plan[plan.length - 1];
+      if (page.end + 108 + remaining[0].height > 1896) {
+        page = { parts: [], end: 216, first: false };
+        plan.push(page);
+      }
+      const part = { key: section.key, y: page.end, rows: [] };
+      let end = part.y + 108;
+      while (remaining.length && end + remaining[0].height <= 1896) {
+        const row = remaining.shift();
+        part.rows.push(row);
+        end += row.height;
+      }
+      if (!part.rows.length) throw new Error("Le nom d’une game est trop long pour tenir sur une page PNG.");
+      page.parts.push(part);
+      page.end = end + 24;
+    }
+  }
+  plan.forEach((page, pageIndex) => {
+    const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, Math.max(960, page.end + 96));
     ctx = canvasCtx;
     pngBackground(ctx, W, canvas.height);
     header();
-    const allyKills = total(firstMatch, "ALLY", "kills");
-    const enemyKills = total(firstMatch, "ENEMY", "kills");
-    const goldPairs = paired("gold");
-    const goldDiff = goldPairs.length ? goldPairs[0].ally - goldPairs[0].enemy : null;
-    pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
-      { label: "Résultat", value: resultLabel(firstMatch), accent: firstMatch.result === "Victoire" ? "green" : firstMatch.result === "Défaite" ? "red" : undefined, detail: sideLabel(firstMatch) },
-      { label: "Durée", value: duration(durationSeconds(firstMatch)), detail: firstMatch.patch ? `Patch ${firstMatch.patch}` : "Patch —" },
-      { label: "Kills équipe / adversaires", value: `${pngNumber(allyKills)} / ${pngNumber(enemyKills)}`, detail: "Kills" },
-      { label: "Écart d’or", value: signed(goldDiff), detail: "Équipe − adversaires · or", accent: goldDiff === null || goldDiff === 0 ? undefined : goldDiff > 0 ? "green" : "red" },
-    ] });
-    pngPanel(ctx, M, 364, CW, 208);
-    const objectiveFields = [["Dragons", ["dragon"]], ["Grubs", ["horde", "voidgrub", "voidGrubs", "grub", "grubs"]], ["Hérauts", ["riftHerald", "riftHeralds", "herald"]], ["Nashors", ["baron", "baronNashor"]], ["Tours", ["tower", "towers"]]];
-    teams.forEach(({ teamKey }, teamIndex) => {
-      const x = M + 24 + teamIndex * CW / 2;
-      const width = CW / 2 - 48;
-      text(nameForTeam(teamKey), x, 401, width - 180, 24, PNG_THEME.text, 700);
-      text(sideLabel(firstMatch, teamKey), x + width, 400, 170, 20, sideColor(firstMatch, teamKey), 600, "right");
-      const teamId = side(firstMatch, teamKey) === "blue" ? 100 : side(firstMatch, teamKey) === "red" ? 200 : null;
-      const objectives = firstMatch.raw?.info?.teams?.find((team) => Number(team.teamId) === teamId)?.objectives;
-      objectiveFields.forEach(([label, keys], index) => {
-        const entry = Object.entries(objectives || {}).find(([key]) => keys.some((candidate) => candidate.toLowerCase() === key.toLowerCase()));
-        const xCell = x + index * width / 5;
-        text(pngNumber(number(entry?.[1]?.kills)), xCell, 458, width / 5 - 10, 36, PNG_THEME.text, 700);
-        text(label, xCell, 490, width / 5 - 10, 20, PNG_THEME.muted);
+    if (page.first) {
+      pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
+        { label: "Games", value: pngNumber(games), detail: `${wins} V · ${losses} D${games > knownResults ? ` · ${games - knownResults} inconnus` : ""}` },
+        { label: "Taux de victoire", value: pngPercent(knownResults ? wins / knownResults * 100 : null), detail: `${knownResults}/${games} résultats connus` },
+        { label: "Durée moyenne", value: duration(pngMean(durationValues)), detail: `${durationValues.length}/${games} games · min:s` },
+        { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
+      ] });
+      pngPanel(ctx, M, 364, CW, 456);
+      text("Moyennes par game", M + 24, 406, 620, 28, PNG_THEME.text, 700);
+      text("Écart = équipe − adversaires", W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
+      [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
+      measures.forEach((measure, index) => {
+        const y = 480 + index * 46;
+        pngLine(ctx, M + 24, y - 10, W - M - 24, y - 10);
+        text(measure.label, M + 24, y + 21, 330, 22);
+        text(pngNumber(measure.ally, measure.digits), M + 400, y + 21, 308, 28, PNG_THEME.text, 700);
+        text(pngNumber(measure.enemy, measure.digits), M + 746, y + 21, 220, 28, PNG_THEME.text, 700);
+        text(signed(measure.diff, measure.digits), M + 1030, y + 21, 190, 28, PNG_THEME.text, 700);
+        text(`${measure.count}/${games}`, M + 1280, y + 21, 174, 22, PNG_THEME.muted);
       });
-    });
-    pngLine(ctx, W / 2, 390, W / 2, 530);
-    text("Objectifs détruits · — = donnée indisponible", M + 24, 549, CW - 48, 20, PNG_THEME.muted);
-    let y = 600;
-    teams.forEach(({ teamKey, rows }) => {
-      const height = 110 + Math.max(80, rows.reduce((sum, row) => sum + row.height, 0));
-      pngPanel(ctx, M, y, CW, height);
-      text(nameForTeam(teamKey), M + 24, y + 40, CW - 260, 28, PNG_THEME.text, 700);
-      text(sideLabel(firstMatch, teamKey), W - M - 24, y + 40, 200, 22, sideColor(firstMatch, teamKey), 700, "right");
-      const columns = [["Joueur / champion", M + 24, 408], ["K / D / A", M + 474, 172], ["CS", M + 672, 90], ["Participation", M + 790, 148], ["Or", M + 974, 134], ["Dégâts champions", M + 1140, 180], ["Vision", M + 1370, 98]];
-      columns.forEach(([label, x, width]) => text(label, x, y + 84, width, 20, PNG_THEME.muted));
-      pngLine(ctx, M + 24, y + 100, W - M - 24, y + 100);
-      let rowY = y + 110;
-      if (!rows.length) text("Joueurs indisponibles", M + 24, rowY + 44, CW - 48, 24, PNG_THEME.muted);
-      rows.forEach(({ row, name, champion, height: rowHeight }, index) => {
-        if (index) pngLine(ctx, M + 24, rowY, W - M - 24, rowY);
-        drawImage(championPortraitSources(row, row.champion), M + 24, rowY + 18, 64);
-        lines(name, M + 108, rowY + 30, 332, 22, PNG_THEME.text, 700);
-        lines(champion, M + 108, rowY + 30 + name.length * 27, 332, 20, sideColor(firstMatch, teamKey));
-        text(["kills", "deaths", "assists"].map((key) => pngNumber(stat(row, key))).join(" / "), M + 474, rowY + 44, 172, 28, PNG_THEME.text, 700);
-        text(pngNumber(cs(row)), M + 672, rowY + 44, 90, 28, PNG_THEME.text, 700);
-        text(pngPercent(participation(row, firstMatch)), M + 790, rowY + 44, 148, 28, PNG_THEME.text, 700);
-        text(pngNumber(stat(row, "gold")), M + 974, rowY + 44, 134, 28, PNG_THEME.text, 700);
-        text(pngNumber(stat(row, "damage")), M + 1140, rowY + 44, 180, 28, PNG_THEME.text, 700);
-        text(pngNumber(stat(row, "vision")), M + 1370, rowY + 44, 98, 28, PNG_THEME.text, 700);
-        summonerSpellIds(row).filter(Boolean).forEach((spell, spellIndex) => drawImage(summonerSpellIconSources(spell), M + 474 + spellIndex * 38, rowY + 62, 32));
-        finalBuild(row).forEach((item, itemIndex) => drawImage(itemIconSources(item), M + 790 + itemIndex * 40, rowY + 62, 32));
-        rowY += rowHeight;
-      });
-      y += height + 24;
-    });
-    pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: "K / D / A : kills / morts / assists · Participation : kills de l’équipe" });
-    pages.push(canvas);
-  } else {
-    const measures = [["Kills", "kills", 1], ["Morts", "deaths", 1], ["Assists", "assists", 1], ["Or", "gold", 0], ["Dégâts champions", "damage", 0], ["Score de vision", "vision", 1]].map(([label, key, digits]) => {
-      const pairs = paired(key);
-      return { label, digits, count: pairs.length, ally: pngMean(pairs.map((pair) => pair.ally)), enemy: pngMean(pairs.map((pair) => pair.enemy)), diff: pngMean(pairs.map((pair) => pair.ally - pair.enemy)) };
-    });
-    const durationValues = scoped.map(durationSeconds).filter((value) => value !== null);
-    const gameRows = scoped.map((match) => ({ match, names: wrap(matchDisplayName(match, "Game"), 464, 22, 700) })).map((row) => ({ ...row, height: Math.max(82, row.names.length * 27 + 38) }));
-    const championRows = Array.from({ length: Math.max(...championLists.map((list) => list.length)) }, (_, index) => ({ entries: championLists.map((list) => list[index]), height: 64 }));
-    // Every game and champion is exported. Long selections continue on numbered PNGs.
-    const plan = [{ parts: [], end: 844, first: true }];
-    for (const section of [{ key: "games", rows: gameRows }, { key: "champions", rows: championRows }]) {
-      const remaining = [...section.rows];
-      if (!remaining.length) continue;
-      while (remaining.length) {
-        let page = plan[plan.length - 1];
-        if (page.end + 108 + remaining[0].height > 1896) {
-          page = { parts: [], end: 216, first: false };
-          plan.push(page);
-        }
-        const part = { key: section.key, y: page.end, rows: [] };
-        let end = part.y + 108;
-        while (remaining.length && end + remaining[0].height <= 1896) {
-          const row = remaining.shift();
-          part.rows.push(row);
-          end += row.height;
-        }
-        if (!part.rows.length) throw new Error("Le nom d’une game est trop long pour tenir sur une page PNG.");
-        page.parts.push(part);
-        page.end = end + 24;
-      }
+      text("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible", M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
     }
-    plan.forEach((page, pageIndex) => {
-      const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, Math.max(960, page.end + 96));
-      ctx = canvasCtx;
-      pngBackground(ctx, W, canvas.height);
-      header();
-      if (page.first) {
-        pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
-          { label: "Games", value: pngNumber(games), detail: `${wins} V · ${losses} D${games > knownResults ? ` · ${games - knownResults} inconnus` : ""}` },
-          { label: "Taux de victoire", value: pngPercent(knownResults ? wins / knownResults * 100 : null), detail: `${knownResults}/${games} résultats connus` },
-          { label: "Durée moyenne", value: duration(pngMean(durationValues)), detail: `${durationValues.length}/${games} games · min:s` },
-          { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
-        ] });
-        pngPanel(ctx, M, 364, CW, 456);
-        text("Moyennes par game", M + 24, 406, 620, 28, PNG_THEME.text, 700);
-        text("Écart = équipe − adversaires", W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
-        [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
-        measures.forEach((measure, index) => {
-          const y = 480 + index * 46;
-          pngLine(ctx, M + 24, y - 10, W - M - 24, y - 10);
-          text(measure.label, M + 24, y + 21, 330, 22);
-          text(pngNumber(measure.ally, measure.digits), M + 400, y + 21, 308, 28, PNG_THEME.text, 700);
-          text(pngNumber(measure.enemy, measure.digits), M + 746, y + 21, 220, 28, PNG_THEME.text, 700);
-          text(signed(measure.diff, measure.digits), M + 1030, y + 21, 190, 28, PNG_THEME.text, 700);
-          text(`${measure.count}/${games}`, M + 1280, y + 21, 174, 22, PNG_THEME.muted);
-        });
-        text("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible", M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
+    page.parts.forEach((part) => {
+      const height = 108 + part.rows.reduce((sum, row) => sum + row.height, 0);
+      pngPanel(ctx, M, part.y, CW, height);
+      text(part.key === "games" ? `Games · ${games}` : "Champions joués · nombre de picks", M + 24, part.y + 40, CW - 48, 28, PNG_THEME.text, 700);
+      if (part.key === "games") {
+        [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
+      } else {
+        text(teamName, M + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
+        text("Adversaires", W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
       }
-      page.parts.forEach((part) => {
-        const height = 108 + part.rows.reduce((sum, row) => sum + row.height, 0);
-        pngPanel(ctx, M, part.y, CW, height);
-        text(part.key === "games" ? `Games · ${games}` : "Champions joués · nombre de picks", M + 24, part.y + 40, CW - 48, 28, PNG_THEME.text, 700);
+      let y = part.y + 108;
+      part.rows.forEach((row) => {
+        pngLine(ctx, M + 24, y, W - M - 24, y);
         if (part.key === "games") {
-          [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
-        } else {
-          text(teamName, M + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
-          text("Adversaires", W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
-        }
-        let y = part.y + 108;
-        part.rows.forEach((row) => {
-          pngLine(ctx, M + 24, y, W - M - 24, y);
-          if (part.key === "games") {
-            const { match, names } = row;
-            lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
-            text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
-            text(resultLabel(match), M + 522, y + 43, 174, 24, resultColor(match), 700);
-            text(pngDateRange([match]) === "Date indisponible" ? "—" : pngDateRange([match]), M + 734, y + 43, 190, 20, PNG_THEME.muted);
-            text(duration(durationSeconds(match)), M + 964, y + 43, 130, 24);
-            text(sideLabel(match).replace("Côté ", ""), M + 1132, y + 43, 160, 22, sideColor(match), 700);
-            text(match.patch || "—", M + 1334, y + 43, 122, 22, PNG_THEME.muted);
-          } else row.entries.forEach((entry, teamIndex) => {
-            if (!entry) return;
-            const [champion, count] = entry;
-            const x = M + 24 + teamIndex * CW / 2;
-            drawImage(championPortraitSources(champion, champion), x, y + 10, 44);
-            text(championDisplayName(champion), x + 62, y + 40, CW / 2 - 218, 24, PNG_THEME.text, 600);
-            text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, PNG_THEME.text, 700, "right");
-          });
-          y += row.height;
+          const { match, names } = row;
+          lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
+          text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
+          text(resultLabel(match), M + 522, y + 43, 174, 24, resultColor(match), 700);
+          text(pngDateRange([match]) === "Date indisponible" ? "—" : pngDateRange([match]), M + 734, y + 43, 190, 20, PNG_THEME.muted);
+          text(duration(durationSeconds(match)), M + 964, y + 43, 130, 24);
+          text(sideLabel(match).replace("Côté ", ""), M + 1132, y + 43, 160, 22, sideColor(match), 700);
+          text(match.patch || "—", M + 1334, y + 43, 122, 22, PNG_THEME.muted);
+        } else row.entries.forEach((entry, teamIndex) => {
+          if (!entry) return;
+          const [champion, count] = entry;
+          const x = M + 24 + teamIndex * CW / 2;
+          drawImage(championPortraitSources(champion, champion), x, y + 10, 44);
+          text(championDisplayName(champion), x + 62, y + 40, CW / 2 - 218, 24, PNG_THEME.text, 600);
+          text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, PNG_THEME.text, 700, "right");
         });
+        y += row.height;
       });
-      pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: `Groupe de games · ${pageIndex + 1}/${plan.length}` });
-      pages.push(canvas);
     });
-  }
+    pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: `Groupe de games · ${pageIndex + 1}/${plan.length}` });
+    pages.push(canvas);
+  });
   await pngDownloadPages(pages, filename || "nxt5-stats-export.png");
 }
 
@@ -1284,155 +1197,11 @@ function playerSideTimings(match, role) {
 }
 
 function matchPlayerCoachReads(match) {
-  const allies = teamRows(match, "ALLY");
-  const kills = championKillEvents(match);
-  const objectives = objectiveEvents(match);
-  const roleDiffs = roleDiffRows(match);
-  return allies.map((row) => {
-    const participantId = rowParticipantId(row);
-    const deaths = kills.filter((event) => event.victimTeam === "ALLY" && event.victimId === participantId);
-    const catches = deaths.filter((death) => {
-      const traded = kills.some((event) => event.killerTeam === "ALLY" && Math.abs(event.timestamp - death.timestamp) <= 15000);
-      const beforeObjective = objectives.some((event) => event.timestamp > death.timestamp && event.timestamp - death.timestamp <= 90000);
-      return !traded || beforeObjective || (death.assistingParticipantIds || []).length <= 1;
-    });
-    const positiveEvents = kills.filter((event) => {
-      if (event.killerTeam !== "ALLY") return false;
-      const involved = event.killerId === participantId || (event.assistingParticipantIds || []).map(Number).includes(participantId);
-      if (!involved) return false;
-      const alliedDeathsNearby = kills.filter((item) => item.victimTeam === "ALLY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
-      const enemyDeathsNearby = kills.filter((item) => item.victimTeam === "ENEMY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
-      return enemyDeathsNearby > alliedDeathsNearby;
-    });
-    const diff = roleDiffs.find((item) => item.ally === row || normalizeProfileRole(item.role) === normalizeProfileRole(row.role));
-    const side = playerSideTimings(match, row.role);
-    const catchText = catches.length
-      ? `${catches.length} catch${catches.length > 1 ? "s" : ""} détecté${catches.length > 1 ? "s" : ""} : ${catches.slice(0, 3).map((event) => event.time).join(" · ")}${catches.length > 3 ? "…" : ""}. Revoir information disponible, position des alliés et objectif suivant.`
-      : deaths.length
-        ? `Aucun catch net détecté : ${deaths.length} mort${deaths.length > 1 ? "s" : ""}, mais échangée${deaths.length > 1 ? "s" : ""} ou hors fenêtre critique.`
-        : Number(row.deaths) === 0
-          ? "Aucune mort : vérifier que cette discipline n'a pas sacrifié une fenêtre d'impact utile."
-          : "Timings des morts indisponibles : vérifier les catches dans la VOD.";
-    const goodText = positiveEvents.length
-      ? `${positiveEvents.length} bonne${positiveEvents.length > 1 ? "s" : ""} fenêtre${positiveEvents.length > 1 ? "s" : ""} d'impact, dès ${positiveEvents[0].time} : participation à une séquence gagnée sans rendre autant de kills.`
-      : !kills.length
-        ? "Événements de combat indisponibles : vérifier les séquences positives dans la VOD."
-        : "Aucune séquence positive nette détectée dans la timeline : chercher si le joueur arrive trop tard, trop tôt ou sans ressources.";
-    const laneText = diff
-      ? `Lane : CS10 ${Number.isFinite(diff.cs10Diff) ? `${diff.cs10Diff >= 0 ? "+" : ""}${diff.cs10Diff}` : "N/A"} · or final ${formatGoldDiff(diff.goldDiff)} · ${diff.goldDiff >= 0 ? "levier à convertir" : "coût à stabiliser"}.`
-      : "Lane : données comparatives insuffisantes.";
-    return { name: playerReviewName(row), role: normalizeProfileRole(row.role) || row.role || "ROLE", catchText, goodText, laneText, ...side };
-  });
+  return buildGamePublicationSnapshot({ match }).coach.playerReads;
 }
 
 function matchCoachSnapshot(match) {
-  const ally = teamRows(match, "ALLY");
-  const enemy = teamRows(match, "ENEMY");
-  const allyKills = sumRows(ally, "kills");
-  const allyDeaths = sumRows(ally, "deaths");
-  const allyAssists = sumRows(ally, "assists");
-  const enemyKills = sumRows(enemy, "kills");
-  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
-  const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
-  const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  const allyObjectives = objectiveTeamSummary(match, "ALLY");
-  const enemyObjectives = objectiveTeamSummary(match, "ENEMY");
-  const objectiveDiff = teamObjectiveScore(allyObjectives) - teamObjectiveScore(enemyObjectives);
-  const fights = fightWindows(match);
-  const allyFights = fights.filter((fight) => fight.teamKey === "ALLY").length;
-  const enemyFights = fights.filter((fight) => fight.teamKey === "ENEMY").length;
-  const roleRows = roleDiffRows(match);
-  const reviewRole = roleRows.slice().sort((a, b) => {
-    const score = (row) => (Number(row.goldDiff || 0) / 450) + (Number(row.damageDiff || 0) / 1400) + (Number(row.cs10Diff || 0) * 1.4) - (Number(row.deathsDiff || 0) * 4);
-    return score(a) - score(b);
-  })[0];
-  const carryRole = roleRows.slice().sort((a, b) => (Number(b.goldDiff || 0) + Number(b.damageDiff || 0) / 3) - (Number(a.goldDiff || 0) + Number(a.damageDiff || 0) / 3))[0];
-  const isWin = match.result === "Victoire";
-  const mainSignal = (() => {
-    if (Math.abs(goldDiff) >= 2500) return { label: "Économie", value: formatGoldDiff(goldDiff), toneName: goldDiff >= 0 ? "green" : "red" };
-    if (Math.abs(damageDiff) >= 7000) return { label: "Fights", value: `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, toneName: damageDiff >= 0 ? "green" : "red" };
-    if (Math.abs(visionDiff) >= 18) return { label: "Vision", value: `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, toneName: visionDiff >= 0 ? "cyan" : "red" };
-    return { label: "Objectifs", value: `${objectiveDiff >= 0 ? "+" : ""}${objectiveDiff}`, toneName: objectiveDiff >= 0 ? "cyan" : "red" };
-  })();
-  const title = isWin
-    ? `Victoire portée par ${mainSignal.label.toLowerCase()}`
-    : `${mainSignal.label} à corriger en priorité`;
-  const summary = isWin
-    ? `La game se gagne avec ${mainSignal.value}. Le replay doit confirmer comment cet avantage a été créé puis converti.`
-    : `La game se perd avec ${mainSignal.value}. La review doit isoler le moment où le plan décroche.`;
-  const roleLabelText = reviewRole ? roleLabel(reviewRole.role) : "Rôle non isolé";
-  const roleText = reviewRole
-    ? `${roleLabelText} vs ${championDisplayName(reviewRole.enemy?.champion)} · CS10 ${Number.isFinite(reviewRole.cs10Diff) ? (reviewRole.cs10Diff >= 0 ? "+" : "") + reviewRole.cs10Diff : "N/A"} · or ${formatGoldDiff(reviewRole.goldDiff)}`
-    : "Pas assez de données par rôle.";
-  const keep = isWin
-    ? (carryRole ? `${roleLabel(carryRole.role)} a donné le meilleur levier de la game.` : "Le plan global a converti.")
-    : (goldDiff > 0 || damageDiff > 0 ? "Il y a un avantage exploitable à conserver." : "Garder uniquement les phases propres identifiées en timeline.");
-  const correct = reviewRole
-    ? `${roleLabelText} est la première lane à revoir.`
-    : "Revoir le premier objectif et les morts avant setup.";
-  const action = isWin
-    ? "Identifier le setup reproductible pour la prochaine game."
-    : "Choisir un seul correctif avant le prochain bloc.";
-  const roleName = reviewRole ? roleLabel(reviewRole.role) : "l'équipe";
-  const isEconomyIssue = goldDiff < -2500;
-  const isFightIssue = damageDiff < -7000 || enemyFights > allyFights;
-  const isVisionIssue = visionDiff < -18;
-  const isObjectiveIssue = objectiveDiff < 0;
-  const verdict = isWin
-    ? `Cette victoire compte seulement si l'équipe sait reproduire le setup qui a créé ${mainSignal.value} en ${mainSignal.label.toLowerCase()}.`
-    : `${roleName} est le premier point de rupture visible, mais la review doit remonter à la décision collective qui l'a exposé.`;
-  const standard = isVisionIssue
-    ? "Aucun objectif joué sans zone préparée, information jungle et chemin de sortie annoncé."
-    : isObjectiveIssue
-      ? "Chaque objectif est appelé 60 secondes avant avec priorité de lane, reset et responsabilité de setup."
-      : isEconomyIssue
-        ? "Une lane sous pression ne donne pas une deuxième ressource : wave, camp ou plaque sont cédés consciemment, jamais par défaut."
-        : isFightIssue
-          ? "Le fight ne démarre qu'avec la cible, les cooldowns clés et la condition de sortie compris par les cinq joueurs."
-          : "Le plan de jeu doit être formulé avant la draft puis confirmé par un call simple à chaque transition.";
-  const vodCheckpoints = [
-    `Premier moment où l'écart d'or change de sens : qui avait l'information, quel call a été fait, quelle option sûre existait ?`,
-    isObjectiveIssue ? "60 secondes avant le premier objectif perdu : waves, resets, vision et position du jungler." : "Premier objectif contesté : avantage réel, ressources disponibles et condition de renoncement.",
-    reviewRole ? `Première séquence où ${roleName} perd le contrôle : état de wave, couverture, communication et coût collectif.` : "Première mort évitable : information disponible, décision prise et conséquence sur la carte.",
-  ];
-  const executionPlan = [
-    `Avant la game : annoncer la win condition et le risque numéro 1 en une phrase.`,
-    isVisionIssue || isObjectiveIssue ? "En game : lancer le setup objectif à T-60, confirmer les priorités à T-40 et décider go/no-go à T-20." : "En game : verbaliser la prochaine ressource jouée avant chaque transition de map.",
-    `Après la game : vérifier ce standard sur 3 séquences, sans juger uniquement le résultat final.`,
-  ];
-  const validation = isWin
-    ? "Validé si le même setup crée un avantage exploitable sur 2 des 3 prochaines games."
-    : `Validé si ${roleName} ne subit plus le même point de rupture sur 3 games consécutives et si le call collectif arrive avant l'action.`;
-  const coachQuestions = [
-    "Qu'est-ce que tu savais au moment de décider — pas après coup ?",
-    "Quel call simple aurait permis aux cinq joueurs de prendre la même décision ?",
-    "Quel comportement précis remplace l'erreur dès la prochaine game ?",
-  ];
-  const playerReads = matchPlayerCoachReads(match);
-  return {
-    title,
-    summary,
-    mainSignal,
-    roleText,
-    keep,
-    correct,
-    action,
-    verdict,
-    standard,
-    vodCheckpoints,
-    executionPlan,
-    validation,
-    coachQuestions,
-    playerReads,
-    metrics: [
-      ["KDA", `${allyKills}/${allyDeaths}/${allyAssists}`, `${enemyKills} kills adverses`, "cyan"],
-      ["Or", formatGoldDiff(goldDiff), "écart final", goldDiff >= 0 ? "green" : "red"],
-      ["Dégâts", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "alliés vs adversaires", damageDiff >= 0 ? "green" : "red"],
-      ["Vision", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "score vision", visionDiff >= 0 ? "cyan" : "red"],
-      ["Objectifs", `${teamObjectiveScore(allyObjectives)}-${teamObjectiveScore(enemyObjectives)}`, "tous objectifs", objectiveDiff >= 0 ? "cyan" : "red"],
-      ["Fights", `${allyFights}-${enemyFights}`, "fenêtres détectées", allyFights >= enemyFights ? "green" : "red"],
-    ],
-  };
+  return buildGamePublicationSnapshot({ match }).coach;
 }
 
 function MatchCoachBrief({ match }) {
@@ -1670,6 +1439,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         teamName: selectedTeamName,
         group,
         matches: exportMatches,
+        team: { id: selectedTeamId, name: selectedTeamName },
+        categories: matchCategories,
         filename: group ? "nxt5-groupe-stats.png" : "nxt5-game-" + (exportMatches[0].game_id || "export") + ".png",
       });
     } catch (error) {
@@ -1700,6 +1471,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement des statistiques détaillées…</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && " Les statistiques déjà chargées restent disponibles."}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button></Surface>}
       {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} statsFirst />}
+      {selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canStaffManage(currentMember?.role)} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Game introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
     </div>}
 
@@ -1904,7 +1676,7 @@ function buildGameReviewContent(match) {
     `Résultat: ${match.result || "Analyse"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`,
     `Données: ${timelineStatus(match).label} · ${timelineStatus(match).detail}`,
     "",
-    "CAUSE RACINE",
+    "PISTES DE REVIEW",
     `- ${snapshot.title}`,
     `- ${snapshot.summary}`,
     `- Lane à review: ${snapshot.roleText}`,
@@ -1960,7 +1732,7 @@ function buildArchiveReportContent(name, matches) {
     "",
     `Groupe: ${name || "Groupe"}`,
     "",
-    "CAUSE RACINE",
+    "PISTES DE REVIEW",
     ...reportRawSummaryLines(linked),
     "",
     "CHECKPOINTS VOD",

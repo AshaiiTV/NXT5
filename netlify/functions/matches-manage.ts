@@ -1,11 +1,14 @@
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
+import type { NeonQueryPromise } from '@neondatabase/serverless';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema } from './_lib/match-categories';
 import { ensureWorkflowSchema } from './_lib/schema';
 import { changeMatchSide } from './_lib/match-side';
+import { wakeDiscordPublications } from './_lib/discord-wake';
+import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().slice(0, max);
@@ -26,8 +29,9 @@ function cleanIdList(value) {
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
-    assertSessionSecret();
     assertMethod(request, 'POST');
+    assertMatchSourceMutationEnvironment(context);
+    assertSessionSecret();
     await ensureMatchManagementColumns();
     const user = await requireAuth(request, context);
     const body = await readJson(request);
@@ -107,7 +111,9 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     if (action === 'side') {
-      return json(await changeMatchSide({ teamId, match, userId: user.id, allyTeamSide: body.allyTeamSide, playerAssignments: body.playerAssignments }));
+      const result = await changeMatchSide({ teamId, match, userId: user.id, allyTeamSide: body.allyTeamSide, playerAssignments: body.playerAssignments });
+      wakeDiscordPublications(context);
+      return json(result);
     }
 
     if (action === 'roles') {
@@ -115,6 +121,7 @@ export default async function handler(request: Request, context: Context): Promi
       const allowedRoles = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP']);
       const players = await sql`select id from players where team_id = ${teamId}`;
       const validPlayerIds = new Set(players.map((player) => String(player.id)));
+      const changes: NeonQueryPromise<false, false, any>[] = [];
       for (const [participantId, roleRaw] of Object.entries(roles)) {
         const assignment = roleRaw && typeof roleRaw === 'object' ? roleRaw as Record<string, any> : { role: roleRaw };
         const role = cleanText(assignment.role, 12).toUpperCase();
@@ -122,27 +129,34 @@ export default async function handler(request: Request, context: Context): Promi
         if (!allowedRoles.has(role)) continue;
         if (playerId && !validPlayerIds.has(playerId)) throw Object.assign(new Error('Profil joueur invalide pour cette team.'), { status: 400 });
         if (playerId) {
-          await sql`
+          changes.push(sql`
             update match_participants
             set role = ${role},
                 player_id = ${playerId}
             where id = ${participantId}
               and match_id = ${matchId}
               and team_key = 'ALLY'
-          `;
+          `);
         } else {
-          await sql`
+          changes.push(sql`
             update match_participants
             set role = ${role}
             where id = ${participantId}
               and match_id = ${matchId}
-          `;
+          `);
         }
       }
-      await sql`
+      // Validate every assignment before writing. The deferred publication
+      // trigger must observe the whole correction, never an intermediate role.
+      await sql.transaction([
+        sql`select id from matches where id=${matchId} and team_id=${teamId} for update`,
+        ...changes,
+        sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'matches.roles', 'match', ${matchId}, ${JSON.stringify({ teamId, roles })}::jsonb)
-      `;
+        `,
+      ]);
+      wakeDiscordPublications(context);
       return json({ ok: true });
     }
 
@@ -196,6 +210,7 @@ export default async function handler(request: Request, context: Context): Promi
       values (${user.id}, 'matches.update', 'match', ${matchId}, ${JSON.stringify({ teamId, label: displayName, categoryIds: validCategoryIds })}::jsonb)
     `;
 
+    wakeDiscordPublications(context);
     return json({ match: rows[0] });
   } catch (err) {
     return handleError(err);

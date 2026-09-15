@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const database = vi.hoisted(() => ({
   pg: null as any,
@@ -129,6 +129,9 @@ beforeAll(async () => {
 }, 20_000);
 
 beforeEach(async () => {
+  // These integration tests simulate a local invocation, including on Netlify CI.
+  for (const key of ['AWS_LAMBDA_FUNCTION_NAME', 'LAMBDA_TASK_ROOT', 'SITE_ID']) vi.stubEnv(key, '');
+  vi.stubEnv('CONTEXT', 'dev');
   database.beforeBatch = null;
   await database.pg.exec('alter table match_participants drop constraint if exists reject_test_stat; alter table champion_pool drop constraint if exists reject_pool_refresh; truncate users cascade');
   await database.pg.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $3, $4)', [userId, 'test', 'Test account', 'unused']);
@@ -145,6 +148,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => { await database.pg?.close(); });
+afterEach(() => { vi.unstubAllEnvs(); });
 
 describe('atomic match imports against PostgreSQL', () => {
   it('reimports into the same match with one coherent participant set, archive and metadata', async () => {
@@ -513,6 +517,41 @@ describe('team side correction against PostgreSQL', () => {
     };
     expect((await correctSide(match.id)).status).toBe(409);
     expect(await storedMatch()).toEqual(before);
+  });
+});
+
+describe('atomic role corrections', () => {
+  async function correctRoles(matchId: string, assignments: Record<string, unknown>) {
+    return manageMatches(new Request('https://nxt5.example/.netlify/functions/matches-manage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'roles', teamId, matchId, roles: assignments }),
+    }), {} as any);
+  }
+
+  it('validates all profiles before writing the first participant', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const allies = before.participants.filter((p: any) => p.team_key === 'ALLY');
+    const response = await correctRoles(match.id, {
+      [allies[0].id]: { role: 'SUP' },
+      [allies[1].id]: { role: 'TOP', playerId: foreignCategoryId },
+    });
+    expect(response.status).toBe(400);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it('rolls every role and audit back if one SQL assignment fails', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const allies = before.participants.filter((p: any) => p.team_key === 'ALLY');
+    const nextRole = allies[1].role === 'SUP' ? 'TOP' : 'SUP';
+    await database.pg.exec(`alter table match_participants add constraint reject_role_test check (id <> '${allies[1].id}' or role <> '${nextRole}')`);
+    try {
+      const response = await correctRoles(match.id, { [allies[0].id]: 'MID', [allies[1].id]: nextRole });
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(await storedMatch()).toEqual(before);
+      expect((await database.pg.query("select * from audit_logs where action='matches.roles'")).rows).toEqual([]);
+    } finally { await database.pg.exec('alter table match_participants drop constraint reject_role_test'); }
   });
 });
 

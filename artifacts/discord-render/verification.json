@@ -1,0 +1,15 @@
+{
+  "verifiedAt": "2026-09-15T12:51:26.744Z",
+  "command": "netlify build --offline --context deploy-preview (npm run verify + Functions bundling)",
+  "node": "v24.19.0",
+  "typecheck": "passed",
+  "tests": {
+    "cases": 1142,
+    "suites": 71,
+    "failed": 0
+  },
+  "vite": "passed",
+  "functions": "passed",
+  "includes": "origin/main through ddbd407, invocation-scoped deploy context and six source mutation barriers",
+  "note": "No remote database migration and no real Discord delivery were performed."
+}
