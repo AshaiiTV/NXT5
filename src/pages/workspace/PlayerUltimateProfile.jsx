@@ -961,20 +961,25 @@ function itemDisplayName(itemId) {
 function loadItemNames() {
   if (itemNamesPromise) return itemNamesPromise;
   const versions = [...new Set([DDRAGON_VERSION, ...DDRAGON_FALLBACK_VERSIONS])];
+  let loaded = false;
   itemNamesPromise = (async () => {
     for (const version of versions) {
       try {
-        const response = await fetch(assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/item.json`));
+        // Data Dragon allows cross-origin JSON; the asset proxy only accepts images.
+        const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/item.json`);
         if (!response.ok) continue;
         const payload = await response.json();
-        Object.entries(payload?.data || {}).forEach(([id, item]) => {
-          if (item?.name) ITEM_NAME_CACHE.set(Number(id), item.name);
-        });
+        const names = Object.entries(payload?.data || {}).filter(([id, item]) => Number(id) > 0 && typeof item?.name === "string" && item.name.trim());
+        if (!names.length) continue;
+        names.forEach(([id, item]) => ITEM_NAME_CACHE.set(Number(id), item.name.trim()));
+        loaded = true;
         return ITEM_NAME_CACHE;
       } catch {}
     }
     return ITEM_NAME_CACHE;
-  })();
+  })().finally(() => {
+    if (!loaded) itemNamesPromise = null;
+  });
   return itemNamesPromise;
 }
 
