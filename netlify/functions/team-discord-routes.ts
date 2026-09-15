@@ -1,4 +1,5 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { sql } from './_lib/db';
 import { json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
@@ -10,7 +11,7 @@ export function publicDiscordRoute(route: any) {
   return { id: route.id, channelId: route.channel_id, channelName: route.channel_name, categoryIds: route.category_ids,
     includeHints: route.include_hints, mentionRoleId: route.mention_role_id, enabled: route.automatic };
 }
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['GET', 'POST']);
     const body = request.method === 'POST' ? await readJson(request, 32_000) : {};
@@ -60,4 +61,5 @@ export default async function handler(request: Request, context: Context) {
     return discordResponseError(error);
   }
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: ['GET', 'POST'] };

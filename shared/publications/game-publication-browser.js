@@ -15,11 +15,12 @@ async function prepareFonts() {
   })).catch((error) => { fontsReady = undefined; throw error; });
   return fontsReady;
 }
-export async function downloadGamePublicationPng(snapshot, filename) {
+export async function downloadGamePublicationPng(snapshot, filename, { loadAssets } = {}) {
   await prepareFonts();
   const { canvas } = await renderGamePublicationCanvas(snapshot, {
     createCanvas(width, height) { const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; return canvas; },
     loadLogo: () => pngLoadImage('/assets/nxt5-wordmark.png'),
+    loadAssets,
   });
   await pngDownload(canvas, filename || 'nxt5-game.png');
 }

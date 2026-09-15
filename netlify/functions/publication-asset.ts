@@ -1,12 +1,14 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { sql } from './_lib/db';
-import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, uuid } from './_lib/discord-access';
+import { requireDiscordTeam, assertDiscordMethod, assertDiscordArtifactEnvironment, discordResponseError, discordError, uuid } from './_lib/discord-access';
 import { getPublicationAsset } from './_lib/publication-assets';
 import { getOrRenderPublicationImage } from './_lib/publication-image';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['GET']);
+    assertDiscordArtifactEnvironment();
     const params = new URL(request.url).searchParams;
     const { teamId, user } = await requireDiscordTeam(request, context, params.get('teamId'));
     await assertSubjectRateLimit('discord-asset', user.id, { limit: 20, windowSeconds: 60 });
@@ -19,4 +21,5 @@ export default async function handler(request: Request, context: Context) {
     return new Response(new Uint8Array(bytes), { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'inline; filename="nxt5-game.png"', 'Vary': 'Cookie' } });
   } catch (error) { return discordResponseError(error); }
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: 'GET' };

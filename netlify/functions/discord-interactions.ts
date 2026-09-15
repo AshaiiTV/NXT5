@@ -1,4 +1,5 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { createHash } from 'node:crypto';
 import { sql } from './_lib/db';
 import { json } from './_lib/http';
@@ -119,7 +120,7 @@ async function replyToDeferred(interaction: any) {
   } catch { console.error('[discord-interaction]', { code: 'FOLLOWUP_UNAVAILABLE' }); }
 }
 
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   if (request.method !== 'POST') return json({ error: 'Méthode refusée.' }, 405);
   if (Number(request.headers.get('content-length') || 0) > 64_000) return json({ error: 'Requête trop volumineuse.' }, 413);
   const body = await request.text();
@@ -139,4 +140,5 @@ export default async function handler(request: Request, context: Context) {
   (context as any).waitUntil(replyToDeferred(interaction));
   return json({ type: 5, data: { flags: 64 } });
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: 'POST' };

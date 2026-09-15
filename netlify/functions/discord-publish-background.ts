@@ -1,8 +1,9 @@
 import { verifyDiscordInternalRequest } from './_lib/discord-config';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { runPublicationBatch } from './_lib/discord-worker';
 import { json, handleError } from './_lib/http';
 
-export default async function handler(request: Request) {
+async function handler(request: Request) {
   try {
     if (request.method !== 'POST') return json({error:'Méthode refusée.'},405);
     const body = await request.text();
@@ -16,3 +17,4 @@ export default async function handler(request: Request) {
     return json(await runPublicationBatch(4));
   } catch (error) { return handleError(error); }
 }
+export default withDiscordRuntime(handler);

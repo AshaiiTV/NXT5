@@ -1,15 +1,12 @@
 /** Browser/server publication model. Never loads secrets, React, remote assets or staff notes. */
-export const PUBLICATION_ANALYSIS_VERSION = 'nxt5-game-1';
-export const PUBLICATION_TEMPLATE_VERSION = 'nxt5-game-1';
+import { pngNumeric } from '../../src/utils/png-report.js';
+export const PUBLICATION_ANALYSIS_VERSION = 'nxt5-game-2';
+export const PUBLICATION_TEMPLATE_VERSION = 'nxt5-game-2';
 const ROLES = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
 const ALIASES = { gold: 'goldEarned', damage: 'totalDamageDealtToChampions', vision: 'visionScore' };
 const OBJECTIVES = { dragons: ['dragon'], barons: ['baron', 'baronNashor'], towers: ['tower', 'towers'], heralds: ['riftHerald', 'riftHeralds', 'herald'], grubs: ['horde', 'voidgrub', 'voidGrubs', 'grub', 'grubs'] };
-export function publicationNumber(value) {
-  if (typeof value !== 'number' && typeof value !== 'string') return null;
-  if (typeof value === 'string' && !value.trim()) return null;
-  const number = Number(value);
-  return Number.isFinite(number) ? number : null;
-}
+// Identical numeric rules for game, group, Trends and profile exports.
+export const publicationNumber = pngNumeric;
 export function publicationFormat(value, signed = false) {
   const number = publicationNumber(value);
   return number === null ? 'Indisponible' : `${signed && number >= 0 ? '+' : ''}${number.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}`;
@@ -21,7 +18,39 @@ const cleanText = (value, limit = 240) => String(value ?? '').replace(/[\u0000-\
 const list = (value) => Array.isArray(value) ? value : [];
 const normalizeRole = (value) => ({ JUNGLE: 'JGL', MIDDLE: 'MID', BOTTOM: 'ADC', SUPPORT: 'SUP', UTILITY: 'SUP' }[String(value || '').toUpperCase()] || String(value || '').toUpperCase());
 const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
-const stat = (row, key) => Object.hasOwn(row, key) ? publicationNumber(row[key]) : publicationNumber(row.raw?.[ALIASES[key] || key]);
+const sourcesFor = (row) => [row, row.raw?.participant, row.raw?.stats, row.raw].filter(Boolean);
+const stat = (row, key) => {
+  for (const source of sourcesFor(row)) {
+    const value = publicationNumber(source[key] ?? source[ALIASES[key] || key]);
+    if (value !== null) return value;
+  }
+  return null;
+};
+function csFor(row) {
+  for (const source of sourcesFor(row)) {
+    const direct = publicationNumber(source.cs ?? source.creep_score ?? source.total_cs);
+    if (direct !== null) return direct;
+    const lane = publicationNumber(source.totalMinionsKilled);
+    const jungle = publicationNumber(source.neutralMinionsKilled);
+    if (lane !== null && jungle !== null) return lane + jungle;
+  }
+  return null;
+}
+function assetId(row, keys, lists = [], index = 0) {
+  const sources = [...sourcesFor(row), row.raw?.participant?.stats, row.raw?.stats?.participant].filter(Boolean);
+  for (const source of sources) {
+    for (const value of [...keys.map((key) => source[key]), ...lists.map((key) => source[key]?.[index])]) {
+      const id = publicationNumber(value);
+      if (Number.isSafeInteger(id) && id >= 0 && id <= 999999) return id;
+    }
+  }
+  return null;
+}
+function participationFor(row) {
+  const direct = row.kill_participation ?? row.kp;
+  const parsed = publicationNumber(direct);
+  return parsed === null ? null : String(direct).includes('%') || parsed > 1 ? parsed : parsed * 100;
+}
 const count = (rows, key) => rows.length === 5 && rows.every((row) => finite(row[key])) ? rows.reduce((sum, row) => sum + row[key], 0) : null;
 function isoDate(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -68,7 +97,7 @@ function timelineData(raw, participants) {
   const hasMilestones = Boolean(raw.nxt5?.timelineSummary?.available);
   const status = frames.length ? 'detailed' : compact.length ? 'events' : hasMilestones ? 'milestones' : 'missing';
   const labels = { detailed: 'Timeline détaillée disponible', events: 'Timeline résumée disponible', milestones: 'Repères de timeline disponibles', missing: 'Timeline absente' };
-  return { frames, events, kills, fights, hasEvents, mapped, coverage: { status, label: labels[status], detail: frames.length ? `${frames.length} frame${frames.length > 1 ? 's' : ''} enregistrée${frames.length > 1 ? 's' : ''}` : compact.length ? `${compact.length} événements indexés` : hasMilestones ? 'CS et vision selon les repères enregistrés ; combats indisponibles' : 'Lecture limitée aux statistiques finales', combatEventsAvailable: hasEvents && mapped } };
+  return { frames, events, kills, fights, hasEvents, mapped, coverage: { status, label: labels[status], detail: frames.length ? `${frames.length} frame${frames.length > 1 ? 's' : ''} enregistrée${frames.length > 1 ? 's' : ''}` : compact.length ? `${compact.length} événements indexés` : hasMilestones ? 'CS et vision selon les repères enregistrés ; combats indisponibles' : 'Statistiques finales uniquement', combatEventsAvailable: hasEvents && mapped } };
 }
 function cs10For(row, raw, frames, durationSeconds) {
   if (!row.participantId || (finite(durationSeconds) && durationSeconds < 600)) return null;
@@ -162,13 +191,16 @@ export function buildGamePublicationSnapshot({ team = {}, match = {}, categories
   let duplicates = false;
   const participants = list(match.participants).map((original, index) => {
     const row = { ...original, raw: object(original.raw) };
-    const participantId = publicationNumber(row.raw.participantId ?? row.participantId);
+    const participantId = stat(row, 'participantId');
     if (participantId && seen.has(participantId)) duplicates = true;
     if (participantId) seen.add(participantId);
     return {
-      participantId, teamId: publicationNumber(row.raw.teamId ?? row.teamId), teamKey: row.team_key === 'ALLY' || row.team_key === 'ENEMY' ? row.team_key : null,
-      role: normalizeRole(row.role), name: cleanText(row.player_name || row.summoner_name || row.riot_id || 'Joueur inconnu', 160), champion: cleanText(row.champion || row.raw.championName, 80),
-      kills: stat(row, 'kills'), deaths: stat(row, 'deaths'), assists: stat(row, 'assists'), gold: stat(row, 'gold'), damage: stat(row, 'damage'), vision: stat(row, 'vision'), index,
+      participantId, teamId: stat(row, 'teamId'), teamKey: row.team_key === 'ALLY' || row.team_key === 'ENEMY' ? row.team_key : null,
+      role: normalizeRole(row.role), name: cleanText(row.player_name || row.summoner_name || row.riot_id || 'Joueur inconnu', 160), champion: cleanText(row.champion || row.raw.participant?.championName || row.raw.stats?.championName || row.raw.championName, 80),
+      kills: stat(row, 'kills'), deaths: stat(row, 'deaths'), assists: stat(row, 'assists'), gold: stat(row, 'gold'), damage: stat(row, 'damage'), vision: stat(row, 'vision'), cs: csFor(row), participation: participationFor(row),
+      items: Array.from({ length: 6 }, (_, slot) => assetId(row, [`item${slot}`, `item${slot}Id`], ['items', 'itemIds'], slot)),
+      trinket: assetId(row, ['item6', 'item6Id', 'trinket', 'trinketItemId'], ['items', 'itemIds'], 6),
+      spells: [assetId(row, ['summoner1Id', 'spell1Id'], ['summonerSpells', 'spells'], 0), assetId(row, ['summoner2Id', 'spell2Id'], ['summonerSpells', 'spells'], 1)], index,
     };
   }).sort((a, b) => (a.teamKey || '').localeCompare(b.teamKey || '') || ((ROLES.indexOf(a.role) + 5) % 5) - ((ROLES.indexOf(b.role) + 5) % 5) || a.index - b.index);
   const ally = participants.filter((row) => row.teamKey === 'ALLY');
@@ -179,15 +211,21 @@ export function buildGamePublicationSnapshot({ team = {}, match = {}, categories
   const timeline = timelineData(raw, participants);
   if (duplicates) timeline.coverage.combatEventsAvailable = false;
   const durationMatch = /^(\d+):(\d{2})$/.exec(String(match.duration || ''));
-  const durationSeconds = publicationNumber(raw.info?.gameDuration ?? match.game_duration) ?? (durationMatch ? Number(durationMatch[1]) * 60 + Number(durationMatch[2]) : null);
+  const rawDuration = publicationNumber(raw.info?.gameDuration ?? match.game_duration);
+  const durationSeconds = durationMatch && Number(durationMatch[2]) < 60 ? Number(durationMatch[1]) * 60 + Number(durationMatch[2]) : rawDuration !== null && rawDuration > 0 ? rawDuration : null;
+  for (const row of participants) {
+    if (row.participation !== null || duplicates) continue;
+    const teamKills = count(row.teamKey === 'ALLY' ? ally : row.teamKey === 'ENEMY' ? enemy : [], 'kills');
+    if (row.kills !== null && row.assists !== null && teamKills !== null && teamKills > 0) row.participation = (row.kills + row.assists) / teamKills * 100;
+  }
   for (const row of participants) { row.cs10 = cs10For(row, raw, timeline.frames, durationSeconds); delete row.index; }
   const result = ['Victoire', 'Défaite'].includes(match.result) ? match.result : 'Résultat inconnu';
   const categoryIds = [...new Set([...list(match.category_ids), match.category_id].filter(Boolean).map(String))];
   const context = {
     teamName: cleanText(team.name || team.team_name || 'Notre équipe', 160),
-    opponentName: cleanText(raw.nxt5Label || match.opponent || 'Adversaires', 200),
+    opponentName: cleanText(match.opponent || 'Adversaires', 200),
     gameId: cleanText(match.game_id || match.id, 100), result, duration: finite(durationSeconds) && durationSeconds >= 0 ? clock(durationSeconds * 1000) : null,
-    allySide, enemySide,
+    allySide, enemySide, patch: cleanText(match.patch || raw.info?.gameVersion, 80) || null,
     categories: list(categories).filter((item) => categoryIds.includes(String(item.id))).map((item) => ({ id: String(item.id), name: cleanText(item.name, 100) })).sort((a, b) => a.id.localeCompare(b.id)),
   };
   const facts = {};
@@ -197,9 +235,9 @@ export function buildGamePublicationSnapshot({ team = {}, match = {}, categories
   for (const [key, aliases] of Object.entries(OBJECTIVES)) facts[key] = metric(sidesConsistent ? objective(raw, allySide, aliases) : null, sidesConsistent ? objective(raw, enemySide, aliases) : null, key === 'dragons' ? 'dragons' : key, 'riot-team-objectives');
   const warnings = [];
   if (ally.length !== 5 || enemy.length !== 5) warnings.push('Totaux indisponibles pour une équipe dont les cinq participants ne sont pas présents.');
-  if (duplicates) warnings.push('Identifiants de participants dupliqués : totaux et chronologie à vérifier.');
+  if (duplicates) warnings.push('Identifiants de participants dupliqués : totaux et chronologie indisponibles.');
   if (!sidesConsistent) warnings.push('Côtés des équipes incomplets ou incohérents : objectifs indisponibles.');
-  if (!timeline.coverage.combatEventsAvailable) warnings.push('Aucune conclusion sur les combats sans événements attribuables aux participants.');
+  if (!timeline.coverage.combatEventsAvailable) warnings.push('Événements de combat indisponibles ou non attribuables aux participants.');
   const coverage = { participants: { ally: ally.length, enemy: enemy.length, expectedPerTeam: 5 }, timeline: timeline.coverage, warnings };
   const teamId = cleanText(team.id || match.team_id, 100);
   const entityId = cleanText(match.id, 100);

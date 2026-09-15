@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual, createPublicKey, verify } from 'node:crypto';
+import { getDiscordDeployContext, isDiscordIsolatedContext } from './discord-runtime';
 
 export function discordEnv(name: string): string {
   return String((globalThis as any).Netlify?.env?.get?.(name) ?? process.env[name] ?? '').trim();
@@ -12,7 +13,7 @@ export function getDiscordConfig() {
   const applicationId = discordEnv('DISCORD_APPLICATION_ID');
   // Never expose production Discord credentials to preview request paths,
   // including configuration changes, deletion and interaction callbacks.
-  const isolatedPreview = ['deploy-preview', 'branch-deploy'].includes(discordEnv('CONTEXT'));
+  const isolatedPreview = isDiscordIsolatedContext();
   const botToken = isolatedPreview ? '' : discordEnv('DISCORD_BOT_TOKEN');
   const publicKey = isolatedPreview ? '' : discordEnv('DISCORD_PUBLIC_KEY');
   const workerSecret = isolatedPreview ? '' : discordEnv('DISCORD_WORKER_SECRET');
@@ -31,9 +32,9 @@ export function getDiscordConfig() {
 export function isDiscordEnabled(): boolean {
   const config = getDiscordConfig();
   if (!config.configured || discordEnv('DISCORD_PUBLISHING_ENABLED') !== 'true') return false;
-  if (discordEnv('CONTEXT') === 'production') return true;
+  if (getDiscordDeployContext() === 'production') return true;
   return config.environment === 'test' && discordEnv('DISCORD_LOCAL_PILOT') === 'true'
-    && !['deploy-preview', 'branch-deploy'].includes(discordEnv('CONTEXT'));
+    && getDiscordDeployContext() === 'dev';
 }
 
 export function publicDiscordStatus() {
@@ -50,7 +51,7 @@ export function publicDiscordStatus() {
   // View channel, send messages, embeds, attachments, history. No administrator.
   install.searchParams.set('permissions', String(1024 + 2048 + 16384 + 32768 + 65536));
   install.searchParams.set('integration_type', '0');
-  return { configured: config.configured, enabled: isDiscordEnabled(), environment: config.environment,
+  return { configured: config.configured, enabled: isDiscordEnabled(), environment: config.environment, deployContext: getDiscordDeployContext(),
     installUrl: isDiscordId(config.applicationId) ? install.toString() : null, issues };
 }
 

@@ -5,43 +5,43 @@
   "records": [
     {
       "fixture": "complete",
-      "milliseconds": 112,
-      "bytes": 292964,
-      "width": 1200,
-      "height": 1950,
-      "rssMiB": 108
+      "milliseconds": 133,
+      "bytes": 495236,
+      "width": 1440,
+      "height": 2519,
+      "rssMiB": 136
     },
     {
       "fixture": "missing-timeline",
-      "milliseconds": 69,
-      "bytes": 307359,
-      "width": 1200,
-      "height": 1950,
-      "rssMiB": 109
+      "milliseconds": 105,
+      "bytes": 505704,
+      "width": 1440,
+      "height": 2547,
+      "rssMiB": 152
     },
     {
       "fixture": "long-incomplete",
-      "milliseconds": 83,
-      "bytes": 383299,
-      "width": 1200,
-      "height": 2270,
-      "rssMiB": 120
+      "milliseconds": 107,
+      "bytes": 541956,
+      "width": 1440,
+      "height": 2508,
+      "rssMiB": 153
     },
     {
       "fixture": "red-side",
-      "milliseconds": 71,
-      "bytes": 293376,
-      "width": 1200,
-      "height": 1950,
-      "rssMiB": 120
+      "milliseconds": 105,
+      "bytes": 495790,
+      "width": 1440,
+      "height": 2519,
+      "rssMiB": 168
     },
     {
       "fixture": "facts-only",
-      "milliseconds": 60,
-      "bytes": 231207,
-      "width": 1200,
-      "height": 1645,
-      "rssMiB": 120
+      "milliseconds": 103,
+      "bytes": 495236,
+      "width": 1440,
+      "height": 2519,
+      "rssMiB": 168
     }
   ]
 }

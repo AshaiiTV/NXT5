@@ -3,7 +3,7 @@ import { sql } from './db';
 import { requireAuth } from './auth';
 import { assertTrustedMutation, json } from './http';
 import { assertDiscordSchemaReady } from './discord-queue';
-import { discordEnv } from './discord-config';
+import { getDiscordDeployContext, isDiscordIsolatedContext } from './discord-runtime';
 
 export function discordError(message: string, status = 400, code = 'DISCORD_REQUEST_INVALID') {
   return Object.assign(new Error(message), { status, code });
@@ -14,10 +14,15 @@ export function uuid(value: unknown, label = 'Identifiant'): string {
   }
   return value;
 }
+export function assertDiscordArtifactEnvironment() {
+  if (!isDiscordIsolatedContext()) return;
+  const unknown = getDiscordDeployContext() === 'unknown';
+  throw discordError(
+    unknown ? 'Le contexte de déploiement Discord ne peut pas être vérifié.' : 'Les modifications Discord sont désactivées sur les aperçus de déploiement.',
+    409, unknown ? 'DISCORD_DEPLOY_CONTEXT_UNAVAILABLE' : 'DISCORD_DEPLOY_PREVIEW_DISABLED');
+}
 function assertDiscordMutationEnvironment(request: Request) {
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method) && ['deploy-preview', 'branch-deploy'].includes(discordEnv('CONTEXT'))) {
-    throw discordError('Les modifications Discord sont désactivées sur les aperçus de déploiement.', 409, 'DISCORD_DEPLOY_PREVIEW_DISABLED');
-  }
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) assertDiscordArtifactEnvironment();
 }
 export async function requireDiscordTeam(request: Request, context: Context, teamId: unknown, access: 'read' | 'staff' | 'manage' = 'read') {
   assertTrustedMutation(request);

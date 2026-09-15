@@ -12,13 +12,13 @@ describe('server publication PNG', () => {
     const second = await renderGamePublicationPng(snapshot);
     expect(first.bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
     expect(first.bytes.equals(second.bytes)).toBe(true);
-    expect(first.width).toBe(1200);
+    expect(first.width).toBe(1440);
     expect(first.bytes.readUInt32BE(16)).toBe(first.width);
     expect(first.bytes.readUInt32BE(20)).toBe(first.height);
     expect(first.bytes.byteLength).toBeLessThan(8 * 1024 * 1024);
     expect(first.mimeType).toBe('image/png');
   });
-  it('excludes all observations and review hints when the destination requests facts only', async () => {
+  it('always draws factual PNGs even when legacy payloads request review hints', async () => {
     const snapshot = buildGamePublicationSnapshot(publicationFixture());
     const before = JSON.stringify(snapshot);
     const drawnText: string[] = [];
@@ -32,15 +32,37 @@ describe('server publication PNG', () => {
     const compact = await renderGamePublicationCanvas(snapshot, { createCanvas: tracedCanvas, loadLogo: async () => null, includeHints: false });
     expect(drawnText.join(' ')).not.toMatch(/Lecture NXT5|Piste de review|setup reproductible|VOD/);
     expect(drawnText.join(' ')).toContain('Kills');
+    expect(drawnText.join(' ')).toContain('Dégâts champions');
+    expect(drawnText.join(' ')).toContain('Participation');
+    expect(drawnText.join(' ')).toContain('Téléportation');
+    expect(drawnText.join(' ')).not.toContain('3006');
+    await renderGamePublicationCanvas(snapshot, { createCanvas: tracedCanvas, loadLogo: async () => null, includeHints: true });
+    expect(drawnText.join(' ')).not.toMatch(/Lecture NXT5|Piste de review|setup reproductible|VOD/);
     const native = await renderGamePublicationPng(snapshot, { includeHints: false });
     const complete = await renderGamePublicationPng(snapshot);
     expect(native.height).toBe(compact.height);
-    expect(native.height).toBeLessThan(complete.height);
-    expect(native.bytes.equals(complete.bytes)).toBe(false);
+    expect(native.height).toBe(complete.height);
+    expect(native.bytes.equals(complete.bytes)).toBe(true);
+    expect(JSON.stringify(snapshot)).toBe(before);
+  });
+  it('enriches the same rows with browser-supplied icons without changing facts or geometry', async () => {
+    const snapshot = buildGamePublicationSnapshot(publicationFixture());
+    const before = JSON.stringify(snapshot);
+    const icon = createCanvas(32, 32);
+    icon.getContext('2d').fillRect(0, 0, 32, 32);
+    const loadAssets = vi.fn(async () => ({
+      champions: new Map(snapshot.participants.map((row) => [row.champion, icon])),
+      items: new Map(snapshot.participants.flatMap((row) => [...row.items, row.trinket]).filter(Boolean).map((id) => [id, icon])),
+    }));
+    const plain = await renderGamePublicationCanvas(snapshot, { createCanvas, loadLogo: async () => null });
+    const illustrated = await renderGamePublicationCanvas(snapshot, { createCanvas, loadLogo: async () => null, loadAssets });
+    expect(loadAssets).toHaveBeenCalledExactlyOnceWith(snapshot);
+    expect([illustrated.width, illustrated.height]).toEqual([plain.width, plain.height]);
+    expect(illustrated.canvas.toBuffer('image/png').equals(plain.canvas.toBuffer('image/png'))).toBe(false);
     expect(JSON.stringify(snapshot)).toBe(before);
   });
   it('grows for long names, renders absent metrics and tolerates a missing optional logo', async () => {
-    const short = await renderGamePublicationCanvas(buildGamePublicationSnapshot(publicationFixture()), { createCanvas, loadLogo: async () => null });
+    const short = await renderGamePublicationCanvas(buildGamePublicationSnapshot(publicationFixture({ incomplete: true })), { createCanvas, loadLogo: async () => null });
     const long = await renderGamePublicationCanvas(buildGamePublicationSnapshot(publicationFixture({ longNames: true, timeline: false, incomplete: true })), { createCanvas, loadLogo: async () => null });
     expect(long.height).toBeGreaterThan(short.height);
     expect(long.height).toBeLessThan(4000);

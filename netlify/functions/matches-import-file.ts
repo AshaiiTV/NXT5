@@ -4,6 +4,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
+import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { fetchRiotMatch } from './_lib/riot';
 import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
@@ -73,11 +74,12 @@ async function runOptionalImportTask(label: string, task: () => Promise<unknown>
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
-    assertSessionSecret();
     assertMethod(request, 'POST');
+    const body = await readJson(request, 5 * 1024 * 1024);
+    if (!body.previewOnly) assertMatchSourceMutationEnvironment(context);
+    assertSessionSecret();
     await assertRateLimit(request, 'match-import-file', { limit: 20, windowSeconds: 60 });
     const user = await requireAuth(request, context);
-    const body = await readJson(request, 5 * 1024 * 1024);
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 

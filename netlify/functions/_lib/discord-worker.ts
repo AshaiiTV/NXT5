@@ -108,7 +108,7 @@ export async function processPublicationJob(job: Row) {
     const stopped = sourceGuard(job,source);
     if (stopped) { await stopPreparation(job,stopped,stopped==='retry_wait' ? 'DISCORD_PAUSED' : 'SOURCE_OR_DESTINATION_CHANGED'); return stopped; }
     const snapshotBody = { ...buildGamePublicationSnapshot({team:source.team,match:source.match,categories:source.categories,sourceRevision:job.source_revision,generatedAt:new Date().toISOString()}),
-      renderOptions: { includeHints: Boolean(source.route.include_hints) } };
+      renderOptions: { includeHints: false } };
     const hash = publicationContentHash(snapshotBody,source.route);
     const snapshots = await sql`insert into publication_snapshots(publication_id,source_revision,content_hash,body)
       values(${job.publication_id},${job.source_revision},${hash},${JSON.stringify(snapshotBody)}::jsonb)

@@ -1,4 +1,5 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { randomBytes, createHash } from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson } from './_lib/http';
@@ -7,7 +8,7 @@ import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordE
 import { publicDiscordStatus } from './_lib/discord-config';
 import { getDiscordGuild } from './_lib/discord-client';
 
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['GET', 'POST']);
     const body = request.method === 'POST' ? await readJson(request, 12_000) : {};
@@ -69,4 +70,5 @@ export default async function handler(request: Request, context: Context) {
     return json({ ok: true });
   } catch (error) { return discordResponseError(error); }
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: ['GET', 'POST'] };

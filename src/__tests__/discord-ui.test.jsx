@@ -70,6 +70,7 @@ describe("Discord settings and permissions", () => {
 
   it("defaults to no role mention and no review hints, verifies salons and saves exact destinations", async () => {
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(text(renderer.root)).toContain("Ajouter les pistes de review au message");
     const denied = renderer.root.findAllByType("option").find((item) => item.props.value === "channel-denied");
     expect(denied.props.disabled).toBe(true);
     await click(renderer, "Ajouter un salon");

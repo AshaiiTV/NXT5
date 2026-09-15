@@ -17,7 +17,7 @@ export async function getOrRenderPublicationImage(teamId: string, snapshot: { id
       return { bytes, filename, cached: true };
     }
   }
-  const image = await renderGamePublicationPng(snapshot.body, snapshot.body.renderOptions || {});
+  const image = await renderGamePublicationPng(snapshot.body, { includeHints: false });
   if (image.bytes.byteLength > 3 * 1024 * 1024) return null;
   const asset = await putPublicationAsset({ teamId, snapshotId: snapshot.id, ...image });
   await sql('update publication_snapshots set asset_key=$1 where id=$2', [asset.key, snapshot.id]);

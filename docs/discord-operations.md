@@ -90,11 +90,27 @@ La liste de référence est [`.env.example`](../.env.example). Les secrets doive
 | `DISCORD_PUBLISHING_ENABLED` | `false` par défaut ; coupe-circuit global des publications. |
 | `DISCORD_ENVIRONMENT` | `production`, ou `test` avec les ressources dédiées aux essais. |
 | `DISCORD_LOCAL_PILOT` | `false` par défaut ; `true` seulement pour un essai local explicite avec `DISCORD_ENVIRONMENT=test`. |
-| `CONTEXT` | Fourni par Netlify ; les envois distants sont autorisés dans le contexte `production`. |
+| `CONTEXT` | Repli réservé aux outils/tests locaux. Cette variable de build ne pilote pas les Functions hébergées. |
 
-Les contextes `deploy-preview` et `branch-deploy` restent interdits pour l’envoi, même si le drapeau global est activé. Un site Netlify de test autonome peut utiliser son propre contexte `production`, ses propres variables et `DISCORD_ENVIRONMENT=test`.
+Les Functions utilisent le contexte fiable `context.deploy.context` fourni par Netlify, isolé par invocation avec `AsyncLocalStorage`. Les contextes `deploy-preview`, `branch-deploy` et un contexte hébergé inconnu masquent les secrets Discord et refusent les mutations, même si le drapeau global est activé. Un site Netlify de test autonome peut utiliser son propre contexte `production`, ses propres variables et `DISCORD_ENVIRONMENT=test`. [Référence du contexte Netlify Functions](https://docs.netlify.com/build/functions/api/).
 
 La configuration requiert l’ensemble des identifiants et secrets attendus. La page d’administration signale les éléments absents sans afficher leurs valeurs. La pause globale n’empêche pas nécessairement la mise en file par une connexion d’équipe restée active ; mettre aussi cette connexion en pause si les nouveaux imports ne doivent pas être enregistrés pour diffusion ultérieure.
+
+### Restriction volontaire des aperçus de déploiement
+
+Un aperçu peut hériter d’une connexion à la base de production. Désactiver son worker ne suffit donc pas : une écriture de game déclenche la file SQL, que le worker de production pourrait traiter plus tard. La barrière de source refuse ces écritures avec HTTP 409 avant authentification, limitation de débit en base ou persistance, en contexte `deploy-preview`, `branch-deploy` ou hébergé inconnu. Elle s’applique même si les variables de build annoncent `production` et si Discord est globalement désactivé.
+
+| Entrée | Mutation protégée |
+| --- | --- |
+| `matches-import`, `matches-import-file` | Import, réimport, participants et données Riot brutes. |
+| `matches-manage` | Corrections de nom, catégories, rôles, side, statut de review et suppression. |
+| `match-categories-manage` | Gestion des catégories, notamment leur retrait des games. |
+| `players-delete` | Suppression d’un profil, qui modifie les participants par clé étrangère. |
+| `teams-delete` | Suppression d’une équipe et des games associées en cascade. |
+
+Les routes de lecture, dont `match-details`, et les appels d’import `previewOnly: true` restent accessibles selon les droits NXT5 habituels. Ces derniers ne sauvegardent aucune game et ne réveillent pas le bot. Les mutations fonctionnent en production et en développement local. Pour essayer le cycle complet, utiliser un **site Netlify de test distinct**, publié dans son contexte `production`, avec **sa propre base Neon**, son bot et son serveur Discord de test, et `DISCORD_ENVIRONMENT=test`. Ne pas utiliser la base de production pour ce pilote isolé.
+
+Les tests `match-source-environment.test.ts` couvrent les six entrées, les cascades, les contextes incohérents, l’absence d’effet DB/Riot/notification après refus, la production sans variable `CONTEXT`, le local et les lectures conservées.
 
 ## 5. Préparer le déploiement
 

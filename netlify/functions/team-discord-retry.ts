@@ -1,4 +1,5 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { sql } from './_lib/db';
 import { json, readJson } from './_lib/http';
 import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, uuid, auditDiscord } from './_lib/discord-access';
@@ -9,7 +10,7 @@ import { isDiscordEnabled, getDiscordConfig } from './_lib/discord-config';
 import { resolvePublicationJob } from './_lib/discord-worker';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['POST']);
     const body = await readJson(request, 12_000);
@@ -50,4 +51,5 @@ export default async function handler(request: Request, context: Context) {
     return json({ ok: true });
   } catch (error) { return discordResponseError(error); }
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: 'POST' };

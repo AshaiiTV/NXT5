@@ -1,11 +1,12 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { sql } from './_lib/db';
 import { json } from './_lib/http';
 import { requirePlatformAdmin } from './_lib/platform-admin';
 import { publicDiscordStatus } from './_lib/discord-config';
 import { assertDiscordSchemaReady } from './_lib/discord-queue';
 import { assertDiscordMethod, discordResponseError } from './_lib/discord-access';
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['GET']);
     await requirePlatformAdmin(request, context);
@@ -19,4 +20,5 @@ export default async function handler(request: Request, context: Context) {
       failedCount: metrics.failed_count, unknownCount: metrics.unknown_count, oldestPendingAt: metrics.oldest_pending_at });
   } catch (error) { return discordResponseError(error); }
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: 'GET' };

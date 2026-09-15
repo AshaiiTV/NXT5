@@ -1,9 +1,9 @@
 import { getStore } from '@netlify/blobs';
-import { getDiscordConfig, discordEnv } from './discord-config';
+import { getDiscordConfig } from './discord-config';
+import { isDiscordIsolatedContext } from './discord-runtime';
 
 function assets() {
-  const context = discordEnv('CONTEXT');
-  const suffix = ['deploy-preview', 'branch-deploy'].includes(context) ? 'preview' : getDiscordConfig().environment;
+  const suffix = isDiscordIsolatedContext() ? 'preview' : getDiscordConfig().environment;
   return getStore({ name: 'nxt5-discord-' + suffix, consistency: 'strong' });
 }
 export async function putPublicationAsset({ teamId, snapshotId, bytes, filename, mimeType }: {

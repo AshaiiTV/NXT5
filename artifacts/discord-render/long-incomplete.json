@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "analysisVersion": "nxt5-game-1",
-  "templateVersion": "nxt5-game-1",
+  "analysisVersion": "nxt5-game-2",
+  "templateVersion": "nxt5-game-2",
   "teamId": "example-team",
   "entityType": "match",
   "entityId": "example-match",
@@ -17,6 +17,7 @@
     "duration": "31:42",
     "allySide": "blue",
     "enemySide": "red",
+    "patch": "16.18",
     "categories": [
       {
         "id": "scrims",
@@ -33,12 +34,12 @@
     "timeline": {
       "status": "missing",
       "label": "Timeline absente",
-      "detail": "Lecture limitée aux statistiques finales",
+      "detail": "Statistiques finales uniquement",
       "combatEventsAvailable": false
     },
     "warnings": [
       "Totaux indisponibles pour une équipe dont les cinq participants ne sont pas présents.",
-      "Aucune conclusion sur les combats sans événements attribuables aux participants."
+      "Événements de combat indisponibles ou non attribuables aux participants."
     ]
   },
   "facts": {
@@ -145,6 +146,21 @@
       "gold": null,
       "damage": 19000,
       "vision": 17,
+      "cs": 160,
+      "participation": 45.83333333333333,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        12
+      ],
       "cs10": null
     },
     {
@@ -160,6 +176,21 @@
       "gold": 13125,
       "damage": 19750,
       "vision": 22,
+      "cs": 168,
+      "participation": 62.5,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        11
+      ],
       "cs10": null
     },
     {
@@ -175,6 +206,21 @@
       "gold": 13250,
       "damage": 20500,
       "vision": 27,
+      "cs": 176,
+      "participation": 62.5,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        14
+      ],
       "cs10": null
     },
     {
@@ -190,6 +236,21 @@
       "gold": 13375,
       "damage": 21250,
       "vision": 32,
+      "cs": 184,
+      "participation": 79.16666666666666,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        14
+      ],
       "cs10": null
     },
     {
@@ -205,6 +266,21 @@
       "gold": 13500,
       "damage": 22000,
       "vision": 37,
+      "cs": 38,
+      "participation": 58.333333333333336,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        14
+      ],
       "cs10": null
     },
     {
@@ -216,10 +292,25 @@
       "champion": "Ornn",
       "kills": 2,
       "deaths": 4,
-      "assists": 10,
+      "assists": 3,
       "gold": 12000,
       "damage": 22750,
       "vision": 42,
+      "cs": 200,
+      "participation": null,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        12
+      ],
       "cs10": null
     },
     {
@@ -231,10 +322,25 @@
       "champion": "Vi",
       "kills": 4,
       "deaths": 6,
-      "assists": 11,
+      "assists": 5,
       "gold": 12125,
       "damage": 23500,
       "vision": 47,
+      "cs": 208,
+      "participation": null,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        11
+      ],
       "cs10": null
     },
     {
@@ -246,10 +352,25 @@
       "champion": "Orianna",
       "kills": 3,
       "deaths": 5,
-      "assists": 12,
+      "assists": 7,
       "gold": 12250,
       "damage": 24250,
       "vision": 52,
+      "cs": 216,
+      "participation": null,
+      "items": [
+        3006,
+        3031,
+        0,
+        0,
+        0,
+        0
+      ],
+      "trinket": 3340,
+      "spells": [
+        4,
+        14
+      ],
       "cs10": null
     }
   ],

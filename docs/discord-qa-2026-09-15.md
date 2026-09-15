@@ -1,6 +1,6 @@
 # Discord NXT5 - contrôle de l’interface
 
-15 septembre 2026. Référence : [charte graphique 1.22](charte-graphique.md).
+15 septembre 2026. Référence : [charte graphique 1.23](charte-graphique.md).
 
 ## Périmètre vérifié
 
@@ -16,7 +16,7 @@ Les vrais composants React et le CSS du checkout ont été ouverts dans Chromium
 | Vue | Largeurs testées | Résultat |
 | --- | --- | --- |
 | Réglages | 360, 390, 768, 1 024, 1 440 px | Largeur du document égale à celle de la fenêtre ; aucun débordement horizontal global. |
-| Partage avec aperçu | 360 px | PNG de 1 200 px affiché à environ 289 px, sans déformation ; message lisible séparément et téléchargement du PNG disponible. |
+| Partage avec aperçu | 360 px | PNG factuel de 1 440 px affiché à environ 289 px, sans déformation ; message lisible séparément et téléchargement du PNG disponible. |
 | Association d’un message | 360 px | Formulaire et actions empilés, champ à 16 px, identifiant entier lisible. |
 | Contrôles | Réglages aux cinq largeurs | Boutons de 2 px de rayon ; sélecteurs à 16 px sur les deux largeurs mobiles. |
 | Exécution | Tous les scénarios ci-dessus | Aucune erreur JavaScript de page. |
@@ -40,10 +40,12 @@ Les suites `discord-ui`, `unified-games-view`, `review-match-details`, `workspac
 - Validation de l’identifiant Discord avant association et confirmation du retrait d’un message.
 - Annulation des réponses obsolètes lors d’un changement de contexte.
 
+Après intégration de la refonte PNG de main (`6139f1a`), les cinq largeurs ont été contrôlées de nouveau, ainsi que l’aperçu du fichier commun de 1 440 × 2 519 px. Les captures conservées correspondent à cette version factuelle. Le réglage « Ajouter les pistes de review au message » concerne uniquement le texte Discord.
+
 Le contrôle complet du dépôt reste `npm run verify` ; le nombre ci-dessus décrit les seules suites ciblées de cette intervention.
 
 ## Charte PDF
 
-Le [PDF de la charte](charte-graphique.pdf) a été régénéré depuis le Markdown 1.22 : **23 pages**, métadonnées à jour et douze sections principales conservées. Toutes les pages ont été rendues avec Poppler, puis inspectées ; la page Discord a aussi été lue à taille supérieure. Le code d’exemple reste sur une même page. Aucun caractère ne dépasse la zone de sécurité vérifiée dans le PDF.
+Le [PDF de la charte](charte-graphique.pdf) a été régénéré depuis le Markdown 1.23 : **23 pages**, métadonnées à jour et douze sections principales conservées. Toutes les pages ont été rendues avec Poppler, puis inspectées ; la page Discord a aussi été lue à taille supérieure. Le code d’exemple reste sur une même page. Aucun caractère ne dépasse la zone de sécurité vérifiée dans le PDF.
 
 Le générateur réutilisable est `tools/render-charte-graphique.py`. Il nécessite Python avec ReportLab et utilise Arial sur macOS ou DejaVu Sans sur Linux pour la documentation ; la fiche PNG des games utilise bien sa police Inter dédiée, décrite dans la charte.

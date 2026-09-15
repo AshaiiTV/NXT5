@@ -8,6 +8,7 @@ import { ensureMatchCategoriesSchema } from './_lib/match-categories';
 import { ensureWorkflowSchema } from './_lib/schema';
 import { changeMatchSide } from './_lib/match-side';
 import { wakeDiscordPublications } from './_lib/discord-wake';
+import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().slice(0, max);
@@ -28,8 +29,9 @@ function cleanIdList(value) {
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
-    assertSessionSecret();
     assertMethod(request, 'POST');
+    assertMatchSourceMutationEnvironment(context);
+    assertSessionSecret();
     await ensureMatchManagementColumns();
     const user = await requireAuth(request, context);
     const body = await readJson(request);

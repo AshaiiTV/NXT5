@@ -43,6 +43,8 @@ const baseTeam = (role: string, owner = false) => ({ id: TEAM, owner_id: owner ?
 beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock.mockReset());
   vi.stubGlobal('Netlify', undefined);
+  // These tests select a local context; CI may itself define Netlify build vars.
+  for (const key of ['AWS_LAMBDA_FUNCTION_NAME', 'LAMBDA_TASK_ROOT', 'SITE_ID']) vi.stubEnv(key, '');
   for (const [key, value] of Object.entries({ DISCORD_APPLICATION_ID: APP, DISCORD_BOT_TOKEN: 'test-only-bot-token', DISCORD_PUBLIC_KEY: 'a'.repeat(64), DISCORD_WORKER_SECRET: SECRET, PUBLIC_SITE_URL: 'https://nxt5.example', DISCORD_ENVIRONMENT: 'production', DISCORD_PUBLISHING_ENABLED: 'true', DISCORD_LOCAL_PILOT: 'false', CONTEXT: 'production' })) vi.stubEnv(key, value);
   vi.spyOn(Date, 'now').mockReturnValue(CLOCK);
   vi.spyOn(console, 'error').mockImplementation(() => {});

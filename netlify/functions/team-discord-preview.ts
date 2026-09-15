@@ -1,10 +1,11 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { json } from './_lib/http';
 import { requireDiscordTeam, assertDiscordMethod, discordResponseError } from './_lib/discord-access';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { loadDiscordPreview } from './_lib/discord-preview';
 
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['GET']);
     const params = new URL(request.url).searchParams;
@@ -15,4 +16,5 @@ export default async function handler(request: Request, context: Context) {
       imageDataUrl: result.image ? 'data:image/png;base64,' + result.image.bytes.toString('base64') : null });
   } catch (error) { return discordResponseError(error); }
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: 'GET' };

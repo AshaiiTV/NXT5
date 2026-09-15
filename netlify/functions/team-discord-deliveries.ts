@@ -1,9 +1,10 @@
 import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
 import { sql } from './_lib/db';
 import { json } from './_lib/http';
 import { requireDiscordTeam, assertDiscordMethod, discordResponseError, uuid } from './_lib/discord-access';
 
-export default async function handler(request: Request, context: Context) {
+async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['GET']);
     const { teamId, canPublish } = await requireDiscordTeam(request, context, new URL(request.url).searchParams.get('teamId'), 'staff');
@@ -23,4 +24,5 @@ export default async function handler(request: Request, context: Context) {
     })) });
   } catch (error) { return discordResponseError(error); }
 }
+export default withDiscordRuntime(handler);
 export const config: Config = { method: 'GET' };

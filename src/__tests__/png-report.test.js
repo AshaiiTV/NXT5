@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PNG_THEME, pngAccent, pngFitText, pngLoadImage, pngWrapText } from "../utils/png-report.js";
+import { PNG_THEME, pngAccent, pngDateRange, pngFitText, pngLoadImage, pngMean, pngNumber, pngNumeric, pngPercent, pngSum, pngWrapText } from "../utils/png-report.js";
 
 function textContext() {
   const stack = [];
@@ -47,9 +47,32 @@ describe("PNG text layout", () => {
   });
 
   it("uses the same semantic color aliases across reports", () => {
-    expect(pngAccent("pink")).toBe(PNG_THEME.red);
-    expect(pngAccent("orange")).toBe(PNG_THEME.yellow);
+    expect(pngAccent("pink")).toBe(PNG_THEME.pink);
+    expect(pngAccent("orange")).toBe(PNG_THEME.pink);
+    expect(pngAccent("amber")).toBe(PNG_THEME.yellow);
     expect(pngAccent("green")).toBe(PNG_THEME.green);
+  });
+});
+
+describe("PNG data labels", () => {
+  it("distinguishes missing metrics from recorded zeros", () => {
+    for (const missing of [null, undefined, "", "  ", "—", false, true, [], NaN, Infinity]) {
+      expect(pngNumeric(missing)).toBeNull();
+      expect(pngNumber(missing)).toBe("—");
+      expect(pngPercent(missing)).toBe("—");
+    }
+    expect(pngNumber(0)).toBe("0");
+    expect(pngPercent(0)).toBe("0 %");
+    expect(pngNumber("1 234,5", 1)).toBe((1234.5).toLocaleString("fr-FR", { minimumFractionDigits: 1 }));
+    expect(pngMean([null, "", 0, 12])).toBe(6);
+    expect(pngSum([null, "", 0, 12])).toBe(12);
+    expect(pngMean([null, ""])).toBeNull();
+    expect(pngSum([])).toBeNull();
+  });
+
+  it("uses dates of play without substituting import timestamps", () => {
+    expect(pngDateRange([{ game_date: "2026-09-12T12:00:00Z", created_at: "2026-09-15T12:00:00Z" }, { game_date: "2026-09-10T12:00:00Z" }])).toBe("10/09/2026 – 12/09/2026");
+    expect(pngDateRange([{ game_date: "invalid" }, { created_at: "2026-09-15T12:00:00Z" }])).toBe("Date indisponible");
   });
 });
 
