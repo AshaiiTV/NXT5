@@ -217,7 +217,7 @@ function TrendsPage({ data, selectedTeamId }) {
 
   if (!matches.length) return <div className="nxt5-data-dense nxt5-trends-page">
     {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc." />}
-    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Contexte des games" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
+    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
     <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune game dans cette sélection" : "Vos tendances commencent ici"} text={baseMatches.length ? "Choisis un autre contexte pour retrouver les analyses de l’équipe." : "Importe tes premières games pour suivre les résultats et faire émerger les répétitions."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les games" : "Importer des games"}</Button></div></Surface>
   </div>;
 
@@ -919,7 +919,7 @@ function TrendsPage({ data, selectedTeamId }) {
     {exportState === "done" && <p role="status" className="trends-export-status">La synthèse PNG a été téléchargée.</p>}
     <div className="trends-filters">
       <div className="trends-filter-controls">
-        <SelectInput label="Contexte des games" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
       <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} game{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>

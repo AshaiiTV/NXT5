@@ -406,7 +406,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <div className="profile-context">
       <div className="profile-filters">
         <SelectInput label="Joueur" value={selectedPlayer.id} onChange={selectProfile}>{players.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>
-        <SelectInput label="Contexte des games" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
       </div>
       <div className="profile-scope"><p><strong>{games} games analysées</strong> · {activeProfileCategory?.name || "Tous les contextes"}{rows.length ? ` · ${profileHistoryDateLabel(sortedProfileRows[sortedProfileRows.length - 1]) || "date inconnue"} au ${profileHistoryDateLabel(sortedProfileRows[0]) || "date inconnue"}` : ""}</p>{selectedCategoryId && <button type="button" className="profile-text-action" onClick={() => setSelectedCategoryId("")}>Réinitialiser le contexte</button>}</div>
     </div>
