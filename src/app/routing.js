@@ -1,5 +1,6 @@
 import { AUTH_PATHS, AUTH_ROUTES, DRAFT_VIEW_ROUTES, NAV, PROFILE_VIEW_ROUTES, PUBLIC_ROUTES } from "./constants.jsx";
 import { adminPageFromRoute } from "./admin-navigation.js";
+import { isTrendDetailPath } from "./trends-navigation.js";
 
 export function normalizePath(pathname = "/") {
   if (!pathname || pathname === "/") return "/";
@@ -10,6 +11,7 @@ export function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (adminPageFromRoute({ path }) && !NAV.some(item => item.path === path)) return "admin";
   if (path === "/integration" || path === "/statistiques") return "matches";
+  if (isTrendDetailPath(path)) return "trends";
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return "draft";
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
   return NAV.find((item) => item.path === path)?.id || "teams";
@@ -74,6 +76,7 @@ export function isAdminPath(pathname = window.location.pathname) {
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (adminPageFromRoute({ path }) || path === "/integration" || path === "/statistiques") return true;
+  if (isTrendDetailPath(path)) return true;
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return true;
   return NAV.some((item) => item.path === path);

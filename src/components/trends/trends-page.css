@@ -149,3 +149,7 @@
 .trends-role-details { margin-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .trends-role-details > summary { min-height: 48px; padding: 16px 0; cursor: pointer; font-size: 14px; font-weight: 650; color: #dbe8f8; }
 .trends-role-details[open] > summary { margin-bottom: 4px; }
+
+.trends-detail-breadcrumb { margin-bottom: 12px; }
+.trends-detail-heading { scroll-margin-top: 90px; }
+.trends-detail-heading:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 6px; }

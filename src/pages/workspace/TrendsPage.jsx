@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
 import { openAppPath } from "../../app/routing.js";
 import { Button, EmptyState, SkeletonRows, Surface, PageHeader, SelectInput } from "../../components/ui/Core.jsx";
 import { matchDisplayName, matchHasCategory } from "../../utils/matches.js";
@@ -14,7 +14,9 @@ import { TrendSourcesDialog, TrendContractsDialog } from "../../components/trend
 import "../../components/trends/trends-page.css";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngPanel, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngDownload } from "../../utils/png-report.js";
 
-import { buildDraftTrendModel, DraftTrendsModule } from "../../components/trends/DraftTrends.jsx";
+import { useTrendsNavigation } from "../../hooks/useTrendsNavigation.js";
+import { DraftTrendDetails } from "../../components/trends/DraftTrendDetails.jsx";
+import { buildDraftTrendModel, DRAFT_DETAIL_SECTIONS, DraftTrendsModule } from "../../components/trends/DraftTrends.jsx";
 
 const BlockComparisonPanel = lazyNamed(loadNextPhase, "BlockComparisonPanel");
 
@@ -112,24 +114,31 @@ async function exportTrendsPng({ title, subtitle, metrics = [], sections = [], c
 function TrendsPage({ data, selectedTeamId }) {
   const baseMatches = useMemo(() => (data.matches || []).filter((match) => match.team_id === selectedTeamId), [data.matches, selectedTeamId]);
   const matchCategories = useMemo(() => (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId), [data.matchCategories, selectedTeamId]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const navigation = useTrendsNavigation(selectedTeamId);
+  const { category: selectedCategoryId, setCategory: setSelectedCategoryId, period: trendPeriod, setPeriod: setTrendPeriod, panel: trendPanel, setPanel: setTrendPanel, detail: draftDetail } = navigation;
+  const detailSection = DRAFT_DETAIL_SECTIONS.find((section) => section.id === draftDetail);
+  const previousDetail = useRef(draftDetail);
+  const detailHeading = useRef(null);
   const [trendSourceModal, setTrendSourceModal] = useState(null);
 
-  const [trendPanel, setTrendPanel] = useState("coach");
   const focusObjectives = useRef(false);
   const [profileContractsOpen, setProfileContractsOpen] = useState(false);
-  const [trendPeriod, setTrendPeriod] = useState("all");
   const [exportState, setExportState] = useState("");
   const categoryMatches = useMemo(() => sortTrendMatches(selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches), [baseMatches, selectedCategoryId]);
   const matches = useMemo(() => trendPeriod === "all" ? categoryMatches : categoryMatches.slice(0, Number(trendPeriod)), [categoryMatches, trendPeriod]);
   useEffect(() => {
-    setSelectedCategoryId("");
-    setTrendPeriod("all");
     setTrendSourceModal(null);
     setProfileContractsOpen(false);
-    setTrendPanel("coach");
   }, [selectedTeamId]);
-  useEffect(() => { setTrendSourceModal(null); setProfileContractsOpen(false); setExportState(""); }, [matches]);
+  useEffect(() => { setTrendSourceModal(null); setProfileContractsOpen(false); setExportState(""); }, [matches, draftDetail]);
+  useEffect(() => {
+    const returningFrom = previousDetail.current;
+    previousDetail.current = draftDetail;
+    if (draftDetail === returningFrom) return;
+    const target = draftDetail ? detailHeading.current : returningFrom ? document.getElementById(`draft-detail-${returningFrom}`) : null;
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: draftDetail ? "start" : "center", behavior: "instant" });
+  }, [draftDetail]);
   useEffect(() => {
     if (trendPanel === "ai-objectives" && focusObjectives.current) {
       document.getElementById("trend-panel-ai-objectives")?.focus();
@@ -201,10 +210,15 @@ function TrendsPage({ data, selectedTeamId }) {
       allyObjectiveCount: allyEvents.length,
     };
   }), [matches]);
+  const detailHeader = detailSection && <>
+    <nav aria-label="Retour aux tendances" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour à Draft</a></nav>
+    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Tendances · Draft" title={detailSection.title} subtitle={detailSection.description} /></div>
+  </>;
+
   if (!matches.length) return <div className="nxt5-data-dense nxt5-trends-page">
-    <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc." />
+    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc." />}
     {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Contexte des games" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
-    <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune game dans cette sélection" : "Vos tendances commencent ici"} text={baseMatches.length ? "Choisis un autre contexte pour retrouver les analyses de l’équipe." : "Importe tes premières games pour suivre les résultats et faire émerger les répétitions."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { setSelectedCategoryId(""); setTrendPeriod("all"); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les games" : "Importer des games"}</Button></div></Surface>
+    <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune game dans cette sélection" : "Vos tendances commencent ici"} text={baseMatches.length ? "Choisis un autre contexte pour retrouver les analyses de l’équipe." : "Importe tes premières games pour suivre les résultats et faire émerger les répétitions."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les games" : "Importer des games"}</Button></div></Surface>
   </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
@@ -898,9 +912,9 @@ function TrendsPage({ data, selectedTeamId }) {
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
-    <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc.">
+    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc.">
       <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? "Export en cours…" : "Exporter la synthèse"}</Button>
-    </PageHeader>
+    </PageHeader>}
     {exportState === "error" && <p role="alert" className="trends-export-status">L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».</p>}
     {exportState === "done" && <p role="status" className="trends-export-status">La synthèse PNG a été téléchargée.</p>}
     <div className="trends-filters">
@@ -908,19 +922,21 @@ function TrendsPage({ data, selectedTeamId }) {
         <SelectInput label="Contexte des games" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
-      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} game{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { setSelectedCategoryId(""); setTrendPeriod("all"); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
+      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} game{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
     </div>
     {matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Petit échantillon : les patterns restent à confirmer. Ces observations portent sur {matches.length} game{matches.length > 1 ? "s" : ""}.</span></p>}
+    {detailSection ? <DraftTrendDetails key={draftDetail} sectionId={draftDetail} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} /> : <>
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={label} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
       {trendPanel === id && <>
         {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onObjectives={showObjectives} />}
         {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
         {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">Chargement de la comparaison…</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={matches} categories={matchCategories} /></Suspense>}
-        {id === "draft" && <DraftTrendsModule model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} />}
+        {id === "draft" && <DraftTrendsModule model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
         {id === "ai-objectives" && <Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface>}
       </>}
     </div>)}
+    </>}
     <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des games : une valeur par game dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les games sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
     {profileContractsOpen && <TrendContractsDialog objectives={profileAiObjectives} onClose={() => setProfileContractsOpen(false)} onOpenSources={openTrendSources} />}
     {trendSourceModal && <TrendSourcesDialog source={trendSourceModal} onClose={() => setTrendSourceModal(null)} onOpenGame={openSourceGame} signals={sourceGameSignals} read={sourceGameRead} />}

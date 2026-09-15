@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.17 · 14 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version organise l’administration autour d’une navigation unique et conserve le footer regroupé ainsi que les pages d’information et de communauté harmonisées. Elle conserve l’alignement de Tarifs sur Découverte et le Pass Équipe, le retrait du contact multi-équipe, l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
+Version 1.18 · 15 septembre 2026 · Base initiale : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de l’historique des imports. Audit transversal de cohérence réalisé sur un checkout issu de `816e3cc`, puis consolidé avec les évolutions de `e102e66`. Cette version organise l’administration autour d’une navigation unique et conserve le footer regroupé ainsi que les pages d’information et de communauté harmonisées. Elle conserve l’alignement de Tarifs sur Découverte et le Pass Équipe, le retrait du contact multi-équipe, l’espace Games unifié, les 14 jours de Découverte et le message de fin d’essai préparatoire sans activer de restriction ; les règles précédentes restent applicables.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -186,6 +186,27 @@ Cette règle concerne la zone de téléchargement du site ; elle ne modifie pas 
 - **Interprétation :** distinguer variation, résultat et causalité. Les pourcentages évoluent en points ; moins de morts est favorable. « — » indique une donnée indisponible. Ne pas remplacer une absence de données par un zéro ni supprimer l’accès aux sources. L’aide « Comment lire ces informations ? » explicite les abréviations et les limites des analyses.
 
 Les composants `TrendsOverview`, `TrendEvolution`, `BlockComparisonPanel`, `DraftTrendsModule`, `ProgressionObjectives` et `TrendsDialogs`, ainsi que leurs feuilles de style locales, définissent cette composition. Conserver les actions d’ouverture de game et l’export de synthèse lors des adaptations.
+
+### Pages annexes des micro-catégories de Draft
+
+Évolution autorisée le 15 septembre 2026 : chaque micro-catégorie de **Tendances > Draft** possède une flèche vers une page annexe qui explique les données et permet de consulter leur détail. Conserver la synthèse compacte et les styles NXT5 existants.
+
+| Micro-catégorie | Chemin stable |
+| --- | --- |
+| Pick repère | `/tendances/draft/pick-repere` |
+| Picks de confort | `/tendances/draft/confort` |
+| Profil de draft | `/tendances/draft/profil` |
+| Compositions | `/tendances/draft/compositions` |
+| Duos | `/tendances/draft/duos` |
+| À revoir | `/tendances/draft/a-revoir` |
+| Rôles | `/tendances/draft/roles` |
+
+- **Accès depuis la synthèse :** placer une flèche vers la droite dans l’en-tête de chaque micro-catégorie. Utiliser un vrai lien interne, avec une cible d’au moins 44 × 44 px, un nom accessible explicite (« Voir le détail des duos », par exemple) et un focus visible. La flèche Lucide est décorative ; le clic modifié et l’ouverture dans un nouvel onglet restent possibles. Le titre, les chiffres et les sources de l’aperçu restent lisibles.
+- **Pages et navigation :** ouvrir un contenu de page identifié, avec `PageHeader`, titre de la catégorie, explication courte et lien « Retour au Draft ». Conserver le contexte des games et la période d’analyse dans l’URL, à l’ouverture, au retour et lors de la navigation précédent / suivant du navigateur. Les liens directs doivent fonctionner et annoncer le contenu ouvert ; les micro-catégories ne sont pas des dialogues de sources.
+- **Détail utile :** donner les listes complètes disponibles, avec recherche et filtres de rôle ou de paire lorsqu’ils s’appliquent. Expliquer les critères de sélection et de classement, les unités, les dénominateurs et les tailles d’échantillon réellement utilisées. Conserver les accès aux games sources, les descriptions et les états sans donnée ou sans résultat ; la recherche ne fait pas disparaître les contrôles.
+- **Duos :** l’aperçu conserve au maximum six lignes ; la page annexe donne accès à tous les duos observés pour les trois paires suivies : JGL / MID, ADC / SUP et TOP / JGL. Afficher la paire, les champions, le nombre de games et le taux de victoire avec son échantillon. La fréquence et le taux de victoire sont deux mesures distinctes ; ne pas présenter ces trois paires comme la totalité des combinaisons possibles de rôles.
+- **Interprétation :** les observations décrivent les games du périmètre actif. Signaler les données manquantes et les petits échantillons ; ne pas inventer de causalité, de performance garantie ou de seuil sans lien avec le calcul réel. Une liste complète signifie toutes les entrées disponibles selon ses critères, pas des entrées ajoutées pour remplir la page.
+- **Composition et mobile :** réutiliser `Surface`, les contrôles partagés, `RoleIcon`, les portraits et les icônes Lucide. Structurer les listes par des titres et des séparateurs sobres. Sur petit écran, garder le retour, la flèche et les filtres accessibles, rapprocher les libellés des valeurs et empiler les lignes sans débordement horizontal global. Les contrôles gardent 44 px minimum et les champs 16 px de texte sur mobile.
 
 ### Liste des games importées
 
@@ -385,6 +406,7 @@ Sources principales :
 - `src/pages/workspace/TrendsPage.jsx`, `src/components/trends/TrendsOverview.jsx`, `src/components/trends/TrendsDialogs.jsx` et `src/components/trends/trends-page.css` : filtres communs, navigation, synthèse, sources et contrats de Tendances.
 - `src/components/trends/TrendEvolution.jsx`, `src/components/trends/DraftTrends.jsx`, `src/NextPhase.jsx` (`BlockComparisonPanel`) et leurs feuilles locales `trend-evolution.css`, `draft-trends.css`, `block-comparison.css` dans `src/components/trends/` : lecture de l’évolution, des drafts et des comparaisons.
 - `src/utils/trends.js` : ordre chronologique, métriques par game et gestion des dates ou valeurs indisponibles dans Évolution.
+- `src/components/trends/DraftTrendDetails.jsx` et sa feuille locale, `src/app/trends-navigation.js` et `src/hooks/useTrendsNavigation.js` : pages annexes de Draft, chemins des micro-catégories et conservation du contexte et de la période lors de la navigation.
 - `src/NextPhase.jsx` et `src/components/trends/TrendEvolution.jsx` : primitives communes, comparaisons ouvertes, actions de review secondaires et périodes accessibles.
 - `src/components/games/ImportedGames.jsx`, `src/components/games/imported-games.css` et `src/utils/imported-games.js` : liste des games importées, recherche et filtres, tri et pagination, sélection persistante et adaptation à la largeur du conteneur.
 - `src/app/helpers.js` : correspondance des tons via `tone()`.
