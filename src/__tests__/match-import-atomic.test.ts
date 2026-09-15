@@ -516,6 +516,41 @@ describe('team side correction against PostgreSQL', () => {
   });
 });
 
+describe('atomic role corrections', () => {
+  async function correctRoles(matchId: string, assignments: Record<string, unknown>) {
+    return manageMatches(new Request('https://nxt5.example/.netlify/functions/matches-manage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'roles', teamId, matchId, roles: assignments }),
+    }), {} as any);
+  }
+
+  it('validates all profiles before writing the first participant', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const allies = before.participants.filter((p: any) => p.team_key === 'ALLY');
+    const response = await correctRoles(match.id, {
+      [allies[0].id]: { role: 'SUP' },
+      [allies[1].id]: { role: 'TOP', playerId: foreignCategoryId },
+    });
+    expect(response.status).toBe(400);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it('rolls every role and audit back if one SQL assignment fails', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const allies = before.participants.filter((p: any) => p.team_key === 'ALLY');
+    const nextRole = allies[1].role === 'SUP' ? 'TOP' : 'SUP';
+    await database.pg.exec(`alter table match_participants add constraint reject_role_test check (id <> '${allies[1].id}' or role <> '${nextRole}')`);
+    try {
+      const response = await correctRoles(match.id, { [allies[0].id]: 'MID', [allies[1].id]: nextRole });
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(await storedMatch()).toEqual(before);
+      expect((await database.pg.query("select * from audit_logs where action='matches.roles'")).rows).toEqual([]);
+    } finally { await database.pg.exec('alter table match_participants drop constraint reject_role_test'); }
+  });
+});
+
 describe('stable and atomic champion pool refresh', () => {
   it('combines two aliases of one profile and champion into one row', async () => {
     await persistAnalyzedMatch(importArgs(2));

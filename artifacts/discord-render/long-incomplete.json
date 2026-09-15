@@ -1,0 +1,387 @@
+{
+  "schemaVersion": 1,
+  "analysisVersion": "nxt5-game-1",
+  "templateVersion": "nxt5-game-1",
+  "teamId": "example-team",
+  "entityType": "match",
+  "entityId": "example-match",
+  "sourceRevision": "fixture-1",
+  "publicationKind": "game",
+  "playedAt": "2026-09-15T14:00:00.000Z",
+  "generatedAt": "2026-09-15T12:00:00.000Z",
+  "context": {
+    "teamName": "NXT5 · Équipe de démonstration au nom particulièrement long",
+    "opponentName": "Adversaires de démonstration avec un nom de groupe très long",
+    "gameId": "EXEMPLE_2026",
+    "result": "Victoire",
+    "duration": "31:42",
+    "allySide": "blue",
+    "enemySide": "red",
+    "categories": [
+      {
+        "id": "scrims",
+        "name": "Exemple fictif · Scrims"
+      }
+    ]
+  },
+  "coverage": {
+    "participants": {
+      "ally": 5,
+      "enemy": 3,
+      "expectedPerTeam": 5
+    },
+    "timeline": {
+      "status": "missing",
+      "label": "Timeline absente",
+      "detail": "Lecture limitée aux statistiques finales",
+      "combatEventsAvailable": false
+    },
+    "warnings": [
+      "Totaux indisponibles pour une équipe dont les cinq participants ne sont pas présents.",
+      "Aucune conclusion sur les combats sans événements attribuables aux participants."
+    ]
+  },
+  "facts": {
+    "kills": {
+      "ally": 24,
+      "enemy": null,
+      "diff": null,
+      "unit": "kills",
+      "available": false,
+      "source": "participants-final"
+    },
+    "deaths": {
+      "ally": 18,
+      "enemy": null,
+      "diff": null,
+      "unit": "morts",
+      "available": false,
+      "source": "participants-final"
+    },
+    "assists": {
+      "ally": 50,
+      "enemy": null,
+      "diff": null,
+      "unit": "assists",
+      "available": false,
+      "source": "participants-final"
+    },
+    "gold": {
+      "ally": null,
+      "enemy": null,
+      "diff": null,
+      "unit": "or",
+      "available": false,
+      "source": "participants-final"
+    },
+    "damage": {
+      "ally": 102500,
+      "enemy": null,
+      "diff": null,
+      "unit": "dégâts aux champions",
+      "available": false,
+      "source": "participants-final"
+    },
+    "vision": {
+      "ally": 135,
+      "enemy": null,
+      "diff": null,
+      "unit": "score de vision",
+      "available": false,
+      "source": "participants-final"
+    },
+    "dragons": {
+      "ally": null,
+      "enemy": 1,
+      "diff": null,
+      "unit": "dragons",
+      "available": false,
+      "source": "riot-team-objectives"
+    },
+    "barons": {
+      "ally": 1,
+      "enemy": 0,
+      "diff": 1,
+      "unit": "barons",
+      "available": true,
+      "source": "riot-team-objectives"
+    },
+    "towers": {
+      "ally": 8,
+      "enemy": 4,
+      "diff": 4,
+      "unit": "towers",
+      "available": true,
+      "source": "riot-team-objectives"
+    },
+    "heralds": {
+      "ally": 0,
+      "enemy": 0,
+      "diff": 0,
+      "unit": "heralds",
+      "available": true,
+      "source": "riot-team-objectives"
+    },
+    "grubs": {
+      "ally": 3,
+      "enemy": 3,
+      "diff": 0,
+      "unit": "grubs",
+      "available": true,
+      "source": "riot-team-objectives"
+    }
+  },
+  "participants": [
+    {
+      "participantId": 1,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "TOP",
+      "name": "Joueur d’exemple au nom particulièrement long 1",
+      "champion": "Gnar",
+      "kills": 3,
+      "deaths": 4,
+      "assists": 8,
+      "gold": null,
+      "damage": 19000,
+      "vision": 17,
+      "cs10": null
+    },
+    {
+      "participantId": 2,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "JGL",
+      "name": "Joueur d’exemple au nom particulièrement long 2",
+      "champion": "Viego",
+      "kills": 6,
+      "deaths": 2,
+      "assists": 9,
+      "gold": 13125,
+      "damage": 19750,
+      "vision": 22,
+      "cs10": null
+    },
+    {
+      "participantId": 3,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "MID",
+      "name": "Joueur d’exemple au nom particulièrement long 3",
+      "champion": "Ahri",
+      "kills": 5,
+      "deaths": 3,
+      "assists": 10,
+      "gold": 13250,
+      "damage": 20500,
+      "vision": 27,
+      "cs10": null
+    },
+    {
+      "participantId": 4,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "ADC",
+      "name": "Joueur d’exemple au nom particulièrement long 4",
+      "champion": "Jinx",
+      "kills": 8,
+      "deaths": 3,
+      "assists": 11,
+      "gold": 13375,
+      "damage": 21250,
+      "vision": 32,
+      "cs10": null
+    },
+    {
+      "participantId": 5,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "SUP",
+      "name": "Joueur d’exemple au nom particulièrement long 5",
+      "champion": "Nautilus",
+      "kills": 2,
+      "deaths": 6,
+      "assists": 12,
+      "gold": 13500,
+      "damage": 22000,
+      "vision": 37,
+      "cs10": null
+    },
+    {
+      "participantId": 6,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "TOP",
+      "name": "Joueur d’exemple au nom particulièrement long 6",
+      "champion": "Ornn",
+      "kills": 2,
+      "deaths": 4,
+      "assists": 10,
+      "gold": 12000,
+      "damage": 22750,
+      "vision": 42,
+      "cs10": null
+    },
+    {
+      "participantId": 7,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "JGL",
+      "name": "Joueur d’exemple au nom particulièrement long 7",
+      "champion": "Vi",
+      "kills": 4,
+      "deaths": 6,
+      "assists": 11,
+      "gold": 12125,
+      "damage": 23500,
+      "vision": 47,
+      "cs10": null
+    },
+    {
+      "participantId": 8,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "MID",
+      "name": "Joueur d’exemple au nom particulièrement long 8",
+      "champion": "Orianna",
+      "kills": 3,
+      "deaths": 5,
+      "assists": 12,
+      "gold": 12250,
+      "damage": 24250,
+      "vision": 52,
+      "cs10": null
+    }
+  ],
+  "links": {
+    "gamePath": "/statistiques?team=example-team&match=example-match"
+  },
+  "coach": {
+    "title": "Victoire · statistiques incomplètes",
+    "summary": "Les données disponibles ne permettent pas de comparer les totaux des deux équipes. Compléter les données avant de tirer une conclusion collective.",
+    "mainSignal": {
+      "label": "Économie",
+      "value": "Indisponible",
+      "toneName": "cyan"
+    },
+    "keep": "JGL termine avec +1 000 or face à son adversaire ; chercher les décisions reproductibles dans la VOD.",
+    "correct": "Vérifier collectivement les premières pertes de ressources avant de choisir un correctif.",
+    "action": "Identifier dans la VOD un setup reproductible pour la prochaine game.",
+    "standard": "Annoncer la prochaine ressource jouée, les priorités de lane et la condition de renoncement avant le setup.",
+    "playerReads": [
+      {
+        "name": "Joueur d’exemple au nom particulièrement long 1",
+        "role": "TOP",
+        "catchText": "Timings des morts indisponibles : vérifier les catches dans la VOD.",
+        "goodText": "Événements de combat indisponibles : vérifier les séquences positives dans la VOD.",
+        "laneText": "Lane : CS10 Indisponible · or final Indisponible. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur d’exemple au nom particulièrement long 2",
+        "role": "JGL",
+        "catchText": "Timings des morts indisponibles : vérifier les catches dans la VOD.",
+        "goodText": "Événements de combat indisponibles : vérifier les séquences positives dans la VOD.",
+        "laneText": "Lane : CS10 Indisponible · or final +1 000. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur d’exemple au nom particulièrement long 3",
+        "role": "MID",
+        "catchText": "Timings des morts indisponibles : vérifier les catches dans la VOD.",
+        "goodText": "Événements de combat indisponibles : vérifier les séquences positives dans la VOD.",
+        "laneText": "Lane : CS10 Indisponible · or final +1 000. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur d’exemple au nom particulièrement long 4",
+        "role": "ADC",
+        "catchText": "Timings des morts indisponibles : vérifier les catches dans la VOD.",
+        "goodText": "Événements de combat indisponibles : vérifier les séquences positives dans la VOD.",
+        "laneText": "Lane : données comparatives insuffisantes.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur d’exemple au nom particulièrement long 5",
+        "role": "SUP",
+        "catchText": "Timings des morts indisponibles : vérifier les catches dans la VOD.",
+        "goodText": "Événements de combat indisponibles : vérifier les séquences positives dans la VOD.",
+        "laneText": "Lane : données comparatives insuffisantes.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      }
+    ],
+    "roleText": "JGL vs Vi · CS10 Indisponible · or final +1 000",
+    "verdict": "Les données disponibles ne permettent pas de comparer les totaux des deux équipes. Compléter les données avant de tirer une conclusion collective. Identifier dans la VOD un setup reproductible pour la prochaine game.",
+    "vodCheckpoints": [
+      "Retrouver les premières séquences de combat dans la VOD ; leurs événements ne sont pas disponibles ici.",
+      "Revoir les 60 secondes avant le premier objectif contesté : waves, resets, vision et position du jungler.",
+      "Comparer une décision utile et une perte de ressource, avec les informations connues au moment du call."
+    ],
+    "executionPlan": [
+      "Avant la game : annoncer le plan et le risque principal en une phrase.",
+      "En game : annoncer le setup avant de déplacer les ressources de l’équipe.",
+      "Après la game : vérifier le standard sur trois séquences sans juger uniquement le résultat final."
+    ],
+    "validation": "Définir pendant la review un comportement observable, puis vérifier son exécution sur les trois prochaines games.",
+    "coachQuestions": [
+      "Quelles informations étaient connues au moment de décider ?",
+      "Quel call aurait permis aux cinq joueurs de coordonner leur décision ?",
+      "Quel comportement précis tester dès la prochaine game ?"
+    ],
+    "metrics": [
+      [
+        "KDA",
+        "24/18/50",
+        "Indisponible kills adverses",
+        "cyan"
+      ],
+      [
+        "Or",
+        "Indisponible",
+        "écart final",
+        "cyan"
+      ],
+      [
+        "Dégâts",
+        "Indisponible",
+        "dégâts aux champions",
+        "cyan"
+      ],
+      [
+        "Vision",
+        "Indisponible",
+        "écart de score",
+        "cyan"
+      ],
+      [
+        "Dragons",
+        "Indisponible – 1",
+        "notre équipe / adversaire",
+        "cyan"
+      ],
+      [
+        "Fights",
+        "Indisponible",
+        "combats non couverts",
+        "cyan"
+      ]
+    ]
+  },
+  "reviewHints": [
+    {
+      "observation": "Les données disponibles ne permettent pas de comparer les totaux des deux équipes. Compléter les données avant de tirer une conclusion collective.",
+      "action": "Identifier dans la VOD un setup reproductible pour la prochaine game.",
+      "evidence": [
+        "facts.gold",
+        "facts.damage",
+        "facts.vision"
+      ],
+      "availability": "insufficient"
+    }
+  ]
+}

@@ -23,9 +23,11 @@ beforeAll(async () => {
       values ($1, 'Equipe test', 'team_monthly', 'Ancien tarif', 1900, 1900, 'paid', $2, $2)`, ['ORDER-' + String(i).padStart(3, '0'), ago(i)]);
   }
   for (const [reference, status, amount, days] of [['OLDER', 'paid', 2900, 45], ['ARCHIVE', 'paid', 16900, 500], ['WAITING', 'pending', 2900, 5], ['CANCELLED', 'cancelled', 2900, 4], ['REFUNDED-100%', 'refunded', 16900, 3]] as const) {
-    const paidAt = ['paid', 'refunded'].includes(status) ? ago(days) : null;
+    // Use one instant: a second Date.now() call could move ordered_at after paid_at.
+    const orderedAt = ago(days);
+    const paidAt = ['paid', 'refunded'].includes(status) ? orderedAt : null;
     await db.query(`insert into purchases(order_reference, customer_name, plan_code, plan_label, unit_amount_cents, amount_cents, status, ordered_at, paid_at, refunded_at)
-      values ($1, 'Client historique', 'season', 'Saison', $2, $2, $3, $4, $5, $6)`, [reference, amount, status, ago(days), paidAt, status === 'refunded' ? ago(1) : null]);
+      values ($1, 'Client historique', 'season', 'Saison', $2, $2, $3, $4, $5, $6)`, [reference, amount, status, orderedAt, paidAt, status === 'refunded' ? ago(1) : null]);
   }
 }, 15_000);
 

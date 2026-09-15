@@ -4,6 +4,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { fetchRiotMatch } from './_lib/riot';
 import { persistAnalyzedMatch } from './_lib/analytics';
+import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
 import { sendNotification } from './_mailer.js';
@@ -110,6 +111,7 @@ export default async function handler(request: Request, context: Context): Promi
       });
     }
     const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds });
+    wakeDiscordPublications(context);
 
     await runOptionalImportTask('audit log', () => sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

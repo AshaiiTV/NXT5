@@ -11,7 +11,9 @@ export default defineConfig(({ mode }) => {
     name: "nxt5-public-site-metadata",
     transformIndexHtml(html) { return html.replaceAll("%PUBLIC_SITE_URL%", publicSiteUrl); },
   }],
-  test: { include: ["src/**/*.test.{js,jsx,ts,tsx}"] },
+  // Each PostgreSQL suite starts its own WASM engine. Bound concurrency so the
+  // full verification stays reliable alongside native image rendering on CI.
+  test: { include: ["src/**/*.test.{js,jsx,ts,tsx}"], maxWorkers: 4 },
   build: {
     rollupOptions: {
       output: {

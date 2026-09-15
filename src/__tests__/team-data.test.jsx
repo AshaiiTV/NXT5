@@ -21,21 +21,22 @@ function page(teamId, history, offset = 0, extra = {}) {
   };
 }
 
-function mount() {
+function mount(routeSearch = "") {
   const requests = [], renders = [];
   apiFetch.mockImplementation((url, options) => new Promise((resolve, reject) => requests.push({ url, options, resolve, reject })));
   const store = { mergeAvailability: (rows) => rows };
   let state, renderer;
-  function View() {
-    state = useTeamData(store);
+  function View({ search }) {
+    state = useTeamData(store, search);
     renders.push({ teamId: state.data.selectedTeamId, matches: state.data.matches.map((match) => match.id), loading: state.loading });
     return <output>{state.data.matches.length}</output>;
   }
-  act(() => { renderer = TestRenderer.create(<View />); });
+  act(() => { renderer = TestRenderer.create(<View search={routeSearch} />); });
   cleanups.push(() => act(() => renderer.unmount()));
   return {
     requests, renders, get state() { return state; },
     select(id) { act(() => state.setSelectedTeamId(id)); },
+    navigate(search) { act(() => renderer.update(<View search={search} />)); },
     refresh(options) { act(() => { void state.refreshAll(options); }); },
     async resolve(index, payload) { expect(requests[index], `request ${index} was started automatically`).toBeDefined(); await act(async () => requests[index].resolve(payload)); },
     async reject(index, error = new Error("Réseau indisponible")) { await act(async () => requests[index].reject(error)); },
@@ -53,6 +54,42 @@ function expectRequest(request, { offset = 0, teamId, matchesOnly = false } = {}
 }
 
 describe("complete team history lifecycle in React", () => {
+  it("loads the linked team directly, preserving the requested game throughout pagination", async () => {
+    const app = mount("?team=b&match=b-101");
+    expectRequest(app.requests[0], { teamId: "b" });
+    await app.resolve(0, page("b", games("b", 101)));
+    expectRequest(app.requests[1], { teamId: "b", offset: 100, matchesOnly: true });
+    await app.resolve(1, page("b", games("b", 101), 100));
+    expect(app.state.selectedTeamId).toBe("b");
+    expect(app.state.data.matches.find((match) => match.id === "b-101")).toBeDefined();
+    expect(app.requests.some((request) => new URL(request.url, "https://nxt5.test").searchParams.get("teamId") !== "b")).toBe(false);
+  });
+
+  it("follows a changed link but does not override manual selection on unchanged URL", async () => {
+    const app = mount("?team=a&match=a-1");
+    await app.resolve(0, page("a", games("a", 1)));
+    app.navigate("?team=b&match=b-1");
+    expect(app.state.bootstrapReady).toBe(false);
+    expectRequest(app.requests[1], { teamId: "b" });
+    await app.resolve(1, page("b", games("b", 1)));
+    expect(app.state.bootstrapReady).toBe(true);
+    app.select("a");
+    expectRequest(app.requests[2], { teamId: "a" });
+    await app.resolve(2, page("a", games("a", 1)));
+    expect(app.state.selectedTeamId).toBe("a");
+    expect(app.requests).toHaveLength(3);
+  });
+
+  it("keeps an unauthorized linked team unavailable after bootstrap rejects it", async () => {
+    const app = mount("?team=forbidden&match=private");
+    expectRequest(app.requests[0], { teamId: "forbidden" });
+    await app.reject(0, new Error("Accès à cette équipe refusé."));
+    expect(app.state.bootstrapReady).toBe(false);
+    expect(app.state.data.matches).toEqual([]);
+    expect(app.state.apiError).toContain("Accès à cette équipe refusé");
+    expect(app.requests).toHaveLength(1);
+  });
+
   it("automatically loads more than 100 games and publishes only the complete history", async () => {
     const app = mount();
     const history = games("a", 205);

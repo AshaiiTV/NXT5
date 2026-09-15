@@ -11,6 +11,8 @@
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["@napi-rs/canvas"]
+  included_files = ["public/assets/nxt5-wordmark.png", "node_modules/@fontsource/inter/files/inter-latin-{400,500,600,700}-normal.woff2"]
 
 [[headers]]
   for = "/*"

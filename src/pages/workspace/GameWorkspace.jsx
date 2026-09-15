@@ -1,3 +1,4 @@
+import { buildGamePublicationSnapshot } from "../../../shared/publications/game-publication.js";
 import { PNG_THEME, pngAccent, pngTint, pngFitText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
 import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
@@ -16,11 +17,17 @@ import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
 import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import DiscordGameShare from "../../components/discord/DiscordGameShare.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
 
-async function exportStatsPng({ title, subtitle, matches, filename }) {
+async function exportStatsPng({ title, subtitle, matches, filename, team, categories = [] }) {
+  const singleMatch = Array.isArray(matches) && matches.filter(Boolean).length === 1 ? matches.filter(Boolean)[0] : null;
+  if (singleMatch) {
+    const { downloadGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
+    return downloadGamePublicationPng(buildGamePublicationSnapshot({ team, match: singleMatch, categories }), filename);
+  }
   const finalBuildItems = (row) => [...itemSlots(row).filter(Boolean).map((id) => ({ id })), ...(trinketItemId(row) ? [{ id: trinketItemId(row) }] : [])];
   const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
   const rows = scoped.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY").map((row) => ({ ...row, match })));
@@ -1247,155 +1254,11 @@ function playerSideTimings(match, role) {
 }
 
 function matchPlayerCoachReads(match) {
-  const allies = teamRows(match, "ALLY");
-  const kills = championKillEvents(match);
-  const objectives = objectiveEvents(match);
-  const roleDiffs = roleDiffRows(match);
-  return allies.map((row) => {
-    const participantId = rowParticipantId(row);
-    const deaths = kills.filter((event) => event.victimTeam === "ALLY" && event.victimId === participantId);
-    const catches = deaths.filter((death) => {
-      const traded = kills.some((event) => event.killerTeam === "ALLY" && Math.abs(event.timestamp - death.timestamp) <= 15000);
-      const beforeObjective = objectives.some((event) => event.timestamp > death.timestamp && event.timestamp - death.timestamp <= 90000);
-      return !traded || beforeObjective || (death.assistingParticipantIds || []).length <= 1;
-    });
-    const positiveEvents = kills.filter((event) => {
-      if (event.killerTeam !== "ALLY") return false;
-      const involved = event.killerId === participantId || (event.assistingParticipantIds || []).map(Number).includes(participantId);
-      if (!involved) return false;
-      const alliedDeathsNearby = kills.filter((item) => item.victimTeam === "ALLY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
-      const enemyDeathsNearby = kills.filter((item) => item.victimTeam === "ENEMY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
-      return enemyDeathsNearby > alliedDeathsNearby;
-    });
-    const diff = roleDiffs.find((item) => item.ally === row || normalizeProfileRole(item.role) === normalizeProfileRole(row.role));
-    const side = playerSideTimings(match, row.role);
-    const catchText = catches.length
-      ? `${catches.length} catch${catches.length > 1 ? "s" : ""} détecté${catches.length > 1 ? "s" : ""} : ${catches.slice(0, 3).map((event) => event.time).join(" · ")}${catches.length > 3 ? "…" : ""}. Revoir information disponible, position des alliés et objectif suivant.`
-      : deaths.length
-        ? `Aucun catch net détecté : ${deaths.length} mort${deaths.length > 1 ? "s" : ""}, mais échangée${deaths.length > 1 ? "s" : ""} ou hors fenêtre critique.`
-        : Number(row.deaths) === 0
-          ? "Aucune mort : vérifier que cette discipline n'a pas sacrifié une fenêtre d'impact utile."
-          : "Timings des morts indisponibles : vérifier les catches dans la VOD.";
-    const goodText = positiveEvents.length
-      ? `${positiveEvents.length} bonne${positiveEvents.length > 1 ? "s" : ""} fenêtre${positiveEvents.length > 1 ? "s" : ""} d'impact, dès ${positiveEvents[0].time} : participation à une séquence gagnée sans rendre autant de kills.`
-      : !kills.length
-        ? "Événements de combat indisponibles : vérifier les séquences positives dans la VOD."
-        : "Aucune séquence positive nette détectée dans la timeline : chercher si le joueur arrive trop tard, trop tôt ou sans ressources.";
-    const laneText = diff
-      ? `Lane : CS10 ${Number.isFinite(diff.cs10Diff) ? `${diff.cs10Diff >= 0 ? "+" : ""}${diff.cs10Diff}` : "N/A"} · or final ${formatGoldDiff(diff.goldDiff)} · ${diff.goldDiff >= 0 ? "levier à convertir" : "coût à stabiliser"}.`
-      : "Lane : données comparatives insuffisantes.";
-    return { name: playerReviewName(row), role: normalizeProfileRole(row.role) || row.role || "ROLE", catchText, goodText, laneText, ...side };
-  });
+  return buildGamePublicationSnapshot({ match }).coach.playerReads;
 }
 
 function matchCoachSnapshot(match) {
-  const ally = teamRows(match, "ALLY");
-  const enemy = teamRows(match, "ENEMY");
-  const allyKills = sumRows(ally, "kills");
-  const allyDeaths = sumRows(ally, "deaths");
-  const allyAssists = sumRows(ally, "assists");
-  const enemyKills = sumRows(enemy, "kills");
-  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
-  const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
-  const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  const allyObjectives = objectiveTeamSummary(match, "ALLY");
-  const enemyObjectives = objectiveTeamSummary(match, "ENEMY");
-  const objectiveDiff = teamObjectiveScore(allyObjectives) - teamObjectiveScore(enemyObjectives);
-  const fights = fightWindows(match);
-  const allyFights = fights.filter((fight) => fight.teamKey === "ALLY").length;
-  const enemyFights = fights.filter((fight) => fight.teamKey === "ENEMY").length;
-  const roleRows = roleDiffRows(match);
-  const reviewRole = roleRows.slice().sort((a, b) => {
-    const score = (row) => (Number(row.goldDiff || 0) / 450) + (Number(row.damageDiff || 0) / 1400) + (Number(row.cs10Diff || 0) * 1.4) - (Number(row.deathsDiff || 0) * 4);
-    return score(a) - score(b);
-  })[0];
-  const carryRole = roleRows.slice().sort((a, b) => (Number(b.goldDiff || 0) + Number(b.damageDiff || 0) / 3) - (Number(a.goldDiff || 0) + Number(a.damageDiff || 0) / 3))[0];
-  const isWin = match.result === "Victoire";
-  const mainSignal = (() => {
-    if (Math.abs(goldDiff) >= 2500) return { label: "Économie", value: formatGoldDiff(goldDiff), toneName: goldDiff >= 0 ? "green" : "red" };
-    if (Math.abs(damageDiff) >= 7000) return { label: "Fights", value: `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, toneName: damageDiff >= 0 ? "green" : "red" };
-    if (Math.abs(visionDiff) >= 18) return { label: "Vision", value: `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, toneName: visionDiff >= 0 ? "cyan" : "red" };
-    return { label: "Objectifs", value: `${objectiveDiff >= 0 ? "+" : ""}${objectiveDiff}`, toneName: objectiveDiff >= 0 ? "cyan" : "red" };
-  })();
-  const title = isWin
-    ? `Victoire portée par ${mainSignal.label.toLowerCase()}`
-    : `${mainSignal.label} à corriger en priorité`;
-  const summary = isWin
-    ? `La game se gagne avec ${mainSignal.value}. Le replay doit confirmer comment cet avantage a été créé puis converti.`
-    : `La game se perd avec ${mainSignal.value}. La review doit isoler le moment où le plan décroche.`;
-  const roleLabelText = reviewRole ? roleLabel(reviewRole.role) : "Rôle non isolé";
-  const roleText = reviewRole
-    ? `${roleLabelText} vs ${championDisplayName(reviewRole.enemy?.champion)} · CS10 ${Number.isFinite(reviewRole.cs10Diff) ? (reviewRole.cs10Diff >= 0 ? "+" : "") + reviewRole.cs10Diff : "N/A"} · or ${formatGoldDiff(reviewRole.goldDiff)}`
-    : "Pas assez de données par rôle.";
-  const keep = isWin
-    ? (carryRole ? `${roleLabel(carryRole.role)} a donné le meilleur levier de la game.` : "Le plan global a converti.")
-    : (goldDiff > 0 || damageDiff > 0 ? "Il y a un avantage exploitable à conserver." : "Garder uniquement les phases propres identifiées en timeline.");
-  const correct = reviewRole
-    ? `${roleLabelText} est la première lane à revoir.`
-    : "Revoir le premier objectif et les morts avant setup.";
-  const action = isWin
-    ? "Identifier le setup reproductible pour la prochaine game."
-    : "Choisir un seul correctif avant le prochain bloc.";
-  const roleName = reviewRole ? roleLabel(reviewRole.role) : "l'équipe";
-  const isEconomyIssue = goldDiff < -2500;
-  const isFightIssue = damageDiff < -7000 || enemyFights > allyFights;
-  const isVisionIssue = visionDiff < -18;
-  const isObjectiveIssue = objectiveDiff < 0;
-  const verdict = isWin
-    ? `Cette victoire compte seulement si l'équipe sait reproduire le setup qui a créé ${mainSignal.value} en ${mainSignal.label.toLowerCase()}.`
-    : `${roleName} est le premier point de rupture visible, mais la review doit remonter à la décision collective qui l'a exposé.`;
-  const standard = isVisionIssue
-    ? "Aucun objectif joué sans zone préparée, information jungle et chemin de sortie annoncé."
-    : isObjectiveIssue
-      ? "Chaque objectif est appelé 60 secondes avant avec priorité de lane, reset et responsabilité de setup."
-      : isEconomyIssue
-        ? "Une lane sous pression ne donne pas une deuxième ressource : wave, camp ou plaque sont cédés consciemment, jamais par défaut."
-        : isFightIssue
-          ? "Le fight ne démarre qu'avec la cible, les cooldowns clés et la condition de sortie compris par les cinq joueurs."
-          : "Le plan de jeu doit être formulé avant la draft puis confirmé par un call simple à chaque transition.";
-  const vodCheckpoints = [
-    `Premier moment où l'écart d'or change de sens : qui avait l'information, quel call a été fait, quelle option sûre existait ?`,
-    isObjectiveIssue ? "60 secondes avant le premier objectif perdu : waves, resets, vision et position du jungler." : "Premier objectif contesté : avantage réel, ressources disponibles et condition de renoncement.",
-    reviewRole ? `Première séquence où ${roleName} perd le contrôle : état de wave, couverture, communication et coût collectif.` : "Première mort évitable : information disponible, décision prise et conséquence sur la carte.",
-  ];
-  const executionPlan = [
-    `Avant la game : annoncer la win condition et le risque numéro 1 en une phrase.`,
-    isVisionIssue || isObjectiveIssue ? "En game : lancer le setup objectif à T-60, confirmer les priorités à T-40 et décider go/no-go à T-20." : "En game : verbaliser la prochaine ressource jouée avant chaque transition de map.",
-    `Après la game : vérifier ce standard sur 3 séquences, sans juger uniquement le résultat final.`,
-  ];
-  const validation = isWin
-    ? "Validé si le même setup crée un avantage exploitable sur 2 des 3 prochaines games."
-    : `Validé si ${roleName} ne subit plus le même point de rupture sur 3 games consécutives et si le call collectif arrive avant l'action.`;
-  const coachQuestions = [
-    "Qu'est-ce que tu savais au moment de décider — pas après coup ?",
-    "Quel call simple aurait permis aux cinq joueurs de prendre la même décision ?",
-    "Quel comportement précis remplace l'erreur dès la prochaine game ?",
-  ];
-  const playerReads = matchPlayerCoachReads(match);
-  return {
-    title,
-    summary,
-    mainSignal,
-    roleText,
-    keep,
-    correct,
-    action,
-    verdict,
-    standard,
-    vodCheckpoints,
-    executionPlan,
-    validation,
-    coachQuestions,
-    playerReads,
-    metrics: [
-      ["KDA", `${allyKills}/${allyDeaths}/${allyAssists}`, `${enemyKills} kills adverses`, "cyan"],
-      ["Or", formatGoldDiff(goldDiff), "écart final", goldDiff >= 0 ? "green" : "red"],
-      ["Dégâts", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "alliés vs adversaires", damageDiff >= 0 ? "green" : "red"],
-      ["Vision", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "score vision", visionDiff >= 0 ? "cyan" : "red"],
-      ["Objectifs", `${teamObjectiveScore(allyObjectives)}-${teamObjectiveScore(enemyObjectives)}`, "tous objectifs", objectiveDiff >= 0 ? "cyan" : "red"],
-      ["Fights", `${allyFights}-${enemyFights}`, "fenêtres détectées", allyFights >= enemyFights ? "green" : "red"],
-    ],
-  };
+  return buildGamePublicationSnapshot({ match }).coach;
 }
 
 function MatchCoachBrief({ match }) {
@@ -1631,6 +1494,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         title: group ? selectedArchive?.name || "Groupe NXT5" : matchDisplayName(exportMatches[0]),
         subtitle: group ? exportMatches.length + " games" : exportMatches[0].game_id,
         matches: exportMatches,
+        team: { id: selectedTeamId, name: selectedTeamName },
+        categories: matchCategories,
         filename: group ? "nxt5-groupe-stats.png" : "nxt5-game-" + (exportMatches[0].game_id || "export") + ".png",
       });
     } catch (error) {
@@ -1661,6 +1526,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement des statistiques détaillées…</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && " Les statistiques déjà chargées restent disponibles."}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button></Surface>}
       {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} statsFirst />}
+      {selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canStaffManage(currentMember?.role)} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Game introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
     </div>}
 
@@ -1865,7 +1731,7 @@ function buildGameReviewContent(match) {
     `Résultat: ${match.result || "Analyse"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`,
     `Données: ${timelineStatus(match).label} · ${timelineStatus(match).detail}`,
     "",
-    "CAUSE RACINE",
+    "PISTES DE REVIEW",
     `- ${snapshot.title}`,
     `- ${snapshot.summary}`,
     `- Lane à review: ${snapshot.roleText}`,
@@ -1921,7 +1787,7 @@ function buildArchiveReportContent(name, matches) {
     "",
     `Groupe: ${name || "Groupe"}`,
     "",
-    "CAUSE RACINE",
+    "PISTES DE REVIEW",
     ...reportRawSummaryLines(linked),
     "",
     "CHECKPOINTS VOD",

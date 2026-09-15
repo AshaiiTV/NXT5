@@ -1,0 +1,414 @@
+{
+  "schemaVersion": 1,
+  "analysisVersion": "nxt5-game-1",
+  "templateVersion": "nxt5-game-1",
+  "teamId": "example-team",
+  "entityType": "match",
+  "entityId": "example-match",
+  "sourceRevision": "fixture-1",
+  "publicationKind": "game",
+  "playedAt": "2026-09-15T14:00:00.000Z",
+  "generatedAt": "2026-09-15T12:00:00.000Z",
+  "context": {
+    "teamName": "NXT5 · Équipe démo A",
+    "opponentName": "Équipe démo B",
+    "gameId": "EXEMPLE_2026",
+    "result": "Victoire",
+    "duration": "31:42",
+    "allySide": "blue",
+    "enemySide": "red",
+    "categories": [
+      {
+        "id": "scrims",
+        "name": "Exemple fictif · Scrims"
+      }
+    ]
+  },
+  "coverage": {
+    "participants": {
+      "ally": 5,
+      "enemy": 5,
+      "expectedPerTeam": 5
+    },
+    "timeline": {
+      "status": "detailed",
+      "label": "Timeline détaillée disponible",
+      "detail": "1 frame enregistrée",
+      "combatEventsAvailable": true
+    },
+    "warnings": []
+  },
+  "facts": {
+    "kills": {
+      "ally": 24,
+      "enemy": 18,
+      "diff": 6,
+      "unit": "kills",
+      "available": true,
+      "source": "participants-final"
+    },
+    "deaths": {
+      "ally": 18,
+      "enemy": 24,
+      "diff": -6,
+      "unit": "morts",
+      "available": true,
+      "source": "participants-final"
+    },
+    "assists": {
+      "ally": 50,
+      "enemy": 60,
+      "diff": -10,
+      "unit": "assists",
+      "available": true,
+      "source": "participants-final"
+    },
+    "gold": {
+      "ally": 66250,
+      "enemy": 61250,
+      "diff": 5000,
+      "unit": "or",
+      "available": true,
+      "source": "participants-final"
+    },
+    "damage": {
+      "ally": 102500,
+      "enemy": 121250,
+      "diff": -18750,
+      "unit": "dégâts aux champions",
+      "available": true,
+      "source": "participants-final"
+    },
+    "vision": {
+      "ally": 135,
+      "enemy": 260,
+      "diff": -125,
+      "unit": "score de vision",
+      "available": true,
+      "source": "participants-final"
+    },
+    "dragons": {
+      "ally": 3,
+      "enemy": 1,
+      "diff": 2,
+      "unit": "dragons",
+      "available": true,
+      "source": "riot-team-objectives"
+    },
+    "barons": {
+      "ally": 1,
+      "enemy": 0,
+      "diff": 1,
+      "unit": "barons",
+      "available": true,
+      "source": "riot-team-objectives"
+    },
+    "towers": {
+      "ally": 8,
+      "enemy": 4,
+      "diff": 4,
+      "unit": "towers",
+      "available": true,
+      "source": "riot-team-objectives"
+    },
+    "heralds": {
+      "ally": 0,
+      "enemy": 0,
+      "diff": 0,
+      "unit": "heralds",
+      "available": true,
+      "source": "riot-team-objectives"
+    },
+    "grubs": {
+      "ally": 3,
+      "enemy": 3,
+      "diff": 0,
+      "unit": "grubs",
+      "available": true,
+      "source": "riot-team-objectives"
+    }
+  },
+  "participants": [
+    {
+      "participantId": 1,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "TOP",
+      "name": "Joueur exemple 1",
+      "champion": "Gnar",
+      "kills": 3,
+      "deaths": 4,
+      "assists": 8,
+      "gold": 13000,
+      "damage": 19000,
+      "vision": 17,
+      "cs10": 80
+    },
+    {
+      "participantId": 2,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "JGL",
+      "name": "Joueur exemple 2",
+      "champion": "Viego",
+      "kills": 6,
+      "deaths": 2,
+      "assists": 9,
+      "gold": 13125,
+      "damage": 19750,
+      "vision": 22,
+      "cs10": 80
+    },
+    {
+      "participantId": 3,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "MID",
+      "name": "Joueur exemple 3",
+      "champion": "Ahri",
+      "kills": 5,
+      "deaths": 3,
+      "assists": 10,
+      "gold": 13250,
+      "damage": 20500,
+      "vision": 27,
+      "cs10": 80
+    },
+    {
+      "participantId": 4,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "ADC",
+      "name": "Joueur exemple 4",
+      "champion": "Jinx",
+      "kills": 8,
+      "deaths": 3,
+      "assists": 11,
+      "gold": 13375,
+      "damage": 21250,
+      "vision": 32,
+      "cs10": 80
+    },
+    {
+      "participantId": 5,
+      "teamId": 100,
+      "teamKey": "ALLY",
+      "role": "SUP",
+      "name": "Joueur exemple 5",
+      "champion": "Nautilus",
+      "kills": 2,
+      "deaths": 6,
+      "assists": 12,
+      "gold": 13500,
+      "damage": 22000,
+      "vision": 37,
+      "cs10": 80
+    },
+    {
+      "participantId": 6,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "TOP",
+      "name": "Joueur exemple 6",
+      "champion": "Ornn",
+      "kills": 2,
+      "deaths": 4,
+      "assists": 10,
+      "gold": 12000,
+      "damage": 22750,
+      "vision": 42,
+      "cs10": 80
+    },
+    {
+      "participantId": 7,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "JGL",
+      "name": "Joueur exemple 7",
+      "champion": "Vi",
+      "kills": 4,
+      "deaths": 6,
+      "assists": 11,
+      "gold": 12125,
+      "damage": 23500,
+      "vision": 47,
+      "cs10": 80
+    },
+    {
+      "participantId": 8,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "MID",
+      "name": "Joueur exemple 8",
+      "champion": "Orianna",
+      "kills": 3,
+      "deaths": 5,
+      "assists": 12,
+      "gold": 12250,
+      "damage": 24250,
+      "vision": 52,
+      "cs10": 80
+    },
+    {
+      "participantId": 9,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "ADC",
+      "name": "Joueur exemple 9",
+      "champion": "Ashe",
+      "kills": 7,
+      "deaths": 3,
+      "assists": 13,
+      "gold": 12375,
+      "damage": 25000,
+      "vision": 57,
+      "cs10": 80
+    },
+    {
+      "participantId": 10,
+      "teamId": 200,
+      "teamKey": "ENEMY",
+      "role": "SUP",
+      "name": "Joueur exemple 10",
+      "champion": "Leona",
+      "kills": 2,
+      "deaths": 6,
+      "assists": 14,
+      "gold": 12500,
+      "damage": 25750,
+      "vision": 62,
+      "cs10": 80
+    }
+  ],
+  "links": {
+    "gamePath": "/statistiques?team=example-team&match=example-match"
+  },
+  "coach": {
+    "title": "Victoire · écart de or final",
+    "summary": "Écart final : +5 000 en or final entre notre équipe et l'adversaire. Ce bilan ne suffit pas à expliquer le résultat ; vérifier la création et la conversion des ressources dans la VOD.",
+    "mainSignal": {
+      "label": "Économie",
+      "value": "+5 000",
+      "toneName": "green"
+    },
+    "keep": "TOP termine avec +1 000 or face à son adversaire ; chercher les décisions reproductibles dans la VOD.",
+    "correct": "Vérifier collectivement les premières pertes de ressources avant de choisir un correctif.",
+    "action": "Identifier dans la VOD un setup reproductible pour la prochaine game.",
+    "standard": "Préparer la zone, partager l’information jungle et annoncer le chemin de sortie avant de jouer un objectif.",
+    "playerReads": [
+      {
+        "name": "Joueur exemple 1",
+        "role": "TOP",
+        "catchText": "Aucune mort non échangée repérée dans les événements disponibles ; vérifier le contexte dans la VOD.",
+        "goodText": "Comparer les séquences de combat disponibles avec les priorités, les ressources et les timings de déplacement.",
+        "laneText": "Lane : CS10 +0 · or final +1 000. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur exemple 2",
+        "role": "JGL",
+        "catchText": "Aucune mort non échangée repérée dans les événements disponibles ; vérifier le contexte dans la VOD.",
+        "goodText": "Comparer les séquences de combat disponibles avec les priorités, les ressources et les timings de déplacement.",
+        "laneText": "Lane : CS10 +0 · or final +1 000. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur exemple 3",
+        "role": "MID",
+        "catchText": "Aucune mort non échangée repérée dans les événements disponibles ; vérifier le contexte dans la VOD.",
+        "goodText": "Comparer les séquences de combat disponibles avec les priorités, les ressources et les timings de déplacement.",
+        "laneText": "Lane : CS10 +0 · or final +1 000. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur exemple 4",
+        "role": "ADC",
+        "catchText": "Aucune mort non échangée repérée dans les événements disponibles ; vérifier le contexte dans la VOD.",
+        "goodText": "Comparer les séquences de combat disponibles avec les priorités, les ressources et les timings de déplacement.",
+        "laneText": "Lane : CS10 +0 · or final +1 000. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      },
+      {
+        "name": "Joueur exemple 5",
+        "role": "SUP",
+        "catchText": "Aucune mort non échangée repérée dans les événements disponibles ; vérifier le contexte dans la VOD.",
+        "goodText": "Comparer les séquences de combat disponibles avec les priorités, les ressources et les timings de déplacement.",
+        "laneText": "Lane : CS10 +0 · or final +1 000. L’écart final ne décrit pas à lui seul la phase de lane.",
+        "weakside": "Si les ressources de l’équipe sont engagées sur l’autre côté : protéger la wave, garder une sortie et annoncer le risque.",
+        "strongside": "Si l’équipe joue son côté : préparer le crash, coordonner le reset et demander la couverture avant le setup."
+      }
+    ],
+    "roleText": "TOP vs Ornn · CS10 +0 · or final +1 000",
+    "verdict": "Écart final : +5 000 en or final entre notre équipe et l'adversaire. Ce bilan ne suffit pas à expliquer le résultat ; vérifier la création et la conversion des ressources dans la VOD. Identifier dans la VOD un setup reproductible pour la prochaine game.",
+    "vodCheckpoints": [
+      "Revoir une séquence de combat indexée : information, ressources et décision collective.",
+      "Revoir les 60 secondes avant le premier objectif contesté : waves, resets, vision et position du jungler.",
+      "Comparer une décision utile et une perte de ressource, avec les informations connues au moment du call."
+    ],
+    "executionPlan": [
+      "Avant la game : annoncer le plan et le risque principal en une phrase.",
+      "En game : annoncer le setup avant de déplacer les ressources de l’équipe.",
+      "Après la game : vérifier le standard sur trois séquences sans juger uniquement le résultat final."
+    ],
+    "validation": "Définir pendant la review un comportement observable, puis vérifier son exécution sur les trois prochaines games.",
+    "coachQuestions": [
+      "Quelles informations étaient connues au moment de décider ?",
+      "Quel call aurait permis aux cinq joueurs de coordonner leur décision ?",
+      "Quel comportement précis tester dès la prochaine game ?"
+    ],
+    "metrics": [
+      [
+        "KDA",
+        "24/18/50",
+        "18 kills adverses",
+        "cyan"
+      ],
+      [
+        "Or",
+        "+5 000",
+        "écart final",
+        "green"
+      ],
+      [
+        "Dégâts",
+        "-18 750",
+        "dégâts aux champions",
+        "red"
+      ],
+      [
+        "Vision",
+        "-125",
+        "écart de score",
+        "red"
+      ],
+      [
+        "Dragons",
+        "3 – 1",
+        "notre équipe / adversaire",
+        "green"
+      ],
+      [
+        "Fights",
+        "1 – 0",
+        "fenêtres de kills de 24 s",
+        "green"
+      ]
+    ]
+  },
+  "reviewHints": [
+    {
+      "observation": "Écart final : +5 000 en or final entre notre équipe et l'adversaire. Ce bilan ne suffit pas à expliquer le résultat ; vérifier la création et la conversion des ressources dans la VOD.",
+      "action": "Identifier dans la VOD un setup reproductible pour la prochaine game.",
+      "evidence": [
+        "facts.gold",
+        "facts.damage",
+        "facts.vision"
+      ],
+      "availability": "measured-final"
+    }
+  ]
+}

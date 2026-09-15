@@ -1,0 +1,47 @@
+{
+  "runtime": "v24.19.0",
+  "platform": "darwin/arm64",
+  "note": "Synthetic fixtures; local measurements, not a Netlify production SLA.",
+  "records": [
+    {
+      "fixture": "complete",
+      "milliseconds": 112,
+      "bytes": 292964,
+      "width": 1200,
+      "height": 1950,
+      "rssMiB": 108
+    },
+    {
+      "fixture": "missing-timeline",
+      "milliseconds": 69,
+      "bytes": 307359,
+      "width": 1200,
+      "height": 1950,
+      "rssMiB": 109
+    },
+    {
+      "fixture": "long-incomplete",
+      "milliseconds": 83,
+      "bytes": 383299,
+      "width": 1200,
+      "height": 2270,
+      "rssMiB": 120
+    },
+    {
+      "fixture": "red-side",
+      "milliseconds": 71,
+      "bytes": 293376,
+      "width": 1200,
+      "height": 1950,
+      "rssMiB": 120
+    },
+    {
+      "fixture": "facts-only",
+      "milliseconds": 60,
+      "bytes": 231207,
+      "width": 1200,
+      "height": 1645,
+      "rssMiB": 120
+    }
+  ]
+}

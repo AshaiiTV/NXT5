@@ -1,0 +1,14 @@
+{
+  "verifiedAt": "2026-09-15T12:31:19.052Z",
+  "command": "netlify build --offline --context deploy-preview (npm run verify + Functions bundling)",
+  "node": "v24.19.0",
+  "typecheck": "passed",
+  "tests": {
+    "cases": 1024,
+    "suites": 67,
+    "failed": 0
+  },
+  "vite": "passed",
+  "functions": "passed",
+  "note": "No remote database migration and no real Discord delivery were performed."
+}
