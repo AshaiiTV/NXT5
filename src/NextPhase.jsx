@@ -381,26 +381,4 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
   </Panel>;
 }
 
-export function HomeActionSummary({ matches = [] }) {
-  const review = matches.find((match) => String(match.review_status || "todo") !== "done" && match.result === "Défaite") || matches.find((match) => String(match.review_status || "todo") !== "done");
-  const needsImports = matches.length < 3;
-  const items = [
-    {
-      title: needsImports ? matches.length ? "Importer les prochaines games" : "Importer une game" : "Choisir un axe de travail",
-      detail: needsImports ? "Ajoute les games de ta session avant de tirer des conclusions." : "Dans Tendances, retiens un point à travailler à la prochaine session.",
-      path: needsImports ? "/integration" : "/tendances",
-    },
-    ...(matches.length ? [{
-      title: review ? "Revoir une game" : "Consulter les reviews",
-      detail: review ? `${matchName(review)} · Repère une erreur et note une action à tester.` : "Toutes les games sont revues. Retrouve les actions déjà notées.",
-      path: review ? `/statistiques?match=${encodeURIComponent(review.id)}` : "/rapports",
-    }] : []),
-  ];
-  return <div className="nxt5-weekly-actions">{items.map((item, index) => <button key={item.title} type="button" onClick={() => openRoute(item.path)} className="nxt5-weekly-action">
-    <span className="nxt5-weekly-step" aria-hidden="true">{index + 1}.</span>
-    <span className="nxt5-weekly-action-copy"><span className="nxt5-weekly-action-title">{item.title}</span><span className="nxt5-weekly-action-detail">{item.detail}</span></span>
-    <ArrowRight aria-hidden="true" />
-  </button>)}</div>;
-}
-
 export const workflowTestables = { blockMatches, blockSnapshot, blockOverlapCount, blockDateRange, blockDelta, evaluateGoal, hasTimeline, reviewReason };

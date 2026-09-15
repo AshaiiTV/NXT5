@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, ChevronDown, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
-import { cx, tone, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
+import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
 import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta, ROSTER_STATUS_OPTIONS } from "../../utils/roster.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
-import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, sortPlayersByRole, teamMatchRows, buildStaffAlerts, normalizeProfileRole, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
+import { canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Teams.css";
-import "./team-weekly-decisions.css";
 
-const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
 const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
 
 const PROFILE_ROLES = [...COMP_ROLES, "SUB", ...STAFF_ROLES];
@@ -482,7 +480,6 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
 
       {selectedTeam && <div className="space-y-5">
-        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} championPool={data.championPool || data.champion_pool || []} />
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-300">Roster lisible, champions joués et statistiques de profils.</p></div>
@@ -496,54 +493,6 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
     </div>
   </div>;
-}
-
-function TeamCoachDashboard({ team, players = [], matches = [], championPool = [] }) {
-  const teamMatches = matches.filter((match) => match.team_id === team?.id);
-  const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === team?.id && isGameplayRole(player.role)));
-  const wins = teamMatches.filter((match) => match.result === "Victoire").length;
-  const winrate = Math.round((wins / Math.max(1, teamMatches.length)) * 100);
-  const alerts = buildStaffAlerts(teamMatches, teamPlayers);
-  const rows = teamMatchRows(teamMatches, "ALLY");
-  const latestMatch = [...teamMatches].sort((a, b) => new Date(b.imported_at || b.created_at || 0) - new Date(a.imported_at || a.created_at || 0))[0];
-  const poolByRole = ROSTER_ROLE_ORDER.map((role) => {
-    const manual = championPool.filter((row) => row.team_id === team?.id && normalizeProfileRole(row.role) === role);
-    const imported = rows.filter((row) => row.role === role);
-    const picks = Array.from([...manual.map((row) => row.champion), ...imported.map((row) => row.champion)].reduce((map, champion) => map.set(champion, (map.get(champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    return { role, picks };
-  });
-  return <Surface className="nxt5-weekly-summary">
-    <header className="nxt5-weekly-header">
-      <div>
-        <h3>À faire cette semaine</h3>
-        <p className="nxt5-weekly-intro">{teamMatches.length ? "Un axe de travail, puis une action à tester après la review." : "Importe une game pour préparer la première review de l’équipe."}</p>
-      </div>
-      <p className="nxt5-weekly-meta">{teamMatches.length ? `${teamMatches.length} game${teamMatches.length > 1 ? "s" : ""} importée${teamMatches.length > 1 ? "s" : ""} · ${winrate}% de victoires` : "Aucune game importée"}</p>
-    </header>
-    <HomeActionSummary matches={teamMatches} />
-    <details key={team?.id} className="nxt5-weekly-details">
-      <summary>Voir les signaux et les champions<ChevronDown aria-hidden="true" /></summary>
-      <div className="nxt5-weekly-context">
-        <section>
-          <h4>Signaux à confirmer en review</h4>
-          {alerts.length ? <ul className="nxt5-weekly-alerts">{alerts.slice(0, 3).map((alert) => <li key={alert.title}>
-            <p className="nxt5-weekly-signal-title"><alert.icon aria-hidden="true" />{alert.title}</p>
-            <p>{alert.text}</p>
-            <p className="nxt5-weekly-signal-action">{alert.action}</p>
-          </li>)}</ul> : <p className="nxt5-weekly-empty">Aucun signal à afficher sur les games importées.</p>}
-          {latestMatch && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/statistiques?match=${encodeURIComponent(latestMatch.id)}`)}>Voir la dernière game</Button>}
-        </section>
-        <section>
-          <h4>Champions par rôle</h4>
-          <ul className="nxt5-weekly-pool">{poolByRole.map((entry) => <li key={entry.role}>
-            <RoleIcon role={entry.role} className="h-4 w-4" />
-            <span className="nxt5-weekly-role">{roleLabel(entry.role)}</span>
-            <span>{entry.picks.length ? entry.picks.map(([champion]) => championDisplayName(champion)).join(" · ") : "Aucun champion renseigné"}</span>
-          </li>)}</ul>
-        </section>
-      </div>
-    </details>
-  </Surface>;
 }
 
 function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer }) {
@@ -763,4 +712,4 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
   </div>;
 }
 
-export { Teams, parseMultiOpgg, decodeLoose, opggUrlFromRiotId, TeamCoachDashboard, HomeActionSummary, TeamManagementPanel, PROFILE_ROLES, RoleTag, PremiumRosterTable, rosterRoleIndex, ImportedChampionBadges, ChampionCircle, playerImportedChampionStats };
+export { Teams, parseMultiOpgg, decodeLoose, opggUrlFromRiotId, TeamManagementPanel, PROFILE_ROLES, RoleTag, PremiumRosterTable, rosterRoleIndex, ImportedChampionBadges, ChampionCircle, playerImportedChampionStats };
