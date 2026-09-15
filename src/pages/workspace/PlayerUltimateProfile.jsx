@@ -9,11 +9,179 @@ import { csAtMinute } from "../../utils/match-timeline.js";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { championDisplayName, championPortraitSources, sortPlayersByRole, canStaffManage, isGameplayRole, formatPoints, normalizeProfileRole, playerIntegratedRows, matchCategoryTone, CategoryFilter, itemSlots, parsePercent, teamRows, shareOfTeam, lazyNamed, loadNextPhase, COMP_ROLES, normalizeProfileKey, ChampionPortrait, matchImportDateLabel, ChampionBackdrop, championStyleTags, championStyleTone, tagLabel, formatGoldDiff, itemIconSources, statValue, creepScore, sumRows, HudIcon, summonerSpellIconSources, summonerSpellIds, trinketItemId, formatCountdown, matchTimelineFrames, rowParticipantId, DDRAGON_FALLBACK_VERSIONS, championKey, championAssetId, exportChampionTierListPng, championPoolStatus, CHAMPION_TIERS, championTierFrame, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championPoolStatusLabel, championPoolStatusTone } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
-import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownload } from "../../utils/png-report.js";
+import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 
 import { ProfileNavigation, PROFILE_SECTIONS } from "./ProfileNavigation.jsx";
 import "./profile-page.css";
 import "./profile-champions.css";
+
+const PROFILE_PNG_CHAMPIONS_PER_PAGE = 14;
+
+function playerProfilePngData(rows = []) {
+  const stat = (row, field) => {
+    const aliases = { damage: ["damage", "totalDamageDealtToChampions"], gold: ["gold", "goldEarned"], vision: ["vision", "visionScore"], damage_to_turrets: ["damage_to_turrets", "damageToTurrets", "damageDealtToTurrets"] };
+    for (const source of [row, row?.raw, row?.raw?.stats]) {
+      for (const key of aliases[field] || [field]) {
+        const value = pngNumeric(source?.[key]);
+        if (value !== null && value >= 0) return value;
+      }
+    }
+    return null;
+  };
+  const kdaFor = (items) => {
+    const known = items.filter((row) => ["kills", "deaths", "assists"].every((key) => stat(row, key) !== null));
+    const total = (key) => known.reduce((sum, row) => sum + stat(row, key), 0);
+    return { ratio: known.length ? (total("kills") + total("assists")) / Math.max(1, total("deaths")) : null, count: known.length };
+  };
+  const cs = (row, minute) => {
+    if (!Number.isFinite(csAtMinute(row, minute))) return null;
+    const participantId = Number(row?.raw?.participantId || row?.participantId || 0);
+    const raw = row.match?.raw;
+    const frames = raw?.timeline?.info?.frames || raw?.metadata?.timeline?.info?.frames || raw?.timeline?.frames || [];
+    if (!frames.length) {
+      const value = pngNumeric(raw?.nxt5?.timelineSummary?.csMilestones?.[String(participantId)]?.[`cs${minute}`]);
+      return value !== null && value >= 0 ? value : null;
+    }
+    const frame = frames.find((entry) => Number(entry.timestamp) >= minute * 60000 && Number(entry.timestamp) <= (minute + 1) * 60000);
+    const participant = frame?.participantFrames?.[String(participantId)];
+    const lane = pngNumeric(participant?.minionsKilled);
+    const jungle = pngNumeric(participant?.jungleMinionsKilled);
+    return lane !== null && jungle !== null && lane >= 0 && jungle >= 0 ? lane + jungle : null;
+  };
+  const average = (getter) => {
+    const values = rows.map(getter).filter((value) => value !== null && value !== undefined && Number.isFinite(value));
+    return { value: pngMean(values), count: values.length };
+  };
+  const results = profileChampionResults(rows);
+  const kda = kdaFor(rows);
+  const participation = average((row) => {
+    const raw = row?.kill_participation ?? row?.kp ?? row?.raw?.kill_participation ?? row?.raw?.kp;
+    const value = pngNumeric(raw);
+    if (value === null || value < 0 || value > 100) return null;
+    return typeof raw === "string" && raw.includes("%") ? value : value <= 1 ? value * 100 : value;
+  });
+  const measures = [
+    ["Kills / game", (row) => stat(row, "kills"), 1],
+    ["Morts / game", (row) => stat(row, "deaths"), 1],
+    ["Assists / game", (row) => stat(row, "assists"), 1],
+    ["CS / min", (row) => stat(row, "cs_per_min"), 1],
+    ["CS à 10 min", (row) => cs(row, 10), 0],
+    ["Dégâts champions / game", (row) => stat(row, "damage"), 0],
+    ["Or gagné / game", (row) => stat(row, "gold"), 0],
+    ["Score de vision / game", (row) => stat(row, "vision"), 1],
+    ["Dégâts tours / game", (row) => stat(row, "damage_to_turrets"), 0],
+    ["CS à 20 min", (row) => cs(row, 20), 0],
+  ].map(([label, getter, digits]) => ({ label, ...average(getter), digits }));
+  const champions = Array.from(rows.reduce((map, row) => {
+    const key = championAssetId(row.champion) || "";
+    const current = map.get(key) || { champion: row.champion || "Champion inconnu", rows: [] };
+    current.rows.push(row);
+    map.set(key, current);
+    return map;
+  }, new Map()).values()).map((entry) => {
+    const values = entry.rows.map((row) => stat(row, "cs_per_min")).filter((value) => value !== null && Number.isFinite(value));
+    return { ...entry, games: entry.rows.length, results: profileChampionResults(entry.rows), kda: kdaFor(entry.rows), cs: { value: pngMean(values), count: values.length } };
+  }).sort((a, b) => b.games - a.games || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), "fr"));
+  return { games: rows.length, results, kda, participation, measures, champions };
+}
+
+async function renderPlayerProfilePng({ player, rows = [], category = "Toutes les catégories", teamName = "", selectedMatches = [], pageIndex = 0 } = {}) {
+  await document.fonts?.ready;
+  const report = playerProfilePngData(rows);
+  const pageCount = Math.max(1, Math.ceil(report.champions.length / PROFILE_PNG_CHAMPIONS_PER_PAGE));
+  const currentPage = Math.max(0, Math.min(pageCount - 1, pageIndex));
+  const champions = report.champions.slice(currentPage * PROFILE_PNG_CHAMPIONS_PER_PAGE, (currentPage + 1) * PROFILE_PNG_CHAMPIONS_PER_PAGE);
+  const W = 1440;
+  const margin = 64;
+  const width = W - margin * 2;
+  const firstPage = currentPage === 0;
+  const tableY = firstPage ? 844 : 244;
+  const tableHeight = 118 + Math.max(1, champions.length) * 80;
+  const H = tableY + tableHeight + 158;
+  const { canvas, ctx } = pngCreateCanvas(W, H);
+  const fit = (text, x, y, maxWidth, options = {}) => pngFitText(ctx, text, x, y, maxWidth, { font: "500 22px Inter, Arial, sans-serif", min: 20, ...options });
+  const images = new Map();
+  const logoPromise = pngLoadImage("/assets/nxt5-wordmark.png");
+  await Promise.all(champions.map(async (stat) => {
+    const sources = championPortraitSources(stat.champion, stat.champion);
+    let portrait = null;
+    for (const source of sources.slice(0, 2)) {
+      portrait = await pngLoadImage(source);
+      if (portrait) break;
+    }
+    images.set(stat.champion, portrait);
+  }));
+  pngBackground(ctx, W, H);
+  pngHeader(ctx, { width: W, title: player?.name || "Profil joueur", subtitle: `${category} · ${pngDateRange(rows.map((row) => row.match).filter(Boolean))}`, eyebrow: "Profil joueur", logo: await logoPromise });
+  fit([roleLabel(player?.role), player?.riot_id, teamName].filter(Boolean).join(" · "), margin, 222, width, { color: PNG_THEME.muted });
+
+  if (firstPage) {
+    pngMetricStrip(ctx, { x: margin, y: 246, width, items: [
+      { label: "Games analysées", value: pngNumber(report.games), detail: `${report.games}/${selectedMatches.length || report.games} games reliées` },
+      { label: "Victoires", value: pngPercent(report.results.rate), detail: `${report.results.wins} V · ${report.results.losses} D${report.games > report.results.count ? ` · ${report.games - report.results.count} ?` : ""}`, accent: report.results.rate === null ? undefined : report.results.rate >= 50 ? "green" : "red" },
+      { label: "Ratio KDA", value: pngNumber(report.kda.ratio, 2), detail: `${report.kda.count}/${report.games} games renseignées` },
+      { label: "Participation kills", value: pngPercent(report.participation.value), detail: `${report.participation.count}/${report.games} games renseignées` },
+    ] });
+    const metricsY = 390;
+    const innerX = margin + 28;
+    const halfWidth = (width - 80) / 2;
+    pngPanel(ctx, margin, metricsY, width, 426);
+    fit("Moyennes par game", innerX, metricsY + 43, 520, { font: "700 27px Inter, Arial, sans-serif" });
+    fit("Games renseignées / games analysées", margin + width - 28, metricsY + 43, 600, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+    pngLine(ctx, margin + width / 2, metricsY + 73, margin + width / 2, metricsY + 398);
+    report.measures.forEach((metric, index) => {
+      const column = Math.floor(index / 5);
+      const row = index % 5;
+      const x = innerX + column * (halfWidth + 24);
+      const y = metricsY + 108 + row * 66;
+      fit(metric.label, x, y, 302, { font: "500 21px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+      fit(pngNumber(metric.value, metric.digits), x + halfWidth - 104, y, 164, { font: "700 25px Inter, Arial, sans-serif", align: "right" });
+      fit(`${metric.count}/${report.games}`, x + halfWidth, y, 90, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+      if (row < 4) pngLine(ctx, x, y + 27, x + halfWidth, y + 27);
+    });
+  }
+
+  pngPanel(ctx, margin, tableY, width, tableHeight);
+  fit("Champions joués", margin + 28, tableY + 42, 620, { font: "700 27px Inter, Arial, sans-serif" });
+  fit(`${report.champions.length} champions · ${report.games} games`, W - margin - 28, tableY + 42, 500, { color: PNG_THEME.muted, align: "right" });
+  const columns = [
+    { label: "Champion", x: margin + 28, width: 405, align: "left" },
+    { label: "Games", x: 646, width: 94 },
+    { label: "V / D", x: 801, width: 124 },
+    { label: "Victoires", x: 983, width: 156 },
+    { label: "KDA", x: 1155, width: 148 },
+    { label: "CS / min", x: 1348, width: 156 },
+  ];
+  columns.forEach((column) => fit(column.label, column.x, tableY + 88, column.width, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: column.align || "right" }));
+  pngLine(ctx, margin + 28, tableY + 104, W - margin - 28, tableY + 104);
+  champions.forEach((stat, index) => {
+    const y = tableY + 118 + index * 80;
+    const name = championDisplayName(stat.champion);
+    const portrait = images.get(stat.champion);
+    if (!pngImageCover(ctx, portrait, margin + 28, y + 6, 52, 52, 8)) {
+      fit(name.slice(0, 2).toUpperCase(), margin + 54, y + 40, 52, { align: "center", color: PNG_THEME.cyan });
+    }
+    const lines = pngWrapText(ctx, name, 380, { font: "600 23px Inter, Arial, sans-serif" });
+    lines.forEach((line, lineIndex) => fit(line, margin + 96, y + (lines.length > 1 ? 25 : 38) + lineIndex * 28, 380, { font: "600 23px Inter, Arial, sans-serif" }));
+    fit(pngNumber(stat.games), columns[1].x, y + 38, columns[1].width, { align: "right", font: "600 24px Inter, Arial, sans-serif" });
+    const cells = [
+      { value: `${stat.results.wins} / ${stat.results.losses}`, count: stat.results.count },
+      { value: pngPercent(stat.results.rate), count: stat.results.count, color: stat.results.rate === null ? PNG_THEME.text : stat.results.rate >= 50 ? PNG_THEME.green : PNG_THEME.red },
+      { value: pngNumber(stat.kda.ratio, 2), count: stat.kda.count },
+      { value: pngNumber(stat.cs.value, 1), count: stat.cs.count },
+    ];
+    cells.forEach((cell, cellIndex) => {
+      const column = columns[cellIndex + 2];
+      fit(cell.value, column.x, y + 26, column.width, { font: "600 24px Inter, Arial, sans-serif", align: "right", color: cell.color || PNG_THEME.text });
+      fit(`${cell.count}/${stat.games} games`, column.x, y + 55, column.width, { font: "500 20px Inter, Arial, sans-serif", align: "right", color: PNG_THEME.muted });
+    });
+    if (index < champions.length - 1) pngLine(ctx, margin + 28, y + 70, W - margin - 28, y + 70);
+  });
+  if (!champions.length) fit("Aucune game analysée", margin + 28, tableY + 155, width - 56, { color: PNG_THEME.muted });
+  fit("KDA : (kills + assists) / morts, diviseur 1 si aucune mort.  — : donnée absente.  ? : résultat inconnu.", margin, H - 108, width, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+  pngFooter(ctx, { width: W, height: H, label: `Profil joueur · ${currentPage + 1}/${pageCount}` });
+  return canvas;
+}
 
 const PlayerGoalsPanel = lazyNamed(loadNextPhase, "PlayerGoalsPanel");
 
@@ -266,122 +434,15 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }
   async function exportProfilePng() {
     if (!selectedPlayer) return;
-    await document.fonts?.ready;
-    const canvas = document.createElement("canvas");
-    canvas.width = 1920;
-    const ctx = canvas.getContext("2d");
-    const W = canvas.width;
-    const margin = 64;
-    const gap = 24;
-    const contentWidth = W - margin * 2;
-    const columnWidth = (contentWidth - gap) / 2;
-    const rightX = margin + columnWidth + gap;
-    const bodyFont = "500 18px Inter, Arial, sans-serif";
-    const lineHeight = 27;
-    const fit = (text, x, y, width, options) => pngFitText(ctx, text, x, y, width, options);
-    const wrap = (text, width, font = bodyFont) => pngWrapText(ctx, String(text ?? ""), width, { font, maxLines: Infinity });
-    const verdictFont = "600 23px Inter, Arial, sans-serif";
-    const verdictLines = wrap(coachVerdict, columnWidth - 56, verdictFont);
-    const summaryLines = wrap(coachSummary, columnWidth - 56);
-    const decisionLayouts = coachDecisions.map((item) => ({ ...item, lines: wrap(item.text, columnWidth - 56) }));
-    const coachHeight = 104 + verdictLines.length * 32 + summaryLines.length * lineHeight + decisionLayouts.reduce((total, item) => total + 48 + item.lines.length * lineHeight, 0);
-    const championsShown = championStats.slice(0, 6);
-    const championHeight = 150 + Math.max(1, championsShown.length) * 56 + (championStats.length > 6 ? 28 : 0);
-    const detailY = 344;
-    const detailHeight = Math.max(championHeight, coachHeight);
-    const coachingY = detailY + detailHeight + gap;
-    const coachingLines = wrap(coachingContent.trim() || "Aucun bilan global renseigné.", contentWidth - 56, "500 20px Inter, Arial, sans-serif");
-    const coachingHeight = 96 + coachingLines.length * 30;
-    canvas.height = Math.max(1080, coachingY + coachingHeight + 112);
-    const H = canvas.height;
-    const imageCache = new Map();
-    const imageUrls = new Set(["/assets/nxt5-wordmark.png"]);
-    championsShown.forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
-    await Promise.all([...imageUrls].filter(Boolean).map(async (url) => imageCache.set(url, await pngLoadImage(url))));
-
-    pngBackground(ctx, W, H);
-    pngHeader(ctx, {
-      width: W,
-      title: selectedPlayer.name || "Profil NXT5",
-      subtitle: `${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non lié"}`,
-      eyebrow: "Profil joueur",
-      logo: imageCache.get("/assets/nxt5-wordmark.png"),
-      meta: `${games} games · ${activeProfileCategory?.name || "Tous les contextes"}`,
-    });
-    const metrics = [
-      ["Games", String(games), `${wins} victoires · ${losses} défaites`, "cyan"],
-      ["Victoires", knownResults ? `${Math.round(wins / knownResults * 100)}%` : "—", `${knownResults} résultats connus`, wins >= losses ? "green" : "orange"],
-      ["KDA", kda, `${avg("kills")}/${avg("deaths")}/${avg("assists")} moy.`, "cyan"],
-      ["Participation", avgKp === null ? "—" : `${Math.round(avgKp)}%`, "Participation aux kills", avgKp >= 60 ? "green" : "yellow"],
-      ["Dégâts", meanMetric("damage", 0), "Moyenne / game", "purple"],
-      ["Vision", meanMetric("vision", 0), "Moyenne / game", "orange"],
-    ];
-    pngMetricStrip(ctx, { x: margin, width: contentWidth, items: metrics.map(([label, value, detail, accent], index) => ({
-      label,
-      value,
-      detail,
-      accent: index === 1 || index === 3 ? accent : undefined,
-    })) });
-
-    pngPanel(ctx, margin, detailY, columnWidth, detailHeight);
-    fit("Champions joués", margin + 28, detailY + 42, columnWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
-    fit("Volume, winrate et KDA sur les imports", margin + 28, detailY + 70, columnWidth - 56, { font: "500 16px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-    const gamesX = margin + columnWidth * 0.61;
-    const winrateX = margin + columnWidth * 0.77;
-    const kdaX = margin + columnWidth - 28;
-    [
-      ["Champion", margin + 28, "left"],
-      ["Games", gamesX, "right"],
-      ["Winrate", winrateX, "right"],
-      ["KDA", kdaX, "right"],
-    ].forEach(([label, x, align]) => fit(label, x, detailY + 112, columnWidth * 0.16, { font: "600 14px Inter, Arial, sans-serif", color: PNG_THEME.muted, align }));
-    pngLine(ctx, margin + 28, detailY + 126, margin + columnWidth - 28, detailY + 126);
-    championsShown.forEach((stat, index) => {
-      const y = detailY + 138 + index * 56;
-      if (index % 2 === 0) {
-        ctx.fillStyle = PNG_THEME.panelAlt;
-        ctx.fillRect(margin + 16, y - 2, columnWidth - 32, 56);
-      }
-      const image = championPortraitSources(stat.champion, stat.champion).map((url) => imageCache.get(url)).find(Boolean);
-      pngPanel(ctx, margin + 28, y + 5, 40, 40, { fill: PNG_THEME.bg, radius: 9 });
-      pngImageCover(ctx, image, margin + 28, y + 5, 40, 40, 9);
-      fit(championDisplayName(stat.champion), margin + 82, y + 31, gamesX - margin - 120, { font: "600 19px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 14 });
-      fit(String(stat.games), gamesX, y + 31, 90, { font: "500 18px Inter, Arial, sans-serif", color: PNG_THEME.text, align: "right" });
-      fit(stat.winrate === null ? "—" : `${Math.round(stat.winrate)}%`, winrateX, y + 31, 100, { font: "600 18px Inter, Arial, sans-serif", color: stat.winrate >= 50 ? PNG_THEME.green : PNG_THEME.red, align: "right" });
-      fit(stat.kda, kdaX, y + 31, 130, { font: "500 18px Inter, Arial, sans-serif", color: PNG_THEME.text, align: "right", min: 14 });
-    });
-    if (!championsShown.length) fit("Aucun champion importé.", margin + 28, detailY + 170, columnWidth - 56, { font: bodyFont, color: PNG_THEME.muted });
-    if (championStats.length > 6) fit(`Les 6 champions les plus joués · ${championStats.length} champions au total`, margin + 28, detailY + 162 + championsShown.length * 56, columnWidth - 56, { font: "500 14px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-
-    pngPanel(ctx, rightX, detailY, columnWidth, detailHeight);
-    fit("Lecture coach", rightX + 28, detailY + 42, columnWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
-    let coachY = detailY + 84;
-    ctx.font = verdictFont;
-    ctx.fillStyle = PNG_THEME.text;
-    verdictLines.forEach((line, index) => ctx.fillText(line, rightX + 28, coachY + index * 32));
-    coachY += verdictLines.length * 32 + 8;
-    ctx.font = bodyFont;
-    ctx.fillStyle = PNG_THEME.muted;
-    summaryLines.forEach((line, index) => ctx.fillText(line, rightX + 28, coachY + index * lineHeight));
-    coachY += summaryLines.length * lineHeight + 12;
-    pngLine(ctx, rightX + 28, coachY, rightX + columnWidth - 28, coachY);
-    coachY += 30;
-    decisionLayouts.forEach((item) => {
-      fit(item.label, rightX + 28, coachY, columnWidth - 56, { font: "600 14px Inter, Arial, sans-serif", color: pngAccent(item.toneName), min: 13 });
-      ctx.font = bodyFont;
-      ctx.fillStyle = PNG_THEME.text;
-      item.lines.forEach((line, index) => ctx.fillText(line, rightX + 28, coachY + 27 + index * lineHeight));
-      coachY += 48 + item.lines.length * lineHeight;
-    });
-
-    pngPanel(ctx, margin, coachingY, contentWidth, coachingHeight);
-    fit("Bilan coaching", margin + 28, coachingY + 42, contentWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
-    ctx.font = "500 20px Inter, Arial, sans-serif";
-    ctx.fillStyle = PNG_THEME.muted;
-    coachingLines.forEach((line, index) => ctx.fillText(line, margin + 28, coachingY + 80 + index * 30));
-    pngFooter(ctx, { width: W, height: H, label: "Profil joueur · Bilan coaching" });
-    await pngDownload(canvas, `nxt5-profil-${String(selectedPlayer.name || "joueur").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`);
-    pushToast?.({ type: "cyan", title: "PNG exporté", text: "Le résumé du profil a été téléchargé." });
+    const pageCount = Math.max(1, Math.ceil(playerProfilePngData(rows).champions.length / PROFILE_PNG_CHAMPIONS_PER_PAGE));
+    const canvases = [];
+    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+      const canvas = await renderPlayerProfilePng({ player: selectedPlayer, rows, category: activeProfileCategory?.name || "Toutes les catégories", teamName: selectedTeam?.name, selectedMatches: filteredMatches, pageIndex });
+      canvases.push(canvas);
+    }
+    const filename = String(selectedPlayer.name || "joueur").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    await pngDownloadPages(canvases, `nxt5-profil-${filename}.png`);
+    pushToast?.({ type: "cyan", title: "PNG exporté", text: `${pageCount} page${pageCount > 1 ? "s" : ""} exportée${pageCount > 1 ? "s" : ""}.` });
   }
 
   async function downloadProfile() {
@@ -421,7 +482,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />
       </>}
       {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} selectedCategoryId={selectedCategoryId} navigate={navigate} bootstrapRevision={data.bootstrapRevision} />}
-      {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} />}
+      {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} exportRows={rows} category={activeProfileCategory?.name || "Toutes les catégories"} />}
       {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
       {profileView === "coaching" && <>
         <div className="profile-followup-intro"><h3>Objectifs et notes</h3><p>Les objectifs suivent les games du contexte sélectionné. Les notes restent communes à tous les contextes du joueur.</p></div>
@@ -588,14 +649,23 @@ function ProfileChampionDecisionCard({ stat }) {
   return <p className="profile-champions-note">Ces résultats portent sur {stat.games} game{stat.games > 1 ? "s" : ""}. Ils donnent des points à vérifier en review, sans prédire la réussite du prochain pick.</p>;
 }
 
-function ProfileChampionPoolView({ championPool = [], championStats = [], selectedPlayer, pushToast }) {
+function ProfileChampionPoolView({ championPool = [], championStats = [], selectedPlayer, pushToast, exportRows = [], category = "Toutes les catégories" }) {
   const [exporting, setExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState("");
   const statsByChampion = new Map(championStats.map((stat) => [championAssetId(stat.champion), stat]));
   const rowsByTier = Object.fromEntries(CHAMPION_TIERS.map((tier) => [tier.id, championPool.filter((row) => championPoolStatus(row) === tier.id).sort((a, b) => championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)))]));
   async function downloadPool() {
     setExporting(true); setExportStatus("");
-    try { await exportChampionTierListPng({ player: selectedPlayer, rowsByTier, pushToast }); setExportStatus("La tier list PNG a été téléchargée."); }
+    try {
+      const exportTiers = Object.fromEntries(CHAMPION_TIERS.map((tier) => [tier.id, rowsByTier[tier.id].map((row) => {
+        const stat = statsByChampion.get(championAssetId(row.champion));
+        const results = profileChampionResults(stat?.rows || []);
+        return { ...row, games: stat?.games || 0, wins: results.wins, losses: results.losses, knownResults: results.count, winrate: results.rate, stats_available: true };
+      })]));
+      const exported = await exportChampionTierListPng({ player: selectedPlayer, rowsByTier: exportTiers, pushToast, category, matches: exportRows.map((row) => row.match).filter(Boolean) });
+      if (exported === false) throw new Error("Export impossible");
+      setExportStatus("La tier list PNG a été téléchargée.");
+    }
     catch (error) { setExportStatus("L’export a échoué. Réessaie dans un instant."); }
     finally { setExporting(false); }
   }
@@ -973,4 +1043,4 @@ function csMilestoneSummary(rows = []) {
   return { at10: average(at10), at20: average(at20), samples: Math.max(at10.length, at20.length) };
 }
 
-export { PlayerUltimateProfile, PlayerGoalsPanel, profileLinkAuditRows, ProfileLinkAuditPanel, CoachDiagnosticPanel, CoachReferenceMetric, ProfileChampionsView, ProfileChampionSignal, ProfileChampionAction, ProfileChampionCommandCard, profileChampionStatusMeta, ProfileChampionMini, ProfileChampionDecisionCard, ChampionProfileDetail, ChampionStylePill, ChampionVisualMetric, ChampionReferenceLine, ChampionLanePanel, ChampionLaneGameLine, towerDamage, ParticipantCompareCard, finalBuildItems, itemBuildTimeline, itemEventMeta, VersusDeltaStack, ChampionMiniStat, profileHistoryDateLabel, itemDisplayName, ITEM_NAME_CACHE, ITEM_NAME_OVERRIDES, ItemNameText, loadItemNames, DDRAGON_VERSION, itemNamesPromise, csMilestoneSummary, ProfileChampionPoolView, ProfilePoolReadLine, ProfilePoolChampionRow, ProfileHudMetric, ProfileHistoryView, profileHistorySortKey, ProfileFold };
+export { renderPlayerProfilePng, playerProfilePngData, PlayerUltimateProfile, PlayerGoalsPanel, profileLinkAuditRows, ProfileLinkAuditPanel, CoachDiagnosticPanel, CoachReferenceMetric, ProfileChampionsView, ProfileChampionSignal, ProfileChampionAction, ProfileChampionCommandCard, profileChampionStatusMeta, ProfileChampionMini, ProfileChampionDecisionCard, ChampionProfileDetail, ChampionStylePill, ChampionVisualMetric, ChampionReferenceLine, ChampionLanePanel, ChampionLaneGameLine, towerDamage, ParticipantCompareCard, finalBuildItems, itemBuildTimeline, itemEventMeta, VersusDeltaStack, ChampionMiniStat, profileHistoryDateLabel, itemDisplayName, ITEM_NAME_CACHE, ITEM_NAME_OVERRIDES, ItemNameText, loadItemNames, DDRAGON_VERSION, itemNamesPromise, csMilestoneSummary, ProfileChampionPoolView, ProfilePoolReadLine, ProfilePoolChampionRow, ProfileHudMetric, ProfileHistoryView, profileHistorySortKey, ProfileFold };

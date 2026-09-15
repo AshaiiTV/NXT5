@@ -12,7 +12,7 @@ import { ProgressionObjectives } from "../../components/trends/ProgressionObject
 import { TrendNavigation, TrendsOverview } from "../../components/trends/TrendsOverview.jsx";
 import { TrendSourcesDialog, TrendContractsDialog } from "../../components/trends/TrendsDialogs.jsx";
 import "../../components/trends/trends-page.css";
-import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngPanel, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngDownload } from "../../utils/png-report.js";
+import { PNG_THEME, pngAccent, pngFitText, pngLine, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngDownload, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 
 import { useTrendsNavigation } from "../../hooks/useTrendsNavigation.js";
 import { DraftTrendDetails } from "../../components/trends/DraftTrendDetails.jsx";
@@ -20,95 +20,190 @@ import { buildDraftTrendModel, DRAFT_DETAIL_SECTIONS, DraftTrendsModule } from "
 
 const BlockComparisonPanel = lazyNamed(loadNextPhase, "BlockComparisonPanel");
 
-async function exportTrendsPng({ title, subtitle, metrics = [], sections = [], champions = [], filename }) {
-  await document.fonts?.ready;
-  const canvas = document.createElement("canvas");
-  canvas.width = 1920;
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width;
-  const margin = 64;
-  const gap = 24;
-  const contentWidth = W - margin * 2;
-  const columnWidth = (contentWidth - gap) / 2;
-  const bodyFont = "500 18px Inter, Arial, sans-serif";
-  const lineHeight = 27;
-  const wrap = (text, width, font = bodyFont) => pngWrapText(ctx, String(text ?? ""), width, { font, maxLines: Infinity });
-  const fit = (text, x, y, width, options) => pngFitText(ctx, text, x, y, width, options);
-  const metricItems = metrics.slice(0, 4);
-  const sectionLayouts = sections.map((section) => {
-    const items = section.items?.length ? section.items : ["Pas assez de données sur cette sélection."];
-    const itemLines = items.map((item) => wrap(item, columnWidth - 76));
-    return { ...section, itemLines, height: Math.max(156, 76 + itemLines.reduce((total, lines) => total + lines.length * lineHeight + 16, 0)) };
-  });
-  let contentBottom = metricItems.length ? 344 : 200;
-  sectionLayouts.forEach((section, index) => {
-    if (index % 2) return;
-    const rowHeight = Math.max(section.height, sectionLayouts[index + 1]?.height || 0);
-    section.y = contentBottom;
-    section.rowHeight = rowHeight;
-    if (sectionLayouts[index + 1]) {
-      sectionLayouts[index + 1].y = contentBottom;
-      sectionLayouts[index + 1].rowHeight = rowHeight;
+export function buildTrendsPngData(matches = []) {
+  const number = (value) => {
+    if (value == null || typeof value === "boolean" || !["number", "string"].includes(typeof value) || String(value).trim() === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  };
+  const stat = (row, key) => {
+    const riotKey = { gold: "goldEarned" }[key] || key;
+    for (const value of [row?.[key], row?.raw?.[key], row?.[riotKey], row?.raw?.[riotKey]]) {
+      const parsed = number(value);
+      if (parsed !== null) return parsed;
     }
-    contentBottom += rowHeight + gap;
+    return null;
+  };
+  const result = (match) => {
+    const value = String(match?.result || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return ["victoire", "win", "victory"].includes(value) ? 1 : ["defaite", "loss", "defeat"].includes(value) ? 0 : null;
+  };
+  const results = (games) => {
+    const known = games.map(result).filter((value) => value !== null);
+    const wins = known.filter((value) => value === 1).length;
+    return { games: games.length, known: known.length, wins, losses: known.length - wins, unknown: games.length - known.length, winrate: known.length ? wins / known.length * 100 : null };
+  };
+  const total = (match, side, key) => {
+    const rows = teamRows(match, side);
+    if (rows.length !== 5) return null;
+    const values = rows.map((row) => stat(row, key));
+    return values.every((value) => value !== null) ? values.reduce((sum, value) => sum + value, 0) : null;
+  };
+  const mean = (values) => ({ value: pngMean(values), count: values.filter((value) => value !== null && Number.isFinite(value)).length });
+  const gold = mean(matches.map((match) => {
+    const allyGold = total(match, "ALLY", "gold");
+    const enemyGold = total(match, "ENEMY", "gold");
+    return allyGold !== null && enemyGold !== null ? allyGold - enemyGold : null;
+  }));
+  const deaths = mean(matches.map((match) => total(match, "ALLY", "deaths")));
+  const kills = mean(matches.map((match) => total(match, "ALLY", "kills")));
+  const side = (match) => {
+    const explicit = String(match?.side || "").toLowerCase();
+    if (/\b(blue|bleu)\b/.test(explicit)) return "Blue";
+    if (/\b(red|rouge)\b/.test(explicit)) return "Red";
+    const teamId = objectiveTeamId(match, "ALLY");
+    return teamId === 100 ? "Blue" : teamId === 200 ? "Red" : "unknown";
+  };
+  const sides = ["Blue", "Red", "unknown"].map((key) => ({ key, ...results(matches.filter((match) => side(match) === key)) })).filter((entry) => entry.key !== "unknown" || entry.games);
+  const cs10 = (row) => {
+    const value = csAtMinute(row, 10);
+    if (!Number.isFinite(value)) return null;
+    const participantId = Number(row?.raw?.participantId || row?.participantId || 0);
+    const raw = row.match?.raw;
+    const frames = raw?.timeline?.info?.frames || raw?.metadata?.timeline?.info?.frames || raw?.timeline?.frames || [];
+    if (!frames.length) return number(raw?.nxt5?.timelineSummary?.csMilestones?.[String(participantId)]?.cs10);
+    const frame = frames.find((entry) => Number(entry.timestamp) >= 600000 && Number(entry.timestamp) <= 660000);
+    const participant = frame?.participantFrames?.[String(participantId)];
+    return number(participant?.minionsKilled) !== null && number(participant?.jungleMinionsKilled) !== null ? value : null;
+  };
+  const roles = ROSTER_ROLE_ORDER.map((role) => {
+    const rows = matches.flatMap((match) => {
+      const matching = teamRows(match).filter((row) => normalizeProfileRole(row?.role || row?.raw?.teamPosition || row?.raw?.individualPosition || row?.raw?.lane) === role);
+      return matching.length === 1 ? [{ ...matching[0], match }] : [];
+    });
+    const kdaRows = rows.filter((row) => ["kills", "deaths", "assists"].every((key) => stat(row, key) !== null));
+    const kp = mean(rows.map((row) => {
+      const teamKills = total(row.match, "ALLY", "kills");
+      const playerKills = stat(row, "kills");
+      const assists = stat(row, "assists");
+      if (teamKills !== null && playerKills !== null && assists !== null) {
+        const participation = teamKills > 0 ? (playerKills + assists) / teamKills * 100 : null;
+        return participation !== null && participation <= 100 ? participation : null;
+      }
+      for (const value of [row.kill_participation, row.kp]) {
+        const percent = typeof value === "string" && value.includes("%");
+        const parsed = number(percent ? value.replace("%", "").trim() : value);
+        if (parsed !== null) {
+          const normalized = percent ? parsed : parsed <= 1 ? parsed * 100 : parsed;
+          if (normalized <= 100) return normalized;
+        }
+      }
+      return null;
+    }));
+    return { role, games: rows.length, kdaCount: kdaRows.length, kills: pngMean(kdaRows.map((row) => stat(row, "kills"))), deaths: pngMean(kdaRows.map((row) => stat(row, "deaths"))), assists: pngMean(kdaRows.map((row) => stat(row, "assists"))), cs10: mean(rows.map(cs10)), kp };
   });
-  const championsY = contentBottom;
-  canvas.height = Math.max(1080, championsY + 142 + 112);
-  const H = canvas.height;
+  const champions = new Map();
+  matches.forEach((match) => {
+    const seen = new Set();
+    teamRows(match).forEach((row) => {
+      const key = championAssetId(row.champion);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      const current = champions.get(key) || { champion: row.champion, matches: [] };
+      current.matches.push(match);
+      champions.set(key, current);
+    });
+  });
+  return { ...results(matches), gold, deaths, kills, sides, roles, champions: [...champions.values()].map((entry) => ({ champion: entry.champion, ...results(entry.matches) })).sort((a, b) => b.games - a.games || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), "fr")) };
+}
+
+export async function exportTrendsPng({ matches = [], teamName = "Notre équipe", categoryName = "Toutes les games", periodLabel = "Historique complet", filename }) {
+  await document.fonts?.ready;
+  const report = buildTrendsPngData(matches);
+  const champions = report.champions.slice(0, 6);
+  const W = 1600;
+  const margin = 64;
+  const contentWidth = W - margin * 2;
+  const roleY = 584;
+  const championY = roleY + 120 + report.roles.length * 76 + 46;
+  const H = championY + 116 + Math.max(1, champions.length) * 64 + 148;
+  const { canvas, ctx } = pngCreateCanvas(W, H);
+  const fit = (text, x, y, width, options = {}) => pngFitText(ctx, text, x, y, width, { font: "500 24px Inter, Arial, sans-serif", min: 20, ...options });
+  const label = (text, x, y, width, options = {}) => fit(text, x, y, width, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, ...options });
+  const coverage = (count, games = report.games) => `${pngNumber(count)} / ${pngNumber(games)} games`;
+  const signedGold = report.gold.value === null ? "—" : `${report.gold.value > 0 ? "+" : ""}${pngNumber(report.gold.value)}`;
   const imageCache = new Map();
   const imageUrls = new Set(["/assets/nxt5-wordmark.png"]);
-  champions.slice(0, 6).forEach((stat) => championPortraitSources(stat.champion, stat.champion).forEach((url) => imageUrls.add(url)));
+  champions.forEach((entry) => championPortraitSources(entry.champion, entry.champion).forEach((url) => imageUrls.add(url)));
   await Promise.all([...imageUrls].filter(Boolean).map(async (url) => imageCache.set(url, await pngLoadImage(url))));
 
   pngBackground(ctx, W, H);
   pngHeader(ctx, {
     width: W,
-    title: title || "Tendances NXT5",
-    subtitle: subtitle || "Analyse de l’équipe",
-    eyebrow: "Tendances",
+    title: teamName,
+    subtitle: `${categoryName} · ${periodLabel} · ${pngDateRange(matches)}`,
+    eyebrow: "Tendances d’équipe",
     logo: imageCache.get("/assets/nxt5-wordmark.png"),
-    meta: "Synthèse stratégique",
+    meta: `${pngNumber(report.games)} games`,
+  });
+  pngMetricStrip(ctx, { x: margin, y: 200, width: contentWidth, items: [
+    { label: "Taux de victoire", value: pngPercent(report.winrate), detail: `${pngNumber(report.wins)} V · ${pngNumber(report.losses)} D${report.unknown ? ` · ${pngNumber(report.unknown)} sans résultat` : ""}`, accent: "cyan" },
+    { label: "Écart d’or / game", value: signedGold, detail: coverage(report.gold.count), accent: "cyan" },
+    { label: "Morts / game", value: pngNumber(report.deaths.value, 1), detail: coverage(report.deaths.count) },
+    { label: "Kills / game", value: pngNumber(report.kills.value, 1), detail: coverage(report.kills.count) },
+  ] });
+  label("Écart d’or : équipe − adversaire · Taux de victoire : résultats connus uniquement", margin, 370, contentWidth);
+
+  fit("Résultats par côté", margin, 416, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  const sideWidth = contentWidth / report.sides.length;
+  report.sides.forEach((entry, index) => {
+    const x = margin + index * sideWidth;
+    if (index) pngLine(ctx, x - 24, 446, x - 24, 536);
+    label(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu", x, 456, sideWidth - 48, { color: pngAccent(entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted") });
+    fit(pngPercent(entry.winrate), x, 500, sideWidth - 48, { font: "700 36px Inter, Arial, sans-serif" });
+    label(`${pngNumber(entry.games)} games · ${pngNumber(entry.wins)} V / ${pngNumber(entry.losses)} D${entry.unknown ? ` · ${pngNumber(entry.unknown)} sans résultat` : ""}`, x, 532, sideWidth - 48);
+  });
+  pngLine(ctx, margin, 558, W - margin, 558);
+
+  fit("Statistiques par rôle", margin, roleY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  label("Moyennes par game · CS : sbires et monstres tués · Participation aux kills : (kills + assists) / kills d’équipe", margin, roleY + 61, contentWidth);
+  const roleColumns = [margin, margin + 210, margin + 390, margin + 790, margin + 1100];
+  ["Rôle", "Games", "Kills / morts / assists", "CS à 10 min", "Participation aux kills"].forEach((text, index) => label(text, roleColumns[index], roleY + 104, (roleColumns[index + 1] || W - margin) - roleColumns[index] - 28));
+  pngLine(ctx, margin, roleY + 120, W - margin, roleY + 120);
+  report.roles.forEach((entry, index) => {
+    const y = roleY + 154 + index * 76;
+    fit(roleLabel(entry.role), roleColumns[0], y, 180, { font: "700 26px Inter, Arial, sans-serif" });
+    fit(pngNumber(entry.games), roleColumns[1], y, 145);
+    fit([entry.kills, entry.deaths, entry.assists].map((value) => pngNumber(value, 1)).join(" / "), roleColumns[2], y, 364);
+    label(coverage(entry.kdaCount), roleColumns[2], y + 27, 364);
+    fit(pngNumber(entry.cs10.value, 1), roleColumns[3], y, 275);
+    label(coverage(entry.cs10.count), roleColumns[3], y + 27, 275);
+    fit(pngPercent(entry.kp.value), roleColumns[4], y, 344);
+    label(coverage(entry.kp.count), roleColumns[4], y + 27, 344);
+    pngLine(ctx, margin, y + 42, W - margin, y + 42);
   });
 
-  pngMetricStrip(ctx, { x: margin, width: contentWidth, items: metricItems.map((metric) => ({
-    label: metric.label,
-    value: metric.value,
-    detail: metric.hint,
-    accent: metric.tone || "cyan",
-  })) });
-
-  sectionLayouts.forEach((section, index) => {
-    const x = margin + (index % 2) * (columnWidth + gap);
-    const y = section.y;
-    pngPanel(ctx, x, y, columnWidth, section.rowHeight);
-    fit(section.title, x + 28, y + 42, columnWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
-    let itemY = y + 78;
-    section.itemLines.forEach((lines, itemIndex) => {
-      ctx.fillStyle = pngAccent(section.tone);
-      ctx.beginPath();
-      ctx.arc(x + 30, itemY - 6, 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.font = bodyFont;
-      ctx.fillStyle = itemIndex === 0 ? PNG_THEME.text : PNG_THEME.muted;
-      lines.forEach((line, lineIndex) => ctx.fillText(line, x + 48, itemY + lineIndex * lineHeight));
-      itemY += lines.length * lineHeight + 16;
-    });
+  fit("Champions les plus joués", margin, championY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  label(`${pngNumber(champions.length)} / ${pngNumber(report.champions.length)} champions · Tri par nombre de games`, margin, championY + 61, contentWidth);
+  const championColumns = [margin, margin + 600, margin + 840, margin + 1130];
+  ["Champion", "Games", "Victoires / défaites", "Taux de victoire"].forEach((text, index) => label(text, championColumns[index], championY + 103, (championColumns[index + 1] || W - margin) - championColumns[index] - 28));
+  pngLine(ctx, margin, championY + 119, W - margin, championY + 119);
+  champions.forEach((entry, index) => {
+    const y = championY + 158 + index * 64;
+    const portrait = championPortraitSources(entry.champion, entry.champion).map((url) => imageCache.get(url)).find(Boolean);
+    pngImageCover(ctx, portrait, margin, y - 31, 44, 44, 8);
+    fit(championDisplayName(entry.champion), margin + 62, y, 490, { font: "600 26px Inter, Arial, sans-serif" });
+    fit(pngNumber(entry.games), championColumns[1], y, 200);
+    fit(`${pngNumber(entry.wins)} V / ${pngNumber(entry.losses)} D`, championColumns[2], y, 260);
+    fit(pngPercent(entry.winrate), championColumns[3], y, 160, { color: PNG_THEME.cyan });
+    label(`${pngNumber(entry.known)} / ${pngNumber(entry.games)} résultats`, W - margin, y, 175, { align: "right" });
+    pngLine(ctx, margin, y + 25, W - margin, y + 25);
   });
-
-  pngPanel(ctx, margin, championsY, contentWidth, 142);
-  fit("Champions récurrents", margin + 28, championsY + 40, contentWidth - 56, { font: "700 24px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 18 });
-  const championWidth = (contentWidth - 56) / 6;
-  champions.slice(0, 6).forEach((stat, index) => {
-    const x = margin + 28 + index * championWidth;
-    const image = championPortraitSources(stat.champion, stat.champion).map((url) => imageCache.get(url)).find(Boolean);
-    pngPanel(ctx, x, championsY + 66, 48, 48, { fill: PNG_THEME.panelAlt, radius: 10 });
-    pngImageCover(ctx, image, x, championsY + 66, 48, 48, 10);
-    fit(championDisplayName(stat.champion), x + 60, championsY + 86, championWidth - 76, { font: "600 18px Inter, Arial, sans-serif", color: PNG_THEME.text, min: 14 });
-    fit(`${stat.games}G · ${Math.round((stat.wins / Math.max(1, stat.games)) * 100)}% de victoires`, x + 60, championsY + 110, championWidth - 76, { font: "500 15px Inter, Arial, sans-serif", color: PNG_THEME.muted, min: 12 });
-  });
-  if (!champions.length) fit("Aucun champion dans cette sélection.", margin + 28, championsY + 92, contentWidth - 56, { font: bodyFont, color: PNG_THEME.muted });
-  pngFooter(ctx, { width: W, height: H, label: "Tendances · Synthèse stratégique" });
+  if (!champions.length) label("Aucun champion renseigné", margin, championY + 160, contentWidth);
+  label("— : donnée indisponible · Les comptes sous les moyennes indiquent les games mesurées dans la sélection.", margin, H - 97, contentWidth);
+  pngFooter(ctx, { width: W, height: H, label: "Tendances d’équipe" });
   await pngDownload(canvas, filename || "nxt5-tendances.png");
+  return canvas;
 }
 
 function TrendsPage({ data, selectedTeamId }) {
@@ -854,11 +949,10 @@ function TrendsPage({ data, selectedTeamId }) {
   const exportTrends = async () => {
     setExportState("loading");
     try { await exportTrendsPng({
-    title: "Tendances d’équipe",
-    subtitle: `${activeTrendCategory?.name || "Toutes les games"} · ${trendPeriod === "all" ? "Historique complet" : `${trendPeriod} dernières`} · ${matches.length} game${matches.length > 1 ? "s" : ""} · ${wins} victoires · ${losses} défaites`,
-    metrics: topMetrics,
-    sections: exportTrendSections,
-    champions: championCounts,
+    matches,
+    teamName: (data.teams || []).find((team) => String(team.id) === String(selectedTeamId))?.name || "Notre équipe",
+    categoryName: activeTrendCategory?.name || "Toutes les games",
+    periodLabel: trendPeriod === "all" ? "Historique complet" : `${trendPeriod} dernières games`,
     filename: `nxt5-tendances-${String(activeTrendCategory?.name || "global").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.png`
   });
     setExportState("done");
