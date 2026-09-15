@@ -1,10 +1,11 @@
 import React, { useEffect, useId, useRef, useState } from "react";
-import { Check, Ellipsis, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, Pencil, Settings, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Check, Ellipsis, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, Pencil, Settings, Trash2 } from "lucide-react";
 import { Surface, Badge, Button, SelectInput, TextInput } from "../../components/ui/Core.jsx";
 import { apiFetch, apiUploadJson } from "../../api/client.js";
 import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName } from "../../utils/matches.js";
+import { importedGameSide } from "../../utils/imported-games.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
@@ -64,21 +65,27 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({ label: "", categoryIds: [] });
   const [roleForm, setRoleForm] = useState({});
+  const [sideForm, setSideForm] = useState({ allyTeamSide: "", playerAssignments: {} });
   const triggerRef = useRef(null);
   const allowed = Boolean(match?.id && match.team_id === selectedTeamId && user?.id && (canManageTeamCategories(data, selectedTeamId, currentMember, user) || String(match.created_by || "") === String(user.id)));
   const categories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const roster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
-  useEffect(() => { setMode(""); setEditForm({ label: "", categoryIds: [] }); setRoleForm({}); }, [match?.id, selectedTeamId]);
+  useEffect(() => { setMode(""); setEditForm({ label: "", categoryIds: [] }); setRoleForm({}); setSideForm({ allyTeamSide: "", playerAssignments: {} }); }, [match?.id, selectedTeamId]);
   const close = () => { if (!saving) setMode(""); };
   const openEditor = (nextMode) => {
     setEditForm({ label: matchImportTitle(match), categoryIds: matchCategoryIds(match) });
     setRoleForm(Object.fromEntries((match.participants || []).map((row) => [row.id, { role: row.role || "", playerId: row.player_id || "" }])));
+    setSideForm({ allyTeamSide: importedGameSide(match).toUpperCase(), playerAssignments: Object.fromEntries(COMP_ROLES.map((role) => {
+      const allies = (match.participants || []).filter((row) => row.team_key === "ALLY" && row.role === role);
+      const playerId = allies.length === 1 ? allies[0].player_id : "";
+      return [role, roster.some((player) => String(player.id) === String(playerId)) ? playerId : ""];
+    })) });
     setMode(nextMode);
   };
   async function save(action) {
-    if (!allowed || saving || (action === "update" && !editForm.label.trim()) || (action === "roles" && !match.participants?.length)) return;
+    if (!allowed || saving || (action === "update" && !editForm.label.trim()) || (action === "roles" && !match.participants?.length) || (action === "side" && !gameSideFormReady(match, sideForm, roster))) return;
     const matchId = match.id;
-    const body = { action, teamId: selectedTeamId, matchId, ...(action === "update" ? { label: editForm.label, categoryIds: editForm.categoryIds || [] } : action === "roles" ? { roles: roleForm } : {}) };
+    const body = { action, teamId: selectedTeamId, matchId, ...(action === "update" ? { label: editForm.label, categoryIds: editForm.categoryIds || [] } : action === "roles" ? { roles: roleForm } : action === "side" ? sideForm : {}) };
     setSaving(true);
     try {
       const result = await apiFetch("matches-manage", { method: "POST", body: JSON.stringify(body) });
@@ -87,7 +94,8 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
         pushToast({ type: "green", title: "Game supprimée", text: "Les autres pages ont été recalculées sans cette game." });
         onDeleted?.(matchId);
       } else {
-        pushToast(action === "roles" ? { type: "green", title: "Assignation corrigée", text: "Les profils, statistiques et lectures 5v5 utilisent les bons joueurs." } : { type: "green", title: "Game mise à jour", text: "Les statistiques et reviews utilisent le nouvel intitulé." });
+        const warnings = action === "side" ? (result.warnings || []).map((warning) => typeof warning === "string" ? warning : warning.message).filter(Boolean).join(" ") : "";
+        pushToast(action === "side" ? { type: warnings ? "yellow" : "green", title: "Côté de l’équipe corrigé", text: warnings || "Le résultat, les statistiques et les profils utilisent maintenant le bon côté." } : action === "roles" ? { type: "green", title: "Assignation corrigée", text: "Les profils, statistiques et lectures 5v5 utilisent les bons joueurs." } : { type: "green", title: "Game mise à jour", text: "Les statistiques et reviews utilisent le nouvel intitulé." });
         onUpdated?.({ matchId, action, result });
       }
       setMode("");
@@ -98,16 +106,18 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
     }
   }
   if (!allowed) return null;
-  const title = mode === "update" ? "Modifier les informations" : mode === "roles" ? "Corriger les rôles et profils" : mode === "delete" ? "Supprimer cette game ?" : "Options de la game";
+  const title = mode === "update" ? "Modifier les informations" : mode === "roles" ? "Corriger les rôles et profils" : mode === "side" ? "Changer le côté de notre équipe" : mode === "delete" ? "Supprimer cette game ?" : "Options de la game";
   return <>
     <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || saving} aria-label="Options de la game" title="Options de la game" aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
-    {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={saving} returnFocusRef={triggerRef} compact={mode !== "roles"}>
+    {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={saving} returnFocusRef={triggerRef} compact={mode !== "roles" && mode !== "side"}>
       {mode === "menu" && <div className="game-operation-menu">
         <Button type="button" variant="ghost" icon={Pencil} onClick={() => openEditor("update")}>Modifier les informations</Button>
         <Button type="button" variant="ghost" icon={Settings} disabled={!match.participants?.length} onClick={() => openEditor("roles")}>Corriger les rôles et profils</Button>
+        <Button type="button" variant="ghost" icon={ArrowLeftRight} disabled={!match.participants?.length} onClick={() => openEditor("side")}>Changer le côté de notre équipe</Button>
         <Button type="button" variant="danger" icon={Trash2} onClick={() => setMode("delete")}>Supprimer</Button>
       </div>}
       {(mode === "update" || mode === "roles") && <ImportHistoryEditor match={match} categories={categories} roster={roster} editing={mode === "update"} editForm={editForm} roleForm={roleForm} saving={saving} showHeading={false} onCancel={close} onSave={() => save(mode)} onChange={setEditForm} onRoleChange={(id, role) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], role } }))} onPlayerChange={(id, playerId) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], playerId } }))} />}
+      {mode === "side" && <GameSideEditor match={match} roster={roster} form={sideForm} onChange={setSideForm} saving={saving} onCancel={close} onSave={() => save("side")} />}
       {mode === "delete" && <div>
         <p className="text-sm leading-6 text-slate-300">Cette game sera retirée. Ses statistiques, les reviews automatiques et les groupes liés seront mis à jour.</p>
         <div className="mt-6 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={close} disabled={saving}>Annuler</Button><Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={() => save("delete")} disabled={saving}>{saving ? "Suppression…" : "Supprimer la game"}</Button></div>
@@ -239,6 +249,72 @@ export function ImportRoleHeader({ role, toneName = "cyan", player = null, fallb
       </span>
     </div>
   );
+}
+
+function gameParticipantSide(match, participant) {
+  const teamId = Number(participant.raw?.teamId ?? participant.raw?.participant?.teamId ?? participant.teamId);
+  if (teamId === 100) return "BLUE";
+  if (teamId === 200) return "RED";
+  const current = importedGameSide(match).toUpperCase();
+  if (!current || !["ALLY", "ENEMY"].includes(participant.team_key)) return "";
+  return participant.team_key === "ALLY" ? current : current === "BLUE" ? "RED" : "BLUE";
+}
+
+function gameSideParticipants(match, side) {
+  return (match.participants || []).filter((row) => gameParticipantSide(match, row) === side)
+    .sort((a, b) => COMP_ROLES.indexOf(a.role) - COMP_ROLES.indexOf(b.role));
+}
+
+function gameSideRolesReady(rows) {
+  return rows.length === COMP_ROLES.length && COMP_ROLES.every((role) => rows.filter((row) => row.role === role).length === 1);
+}
+
+function gameSideFormReady(match, form, roster) {
+  if (!["BLUE", "RED"].includes(form.allyTeamSide) || form.allyTeamSide === importedGameSide(match).toUpperCase()) return false;
+  if (!gameSideRolesReady(gameSideParticipants(match, form.allyTeamSide))) return false;
+  const ids = COMP_ROLES.map((role) => String(form.playerAssignments[role] || ""));
+  return new Set(ids).size === COMP_ROLES.length && ids.every((id) => id && roster.some((player) => String(player.id) === id));
+}
+
+export function GameSideEditor({ match, roster, form, onChange, saving, onCancel, onSave }) {
+  const current = importedGameSide(match).toUpperCase();
+  const allySide = form.allyTeamSide;
+  const enemySide = allySide === "BLUE" ? "RED" : allySide === "RED" ? "BLUE" : "";
+  const allies = gameSideParticipants(match, allySide);
+  const rolesReady = gameSideRolesReady(allies);
+  const assignments = COMP_ROLES.map((role) => form.playerAssignments[role]).filter(Boolean);
+  const duplicateProfiles = new Set(assignments).size !== assignments.length;
+  const ready = gameSideFormReady(match, form, roster);
+  const sideLabel = (side) => side === "BLUE" ? "Côté bleu" : side === "RED" ? "Côté rouge" : "Côté inconnu";
+  return <form className="ih-editor game-side-editor" onSubmit={(event) => { event.preventDefault(); if (!saving && ready) onSave(); }}>
+    <fieldset disabled={saving}>
+      <div className="game-side-choice">
+        <SelectInput label="Côté de notre équipe" value={allySide} onChange={(allyTeamSide) => onChange({ ...form, allyTeamSide })} aria-describedby="game-side-help" required>
+          {!current && <option value="" disabled>Choisir un côté</option>}
+          <option value="BLUE">Côté bleu</option><option value="RED">Côté rouge</option>
+        </SelectInput>
+        <p id="game-side-help">Choisis le côté où jouent les champions de ton équipe, puis vérifie les profils associés. Le résultat et les statistiques seront recalculés. Les notes de review seront conservées.</p>
+      </div>
+      {allySide && <>
+        <p className="game-side-status" role="status">{allySide === current ? `Côté actuel : ${sideLabel(current).toLowerCase()}. Choisis l’autre côté pour corriger cette game.` : `Après enregistrement : notre équipe sera du ${sideLabel(allySide).toLowerCase()}.`}</p>
+        {!rolesReady && <p className="game-side-notice">Les cinq postes de ce côté doivent être renseignés. Corrige-les dans « Corriger les rôles et profils » avant de changer de côté.</p>}
+        <div className="ih-teams">{[["ALLY", allySide, allies], ["ENEMY", enemySide, gameSideParticipants(match, enemySide)]].map(([teamKey, side, rows]) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()} game-side-team-${side.toLowerCase()}`} aria-label={teamKey === "ALLY" ? "Notre équipe après correction" : "Adversaires après correction"}>
+          <h5>{teamKey === "ALLY" ? "Notre équipe" : "Adversaires"} · {sideLabel(side)}</h5>
+          <div className="ih-roster">{rows.map((row) => {
+            const champion = championDisplayName(row.champion);
+            return <div key={row.id} className="ih-participant">
+              <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion} · {roleLabel(row.role)}</strong><span>{row.summoner_name || row.riot_id || "Joueur"}</span></div></div>
+              {teamKey === "ALLY" && COMP_ROLES.includes(row.role) && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerAssignments[row.role] || ""} onChange={(playerId) => onChange({ ...form, playerAssignments: { ...form.playerAssignments, [row.role]: playerId } })} required>
+                <option value="" disabled>Choisir le profil</option>{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}
+              </SelectInput>}
+            </div>;
+          })}</div>
+        </section>)}</div>
+      </>}
+      {duplicateProfiles && <p className="game-side-notice" role="alert">Choisis un profil différent pour chaque poste.</p>}
+      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !ready}>{saving ? "Enregistrement…" : "Enregistrer le côté"}</Button></div>
+    </fieldset>
+  </form>;
 }
 
 export function ImportHistoryEditor({ match, categories, roster, editing, editForm, saving, roleForm, onCancel, onSave, onChange, onRoleChange, onPlayerChange, showHeading = true }) {

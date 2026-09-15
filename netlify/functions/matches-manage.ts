@@ -5,6 +5,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema } from './_lib/match-categories';
 import { ensureWorkflowSchema } from './_lib/schema';
+import { changeMatchSide } from './_lib/match-side';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().slice(0, max);
@@ -103,6 +104,10 @@ export default async function handler(request: Request, context: Context): Promi
         values (${user.id}, 'matches.delete', 'match', ${matchId}, ${JSON.stringify({ teamId, gameId: match.game_id })}::jsonb)
       `;
       return json({ ok: true });
+    }
+
+    if (action === 'side') {
+      return json(await changeMatchSide({ teamId, match, userId: user.id, allyTeamSide: body.allyTeamSide, playerAssignments: body.playerAssignments }));
     }
 
     if (action === 'roles') {

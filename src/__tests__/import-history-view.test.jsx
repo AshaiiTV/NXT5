@@ -377,6 +377,91 @@ describe("category management on demand", () => {
   });
 });
 
+describe("changing the imported team's side", () => {
+  const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
+  const blueChampions = ["Aatrox", "LeeSin", "Ahri", "Jinx", "Lulu"];
+  const redChampions = ["Ornn", "Vi", "Syndra", "Ashe", "Nami"];
+  function sideSettings() {
+    const props = settings({ onUpdated: vi.fn() });
+    props.data.players = roles.map((role) => ({ id: `profile-${role}`, team_id: "team", role, name: `NXT5 ${role}` }));
+    props.match = { ...props.data.matches[0], participants: [blueChampions, redChampions].flatMap((champions, teamIndex) => champions.map((champion, index) => ({
+      id: `${teamIndex}-${roles[index]}`, team_key: teamIndex ? "ENEMY" : "ALLY", raw: { teamId: teamIndex ? 200 : 100 },
+      champion, role: roles[index], player_id: teamIndex ? null : `profile-${roles[index]}`,
+    }))) };
+    return props;
+  }
+
+  it("previews the opposite team's champions, then saves the side and the five profiles together", async () => {
+    const props = sideSettings();
+    const renderer = await render(props);
+    await openAction(renderer, "Changer le côté de notre équipe");
+    expect(select(renderer, "Côté de notre équipe").props.value).toBe("BLUE");
+    expect(button(renderer, "Enregistrer le côté").props.disabled).toBe(true);
+    const allies = () => renderer.root.findByProps({ "aria-label": "Notre équipe après correction" });
+    expect(text(allies())).toContain("Jinx");
+    await filter(renderer, "Côté de notre équipe", "RED");
+    expect(text(allies())).toContain("Ashe");
+    expect(text(allies())).not.toContain("Jinx");
+    expect(select(renderer, "Profil NXT5 · Ashe").props.value).toBe("profile-ADC");
+    expect(button(renderer, "Enregistrer le côté").props.disabled).toBe(false);
+    await click(renderer, "Enregistrer le côté");
+    expect(payload().body).toEqual({ action: "side", teamId: "team", matchId: props.match.id, allyTeamSide: "RED", playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])) });
+    expect(props.refreshAll).toHaveBeenCalledOnce();
+    expect(props.onUpdated).toHaveBeenCalledWith(expect.objectContaining({ matchId: props.match.id, action: "side" }));
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+  });
+
+  it("cancels the side draft and restores the saved side on reopening", async () => {
+    const renderer = await render(sideSettings());
+    await openAction(renderer, "Changer le côté de notre équipe");
+    await filter(renderer, "Côté de notre équipe", "RED");
+    await click(renderer, "Annuler");
+    expect(apiFetch).not.toHaveBeenCalled();
+    await openAction(renderer, "Changer le côté de notre équipe");
+    expect(select(renderer, "Côté de notre équipe").props.value).toBe("BLUE");
+    expect(button(renderer, "Enregistrer le côté").props.disabled).toBe(true);
+  });
+
+  it("retains a failed correction for retry and locks the form until saving finishes", async () => {
+    const props = sideSettings();
+    apiFetch.mockRejectedValueOnce(new Error("Connexion interrompue"));
+    const renderer = await render(props);
+    await openAction(renderer, "Changer le côté de notre équipe");
+    await filter(renderer, "Côté de notre équipe", "RED");
+    await click(renderer, "Enregistrer le côté");
+    expect(select(renderer, "Côté de notre équipe").props.value).toBe("RED");
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    let resolveSave;
+    apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
+    await act(async () => { activate(button(renderer, "Enregistrer le côté")); });
+    expect(renderer.root.findByType("fieldset").props.disabled).toBe(true);
+    expect(button(renderer, "Annuler").props.disabled).toBe(true);
+    await act(async () => renderer.root.findByType("dialog").props.onCancel({ preventDefault: vi.fn() }));
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    await act(async () => resolveSave({ warnings: ["Vérifie la review conservée."] }));
+    expect(props.pushToast).toHaveBeenLastCalledWith(expect.objectContaining({ type: "yellow", title: "Côté de l’équipe corrigé", text: "Vérifie la review conservée." }));
+    expect(props.refreshAll).toHaveBeenCalledOnce();
+  });
+
+  it("requires distinct profiles and a complete set of roles for the new allies", async () => {
+    const props = sideSettings();
+    const renderer = await render(props);
+    await openAction(renderer, "Changer le côté de notre équipe");
+    await filter(renderer, "Côté de notre équipe", "RED");
+    await filter(renderer, "Profil NXT5 · Ashe", "profile-SUP");
+    expect(button(renderer, "Enregistrer le côté").props.disabled).toBe(true);
+    expect(text(renderer.root)).toContain("Choisis un profil différent pour chaque poste.");
+    await click(renderer, "Annuler");
+    props.match = { ...props.match, participants: props.match.participants.map((row) => row.id === "1-ADC" ? { ...row, role: "SUP" } : row) };
+    await act(async () => renderer.update(<Controls {...props} />));
+    await openAction(renderer, "Changer le côté de notre équipe");
+    await filter(renderer, "Côté de notre équipe", "RED");
+    expect(button(renderer, "Enregistrer le côté").props.disabled).toBe(true);
+    expect(text(renderer.root)).toContain("Les cinq postes de ce côté doivent être renseignés.");
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+});
+
 describe("import flow without a second game list", () => {
   const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
   const champions = ["Aatrox", "LeeSin", "Ahri", "Jinx", "Lulu"];

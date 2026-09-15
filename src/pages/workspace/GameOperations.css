@@ -39,11 +39,18 @@
 .game-operation-dialog .ih-participant { min-width: 0; }
 .game-operation-dialog .ih-role-fields { grid-template-columns: minmax(0, 1fr); }
 .game-operation-dialog .ih-editor button[aria-pressed] { min-height: 44px; }
+.game-side-choice { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); align-items: end; gap: 24px; }
+.game-side-choice p, .game-side-status, .game-side-notice { color: #edf5ff; font-size: 14px; line-height: 1.6; }
+.game-side-status { margin: 20px 0; }
+.game-side-notice { margin: 16px 0; padding-left: 12px; border-left: 2px solid var(--nxt5-accent); }
+.game-side-editor .ih-player strong { overflow-wrap: anywhere; }
+.game-side-editor .game-side-team-blue h5 { color: #bae6fd; }
+.game-side-editor .game-side-team-red h5 { color: #fecdd3; }
 .game-import-flow > div { min-width: 0; }
 @media (max-width: 720px) {
   .game-operation-dialog-inner { padding: 16px; }
   .game-operation-dialog-header { gap: 8px; margin-bottom: 20px; }
   .game-operation-dialog-header h2 { font-size: 20px; }
-  .game-operation-dialog .ih-teams, .game-operation-dialog .ih-category-create fieldset { grid-template-columns: minmax(0, 1fr); }
+  .game-operation-dialog .ih-teams, .game-operation-dialog .ih-category-create fieldset, .game-side-choice { grid-template-columns: minmax(0, 1fr); }
   .game-operation-dialog :is(input, select, textarea) { font-size: 16px; }
 }

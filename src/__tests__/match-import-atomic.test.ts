@@ -58,6 +58,7 @@ import importRiot from '../../netlify/functions/matches-import';
 import { fetchRiotMatch } from '../../netlify/functions/_lib/riot';
 import importFile from '../../netlify/functions/matches-import-file';
 import manageCategories from '../../netlify/functions/match-categories-manage';
+import manageMatches from '../../netlify/functions/matches-manage';
 
 vi.mock('../../netlify/functions/_lib/auth', () => ({
   assertSessionSecret: () => {},
@@ -300,6 +301,218 @@ describe('atomic match imports against PostgreSQL', () => {
     expect(otherParticipants).toHaveLength(10);
     expect(otherParticipants.every((row: any) => row.kills === 3)).toBe(true);
     expect(saved.matches.find((row: any) => row.id === second.id).category_ids).toEqual([foreignCategoryId]);
+  });
+});
+
+describe('team side correction against PostgreSQL', () => {
+  async function seedSideMatch() {
+    const args = importArgs();
+    args.match.info.teams = [
+      { teamId: 100, win: true, objectives: { dragon: { kills: 4 }, baron: { kills: 2 }, tower: { kills: 9 } } },
+      { teamId: 200, win: false, objectives: { dragon: { kills: 1 }, baron: { kills: 0 }, tower: { kills: 3 } } }
+    ];
+    args.match.info.participants.forEach((participant: any, index: number) => {
+      participant.visionScore = index < 5 ? 30 : 10;
+    });
+    args.match.timeline = { info: { frames: [{ timestamp: 600000, events: [
+      { type: 'ELITE_MONSTER_KILL', timestamp: 590000, killerTeamId: 100, killerId: 1, monsterType: 'DRAGON' },
+      { type: 'CHAMPION_KILL', timestamp: 591000, killerId: 6, victimId: 1 },
+      { type: 'WARD_PLACED', timestamp: 592000, creatorId: 6, position: { x: 500, y: 12000 } }
+    ] }] } };
+    return persistAnalyzedMatch(args);
+  }
+
+  function correctSide(matchId: string, body: Record<string, unknown> = {}) {
+    return manageMatches(new Request('https://nxt5.example/.netlify/functions/matches-manage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'side', teamId, matchId, allyTeamSide: 'RED', playerAssignments: importArgs().playerAssignments, ...body })
+    }), {} as any);
+  }
+
+  it('changes our team and its summaries, preserves participant IDs/stats, metadata, archives, timeline and reviews, and refreshes profiles', async () => {
+    const match = await seedSideMatch();
+    await database.pg.query("update matches set review_status='done', reviewed_at=now(), reviewed_by=$1, primary_focus='Coaching note' where id=$2", [userId, match.id]);
+    await database.pg.query('insert into match_archives(team_id,name,match_ids) values ($1,$2,$3)', [teamId, 'Scrims', JSON.stringify([match.id])]);
+    await database.pg.query("update reports set content='Manual review: keep this analysis', title='Our review' where match_id=$1", [match.id]);
+    await database.pg.query("update champion_pool set source='manual', notes='Keep training plan' where player_id=$1", [roster[0].id]);
+    const before = await storedMatch();
+    const reviewsBefore = (await database.pg.query('select * from reports order by id')).rows;
+    const foldersBefore = (await database.pg.query('select * from match_archives order by id')).rows;
+    const manualPoolBefore = (await database.pg.query("select * from champion_pool where source='manual'")).rows;
+    const response = await correctSide(match.id);
+    expect(response.status).toBe(200);
+    expect((await response.json()).warnings).toEqual([expect.objectContaining({ code: 'MATCH_REVIEWS_NEED_CHECK' })]);
+    const after = await storedMatch();
+    expect(after.matches[0]).toEqual({ ...before.matches[0], side: 'Red Side', result: 'Défaite', objective_score: 'Dragons 1 · Barons 0 · Tours 3', vision_score: '-100' });
+    expect(after.archives).toEqual(before.archives);
+    expect((await database.pg.query('select * from reports order by id')).rows).toEqual(reviewsBefore);
+    expect((await database.pg.query('select * from match_archives order by id')).rows).toEqual(foldersBefore);
+    expect((await database.pg.query("select * from champion_pool where source='manual'")).rows).toEqual(manualPoolBefore);
+    for (const previous of before.participants) {
+      const isAlly = previous.raw.teamId === 200;
+      expect(after.participants.find((participant: any) => participant.id === previous.id)).toEqual({
+        ...previous, team_key: isAlly ? 'ALLY' : 'ENEMY', player_id: isAlly ? importArgs().playerAssignments[previous.role] : null
+      });
+    }
+    const pool = (await database.pg.query("select * from champion_pool where source='riot'")).rows;
+    expect(pool).toHaveLength(5);
+    expect(pool.every((row: any) => row.losses === 1 && row.wins === 0 && Number(row.champion.replace('Champion', '')) >= 5)).toBe(true);
+    expect(after.matches[0].raw.nxt5.timelineSummary.wards[0].teamId).toBe(200);
+    expect(after.matches[0].raw.nxt5.timelineEvents).toEqual(before.matches[0].raw.nxt5.timelineEvents);
+    expect((await database.pg.query("select metadata from audit_logs where action='matches.side'")).rows).toEqual([
+      { metadata: { teamId, fromSide: 'Blue Side', toSide: 'Red Side', playerAssignments: importArgs().playerAssignments } }
+    ]);
+  });
+
+  it('can restore Blue Side and treats the already selected side as an idempotent no-op', async () => {
+    const match = await seedSideMatch();
+    const before = await storedMatch();
+    expect((await correctSide(match.id)).status).toBe(200);
+    expect((await correctSide(match.id, { allyTeamSide: 'BLUE' })).status).toBe(200);
+    expect(await storedMatch()).toEqual(before);
+    database.statements = [];
+    expect((await correctSide(match.id, { allyTeamSide: 'BLUE', playerAssignments: {} })).status).toBe(200);
+    expect(database.statements.some((query) => /\b(insert|update|delete)\b/i.test(query))).toBe(false);
+  });
+
+  it('uses the saved archive for older imports with missing team data without rewriting their source', async () => {
+    const match = await seedSideMatch();
+    await database.pg.query("update matches set raw = raw #- '{info,teams}' #- '{info,participants}' where id=$1", [match.id]);
+    await database.pg.query("update match_participants set raw=raw-'teamId' where match_id=$1", [match.id]);
+    const before = await storedMatch();
+    expect((await correctSide(match.id)).status).toBe(200);
+    const after = await storedMatch();
+    expect(after.matches[0]).toMatchObject({ side: 'Red Side', result: 'Défaite', objective_score: 'Dragons 1 · Barons 0 · Tours 3' });
+    expect(after.matches[0].raw).toEqual(before.matches[0].raw);
+    expect(after.archives).toEqual(before.archives);
+    expect(after.participants.filter((row: any) => row.team_key === 'ALLY').map((row: any) => row.raw.participantId).sort()).toEqual([6, 7, 8, 9, 10].sort());
+  });
+
+  it('supports legacy participant snapshots nested under raw.participant and an empty match source', async () => {
+    const match = await seedSideMatch();
+    await database.pg.query("update matches set raw='{}' where id=$1", [match.id]);
+    await database.pg.query("update match_participants set raw=jsonb_build_object('participant',raw) where match_id=$1", [match.id]);
+    const before = await storedMatch();
+    expect((await correctSide(match.id)).status).toBe(200);
+    const after = await storedMatch();
+    expect(after.matches[0]).toMatchObject({ side: 'Red Side', result: 'Défaite' });
+    expect(after.matches[0].raw).toEqual({});
+    expect(after.archives).toEqual(before.archives);
+    expect(after.participants.every((row: any) => row.team_key === (row.raw.participant.teamId === 200 ? 'ALLY' : 'ENEMY'))).toBe(true);
+  });
+
+  it('refuses missing objective totals in both sources instead of fabricating zeroes or overwriting old data', async () => {
+    const match = await seedSideMatch();
+    await database.pg.query("update matches set raw=raw #- '{info,teams,1,objectives}' where id=$1", [match.id]);
+    await database.pg.query("update match_raw_archives set payload=payload #- '{info,teams,1,objectives}' where match_id=$1", [match.id]);
+    const before = await storedMatch();
+    const response = await correctSide(match.id);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining('incomplètes') });
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it('rejects inconsistent participant teams before changing the game', async () => {
+    const match = await seedSideMatch();
+    await database.pg.query("update match_participants set raw=jsonb_set(raw,'{teamId}','200') where match_id=$1 and champion='Champion0'", [match.id]);
+    const before = await storedMatch();
+    expect((await correctSide(match.id)).status).toBe(409);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it.each(['GREEN', '', 'Blue Side'])('rejects the invalid requested side %s', async allyTeamSide => {
+    const match = await seedSideMatch();
+    const before = await storedMatch();
+    expect((await correctSide(match.id, { allyTeamSide })).status).toBe(400);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it.each(['missing', 'duplicate', 'foreign'])('rejects %s profile assignments', async kind => {
+    const match = await seedSideMatch();
+    const profiles = importArgs().playerAssignments;
+    if (kind === 'missing') delete profiles.TOP;
+    if (kind === 'duplicate') profiles.TOP = profiles.JGL;
+    if (kind === 'foreign') {
+      await database.pg.query("insert into players(id,team_id,name,role) values ($1,$2,'Foreign player','TOP')", [foreignCategoryId, otherTeamId]);
+      profiles.TOP = foreignCategoryId;
+    }
+    const before = await storedMatch();
+    expect((await correctSide(match.id, { playerAssignments: profiles })).status).toBe(400);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it('rejects duplicate future ally roles so profiles cannot be attached to the wrong participant', async () => {
+    const match = await seedSideMatch();
+    await database.pg.query("update match_participants set role='TOP' where match_id=$1 and champion='Champion6'", [match.id]);
+    const before = await storedMatch();
+    expect((await correctSide(match.id)).status).toBe(409);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it('scopes the match ID to the requested team', async () => {
+    const match = await seedSideMatch();
+    const before = await storedMatch();
+    expect((await correctSide(match.id, { teamId: otherTeamId })).status).toBe(404);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it.each(['nonmember', 'player', 'captain', 'coach', 'creator'])('enforces editing permissions for %s', async role => {
+    const match = await seedSideMatch();
+    const otherUserId = '00000000-0000-4000-8000-000000000099';
+    await database.pg.query("insert into users(id,account_name,name,password_hash) values ($1,'other','Other','unused')", [otherUserId]);
+    await database.pg.query('update teams set owner_id=$1 where id=$2', [otherUserId, teamId]);
+    await database.pg.query('update matches set created_by=$1 where id=$2', [role === 'creator' ? userId : otherUserId, match.id]);
+    if (role !== 'nonmember') await database.pg.query('insert into team_members(team_id,user_id,role) values ($1,$2,$3)', [teamId, userId, role === 'creator' ? 'player' : role]);
+    const before = await storedMatch();
+    const allowed = ['captain', 'coach', 'creator'].includes(role);
+    expect((await correctSide(match.id)).status).toBe(allowed ? 200 : 403);
+    if (!allowed) expect(await storedMatch()).toEqual(before);
+  });
+
+  it('rolls back summaries, participant changes, pool and audit together if the statistics refresh fails', async () => {
+    const match = await seedSideMatch();
+    const before = await storedMatch();
+    const poolBefore = (await database.pg.query('select * from champion_pool order by id')).rows;
+    await database.pg.exec('alter table champion_pool add constraint reject_pool_refresh check (losses = 0)');
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try { expect((await correctSide(match.id)).status).toBe(500); } finally { errors.mockRestore(); }
+    expect(await storedMatch()).toEqual(before);
+    expect((await database.pg.query('select * from champion_pool order by id')).rows).toEqual(poolBefore);
+    expect((await database.pg.query("select * from audit_logs where action='matches.side'")).rows).toEqual([]);
+  });
+
+  it('detects a concurrent role edit before changing side and preserves the other edit', async () => {
+    const match = await seedSideMatch();
+    let expected;
+    database.beforeBatch = async () => {
+      await database.pg.query("update match_participants set role='MID' where match_id=$1 and champion='Champion0'", [match.id]);
+      expected = await storedMatch();
+    };
+    expect((await correctSide(match.id)).status).toBe(409);
+    expect(await storedMatch()).toEqual(expected);
+  });
+
+  it('detects a profile removed after validation before changing side', async () => {
+    const match = await seedSideMatch();
+    let expected;
+    database.beforeBatch = async () => {
+      await database.pg.query('delete from players where id=$1', [roster[0].id]);
+      expected = await storedMatch();
+    };
+    expect((await correctSide(match.id)).status).toBe(409);
+    expect(await storedMatch()).toEqual(expected);
+  });
+
+  it('rechecks permissions when access is removed after the endpoint authorization', async () => {
+    const match = await seedSideMatch();
+    const otherUserId = '00000000-0000-4000-8000-000000000099';
+    await database.pg.query("insert into users(id,account_name,name,password_hash) values ($1,'other','Other','unused')", [otherUserId]);
+    const before = await storedMatch();
+    database.beforeBatch = async () => {
+      await database.pg.query('update teams set owner_id=$1 where id=$2', [otherUserId, teamId]);
+    };
+    expect((await correctSide(match.id)).status).toBe(409);
+    expect(await storedMatch()).toEqual(before);
   });
 });
 

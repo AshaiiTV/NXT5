@@ -1,4 +1,5 @@
 import { assertSchemaReady } from './migrations';
+import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 import { sql } from './db';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
@@ -313,6 +314,14 @@ function reportForMatch({ team, summary, participants }) {
 export async function rebuildChampionPool(teamId: string) {
   await sql.transaction(tx => [
     tx`select id from teams where id = ${teamId} for update`,
+    ...championPoolRefreshQueries(tx, teamId)
+  ]);
+}
+
+// Callers changing match ownership can refresh the derived statistics in the
+// same transaction. They must acquire the team lock before running these queries.
+export function championPoolRefreshQueries(tx: NeonQueryFunctionInTransaction<false, false>, teamId: string) {
+  return [
     tx`
     delete from champion_pool
     where team_id = ${teamId}
@@ -381,7 +390,7 @@ export async function rebuildChampionPool(teamId: string) {
         and coalesce(existing.source, 'riot') in ('manual', 'riot_manual')
     )
   `
-  ]);
+  ];
 }
 
 async function rebuildImprovements(teamId) {
