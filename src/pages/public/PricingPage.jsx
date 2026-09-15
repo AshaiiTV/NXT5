@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, CheckCircle2, Loader2, Mail, Users } from "lucide-react";
-import { apiFetch } from "../../api/client.js";
+import { useAdminMutation, useInvalidateAdminQueries } from "../../hooks/useAdminQuery.js";
+import { trackAudienceEvent } from "../../app/audience-client.js";
 import { PROPOSED_PLANS, PROPOSED_PLAN_OPTIONS } from "../../app/pricing.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
-import { Badge, Button, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
+import { Badge, Button, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import { LegalLinks, LinkButton, SiteHeader } from "./PublicPages.jsx";
 import "./pricing.css";
 
@@ -37,7 +38,9 @@ function requestError(error) {
   return "Nous n’avons pas pu confirmer l’enregistrement. Tes réponses sont conservées ici ; réessaie dans quelques instants.";
 }
 
-export default function PricingPage({ navigate, user }) {
+export default function PricingPage({ navigate, user, embedded = false }) {
+  const mutateAdmin = useAdminMutation();
+  const invalidate = useInvalidateAdminQueries();
   const [form, setForm] = useState(() => initialForm(user));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -77,7 +80,7 @@ export default function PricingPage({ navigate, user }) {
     pendingRef.current = true;
     setSaving(true);
     try {
-      const result = await apiFetch("access-requests", {
+      const result = await mutateAdmin("access-requests", {
         method: "POST",
         body: JSON.stringify({
           ...form,
@@ -88,6 +91,8 @@ export default function PricingPage({ navigate, user }) {
         }),
       });
       if (result?.ok !== true) throw new Error("Unconfirmed access request");
+      invalidate("admin-access-requests");
+      if (!user?.is_platform_admin) void trackAudienceEvent("access_request");
       setSuccess(true);
     } catch (err) {
       setError(requestError(err));
@@ -97,15 +102,26 @@ export default function PricingPage({ navigate, user }) {
     }
   }
 
+  const Content = embedded ? "div" : "main";
+  const IntroHeading = embedded ? "h3" : "h1";
+  const SectionHeading = embedded ? "h3" : "h2";
+
   return (
-    <div className="nxt5-pricing relative min-h-screen overflow-hidden text-white">
-      <AmbientBackground />
-      <SiteHeader navigate={navigate}>
-        <LinkButton href="/admin" navigate={navigate} variant="ghost">
-          Administration
-        </LinkButton>
-      </SiteHeader>
-      <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
+    <div className={embedded ? "nxt5-pricing min-w-0 text-white" : "nxt5-pricing relative min-h-screen overflow-hidden text-white"}>
+      {!embedded && <>
+        <AmbientBackground />
+        <SiteHeader navigate={navigate}>
+          <LinkButton href="/admin" navigate={navigate} variant="ghost">
+            Administration
+          </LinkButton>
+        </SiteHeader>
+      </>}
+      <Content className={embedded ? "min-w-0" : "relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16"}>
+        {embedded && <PageHeader
+          eyebrow="Ventes et accès"
+          title="Offres et tarifs"
+          subtitle="Prévisualise les offres envisagées, la FAQ et le formulaire de demande d’accès."
+        ><Badge tone="purple">Prévisualisation</Badge></PageHeader>}
         <aside className="border-l-2 border-violet-300/40 py-2 pl-4 text-sm leading-6 text-slate-300" aria-label="Accès administrateur">
           <p className="font-bold text-violet-100">Aperçu réservé à l’administrateur</p>
           <p>La page et son formulaire sont fermés aux visiteurs et aux autres comptes. Les demandes envoyées depuis cet aperçu sont enregistrées dans le suivi.</p>
@@ -113,9 +129,9 @@ export default function PricingPage({ navigate, user }) {
         <section className="pricing-intro" aria-labelledby="pricing-title">
           <div>
             <Badge tone="cyan">Tarifs · offres à l’étude</Badge>
-            <h1 id="pricing-title" className="mt-5 max-w-3xl text-4xl font-black leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl">
+            <IntroHeading id="pricing-title" className={embedded ? "mt-4 max-w-3xl text-2xl font-black leading-tight tracking-tight sm:text-3xl" : "mt-5 max-w-3xl text-4xl font-black leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl"}>
               Tout le suivi de ton équipe.<br /><span className="nxt5-metal-text">Au même endroit.</span>
-            </h1>
+            </IntroHeading>
             <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-300">
               Games, reviews, champion pools et planning : un espace partagé pour ton roster et ton staff. Choisis l’offre qui correspondrait à ton équipe et aide-nous à préparer son lancement.
             </p>
@@ -135,7 +151,7 @@ export default function PricingPage({ navigate, user }) {
                 <article aria-labelledby={`plan-${plan.code}`} className="pricing-plan-body">
                   <div>
                     <p className="pricing-plan-eyebrow">{plan.code === "free" ? "Premiers pas" : plan.code === "team_monthly" ? "Au rythme de l’équipe" : "Une durée définie"}</p>
-                    <h2 id={`plan-${plan.code}`} className="mt-2 text-2xl font-black">{plan.name}</h2>
+                    <SectionHeading id={`plan-${plan.code}`} className="mt-2 text-2xl font-black">{plan.name}</SectionHeading>
                     <p className="pricing-plan-description mt-3 text-sm leading-6 text-slate-300">{plan.description}</p>
                     <p className="mt-5 text-5xl font-black tracking-tight tabular-nums">{plan.price}</p>
                     <p className="mt-2 text-sm font-bold text-slate-300">{plan.period}</p>
@@ -155,7 +171,7 @@ export default function PricingPage({ navigate, user }) {
         <div className="pricing-details">
           <section aria-labelledby="pricing-faq-title">
             <Badge tone="purple">Avant de te lancer</Badge>
-            <h2 id="pricing-faq-title" className="mt-4 text-3xl font-black tracking-tight">Les réponses utiles</h2>
+            <SectionHeading id="pricing-faq-title" className="mt-4 text-3xl font-black tracking-tight">Les réponses utiles</SectionHeading>
             <div className="mt-5">
               {FAQ.map(([question, answer]) => <details className="pricing-faq-item" key={question}><summary>{question}</summary><p className="pb-5 text-sm leading-7 text-slate-300">{answer}</p></details>)}
             </div>
@@ -164,7 +180,7 @@ export default function PricingPage({ navigate, user }) {
           <section id="demande-acces" ref={formSectionRef} aria-labelledby="access-request-title" className="pricing-request">
             <Surface>
               <Badge tone="cyan">Préparer ton accès</Badge>
-              <h2 id="access-request-title" className="mt-4 text-3xl font-black tracking-tight">Parlons de ton équipe</h2>
+              <SectionHeading id="access-request-title" className="mt-4 text-3xl font-black tracking-tight">Parlons de ton équipe</SectionHeading>
               <p className="mt-3 text-sm leading-6 text-slate-300">Dis-nous ce qui t’intéresse. Ta demande nous aide à valider l’offre et à préparer un échange avec toi, sans engagement d’achat.</p>
               {success ? (
                 <div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
@@ -214,8 +230,8 @@ export default function PricingPage({ navigate, user }) {
             </Surface>
           </section>
         </div>
-      </main>
-      <LegalLinks navigate={navigate} />
+      </Content>
+      {!embedded && <LegalLinks navigate={navigate} />}
     </div>
   );
 }

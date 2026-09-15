@@ -4,6 +4,13 @@ import { assertMethod, handleError, json } from './_lib/http';
 import { requirePlatformAdmin } from './_lib/platform-admin';
 
 const RECENT_LIMIT = 10;
+const DASHBOARD_QUERIES = {
+  overview: ['summaryRows', 'teamSizeRows', 'dailyRows', 'featureRows', 'accountFunnelRows', 'inactivityReminderSummaryRows'],
+  teams: ['summaryRows', 'teamDirectoryRows'],
+  usage: ['summaryRows', 'featureRows', 'matchHealthRows', 'accountFunnelRows'],
+  reminders: ['inactivityDeliveryRows', 'inactivityReminderSummaryRows']
+} as const;
+type DashboardView = keyof typeof DASHBOARD_QUERIES;
 
 function count(value: unknown): number {
   const parsed = Number(value);
@@ -15,9 +22,32 @@ function count(value: unknown): number {
  * confined to the inactivityReminders audit block, behind platform-admin auth.
  * Session/IP data, invite codes and imported match raw data are never returned.
  */
-async function loadDashboard() {
-  const [summaryRows, recentTeamRows, recentUserRows, teamSizeRows, regionRows, dailyRows, featureRows, matchHealthRows, accountFunnelRows, rosterRows, weeklyRows, teamDirectoryRows, inactivityDeliveryRows, inactivityReminderSummaryRows] = await Promise.all([
-    sql`
+async function loadDashboard(view: DashboardView | null) {
+  const queries = {
+    summaryRows: () => view === 'teams' ? sql`select count(*) as teams from teams`
+      : view === 'usage' ? sql`
+        select (select count(*) from teams) as teams,
+          (select count(*) from users) as users,
+          (select count(*) from matches) as matches
+      ` : view === 'overview' ? sql`
+        select team_totals.*, user_totals.*, match_totals.*
+        from (
+          select count(*) as teams,
+            count(*) filter (where created_at >= now() - interval '7 days') as teams_7d,
+            count(*) filter (where created_at >= now() - interval '30 days') as teams_30d
+          from teams
+        ) team_totals
+        cross join (
+          select count(*) as users,
+            count(*) filter (where created_at >= now() - interval '30 days') as users_30d
+          from users
+        ) user_totals
+        cross join (
+          select count(*) filter (where created_at >= now() - interval '7 days') as matches_7d,
+            count(*) as matches_30d, count(distinct team_id) as active_teams_30d
+          from matches where created_at >= now() - interval '30 days'
+        ) match_totals
+      ` : sql`
       select
         (select count(*) from teams) as teams,
         (select count(*) from users) as users,
@@ -37,7 +67,7 @@ async function loadDashboard() {
         (select count(distinct team_id) from matches where created_at >= now() - interval '30 days') as active_teams_30d,
         (select count(*) from users where coalesce(email_verified, false)) as verified_users
     `,
-    sql`
+    recentTeamRows: () => sql`
       select
         teams.id,
         teams.name,
@@ -54,7 +84,7 @@ async function loadDashboard() {
       order by teams.created_at desc
       limit ${RECENT_LIMIT}
     `,
-    sql`
+    recentUserRows: () => sql`
       select
         users.id,
         users.account_name,
@@ -67,7 +97,11 @@ async function loadDashboard() {
       order by users.created_at desc
       limit ${RECENT_LIMIT}
     `,
-    sql`
+    teamSizeRows: () => view === 'overview' ? sql`
+      select count(*) as teams_without_players
+      from teams
+      where not exists (select 1 from players where players.team_id = teams.id)
+    ` : sql`
       select
         coalesce(avg(member_count), 0) as members_per_team,
         coalesce(avg(player_count), 0) as players_per_team,
@@ -84,30 +118,51 @@ async function loadDashboard() {
         from teams
       ) per_team
     `,
-    sql`
+    regionRows: () => sql`
       select region, count(*) as team_count
       from teams
       group by region
       order by team_count desc, region asc
       limit 20
     `,
-    sql`
+    dailyRows: () => sql`
       with days as (
         select generate_series(
           date_trunc('day', now()) - interval '29 days',
           date_trunc('day', now()),
           interval '1 day'
         ) as day
+      ), daily_users as (
+        select date_trunc('day', created_at) as day, count(*) as total
+        from users where created_at >= date_trunc('day', now()) - interval '29 days'
+          and created_at < date_trunc('day', now()) + interval '1 day'
+        group by 1
+      ), daily_teams as (
+        select date_trunc('day', created_at) as day, count(*) as total
+        from teams where created_at >= date_trunc('day', now()) - interval '29 days'
+          and created_at < date_trunc('day', now()) + interval '1 day'
+        group by 1
+      ), daily_matches as (
+        select date_trunc('day', created_at) as day, count(*) as total
+        from matches where created_at >= date_trunc('day', now()) - interval '29 days'
+          and created_at < date_trunc('day', now()) + interval '1 day'
+        group by 1
       )
       select
         to_char(days.day, 'YYYY-MM-DD') as date,
-        (select count(*) from users where users.created_at >= days.day and users.created_at < days.day + interval '1 day') as users,
-        (select count(*) from teams where teams.created_at >= days.day and teams.created_at < days.day + interval '1 day') as teams,
-        (select count(*) from matches where matches.created_at >= days.day and matches.created_at < days.day + interval '1 day') as matches
+        coalesce(daily_users.total, 0) as users,
+        coalesce(daily_teams.total, 0) as teams,
+        coalesce(daily_matches.total, 0) as matches
       from days
+      left join daily_users using (day)
+      left join daily_teams using (day)
+      left join daily_matches using (day)
       order by days.day asc
     `,
-    sql`
+    featureRows: () => view === 'overview' ? sql`
+      select (select count(distinct team_id) from matches) as matches,
+        (select count(distinct team_id) from reports) as reports
+    ` : sql`
       select
         (select count(distinct team_id) from players) as roster,
         (select count(distinct team_id) from matches) as matches,
@@ -118,7 +173,12 @@ async function loadDashboard() {
         (select count(distinct team_id) from player_goals) as goals,
         (select count(distinct team_id) from match_archives) as archives
     `,
-    sql`
+    matchHealthRows: () => view === 'usage' ? sql`
+      select count(*) filter (where created_at >= now() - interval '24 hours') as imports_24h,
+        count(*) filter (where patch is not null and patch <> '') as matches_with_patch,
+        count(*) filter (where duration_seconds is not null and duration_seconds > 0) as matches_with_duration
+      from matches
+    ` : sql`
       select
         count(*) filter (where result = 'Victoire') as wins,
         count(*) filter (where result = 'Défaite') as losses,
@@ -131,7 +191,14 @@ async function loadDashboard() {
         count(*) filter (where duration_seconds is not null and duration_seconds > 0) as matches_with_duration
       from matches
     `,
-    sql`
+    accountFunnelRows: () => view === 'overview' ? sql`
+      select (select count(distinct user_id) from team_members) as users_in_team,
+        (select count(*) from users where coalesce(email_verified, false)) as verified
+    ` : view === 'usage' ? sql`
+      select (select count(distinct user_id) from team_members) as users_in_team,
+        (select count(distinct user_id) from players where user_id is not null) as users_linked_to_player,
+        (select count(*) from users where coalesce(email_verified, false)) as verified
+    ` : sql`
       select
         (select count(distinct user_id) from team_members) as users_in_team,
         (select count(distinct user_id) from players where user_id is not null) as users_linked_to_player,
@@ -142,7 +209,7 @@ async function loadDashboard() {
           where users.created_at < now() - interval '30 days'
             and sessions.last_seen_at >= now() - interval '30 days') as returning_30d
     `,
-    sql`
+    rosterRows: () => sql`
       select
         count(*) filter (where roster_status = 'MAIN') as main,
         count(*) filter (where roster_status = 'SUB') as substitutes,
@@ -153,7 +220,7 @@ async function loadDashboard() {
         count(*) filter (where riot_id is not null and riot_id <> '') as riot_configured
       from players
     `,
-    sql`
+    weeklyRows: () => sql`
       with weeks as (
         select generate_series(
           date_trunc('week', now()) - interval '11 weeks',
@@ -170,16 +237,24 @@ async function loadDashboard() {
       from weeks
       order by weeks.week asc
     `,
-    sql`
+    teamDirectoryRows: () => sql`
+      with player_counts as (
+        select team_id, count(*) as players from players group by team_id
+      ), match_counts as (
+        select team_id, count(*) as matches, max(created_at) as last_activity_at
+        from matches group by team_id
+      )
       select teams.id, teams.name, teams.tag, teams.region, teams.created_at,
-        (select count(*) from players where players.team_id = teams.id) as players,
-        (select count(*) from matches where matches.team_id = teams.id) as matches,
-        (select max(matches.created_at) from matches where matches.team_id = teams.id) as last_activity_at
+        coalesce(player_counts.players, 0) as players,
+        coalesce(match_counts.matches, 0) as matches,
+        match_counts.last_activity_at
       from teams
-      order by coalesce((select max(matches.created_at) from matches where matches.team_id = teams.id), teams.created_at) desc
+      left join player_counts on player_counts.team_id = teams.id
+      left join match_counts on match_counts.team_id = teams.id
+      order by coalesce(match_counts.last_activity_at, teams.created_at) desc
       limit 500
     `,
-    sql`
+    inactivityDeliveryRows: () => sql`
       select
         inactivity_reminder_deliveries.id,
         inactivity_reminder_deliveries.user_id,
@@ -195,7 +270,16 @@ async function loadDashboard() {
       order by inactivity_reminder_deliveries.sent_at desc
       limit 100
     `,
-    sql`
+    inactivityReminderSummaryRows: () => view === 'overview' ? sql`
+      select count(*) as awaiting_delivery
+      from users
+      where last_active_at <= now() - interval '90 days'
+        and coalesce(email_verified, false) = true
+        and coalesce(notif_inactivity, true) = true
+        and email is not null
+        and email <> ''
+        and (inactivity_email_sent_at is null or inactivity_email_sent_at < last_active_at)
+    ` : sql`
       select
         count(*) as deliveries,
         count(distinct user_id) as recipients,
@@ -212,8 +296,10 @@ async function loadDashboard() {
         ) as awaiting_delivery
       from inactivity_reminder_deliveries
     `
-  ]);
-
+  };
+  const selected = view ? DASHBOARD_QUERIES[view] : Object.keys(queries) as (keyof typeof queries)[];
+  const result = Object.fromEntries(await Promise.all(selected.map(async (name) => [name, await queries[name]()])));
+  const { summaryRows = [], recentTeamRows = [], recentUserRows = [], teamSizeRows = [], regionRows = [], dailyRows = [], featureRows = [], matchHealthRows = [], accountFunnelRows = [], rosterRows = [], weeklyRows = [], teamDirectoryRows = [], inactivityDeliveryRows = [], inactivityReminderSummaryRows = [] } = result;
   const summary: any = summaryRows[0] || {};
   const averages: any = teamSizeRows[0] || {};
   const features: any = featureRows[0] || {};
@@ -222,7 +308,7 @@ async function loadDashboard() {
   const roster: any = rosterRows[0] || {};
   const inactivityReminderSummary: any = inactivityReminderSummaryRows[0] || {};
 
-  return {
+  const dashboard = {
     generatedAt: new Date().toISOString(),
     totals: {
       teams: count(summary.teams), users: count(summary.users),
@@ -307,6 +393,48 @@ async function loadDashboard() {
       teamCount: count(row.team_count), lastSeenAt: row.last_seen_at || null
     }))
   };
+
+  // Old callers still receive the complete contract. Each administration view
+  // reads only the data it renders; recipient addresses stay in the audit view.
+  if (view === 'overview') return {
+    generatedAt: dashboard.generatedAt,
+    totals: { teams: dashboard.totals.teams, users: dashboard.totals.users },
+    growth: {
+      days7: { teams: dashboard.growth.days7.teams, matches: dashboard.growth.days7.matches },
+      days30: { teams: dashboard.growth.days30.teams, users: dashboard.growth.days30.users, matches: dashboard.growth.days30.matches }
+    },
+    activity: { activeTeams30d: dashboard.activity.activeTeams30d },
+    attention: { teamsWithoutPlayers: dashboard.attention.teamsWithoutPlayers },
+    adoption: { matches: dashboard.adoption.matches, reports: dashboard.adoption.reports },
+    accountFunnel: { verified: dashboard.accountFunnel.verified, usersInTeam: dashboard.accountFunnel.usersInTeam },
+    inactivityReminders: { awaitingDelivery: dashboard.inactivityReminders.awaitingDelivery },
+    daily: dashboard.daily
+  };
+  if (view === 'teams') return {
+    generatedAt: dashboard.generatedAt,
+    totals: { teams: dashboard.totals.teams },
+    teamDirectory: dashboard.teamDirectory
+  };
+  if (view === 'usage') return {
+    generatedAt: dashboard.generatedAt,
+    totals: { teams: dashboard.totals.teams, users: dashboard.totals.users, matches: dashboard.totals.matches },
+    adoption: dashboard.adoption,
+    accountFunnel: {
+      verified: dashboard.accountFunnel.verified,
+      usersInTeam: dashboard.accountFunnel.usersInTeam,
+      usersLinkedToPlayer: dashboard.accountFunnel.usersLinkedToPlayer
+    },
+    matchHealth: {
+      imports24h: dashboard.matchHealth.imports24h,
+      matchesWithPatch: dashboard.matchHealth.matchesWithPatch,
+      matchesWithDuration: dashboard.matchHealth.matchesWithDuration
+    }
+  };
+  if (view === 'reminders') return {
+    generatedAt: dashboard.generatedAt,
+    inactivityReminders: dashboard.inactivityReminders
+  };
+  return dashboard;
 }
 
 async function loadTeamDetail(teamId: string) {
@@ -429,16 +557,20 @@ export default async function handler(request: Request, context: Context): Promi
     assertMethod(request, 'GET');
     await requirePlatformAdmin(request, context);
     const url = new URL(request.url);
+    const view = url.searchParams.get('view');
     const teamId = String(url.searchParams.get('teamId') || '').trim();
-    if (url.searchParams.get('view') === 'team') {
+    if (view === 'team') {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(teamId)) {
         throw Object.assign(new Error('Identifiant équipe invalide.'), { status: 400 });
       }
       const detail = await loadTeamDetail(teamId);
       if (!detail) throw Object.assign(new Error('Équipe introuvable.'), { status: 404 });
-      return json(detail);
+      return json(detail, 200, { 'Cache-Control': 'private, no-store' });
     }
-    return json(await loadDashboard());
+    if (view !== null && !Object.prototype.hasOwnProperty.call(DASHBOARD_QUERIES, view)) {
+      throw Object.assign(new Error('Vue d’administration invalide.'), { status: 400 });
+    }
+    return json(await loadDashboard(view as DashboardView | null), 200, { 'Cache-Control': 'private, no-store' });
   } catch (err) {
     return handleError(err);
   }

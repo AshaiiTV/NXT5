@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, ChevronLeft, ChevronRight, ClipboardList, Loader2, RefreshCw, Trash2 } from "lucide-react";
-import { apiFetch } from "../../api/client.js";
+import { useAdminMutation, useAdminQuery } from "../../hooks/useAdminQuery.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, SkeletonRows, Surface, TextAreaInput } from "../../components/ui/Core.jsx";
 import "./access-requests.css";
 
@@ -16,6 +16,10 @@ const PAYERS = { self: "Le contact", team: "L’équipe", association: "L’asso
 const INTENTS = { yes: "Oui, au prix présenté", maybe: "À discuter", discover: "Découvrir le service" };
 const PAGE_SIZE = 10;
 const count = (value) => Number.isFinite(Number(value)) ? new Intl.NumberFormat("fr-FR").format(Number(value)) : "—";
+
+function validateRequests(data) {
+  if (!data?.pagination || !Array.isArray(data.requests)) throw new Error("Les demandes d’accès sont indisponibles. Réessaie.");
+}
 
 function date(value) {
   if (!value || !Number.isFinite(Date.parse(value))) return "Date non disponible";
@@ -74,48 +78,41 @@ function RequestCard({ request, busy, onSave, onDelete }) {
   </article>;
 }
 
-export default function AccessRequestsPage({ navigate }) {
-  const [data, setData] = useState(null);
+export default function AccessRequestsPage({ navigate, embedded = false }) {
+  const mutateAdmin = useAdminMutation();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [announcement, setAnnouncement] = useState("");
   const [busy, setBusy] = useState("");
-  const requestSequence = useRef(0);
   const mutationPending = useRef(false);
-  const load = useCallback(async () => {
-    const sequence = ++requestSequence.current;
-    setLoading(true); setError("");
-    try {
-      const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
-      if (statusFilter) query.set("status", statusFilter);
-      const result = await apiFetch(`admin-access-requests?${query}`);
-      if (sequence !== requestSequence.current) return;
-      if (page > Math.max(1, result.pagination.totalPages)) { setPage(Math.max(1, result.pagination.totalPages)); return; }
-      setData(result);
-    } catch (err) { if (sequence === requestSequence.current) setError(err.message || "Impossible de charger les demandes d’accès."); }
-    finally { if (sequence === requestSequence.current) setLoading(false); }
-  }, [page, statusFilter]);
-  useEffect(() => { setData(null); load(); return () => { requestSequence.current += 1; }; }, [load]);
+  const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
+  if (statusFilter) query.set("status", statusFilter);
+  const { data, loading, error, refresh, invalidate } = useAdminQuery(`admin-access-requests?${query}`, { validate: validateRequests });
+  const load = () => { void refresh().catch(() => {}); };
+  useEffect(() => {
+    if (data && page > Math.max(1, data.pagination.totalPages)) setPage(Math.max(1, data.pagination.totalPages));
+  }, [data, page]);
 
   const mutate = async (id, method, body) => {
     if (mutationPending.current) return;
     mutationPending.current = true;
     setBusy(id); setAnnouncement("");
     try {
-      const result = await apiFetch("admin-access-requests", { method, body: JSON.stringify(body) });
+      const result = await mutateAdmin("admin-access-requests", { method, body: JSON.stringify(body) });
       if (result?.ok !== true) throw new Error("Le serveur n’a pas confirmé la modification. Réessaie.");
       setAnnouncement(method === "DELETE" ? "Demande supprimée." : "Suivi enregistré.");
-      await load();
+      invalidate("admin-access-requests");
+      invalidate("admin-dashboard");
+      // A confirmed write succeeded even when the subsequent read fails; the query displays that read error.
+      await refresh().catch(() => {});
     } finally { mutationPending.current = false; setBusy(""); }
   };
   const pagination = data?.pagination;
   const stats = data?.stats;
   const blocked = loading || Boolean(busy);
   return <div className="nxt5-data-dense access-requests-page">
-    <PageHeader eyebrow="Administration · Validation commerciale" title="Demandes d’accès" subtitle="Prépare le suivi des demandes dans la prévisualisation réservée à l’administrateur.">
-      <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => navigate("/admin")}>Retour administration</Button><Button type="button" variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button>
+    <PageHeader eyebrow="Ventes et accès" title="Demandes d’accès" subtitle="Retrouve les demandes reçues et mets à jour les échanges, les statuts et les notes de suivi.">
+      {!embedded && <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => navigate("/admin")}>Retour administration</Button>}<Button type="button" variant="ghost" onClick={() => navigate("/admin/tarifs")}>Voir les offres</Button>
     </PageHeader>
     <div className="access-requests-notice"><Badge tone="cyan">Prévisualisation interne</Badge><p>La collecte publique est fermée. Seul l’administrateur peut consulter les tarifs et envoyer une demande de test. Le suivi reste manuel, sans e-mail automatique ni abonnement.</p></div>
     <div className="access-requests-live" role="status" aria-live="polite">{announcement || (loading ? "Chargement des demandes…" : "")}</div>

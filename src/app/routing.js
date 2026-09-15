@@ -1,4 +1,5 @@
 import { AUTH_PATHS, AUTH_ROUTES, DRAFT_VIEW_ROUTES, NAV, PROFILE_VIEW_ROUTES, PUBLIC_ROUTES } from "./constants.jsx";
+import { adminPageFromRoute } from "./admin-navigation.js";
 
 export function normalizePath(pathname = "/") {
   if (!pathname || pathname === "/") return "/";
@@ -7,6 +8,8 @@ export function normalizePath(pathname = "/") {
 
 export function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
+  const adminPage = adminPageFromRoute({ path });
+  if (adminPage && !NAV.some(item => item.path === path)) return adminPage.id;
   if (path === "/statistiques" || path === "/rapports") return "matches";
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return "draft";
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
@@ -71,7 +74,7 @@ export function isAdminPath(pathname = window.location.pathname) {
 
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/tarifs" || path === "/admin/integrations") return true;
+  if (adminPageFromRoute({ path })) return true;
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return true;
   return NAV.some((item) => item.path === path);

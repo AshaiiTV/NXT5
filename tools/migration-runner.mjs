@@ -6,7 +6,9 @@ export async function loadMigrations() {
     ['baseline-20260906-v1', '../database/schema.sql'],
     ['audit-runtime-20260906-v1', '../database/migrations/20260906_runtime_schema.sql'],
     ['pricing-access-requests-20260908-v1', '../database/migrations/20260908_access_requests.sql'],
+    ['administration-purchases-20260914-v1', '../database/migrations/20260914_purchases.sql'],
     ['account-deletion-20260914-v1', '../database/migrations/20260914_account_deletion.sql'],
+    ['audience-20260914-v1', '../database/migrations/20260914_audience.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

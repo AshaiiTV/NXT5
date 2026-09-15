@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import AccessRequestsPage from "../pages/admin/AccessRequestsPage.jsx";
 import { Button, SelectInput, TextAreaInput } from "../components/ui/Core.jsx";
+import { AdminQueryProvider } from "../hooks/useAdminQuery.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
 const renderers = [];
@@ -11,9 +12,9 @@ afterEach(() => { renderers.splice(0).forEach((renderer) => act(() => renderer.u
 
 const request = { id: "r1", contactName: "Camille", email: "camille@example.test", teamName: "Équipe test", role: "coach", planCode: "team_monthly", payer: "association", purchaseIntent: "yes", message: "Nous préparons la saison.", status: "new", adminNote: "", createdAt: "2026-09-08T10:00:00Z", updatedAt: "2026-09-08T10:00:00Z" };
 const result = (overrides = {}) => ({ requests: [request], pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 }, stats: { total: 1, contacted: 0, confirmed: 0, declined: 0, presentedTeams: 0, confirmedTeams: 0 }, ...overrides });
-async function render() {
+async function render(element = <AccessRequestsPage navigate={vi.fn()} />) {
   let renderer;
-  await act(async () => { renderer = TestRenderer.create(<AccessRequestsPage navigate={vi.fn()} />); });
+  await act(async () => { renderer = TestRenderer.create(element); });
   renderers.push(renderer);
   return renderer;
 }
@@ -24,7 +25,7 @@ describe("access request administration", () => {
   it("uses server team metrics and never upgrades a declared purchase intention", async () => {
     apiFetch.mockResolvedValueOnce(result({ stats: { total: 5, contacted: 2, confirmed: 1, declined: 0, presentedTeams: 2, confirmedTeams: 0 } }));
     const renderer = await render();
-    expect(apiFetch).toHaveBeenCalledWith("admin-access-requests?page=1&pageSize=10");
+    expect(apiFetch).toHaveBeenCalledWith("admin-access-requests?page=1&pageSize=10", expect.objectContaining({ signal: expect.any(AbortSignal) }));
     const metrics = renderer.root.findAllByProps({ className: "access-requests-metric" });
     expect(metrics[1].findByType("strong").children[0]).toBe("2");
     expect(metrics[2].findByType("strong").children[0]).toBe("0");
@@ -55,14 +56,14 @@ describe("access request administration", () => {
     const renderer = await render();
     apiFetch.mockResolvedValueOnce(result({ pagination: { page: 2, pageSize: 10, total: 11, totalPages: 2 } }));
     await act(async () => button(renderer, "Page suivante des demandes").props.onClick());
-    expect(apiFetch).toHaveBeenLastCalledWith("admin-access-requests?page=2&pageSize=10");
+    expect(apiFetch).toHaveBeenLastCalledWith("admin-access-requests?page=2&pageSize=10", expect.any(Object));
     act(() => button(renderer, "Supprimer la demande de Équipe test").props.onClick());
     expect(apiFetch.mock.calls.filter((call) => call[1]?.method === "DELETE")).toHaveLength(0);
     expect(text(renderer)).toContain("Supprimer définitivement la demande de");
     apiFetch.mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce(result({ requests: [], pagination: { page: 2, pageSize: 10, total: 10, totalPages: 1 } })).mockResolvedValueOnce(result({ pagination: { page: 1, pageSize: 10, total: 10, totalPages: 1 } }));
     await act(async () => button(renderer, "Confirmer la suppression").props.onClick());
     expect(apiFetch).toHaveBeenCalledWith("admin-access-requests", { method: "DELETE", body: JSON.stringify({ id: "r1" }) });
-    expect(apiFetch).toHaveBeenLastCalledWith("admin-access-requests?page=1&pageSize=10");
+    expect(apiFetch).toHaveBeenLastCalledWith("admin-access-requests?page=1&pageSize=10", expect.any(Object));
     expect(text(renderer)).toContain("Demande supprimée.");
   });
 
@@ -93,7 +94,27 @@ describe("access request administration", () => {
     const renderer = await render();
     apiFetch.mockResolvedValueOnce(result({ requests: [] }));
     await act(async () => renderer.root.findByType(SelectInput).props.onChange("confirmed"));
-    expect(apiFetch).toHaveBeenLastCalledWith("admin-access-requests?page=1&pageSize=10&status=confirmed");
+    expect(apiFetch).toHaveBeenLastCalledWith("admin-access-requests?page=1&pageSize=10&status=confirmed", expect.any(Object));
     expect(text(renderer)).toContain("Aucune demande avec ce statut");
+  });
+
+  it("invalidates cached status filters after a confirmed write", async () => {
+    apiFetch.mockResolvedValueOnce(result());
+    const renderer = await render(<AdminQueryProvider><AccessRequestsPage navigate={vi.fn()} /></AdminQueryProvider>);
+    const filter = () => renderer.root.findAllByType(SelectInput).find(item => item.props.label === "Afficher les demandes");
+    apiFetch.mockResolvedValueOnce(result({ requests: [] }));
+    await act(async () => filter().props.onChange("confirmed"));
+    await act(async () => filter().props.onChange(""));
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+    act(() => button(renderer, "Suivre cette demande").props.onClick());
+    act(() => renderer.root.findAllByType(SelectInput).find(item => item.props.label === "Statut du suivi").props.onChange("confirmed"));
+    const updated = result({ requests: [{ ...request, status: "confirmed", updatedAt: "2026-09-08T11:00:00Z" }] });
+    apiFetch.mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce(updated);
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    apiFetch.mockResolvedValueOnce(updated);
+    await act(async () => filter().props.onChange("confirmed"));
+    expect(apiFetch).toHaveBeenCalledTimes(5);
+    expect(apiFetch).toHaveBeenLastCalledWith("admin-access-requests?page=1&pageSize=10&status=confirmed", expect.any(Object));
+    expect(text(renderer)).toContain("Équipe test");
   });
 });

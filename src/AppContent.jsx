@@ -1,6 +1,7 @@
 import React, { startTransition, useCallback, useEffect, useState, Suspense, useMemo, lazy } from "react";
 import { apiFetch, API_BASE } from "./api/client.js";
 import { NAV } from "./app/constants.jsx";
+import { adminPageFromRoute } from "./app/admin-navigation.js";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
@@ -26,6 +27,7 @@ const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.
 
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
 const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
+const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
 const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
 const SocialPage = lazy(() => import("./pages/public/SocialPage.jsx"));
 const IntegrationsPage = lazy(() => import("./pages/admin/IntegrationsPage.jsx"));
@@ -432,6 +434,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (adminPageFromRoute(route)) return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement de l’administration…</div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
   if (route.path === "/admin/integrations") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des intégrations…</div>}><IntegrationsPage navigate={navigate} /></Suspense>;
   if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
   if (route.path === "/tarifs") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des tarifs…</div>}><PricingPage navigate={navigate} user={user} /></Suspense>;
@@ -480,7 +483,16 @@ export default function NXT5() {
     setAccountDeletionReceipt(receipt);
     navigate("/connexion", { replace: true });
   }, [navigate]);
-  const handleLogout = useCallback(() => setUser(null), []);
+  const handleLogout = useCallback(async () => {
+    try { await apiFetch("auth-logout", { method: "POST" }); }
+    catch {
+      pushToast({ type: "red", title: "Déconnexion impossible", text: "La session n’a pas pu être fermée. Réessaie." });
+      return;
+    }
+    setUser(null);
+    navigate("/connexion", { replace: true });
+    pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." });
+  }, [navigate, pushToast]);
 
   useEffect(() => {
     configurePerformanceMode();
@@ -543,8 +555,9 @@ export default function NXT5() {
       "/reseaux": "Réseaux — NXT5",
       "/admin/integrations": "Intégrations — NXT5",
     };
-    document.title = publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
-  }, [route.path]);
+    const adminPage = adminPageFromRoute(route);
+    document.title = adminPage ? `${adminPage.label} · Administration — NXT5` : publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
+  }, [route.path, route.search]);
 
   useEffect(() => {
     if (!checkingSession && user && (route.path === "/" || authModeFromPath(route.path))) {
