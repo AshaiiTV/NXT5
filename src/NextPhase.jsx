@@ -381,15 +381,26 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
   </Panel>;
 }
 
-export function HomeActionSummary({ matches = [], alerts = [] }) {
-  const latest = [...matches].sort((a, b) => new Date(b.imported_at || b.created_at || 0) - new Date(a.imported_at || a.created_at || 0))[0];
+export function HomeActionSummary({ matches = [] }) {
   const review = matches.find((match) => String(match.review_status || "todo") !== "done" && match.result === "Défaite") || matches.find((match) => String(match.review_status || "todo") !== "done");
+  const needsImports = matches.length < 3;
   const items = [
-    { label: "Dernier import", value: latest ? matchName(latest) : "Aucune game importée", detail: latest ? `${latest.result || "À analyser"} · ${formatDate(latest.imported_at || latest.created_at)}` : "Commence par intégrer une game.", icon: Clock3, path: latest ? `/statistiques?match=${encodeURIComponent(latest.id)}` : "/integration" },
-    { label: "Priorité du bloc", value: alerts[0]?.title || "Choisir un axe", detail: alerts[0]?.action || "Une seule priorité avant le prochain bloc.", icon: Target, path: "/tendances" },
-    { label: "Review à ouvrir", value: review ? matchName(review) : "File à jour", detail: review ? reviewReason(review) : "Aucune game en attente.", icon: FileText, path: review ? `/statistiques?match=${encodeURIComponent(review.id)}` : "/rapports" },
+    {
+      title: needsImports ? matches.length ? "Importer les prochaines games" : "Importer une game" : "Choisir un axe de travail",
+      detail: needsImports ? "Ajoute les games de ta session avant de tirer des conclusions." : "Dans Tendances, retiens un point à travailler à la prochaine session.",
+      path: needsImports ? "/integration" : "/tendances",
+    },
+    ...(matches.length ? [{
+      title: review ? "Revoir une game" : "Consulter les reviews",
+      detail: review ? `${matchName(review)} · Repère une erreur et note une action à tester.` : "Toutes les games sont revues. Retrouve les actions déjà notées.",
+      path: review ? `/statistiques?match=${encodeURIComponent(review.id)}` : "/rapports",
+    }] : []),
   ];
-  return <div className="mt-4 grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10">{items.map((item) => <button key={item.label} type="button" onClick={() => openRoute(item.path)} className="group relative grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-3 bg-[#080d1a] p-4 pr-11 text-left transition hover:bg-cyan-300/[0.06]"><span className="grid h-9 w-9 place-items-center rounded-lg bg-white/[0.05] text-cyan-100"><item.icon className="h-4 w-4" /></span><span className="min-w-0"><span className="block text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-500">{item.label}</span><span className="mt-1 block line-clamp-2 break-words text-sm font-black leading-5 text-white">{item.value}</span><span className="mt-1 block line-clamp-2 text-xs font-semibold leading-5 text-slate-400">{item.detail}</span></span><ArrowRight className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-100" /></button>)}</div>;
+  return <div className="nxt5-weekly-actions">{items.map((item, index) => <button key={item.title} type="button" onClick={() => openRoute(item.path)} className="nxt5-weekly-action">
+    <span className="nxt5-weekly-step" aria-hidden="true">{index + 1}.</span>
+    <span className="nxt5-weekly-action-copy"><span className="nxt5-weekly-action-title">{item.title}</span><span className="nxt5-weekly-action-detail">{item.detail}</span></span>
+    <ArrowRight aria-hidden="true" />
+  </button>)}</div>;
 }
 
 export const workflowTestables = { blockMatches, blockSnapshot, blockOverlapCount, blockDateRange, blockDelta, evaluateGoal, hasTimeline, reviewReason };

@@ -1,6 +1,6 @@
 # NXT5 - Charte graphique et consignes pour l’IA
 
-Version 1.8 · 14 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement et de la lecture d’une game. Checkout actualisé sur `2aac365`.
+Version 1.9 · 15 septembre 2026 · Base d’audit : commit `9aeb1c0`, complétée par les évolutions de la zone de téléchargement, du bloc Objectifs, du chargement, des games importées, du favicon de chargement, de la lecture d’une game et de l’accueil Équipes. Checkout actualisé sur `2aac365`.
 
 Ce document est la référence visuelle du **site web NXT5** pour toute création ou modification d’interface. Il décrit les styles existants et fixe des règles de continuité. Les valeurs signalées comme « objectifs » sont des critères pour les prochains travaux, pas une certification de l’existant. Le PDF est une synthèse visuelle ; ce Markdown est la version complète à lire par l’IA.
 
@@ -176,6 +176,17 @@ Cette règle concerne la zone de téléchargement du site ; elle ne modifie pas 
 - Différencier un historique vide d’une recherche sans résultat et proposer une action utile pour élargir le périmètre. Annoncer les changements de résultats poliment, sans mouvement décoratif supplémentaire.
 
 Le composant `ImportedGames` et sa feuille `imported-games.css` définissent cette composition ; `src/utils/imported-games.js` porte les règles de recherche, de filtre et de tri. Réutiliser les portraits de champions et les contrôles partagés.
+
+### Actions de la semaine sur Équipes
+
+Évolution autorisée le 15 septembre 2026 : le panneau « À faire cette semaine » reste compact pour laisser le roster accessible immédiatement après. Un titre de 18 px, une phrase courte et les games importées avec leur taux de victoire remplacent les grands badges et les compteurs isolés.
+
+- Afficher au maximum deux actions numérotées : choisir un axe de travail dans Tendances, puis ouvrir une game et noter une action à tester. Avec moins de trois games, proposer d’abord d’importer les prochaines ; sans game, garder seulement l’import. Si les reviews sont terminées, proposer de les consulter.
+- Les actions forment deux colonnes dès 680 px de largeur disponible, sinon deux lignes. Utiliser des séparateurs légers, des titres de 14 px et des précisions de 12 px, sans sous-cartes décoratives ni hauteur fixe qui couperait les textes.
+- « Voir les signaux et les champions » ouvre un `details` / `summary` replié par défaut. Les observations, leurs consignes de review, les champions par rôle et l’accès à la dernière game restent dans ce détail. Changer d’équipe le replie.
+- Préserver les surfaces et couleurs NXT5, un focus cyan visible et des contrôles d’au moins 44 px. Le nombre de games précise le périmètre importé ; les signaux restent des hypothèses à confirmer.
+
+`TeamCoachDashboard` dans `Teams.jsx`, `HomeActionSummary` dans `src/NextPhase.jsx` et `src/pages/workspace/team-weekly-decisions.css` définissent cette composition.
 
 ### Lecture d’une game
 

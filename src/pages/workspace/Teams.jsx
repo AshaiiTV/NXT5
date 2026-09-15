@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowRight, ChevronDown, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
@@ -9,6 +9,7 @@ import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, sortPlayersByRole, teamMatchRows, buildStaffAlerts, normalizeProfileRole, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Teams.css";
+import "./team-weekly-decisions.css";
 
 const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
 const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
@@ -504,36 +505,44 @@ function TeamCoachDashboard({ team, players = [], matches = [], championPool = [
   const winrate = Math.round((wins / Math.max(1, teamMatches.length)) * 100);
   const alerts = buildStaffAlerts(teamMatches, teamPlayers);
   const rows = teamMatchRows(teamMatches, "ALLY");
+  const latestMatch = [...teamMatches].sort((a, b) => new Date(b.imported_at || b.created_at || 0) - new Date(a.imported_at || a.created_at || 0))[0];
   const poolByRole = ROSTER_ROLE_ORDER.map((role) => {
     const manual = championPool.filter((row) => row.team_id === team?.id && normalizeProfileRole(row.role) === role);
     const imported = rows.filter((row) => row.role === role);
     const picks = Array.from([...manual.map((row) => row.champion), ...imported.map((row) => row.champion)].reduce((map, champion) => map.set(champion, (map.get(champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
     return { role, picks };
   });
-  return <Surface glow className="mb-5 overflow-hidden p-0">
-    <div className="grid gap-0 2xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
-      <div className="min-w-0 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Résumé équipe</Badge><Badge tone={teamMatches.length >= 3 ? "green" : "slate"}>{teamMatches.length} games</Badge></div>
-        <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
-        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Priorité de l’équipe, joueur à revoir, pick à garder et game associée.</p>
-        <HomeActionSummary matches={teamMatches} alerts={alerts} />
+  return <Surface className="nxt5-weekly-summary">
+    <header className="nxt5-weekly-header">
+      <div>
+        <h3>À faire cette semaine</h3>
+        <p className="nxt5-weekly-intro">{teamMatches.length ? "Un axe de travail, puis une action à tester après la review." : "Importe une game pour préparer la première review de l’équipe."}</p>
       </div>
-      <aside className="border-t border-white/10 bg-black/24 p-4 sm:p-5 2xl:border-l 2xl:border-t-0">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bloc actif</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length ? `${winrate}% WR` : "--"}</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/tendances")}>Tendances</Button></div>
-        <div className="mt-4 grid gap-2">
-          {alerts.length ? alerts.slice(0, 3).map((alert) => <div key={alert.title} className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-            <div className="flex items-center gap-2"><span className={cx("grid h-7 w-7 place-items-center rounded-lg", tone(alert.toneName))}><alert.icon className="h-3.5 w-3.5" /></span><p className="text-sm font-black text-white">{alert.title}</p></div>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{alert.text}</p>
-          </div>) : <p className="rounded-xl border border-dashed border-white/10 bg-black/20 p-3 text-sm font-semibold text-slate-300">Importe quelques games pour générer les alertes staff.</p>}
-        </div>
-      </aside>
-    </div>
-    <div className="border-t border-white/10 p-4">
-      <div className="grid gap-2 lg:grid-cols-5">{poolByRole.map((entry) => <div key={entry.role} className="min-w-0 rounded-xl bg-white/[0.025] p-3">
-        <div className="flex items-center gap-2"><RoleIcon role={entry.role} className="h-4 w-4 text-cyan-100" /><p className="text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(entry.role)}</p></div>
-        <p className="mt-2 truncate text-xs font-semibold text-slate-300">{entry.picks.length ? entry.picks.map(([champion]) => championDisplayName(champion)).join(" · ") : "Pool à remplir"}</p>
-      </div>)}</div>
-    </div>
+      <p className="nxt5-weekly-meta">{teamMatches.length ? `${teamMatches.length} game${teamMatches.length > 1 ? "s" : ""} importée${teamMatches.length > 1 ? "s" : ""} · ${winrate}% de victoires` : "Aucune game importée"}</p>
+    </header>
+    <HomeActionSummary matches={teamMatches} />
+    <details key={team?.id} className="nxt5-weekly-details">
+      <summary>Voir les signaux et les champions<ChevronDown aria-hidden="true" /></summary>
+      <div className="nxt5-weekly-context">
+        <section>
+          <h4>Signaux à confirmer en review</h4>
+          {alerts.length ? <ul className="nxt5-weekly-alerts">{alerts.slice(0, 3).map((alert) => <li key={alert.title}>
+            <p className="nxt5-weekly-signal-title"><alert.icon aria-hidden="true" />{alert.title}</p>
+            <p>{alert.text}</p>
+            <p className="nxt5-weekly-signal-action">{alert.action}</p>
+          </li>)}</ul> : <p className="nxt5-weekly-empty">Aucun signal à afficher sur les games importées.</p>}
+          {latestMatch && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/statistiques?match=${encodeURIComponent(latestMatch.id)}`)}>Voir la dernière game</Button>}
+        </section>
+        <section>
+          <h4>Champions par rôle</h4>
+          <ul className="nxt5-weekly-pool">{poolByRole.map((entry) => <li key={entry.role}>
+            <RoleIcon role={entry.role} className="h-4 w-4" />
+            <span className="nxt5-weekly-role">{roleLabel(entry.role)}</span>
+            <span>{entry.picks.length ? entry.picks.map(([champion]) => championDisplayName(champion)).join(" · ") : "Aucun champion renseigné"}</span>
+          </li>)}</ul>
+        </section>
+      </div>
+    </details>
   </Surface>;
 }
 

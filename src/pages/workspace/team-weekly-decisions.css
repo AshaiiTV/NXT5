@@ -1,0 +1,235 @@
+.nxt5-weekly-summary {
+  container-type: inline-size;
+}
+
+.nxt5-weekly-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 20px;
+}
+
+.nxt5-weekly-header h3 {
+  margin: 0;
+  color: var(--nxt5-text);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.nxt5-weekly-intro {
+  margin-top: 4px;
+  color: #edf5ff;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.nxt5-weekly-meta {
+  color: #dbe8f8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.nxt5-weekly-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 12px;
+  border-block: 1px solid var(--nxt5-border);
+}
+
+.nxt5-weekly-action {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 16px;
+  align-items: start;
+  gap: 10px;
+  min-height: 76px;
+  padding: 12px 4px;
+  border-radius: var(--nxt5-radius-control);
+  text-align: left;
+}
+
+.nxt5-weekly-action + .nxt5-weekly-action {
+  border-top: 1px solid var(--nxt5-border);
+}
+
+.nxt5-weekly-action:hover {
+  background: rgba(103, 232, 249, 0.045);
+}
+
+.nxt5-weekly-step,
+.nxt5-weekly-action > svg {
+  color: var(--nxt5-accent);
+}
+
+.nxt5-weekly-step {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 21px;
+}
+
+.nxt5-weekly-action > svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+}
+
+.nxt5-weekly-action-copy,
+.nxt5-weekly-action-title,
+.nxt5-weekly-action-detail {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nxt5-weekly-action-title {
+  color: var(--nxt5-text);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.nxt5-weekly-action-detail {
+  margin-top: 4px;
+  color: #dbe8f8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.nxt5-weekly-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 4px;
+  border-radius: var(--nxt5-radius-control);
+  color: #edf5ff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.nxt5-weekly-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.nxt5-weekly-details > summary > svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--nxt5-accent);
+}
+
+.nxt5-weekly-details[open] > summary > svg {
+  transform: rotate(180deg);
+}
+
+.nxt5-weekly-details > summary:hover {
+  color: var(--nxt5-accent);
+}
+
+.nxt5-weekly-action:focus-visible,
+.nxt5-weekly-details > summary:focus-visible {
+  outline: 2px solid var(--nxt5-accent);
+  outline-offset: -2px;
+}
+
+.nxt5-weekly-context {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding: 8px 4px 4px;
+}
+
+.nxt5-weekly-context h4 {
+  margin: 0 0 8px;
+  color: var(--nxt5-text);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.nxt5-weekly-alerts,
+.nxt5-weekly-pool {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nxt5-weekly-alerts > li {
+  padding-block: 10px;
+  border-top: 1px solid var(--nxt5-border);
+  color: #dbe8f8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.nxt5-weekly-alerts p + p {
+  margin-top: 4px;
+}
+
+.nxt5-weekly-signal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nxt5-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.nxt5-weekly-signal-title > svg {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--nxt5-accent);
+}
+
+.nxt5-weekly-signal-action {
+  color: #edf5ff;
+}
+
+.nxt5-weekly-pool > li {
+  display: grid;
+  grid-template-columns: 16px 65px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+  padding-block: 10px;
+  border-top: 1px solid var(--nxt5-border);
+  color: #dbe8f8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.nxt5-weekly-role {
+  color: var(--nxt5-text);
+  font-weight: 700;
+}
+
+.nxt5-weekly-empty {
+  color: #dbe8f8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@container (min-width: 680px) {
+  .nxt5-weekly-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 20px;
+  }
+
+  .nxt5-weekly-action:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .nxt5-weekly-action + .nxt5-weekly-action {
+    padding-left: 20px;
+    border-top: 0;
+    border-left: 1px solid var(--nxt5-border);
+  }
+
+  .nxt5-weekly-context {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+}
