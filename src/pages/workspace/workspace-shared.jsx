@@ -305,7 +305,7 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
       canvases.push(await renderChampionTierListPng({ player, rows, rowsByTier, category, matches, pageIndex }));
     }
     await pngDownloadPages(canvases, `nxt5-pool-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`);
-    pushToast?.({ type: "cyan", title: "Pool exporté", text: `${entries.length} champions · ${pageCount} page${pageCount > 1 ? "s" : ""}.` });
+    pushToast?.({ type: "cyan", title: "Pool exporté", text: `${entries.length} champions · une image PNG.` });
   } catch (err) {
     pushToast?.({ type: "red", title: "Export impossible", text: err?.message || "Le navigateur n'a pas pu générer le PNG." });
     return false;

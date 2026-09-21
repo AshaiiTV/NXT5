@@ -277,62 +277,85 @@ export async function pngDownload(canvas, filename) {
   downloadBlob(await pngBlob(canvas), filename);
 }
 
-// PNGs are already compressed. A stored ZIP keeps all pages in one browser
-// download, avoiding the permission prompt for multiple automatic downloads.
+const pngCrcTable = Uint32Array.from({ length: 256 }, (_, value) => {
+  for (let bit = 0; bit < 8; bit++) value = (value >>> 1) ^ ((value & 1) ? 0xedb88320 : 0);
+  return value >>> 0;
+});
+
+function pngChunk(type, data = new Uint8Array()) {
+  const chunk = new Uint8Array(data.length + 12);
+  const view = new DataView(chunk.buffer);
+  view.setUint32(0, data.length);
+  for (let index = 0; index < 4; index++) chunk[index + 4] = type.charCodeAt(index);
+  chunk.set(data, 8);
+  let crc = 0xffffffff;
+  for (let index = 4; index < chunk.length - 4; index++) crc = (crc >>> 8) ^ pngCrcTable[(crc ^ chunk[index]) & 255];
+  view.setUint32(chunk.length - 4, (crc ^ 0xffffffff) >>> 0);
+  return chunk;
+}
+
+// Stack every section at its original resolution in ONE PNG. Encode small
+// strips into one zlib stream instead of allocating a report-sized canvas:
+// long histories can exceed the browser's canvas height or pixel limits.
 export async function pngDownloadPages(canvases, filename) {
   if (!canvases.length) throw new Error("Aucune page à exporter.");
-  if (canvases.length === 1) return pngDownload(canvases[0], filename);
-  const entries = [];
-  const directory = [];
-  const encoder = new TextEncoder();
-  let offset = 0;
-  let directorySize = 0;
-  const base = filename.replace(/\.png$/i, "");
-  for (let index = 0; index < canvases.length; index++) {
-    const name = encoder.encode(`${base}-${String(index + 1).padStart(2, "0")}.png`);
-    const bytes = new Uint8Array(await (await pngBlob(canvases[index])).arrayBuffer());
-    let crc = 0xffffffff;
-    for (const byte of bytes) {
-      crc ^= byte;
-      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  let width = 0;
+  let height = 0;
+  for (const canvas of canvases) {
+    if (!Number.isInteger(canvas.width) || !Number.isInteger(canvas.height) || canvas.width <= 0 || canvas.height <= 0) {
+      throw new Error("Les dimensions de l’export PNG sont invalides.");
     }
-    crc = (crc ^ 0xffffffff) >>> 0;
-    const local = new Uint8Array(30 + name.length);
-    const localView = new DataView(local.buffer);
-    localView.setUint32(0, 0x04034b50, true);
-    localView.setUint16(4, 20, true);
-    localView.setUint16(6, 0x0800, true);
-    localView.setUint16(12, 33, true); // 1980-01-01: valid DOS date.
-    localView.setUint32(14, crc, true);
-    localView.setUint32(18, bytes.length, true);
-    localView.setUint32(22, bytes.length, true);
-    localView.setUint16(26, name.length, true);
-    local.set(name, 30);
-    entries.push(local, bytes);
-
-    const central = new Uint8Array(46 + name.length);
-    const centralView = new DataView(central.buffer);
-    centralView.setUint32(0, 0x02014b50, true);
-    centralView.setUint16(4, 20, true);
-    centralView.setUint16(6, 20, true);
-    centralView.setUint16(8, 0x0800, true);
-    centralView.setUint16(14, 33, true);
-    centralView.setUint32(16, crc, true);
-    centralView.setUint32(20, bytes.length, true);
-    centralView.setUint32(24, bytes.length, true);
-    centralView.setUint16(28, name.length, true);
-    centralView.setUint32(42, offset, true);
-    central.set(name, 46);
-    directory.push(central);
-    directorySize += central.length;
-    offset += local.length + bytes.length;
+    width = Math.max(width, canvas.width);
+    height += canvas.height;
   }
-  const end = new Uint8Array(22);
-  const endView = new DataView(end.buffer);
-  endView.setUint32(0, 0x06054b50, true);
-  endView.setUint16(8, canvases.length, true);
-  endView.setUint16(10, canvases.length, true);
-  endView.setUint32(12, directorySize, true);
-  endView.setUint32(16, offset, true);
-  downloadBlob(new Blob([...entries, ...directory, end], { type: "application/zip" }), `${base}.zip`);
+  if (width > 0x7fffffff || height > 0x7fffffff) throw new Error("L’export PNG est trop grand. Réduis la sélection.");
+  if (canvases.length === 1) return pngDownload(canvases[0], filename);
+  if (typeof CompressionStream === "undefined") throw new Error("Cet export PNG nécessite un navigateur à jour.");
+
+  const header = new Uint8Array(13);
+  const headerView = new DataView(header.buffer);
+  headerView.setUint32(0, width);
+  headerView.setUint32(4, height);
+  header[8] = 8; // Eight bits per RGBA channel, no interlacing.
+  header[9] = 6;
+  const chunks = [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), pngChunk("IHDR", header)];
+  const stripHeight = 128;
+  const { canvas: strip, ctx } = pngCreateCanvas(width, stripHeight);
+  let pageIndex = 0;
+  let sourceY = 0;
+  const pixels = new ReadableStream({
+    pull(controller) {
+      if (pageIndex === canvases.length) { controller.close(); return; }
+      const source = canvases[pageIndex];
+      const rows = Math.min(stripHeight, source.height - sourceY);
+      ctx.fillStyle = PNG_THEME.bg;
+      ctx.fillRect(0, 0, width, rows);
+      ctx.drawImage(source, 0, sourceY, source.width, rows, 0, 0, source.width, rows);
+      const rgba = ctx.getImageData(0, 0, width, rows).data;
+      const stride = width * 4;
+      const scanlines = new Uint8Array((stride + 1) * rows);
+      for (let row = 0; row < rows; row++) {
+        // Each row starts with PNG filter 0; preserve every original pixel.
+        scanlines.set(rgba.subarray(row * stride, (row + 1) * stride), row * (stride + 1) + 1);
+      }
+      controller.enqueue(scanlines);
+      sourceY += rows;
+      if (sourceY === source.height) { pageIndex++; sourceY = 0; }
+    },
+  });
+  const reader = pixels.pipeThrough(new CompressionStream("deflate")).getReader();
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(pngChunk("IDAT", value));
+    }
+    chunks.push(pngChunk("IEND"));
+    downloadBlob(new Blob(chunks, { type: "image/png" }), filename);
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+    strip.width = 0;
+    strip.height = 0;
+  }
 }
