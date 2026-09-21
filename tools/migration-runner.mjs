@@ -12,6 +12,7 @@ export async function loadMigrations() {
     ['account-subscriptions-catalog-20260909-v1', '../database/migrations/20260909_account_subscriptions_catalog.sql'],
     ['administration-purchases-20260914-v1', '../database/migrations/20260914_purchases.sql'],
     ['audience-20260914-v1', '../database/migrations/20260914_audience.sql'],
+    ['player-matchups-20260915-v1', '../database/migrations/20260915_player_matchups.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

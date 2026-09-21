@@ -14,6 +14,8 @@ import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, p
 import { ProfileNavigation, PROFILE_SECTIONS } from "./ProfileNavigation.jsx";
 import "./profile-page.css";
 import "./profile-champions.css";
+import { ChampionSectionTabs, MatchupNotebook } from "../../components/profile/MatchupNotebook.jsx";
+import { ParticipantRunes } from "../../components/profile/ParticipantRunes.jsx";
 
 const PROFILE_PNG_CHAMPIONS_PER_PAGE = 14;
 
@@ -481,7 +483,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         </> : <Surface><EmptyState icon={Activity} title="Aucune game dans cette sélection" text={selectedCategoryId ? "Change le contexte pour retrouver les résultats de ce joueur." : "Les résultats apparaîtront dès qu’une game importée sera reliée à ce joueur."} /><Button type="button" variant="ghost" onClick={() => selectedCategoryId ? setSelectedCategoryId("") : openAppPath("/games?import=1")}>{selectedCategoryId ? "Voir tous les contextes" : "Importer des games"}</Button></Surface>}
         <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />
       </>}
-      {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} selectedCategoryId={selectedCategoryId} navigate={navigate} bootstrapRevision={data.bootstrapRevision} />}
+      {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} selectedCategoryId={selectedCategoryId} teamId={selectedTeamId} userId={user?.id} navigate={navigate} bootstrapRevision={data.bootstrapRevision} />}
       {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} exportRows={rows} category={activeProfileCategory?.name || "Toutes les catégories"} />}
       {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
       {profileView === "coaching" && <>
@@ -525,7 +527,7 @@ function CoachReferenceMetric({ item }) {
   </article>;
 }
 
-function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, selectedCategoryId, navigate, bootstrapRevision }) {
+function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, selectedCategoryId, teamId, userId, navigate, bootstrapRevision }) {
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState("volume");
   const [openedChampion, setOpenedChampion] = useState("");
@@ -567,7 +569,7 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
   return <div className="profile-champions" ref={rootRef}>
     {activeStat ? <>
       <Button type="button" variant="ghost" onClick={backToList} className="profile-champions-back"><ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />Retour aux champions</Button>
-      <Surface><ChampionProfileDetail key={activeStat.champion} stat={activeStat} rows={activeStat.rows || []} navigate={navigate} bootstrapRevision={bootstrapRevision} /></Surface>
+      <Surface><ChampionProfileDetail key={activeStat.champion} stat={activeStat} rows={activeStat.rows || []} selectedPlayer={selectedPlayer} teamId={teamId} userId={userId} navigate={navigate} bootstrapRevision={bootstrapRevision} /></Surface>
     </> : <Surface>
       <header className="profile-champions-heading">
         <div><h3 tabIndex={-1}>Champions joués</h3><p>{championStats.length} champion{championStats.length > 1 ? "s" : ""} sur {totalGames} game{totalGames > 1 ? "s" : ""} dans le périmètre sélectionné.</p></div>
@@ -688,7 +690,9 @@ function ProfilePoolChampionRow({ row, stat }) {
   return <div className="profile-pool-champion"><div className="profile-champion-name"><ChampionPortrait row={row} champion={row.champion} alt="" className="h-11 w-11 rounded-lg object-cover" /><strong>{championDisplayName(row.champion)}</strong></div><div className="profile-pool-result">{stat ? <><span><b>{stat.games}</b> games analysées</span><span><b>{stat.winrate === null ? "—" : `${Math.round(stat.winrate)} %`}</b> de victoires</span><span><b>{stat.kda}</b> KDA</span></> : <span>Aucune game analysée dans ce contexte</span>}</div></div>;
 }
 
-function ChampionProfileDetail({ stat, rows = [], navigate, bootstrapRevision }) {
+function ChampionProfileDetail({ stat, rows = [], selectedPlayer, teamId, userId, navigate, bootstrapRevision }) {
+  const [championView, setChampionView] = useState("statistics");
+  const tabId = React.useId();
   const sortedRows = rows.slice().sort((a, b) => profileHistorySortKey(b) - profileHistorySortKey(a));
   const results = profileChampionResults(rows);
   const kda = profileChampionKda(rows);
@@ -714,6 +718,9 @@ function ChampionProfileDetail({ stat, rows = [], navigate, bootstrapRevision })
       <ChampionPortrait champion={stat.champion} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
       <div><h3 tabIndex={-1}>{championDisplayName(stat.champion)}</h3><p>{rows.length} game{rows.length > 1 ? "s" : ""} · {results.wins} victoire{results.wins > 1 ? "s" : ""} · {results.losses} défaite{results.losses > 1 ? "s" : ""}{results.count < rows.length ? ` · ${rows.length - results.count} résultat(s) inconnu(s)` : ""}</p></div>
     </header>
+    <ChampionSectionTabs active={championView} onChange={setChampionView} id={tabId} />
+    <div role="tabpanel" id={tabId + "-panel"} aria-labelledby={tabId + "-" + championView}>
+    {championView === "statistics" ? <>
     {rows.length < 5 && <p className="profile-champions-note">Peu de games : lis ces résultats comme des observations à confirmer en review.</p>}
     <div className="profile-champion-metrics">
       <ChampionVisualMetric label="Taux de victoire" value={results.rate === null ? "—" : `${profileChampionNumber(results.rate)} %`} detail={`${results.count}/${rows.length} résultats connus`} />
@@ -731,6 +738,8 @@ function ChampionProfileDetail({ stat, rows = [], navigate, bootstrapRevision })
       }) : <p>Aucun adversaire de même rôle identifié.</p>}</div>
     </details>
     <details className="profile-champions-help"><summary>Comment lire les statistiques de ce champion ?</summary><p>Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. La participation aux kills est la part des kills de l’équipe auxquels le joueur a participé. Les CS comptent les sbires et monstres tués. Les moyennes utilisent uniquement les games où la donnée est renseignée ; « — » signifie indisponible.</p><p>Ouvre une game ci-dessus pour comparer les deux joueurs, retrouver leur inventaire final et leurs achats. Les écarts d’or et de dégâts sont mesurés en fin de game ; les écarts de CS indiquent leur minute de mesure.</p></details>
+    </> : <MatchupNotebook champion={stat.champion} rows={sortedRows} teamId={teamId || rows[0]?.match?.team_id} playerId={selectedPlayer?.id || rows[0]?.player_id} userId={userId} bootstrapRevision={bootstrapRevision} navigate={navigate} renderGames={(games) => <ChampionLanePanel rows={games} navigate={navigate} bootstrapRevision={bootstrapRevision} />} />}
+    </div>
   </div>;
 }
 
@@ -792,6 +801,7 @@ function ParticipantCompareCard({ title, row, match, toneName = "cyan" }) {
     <h5>{title}</h5>
     <div className="profile-champion-participant-heading"><div className="profile-champion-identity">{champion && <ChampionPortrait champion={champion} row={participant} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />}<div><strong>{champion ? championDisplayName(champion) : "Champion inconnu"}</strong><p className="profile-champions-meta">{participant?.summoner_name || participant?.riot_id || "Joueur inconnu"} · {roleLabel(participant?.role)}</p></div></div>{spells.length > 0 && <div className="profile-champion-spells" aria-label="Sorts d’invocateur">{spells.map((spell, index) => <HudIcon key={`${title}-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort d’invocateur ${spell}`} fallback={spell} emptyText="?" className="h-9 w-9 rounded-lg" />)}</div>}</div>
     <div className="profile-champion-participant-stats">{stats.map(([label, value]) => <ProfileChampionMini key={label} label={label} value={value} />)}</div>
+    <ParticipantRunes row={participant} />
     <h6>Inventaire final</h6>
     {items.length ? <ul className="profile-champion-inventory">{items.map((item, index) => <li key={`${title}-item-${index}-${item.id}`}><HudIcon sources={itemIconSources(item.id)} label={item.type === "trinket" ? `Relique ${item.id}` : `Objet ${item.id}`} fallback={item.id} emptyText="?" toneName={toneName} className="h-10 w-10 shrink-0" /><span><ItemNameText itemId={item.id} />{item.type === "trinket" && <small>Relique</small>}</span></li>)}</ul> : <p className="profile-champions-meta">Inventaire final non renseigné.</p>}
     {timeline.length > 0 && <details className="profile-champion-purchases"><summary>Chronologie des achats <span>· {timeline.length} événements</span></summary><p className="profile-champions-meta">Temps écoulé depuis le début de la game.</p><ol>{timeline.map((event, index) => <li key={`${title}-buy-${index}-${event.timestamp}-${event.itemId}`}><span className="profile-champion-purchase-time">{event.time}</span><HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${itemDisplayName(event.itemId)}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-8 w-8 shrink-0" /><span><strong>{event.label}</strong><span><ItemNameText itemId={event.itemId} secondaryId={event.secondaryId} /></span></span></li>)}</ol></details>}

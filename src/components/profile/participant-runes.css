@@ -1,0 +1,42 @@
+.matchup-runes {
+  min-width: 0;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--nxt5-border, rgba(207, 250, 254, .13));
+  color: var(--nxt5-text, #f8fafc);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.matchup-runes h6 { margin: 0 0 12px; font-size: 14px; font-weight: 700; }
+.matchup-runes p { margin: 0; }
+.matchup-runes .matchup-runes-meta { font-size: 12px; color: #edf5ff; }
+.matchup-runes-styles { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0 0 12px; }
+.matchup-runes-styles > div { min-width: 0; }
+.matchup-runes-styles dt { font-size: 12px; color: #edf5ff; }
+.matchup-runes-styles dd { margin: 4px 0 0; font-weight: 600; }
+.matchup-runes-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.matchup-runes-name img { flex: 0 0 24px; width: 24px; height: 24px; object-fit: contain; }
+.matchup-runes-name > span { min-width: 0; overflow-wrap: anywhere; }
+.matchup-runes-selections { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 8px 16px; }
+.matchup-runes ul, .matchup-runes ol { list-style: none; margin: 0; padding: 0; }
+.matchup-runes-selections > li { min-width: 0; }
+.matchup-runes-shards { margin-top: 12px; }
+.matchup-runes-shards > p { font-size: 12px; color: #edf5ff; margin-bottom: 4px; }
+.matchup-runes-shards ul { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.matchup-runes-shards li { min-width: 0; }
+.matchup-runes-error { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin-top: 8px; }
+.matchup-runes-error button { min-height: 44px; }
+.matchup-runes-skills, .matchup-runes-skill-empty { margin-top: 12px !important; }
+.matchup-runes-skills > summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.matchup-runes-skills > summary > span { font-size: 12px; font-weight: 400; color: #edf5ff; }
+.matchup-runes-skills > summary:focus-visible { outline: 2px solid var(--nxt5-accent, #67e8f9); outline-offset: 2px; }
+.matchup-runes-skills ol { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
+.matchup-runes-skills li { display: flex; flex-direction: column; min-width: 36px; }
+.matchup-runes-skills li > strong { color: var(--nxt5-accent, #67e8f9); font-size: 14px; }
+.matchup-runes-skills li > span { font-size: 12px; font-variant-numeric: tabular-nums; color: #edf5ff; }
+
+@media (max-width: 640px) {
+  .matchup-runes-error { align-items: stretch; }
+  .matchup-runes-error button { width: 100%; }
+}
