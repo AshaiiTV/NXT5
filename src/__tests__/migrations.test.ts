@@ -316,4 +316,31 @@ describe('controlled database migrations', () => {
     await applyMigrations(client, [original]);
     await expect(applyMigrations(client, [{ ...original, checksum: 'b' }])).rejects.toThrow('different checksum');
   });
+
+  it('permits a shared Discord server while preserving existing connections, per-team uniqueness and replay safety', async () => {
+    const { db, client, migrations } = await fixture();
+    const key = 'discord-shared-servers-20260921-v1';
+    const throughSharedServers = migrations.slice(0, migrations.findIndex(migration => migration.key === key) + 1);
+    await applyMigrations(client, throughSharedServers.slice(0, -1));
+    const owner = '00000000-0000-4000-8000-000000000001';
+    const first = '00000000-0000-4000-8000-000000000002', second = '00000000-0000-4000-8000-000000000003';
+    const guild = '100000000000000001';
+    await db.query("insert into users(id,account_name,name,password_hash) values($1,'discord-owner','Owner','unused')", [owner]);
+    await db.query("insert into teams(id,owner_id,name,tag) values($1,$3,'Team A','AAA'),($2,$3,'Team B','BBB')", [first, second, owner]);
+    await db.query("insert into discord_connections(team_id,guild_id,status,enabled_at,config_version) values($1,$2,'active',now(),7)", [first, guild]);
+    const before = (await db.query('select * from discord_connections')).rows;
+    await expect(db.query("insert into discord_connections(team_id,guild_id,status) values($1,$2,'paused')", [second, guild])).rejects.toMatchObject({ code: '23505' });
+    expect(await applyMigrations(client, throughSharedServers)).toEqual([key]);
+    expect((await db.query('select * from discord_connections')).rows).toEqual(before);
+    await db.query("insert into discord_connections(team_id,guild_id,status) values($1,$2,'paused')", [second, guild]);
+    expect((await db.query('select team_id from discord_connections where guild_id=$1 order by team_id', [guild])).rows).toEqual([{ team_id: first }, { team_id: second }]);
+    await expect(db.query("insert into discord_connections(team_id,guild_id) values($1,'100000000000000009')", [first])).rejects.toMatchObject({ code: '23505' });
+    const connections = (await db.query('select * from discord_connections order by team_id')).rows;
+    expect(await applyMigrations(client, throughSharedServers)).toEqual([]);
+    expect((await db.query('select * from discord_connections order by team_id')).rows).toEqual(connections);
+    const index = (await db.query("select indexdef from pg_indexes where indexname='discord_connections_by_guild'")).rows as { indexdef: string }[];
+    expect(index[0].indexdef).toContain('(guild_id, team_id)');
+    expect(index[0].indexdef).not.toContain('UNIQUE');
+    expect((await db.query("select to_regclass('discord_connections_active_guild') as previous_index")).rows).toEqual([{ previous_index: null }]);
+  });
 });

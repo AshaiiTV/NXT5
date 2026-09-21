@@ -175,6 +175,62 @@ describe('Actual Discord HTTP entry points receive trusted invocation metadata',
   });
 });
 
+describe('Signed Discord team autocomplete', () => {
+  function autocomplete(overrides: Record<string, unknown> = {}) {
+    const keys = generateKeyPairSync('ed25519');
+    vi.stubEnv('DISCORD_PUBLIC_KEY', keys.publicKey.export({ type: 'spki', format: 'der' }).subarray(-32).toString('hex'));
+    const body = JSON.stringify({ type: 4, id: '100000000000000009', application_id: '100000000000000001', guild_id: '100000000000000003', token: 'interaction-test',
+      member: { permissions: '32', user: { id: '100000000000000004' } }, data: { name: 'nxt', options: [{ name: 'pause', options: [{ name: 'equipe', value: 'academy', focused: true }] }] }, ...overrides });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    return request('POST', body, { 'x-signature-timestamp': timestamp, 'x-signature-ed25519': sign(null, Buffer.from(timestamp + body), keys.privateKey).toString('hex') });
+  }
+  it('answers autocomplete directly with names and stable IDs without running a command', async () => {
+    mocks.sql.mockResolvedValue([{ team_id: TEAM, team_name: 'Academy', tag: 'ACA' }]);
+    const waitUntil = vi.fn();
+    const result = await interactions(autocomplete(), { ...netlifyContext('production'), waitUntil });
+    expect(await result.json()).toEqual({ type: 8, data: { choices: [{ name: 'Academy [ACA] · 00000001', value: TEAM }] } });
+    expect(mocks.sql).toHaveBeenCalledOnce();
+    expect(mocks.sql.mock.calls[0][0]).toContain('c.guild_id=$1');
+    expect(mocks.sql.mock.calls[0][1]).toEqual(['100000000000000003', 'academy']);
+    expect(waitUntil).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it.each([
+    { member: { permissions: '0', user: { id: '100000000000000004' } } },
+    { application_id: '100000000000000099' },
+    { data: { name: 'foreign', options: [] } },
+    { data: { name: 'nxt', options: [{ name: 'connecter', options: [{ name: 'code', value: 'x', focused: true }] }] } },
+  ])('returns no suggestions to an unauthorized or unrelated interaction: %j', async (overrides) => {
+    const result = await interactions(autocomplete(overrides), netlifyContext('production'));
+    expect(await result.json()).toEqual({ type: 8, data: { choices: [] } });
+    expect(mocks.sql).not.toHaveBeenCalled();
+    expect(mocks.schema).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it('rejects an unsigned autocomplete before requesting team information', async () => {
+    const original = autocomplete();
+    const unsigned = new Request(original.url, { method: 'POST', body: await original.text() });
+    expect((await interactions(unsigned, netlifyContext('production'))).status).toBe(401);
+    expect(mocks.sql).not.toHaveBeenCalled();
+  });
+  it('returns an empty list within two seconds if the database is slow', async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.sql.mockImplementation(() => new Promise(() => {}));
+      const pending = interactions(autocomplete(), netlifyContext('production'));
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(await (await pending).json()).toEqual({ type: 8, data: { choices: [] } });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { vi.useRealTimers(); }
+  });
+  it('returns no choices on a schema failure without leaking an error', async () => {
+    mocks.schema.mockRejectedValue(new Error('private database detail'));
+    expect(await (await interactions(autocomplete(), netlifyContext('production'))).json()).toEqual({ type: 8, data: { choices: [] } });
+    expect(mocks.sql).not.toHaveBeenCalled();
+  });
+});
+
 describe('Scheduled, background and import wake propagation', () => {
   it.each([['dispatch', dispatch, mocks.dispatch], ['reconcile', reconcile, mocks.reconcile]] as const)('propagates runtime context into scheduled %s processing', async (_name, handler, operation) => {
     const production = await (handler as any)(request(), netlifyContext('production'));
