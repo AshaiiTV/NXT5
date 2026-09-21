@@ -39,7 +39,12 @@ function installationMatches(value: any) {
 // Compare only fields we manage; Discord adds IDs, versions and default values.
 function containsDefinition(actual: any, expected: any): boolean {
   if (Array.isArray(expected)) return Array.isArray(actual) && actual.length === expected.length && expected.every((item, index) => containsDefinition(actual[index], item));
-  if (object(expected)) return object(actual) && Object.entries(expected).every(([key, value]) => containsDefinition(actual[key], value));
+  if (object(expected)) return object(actual) && Object.entries(expected).every(([key, value]) => {
+    // Discord may omit `required: false`: command options are optional by
+    // default. Keep explicit true and every other managed field strict.
+    if (key === 'required' && value === false && actual[key] === undefined) return true;
+    return containsDefinition(actual[key], value);
+  });
   return actual === expected;
 }
 function publicEndpoint(value: unknown) {

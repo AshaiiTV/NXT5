@@ -138,6 +138,24 @@ describe('Discord application identity and public inspection', () => {
 });
 
 describe('Single-command setup and verification', () => {
+  it('confirms registration when Discord omits optional required=false fields', async () => {
+    const registered: any = command();
+    for (const subcommand of registered.options) for (const option of subcommand.options || []) if (option.required === false) delete option.required;
+    fetchMock.mockImplementation(async (url: string) => response(url === BASE + '/applications/@me' ? application() : url.endsWith('/commands') ? [registered] : {}));
+    const result = await setup(signed({ action: 'configure', expectedApplicationId: APP }), context());
+    expect(result.status).toBe(200);
+    expect(await result.json()).toMatchObject({ ready: true, checks: { globalCommand: true } });
+    expect(fetchMock.mock.calls.filter(([url, options]) => url.endsWith('/commands') && options.method === 'POST')).toHaveLength(1);
+  });
+  it.each(['required-team', 'missing-required-code', 'missing-autocomplete'])('still refuses a mismatched command definition: %s', async (mismatch) => {
+    const registered: any = command();
+    if (mismatch === 'required-team') registered.options[1].options[0].required = true;
+    if (mismatch === 'missing-required-code') delete registered.options[0].options[0].required;
+    if (mismatch === 'missing-autocomplete') delete registered.options[1].options[0].autocomplete;
+    fetchMock.mockImplementation(async (url: string) => response(url === BASE + '/applications/@me' ? application() : [registered]));
+    const result = await (await setup(signed(), context())).json();
+    expect(result).toMatchObject({ ready: false, checks: { globalCommand: false } });
+  });
   it.each([{ '0': 'invalid' }, { '0': { oauth2_install_params: [] } }])('rejects malformed existing installation contexts before changing the application', async (integration_types_config) => {
     mockDiscord({ ...application(), integration_types_config } as any);
     const result = await setup(signed({ action: 'configure', expectedApplicationId: APP }), context());
