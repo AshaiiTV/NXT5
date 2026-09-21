@@ -155,9 +155,24 @@ Cette opération appartient à l’administrateur de NXT5 et se fait une fois po
 node tools/register-discord-commands.mjs --global
 ```
 
-Cette commande remplace la liste globale des commandes de cette application. Elle est exécutée par l’opérateur NXT5 avec les identifiants de l’application officielle, pas par chaque équipe. Le code inclut déjà ce mode ; sa présence dans ce guide ne signifie pas qu’il a été exécuté.
+Cette commande crée ou met à jour uniquement la commande globale `/nxt`, en conservant les autres commandes de l’application. Elle est exécutée par l’opérateur NXT5 avec les identifiants de l’application officielle, pas par chaque équipe. Le code inclut déjà ce mode ; sa présence dans ce guide ne signifie pas qu’il a été exécuté.
 
 Le parcours autonome de chaque équipe est : **Installer le bot → choisir le serveur → relier l’équipe avec le code NXT5 → choisir les salons/règles → activer**. Le serveur et les salons de toutes les équipes ne sont pas demandés à l’administrateur NXT5 avant la configuration centrale.
+
+### Installation avec les secrets conservés dans Netlify
+
+Une variable marquée secrète dans Netlify est masquée dans l’API et le CLI hors environnement hébergé. Une valeur retournée localement ne permet donc pas de tester le jeton auprès de Discord. La Function `discord-setup` utilise le vrai jeton dans Netlify ; elle ne le retourne jamais. [Politique des secrets Netlify](https://docs.netlify.com/build/environment-variables/secrets-controller/).
+
+Cette entrée opérateur accepte uniquement une requête POST signée avec `DISCORD_WORKER_SECRET`, datant de moins de deux minutes, dans le contexte de production fourni par Netlify. L’opérateur conserve cette clé dans un emplacement privé lors de sa création, ou la remplace côté serveur et dans son outil si elle est perdue. Ne jamais remplacer un secret par sa valeur masquée retournée par l’API. Les équipes n’utilisent pas cette clé et ne configurent pas l’application commune.
+
+Après le déploiement du code avec les publications désactivées :
+
+```sh
+node tools/configure-discord.mjs --origin=https://VOTRE-INSTANCE --action=inspect --application=IDENTIFIANT_APPLICATION --key-file=/CHEMIN/PRIVE/cle-operateur
+node tools/configure-discord.mjs --origin=https://VOTRE-INSTANCE --action=configure --application=IDENTIFIANT_APPLICATION --key-file=/CHEMIN/PRIVE/cle-operateur
+```
+
+`inspect` vérifie l’identité de l’application, sa clé publique et ses réglages. `configure` vérifie ces identifiants avant toute modification, configure l’URL d’interactions et les permissions d’installation, puis crée ou met à jour `/nxt` globalement. Les autres commandes et contextes d’installation sont conservés. Une relecture finale confirme chaque réglage. L’opération ne publie aucun message et n’active aucune connexion d’équipe. Les options Public Bot et Require OAuth2 Code Grant sont vérifiées ; une correction éventuelle se fait dans le portail Discord, car l’API utilisée ne permet pas de les modifier.
 
 ### Validation technique sur une application de test
 
@@ -179,7 +194,7 @@ Depuis un shell dont l’environnement contient les identifiants du **bot pilote
 node tools/register-discord-commands.mjs --guild=IDENTIFIANT_DU_SERVEUR_PILOTE
 ```
 
-Cette commande écrit dans Discord : elle remplace la liste des commandes de cette application pour ce serveur. Utiliser une application dédiée à NXT5. Le script ne journalise pas le jeton. L’option `--global` remplace la liste globale de l’application ; la réserver à l’ouverture décidée après le pilote.
+Cette commande écrit dans Discord : elle crée ou met à jour uniquement `/nxt` pour ce serveur. Utiliser une application dédiée à NXT5. Le script ne journalise pas le jeton. L’option `--global` réalise la même opération à l’échelle de l’application ; la réserver à l’ouverture décidée après le pilote.
 
 ### Lier l’équipe
 

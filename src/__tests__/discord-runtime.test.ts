@@ -34,6 +34,7 @@ import reconcile from '../../netlify/functions/discord-reconcile';
 import background from '../../netlify/functions/discord-publish-background';
 import maintenance from '../../netlify/functions/discord-maintenance';
 import maintenanceBackground from '../../netlify/functions/discord-maintenance-background';
+import setup from '../../netlify/functions/discord-setup';
 
 const TEAM = '10000000-0000-4000-8000-000000000001';
 const SNAPSHOT = '10000000-0000-4000-8000-000000000002';
@@ -118,6 +119,20 @@ describe('Netlify invocation context, independent from build variables', () => {
 });
 
 describe('Actual Discord HTTP entry points receive trusted invocation metadata', () => {
+  it('applies trusted production metadata to the fifteenth handler: operator setup', async () => {
+    const body = JSON.stringify({ action: 'inspect', expectedApplicationId: '100000000000000001' });
+    const headers = withDiscordContext(netlifyContext('production'), () => signDiscordInternalRequest(body));
+    const isolated = await setup(request('POST', body, headers), netlifyContext('deploy-preview'));
+    expect(isolated.status).toBe(409);
+    expect(await isolated.json()).toMatchObject({ code: 'DISCORD_SETUP_PRODUCTION_REQUIRED' });
+    expect(fetchMock).not.toHaveBeenCalled();
+    const production = await setup(request('POST', body, headers), netlifyContext('production'));
+    // The placeholder upstream body fails app identity, proving the signed
+    // production request reached Discord without reading a build CONTEXT.
+    expect(production.status).toBe(409);
+    expect(await production.json()).toMatchObject({ code: 'DISCORD_APPLICATION_MISMATCH' });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
   it.each([['publish', publish], ['connection', connection], ['routes', routes], ['retry', retry]] as const)('rejects preview %s mutations before authentication, database or network access', async (_name, handler) => {
     vi.stubEnv('CONTEXT', 'production');
     const response = await handler(request('POST', JSON.stringify({ teamId: TEAM })), netlifyContext('deploy-preview'));

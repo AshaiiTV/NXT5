@@ -33,7 +33,7 @@ export async function discordRequest(path: string, options: RequestOptions = {})
   const { botToken } = getDiscordConfig();
   if (!botToken) throw new DiscordApiError(503, 'DISCORD_NOT_CONFIGURED');
   // Relative API routes only: credentials must never follow a caller-provided host.
-  if (!/^\/(users\/@me|guilds\/[0-9]{17,20}(?:\/(?:channels|roles|members\/[0-9]{17,20}))?|channels\/[0-9]{17,20}(?:\/messages(?:\/[0-9]{17,20})?)?|applications\/[0-9]{17,20}(?:\/guilds\/[0-9]{17,20})?\/commands)(?:\?[^#]*)?$/.test(path)) {
+  if (!/^\/(users\/@me|guilds\/[0-9]{17,20}(?:\/(?:channels|roles|members\/[0-9]{17,20}))?|channels\/[0-9]{17,20}(?:\/messages(?:\/[0-9]{17,20})?)?|applications\/(?:@me|[0-9]{17,20}(?:\/guilds\/[0-9]{17,20})?\/commands))(?:\?[^#]*)?$/.test(path)) {
     throw new DiscordApiError(400, 'DISCORD_INVALID_REQUEST');
   }
   const method = String(options.method || 'GET').toUpperCase();
