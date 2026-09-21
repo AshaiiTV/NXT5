@@ -442,7 +442,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     }
     const filename = String(selectedPlayer.name || "joueur").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
     await pngDownloadPages(canvases, `nxt5-profil-${filename}.png`);
-    pushToast?.({ type: "cyan", title: "PNG exporté", text: `${pageCount} page${pageCount > 1 ? "s" : ""} exportée${pageCount > 1 ? "s" : ""}.` });
+    pushToast?.({ type: "cyan", title: "PNG exporté", text: "Une image PNG exportée." });
   }
 
   async function downloadProfile() {

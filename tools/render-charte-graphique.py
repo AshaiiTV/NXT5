@@ -62,8 +62,11 @@ def inline(value):
     return value
 
 raw = SOURCE.read_text()
-version = re.search(r'^Version ([\d.]+)', raw, re.M).group(1)
-metadata = f'NXT5 / Charte graphique {version} / 15 septembre 2026'
+version_header = re.search(r'^Version ([\d.]+) · ([^·\n]+) ·', raw, re.M)
+if not version_header:
+    raise SystemExit('The charter must provide its version and date on a Version header.')
+version, publication_date = (part.strip() for part in version_header.groups())
+metadata = f'NXT5 / Charte graphique {version} / {publication_date}'
 logo = ImageReader(str(ROOT / 'public/assets/nxt5-wordmark.png'))
 logo_w, logo_h = logo.getSize()
 
@@ -82,7 +85,7 @@ class NumberedCanvas(canvas.Canvas):
         self.pages = []
         self.setTitle(f'NXT5 - Charte graphique {version}')
         self.setAuthor('NXT5')
-        self.setSubject('Référence complète du site - Discord et exports PNG communs - 15 septembre 2026')
+        self.setSubject(f'Référence complète du site - Discord et exports PNG communs - {publication_date}')
     def showPage(self):
         self.pages.append(dict(self.__dict__))
         self._startPage()
@@ -100,7 +103,7 @@ class NumberedCanvas(canvas.Canvas):
 story = [Spacer(1, 70)]
 cover_title = ParagraphStyle('coverTitle', parent=body, fontName='NXT5DocBold', fontSize=36, leading=43, spaceAfter=22)
 cover_intro = ParagraphStyle('coverIntro', parent=body, fontSize=15, leading=22, spaceAfter=18)
-story += [Paragraph('Charte graphique', cover_title), Paragraph('Une référence commune pour chaque évolution du site.', cover_intro), Paragraph(f'VERSION {version} / 15 SEPTEMBRE 2026', styles['h3']), Spacer(1, 20)]
+story += [Paragraph('Charte graphique', cover_title), Paragraph('Une référence commune pour chaque évolution du site.', cover_intro), Paragraph(f'VERSION {version} / {publication_date.upper()}', styles['h3']), Spacer(1, 20)]
 story += [Paragraph('Fond bleu nuit, accents cyan, bleu et fuchsia. Des données lisibles et des contrôles cohérents, du site aux publications Discord.', cover_intro), Spacer(1, 22)]
 for title, content in [
     ('L’identité reste la même', 'Réutiliser les composants, les logos et les tokens existants. Les boutons gardent leurs angles de 2 px ; les champs et les panneaux restent arrondis.'),
@@ -150,6 +153,6 @@ while i < len(lines):
     text = ' '.join(paragraph)
     story.append(Paragraph(inline(text), styles['intro'] if text.startswith('Version ') else body))
 
-doc = SimpleDocTemplate(str(TARGET), pagesize=(PAGE_W,PAGE_H), leftMargin=40, rightMargin=40, topMargin=78, bottomMargin=54, title=f'NXT5 - Charte graphique {version}', author='NXT5', subject='Référence du site - Discord et exports PNG communs - 15 septembre 2026')
+doc = SimpleDocTemplate(str(TARGET), pagesize=(PAGE_W,PAGE_H), leftMargin=40, rightMargin=40, topMargin=78, bottomMargin=54, title=f'NXT5 - Charte graphique {version}', author='NXT5', subject=f'Référence du site - Discord et exports PNG communs - {publication_date}')
 doc.build(story, onFirstPage=page_background, onLaterPages=page_background, canvasmaker=NumberedCanvas)
 print(TARGET)

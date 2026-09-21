@@ -1,6 +1,6 @@
-# Livraison NXT5 → Discord — 15 septembre 2026
+# Livraison NXT5 → Discord — mise à jour du 21 septembre 2026
 
-Branche : `codex/discord-publications-20260915`, préparée depuis `origin/main` (`da046af`) dans un checkout isolé, avec la refonte PNG `6139f1a` et la correction des noms d’objets `ddbd407` arrivées pendant le développement. Le checkout initial et ses modifications en cours sont conservés.
+Branche : `codex/discord-publications-20260915`, préparée depuis `origin/main` (`da046af`) dans un checkout isolé, avec la refonte PNG `6139f1a` et la correction des noms d’objets `ddbd407` et le PNG unique sans ZIP `1150412` arrivés pendant le développement. Le checkout initial et ses modifications en cours sont conservés.
 
 [PR de revue #40](https://github.com/AshaiiTV/NXT5/pull/40) · [Prévisualisation Netlify](https://deploy-preview-40--nxt5.netlify.app)
 
@@ -22,15 +22,17 @@ Les notes humaines et reviews privées ne sont pas publiées implicitement. Les 
 
 ## Vérifications effectuées
 
-- `npm run verify` : TypeScript, **1 142 tests sur 71 suites**, compilation Vite réussis.
+- `npm run verify` : TypeScript, **1 188 tests sur 73 suites**, compilation Vite réussis.
+- Audit npm : aucune vulnérabilité connue après mise à jour transitive de `qs` vers 6.16.0.
+- Configuration centrale depuis Netlify via requête opérateur HMAC : identité et clé publique vérifiées avant modification, endpoint d’interactions et `/nxt` contrôlés après écriture ; le jeton du bot reste dans les Functions.
 - Build Netlify local complet : fonctions synchrones, planifiées et en arrière-plan empaquetées.
 - Contrôle des archives produites localement : Node 24, binaire natif **Linux x64 ELF**, quatre polices Inter et wordmark présents.
 - Rendu réel sur un déploiement Netlify de test : PNG synthétique **1 440 × 2 519 px**, 496 388 octets, **860 ms** de rendu, réponse HTTP 200. L’environnement distant observé utilisait **Linux x64 / Node 22.23.2** ; cette mesure unique ne représente ni un percentile ni un engagement de délai.
 - PostgreSQL local via PGlite : vrais SQL, transactions, contraintes et déclencheurs ; transports externes simulés dans les tests.
 - Pannes couvertes : rollback d’import, réimport identique, correction concurrente, pause pendant rendu, limitation de débit, confirmation perdue, reprise atomique, retrait réessayable et suppression de game pendant un envoi incertain.
-- Isolation : équipe/game/destination, rôles staff/gestion, signatures, rejeu de commandes, mentions et mutations des previews. Le contexte fiable de chaque invocation Netlify est propagé aux 14 entrées Discord et aux réveils après import ; le contexte hébergé inconnu bloque les mutations.
+- Isolation : équipe/game/destination, rôles staff/gestion, signatures, rejeu de commandes, mentions et mutations des previews. Le contexte fiable de chaque invocation Netlify est propagé aux 15 entrées Discord et aux réveils après import ; le contexte hébergé inconnu bloque les mutations.
 - Une barrière protège également les six entrées pouvant modifier les sources des games ou leurs cascades. Un import effectué en preview ne peut donc pas alimenter indirectement le bot de production via les déclencheurs d’une base partagée ; les lectures et les imports en mode aperçu restent disponibles.
-- [QA responsive et charte 1.23](discord-qa-2026-09-15.md) : 360, 390, 768, 1024 et 1440 px ; aperçu texte seul et image ; 23 pages de charte PDF vérifiées.
+- [QA responsive initiale et charte 1.23](discord-qa-2026-09-15.md) : 360, 390, 768, 1024 et 1440 px ; aperçu texte seul et image ; 23 pages de charte PDF vérifiées lors de la QA initiale. La charte 1.24 réunit ensuite Discord et la règle PNG unique de main.
 - [Exemples PNG synthétiques](../artifacts/discord-render/benchmark.json) : cinq cas, dont données absentes, côté rouge et noms longs. Les mesures locales ne représentent pas un engagement de délai en production.
 
 La concurrence des tests est bornée à quatre workers pour éviter de lancer trop de moteurs PostgreSQL WASM simultanément. Une fixture existante d’achats a également été stabilisée : deux appels d’horloge pouvaient placer la commande après son paiement d’une milliseconde. Aucun comportement métier d’achat n’a été modifié.

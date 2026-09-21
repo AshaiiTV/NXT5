@@ -1,15 +1,19 @@
 {
-  "verifiedAt": "2026-09-15T12:51:26.744Z",
+  "verifiedAt": "2026-09-21T13:49:48.000203+00:00",
   "command": "netlify build --offline --context deploy-preview (npm run verify + Functions bundling)",
   "node": "v24.19.0",
   "typecheck": "passed",
   "tests": {
-    "cases": 1142,
-    "suites": 71,
+    "cases": 1188,
+    "suites": 73,
     "failed": 0
   },
   "vite": "passed",
   "functions": "passed",
-  "includes": "origin/main through ddbd407, invocation-scoped deploy context and six source mutation barriers",
-  "note": "No remote database migration and no real Discord delivery were performed."
+  "includes": "origin/main through 1150412 (single PNG exports), production-only Discord operator setup and invocation-scoped environment barriers",
+  "note": "No remote database migration and no real Discord delivery were performed.",
+  "audit": {
+    "vulnerabilities": 0,
+    "qs": "6.16.0"
+  }
 }
