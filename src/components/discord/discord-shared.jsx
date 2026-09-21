@@ -7,18 +7,18 @@ import "./discord.css";
 export const discordQuery = (endpoint, values) => `${endpoint}?${new URLSearchParams(Object.entries(values).filter(([, value]) => value != null && value !== ""))}`;
 export const discordPost = (body) => ({ method: "POST", body: JSON.stringify(body) });
 
-export function useDiscordResource(path, revision = 0) {
+export function useDiscordResource(path, revision = 0, { keepPreviousData = false } = {}) {
   const [state, setState] = useState({ path: null, data: null, loading: true, error: "" });
   useEffect(() => {
     const controller = new AbortController();
-    setState({ path, data: null, loading: Boolean(path), error: "" });
+    setState((previous) => ({ path, data: keepPreviousData && previous.path === path ? previous.data : null, loading: Boolean(path), error: "" }));
     if (path) apiFetch(path, { signal: controller.signal }).then((data) => {
       if (!controller.signal.aborted) setState({ path, data, loading: false, error: "" });
     }).catch((error) => {
-      if (!controller.signal.aborted) setState({ path, data: null, loading: false, error: error.message });
+      if (!controller.signal.aborted) setState((previous) => ({ path, data: keepPreviousData && previous.path === path ? previous.data : null, loading: false, error: error.message }));
     });
     return () => controller.abort();
-  }, [path, revision]);
+  }, [path, revision, keepPreviousData]);
   return state.path === path ? state : { data: null, loading: Boolean(path), error: "" };
 }
 
@@ -58,9 +58,9 @@ export function safeDiscordUrl(value) {
   } catch { return null; }
 }
 
-export function DiscordLink({ href, children }) {
+export function DiscordLink({ href, children, onClick, className = "" }) {
   const safeHref = safeDiscordUrl(href);
-  return safeHref ? <a className="discord-link" href={safeHref} target="_blank" rel="noopener noreferrer">{children}<ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="sr-only"> (nouvel onglet)</span></a> : null;
+  return safeHref ? <a className={`discord-link ${className}`} href={safeHref} target="_blank" rel="noopener noreferrer" onClick={onClick}>{children}<ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="sr-only"> (nouvel onglet)</span></a> : null;
 }
 
 const STATUS = {
@@ -75,28 +75,29 @@ export function DiscordStatus({ status }) {
   return <Badge tone={tone}>{label}</Badge>;
 }
 
-export function DiscordPreview({ preview }) {
+export function DiscordPreview({ preview, fictitious = false }) {
   if (!preview) return null;
   const message = preview.message || {};
   const image = typeof preview.imageDataUrl === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=\s]+$/.test(preview.imageDataUrl) ? preview.imageDataUrl : null;
   return <section className="discord-preview" aria-label="Aperçu de la publication">
-    <h4>Aperçu de la publication</h4>
+    <h4>{fictitious ? "Exemple de message et de visuel" : "Aperçu de la publication"}</h4>
+    {fictitious && <p className="discord-help">Données fictives : cet exemple ne reprend aucune game ni note de ton équipe.</p>}
     {!!message.content && <p className="discord-message-content">{message.content}</p>}
     {(message.embeds || []).map((embed, index) => <div className="discord-embed" key={index}>
       {embed.title && <h5>{embed.title}</h5>}{embed.description && <p className="discord-message-content">{embed.description}</p>}
       {!!embed.fields?.length && <dl className="discord-embed-fields">{embed.fields.map((field, i) => <div key={i}><dt>{field.name}</dt><dd>{field.value}</dd></div>)}</dl>}
       {embed.footer?.text && <p className="discord-help">{embed.footer.text}</p>}
     </div>)}
-    {image ? <><img className="discord-preview-image" src={image} alt="Visuel NXT5 de la game, reprenant les statistiques de la publication" /><a className="discord-link" href={image} download="nxt5-discord-apercu.png">Télécharger le visuel pour le voir en détail</a></> : <p className="discord-help">Visuel indisponible pour cet aperçu.</p>}
+    {image ? <><img className="discord-preview-image" src={image} alt={fictitious ? "Exemple fictif du visuel de game envoyé par NXT5" : "Visuel NXT5 de la game, reprenant les statistiques de la publication"} /><a className="discord-link" href={image} download="nxt5-discord-apercu.png">Télécharger le visuel pour le voir en détail</a></> : <p className="discord-help">Visuel indisponible pour cet aperçu.</p>}
     {preview.snapshotRevision != null && <p className="discord-help">Version des données : {preview.snapshotRevision}</p>}
   </section>;
 }
 
-export function DiscordHistory({ teamId, matchId, revision = 0, canPublish = false }) {
-  return <DiscordHistoryContent key={`${teamId}:${matchId || "all"}`} {...{ teamId, matchId, revision, canPublish }} />;
+export function DiscordHistory({ teamId, matchId, revision = 0, canPublish = false, showSummary = false }) {
+  return <DiscordHistoryContent key={`${teamId}:${matchId || "all"}`} {...{ teamId, matchId, revision, canPublish, showSummary }} />;
 }
 
-function DiscordHistoryContent({ teamId, matchId, revision, canPublish }) {
+function DiscordHistoryContent({ teamId, matchId, revision, canPublish, showSummary }) {
   const [localRevision, setLocalRevision] = useState(0);
   const [removeId, setRemoveId] = useState(null);
   const [resolution, setResolution] = useState(null);
@@ -104,7 +105,13 @@ function DiscordHistoryContent({ teamId, matchId, revision, canPublish }) {
   const action = useDiscordAction();
   const reload = () => setLocalRevision((value) => value + 1);
   const deliveries = (history.data?.deliveries || []).filter((item) => !matchId || item.matchId === matchId);
+  const latest = deliveries.find((item) => ["succeeded", "sent"].includes(item.status) && safeDiscordUrl(item.messageUrl));
+  const issues = deliveries.filter((item) => ["blocked", "failed", "uncertain", "unknown", "withdrawal_pending"].includes(item.status));
   return <section className="discord-section" aria-label="Historique Discord">
+    {showSummary && !history.loading && !history.error && <div className="discord-publication-summary">
+      <div><h4>Dernière publication confirmée</h4>{latest ? <><p><strong>{latest.matchLabel || "Game NXT5"}</strong>{latest.channelName ? ` · #${latest.channelName.replace(/^#/, "")}` : ""}</p><DiscordLink href={latest.messageUrl}>Ouvrir la dernière publication</DiscordLink></> : <p>Aucune game publiée dans l’historique disponible. Le message de test reste distinct des games.</p>}</div>
+      {!!issues.length && <p className="discord-feedback discord-feedback-error">{issues.length} publication{issues.length > 1 ? "s demandent" : " demande"} une vérification. Consulte le motif et les actions dans l’historique ci-dessous.</p>}
+    </div>}
     <div className="discord-heading"><h4>Historique des publications</h4><Button type="button" variant="ghost" icon={RefreshCw} disabled={history.loading || action.busy} onClick={reload}>Actualiser l’historique</Button></div>
     <DiscordFeedback error={history.error || action.error} notice={action.notice} loading={history.loading} />
     {!history.loading && !history.error && deliveries.length === 0 && <p>Aucune publication pour le moment.</p>}

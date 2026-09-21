@@ -19,6 +19,7 @@ import { roleLabel } from "./pages/workspace/shell-shared.jsx";
 import PassFeatureGate from "./components/subscriptions/PassFeatureGate.jsx";
 import { isPassFeatureLocked } from "./app/pass-access.js";
 const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
+const DiscordWorkspace = lazy(() => import("./pages/workspace/DiscordWorkspace.jsx"));
 const PlayerUltimateProfile = lazy(() => import("./pages/workspace/PlayerUltimateProfile.jsx").then((module) => ({ default: module.PlayerUltimateProfile })));
 const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((module) => ({ default: module.TrendsPage })));
 const GameWorkspace = lazy(() => import("./pages/workspace/GameWorkspace.jsx").then((module) => ({ default: module.GameWorkspace })));
@@ -287,9 +288,10 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   // manual subscriptions on a personal profile are not team access rights.
   const workspaceLocked = Boolean(currentTeam) && isPassFeatureLocked("workspace");
   const teamSetupOnly = active === "teams" && workspaceLocked && (new URLSearchParams(route.search).get("create") === "1" || new URLSearchParams(route.search).has("invite"));
-  const workspacePage = ["teams", "team-management", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
+  const workspacePage = ["teams", "team-management", "bot-discord", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
 
   const page = useMemo(() => {
+    if (active === "bot-discord") return <DiscordWorkspace data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
     if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} />;
     if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
@@ -305,7 +307,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
-  const showBeginnerCompass = Boolean(currentTeam && !workspaceLocked && !beginnerCompassHidden && currentTeamMatches.length < 5);
+  const showBeginnerCompass = Boolean(currentTeam && active !== "bot-discord" && !workspaceLocked && !beginnerCompassHidden && currentTeamMatches.length < 5);
   const assistantWidget = !workspaceLocked && <>
     <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("group fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-[80] h-14 items-center gap-2 rounded-2xl border border-cyan-200/30 bg-[#071120]/95 px-4 text-sm font-black text-white shadow-[0_18px_50px_rgba(0,0,0,.55),0_0_28px_rgba(34,211,238,.16)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-100/55 hover:bg-[#0a1a2d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/75 sm:right-5 lg:right-6", assistantOpen ? "hidden sm:inline-flex" : "inline-flex")}>
       <span className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/12 text-cyan-100 transition group-hover:bg-cyan-300/18">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
@@ -325,7 +327,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
     </main>
   </div>;
-  if (!data.teams.length && active !== "guide" && !independentAccountPage) return <>
+  if (!data.teams.length && active !== "guide" && active !== "bot-discord" && !independentAccountPage) return <>
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">

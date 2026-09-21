@@ -5,7 +5,7 @@ import { sql } from './_lib/db';
 import { json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord } from './_lib/discord-access';
-import { publicDiscordStatus } from './_lib/discord-config';
+import { isDiscordEnabled, isDiscordId, publicDiscordStatus } from './_lib/discord-config';
 import { getDiscordGuild } from './_lib/discord-client';
 
 async function handler(request: Request, context: Context) {
@@ -22,13 +22,20 @@ async function handler(request: Request, context: Context) {
       const connection = rows[0];
       let live: Awaited<ReturnType<typeof getDiscordGuild>> | null = null;
       let connectionError: string | null = null;
+      let connectionErrorCode: string | null = null;
+      let checkedAt: string | null = null;
       if (connection?.guild_id && connection.status !== 'disconnected' && publicDiscordStatus().configured) {
-        try { live = await getDiscordGuild(connection.guild_id); } catch (error: any) { connectionError = error.message; }
+        checkedAt = new Date().toISOString();
+        try { live = await getDiscordGuild(connection.guild_id); } catch (error: any) {
+          connectionError = error.name === 'DiscordApiError' ? error.message : 'La connexion Discord ne peut pas être vérifiée pour le moment.';
+          connectionErrorCode = error.name === 'DiscordApiError' ? error.code : 'DISCORD_UNAVAILABLE';
+        }
       }
       return json({ ...publicDiscordStatus(), canManage: access.canManage, canPublish: access.canPublish, categories,
         connection: connection ? { id: connection.team_id, guildId: connection.guild_id, guildName: live?.guild.name || connection.guild_id,
           status: connection.status, paused: connection.status === 'paused', configVersion: Number(connection.config_version), enabledAt: connection.enabled_at } : null,
-        channels: live?.channels || [], roles: live?.roles || [], connectionError });
+        channels: live?.channels || [], roles: live?.roles || [], connectionError,
+        health: { checkedAt, verified: Boolean(live), errorCode: connectionErrorCode } });
     }
     await assertSubjectRateLimit('discord-connection', user.id, { limit: 8, windowSeconds: 60 });
     if (body.action === 'create-link') {
@@ -50,13 +57,21 @@ async function handler(request: Request, context: Context) {
     const connection = rows[0];
     if (!connection) throw discordError('Aucune connexion Discord pour cette équipe.', 404);
     if (body.action === 'resume') {
+      if (!isDiscordEnabled()) throw discordError('Les envois Discord sont suspendus sur cet environnement.', 409, 'DISCORD_PUBLISHING_DISABLED');
+      const changed = () => discordError('La configuration Discord a changé. Actualise le dashboard puis confirme les destinations actuelles.', 409, 'DISCORD_CONFIG_CHANGED');
+      if (!isDiscordId(body.expectedGuildId) || !Number.isSafeInteger(body.expectedConfigVersion) || body.expectedConfigVersion < 1
+        || connection.guild_id !== body.expectedGuildId || Number(connection.config_version) !== body.expectedConfigVersion) throw changed();
       if (!connection.guild_id || connection.status === 'disconnected') throw discordError('Relie d’abord le serveur Discord.', 409);
       const live = await getDiscordGuild(connection.guild_id);
       const routes = await sql("select * from discord_routes where team_id=$1 and enabled", [teamId]);
-      if (!routes.length || routes.some((route) => !live.channels.some((channel) => channel.id === route.channel_id && channel.canSend))) {
+      if (!routes.length || routes.some((route) => route.guild_id !== connection.guild_id || !live.channels.some((channel) => channel.id === route.channel_id && channel.canSend))) {
         throw discordError('Configure au moins un salon accessible au bot avant l’activation.', 409);
       }
-      await sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1", [teamId]);
+      if (!isDiscordEnabled()) throw discordError('Les envois Discord sont suspendus sur cet environnement.', 409, 'DISCORD_PUBLISHING_DISABLED');
+      // Route edits/relinks also change this row's version, so an edit committed
+      // during the live Discord check cannot activate an unseen destination.
+      const resumed = await sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1 and guild_id=$2 and config_version=$3 and status in ('active','paused') returning team_id", [teamId, body.expectedGuildId, body.expectedConfigVersion]);
+      if (!resumed.length) throw changed();
     } else if (body.action === 'pause') {
       await sql("update discord_connections set status='paused',updated_at=now() where team_id=$1", [teamId]);
     } else {

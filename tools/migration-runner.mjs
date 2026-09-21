@@ -13,6 +13,7 @@ export async function loadMigrations() {
     ['administration-purchases-20260914-v1', '../database/migrations/20260914_purchases.sql'],
     ['audience-20260914-v1', '../database/migrations/20260914_audience.sql'],
     ['discord-publications-20260915-v1', '../database/migrations/20260915_discord_publications.sql'],
+    ['discord-connection-tests-20260921-v1', '../database/migrations/20260921_discord_connection_tests.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

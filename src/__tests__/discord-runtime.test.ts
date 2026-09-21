@@ -35,6 +35,7 @@ import background from '../../netlify/functions/discord-publish-background';
 import maintenance from '../../netlify/functions/discord-maintenance';
 import maintenanceBackground from '../../netlify/functions/discord-maintenance-background';
 import setup from '../../netlify/functions/discord-setup';
+import connectionTest from '../../netlify/functions/team-discord-test';
 
 const TEAM = '10000000-0000-4000-8000-000000000001';
 const SNAPSHOT = '10000000-0000-4000-8000-000000000002';
@@ -133,7 +134,7 @@ describe('Actual Discord HTTP entry points receive trusted invocation metadata',
     expect(await production.json()).toMatchObject({ code: 'DISCORD_APPLICATION_MISMATCH' });
     expect(fetchMock).toHaveBeenCalledOnce();
   });
-  it.each([['publish', publish], ['connection', connection], ['routes', routes], ['retry', retry]] as const)('rejects preview %s mutations before authentication, database or network access', async (_name, handler) => {
+  it.each([['publish', publish], ['connection', connection], ['routes', routes], ['retry', retry], ['connection test', connectionTest]] as const)('rejects preview %s mutations before authentication, database or network access', async (_name, handler) => {
     vi.stubEnv('CONTEXT', 'production');
     const response = await handler(request('POST', JSON.stringify({ teamId: TEAM })), netlifyContext('deploy-preview'));
     expect(response.status).toBe(409);
@@ -155,7 +156,7 @@ describe('Actual Discord HTTP entry points receive trusted invocation metadata',
     expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.sql).not.toHaveBeenCalled();
     expect(mocks.image).not.toHaveBeenCalled(); expect(mocks.store).not.toHaveBeenCalled();
   });
-  it.each([['admin', admin], ['connection', connection], ['routes', routes], ['preview', preview], ['deliveries', deliveries]] as const)('retains effective preview context during authenticated read-only %s requests', async (_name, handler) => {
+  it.each([['admin', admin], ['connection', connection], ['routes', routes], ['preview', preview], ['deliveries', deliveries], ['connection test', connectionTest]] as const)('retains effective preview context during authenticated read-only %s requests', async (_name, handler) => {
     mocks.auth.mockImplementationOnce(async () => {
       expect(state()).toEqual({ context: 'deploy-preview', enabled: false, configured: false });
       throw Object.assign(new Error('Session requise.'), { status: 401 });
