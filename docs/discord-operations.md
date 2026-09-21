@@ -1,6 +1,6 @@
 # NXT5 → Discord — installation et exploitation
 
-Version V1 · 15 septembre 2026.
+Version V1 · mise à jour du 21 septembre 2026 : serveurs partagés entre plusieurs équipes.
 
 Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
 
@@ -8,11 +8,11 @@ Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une 
 
 Le bot transforme une game NXT5 en message Discord, PNG et lien vers la bonne équipe/game. Les imports par fichier et par identifiant utilisent le même circuit. Les corrections mettent à jour le message existant ; un réimport sans changement de contenu reste silencieux.
 
-Le produit utilise **une application Discord NXT5 commune à toutes les équipes**. Son propriétaire configure une fois les identifiants, le jeton, le serveur applicatif et les commandes. Chaque responsable d’équipe utilise ensuite le même lien d’invitation, choisit son serveur Discord, relie son équipe NXT5 et configure ses propres salons. Aucune équipe, aucun serveur et aucun salon ne sont inscrits dans une liste centrale préalable ; les responsables d’équipe n’ont pas à créer une application Discord ni à fournir un jeton.
+Le produit utilise **une application Discord NXT5 commune à toutes les équipes**. Son propriétaire configure une fois les identifiants, le jeton, le serveur applicatif et les commandes. Le bot est invité **une seule fois par serveur Discord**. Chaque responsable relie ensuite son équipe NXT5 avec son propre code et configure ses salons, que le bot ait été invité pour cette équipe ou qu’il soit déjà présent pour une autre. Aucune équipe, aucun serveur et aucun salon ne sont inscrits dans une liste centrale préalable ; les responsables d’équipe n’ont pas à créer une application Discord ni à fournir un jeton.
 
 Dans NXT5, le propriétaire ou un capitaine configure les destinations. Discord exige aussi qu’un responsable autorise l’installation et la liaison dans son serveur. Une destination possède un filtre de catégories, l’activation automatique, une option pour les pistes de review et une éventuelle mention de rôle. Par exemple, une équipe peut choisir `#scrims` pour sa catégorie Scrim et `#officiels` pour ses matchs officiels ; une autre choisit librement des salons différents.
 
-Le code permet plusieurs équipes indépendantes, avec **un serveur connecté par équipe, une équipe connectée par serveur et jusqu’à dix salons par équipe**. Les clubs souhaitant plusieurs équipes NXT5 sur un même serveur, ou une équipe diffusant dans plusieurs serveurs, nécessitent une évolution du modèle de connexion et des commandes. Le pilote limité à une équipe et un salon reste une étape de validation technique ; il ne définit pas la population du produit.
+Le code permet **plusieurs équipes NXT5 sur le même serveur Discord**, avec **un serveur connecté et jusqu’à dix salons par équipe**. Chaque équipe conserve sa liaison, ses destinations, ses catégories, ses mentions, ses tests et son état de diffusion. Une pause, une reprise ou une déconnexion cible uniquement l’équipe concernée. Une équipe diffusant dans plusieurs serveurs reste hors de ce modèle. Le pilote limité à une équipe et un salon reste une étape de validation technique ; il ne définit pas la population du produit.
 
 L’activation ne publie pas l’historique. Une ancienne game peut être partagée explicitement depuis son aperçu. Une destination manuelle continue à recevoir les corrections d’une game déjà partagée. Ajouter une catégorie ou une destination ne déplace pas silencieusement une publication existante dans un nouveau salon.
 
@@ -40,6 +40,7 @@ flowchart TD
 | Primitives visuelles | [`shared/publications/game-publication-canvas.js`](../shared/publications/game-publication-canvas.js) |
 | Rendu serveur | [`publication-render.ts`](../netlify/functions/_lib/publication-render.ts) |
 | Migration et déclencheurs | [`20260915_discord_publications.sql`](../database/migrations/20260915_discord_publications.sql) |
+| Serveurs partagés entre équipes | [`20260921_discord_shared_servers.sql`](../database/migrations/20260921_discord_shared_servers.sql) |
 | File, claims et reprises | [`discord-queue.ts`](../netlify/functions/_lib/discord-queue.ts) |
 | Préparation et livraison | [`discord-worker.ts`](../netlify/functions/_lib/discord-worker.ts) |
 | Réveil après une mutation | [`discord-wake.ts`](../netlify/functions/_lib/discord-wake.ts) |
@@ -52,7 +53,7 @@ flowchart TD
 
 | Table | Rôle |
 | --- | --- |
-| `discord_connections` | Liaison équipe/serveur, pause et version de configuration. |
+| `discord_connections` | Une liaison par équipe, pause et version de configuration ; plusieurs équipes peuvent référencer le même serveur. |
 | `discord_link_codes` | Empreinte du code temporaire, émetteur, expiration et consommation. |
 | `discord_interaction_receipts` | Identifiant unique d’une commande reçue, état et résultat ; empêche son rejeu. |
 | `discord_routes` | Salon, catégories et politique de contenu. |
@@ -63,6 +64,8 @@ flowchart TD
 | `discord_worker_leases` | Concurrence globale du traitement des publications. |
 
 La migration ajoute `matches.publication_revision` et `publication_content_hash`. Le hash de source ignore notamment les UUID de lignes participants, dates d’écriture et statut de review. Les déclencheurs différés examinent les données finales de la transaction : un import annulé n’enregistre aucun travail et une transaction qui modifie dix participants ne produit qu’une révision du contenu final.
+
+La migration `discord-shared-servers-20260921-v1` remplace l’index unique `discord_connections_active_guild` par l’index de recherche non unique `discord_connections_by_guild` sur le serveur et l’équipe. La clé primaire `team_id` conserve une seule connexion par équipe. Cette migration ne supprime aucune liaison, destination ni publication existante.
 
 Le modèle de publication conserve la différence entre zéro mesuré et information indisponible. Une timeline absente ne produit pas de conclusions sur les combats. Les notes humaines et données de compte ne sont pas reprises dans le snapshot.
 
@@ -124,7 +127,7 @@ Les tests `match-source-environment.test.ts` couvrent les six entrées, les casc
 4. Vérifier que le bundle Netlify inclut le binaire Linux x64 de `@napi-rs/canvas`, les fichiers Inter et le wordmark indiqués dans `netlify.toml`, avec `npm run discord:check-bundle` après le build Netlify. Un paquet construit sur macOS avec le seul binaire Darwin ne fonctionne pas sur Netlify : privilégier le build Linux du fournisseur ; pour un déploiement local de test, installer aussi la dépendance optionnelle Linux correspondant exactement à la version du moteur.
 5. Laisser `DISCORD_PUBLISHING_ENABLED=false` pour le premier déploiement.
 6. Appliquer les migrations par le mécanisme du dépôt, avec une sauvegarde appropriée de l’environnement cible.
-7. Vérifier l’administration Discord et la présence du marqueur `discord-publications-20260915-v1`.
+7. Vérifier l’administration Discord et les marqueurs `discord-publications-20260915-v1`, `discord-connection-tests-20260921-v1` et `discord-shared-servers-20260921-v1`.
 
 Commandes locales de vérification :
 
@@ -157,7 +160,7 @@ node tools/register-discord-commands.mjs --global
 
 Cette commande crée ou met à jour uniquement la commande globale `/nxt`, en conservant les autres commandes de l’application. Elle est exécutée par l’opérateur NXT5 avec les identifiants de l’application officielle, pas par chaque équipe. Le code inclut déjà ce mode ; sa présence dans ce guide ne signifie pas qu’il a été exécuté.
 
-Le parcours autonome de chaque équipe est : **Installer le bot → choisir le serveur → relier l’équipe avec le code NXT5 → choisir les salons/règles → activer**. Le serveur et les salons de toutes les équipes ne sont pas demandés à l’administrateur NXT5 avant la configuration centrale.
+Le parcours autonome de chaque équipe est : **Inviter le bot si nécessaire → relier l’équipe avec son code NXT5 → choisir les salons/règles → tester et activer**. Sur un serveur où le bot est déjà présent, chaque nouvelle équipe passe directement à sa propre liaison. Le serveur et les salons de toutes les équipes ne sont pas demandés à l’administrateur NXT5 avant la configuration centrale.
 
 ### Installation avec les secrets conservés dans Netlify
 
@@ -196,17 +199,29 @@ node tools/register-discord-commands.mjs --guild=IDENTIFIANT_DU_SERVEUR_PILOTE
 
 Cette commande écrit dans Discord : elle crée ou met à jour uniquement `/nxt` pour ce serveur. Utiliser une application dédiée à NXT5. Le script ne journalise pas le jeton. L’option `--global` réalise la même opération à l’échelle de l’application ; la réserver à l’ouverture décidée après le pilote.
 
+Après le déploiement du support des serveurs partagés, l’opérateur doit mettre à jour la définition de `/nxt` pour rendre disponible l’option `equipe` et ses suggestions. Il peut utiliser la commande globale ci-dessus ou l’action `configure` de l’outil opérateur hébergé. Cette mise à jour ne publie aucun message Discord.
+
 ### Lier l’équipe
 
-1. Dans l’équipe NXT5, ouvrir les réglages Discord avec le rôle propriétaire ou capitaine.
+1. Sélectionner l’équipe NXT5 et ouvrir **Bot Discord** avec le rôle propriétaire ou capitaine. Si le bot est déjà présent dans le serveur souhaité, ouvrir directement l’étape **Relier**.
 2. Générer le code temporaire. Il expire après dix minutes et ne fonctionne qu’une fois.
-3. Dans Discord, un responsable disposant de Gérer le serveur ou Administrateur lance `/nxt connecter code`.
+3. Dans Discord, un responsable disposant de Gérer le serveur ou Administrateur lance `/nxt connecter code:…` avec le code de cette équipe.
 4. Le backend vérifie la présence du bot, le code et les droits NXT5 encore valides de son émetteur.
 5. La connexion arrive en pause. Choisir les salons, catégories, pistes et mentions dans NXT5.
 6. Afficher l’aperçu d’une game représentative. Vérifier l’audience, le texte, le PNG et le lien.
 7. Activer les publications lorsque les essais d’environnement sont terminés.
 
-Un index PostgreSQL empêche deux équipes de relier simultanément le même serveur. Les identifiants de commandes déjà reçues sont enregistrés pour éviter une seconde exécution lors d’un rejeu de la requête signée.
+Répéter ces étapes avec un nouveau code pour chaque autre équipe NXT5 du serveur. Une liaison ne reprend pas les destinations ni l’activation des équipes déjà connectées. Les identifiants de commandes déjà reçues sont enregistrés pour éviter une seconde exécution lors d’un rejeu de la requête signée.
+
+### Choisir l’équipe dans les commandes Discord
+
+`/nxt statut`, `/nxt pause` et `/nxt reprendre` proposent l’option facultative `equipe`. Les suggestions affichent le nom, le tag lorsqu’il existe et un identifiant court pour distinguer les homonymes ; la valeur transmise reste l’UUID de l’équipe.
+
+- Avec une seule équipe reliée au serveur, omettre `equipe` conserve le comportement habituel.
+- Avec plusieurs équipes reliées, choisir explicitement une suggestion. Une commande ambiguë est refusée sans modifier aucune équipe.
+- Les suggestions et les actions restent limitées aux équipes du serveur courant et aux responsables disposant des droits Discord requis. Un identifiant appartenant à un autre serveur est refusé.
+- Le salon depuis lequel la commande est lancée ne détermine jamais l’équipe. Aucune commande ne met toutes les équipes en pause ou en reprise d’un seul coup.
+- Le statut et les confirmations de pause ou de reprise nomment l’équipe concernée. `/nxt aide` rappelle le principe d’une invitation du bot et de plusieurs liaisons distinctes.
 
 ### Tester la connexion depuis le dashboard
 
@@ -238,6 +253,9 @@ Compléter cette liste dans le serveur pilote, puis conserver les liens des mess
 - [ ] Permission de joindre des fichiers retirée : erreur visible et reprise après réparation.
 - [ ] Retrait d’un message connu depuis NXT5 : retrait effectif et état conservé.
 - [ ] Commande sans droits Discord et compte NXT5 d’une autre équipe : accès refusé.
+- [ ] Deux équipes liées au même serveur : salons, règles, tests et historiques restent propres à chacune.
+- [ ] Plusieurs équipes liées : `/nxt pause` sans choix d’équipe est refusé ; un choix explicite ne suspend que cette équipe.
+- [ ] Déconnexion d’une équipe : l’autre liaison continue à fonctionner et le bot reste dans le serveur.
 
 L’objectif initial du plan est 95 % des publications sous deux minutes et 99 % sous cinq minutes après disponibilité des données. Ce sont des objectifs de pilote à mesurer, pas une garantie obtenue par les essais locaux. Le traitement traite normalement quatre travaux par lot et sérialise les lots ; un import massif ou de nombreuses destinations peut augmenter le délai.
 
@@ -285,7 +303,7 @@ Un identifiant de message d’un autre bot, d’un autre salon ou d’une autre 
 
 ### Pause ou déconnexion
 
-La pause empêche les nouveaux envois et garde les références nécessaires à la reprise. La déconnexion annule les travaux non envoyés et invalide les codes encore utilisables. Le retrait des anciens messages est une action distincte : déconnecter le bot ne supprime pas silencieusement l’historique visible dans Discord.
+La pause empêche les nouveaux envois de l’équipe ciblée et garde les références nécessaires à sa reprise. La déconnexion annule ses travaux non envoyés et invalide ses codes encore utilisables. Elle ne retire pas le bot du serveur et ne change ni les liaisons, ni les destinations, ni les états des autres équipes partageant ce serveur. Le retrait des anciens messages est une action distincte : déconnecter une équipe ne supprime pas silencieusement son historique visible dans Discord.
 
 Une requête déjà reçue par Discord ne peut pas être rappelée par un changement de réglage. Si une game est supprimée pendant cet appel, le worker conserve tout identifiant retourné pour permettre le retrait sans recréer la game.
 
@@ -343,7 +361,7 @@ Surveiller les opérations, le volume et la durée de conservation réels. Les r
 5. Conserver les tables et données de la migration Discord : elles sont nécessaires au diagnostic et à une reprise sans doublons.
 6. Ne pas remettre arbitrairement tous les travaux en `queued` et ne pas effacer les `message_id`.
 
-La migration est additive. Un retour du code ne doit pas être accompagné d’un effacement improvisé du registre ou des tables. Les déclencheurs restent présents tant que la migration reste en place ; la pause des connexions contrôle leur production de nouveaux travaux de publication.
+La migration initiale des publications est additive ; celle des serveurs partagés retire l’unicité du serveur entre équipes. Un retour du code ne doit pas être accompagné d’un effacement improvisé du registre ou des tables. Les déclencheurs restent présents tant que la migration reste en place ; la pause des connexions contrôle leur production de nouveaux travaux de publication. Lorsqu’un serveur possède plusieurs liaisons, conserver une version applicative compatible avec leur sélection explicite : l’ancien comportement supposant une seule équipe par serveur n’est plus adapté. Ne pas recréer l’ancien index unique sans avoir examiné les liaisons existantes.
 
 ### Restauration d’une sauvegarde Neon
 

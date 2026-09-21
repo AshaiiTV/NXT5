@@ -52,7 +52,7 @@ vi.mock('../../netlify/functions/_lib/publication-assets',()=>({putPublicationAs
 import { claimPublicationJob,enqueueManualPublication,recoverPublicationJobs,retryPublicationJob,classifyPublicationFailure,retryDelaySeconds } from '../../netlify/functions/_lib/discord-queue';
 import { processPublicationJob,reconcilePublications,resolvePublicationJob,publicationReference,publicationContentHash,dispatchPublicationBatch } from '../../netlify/functions/_lib/discord-worker';
 import { wakeDiscordPublications } from '../../netlify/functions/_lib/discord-wake';
-import { executeDiscordCommand } from '../../netlify/functions/discord-interactions';
+import { discordTeamChoices, executeDiscordCommand } from '../../netlify/functions/discord-interactions';
 import { maintainDiscordPublications } from '../../netlify/functions/_lib/discord-maintenance';
 
 const teamId='00000000-0000-4000-8000-000000000002';
@@ -82,6 +82,7 @@ beforeAll(async () => {
     .replace('create extension if not exists pgcrypto;','').replaceAll('gen_random_bytes(5)',"decode('0000000000','hex')");
   await database.pg.exec(schema);
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260915_discord_publications.sql',import.meta.url),'utf8'));
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260921_discord_shared_servers.sql',import.meta.url),'utf8'));
   await database.pg.exec("create table app_schema_migrations(migration_key text primary key);insert into app_schema_migrations values('discord-publications-20260915-v1')");
 },30_000);
 beforeEach(async () => {
@@ -548,6 +549,18 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
 
 describe('Discord command replay and server linkage against PostgreSQL',() => {
   const interaction=(id:string,name:string,code?:string)=>({id,guild_id:'100000000000000001',member:{user:{id:'100000000000000050'},permissions:'32'},data:{options:[{name,options:code ? [{name:'code',value:code}]:[]}]}});
+  const otherTeam='a0000000-0000-4000-8000-000000000006';
+  async function addSharedTeam(name='Academy',guild='100000000000000001') {
+    const otherOwner='a0000000-0000-4000-8000-000000000001';
+    await database.pg.query("insert into users(id,account_name,name,password_hash) values($1,'other-owner','Other owner','unused')",[otherOwner]);
+    await database.pg.query("insert into teams(id,owner_id,name,tag) values($1,$2,$3,'OTH')",[otherTeam,otherOwner,name]);
+    await database.pg.query("insert into discord_connections(team_id,guild_id,status,enabled_at) values($1,$2,'active',now()-interval '1 hour')",[otherTeam,guild]);
+  }
+  function teamInteraction(id:string,name:string,team:string) {
+    const command=interaction(id,name);
+    command.data.options[0].options=[{name:'equipe',value:team}];
+    return command;
+  }
   it('deduplicates a signed interaction ID and never re-executes a replayed pause',async () => {
     const command=interaction('100000000000000101','pause');
     const result=await executeDiscordCommand(command);
@@ -564,8 +577,7 @@ describe('Discord command replay and server linkage against PostgreSQL',() => {
     expect(await rows("select action from audit_logs where action='discord.pause'")).toHaveLength(1);
     expect(await rows('select interaction_id from discord_interaction_receipts')).toHaveLength(1);
   });
-  it('atomically allows one team per server and consumes only the winning team link code',async () => {
-    const otherTeam='00000000-0000-4000-8000-000000000006';
+  it('links two teams concurrently to the same server and consumes their own codes once',async () => {
     await database.pg.query("insert into teams(id,owner_id,name,tag) values($1,$2,'Other','OTH')",[otherTeam,userId]);
     await database.pg.exec("update discord_connections set guild_id=null,status='pending',enabled_at=null");
     await database.pg.query("insert into discord_connections(team_id,status) values($1,'pending')",[otherTeam]);
@@ -574,12 +586,75 @@ describe('Discord command replay and server linkage against PostgreSQL',() => {
       await database.pg.query("insert into discord_link_codes(team_id,created_by,code_hash,expires_at) values($1,$2,$3,now()+interval '10 minutes')",[team,userId,createHash('sha256').update(codes[index]).digest('hex')]);
     }
     const responses=await Promise.all(codes.map((code,index)=>executeDiscordCommand(interaction(`10000000000000011${index}`,'connecter',code))));
-    expect(responses.filter(response=>response.startsWith('Serveur relié'))).toHaveLength(1);
-    expect(await rows("select team_id from discord_connections where guild_id='100000000000000001' and status<>'disconnected'")).toHaveLength(1);
-    expect(await rows('select id from discord_link_codes where consumed_at is not null')).toHaveLength(1);
-    expect(await rows("select action from audit_logs where action='discord.connected'")).toHaveLength(1);
-    const [loser]=await rows('select team_id from discord_connections where guild_id is null');
-    await expect(database.pg.query("update discord_connections set guild_id='100000000000000001' where team_id=$1",[loser.team_id])).rejects.toMatchObject({code:'23505',constraint:'discord_connections_active_guild'});
+    expect(responses.filter(response=>response.startsWith('Serveur relié'))).toHaveLength(2);
+    expect(await rows("select team_id from discord_connections where guild_id='100000000000000001' and status='paused'")).toHaveLength(2);
+    expect(await rows('select id from discord_link_codes where consumed_at is not null')).toHaveLength(2);
+    expect(await rows("select action from audit_logs where action='discord.connected'")).toHaveLength(2);
+    expect(await executeDiscordCommand(interaction('100000000000000119','connecter',codes[0]))).toContain('déjà utilisé');
+    expect(await rows("select config_version from discord_connections order by team_id")).toEqual([{config_version:2},{config_version:2}]);
+  });
+  it.each(['pause','reprendre','statut'])('requires an explicit team for %s on a shared server',async name => {
+    await addSharedTeam();
+    const before=await rows('select team_id,status,config_version from discord_connections order by team_id');
+    expect(await executeDiscordCommand(interaction('100000000000000120',name))).toContain('Choisis l’équipe');
+    expect(await rows('select team_id,status,config_version from discord_connections order by team_id')).toEqual(before);
+    expect(await rows("select action from audit_logs where action in ('discord.pause','discord.resume')")).toEqual([]);
+  });
+  it('pauses and resumes only the selected team and names it in the response',async () => {
+    await addSharedTeam();
+    expect(await executeDiscordCommand(teamInteraction('100000000000000121','pause',teamId))).toContain('NXT5 test');
+    expect(await rows('select team_id,status from discord_connections order by team_id')).toEqual([{team_id:teamId,status:'paused'},{team_id:otherTeam,status:'active'}]);
+    await database.pg.query("update discord_connections set status='paused' where team_id=$1",[otherTeam]);
+    expect(await executeDiscordCommand(teamInteraction('100000000000000122','reprendre',teamId))).toContain('Connexion active pour NXT5 test');
+    expect(await rows('select team_id,status from discord_connections order by team_id')).toEqual([{team_id:teamId,status:'active'},{team_id:otherTeam,status:'paused'}]);
+    expect(await executeDiscordCommand(teamInteraction('100000000000000123','statut',otherTeam))).toContain('Academy : en pause');
+    expect((await rows("select entity_id from audit_logs where action in ('discord.pause','discord.resume')")).every(row=>row.entity_id===teamId)).toBe(true);
+  });
+  it('rejects foreign and disconnected teams, including explicit IDs',async () => {
+    await addSharedTeam('Foreign','100000000000000099');
+    expect(await executeDiscordCommand(teamInteraction('100000000000000124','pause',otherTeam))).toContain('n’est pas reliée');
+    await database.pg.query("update discord_connections set guild_id='100000000000000001',status='disconnected' where team_id=$1",[otherTeam]);
+    expect(await executeDiscordCommand(teamInteraction('100000000000000125','reprendre',otherTeam))).toContain('n’est pas reliée');
+    expect(await rows('select status from discord_connections where team_id=$1',[teamId])).toEqual([{status:'active'}]);
+    expect(await rows("select action from audit_logs where action in ('discord.pause','discord.resume')")).toEqual([]);
+  });
+  it('accepts an unambiguous exact name but requires a stable ID for duplicate names',async () => {
+    await addSharedTeam('NXT5 test');
+    expect(await executeDiscordCommand(teamInteraction('100000000000000126','pause','nxt5 TEST'))).toContain('Plusieurs équipes');
+    expect(await rows("select team_id from discord_connections where status='paused'")).toEqual([]);
+    expect(await executeDiscordCommand(teamInteraction('100000000000000127','pause',otherTeam))).toContain('NXT5 test');
+    await database.pg.query("update teams set name='Academy' where id=$1",[otherTeam]);
+    expect(await executeDiscordCommand(teamInteraction('100000000000000128','statut','ACADEMY'))).toContain('Academy : en pause');
+  });
+  it('prioritizes stable IDs over lookalike names, normalizes UUID case and escapes response labels',async () => {
+    await addSharedTeam('[Academy](https://example.test)');
+    await database.pg.query('update teams set name=$2 where id=$1',[teamId,otherTeam.toUpperCase()]);
+    const result=await executeDiscordCommand(teamInteraction('100000000000000130','pause',otherTeam.toUpperCase()));
+    expect(result).toContain('\\[Academy\\]\\(https://example.test\\)');
+    expect(await rows('select team_id,status from discord_connections order by team_id')).toEqual([{team_id:teamId,status:'active'},{team_id:otherTeam,status:'paused'}]);
+  });
+  it('suggests only linked teams of the current server with stable distinct IDs and literal search',async () => {
+    await addSharedTeam('NXT5 test');
+    const autocomplete=(search:string,guild='100000000000000001',permissions='32')=>({...interaction('100000000000000129','pause'),guild_id:guild,member:{user:{id:'100000000000000050'},permissions},data:{options:[{name:'pause',options:[{name:'equipe',value:search,focused:true}]}]}});
+    const choices=await discordTeamChoices(autocomplete('nxt5'));
+    expect(choices.map(choice=>choice.value)).toEqual([teamId,otherTeam]);
+    expect(new Set(choices.map(choice=>choice.name)).size).toBe(2);
+    expect(await discordTeamChoices(autocomplete('%'))).toEqual([]);
+    expect(await discordTeamChoices(autocomplete('','100000000000000099'))).toEqual([]);
+    expect(await discordTeamChoices(autocomplete('','100000000000000001','0'))).toEqual([]);
+    await database.pg.query("update discord_connections set status='disconnected' where team_id=$1",[otherTeam]);
+    expect((await discordTeamChoices(autocomplete(''))).map(choice=>choice.value)).toEqual([teamId]);
+    expect(await rows('select * from discord_interaction_receipts')).toEqual([]);
+  });
+  it('caps autocomplete at 25 teams while search finds teams beyond the first page',async () => {
+    for(let i=0;i<30;i++) {
+      const id=`b0000000-0000-4000-8000-${String(i).padStart(12,'0')}`;
+      await database.pg.query("insert into teams(id,owner_id,name,tag) values($1,$2,$3,'NXT')",[id,userId,`Academy ${String(i).padStart(2,'0')}`]);
+      await database.pg.query("insert into discord_connections(team_id,guild_id,status) values($1,'100000000000000001','paused')",[id]);
+    }
+    const query=(value:string)=>({...interaction('100000000000000131','statut'),data:{options:[{name:'statut',options:[{name:'equipe',value,focused:true}]}]}});
+    expect(await discordTeamChoices(query(''))).toHaveLength(25);
+    expect(await discordTeamChoices(query('Academy 29'))).toEqual([{name:'Academy 29 [NXT] · 00000029',value:'b0000000-0000-4000-8000-000000000029'}]);
   });
 });
 

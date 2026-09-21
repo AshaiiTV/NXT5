@@ -50,11 +50,40 @@ describe("Discord settings and permissions", () => {
   it("reserves connection settings to owners and captains", async () => {
     const renderer = await mount(<DiscordSettings teamId="team" teamName="NXT" canPublish />);
     expect(text(renderer.root)).toContain("Seuls le propriétaire et les capitaines");
-    expect(button(renderer, "Déconnecter le serveur")).toBeUndefined();
+    expect(button(renderer, "Délier cette équipe")).toBeUndefined();
     expect(button(renderer, "Mettre en pause")).toBeUndefined();
     expect(button(renderer, "Enregistrer les destinations")).toBeUndefined();
     expect(renderer.root.findAllByType("fieldset").some((item) => item.props.disabled)).toBe(true);
     expect(posts()).toEqual([]);
+  });
+
+  it("lets a team skip the invitation when the shared server already has the bot", async () => {
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { configured: true, enabled: true, connection: null, installUrl: "https://discord.com/oauth2/authorize?client_id=123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
+    const renderer = await mount(<DiscordSettings teamId="second-team" teamName="Équipe B" canManage />);
+    expect(text(openPanel(renderer)[0])).toContain("Invite NXT5 une seule fois sur le serveur");
+    expect(text(openPanel(renderer)[0])).toContain("Si le bot est déjà présent, passe directement à Relier");
+    await click(renderer, "Passer à Relier");
+    expect(installationTabs(renderer)[1].props["aria-selected"]).toBe(true);
+    expect(text(openPanel(renderer)[0])).toContain("Chaque équipe crée son propre code");
+    expect(posts()).toEqual([]);
+  });
+
+  it("requires confirmation to unlink only the selected team from a shared server", async () => {
+    let linked = true;
+    apiFetch.mockImplementation(async (path, options) => {
+      if (options?.method === "POST") { linked = false; return { ok: true }; }
+      if (path.startsWith("team-discord-connection")) return linked ? connection : { ...connection, connection: { ...connection.connection, status: "disconnected" } };
+      return path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] };
+    });
+    const renderer = await mount(<DiscordSettings teamId="first-team" teamName="Équipe A" canManage />);
+    expect(text(openPanel(renderer)[0])).toContain("Ces destinations et leurs règles s’appliquent uniquement à cette équipe");
+    await click(renderer, "Délier cette équipe");
+    expect(posts()).toEqual([]);
+    expect(text(renderer.root)).toContain("Le bot reste sur le serveur et les autres équipes gardent leurs liaisons, leurs réglages et leurs envois");
+    await click(renderer, "Confirmer la déliaison");
+    expect(posts()).toEqual([["team-discord-connection", { teamId: "first-team", action: "disconnect" }]]);
+    expect(text(renderer.root)).toContain("Les autres équipes restent connectées");
+    expect(button(renderer, "Délier cette équipe")).toBeUndefined();
   });
 
   it("creates a single-use link and disables copying after expiration", async () => {
