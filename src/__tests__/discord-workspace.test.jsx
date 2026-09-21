@@ -29,7 +29,7 @@ describe("Discord workspace access and navigation", () => {
     expect(canonicalAudiencePath("/bot-discord?code=private-code")).toBe("/bot-discord");
   });
 
-  it("provides the dashboard as a selected primary item and closes the mobile menu on selection", () => {
+  it("provides the dashboard as a selected navigation item and closes the mobile menu on selection", () => {
     const setActive = vi.fn(); const setOpen = vi.fn();
     render(<Sidebar active="bot-discord" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />);
     const entry = renderer.root.findByProps({ "aria-label": "Bot Discord" });

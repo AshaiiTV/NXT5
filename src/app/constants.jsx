@@ -36,8 +36,8 @@ export const NAV = [
   { id: "account-subscriptions", label: "Profils et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
 ];
 
-export const PRIMARY_NAV_IDS = ["teams", "matches", "bot-discord", "planning", "profile"];
-export const MORE_NAV_IDS = ["reports", "trends", "draft"];
+export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
+export const MORE_NAV_IDS = ["reports", "trends", "draft", "bot-discord"];
 
 export const DRAFT_VIEW_ROUTES = [
   { id: "pool", label: "Champion Pool", path: "pool" },
