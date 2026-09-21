@@ -1,0 +1,134 @@
+import React, { useEffect, useRef, useState } from "react";
+import { ExternalLink, Link2, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { apiFetch } from "../../api/client.js";
+import { Badge, Button, TextInput } from "../ui/Core.jsx";
+import "./discord.css";
+
+export const discordQuery = (endpoint, values) => `${endpoint}?${new URLSearchParams(Object.entries(values).filter(([, value]) => value != null && value !== ""))}`;
+export const discordPost = (body) => ({ method: "POST", body: JSON.stringify(body) });
+
+export function useDiscordResource(path, revision = 0) {
+  const [state, setState] = useState({ path: null, data: null, loading: true, error: "" });
+  useEffect(() => {
+    const controller = new AbortController();
+    setState({ path, data: null, loading: Boolean(path), error: "" });
+    if (path) apiFetch(path, { signal: controller.signal }).then((data) => {
+      if (!controller.signal.aborted) setState({ path, data, loading: false, error: "" });
+    }).catch((error) => {
+      if (!controller.signal.aborted) setState({ path, data: null, loading: false, error: error.message });
+    });
+    return () => controller.abort();
+  }, [path, revision]);
+  return state.path === path ? state : { data: null, loading: Boolean(path), error: "" };
+}
+
+// A remount cancels work for the previous team or game. A cancelled POST may have
+// reached the server; its result must never populate the newly selected context.
+export function useDiscordAction() {
+  const controller = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  useEffect(() => () => controller.current?.abort(), []);
+  async function run(path, body, onSuccess, successText = "") {
+    if (controller.current && !controller.current.signal.aborted) return;
+    const request = new AbortController();
+    controller.current = request;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const result = await apiFetch(path, { ...discordPost(body), signal: request.signal });
+      if (!request.signal.aborted) { onSuccess?.(result); setNotice(successText); }
+    } catch (err) {
+      if (!request.signal.aborted) setError(err.message);
+    } finally {
+      if (!request.signal.aborted) { controller.current = null; setBusy(false); }
+    }
+  }
+  return { run, busy, error, notice, clear: () => { setError(""); setNotice(""); } };
+}
+
+export function DiscordFeedback({ error, notice, loading }) {
+  return <>{loading && <p role="status" className="discord-loading"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement de Discord…</p>}{error && <p role="alert" className="discord-feedback discord-feedback-error">{error}</p>}{notice && <p role="status" className="discord-feedback">{notice}</p>}</>;
+}
+
+export function safeDiscordUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && ["discord.com", "www.discord.com"].includes(url.hostname) && !url.username && !url.password ? url.href : null;
+  } catch { return null; }
+}
+
+export function DiscordLink({ href, children }) {
+  const safeHref = safeDiscordUrl(href);
+  return safeHref ? <a className="discord-link" href={safeHref} target="_blank" rel="noopener noreferrer">{children}<ExternalLink aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="sr-only"> (nouvel onglet)</span></a> : null;
+}
+
+const STATUS = {
+  queued: ["En attente", "cyan"], preparing: ["Préparation", "cyan"], retry_wait: ["Nouvel essai prévu", "yellow"], sending: ["Envoi en cours", "cyan"],
+  uncertain: ["Envoi à vérifier", "yellow"], unknown: ["Envoi à vérifier", "yellow"], succeeded: ["Publié", "green"], sent: ["Publié", "green"],
+  superseded: ["Version remplacée", "slate"], blocked: ["Action requise", "red"], failed: ["Échec", "red"], cancelled: ["Annulé", "slate"],
+  removed: ["Retiré", "slate"], withdrawn: ["Retiré", "slate"], withdrawal_pending: ["Retrait à réessayer", "yellow"], pending: ["En attente", "cyan"],
+};
+
+export function DiscordStatus({ status }) {
+  const [label, tone] = STATUS[status] || ["État indisponible", "slate"];
+  return <Badge tone={tone}>{label}</Badge>;
+}
+
+export function DiscordPreview({ preview }) {
+  if (!preview) return null;
+  const message = preview.message || {};
+  const image = typeof preview.imageDataUrl === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=\s]+$/.test(preview.imageDataUrl) ? preview.imageDataUrl : null;
+  return <section className="discord-preview" aria-label="Aperçu de la publication">
+    <h4>Aperçu de la publication</h4>
+    {!!message.content && <p className="discord-message-content">{message.content}</p>}
+    {(message.embeds || []).map((embed, index) => <div className="discord-embed" key={index}>
+      {embed.title && <h5>{embed.title}</h5>}{embed.description && <p className="discord-message-content">{embed.description}</p>}
+      {!!embed.fields?.length && <dl className="discord-embed-fields">{embed.fields.map((field, i) => <div key={i}><dt>{field.name}</dt><dd>{field.value}</dd></div>)}</dl>}
+      {embed.footer?.text && <p className="discord-help">{embed.footer.text}</p>}
+    </div>)}
+    {image ? <><img className="discord-preview-image" src={image} alt="Visuel NXT5 de la game, reprenant les statistiques de la publication" /><a className="discord-link" href={image} download="nxt5-discord-apercu.png">Télécharger le visuel pour le voir en détail</a></> : <p className="discord-help">Visuel indisponible pour cet aperçu.</p>}
+    {preview.snapshotRevision != null && <p className="discord-help">Version des données : {preview.snapshotRevision}</p>}
+  </section>;
+}
+
+export function DiscordHistory({ teamId, matchId, revision = 0, canPublish = false }) {
+  return <DiscordHistoryContent key={`${teamId}:${matchId || "all"}`} {...{ teamId, matchId, revision, canPublish }} />;
+}
+
+function DiscordHistoryContent({ teamId, matchId, revision, canPublish }) {
+  const [localRevision, setLocalRevision] = useState(0);
+  const [removeId, setRemoveId] = useState(null);
+  const [resolution, setResolution] = useState(null);
+  const history = useDiscordResource(discordQuery("team-discord-deliveries", { teamId, matchId }), `${revision}:${localRevision}`);
+  const action = useDiscordAction();
+  const reload = () => setLocalRevision((value) => value + 1);
+  const deliveries = (history.data?.deliveries || []).filter((item) => !matchId || item.matchId === matchId);
+  return <section className="discord-section" aria-label="Historique Discord">
+    <div className="discord-heading"><h4>Historique des publications</h4><Button type="button" variant="ghost" icon={RefreshCw} disabled={history.loading || action.busy} onClick={reload}>Actualiser l’historique</Button></div>
+    <DiscordFeedback error={history.error || action.error} notice={action.notice} loading={history.loading} />
+    {!history.loading && !history.error && deliveries.length === 0 && <p>Aucune publication pour le moment.</p>}
+    <ol className="discord-history">{deliveries.map((item) => {
+      const uncertain = ["uncertain", "unknown"].includes(item.status);
+      return <li key={item.id}>
+        <div className="discord-heading"><strong>{item.matchLabel || "Game NXT5"}</strong><DiscordStatus status={item.status} /></div>
+        <p className="discord-help">{item.channelName ? `#${item.channelName.replace(/^#/, "")}` : "Salon Discord"}{item.createdAt ? ` · ${new Date(item.createdAt).toLocaleString("fr-FR")}` : ""}</p>
+        {item.lastError && <p className="discord-history-error">{item.lastError}</p>}
+        {uncertain && <p>La réception du message doit être vérifiée avant tout nouvel envoi.</p>}
+        <div className="discord-actions"><DiscordLink href={item.messageUrl}>Voir sur Discord</DiscordLink>
+          {canPublish && item.canResolve === true && uncertain && resolution?.id !== item.id && <Button type="button" variant="ghost" disabled={action.busy} icon={Link2} onClick={() => setResolution({ id: item.id, messageId: "" })}>Associer le message existant</Button>}
+          {canPublish && item.canRetry === true && !uncertain && <Button type="button" variant="ghost" disabled={action.busy} icon={RefreshCw} onClick={() => action.run("team-discord-retry", { teamId, deliveryId: item.id, action: "retry" }, reload, "La reprise a été demandée.")}>Réessayer</Button>}
+          {canPublish && item.canRemove === true && removeId !== item.id && <Button type="button" variant="danger" disabled={action.busy} icon={Trash2} onClick={() => setRemoveId(item.id)}>Retirer le message</Button>}
+        </div>
+        {canPublish && item.canResolve === true && uncertain && resolution?.id === item.id && <form className="discord-confirm" onSubmit={(event) => { event.preventDefault(); if (/^\d{17,20}$/.test(resolution.messageId)) action.run("team-discord-retry", { teamId, deliveryId: item.id, action: "resolve", messageId: resolution.messageId }, () => { setResolution(null); reload(); }, "Le message existant a été associé à la publication."); }}>
+          <p>Dans Discord, active le mode développeur dans les paramètres avancés, puis ouvre le menu du message envoyé par le bot et choisis « Copier l’identifiant du message ».</p>
+          <p className="discord-help">NXT5 vérifiera l’auteur, le salon et la référence de cette publication avant de l’associer. Cette action ne renvoie aucun message.</p>
+          <TextInput label="Identifiant du message Discord" value={resolution.messageId} onChange={(value) => setResolution({ id: item.id, messageId: value.trim() })} required inputMode="numeric" pattern="[0-9]{17,20}" minLength={17} maxLength={20} autoComplete="off" autoFocus disabled={action.busy} />
+          <div className="discord-actions"><Button type="submit" icon={Link2} disabled={action.busy || !/^\d{17,20}$/.test(resolution.messageId)}>Vérifier et associer</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setResolution(null)}>Annuler l’association</Button></div>
+        </form>}
+        {removeId === item.id && <div className="discord-confirm"><p>Retirer cette publication et son visuel de Discord ? La game restera dans NXT5.</p><div className="discord-actions"><Button type="button" variant="danger" disabled={action.busy} onClick={() => action.run("team-discord-retry", { teamId, deliveryId: item.id, action: "remove" }, () => { setRemoveId(null); reload(); }, "Le retrait du message a été demandé.")}>Confirmer le retrait</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setRemoveId(null)}>Annuler</Button></div></div>}
+      </li>;
+    })}</ol>
+    {history.data?.hasMore && <p className="discord-help">Les publications les plus récentes sont affichées.</p>}
+  </section>;
+}

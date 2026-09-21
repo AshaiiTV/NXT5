@@ -4,6 +4,8 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { fetchRiotMatch } from './_lib/riot';
 import { persistAnalyzedMatch } from './_lib/analytics';
+import { wakeDiscordPublications } from './_lib/discord-wake';
+import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
 import { sendNotification } from './_mailer.js';
@@ -47,11 +49,12 @@ async function runOptionalImportTask(label: string, task: () => Promise<unknown>
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
-    assertSessionSecret();
     assertMethod(request, 'POST');
+    const body = await readJson(request);
+    if (!body.previewOnly) assertMatchSourceMutationEnvironment(context);
+    assertSessionSecret();
     await assertRateLimit(request, 'match-import', { limit: 20, windowSeconds: 60 });
     const user = await requireAuth(request, context);
-    const body = await readJson(request);
 
     let gameId = String(body.gameId || '').trim().toUpperCase();
     const teamId = String(body.teamId || '').trim();
@@ -110,6 +113,7 @@ export default async function handler(request: Request, context: Context): Promi
       });
     }
     const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds });
+    wakeDiscordPublications(context);
 
     await runOptionalImportTask('audit log', () => sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

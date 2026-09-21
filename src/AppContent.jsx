@@ -238,7 +238,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
-  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore);
+  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore, route.search);
   const independentAccountPage = active === "account-settings";
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);

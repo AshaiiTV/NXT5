@@ -1,0 +1,124 @@
+import { describe, expect, it } from 'vitest';
+import { buildGamePublicationSnapshot, publicationNumber } from '../../shared/publications/game-publication.js';
+import { publicationFixture } from '../../shared/publications/fixtures.js';
+import { matchCoachSnapshot, matchPlayerCoachReads, buildGameReviewContent } from '../pages/workspace/GameWorkspace.jsx';
+
+describe('shared NXT5 game publication', () => {
+  it('runs without the browser and uses the exact coach model in NXT5 and its reviews', () => {
+    const input = publicationFixture();
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(matchCoachSnapshot(input.match)).toEqual(buildGamePublicationSnapshot({ match: input.match }).coach);
+    expect(matchPlayerCoachReads(input.match)).toEqual(snapshot.coach.playerReads);
+    expect(buildGameReviewContent(input.match)).toContain(snapshot.coach.summary);
+    expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot);
+    expect(snapshot.facts.gold.diff).toBe(5000);
+    expect(snapshot.facts.kills.ally).toBe(24);
+    expect(snapshot.facts.kills.enemy).toBe(18);
+    expect(snapshot.context.categories).toEqual([{ id: 'scrims', name: 'Exemple fictif · Scrims' }]);
+  });
+  it('keeps missing values absent and uses measured raw fallback consistently with the other exports', () => {
+    expect([null, undefined, '', ' ', false, {}, NaN, Infinity].map(publicationNumber)).toEqual(Array(8).fill(null));
+    expect(publicationNumber('0')).toBe(0);
+    const input = publicationFixture();
+    input.match.participants[0].gold = null;
+    input.match.participants[0].raw.stats = { goldEarned: '99 999', visionScore: 0 };
+    input.match.participants[0].vision = null;
+    input.match.participants[1].damage = null;
+    input.match.raw.info.teams[0].objectives.dragon.kills = null;
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(snapshot.participants[0].gold).toBe(99999);
+    expect(snapshot.participants[0].vision).toBe(0);
+    expect(snapshot.facts.gold.ally).toBe(153249);
+    expect(snapshot.facts.gold.diff).toBe(91999);
+    expect(snapshot.facts.damage.ally).toBeNull();
+    expect(snapshot.facts.dragons.ally).toBeNull();
+    expect(snapshot.facts.heralds.ally).toBe(0);
+  });
+  it('retains final CS, percentage, patch and safe loadout IDs without treating missing components as zero', () => {
+    const input = publicationFixture();
+    const first = input.match.participants[0];
+    delete first.cs;
+    for (let slot = 0; slot <= 6; slot++) delete first.raw[`item${slot}`];
+    first.raw.stats = { totalMinionsKilled: 100, neutralMinionsKilled: null, items: [3006, 0, null, 3031, 0, 0, 3340], summonerSpells: [4, 12] };
+    first.kill_participation = '60 %';
+    first.raw.totalMinionsKilled = 100;
+    first.raw.neutralMinionsKilled = 15;
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(snapshot.participants[0]).toMatchObject({ cs: 115, participation: 60, items: [3006, 0, null, 3031, 0, 0], trinket: 3340, spells: [4, 12] });
+    expect(snapshot.context.patch).toBe('16.18');
+    delete first.raw.totalMinionsKilled;
+    expect(buildGamePublicationSnapshot(input).participants[0].cs).toBeNull();
+    first.kill_participation = false;
+    expect(buildGamePublicationSnapshot(input).participants[0].participation).toBeCloseTo(11 / 24 * 100);
+    input.match.duration = '30:99';
+    input.match.raw.info.gameDuration = null;
+    expect(buildGamePublicationSnapshot(input).context.duration).toBeNull();
+  });
+  it('requires all five participants and detects duplicate identities for team totals', () => {
+    const input = publicationFixture({ incomplete: true });
+    const incomplete = buildGamePublicationSnapshot(input);
+    expect(incomplete.facts.kills.enemy).toBeNull();
+    expect(incomplete.facts.kills.ally).toBe(24);
+    input.match.participants[1].raw.participantId = 1;
+    const duplicate = buildGamePublicationSnapshot(input);
+    expect(duplicate.facts.kills.ally).toBeNull();
+    expect(duplicate.coverage.warnings.join(' ')).toContain('dupliqués');
+  });
+  it('keeps missing combat data unavailable when a summary only contains CS milestones', () => {
+    const input = publicationFixture({ timeline: false });
+    input.match.raw.nxt5 = { timelineEvents: [], timelineSummary: { available: true, csMilestones: { '1': { cs10: 0 } } } };
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(snapshot.coverage.timeline.status).toBe('milestones');
+    expect(snapshot.coach.metrics.find(([label]) => label === 'Fights')[1]).toBe('Indisponible');
+    expect(snapshot.coach.playerReads[0].catchText).toContain('indisponibles');
+    expect(snapshot.participants[0].cs10).toBe(0);
+    expect(snapshot.coach.summary).not.toMatch(/se gagne|se perd|portée par|cause racine/);
+  });
+  it('uses corrected team assignments and roles for sides, totals and combat attribution', () => {
+    const input = publicationFixture();
+    for (const row of input.match.participants) row.team_key = row.team_key === 'ALLY' ? 'ENEMY' : 'ALLY';
+    input.match.participants[5].role = 'SUP';
+    input.match.participants[9].role = 'TOP';
+    input.match.side = 'RED';
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(snapshot.context.allySide).toBe('red');
+    expect(snapshot.context.enemySide).toBe('blue');
+    expect(snapshot.facts.gold.diff).toBe(-5000);
+    expect(snapshot.facts.dragons.ally).toBe(1);
+    expect(snapshot.facts.dragons.enemy).toBe(3);
+    expect(snapshot.coach.playerReads.find((row) => row.name === 'Joueur exemple 6').role).toBe('SUP');
+    expect(snapshot.coach.metrics.find(([label]) => label === 'Fights')[1]).toBe('0 – 1');
+  });
+  it('does not leak raw data, notes, user IDs or import dates into the exported model', () => {
+    const input = publicationFixture({ timeline: false });
+    input.match.raw.info.gameStartTimestamp = null;
+    input.match.created_at = '2026-09-15T10:00:00Z';
+    input.match.raw.notes = 'PRIVATE_STAFF_NOTE';
+    input.match.participants[0].user_id = 'PRIVATE_USER_ID';
+    input.match.participants[0].raw.puuid = 'PRIVATE_PUUID';
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(snapshot.playedAt).toBeNull();
+    expect(JSON.stringify(snapshot)).not.toMatch(/PRIVATE_|created_at|puuid|user_id/);
+    const second = buildGamePublicationSnapshot({ ...input, generatedAt: '2026-09-16T12:00:00Z' });
+    const { generatedAt, ...firstContent } = snapshot;
+    const { generatedAt: later, ...secondContent } = second;
+    expect(firstContent).toEqual(secondContent);
+    expect(generatedAt).not.toBe(later);
+  });
+  it('rejects a mismatched team or a participant from another game', () => {
+    const input = publicationFixture();
+    expect(() => buildGamePublicationSnapshot({ ...input, team: { id: 'another-team' } })).toThrow('équipe');
+    input.match.participants[0].match_id = 'another-match';
+    expect(() => buildGamePublicationSnapshot(input)).toThrow('participant');
+  });
+  it('parses database JSON strings and refuses objectives for contradictory team sides', () => {
+    const input = publicationFixture();
+    input.match.participants[1].raw.teamId = 200;
+    input.match.raw = JSON.stringify(input.match.raw);
+    input.match.participants[0].raw = JSON.stringify(input.match.participants[0].raw);
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(snapshot.context.allySide).toBeNull();
+    expect(snapshot.facts.dragons.ally).toBeNull();
+    expect(snapshot.participants[0].participantId).toBe(1);
+  });
+});

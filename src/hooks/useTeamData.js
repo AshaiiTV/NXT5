@@ -4,14 +4,17 @@ import { DEFAULT_DATA } from "../app/constants.jsx";
 
 const MATCH_BATCH_SIZE = 100;
 
-export function useTeamData(planningStore) {
+export function useTeamData(planningStore, routeSearch = "") {
+  // Bootstrap checks membership before returning anything for this team. Keep
+  // the URL intact so the game/review selection survives login and pagination.
+  const linkedTeamId = new URLSearchParams(routeSearch).get("team")?.trim() || null;
   const [data, setData] = useState(DEFAULT_DATA);
-  const [selectedTeamId, setSelectedId] = useState(null);
+  const [selectedTeamId, setSelectedId] = useState(linkedTeamId);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(null);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [apiError, setApiError] = useState("");
-  const selected = useRef(null);
+  const selected = useRef(linkedTeamId);
   const latestData = useRef(data);
   latestData.current = data;
   const generation = useRef(0);
@@ -29,6 +32,10 @@ export function useTeamData(planningStore) {
       setLoadingProgress(null);
     }
   }, []);
+
+  useEffect(() => {
+    if (linkedTeamId && linkedTeamId !== selected.current) setSelectedTeamId(linkedTeamId);
+  }, [routeSearch, linkedTeamId, setSelectedTeamId]);
 
   const refreshAll = useCallback(async (options = {}) => {
     const teamId = options.teamId ?? selected.current;
@@ -105,5 +112,5 @@ export function useTeamData(planningStore) {
   }, [selectedTeamId, data.selectedTeamId, refreshAll]);
 
   return { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped,
-    bootstrapReady: data.historyComplete === true, apiError, refreshAll };
+    bootstrapReady: data.historyComplete === true && data.selectedTeamId === selectedTeamId, apiError, refreshAll };
 }

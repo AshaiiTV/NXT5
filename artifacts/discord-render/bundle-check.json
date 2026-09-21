@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-09-21T13:49:10.309Z",
+  "checked": [
+    {
+      "name": "discord-publish-background",
+      "runtime": "nodejs24.x",
+      "invocationMode": "background",
+      "native": "linux-x64-gnu",
+      "nativeBytes": 34761216,
+      "fonts": 4,
+      "logo": true
+    },
+    {
+      "name": "team-discord-preview",
+      "runtime": "nodejs24.x",
+      "invocationMode": "stream",
+      "native": "linux-x64-gnu",
+      "nativeBytes": 34761216,
+      "fonts": 4,
+      "logo": true
+    },
+    {
+      "name": "publication-asset",
+      "runtime": "nodejs24.x",
+      "invocationMode": "stream",
+      "native": "linux-x64-gnu",
+      "nativeBytes": 34761216,
+      "fonts": 4,
+      "logo": true
+    }
+  ]
+}

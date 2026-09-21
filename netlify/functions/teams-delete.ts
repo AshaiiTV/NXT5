@@ -2,11 +2,13 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
-    assertSessionSecret();
     assertMethod(request, 'POST');
+    assertMatchSourceMutationEnvironment(context);
+    assertSessionSecret();
     const user = await requireAuth(request, context);
     const body = await readJson(request);
 

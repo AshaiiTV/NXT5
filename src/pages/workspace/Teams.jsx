@@ -9,6 +9,7 @@ import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, sortPlayersByRole, teamMatchRows, buildStaffAlerts, normalizeProfileRole, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Teams.css";
+import DiscordSettings from "../../components/discord/DiscordSettings.jsx";
 
 const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
 const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
@@ -438,6 +439,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     {selectedTeam ? <div className="space-y-5">
       <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} />
       <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} />
+      <DiscordSettings teamId={selectedTeam.id} teamName={selectedTeam.name} canManage={canDeleteTeam} canPublish={canManageTeam} />
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
