@@ -208,6 +208,18 @@ Cette commande écrit dans Discord : elle crée ou met à jour uniquement `/nxt`
 
 Un index PostgreSQL empêche deux équipes de relier simultanément le même serveur. Les identifiants de commandes déjà reçues sont enregistrés pour éviter une seconde exécution lors d’un rejeu de la requête signée.
 
+### Tester la connexion depuis le dashboard
+
+Le dashboard `/bot-discord` propose un exemple explicitement fictif avant d’activer les publications automatiques. `GET /.netlify/functions/team-discord-test?teamId=…` retourne un message, un PNG synthétique, le dernier reçu de test de l’équipe (`latestTest`) et les reçus non confirmés des destinations courantes (`pendingTests`, au maximum dix). Le visuel fixe est conservé en mémoire de la Function ; ce parcours ne lit aucune game ni note réelle.
+
+Le propriétaire ou capitaine déclenche `POST team-discord-test` avec `{ teamId, routeId, requestId }`, où `requestId` est un UUID conservé tant que le résultat reste inconnu. Le salon doit appartenir aux destinations enregistrées de cette équipe ; ses droits sont vérifiés auprès de Discord. La connexion peut être en pause. Le drapeau global `DISCORD_PUBLISHING_ENABLED` doit autoriser l’envoi. Le test publie un message et un PNG sans aucune mention, puis conserve le lien Discord, le serveur, le salon et la version de configuration vérifiés. Il ne change ni l’activation de l’équipe ni la file des games.
+
+La migration additive `discord-connection-tests-20260921-v1` ajoute les reçus `discord_connection_tests`. Une contrainte unique empêche deux envois non confirmés vers la même destination. Le même UUID retourne toujours le reçu existant : un double clic ou une réponse perdue ne déclenche pas un second message. Une nouvelle requête vers un salon déjà bloqué retourne son reçu précédent, même si son UUID diffère, afin de permettre son rapprochement après un rechargement. Un envoi figé plus de 90 secondes est présenté comme incertain. Répéter sa requête recherche uniquement le message du bot portant sa référence dans les 100 derniers messages ; l’absence de résultat ne prouve pas l’absence d’envoi et n’autorise aucune republication. Un refus explicite de Discord est enregistré comme échec ; l’utilisateur peut demander un nouveau test avec un nouvel UUID. Le budget partagé de l’équipe est de trois nouvelles requêtes de test par cinq minutes.
+
+Le frontend ne valide l’étape que si le reçu réussi correspond encore au serveur, à la version de configuration, à la destination et au salon enregistrés. La santé de connexion est indépendante : `team-discord-connection` fournit `health.checkedAt`, `health.verified` et `health.errorCode` après vérification du bot sur le serveur. Un ancien test réussi ne signifie donc pas que les permissions sont toujours valides.
+
+`GET team-discord-routes` retourne les routes, `guildId` et `configVersion` dans un seul snapshot SQL. Le récapitulatif d’activation reprend cette version. `POST team-discord-connection` avec `action: "resume"` exige `expectedGuildId` et `expectedConfigVersion` et refuse une configuration périmée avec `DISCORD_CONFIG_CHANGED`, y compris si elle change pendant le contrôle des permissions. Le site et `/nxt reprendre` refusent également l’activation lorsque le service NXT5 suspend globalement les envois.
+
 ## 7. Vérifier un pilote réel
 
 Compléter cette liste dans le serveur pilote, puis conserver les liens des messages et les horaires des essais :

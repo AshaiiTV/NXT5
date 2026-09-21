@@ -3,7 +3,7 @@ import { withDiscordRuntime } from './_lib/discord-runtime';
 import { createHash } from 'node:crypto';
 import { sql } from './_lib/db';
 import { json } from './_lib/http';
-import { getDiscordConfig, verifyDiscordInteraction, isDiscordId, publicDiscordStatus } from './_lib/discord-config';
+import { getDiscordConfig, verifyDiscordInteraction, isDiscordId, isDiscordEnabled, publicDiscordStatus } from './_lib/discord-config';
 import { assertDiscordSchemaReady } from './_lib/discord-queue';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { getDiscordGuild } from './_lib/discord-client';
@@ -86,6 +86,7 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
     return 'Les publications de cette équipe sont en pause.';
   }
   if (command?.name === 'reprendre') {
+    if (!isDiscordEnabled()) return 'Les envois Discord sont suspendus par NXT5. La connexion de l’équipe reste en pause.';
     const live = await getDiscordGuild(guildId);
     const routes = await sql("select channel_id from discord_routes where team_id=$1 and enabled", [connection.team_id]);
     if (!routes.length || routes.some((route) => !live.channels.some((channel) => channel.id === route.channel_id && channel.canSend))) return 'Vérifie les salons et permissions depuis NXT5 avant de reprendre.';

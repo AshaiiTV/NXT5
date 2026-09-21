@@ -17,8 +17,14 @@ async function handler(request: Request, context: Context) {
     const body = request.method === 'POST' ? await readJson(request, 32_000) : {};
     const { teamId, user } = await requireDiscordTeam(request, context, body.teamId || new URL(request.url).searchParams.get('teamId'), request.method === 'POST' ? 'manage' : 'staff');
     if (request.method === 'GET') {
-      const routes = await sql("select * from discord_routes where team_id=$1 and enabled order by created_at,id", [teamId]);
-      return json({ routes: routes.map(publicDiscordRoute) });
+      // Capture routes and their version in one statement, so an activation
+      // recap cannot pair older destinations with a newer connection version.
+      const [snapshot] = await sql(`select c.guild_id,c.config_version,
+        coalesce(jsonb_agg(to_jsonb(r) order by r.created_at,r.id) filter(where r.id is not null),'[]'::jsonb) as routes
+        from discord_connections c left join discord_routes r on r.team_id=c.team_id and r.enabled
+        where c.team_id=$1 group by c.guild_id,c.config_version`, [teamId]);
+      return json({ routes: (snapshot?.routes || []).map(publicDiscordRoute),
+        guildId: snapshot?.guild_id || null, configVersion: snapshot ? Number(snapshot.config_version) : null });
     }
     await assertSubjectRateLimit('discord-routes', user.id, { limit: 10, windowSeconds: 60 });
     if (!Array.isArray(body.routes) || body.routes.length > 10) throw discordError('Configure au maximum dix destinations.');

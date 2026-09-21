@@ -24,6 +24,7 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
 }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => <aside data-assistant="true" /> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: ({ setupOnly = false }) => <section data-page="teams" data-setup-only={setupOnly} /> }));
+vi.mock("../pages/workspace/DiscordWorkspace.jsx", () => ({ default: () => <section data-page="discord" /> }));
 vi.mock("../pages/workspace/GameWorkspace.jsx", () => ({ GameWorkspace: () => <section data-page="games" /> }));
 vi.mock("../pages/workspace/TrendsPage.jsx", () => ({ TrendsPage: () => <section data-page="trends" /> }));
 vi.mock("../pages/workspace/Planning.jsx", () => ({ Planning: () => <section data-page="planning" /> }));
@@ -63,12 +64,21 @@ async function open(path, { noTeam = false, admin = false } = {}) {
 }
 
 const tools = [
+  ["/bot-discord", "discord"],
   ["/equipes", "teams"], ["/gestion-equipe", "teams"], ["/games", "games"], ["/rapports", "games"],
   ["/tendances", "trends"], ["/planning", "planning"], ["/draft/pool", "draft"],
   ["/draft/compositions", "draft"], ["/mon-profil", "profile"],
 ];
 
 describe("workspace access before the subscription launch", () => {
+  it("keeps the Discord onboarding accessible without a team and omits the generic guide", async () => {
+    await open("/bot-discord", { noTeam: true });
+    expect(renderer.root.findAllByProps({ "data-page": "discord" })).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ "data-compass": "true" })).toHaveLength(0);
+    act(() => renderer.unmount());
+    await open("/bot-discord");
+    expect(renderer.root.findAllByProps({ "data-compass": "true" })).toHaveLength(0);
+  });
   it.each(tools)("keeps %s and the assistant fully available without team entitlements", async (path, page) => {
     await open(path);
     expect(renderer.root.findAllByProps({ "data-page": page })).toHaveLength(1);
