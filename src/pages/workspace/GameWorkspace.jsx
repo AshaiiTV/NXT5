@@ -218,7 +218,7 @@ async function exportStatsPng({ title, subtitle, matches, filename, teamName = "
     const durationValues = scoped.map(durationSeconds).filter((value) => value !== null);
     const gameRows = scoped.map((match) => ({ match, names: wrap(matchDisplayName(match, "Game"), 464, 22, 700) })).map((row) => ({ ...row, height: Math.max(82, row.names.length * 27 + 38) }));
     const championRows = Array.from({ length: Math.max(...championLists.map((list) => list.length)) }, (_, index) => ({ entries: championLists.map((list) => list[index]), height: 64 }));
-    // Every game and champion is exported. Long selections continue on numbered PNGs.
+    // Every game and champion is exported. The rendered pages are joined into one PNG.
     const plan = [{ parts: [], end: 844, first: true }];
     for (const section of [{ key: "games", rows: gameRows }, { key: "champions", rows: championRows }]) {
       const remaining = [...section.rows];
