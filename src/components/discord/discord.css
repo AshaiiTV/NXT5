@@ -62,16 +62,22 @@
 .discord-dashboard .discord-eyebrow, .discord-step-kicker { display: block; color: #a5f3fc; font-size: .75rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .discord-dashboard-status { align-items: flex-start; }
 .discord-dashboard .discord-server { margin-top: .5rem; }
-.discord-install-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; padding: 0; margin-block: 1.25rem; gap: .75rem; }
-.discord-install-progress > li { display: flex; align-items: flex-start; gap: .65rem; min-width: 0; padding-block: .85rem; border-top: 2px solid var(--nxt5-border); }
-.discord-install-progress > .is-current { border-color: #a78bfa; }
-.discord-install-progress > .is-complete { border-color: #67e8f9; }
+.discord-install-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0; margin-block: 1.25rem; gap: .75rem; }
+.discord-step-tab { display: flex; align-items: flex-start; gap: .65rem; min-width: 0; min-height: 44px; padding: .85rem .75rem; border: 1px solid var(--nxt5-border); border-top-width: 2px; border-radius: var(--nxt5-radius-button, 2px); background: rgba(3,9,21,.45); color: var(--nxt5-text, #f8fafc); text-align: left; cursor: pointer; transition: border-color 160ms, background 160ms; }
+.discord-step-tab:hover { border-color: rgba(165,243,252,.5); background: rgba(103,232,249,.055); }
+.discord-install-progress > .is-complete { border-top-color: #67e8f9; }
+.discord-install-progress > .is-selected { border-color: #a78bfa; background: rgba(167,139,250,.1); }
+.discord-step-panels { min-width: 0; }
+.discord-step-panel { min-width: 0; padding-top: 1.25rem; border-top: 1px solid var(--nxt5-border); }
+.discord-step-panel[hidden] { display: none !important; }
+.discord-step-panel > .discord-section { padding-top: 0; border-top: 0; }
+.discord-step-panel > * + * { margin-top: .85rem; }
 .discord-progress-number { display: flex; flex: 0 0 28px; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--nxt5-border); color: #dbe8f8; font-size: .8rem; font-weight: 800; }
-.is-current .discord-progress-number { color: #ddd6fe; border-color: #a78bfa; }
+.is-selected .discord-progress-number { color: #ddd6fe; border-color: #a78bfa; }
 .is-complete .discord-progress-number { color: #a5f3fc; border-color: #67e8f9; }
 .discord-install-progress strong { display: block; line-height: 1.4; }
-.discord-install-progress div > span { display: block; color: #dbe8f8; font-size: .75rem; line-height: 1.5; margin-top: .3rem; }
-.discord-onboarding { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; padding-block: .5rem; }
+.discord-step-label { min-width: 0; }
+.discord-step-label > span { display: block; color: #dbe8f8; font-size: .75rem; line-height: 1.5; margin-top: .3rem; }
 .discord-setup-step { min-width: 0; }
 .discord-setup-step > * + * { margin-top: .85rem; }
 .discord-dashboard a.discord-invite-button { display: inline-flex; min-height: 44px; justify-content: center; padding: .65rem 1rem; border: 1px solid rgba(165,243,252,.36); border-radius: var(--nxt5-radius-button); color: #020611 !important; text-decoration: none; line-height: 1.4; }
@@ -85,13 +91,13 @@
 .discord-example .discord-preview-image { max-width: 650px; }
 @media (max-width: 900px) {
   .discord-install-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .discord-onboarding { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
-  .discord-setup-step + .discord-setup-step { border-top: 1px solid var(--nxt5-border); padding-top: 1.25rem; }
 }
 @media (max-width: 640px) {
   .discord-dashboard .discord-actions > a, .discord-invite-button { width: 100%; }
   .discord-install-progress { gap: .6rem; }
-  .discord-install-progress > li { gap: .4rem; }
+  .discord-step-tab { gap: .4rem; padding: .75rem .55rem; }
   .discord-install-progress strong { font-size: .8rem; }
   .discord-dashboard input, .discord-dashboard select { font-size: 16px !important; }
 }
+
+@media (prefers-reduced-motion: reduce) { .discord-step-tab { transition: none; } }

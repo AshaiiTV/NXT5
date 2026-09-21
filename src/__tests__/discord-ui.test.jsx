@@ -20,6 +20,9 @@ function button(renderer, label) { return renderer.root.findAllByType("button").
 async function click(renderer, label) { const target = button(renderer, label); expect(target, label).toBeTruthy(); expect(target.props.disabled).not.toBe(true); await act(async () => target.props.onClick()); }
 async function choose(renderer, label, value) { const select = renderer.root.findAllByType("label").find((item) => text(item).startsWith(label)).findByType("select"); await act(async () => select.props.onChange({ target: { value } })); }
 function posts() { return apiFetch.mock.calls.filter(([, options]) => options?.method === "POST").map(([path, options]) => [path, JSON.parse(options.body)]); }
+function installationTabs(renderer) { return renderer.root.findAllByProps({ role: "tab" }); }
+async function openStep(renderer, index) { await act(async () => installationTabs(renderer)[index].props.onClick()); }
+function openPanel(renderer) { return renderer.root.findAllByProps({ role: "tabpanel" }).filter((panel) => !panel.props.hidden); }
 
 describe("Discord settings and permissions", () => {
   it("does not request staff-only settings for an ordinary player", async () => {
@@ -206,6 +209,40 @@ describe("Discord dashboard onboarding", () => {
   const installUrl = "https://discord.com/oauth2/authorize?client_id=123";
   const receipt = (requestId, overrides = {}) => ({ requestId, status: "succeeded", routeId: route.id, channelId: route.channelId, guildId: connection.connection.guildId, configVersion: 3, messageUrl: "https://discord.com/channels/1/2/3", ...overrides });
 
+  it("opens only the selected named step without completing it or sending requests", async () => {
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { configured: true, enabled: true, connection: null, installUrl } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(installationTabs(renderer)).toHaveLength(4);
+    expect(installationTabs(renderer)[0].props["aria-selected"]).toBe(true);
+    for (const index of [1, 2, 3, 0]) {
+      await openStep(renderer, index);
+      const selected = installationTabs(renderer)[index];
+      expect(openPanel(renderer)).toHaveLength(1);
+      expect(openPanel(renderer)[0].props.id).toBe(selected.props["aria-controls"]);
+      expect(openPanel(renderer)[0].props["aria-labelledby"]).toBe(selected.props.id);
+      expect(installationTabs(renderer).filter((tab) => tab.props["aria-selected"])).toHaveLength(1);
+      expect(installationTabs(renderer).filter((tab) => tab.props.tabIndex === 0)).toEqual([selected]);
+      expect(renderer.root.findAll((node) => node.props.className?.split(" ").includes("is-complete"))).toHaveLength(0);
+    }
+    expect(posts()).toEqual([]);
+    expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-routes"))).toBe(false);
+  });
+
+  it("keeps the same link command and selected step across navigation and refresh", async () => {
+    const code = { code: "KEEP-THIS-CODE", expiresAt: new Date(Date.now() + 600000).toISOString() };
+    apiFetch.mockImplementation(async (path, options) => options?.method === "POST" ? code : path.startsWith("team-discord-connection") ? { configured: true, enabled: true, connection: null, installUrl } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await openStep(renderer, 1);
+    await click(renderer, "Créer le code de liaison");
+    await openStep(renderer, 0);
+    await openStep(renderer, 3);
+    await openStep(renderer, 1);
+    await click(renderer, "Actualiser Discord");
+    expect(text(openPanel(renderer)[0])).toContain("/nxt connecter code:KEEP-THIS-CODE");
+    expect(installationTabs(renderer)[1].props["aria-selected"]).toBe(true);
+    expect(posts()).toEqual([["team-discord-connection", { teamId: "team", action: "create-link" }]]);
+  });
+
   it("keeps opening the invitation distinct from a verified server association", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { configured: true, enabled: true, connection: null, installUrl } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" teamName="Équipe A" canManage />);
@@ -238,10 +275,16 @@ describe("Discord dashboard onboarding", () => {
     expect(posts()).toHaveLength(1);
   });
 
-  it("preserves destination edits when connection metadata refreshes", async () => {
+  it("preserves destination edits across steps and connection refreshes", async () => {
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(installationTabs(renderer)[2].props["aria-selected"]).toBe(true);
     await choose(renderer, "Salon Discord · destination 1", "channel-2");
+    await openStep(renderer, 3);
+    expect(text(openPanel(renderer)[0])).toContain("Enregistre tes destinations");
+    await openStep(renderer, 0);
     await click(renderer, "Actualiser Discord");
+    expect(installationTabs(renderer)[0].props["aria-selected"]).toBe(true);
+    await openStep(renderer, 2);
     const select = renderer.root.findAllByType("label").find((node) => text(node).startsWith("Salon Discord · destination 1")).findByType("select");
     expect(select.props.value).toBe("channel-2");
     expect(text(renderer.root)).toContain("Modifications non enregistrées.");
@@ -299,7 +342,7 @@ describe("Discord dashboard onboarding", () => {
     expect(posts()).toEqual([]);
   });
 
-  it("locks a double-click and reuses the request id after a lost response", async () => {
+  it("keeps an in-flight test across steps and reuses its request id after a lost response", async () => {
     let rejectTest;
     let attempts = 0;
     apiFetch.mockImplementation(async (path, options) => {
@@ -311,10 +354,18 @@ describe("Discord dashboard onboarding", () => {
       return path.startsWith("team-discord-connection") ? paused : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] };
     });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await openStep(renderer, 3);
     const send = button(renderer, "Envoyer le message de test").props.onClick;
     await act(async () => { void send(); void send(); });
     expect(posts()).toHaveLength(1);
+    const signal = apiFetch.mock.calls.find(([path, options]) => path === "team-discord-test" && options?.method === "POST")[1].signal;
+    await openStep(renderer, 2);
+    await openStep(renderer, 3);
+    expect(signal.aborted).toBe(false);
+    expect(button(renderer, "Vérification du test…").props.disabled).toBe(true);
     await act(async () => rejectTest(new Error("Réponse perdue.")));
+    await openStep(renderer, 1);
+    await openStep(renderer, 3);
     await click(renderer, "Vérifier ce même test");
     expect(posts()).toHaveLength(2);
     expect(posts()[0][1].requestId).toBe(posts()[1][1].requestId);
