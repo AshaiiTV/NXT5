@@ -34,6 +34,7 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
 }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: ({ data }) => <main data-page="teams" data-games={data.matches.length} /> }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => null }));
+vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
 
 const cleanups = [];
 const user = { id: "user", email: "staff@nxt5.test", email_verified: true };

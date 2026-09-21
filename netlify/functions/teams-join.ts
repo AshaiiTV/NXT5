@@ -3,32 +3,22 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { safeTeam } from './_lib/teams';
-
-function extractInviteCode(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-
-  try {
-    const url = new URL(raw);
-    const fromQuery = url.searchParams.get('invite') || url.searchParams.get('code');
-    if (fromQuery) return String(fromQuery).trim().toUpperCase();
-  } catch {}
-
-  const match = raw.match(/(?:NXT5|RIFT)-[A-Z0-9]{4,12}/i);
-  if (match) return match[0].toUpperCase();
-
-  return raw.toUpperCase();
-}
+import { assertSubjectRateLimit } from './_lib/rate-limit';
+import { extractInviteCode } from './_lib/team-invites';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
-    const body = await readJson(request);
+    // Both budgets include malformed and unsuccessful attempts. Changing IP
+    // cannot reset an account's budget; changing accounts cannot reset an IP's.
+    await assertSubjectRateLimit('team-join-account', user.id, { limit: 10, windowSeconds: 900 });
+    await assertSubjectRateLimit('team-join-ip', context.ip || 'unknown', { limit: 30, windowSeconds: 900 });
+    const body = await readJson(request, 4096);
     const inviteCode = extractInviteCode(body.invite || body.inviteCode || body.link || body.code);
 
-    if (!inviteCode) throw Object.assign(new Error('Code d’invitation requis.'), { status: 400 });
+    if (!inviteCode) throw Object.assign(new Error('Code ou lien d’invitation invalide.'), { status: 400, code: 'INVITE_CODE_INVALID' });
     await sql`delete from team_invite_codes where expires_at <= now()`;
 
     const teams = await sql`

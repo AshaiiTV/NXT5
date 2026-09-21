@@ -3,7 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, isValidEmail, normalizeEmail, sha256 } from './_lib/auth';
 import { isPasswordEmailConfigured, sendPasswordResetEmail } from './_lib/email';
-import { assertRateLimit } from './_lib/rate-limit';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 
 export default async function handler(request: Request): Promise<Response> {
   try {
@@ -18,6 +18,16 @@ export default async function handler(request: Request): Promise<Response> {
     }
     if (!isPasswordEmailConfigured()) {
       throw Object.assign(new Error('Envoi e-mail non configuré. Ajoute RESEND_API_KEY et RESET_EMAIL_FROM dans Netlify.'), { status: 500, code: 'EMAIL_NOT_CONFIGURED' });
+    }
+
+    try {
+      // Reserve for every syntactically valid recipient, including unknown
+      // addresses. A suppressed send has the same public response as a send.
+      await assertSubjectRateLimit('password-reset-recipient', email, { limit: 1, windowSeconds: 300 });
+      await assertSubjectRateLimit('password-reset-recipient-hourly', email, { limit: 5, windowSeconds: 3600 });
+    } catch (err: any) {
+      if (err?.status === 429) return json({ ok: true });
+      throw err;
     }
 
     const rows = await sql`select id, email, name from users where lower(email) = ${email} limit 1`;

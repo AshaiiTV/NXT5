@@ -8,12 +8,15 @@ import { Sidebar, Topbar } from "../components/layout/AppChrome.jsx";
 import { Button } from "../components/ui/Core.jsx";
 import { Teams } from "../pages/workspace/Teams.jsx";
 import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
+import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../app/performance.js", () => ({ configurePerformanceMode: vi.fn(), currentPerformanceMode: () => "full", setStoredPerformanceMode: vi.fn(), PERFORMANCE_MODE_STORAGE_KEY: "performance" }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => null }));
+vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
 vi.mock("../pages/GuidePage.jsx", () => ({ default: () => <section data-page="guide" /> }));
 vi.mock("../pages/admin/AdminDashboard.jsx", () => ({ default: () => <section data-page="admin" /> }));
+vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({ default: ({ phase }) => <section data-loader="true" data-phase={phase} /> }));
 vi.mock("../pages/admin/AccessRequestsPage.jsx", () => ({ default: () => <section data-page="access-requests" /> }));
 
 const user = { id: "u1", name: "Joueur", email: "player@example.test", email_verified: true };
@@ -36,7 +39,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function open(path = "/equipes") {
+async function open(path = "/equipes", pendingDeletionToken = null) {
   const listeners = new Map(), requests = [];
   const history = (_state, _title, path) => { window.location = new URL(path, window.location); };
   vi.stubGlobal("window", {
@@ -49,19 +52,19 @@ async function open(path = "/equipes") {
     removeEventListener: (name) => listeners.delete(name),
     dispatchEvent: (event) => listeners.get(event.type)?.(event),
     localStorage: { getItem: () => "1", setItem: vi.fn() },
+    sessionStorage: { getItem: () => pendingDeletionToken, removeItem: vi.fn() },
   });
   vi.stubGlobal("document", { title: "" });
   apiFetch.mockImplementation((path, options) => {
     if (["teams-create", "teams-join"].includes(path)) return Promise.resolve({ team });
     return new Promise((resolve, reject) => requests.push({ path, options, resolve, reject }));
   });
-  await act(async () => { renderer = TestRenderer.create(<Suspense fallback={<p>Loading</p>}><NXT5 /></Suspense>); });
+  await act(async () => { renderer = TestRenderer.create(<AppLoadingProvider><Suspense fallback={<p>Loading</p>}><NXT5 /></Suspense></AppLoadingProvider>); });
   return {
     requests,
     async resolve(index, payload) {
       expect(requests[index]).toBeDefined();
       await act(async () => requests[index].resolve(payload));
-      await act(async () => { await vi.dynamicImportSettled(); });
     },
     async reject(index, error) {
       expect(requests[index]).toBeDefined();
@@ -82,13 +85,34 @@ function click(label) {
 }
 
 describe("team sidebar access", () => {
+  it("opens settings for an unverified account before team bootstrap completes", async () => {
+    const app = await open("/parametres");
+    await app.resolve(0, { user: { ...user, email_verified: false } });
+    expectNoTeamNavigation();
+    expect(renderer.root.findAllByType(AccountSettings)).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
+  });
+
+  it("releases the loading overlay when recovering a completed deletion", async () => {
+    const app = await open("/parametres", "a".repeat(43));
+    expect(app.requests[0].path).toBe("auth-delete-account");
+    await app.resolve(0, { ok: true, receipt: { reference: "receipt-123", completedAt: "2026-09-14T12:00:00Z", summary: {} } });
+    expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
+    expect(JSON.stringify(renderer.toJSON())).toContain("receipt-123");
+    expect(app.requests).toHaveLength(1);
+    expect(window.location.pathname).toBe("/connexion");
+  });
+
   it("stays absent during session and initial team loading, including a failed bootstrap", async () => {
     const app = await open("/planning");
     expectNoTeamNavigation();
+    expect(renderer.root.findByProps({ "data-loader": "true" }).props["data-phase"]).toBe("session");
     await app.resolve(0, { user });
     expectNoTeamNavigation();
+    expect(renderer.root.findByProps({ "data-loader": "true" }).props["data-phase"]).toBe("bootstrap");
     await app.reject(1, new Error("Network unavailable"));
     expectNoTeamNavigation();
+    expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
     expect(JSON.stringify(renderer.toJSON())).toContain("Network unavailable");
   });
 
@@ -120,20 +144,21 @@ describe("team sidebar access", () => {
   it.each([
     ["/admin", "admin"],
     ["/admin/demandes-acces", "access-requests"],
-  ])("opens %s independently of teams and only loads the workspace on return", async (path, page) => {
+  ])("opens %s in the administrator shell and loads teams only after returning to the app", async (path, page) => {
     const app = await open(path);
-    expectNoTeamNavigation();
     await app.resolve(0, { user: { ...user, is_platform_admin: true } });
-    expect(app.requests.map(({ path }) => path)).toEqual(["auth-me"]);
+    await act(async () => { await vi.dynamicImportSettled(); });
+    expect(app.requests.map(request => request.path)).toEqual(["auth-me"]);
     expect(renderer.root.findAllByType(Sidebar)).toHaveLength(0);
     expect(renderer.root.findAllByType(Topbar)).toHaveLength(0);
-    expect(renderer.root.findAllByProps({ className: "administration-sidebar" })).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ className: "administration-shell" })).toHaveLength(1);
     expect(renderer.root.findAllByProps({ "data-page": page })).toHaveLength(1);
-    const back = renderer.root.findAllByType("a").find(node => node.props.href === "/equipes");
+    expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
+    const back = renderer.root.findAllByType("a").find(link => link.props.href === "/equipes");
     await act(async () => back.props.onClick({ button: 0, preventDefault() {} }));
     expect(window.location.pathname).toBe("/equipes");
+    expect(app.requests[1].path).toContain("bootstrap?");
     expectNoTeamNavigation();
-    expect(app.requests).toHaveLength(2);
     await app.resolve(1, bootstrap());
     expectNoTeamNavigation();
     expect(renderer.root.findAllByType(Teams)).toHaveLength(1);

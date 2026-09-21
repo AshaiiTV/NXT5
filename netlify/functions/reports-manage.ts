@@ -1,4 +1,5 @@
 import { emailAction } from './_lib/email-template.js';
+import { randomUUID } from 'node:crypto';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -50,7 +51,7 @@ export default async function handler(request: Request, context: Context): Promi
     const reportId = cleanText(body.reportId, 80);
     const title = cleanText(body.title, 140);
     const content = cleanText(body.content, 12000);
-    const matchIds = Array.isArray(body.matchIds) ? body.matchIds.map((id) => cleanText(id, 80)).filter(Boolean).slice(0, 20) : [];
+    const matchIds = Array.isArray(body.matchIds) ? [...new Set(body.matchIds.map((id) => cleanText(id, 80).toLowerCase()).filter(Boolean))].slice(0, 20) : [];
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 
@@ -84,15 +85,6 @@ export default async function handler(request: Request, context: Context): Promi
 
     if (!title || !content) throw Object.assign(new Error('Titre et contenu requis.'), { status: 400 });
 
-    const validMatches = matchIds.length ? await sql`
-      select id
-      from matches
-      where team_id = ${teamId}
-        and id = any(${matchIds})
-    ` : [];
-    const validMatchIds = validMatches.map((match) => match.id);
-    const primaryMatchId = validMatchIds[0] || null;
-
     if (action === 'update') {
       if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
       const existing = await sql`select * from reports where id = ${reportId} and team_id = ${teamId} limit 1`;
@@ -101,40 +93,45 @@ export default async function handler(request: Request, context: Context): Promi
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
         throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le modifier.'), { status: 403 });
       }
-      const rows = await sql`
-        update reports
-        set match_id = ${primaryMatchId},
-            match_ids = ${JSON.stringify(validMatchIds)}::jsonb,
-            title = ${title},
-            content = ${content},
-            updated_at = now()
-        where id = ${reportId}
-          and team_id = ${teamId}
-        returning *
-      `;
-      await sql`
-        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'reports.update', 'reports', ${reportId}, ${JSON.stringify({ teamId, title, matchIds: validMatchIds })}::jsonb)
-      `;
-      return json({ report: rows[0] });
     }
 
-    const rows = await sql`
-      insert into reports (team_id, match_id, match_ids, created_by, title, content)
-      values (${teamId}, ${primaryMatchId}, ${JSON.stringify(validMatchIds)}::jsonb, ${user.id}, ${title}, ${content})
-      returning *
-    `;
+    const savedReportId = action === 'update' ? reportId : randomUUID();
+    let report;
+    try {
+      const results = await sql.transaction(tx => [
+        // Serialize JSON references with match deletion, then validate again.
+        tx`select id from teams where id = ${teamId} for update`,
+        tx`select 1 / case when count(*) = ${matchIds.length} then 1 else 0 end as matches_valid
+           from (select id from matches where team_id = ${teamId}
+                 and id = any(${matchIds}::uuid[]) for key share) locked_matches`,
+        action === 'update'
+          ? tx`update reports set match_id = ${matchIds[0] || null}, match_ids = ${JSON.stringify(matchIds)}::jsonb,
+                 title = ${title}, content = ${content}, updated_at = now()
+               where id = ${savedReportId} and team_id = ${teamId} returning *`
+          : tx`insert into reports (id, team_id, match_id, match_ids, created_by, title, content)
+               values (${savedReportId}, ${teamId}, ${matchIds[0] || null}, ${JSON.stringify(matchIds)}::jsonb,
+                 ${user.id}, ${title}, ${content}) returning *`,
+        tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+           values (${user.id}, ${action === 'update' ? 'reports.update' : 'reports.create'}, 'reports',
+             ${savedReportId}, ${JSON.stringify({ teamId, title, matchIds })}::jsonb)`
+      ]);
+      report = results[2][0];
+    } catch (error: any) {
+      if (error?.code === '22012' || error?.code === '23503') {
+        throw Object.assign(new Error('Les games liées ont changé. Recharge les données avant de sauvegarder la review.'), {
+          status: 409, code: 'MATCH_REFERENCES_CHANGED'
+        });
+      }
+      throw error;
+    }
+    if (!report) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
+    if (action === 'update') return json({ report });
 
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'reports.create', 'reports', ${rows[0].id}, ${JSON.stringify({ teamId, title, matchIds: validMatchIds })}::jsonb)
-    `;
-
-    const notificationTask = notifyReportCreate({ request, teamId, reportTitle: rows[0].title });
+    const notificationTask = notifyReportCreate({ request, teamId, reportTitle: report.title });
     if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
     else await notificationTask;
 
-    return json({ report: rows[0] });
+    return json({ report });
   } catch (err) {
     return handleError(err);
   }

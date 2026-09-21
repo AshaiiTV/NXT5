@@ -1,16 +1,13 @@
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
-import crypto from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { assertSubjectRateLimit } from './_lib/rate-limit';
+import { makeInviteCode } from './_lib/team-invites';
 
 function cleanText(value, max = 80) {
   return String(value || '').trim().slice(0, max);
-}
-
-function makeInviteCode() {
-  return `NXT5-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 }
 
 async function ensureInviteExpiryColumn() {
@@ -22,7 +19,9 @@ export default async function handler(request: Request, context: Context): Promi
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
-    const body = await readJson(request);
+    await assertSubjectRateLimit('team-invite-create-account', user.id, { limit: 10, windowSeconds: 3600 });
+    await assertSubjectRateLimit('team-invite-create-ip', context.ip || 'unknown', { limit: 30, windowSeconds: 3600 });
+    const body = await readJson(request, 4096);
     const teamId = cleanText(body.teamId);
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
@@ -37,6 +36,8 @@ export default async function handler(request: Request, context: Context): Promi
       limit 1
     `;
     if (!allowed[0]) throw Object.assign(new Error('Tu ne peux pas générer de code pour cette team.'), { status: 403 });
+    // Only authorized staff can consume a team's shared creation budget.
+    await assertSubjectRateLimit('team-invite-create-team', teamId, { limit: 10, windowSeconds: 3600 });
 
     await sql`delete from team_invite_codes where expires_at <= now()`;
 
@@ -52,7 +53,7 @@ export default async function handler(request: Request, context: Context): Promi
         invite = rows[0];
         break;
       } catch (err) {
-        if (!String(err.message || '').includes('invite')) throw err;
+        if (err?.code !== '23505') throw err;
       }
     }
     if (!invite) throw Object.assign(new Error('Impossible de générer un code unique.'), { status: 500 });

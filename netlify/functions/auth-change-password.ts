@@ -2,12 +2,15 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, hashPassword, readSessionCookie, requireAuth, sha256, verifyPassword } from './_lib/auth';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
+    await assertRateLimit(request, 'auth-change-password', { limit: 10, windowSeconds: 60 });
+    await assertSubjectRateLimit('auth-change-password-account', user.id, { limit: 5, windowSeconds: 300 });
     const body = await readJson(request, 4096);
     const currentPassword = String(body.currentPassword || '');
     const nextPassword = String(body.nextPassword || '');
@@ -25,7 +28,7 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Le nouveau mot de passe doit être différent de l’ancien.'), { status: 400 });
     }
 
-    const rows = await sql`select password_hash from users where id = ${user.id} limit 1`;
+    const rows = await sql`select password_hash, xmin::text as account_version from users where id = ${user.id} limit 1`;
     const passwordHash = rows[0]?.password_hash;
     const passwordOk = passwordHash ? await verifyPassword(currentPassword, passwordHash) : false;
     if (!passwordOk) {
@@ -33,27 +36,37 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     const nextPasswordHash = await hashPassword(nextPassword);
-    await sql`
-      update users
-      set password_hash = ${nextPasswordHash},
-          updated_at = now()
-      where id = ${user.id}
-    `;
-
     const currentToken = readSessionCookie(context);
     const currentTokenHash = currentToken ? sha256(currentToken) : '';
-    await sql`
-      update sessions
-      set revoked_at = now()
-      where user_id = ${user.id}
-        and revoked_at is null
-        and token_hash <> ${currentTokenHash}
+    // One statement commits the credential change and all revocations together.
+    // xmin is the PostgreSQL row version: stale reauthentication cannot overwrite
+    // a concurrent password reset, profile change or reset-link issuance.
+    const changed = await sql`
+      with changed_account as (
+        update users
+        set password_hash = ${nextPasswordHash}, updated_at = now()
+        where id = ${user.id}
+          and password_hash = ${passwordHash}
+          and xmin = ${rows[0].account_version}::xid
+        returning id
+      ), invalidated_tokens as (
+        update password_reset_tokens set used_at = now()
+        where user_id in (select id from changed_account) and used_at is null
+      ), revoked_sessions as (
+        update sessions set revoked_at = now()
+        where user_id in (select id from changed_account)
+          and revoked_at is null and token_hash <> ${currentTokenHash}
+      ), logged_change as (
+        insert into audit_logs (user_id, action, entity_type, metadata)
+        select id, 'auth.password_change', 'user', '{}'::jsonb from changed_account
+      )
+      select id from changed_account
     `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, metadata)
-      values (${user.id}, 'auth.password_change', 'user', ${JSON.stringify({})}::jsonb)
-    `;
+    if (!changed[0]) {
+      throw Object.assign(new Error('Ton compte a changé pendant la modification. Recharge la page puis réessaie.'), {
+        status: 409, code: 'ACCOUNT_CHANGED'
+      });
+    }
 
     return json({ ok: true });
   } catch (err) {

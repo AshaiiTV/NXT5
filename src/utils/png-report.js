@@ -1,21 +1,22 @@
 export const PNG_THEME = Object.freeze({
-  bg: "#080e19",
-  panel: "#101a29",
-  panelAlt: "#0d1623",
-  border: "#263345",
-  text: "#f1f5f9",
-  muted: "#94a3b8",
-  subtle: "#64748b",
+  bg: "#020611",
+  panel: "#0a1427",
+  panelAlt: "#070e1d",
+  border: "#293d52",
+  text: "#f8fafc",
+  muted: "#c6d4e5",
+  subtle: "#afc1d6",
   cyan: "#67e8f9",
   blue: "#93c5fd",
   green: "#6ee7b7",
   yellow: "#fcd34d",
   red: "#fda4af",
-  purple: "#c4b5fd",
+  purple: "#a78bfa",
+  pink: "#e879f9",
 });
 
 export function pngAccent(name = "cyan") {
-  const key = { pink: "red", rose: "red", orange: "yellow", amber: "yellow", emerald: "green", slate: "muted" }[name] || name;
+  const key = { rose: "red", orange: "pink", amber: "yellow", emerald: "green", slate: "muted" }[name] || name;
   return PNG_THEME[key] || PNG_THEME.cyan;
 }
 
@@ -34,7 +35,7 @@ function ellipsize(ctx, text, width) {
   return ctx.measureText("…").width <= width ? `${chars.join("").trimEnd()}…` : "";
 }
 
-export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, Arial, sans-serif", color = PNG_THEME.text, min = 16, align = "left" } = {}) {
+export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, Arial, sans-serif", color = PNG_THEME.text, min = 20, align = "left" } = {}) {
   const value = String(text ?? "");
   const sizeMatch = font.match(/(\d+(?:\.\d+)?)px/);
   let size = sizeMatch ? Number(sizeMatch[1]) : 20;
@@ -108,6 +109,12 @@ export function pngPanel(ctx, x, y, w, h, { fill = PNG_THEME.panel, stroke = PNG
 export function pngBackground(ctx, width, height) {
   ctx.fillStyle = PNG_THEME.bg;
   ctx.fillRect(0, 0, width, height);
+  const accent = ctx.createLinearGradient(0, 0, width, 0);
+  accent.addColorStop(0, PNG_THEME.cyan);
+  accent.addColorStop(0.55, PNG_THEME.blue);
+  accent.addColorStop(1, PNG_THEME.pink);
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, width, 4);
 }
 
 export function pngMetricStrip(ctx, { x = 64, y = 200, width, items = [] }) {
@@ -117,30 +124,88 @@ export function pngMetricStrip(ctx, { x = 64, y = 200, width, items = [] }) {
   items.forEach((item, index) => {
     const cellX = x + index * cellWidth;
     if (index) pngLine(ctx, cellX, y + 20, cellX, y + 100);
-    pngFitText(ctx, String(item.label || "").toUpperCase(), cellX + 24, y + 30, cellWidth - 48, { font: "600 16px Inter, Arial, sans-serif", color: PNG_THEME.muted, min: 14 });
-    pngFitText(ctx, item.value, cellX + 24, y + 72, cellWidth - 48, { font: "700 36px Inter, Arial, sans-serif", color: item.accent ? pngAccent(item.accent) : PNG_THEME.text, min: 24 });
-    pngFitText(ctx, item.detail, cellX + 24, y + 98, cellWidth - 48 - (item.marker ? 100 : 0), { font: "500 16px Inter, Arial, sans-serif", color: PNG_THEME.muted, min: 14 });
-    if (item.marker) pngFitText(ctx, item.marker, cellX + cellWidth - 24, y + 98, 92, { font: "600 16px Inter, Arial, sans-serif", color: pngAccent(item.markerAccent), min: 14, align: "right" });
+    pngFitText(ctx, item.label, cellX + 24, y + 30, cellWidth - 48, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+    pngFitText(ctx, item.value, cellX + 24, y + 73, cellWidth - 48, { font: "700 38px Inter, Arial, sans-serif", color: item.accent ? pngAccent(item.accent) : PNG_THEME.text, min: 28 });
+    pngFitText(ctx, item.detail, cellX + 24, y + 101, cellWidth - 48 - (item.marker ? 110 : 0), { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+    if (item.marker) pngFitText(ctx, item.marker, cellX + cellWidth - 24, y + 101, 102, { font: "600 20px Inter, Arial, sans-serif", color: pngAccent(item.markerAccent), align: "right" });
   });
 }
 
-export function pngHeader(ctx, { width, title, subtitle = "", eyebrow = "Analyse équipe", logo, meta, margin = 64 }) {
+export function pngHeader(ctx, { width, title, subtitle = "", eyebrow = "", logo, meta, margin = 64 }) {
   const textWidth = width - margin * 2 - 270;
-  pngFitText(ctx, eyebrow.toUpperCase(), margin, 62, textWidth, { font: "600 15px Inter, Arial, sans-serif", color: PNG_THEME.cyan, min: 14 });
+  if (eyebrow) pngFitText(ctx, eyebrow, margin, 62, textWidth, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.cyan });
   pngFitText(ctx, title, margin, 117, textWidth, { font: "700 44px Inter, Arial, sans-serif", min: 28 });
-  pngFitText(ctx, subtitle, margin, 156, width - margin * 2, { font: "500 21px Inter, Arial, sans-serif", color: PNG_THEME.muted, min: 17 });
-  if (!pngImageContain(ctx, logo, width - margin - 204, 46, 204, 65)) {
-    pngFitText(ctx, "NXT5", width - margin, 93, 220, { font: "800 36px Inter, Arial, sans-serif", align: "right" });
-  }
-  if (meta) pngFitText(ctx, meta, width - margin, 129, 240, { font: "500 14px Inter, Arial, sans-serif", color: PNG_THEME.muted, min: 13, align: "right" });
+  pngFitText(ctx, subtitle, margin, 156, width - margin * 2, { font: "500 22px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+  pngImageContain(ctx, logo, width - margin - 204, 46, 204, 65);
+  if (meta) pngFitText(ctx, meta, width - margin, 129, 240, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
   pngLine(ctx, margin, 184, width - margin, 184);
   return 200;
 }
 
-export function pngFooter(ctx, { width, height, label = "Rapport équipe", margin = 64 }) {
+export function pngFooter(ctx, { width, height, label = "", margin = 64 }) {
   pngLine(ctx, margin, height - 67, width - margin, height - 67);
-  pngFitText(ctx, `NXT5 · ${label}`, margin, height - 33, width - margin * 2 - 290, { font: "500 16px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-  pngFitText(ctx, new Date().toLocaleDateString("fr-FR"), width - margin, height - 33, 260, { font: "500 16px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+  pngFitText(ctx, label, margin, height - 33, width - margin * 2 - 290, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+  pngFitText(ctx, `Exporté le ${new Date().toLocaleDateString("fr-FR")}`, width - margin, height - 33, 280, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+}
+
+// An absent metric remains absent; a recorded zero remains a number.
+export function pngNumeric(value) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && !value.trim()) return null;
+  const number = Number(typeof value === "string" ? value.trim().replace(/\s/g, "").replace(",", ".").replace(/%$/, "") : value);
+  return Number.isFinite(number) ? number : null;
+}
+
+export function pngNumber(value, digits = 0) {
+  const number = pngNumeric(value);
+  return number === null ? "—" : number.toLocaleString("fr-FR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+export function pngPercent(value, digits = 0) {
+  return pngNumeric(value) === null ? "—" : `${pngNumber(value, digits)} %`;
+}
+
+export function pngMean(values = []) {
+  const known = values.map(pngNumeric).filter((value) => value !== null);
+  return known.length ? known.reduce((sum, value) => sum + value, 0) / known.length : null;
+}
+
+export function pngSum(values = []) {
+  const known = values.map(pngNumeric).filter((value) => value !== null);
+  return known.length ? known.reduce((sum, value) => sum + value, 0) : null;
+}
+
+export function pngDateRange(matches = []) {
+  const dates = matches.flatMap((match) => {
+    let raw = match.raw;
+    if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { raw = null; } }
+    const candidates = [raw?.info?.gameStartTimestamp, raw?.info?.gameCreation, match.game_date, match.played_at, match.game_creation, match.date];
+    for (let value of candidates) {
+      if (value === null || value === undefined || value === "") continue;
+      if (typeof value === "number" || /^\d{10,13}$/.test(String(value))) {
+        value = Number(value);
+        if (value <= 0) continue;
+        if (value < 1e12) value *= 1000;
+      }
+      const date = new Date(value);
+      if (Number.isFinite(date.getTime())) return [date];
+    }
+    return [];
+  }).sort((a, b) => a - b);
+  if (!dates.length) return "Date indisponible";
+  const format = (date) => date.toLocaleDateString("fr-FR");
+  const first = format(dates[0]);
+  const last = format(dates.at(-1));
+  return first === last ? first : `${first} – ${last}`;
+}
+
+export function pngCreateCanvas(width, height) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Le navigateur ne peut pas créer l’export PNG.");
+  return { canvas, ctx };
 }
 
 const imageCache = new Map();
@@ -193,8 +258,11 @@ export function pngImageContain(ctx, image, x, y, w, h) {
   return true;
 }
 
-export async function pngDownload(canvas, filename) {
-  const blob = await new Promise((resolve, reject) => canvas.toBlob((image) => image ? resolve(image) : reject(new Error("Impossible de générer le PNG.")), "image/png"));
+function pngBlob(canvas) {
+  return new Promise((resolve, reject) => canvas.toBlob((image) => image ? resolve(image) : reject(new Error("Impossible de générer le PNG.")), "image/png"));
+}
+
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.download = filename;
@@ -203,4 +271,68 @@ export async function pngDownload(canvas, filename) {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+export async function pngDownload(canvas, filename) {
+  downloadBlob(await pngBlob(canvas), filename);
+}
+
+// PNGs are already compressed. A stored ZIP keeps all pages in one browser
+// download, avoiding the permission prompt for multiple automatic downloads.
+export async function pngDownloadPages(canvases, filename) {
+  if (!canvases.length) throw new Error("Aucune page à exporter.");
+  if (canvases.length === 1) return pngDownload(canvases[0], filename);
+  const entries = [];
+  const directory = [];
+  const encoder = new TextEncoder();
+  let offset = 0;
+  let directorySize = 0;
+  const base = filename.replace(/\.png$/i, "");
+  for (let index = 0; index < canvases.length; index++) {
+    const name = encoder.encode(`${base}-${String(index + 1).padStart(2, "0")}.png`);
+    const bytes = new Uint8Array(await (await pngBlob(canvases[index])).arrayBuffer());
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    }
+    crc = (crc ^ 0xffffffff) >>> 0;
+    const local = new Uint8Array(30 + name.length);
+    const localView = new DataView(local.buffer);
+    localView.setUint32(0, 0x04034b50, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0x0800, true);
+    localView.setUint16(12, 33, true); // 1980-01-01: valid DOS date.
+    localView.setUint32(14, crc, true);
+    localView.setUint32(18, bytes.length, true);
+    localView.setUint32(22, bytes.length, true);
+    localView.setUint16(26, name.length, true);
+    local.set(name, 30);
+    entries.push(local, bytes);
+
+    const central = new Uint8Array(46 + name.length);
+    const centralView = new DataView(central.buffer);
+    centralView.setUint32(0, 0x02014b50, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0x0800, true);
+    centralView.setUint16(14, 33, true);
+    centralView.setUint32(16, crc, true);
+    centralView.setUint32(20, bytes.length, true);
+    centralView.setUint32(24, bytes.length, true);
+    centralView.setUint16(28, name.length, true);
+    centralView.setUint32(42, offset, true);
+    central.set(name, 46);
+    directory.push(central);
+    directorySize += central.length;
+    offset += local.length + bytes.length;
+  }
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(8, canvases.length, true);
+  endView.setUint16(10, canvases.length, true);
+  endView.setUint32(12, directorySize, true);
+  endView.setUint32(16, offset, true);
+  downloadBlob(new Blob([...entries, ...directory, end], { type: "application/zip" }), `${base}.zip`);
 }

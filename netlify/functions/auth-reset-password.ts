@@ -1,11 +1,13 @@
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, hashPassword, sha256 } from './_lib/auth';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 
 export default async function handler(request: Request): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
+    await assertRateLimit(request, 'auth-reset-password', { limit: 10, windowSeconds: 60 });
     const body = await readJson(request, 4096);
     const token = String(body.token || '').trim();
     const nextPassword = String(body.nextPassword || '');
@@ -21,12 +23,15 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const tokenHash = sha256(token);
+    await assertSubjectRateLimit('auth-reset-password-token', tokenHash, { limit: 5, windowSeconds: 300 });
     const rows = await sql`
-      select password_reset_tokens.id, password_reset_tokens.user_id
+      select password_reset_tokens.id, password_reset_tokens.user_id,
+             users.password_hash, users.xmin::text as account_version
       from password_reset_tokens
-      where token_hash = ${tokenHash}
-        and used_at is null
-        and expires_at > now()
+      join users on users.id = password_reset_tokens.user_id
+      where password_reset_tokens.token_hash = ${tokenHash}
+        and password_reset_tokens.used_at is null
+        and password_reset_tokens.expires_at > now()
       limit 1
     `;
     const reset = rows[0];
@@ -34,19 +39,39 @@ export default async function handler(request: Request): Promise<Response> {
       throw Object.assign(new Error('Lien de réinitialisation invalide ou expiré.'), { status: 400 });
     }
 
+    await assertSubjectRateLimit('auth-reset-password-account', reset.user_id, { limit: 5, windowSeconds: 300 });
     const passwordHash = await hashPassword(nextPassword);
-    await sql`
-      update users
-      set password_hash = ${passwordHash},
-          updated_at = now()
-      where id = ${reset.user_id}
+    // Lock/update the account only if both its version and recovery token remain
+    // current. A second simultaneous redemption cannot pass this comparison.
+    // Every recovery link and session is invalidated in the same DB statement.
+    const changed = await sql`
+      with changed_account as (
+        update users
+        set password_hash = ${passwordHash}, updated_at = now()
+        where id = ${reset.user_id}
+          and password_hash = ${reset.password_hash}
+          and xmin = ${reset.account_version}::xid
+          and exists (
+            select 1 from password_reset_tokens
+            where id = ${reset.id} and user_id = users.id
+              and token_hash = ${tokenHash} and used_at is null and expires_at > now()
+          )
+        returning id
+      ), invalidated_tokens as (
+        update password_reset_tokens set used_at = now()
+        where user_id in (select id from changed_account) and used_at is null
+      ), revoked_sessions as (
+        update sessions set revoked_at = now()
+        where user_id in (select id from changed_account) and revoked_at is null
+      ), logged_change as (
+        insert into audit_logs (user_id, action, entity_type, metadata)
+        select id, 'auth.password_reset_complete', 'user', '{}'::jsonb from changed_account
+      )
+      select id from changed_account
     `;
-    await sql`update password_reset_tokens set used_at = now() where id = ${reset.id}`;
-    await sql`update sessions set revoked_at = now() where user_id = ${reset.user_id} and revoked_at is null`;
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, metadata)
-      values (${reset.user_id}, 'auth.password_reset_complete', 'user', ${JSON.stringify({})}::jsonb)
-    `;
+    if (!changed[0]) {
+      throw Object.assign(new Error('Lien de réinitialisation invalide ou expiré.'), { status: 400 });
+    }
 
     return json({ ok: true });
   } catch (err) {

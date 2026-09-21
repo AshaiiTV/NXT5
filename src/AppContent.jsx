@@ -5,6 +5,7 @@ import { adminPageFromRoute } from "./app/admin-navigation.js";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
+import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
 import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
@@ -25,14 +26,66 @@ const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx")
 
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard.jsx"));
-const AccessRequestsPage = lazy(() => import("./pages/admin/AccessRequestsPage.jsx"));
 const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
-const PricingPage = lazy(() => import("./pages/public/PricingPage.jsx"));
 const SocialPage = lazy(() => import("./pages/public/SocialPage.jsx"));
-const IntegrationsPage = lazy(() => import("./pages/admin/IntegrationsPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
+
+function RouteFailureContent({ children }) {
+  useAppLoading(null);
+  return children;
+}
+
+class AppRouteErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("NXT5 page crash:", error, errorInfo);
+  }
+
+  componentDidUpdate(previousProps) {
+    if (this.state.error && previousProps.routePath !== this.props.routePath) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    const { error } = this.state;
+    if (error) {
+      const { routePath, navigate, onRetry } = this.props;
+      const title = "Ce contenu a rencontré un problème";
+      return (
+        <RouteFailureContent><div className="relative min-h-screen bg-[#020511] px-4 py-8 text-white">
+          <AmbientBackground />
+          <main className="relative z-10 mx-auto flex w-full max-w-2xl flex-col justify-center gap-6 pt-8">
+            <Surface glow className="space-y-5 p-6">
+              <div className="space-y-1">
+                <Badge tone="red">Erreur technique</Badge>
+                <h1 className="text-3xl font-black leading-tight text-white">{title}</h1>
+                <p className="text-sm font-semibold leading-6 text-slate-300">
+                  Cette page n’a pas pu s’afficher correctement ({routePath || "route inconnue"}). Utilise un retour rapide pour continuer.
+                </p>
+              </div>
+              <p role="alert" className="rounded-2xl border border-rose-300/30 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">Recharge la page ou reviens à l’accueil pour continuer.</p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button type="button" onClick={() => { this.setState({ error: null }); onRetry?.(); }} className="w-full sm:w-auto">Réessayer</Button>
+                <Button type="button" variant="ghost" onClick={() => navigate("/")} className="w-full sm:w-auto">Retour à l’accueil</Button>
+              </div>
+            </Surface>
+          </main>
+        </div></RouteFailureContent>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function VerifyEmailPage() {
   useEffect(() => {
@@ -273,7 +326,7 @@ function MainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, na
     try { window.localStorage.setItem("nxt5_beginner_compass_hidden", "1"); } catch {}
   }
 
-  async function logout() { try { await apiFetch("auth-logout", { method: "POST" }); } catch {} pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." }); navigate("/connexion", { replace: true }); onLogout(); }
+  const logout = onLogout;
   useEffect(() => { startTransition(() => setActiveState(new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path))); }, [route.path, route.search]);
   useEffect(() => {
     if (route.path === "/champion-pool" || route.path === "/draft") navigate("/draft/pool", { replace: true });
@@ -281,7 +334,7 @@ function MainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, na
   }, [route.path, navigate]);
 
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
-  const isStandalonePage = ["guide", "account-settings"].includes(active) || (isPlatformAdmin && ["admin", "access-requests"].includes(active));
+  const isStandalonePage = ["guide", "account-settings"].includes(active);
   useEffect(() => {
     if (!currentTeam) setSidebarOpen(false);
   }, [currentTeam]);
@@ -298,8 +351,6 @@ function MainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, na
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} />;
-    if (active === "admin" && isPlatformAdmin) return <><div className="mb-4 flex flex-wrap gap-3"><Button variant="ghost" onClick={() => navigate("/admin/demandes-acces")}>Demandes d’accès</Button><Button variant="ghost" onClick={() => navigate("/tarifs")}>Voir les tarifs</Button><Button variant="ghost" onClick={() => navigate("/admin/integrations")}>Intégrations Shopify et réseaux</Button></div><AdminDashboard /></>;
-    if (active === "access-requests" && isPlatformAdmin) return <AccessRequestsPage navigate={navigate} />;
     return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, onAccountDeleted, navigate, isPlatformAdmin, planningStore]);
 
@@ -426,7 +477,8 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const unknownRoute = !isKnownPath(route.path);
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !["/tarifs", "/verify-email", "/verified"].includes(route.path);
+  const adminPage = adminPageFromRoute(route);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/reseaux", "/verify-email", "/verified"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
@@ -434,10 +486,8 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
-  if (adminPageFromRoute(route)) return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement de l’administration…</div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
-  if (route.path === "/admin/integrations") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des intégrations…</div>}><IntegrationsPage navigate={navigate} /></Suspense>;
+  if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement de l’administration…</div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
   if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
-  if (route.path === "/tarifs") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des tarifs…</div>}><PricingPage navigate={navigate} user={user} /></Suspense>;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
@@ -575,6 +625,22 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  if (accountDeletionReceipt) return <><AmbientBackground /><Suspense fallback={<p role="status">Compte supprimé. Chargement du reçu…</p>}><AccountDeletionReceipt receipt={accountDeletionReceipt} onContinue={() => { setAccountDeletionReceipt(null); navigate("/connexion", { replace: true }); }} /></Suspense></>;
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleUserUpdate} onAccountDeleted={handleAccountDeleted} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  if (accountDeletionReceipt) {
+    return (
+      <AppRouteErrorBoundary routePath={route.path} navigate={navigate} onRetry={() => window.location.reload()}>
+        <AmbientBackground />
+        <Suspense fallback={<p role="status">Compte supprimé. Chargement du reçu…</p>}>
+          <AccountDeletionReceipt receipt={accountDeletionReceipt} onContinue={() => { setAccountDeletionReceipt(null); navigate("/connexion", { replace: true }); }} />
+        </Suspense>
+      </AppRouteErrorBoundary>
+    );
+  }
+
+  return (
+    <AppRouteErrorBoundary routePath={route.path} navigate={navigate} onRetry={() => window.location.reload()}>
+      <RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleUserUpdate} onAccountDeleted={handleAccountDeleted} />
+      <CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true} />
+      <ToastStack toasts={toasts} removeToast={removeToast} />
+    </AppRouteErrorBoundary>
+  );
 }

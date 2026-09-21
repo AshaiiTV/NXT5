@@ -3,8 +3,6 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-import { ensureMatchCategoriesSchema } from './_lib/match-categories';
-import { ensureWorkflowSchema } from './_lib/schema';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().slice(0, max);
@@ -12,11 +10,6 @@ function cleanText(value, max = 240) {
 
 async function ensureMatchManagementColumns() {
   await assertSchemaReady();
-}
-
-function removeIdFromJsonArray(value, id) {
-  const items = Array.isArray(value) ? value : [];
-  return items.filter((item) => String(item) !== String(id));
 }
 
 function cleanIdList(value) {
@@ -65,43 +58,50 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     if (action === 'delete') {
-      const archives = await sql`select * from match_archives where team_id = ${teamId}`;
-      for (const archive of archives) {
-        const nextIds = removeIdFromJsonArray(archive.match_ids, matchId);
-        if (!nextIds.length) {
-          await sql`delete from match_archives where id = ${archive.id} and team_id = ${teamId}`;
-        } else if (nextIds.length !== archive.match_ids.length) {
-          await sql`
-            update match_archives
-            set match_ids = ${JSON.stringify(nextIds)}::jsonb,
-                updated_at = now()
-            where id = ${archive.id}
-              and team_id = ${teamId}
-          `;
-        }
-      }
-
-      await sql`delete from reports where team_id = ${teamId} and match_id = ${matchId}`;
-      const reports = await sql`select * from reports where team_id = ${teamId}`;
-      for (const report of reports) {
-        const nextIds = removeIdFromJsonArray(report.match_ids, matchId);
-        if (nextIds.length !== report.match_ids.length) {
-          await sql`
-            update reports
-            set match_ids = ${JSON.stringify(nextIds)}::jsonb,
-                updated_at = now()
-            where id = ${report.id}
-              and team_id = ${teamId}
-          `;
-        }
-      }
-
-      await sql`delete from match_raw_archives where team_id = ${teamId} and match_id = ${matchId}`;
-      await sql`delete from matches where id = ${matchId} and team_id = ${teamId}`;
-      await sql`
-        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'matches.delete', 'match', ${matchId}, ${JSON.stringify({ teamId, gameId: match.game_id })}::jsonb)
-      `;
+      // Use the canonical UUID for JSON references, even if the request used
+      // uppercase. Keep reviews: the schema does not identify auto/manual ones.
+      const deletedMatchId = String(match.id);
+      await sql.transaction(tx => [
+        // Same lock order as imports: one team's match mutations serialize.
+        tx`select id from teams where id = ${teamId} for update`,
+        tx`select id from matches where id = ${deletedMatchId} and team_id = ${teamId} for update`,
+        tx`select id from reports where team_id = ${teamId}
+           and (match_id = ${deletedMatchId} or match_ids ? ${deletedMatchId}) for update`,
+        tx`select id from match_archives where team_id = ${teamId}
+           and match_ids ? ${deletedMatchId} for update`,
+        tx`update reports
+           set match_ids = coalesce((
+                 select jsonb_agg(value order by position)
+                 from jsonb_array_elements(case when jsonb_typeof(reports.match_ids) = 'array'
+                   then reports.match_ids else '[]'::jsonb end) with ordinality as links(value, position)
+                 where value <> to_jsonb(${deletedMatchId}::text)
+               ), '[]'::jsonb),
+               match_id = case when reports.match_id = ${deletedMatchId} or reports.match_id is null then (
+                 select remaining.id
+                 from jsonb_array_elements_text(case when jsonb_typeof(reports.match_ids) = 'array'
+                   then reports.match_ids else '[]'::jsonb end) with ordinality as links(id, position)
+                 join matches remaining on remaining.id::text = links.id and remaining.team_id = ${teamId}
+                 where remaining.id <> ${deletedMatchId}
+                 order by position limit 1
+               ) else reports.match_id end,
+               updated_at = now()
+           where team_id = ${teamId}
+             and (match_id = ${deletedMatchId} or match_ids ? ${deletedMatchId})`,
+        tx`delete from match_archives
+           where team_id = ${teamId} and match_ids ? ${deletedMatchId}
+             and not exists (select 1 from jsonb_array_elements_text(match_archives.match_ids) as links(id)
+                             where id <> ${deletedMatchId})`,
+        tx`update match_archives
+           set match_ids = (select jsonb_agg(value order by position)
+                 from jsonb_array_elements(match_archives.match_ids) with ordinality as links(value, position)
+                 where value <> to_jsonb(${deletedMatchId}::text)),
+               updated_at = now()
+           where team_id = ${teamId} and match_ids ? ${deletedMatchId}`,
+        tx`delete from match_raw_archives where team_id = ${teamId} and match_id = ${deletedMatchId}`,
+        tx`delete from matches where id = ${deletedMatchId} and team_id = ${teamId}`,
+        tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+           values (${user.id}, 'matches.delete', 'match', ${deletedMatchId}, ${JSON.stringify({ teamId, gameId: match.game_id })}::jsonb)`
+      ]);
       return json({ ok: true });
     }
 

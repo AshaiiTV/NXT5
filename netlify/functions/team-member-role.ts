@@ -36,22 +36,34 @@ export default async function handler(request: Request, context: Context): Promi
     if (!allowed[0]) throw Object.assign(new Error('Seul le propriétaire ou un capitaine peut modifier les statuts.'), { status: 403 });
 
     const target = await sql`
-      select role
+      select team_members.role, teams.owner_id
       from team_members
-      where team_id = ${teamId}
-        and user_id = ${userId}
+      join teams on teams.id = team_members.team_id
+      where team_members.team_id = ${teamId}
+        and team_members.user_id = ${userId}
       limit 1
     `;
     if (!target[0]) throw Object.assign(new Error('Compte introuvable dans cette team.'), { status: 404 });
-    if (target[0].role === 'owner') throw Object.assign(new Error('Le statut owner ne peut pas être modifié.'), { status: 400 });
+    if (String(target[0].owner_id) === userId || target[0].role === 'owner') {
+      throw Object.assign(new Error('Le statut du propriétaire ne peut pas être modifié.'), { status: 400 });
+    }
 
     const rows = await sql`
       update team_members
       set role = ${role}
       where team_id = ${teamId}
         and user_id = ${userId}
+        and role <> 'owner'
+        and exists (
+          select 1 from teams
+          left join team_members actor on actor.team_id = teams.id and actor.user_id = ${user.id}
+          where teams.id = ${teamId}
+            and teams.owner_id <> ${userId}
+            and (teams.owner_id = ${user.id} or actor.role = 'captain')
+        )
       returning *
     `;
+    if (!rows[0]) throw Object.assign(new Error('Les droits de cette équipe ont changé. Actualise la page.'), { status: 409 });
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)

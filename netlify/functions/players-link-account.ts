@@ -34,7 +34,7 @@ export default async function handler(request: Request, context: Context): Promi
     await ensureTeamMemberRoleConstraint();
 
     const allowed = await sql`
-      select teams.id
+      select teams.id, teams.owner_id, team_members.role as actor_role
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
@@ -55,7 +55,7 @@ export default async function handler(request: Request, context: Context): Promi
     let linkedUser: any = null;
     if (userId) {
       const member = await sql`
-        select team_members.user_id, users.name
+        select team_members.user_id, team_members.role, users.name
         from team_members
         join users on users.id = team_members.user_id
         where team_id = ${teamId}
@@ -64,6 +64,14 @@ export default async function handler(request: Request, context: Context): Promi
       `;
       if (!member[0]) throw Object.assign(new Error('Ce compte ne fait pas partie de la team.'), { status: 400 });
       linkedUser = member[0];
+    }
+
+    const profileRole = String(player[0].role || '').toUpperCase();
+    const targetIsOwner = userId === String(allowed[0].owner_id);
+    const promotesMember = userId && !targetIsOwner && linkedUser?.role === 'player' && STAFF_ROLES.has(profileRole);
+    const canManageRoles = String(allowed[0].owner_id) === user.id || allowed[0].actor_role === 'captain';
+    if (promotesMember && !canManageRoles) {
+      throw Object.assign(new Error('Seul le propriétaire ou un capitaine peut attribuer des droits staff en liant un compte.'), { status: 403 });
     }
 
     const linkedName = linkedUser?.name || null;
@@ -77,14 +85,20 @@ export default async function handler(request: Request, context: Context): Promi
       returning *
     `;
 
-    const profileRole = String(player[0].role || '').toUpperCase();
-    if (userId && STAFF_ROLES.has(profileRole)) {
+    if (promotesMember) {
       await sql`
         update team_members
         set role = ${STAFF_MEMBER_ROLE[profileRole] || 'coach'}
         where team_id = ${teamId}
           and user_id = ${userId}
           and role = 'player'
+          and exists (
+            select 1 from teams
+            left join team_members actor on actor.team_id = teams.id and actor.user_id = ${user.id}
+            where teams.id = ${teamId}
+              and teams.owner_id <> ${userId}
+              and (teams.owner_id = ${user.id} or actor.role = 'captain')
+          )
       `;
     }
 

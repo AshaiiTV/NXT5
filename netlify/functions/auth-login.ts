@@ -3,7 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, createSession, ensureEmailVerificationColumns, normalizeAccountName, normalizeEmail, safeUser, verifyPassword } from './_lib/auth';
 import { recordUserActivity } from './_lib/engagement';
-import { assertRateLimit } from './_lib/rate-limit';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 import type { DbUser } from './_lib/types';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -20,7 +20,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!accountName || !password) {
       throw Object.assign(new Error('Identifiants requis.'), { status: 400 });
     }
-    if (password.length > 128) {
+    if (password.length > 128 || identifier.length > 160) {
       throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
     }
 
@@ -29,6 +29,12 @@ export default async function handler(request: Request, context: Context): Promi
       ? await sql`select * from users where lower(email) = ${identifier} limit 1`
       : await sql`select * from users where account_name = ${identifier} limit 1`;
     const user = rows[0] as (DbUser & { password_hash: string }) | undefined;
+    // A distributed caller must share the same budget for every login alias of
+    // the account. Unknown identifiers receive the same limiting behavior.
+    await assertSubjectRateLimit('auth-login-account', user ? `user:${user.id}` : `identifier:${identifier}`, {
+      limit: 10,
+      windowSeconds: 900
+    });
     if (!user) throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
 
     const ok = await verifyPassword(password, user.password_hash);

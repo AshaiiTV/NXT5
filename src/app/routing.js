@@ -8,8 +8,7 @@ export function normalizePath(pathname = "/") {
 
 export function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  const adminPage = adminPageFromRoute({ path });
-  if (adminPage && !NAV.some(item => item.path === path)) return adminPage.id;
+  if (adminPageFromRoute({ path }) && !NAV.some(item => item.path === path)) return "admin";
   if (path === "/statistiques" || path === "/rapports") return "matches";
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return "draft";
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";

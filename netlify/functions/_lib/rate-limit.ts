@@ -44,6 +44,26 @@ export async function assertSubjectRateLimit(endpoint: string, subject: string, 
   return assertLimit(`subject:${endpoint}:${digest}`, 'subject', endpoint, options);
 }
 
+function assistantDailyLimit(name: string, fallback: number): number {
+  const configured = (globalThis as any).Netlify?.env?.get?.(name) ?? process.env[name];
+  if (configured === undefined || configured === '') return fallback;
+  const value = Number(configured);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw Object.assign(new Error('Quota IA invalide.'), { status: 503, code: 'ASSISTANT_QUOTA_MISCONFIGURED' });
+  }
+  return value;
+}
+
+/** Reserve a single paid call; all account/global budgets are independent of IP. */
+export async function assertAssistantAiRateLimit(request: Request, userId: string): Promise<void> {
+  const accountDailyLimit = assistantDailyLimit('NXT5_ASSISTANT_ACCOUNT_DAILY_LIMIT', 100);
+  const globalDailyLimit = assistantDailyLimit('NXT5_ASSISTANT_GLOBAL_DAILY_LIMIT', 1000);
+  await assertRateLimit(request, 'assistant-chat-ip', { limit: 24, windowSeconds: 60 });
+  await assertSubjectRateLimit('assistant-chat-account', userId, { limit: 12, windowSeconds: 60 });
+  await assertSubjectRateLimit('assistant-chat-account-daily', userId, { limit: accountDailyLimit, windowSeconds: 86400 });
+  await assertSubjectRateLimit('assistant-chat-global-daily', 'all-accounts', { limit: globalDailyLimit, windowSeconds: 86400 });
+}
+
 export async function assertVerificationEmailRateLimit(userId: string, email: string): Promise<void> {
   try {
     // Check the account first: an already blocked account cannot consume the

@@ -20,9 +20,9 @@ async function fixture() {
   return { db, client, migrations };
 }
 
-describe('controlled database migrations', () => {
-  // The first fixture also compiles/starts PostgreSQL WASM. Concurrent SQL suites
-  // can take more than the default 5 seconds on a cold runtime.
+describe('controlled database migrations', { timeout: 30_000 }, () => {
+  // Every fixture starts PostgreSQL WASM. Running the SQL suites concurrently
+  // can exceed five seconds even after the first fixture, without a DB failure.
   it('prepares a fresh database and checks the lock before applying DDL', async () => {
     const { db, client, migrations } = await fixture();
     expect(await applyMigrations(client, migrations)).toEqual(migrations.map(m => m.key));

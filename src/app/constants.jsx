@@ -30,6 +30,7 @@ export const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
+  { id: "audience", label: "Fréquentation", hint: "Audience et conversions", icon: BarChart3, path: "/admin/frequentation", hidden: true },
   { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
 ];
 
@@ -44,9 +45,9 @@ export const DRAFT_VIEW_ROUTES = [
 export const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
   { id: "champions", label: "Champions", path: "champions" },
-  { id: "pool", label: "Pool", path: "pool" },
+  { id: "pool", label: "Pool déclaré", path: "pool" },
   { id: "history", label: "Historique", path: "historique" },
-  { id: "coaching", label: "Coaching", path: "coaching" },
+  { id: "coaching", label: "Suivi", path: "coaching" },
 ];
 
 export const AUTH_ROUTES = {

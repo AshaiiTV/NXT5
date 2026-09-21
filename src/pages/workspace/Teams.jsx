@@ -472,7 +472,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
           <h3 className="text-xl font-black text-white">Rejoindre une team</h3>
           <p className="mt-1 text-sm text-slate-300">Demande au coach, manager ou capitaine un code temporaire. Il expire après 1h.</p>
           <form onSubmit={joinTeam} className="mt-5 space-y-4">
-            <TextInput label="Code d’invitation" value={joinCode} onChange={setJoinCode} placeholder="NXT5-ABC123" required icon={UserPlus} />
+            <TextInput label="Code d’invitation" value={joinCode} onChange={setJoinCode} placeholder="Colle ton code ou ton lien d’invitation" required icon={UserPlus} />
             <Button type="submit" disabled={saving || !joinCode.trim()} icon={saving ?Loader2 : ArrowRight} className="w-full">Rejoindre la team</Button>
           </form>
         </Surface>
@@ -570,8 +570,8 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         <div className="mt-4 grid gap-2 md:grid-cols-2">
           {activeCodes.length ? activeCodes.map((code) => {
             const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000));
-            return <div key={code.id} className="rounded-2xl border border-white/10 bg-black/25 p-3">
-              <div className="flex items-center justify-between gap-3"><p className="font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>
+            return <div key={code.id} className="min-w-0 rounded-2xl border border-white/10 bg-black/25 p-3">
+              <div className="flex min-w-0 flex-wrap items-start justify-between gap-3"><p className="min-w-0 max-w-full break-all font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>
               <p className="mt-1 truncate text-xs font-semibold text-slate-300">Créé par {code.created_by_name || "staff"}</p>
             </div>;
           }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300 md:col-span-2">Aucun code actif.</p>}

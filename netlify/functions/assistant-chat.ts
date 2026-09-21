@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { sql } from './_lib/db';
 import { assertMethod, handleError, json, readJson } from './_lib/http';
-import { assertRateLimit } from './_lib/rate-limit';
+import { assertAssistantAiRateLimit } from './_lib/rate-limit';
 import {
   assistantSources,
   buildFallbackAssistantResponse,
@@ -107,7 +107,8 @@ async function askGateway(args: {
   history: SafeHistoryItem[];
   matches: AssistantKnowledgeMatch[];
 }): Promise<ModelPayload> {
-  const client = new OpenAI({ timeout: 12_000, maxRetries: 1 });
+  // Each reserved quota unit permits one outbound attempt, including failures.
+  const client = new OpenAI({ timeout: 12_000, maxRetries: 0 });
   const model = cleanText(process.env.NXT5_ASSISTANT_MODEL || DEFAULT_MODEL, 80) || DEFAULT_MODEL;
   const context = {
     currentRoute: args.route,
@@ -141,8 +142,7 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     const user = await requireAuth(request, context);
-    await assertRateLimit(request, `assistant-chat:${user.id}`, { limit: 12, windowSeconds: 60 });
-    const body = await readJson(request);
+    const body = await readJson(request, MAX_REQUEST_BYTES);
     const rawMessage = String(body.message || '').replace(/\0/g, '').trim();
     if (!rawMessage) throw Object.assign(new Error('Écris une question avant de l’envoyer.'), { status: 400 });
     if (rawMessage.length > MAX_MESSAGE_LENGTH) {
@@ -161,6 +161,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (process.env.NXT5_ASSISTANT_DISABLE_AI === '1') return json(fallback);
 
     try {
+      await assertAssistantAiRateLimit(request, String(user.id));
       const modelPayload = await askGateway({ message: rawMessage, route, entityType, history, matches });
       const answer = cleanText(modelPayload.answer, MAX_ANSWER_LENGTH);
       if (!answer) return json(fallback);
@@ -174,8 +175,9 @@ export default async function handler(request: Request, context: Context): Promi
         fallback: false
       });
     } catch (gatewayError: any) {
-      console.warn('assistant-chat: AI Gateway unavailable, serving local help.', {
+      console.warn('assistant-chat: paid assistance unavailable, serving local help.', {
         name: gatewayError?.name || 'Error',
+        code: gatewayError?.code || null,
         status: gatewayError?.status || null
       });
       return json(fallback);
