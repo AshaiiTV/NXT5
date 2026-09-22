@@ -44,10 +44,8 @@
 .discord-history > li > * + * { margin-top: 0.5rem; }
 .discord-health dt { color: #dbe8f8; }
 .discord-health dd { font-size: 1.6rem; font-weight: 900; font-variant-numeric: tabular-nums; }
-.discord-share { margin-top: 1rem; }
-.discord-share-trigger { display: inline-flex; min-height: 44px; align-items: center; gap: 0.5rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-button, 2px); padding: 0.6rem 0.9rem; background: #071221; font-weight: 800; transition: background 160ms; }
-.discord-share-trigger:hover { background: #102339; }
-.discord-share-content { border-top: 1px solid var(--nxt5-border); margin-top: 1rem; padding-top: 1rem; }
+.discord-share-action { display: inline-flex; min-width: 0; max-width: 100%; }
+.discord-share-content { min-width: 0; }
 .discord-preview { border-left: 3px solid #67e8f9; padding: 0.5rem 0 0.5rem 1rem; }
 .discord-preview > * + *, .discord-embed > * + * { margin-top: 0.75rem; }
 .discord-message-content, .discord-embed dd { white-space: pre-wrap; }
@@ -62,7 +60,7 @@
   .discord-heading > button { width: 100%; }
   .discord-preview { padding-left: 0.65rem; }
 }
-@media (prefers-reduced-motion: reduce) { .discord-share-trigger { transition: none; } .discord-loading .animate-spin { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .discord-loading .animate-spin { animation: none; } }
 
 /* Dedicated dashboard: one shared surface, open sections, real connection states. */
 .discord-dashboard .discord-eyebrow, .discord-step-kicker { display: block; color: #a5f3fc; font-size: .75rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
