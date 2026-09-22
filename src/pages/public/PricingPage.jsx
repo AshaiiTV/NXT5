@@ -13,8 +13,9 @@ import { useAdminNavigationGuard } from "../../components/admin/AdminNavigationC
 import "./pricing.css";
 
 const FAQ = [
-  ["Comment se passeront les 14 jours de Découverte ?", "Au lancement, ton équipe pourra tester tous les outils du Pass Équipe pendant 14 jours, sans carte bancaire. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
-  ["Et après les 14 jours ?", "Après les 14 jours d’accès complet, le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5. Il est proposé à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera volontaire : aucun paiement automatique à la fin de l’essai."],
+  ["Comment se passeront les 14 jours de Découverte ?", "Au lancement, ton équipe pourra tester les outils NXT5 pendant 14 jours, sans carte bancaire, à l’exception du bot Discord réservé au Pass Équipe. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
+  ["Le bot Discord sera-t-il inclus dans Découverte ?", "Non. Dans les offres prévues au lancement, le bot Discord et la publication des games seront réservés au Pass Équipe payant. Ils ne seront pas inclus dans les 14 jours de Découverte. Cette présentation prépare le lancement : le paiement n’est pas ouvert et tes accès actuels restent inchangés."],
+  ["Et après les 14 jours ?", "Après les 14 jours de Découverte, le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5. Il est proposé à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera volontaire : aucun paiement automatique à la fin de l’essai."],
   ["Est-ce que je dois payer aujourd’hui ?", "Non. Ces offres sont en cours de validation avec les équipes. La demande d’accès nous permet de comprendre ton besoin et de te recontacter. Elle ne crée ni commande ni abonnement, et aucune carte bancaire n’est demandée."],
   ["Est-ce que chaque joueur devra payer ?", "Non. Découverte et Pass Équipe prévoient une équipe jusqu’à 15 membres, roster et staff compris. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
   ["Ces offres changent-elles déjà mes accès ?", "Non. L’essai et le tarif présentés ici préparent le lancement. Tes accès actuels et tes données restent inchangés. Toute évolution sera précisée avant l’ouverture des offres."],
@@ -167,7 +168,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
               </Surface>
             ))}
           </div>
-          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Les mêmes outils pour découvrir NXT5 et continuer avec ton équipe, dans le cadre d’un usage normal. Offres préparées pour le lancement : aucun essai ni abonnement n’est activé aujourd’hui.</p>
+          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Au lancement, le bot Discord sera réservé au Pass Équipe payant et ne sera pas inclus dans Découverte. Offres en préparation : aucun essai, paiement ni abonnement n’est activé aujourd’hui. Tes accès actuels restent inchangés.</p>
         </section>
 
         {user?.is_platform_admin === true && <details className="pricing-faq-item mt-8" data-pass-preview>

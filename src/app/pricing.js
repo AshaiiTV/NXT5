@@ -5,7 +5,6 @@ const TEAM_FEATURES = [
   "1 équipe · jusqu’à 15 membres",
   "Imports, statistiques et reviews",
   "Planning, champion pools et compositions",
-  "Bot Discord · publication des games",
   "Historique complet et export des données",
   "Rôles et accès du staff · assistance standard",
 ];
@@ -17,7 +16,7 @@ export const PROPOSED_PLANS = [
     days: DISCOVERY_TRIAL_DAYS,
     price: "0 €",
     period: `pendant ${DISCOVERY_TRIAL_DAYS} jours`,
-    description: `${DISCOVERY_TRIAL_DAYS} jours d’accès complet à tous les outils, puis un Pass Équipe pour continuer.`,
+    description: `${DISCOVERY_TRIAL_DAYS} jours pour découvrir les outils NXT5, puis un Pass Équipe pour continuer.`,
     terms: "Sans carte bancaire · sans passage automatique au payant",
     features: TEAM_FEATURES,
   },
@@ -27,9 +26,9 @@ export const PROPOSED_PLANS = [
     months: 1,
     price: "9,90 €",
     period: "TTC / mois / équipe",
-    description: "Pour continuer à organiser tes sessions et suivre ton roster après l’essai.",
+    description: "Pour continuer après l’essai, avec le bot Discord pour publier les games de ton équipe.",
     terms: "Mensuel · résiliable à tout moment",
-    features: TEAM_FEATURES,
+    features: [...TEAM_FEATURES, "Bot Discord · publication des games"],
   },
 ];
 
