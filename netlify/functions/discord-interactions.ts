@@ -7,6 +7,7 @@ import { getDiscordConfig, verifyDiscordInteraction, isDiscordId, isDiscordEnabl
 import { assertDiscordSchemaReady } from './_lib/discord-queue';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { getDiscordGuild } from './_lib/discord-client';
+import { discordBotFailure, discordMemberTeamChoices, executeDiscordBot, immediateDiscordHelp, openDiscordBotModal, parseDiscordCommand } from './_lib/discord-bot';
 
 function responseMessage(content: string) {
   return { content, allowed_mentions: { parse: [] } };
@@ -42,7 +43,8 @@ async function autocompleteResponse(interaction: any) {
   try {
     // Autocomplete cannot be deferred: return an empty list before Discord's
     // three-second deadline if the database is slow. No team state is changed.
-    const choices = await Promise.race([discordTeamChoices(interaction), new Promise<[]>(resolve => { timer = setTimeout(() => resolve([]), 2000); })]);
+    const legacy = teamCommands.includes(interaction.data?.options?.[0]?.name);
+    const choices = await Promise.race([legacy ? discordTeamChoices(interaction) : discordMemberTeamChoices(interaction), new Promise<[]>(resolve => { timer = setTimeout(() => resolve([]), 2000); })]);
     return json({ type: 8, data: { choices } });
   } catch { return json({ type: 8, data: { choices: [] } }); }
   finally { clearTimeout(timer!); }
@@ -144,16 +146,20 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
 }
 
 async function replyToDeferred(interaction: any) {
-  let content: string;
-  try { content = await executeDiscordCommand(interaction); }
+  let message: any;
+  try {
+    const legacy = interaction.type === 2 && ['connecter', ...teamCommands].includes(parseDiscordCommand(interaction).command);
+    message = legacy ? responseMessage(await executeDiscordCommand(interaction)) : await executeDiscordBot(interaction);
+  }
   catch (error: any) {
     console.error('[discord-interaction]', { code: error?.code || 'COMMAND_FAILED', status: error?.status || 500 });
-    content = commandFailureMessage(error);
+    message = discordBotFailure(error);
   }
   const { applicationId } = getDiscordConfig();
   try {
+    const { flags: _flags, ...edit } = message;
     const response = await fetch('https://discord.com/api/v10/webhooks/' + applicationId + '/' + encodeURIComponent(interaction.token) + '/messages/@original', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(responseMessage(content)), redirect: 'error', signal: AbortSignal.timeout(8000),
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...edit, allowed_mentions: { parse: [] } }), redirect: 'error', signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) console.error('[discord-interaction]', { code: 'FOLLOWUP_FAILED', status: response.status });
   } catch { console.error('[discord-interaction]', { code: 'FOLLOWUP_UNAVAILABLE' }); }
@@ -169,13 +175,28 @@ async function handler(request: Request, context: Context) {
   if (!interaction || typeof interaction!=='object' || Array.isArray(interaction)) return json({error:'Interaction invalide.'},400);
   if (interaction.type === 1) return json({ type: 1 });
   const { applicationId } = getDiscordConfig();
-  if (![2, 4].includes(interaction.type) || !isDiscordId(interaction.id) || interaction.application_id !== applicationId || !isDiscordId(interaction.guild_id)
-    || !isDiscordId(interaction.member?.user?.id) || interaction.data?.name !== 'nxt' || typeof interaction.token !== 'string' || interaction.token.length > 1024) {
+  const dataValid = [2, 4].includes(interaction.type) ? interaction.data?.name === 'nxt'
+    : typeof interaction.data?.custom_id === 'string' && interaction.data.custom_id.startsWith('nxt:') && interaction.data.custom_id.length <= 100;
+  if (![2, 3, 4, 5].includes(interaction.type) || !isDiscordId(interaction.id) || interaction.application_id !== applicationId || !isDiscordId(interaction.guild_id)
+    || !isDiscordId(interaction.member?.user?.id) || !dataValid || typeof interaction.token !== 'string' || !interaction.token || interaction.token.length > 1024) {
     if (interaction.type === 4) return json({ type: 8, data: { choices: [] } });
     return json({ type: 4, data: { ...responseMessage('Cette commande doit être utilisée dans le serveur relié à NXT5.'), flags: 64 } });
   }
   if (interaction.type === 4) return autocompleteResponse(interaction);
-  if (!canManageServer(interaction)) return json({ type: 4, data: { ...responseMessage('Cette commande est réservée aux responsables du serveur.'), flags: 64 } });
+  try {
+    const help = immediateDiscordHelp(interaction);
+    if (help) return json({ type: interaction.type === 3 ? 7 : 4, data: { ...help, ...(interaction.type === 2 ? { flags: 64 } : {}) } });
+    if (interaction.type === 2 && ['connecter', ...teamCommands].includes(parseDiscordCommand(interaction).command) && !canManageServer(interaction)) {
+      return json({ type: 4, data: { ...responseMessage('Cette commande est réservée aux responsables du serveur.'), flags: 64 } });
+    }
+    if (interaction.type === 3 && interaction.data.custom_id.startsWith('nxt:modal:open:')) {
+      let timer: ReturnType<typeof setTimeout>;
+      try {
+        const modal = await Promise.race([openDiscordBotModal(interaction), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('MODAL_TIMEOUT')), 2000); })]);
+        return json(modal);
+      } finally { clearTimeout(timer!); }
+    }
+  } catch (error) { return json({ type: 4, data: { ...discordBotFailure(error), flags: 64 } }); }
   // Acknowledge before remote DB/API work; Discord requires a response in 3s.
   if (typeof (context as any).waitUntil !== 'function') return json({ type: 4, data: { ...responseMessage('Le traitement des commandes est indisponible. Utilise les réglages NXT5.'), flags: 64 } });
   (context as any).waitUntil(replyToDeferred(interaction));

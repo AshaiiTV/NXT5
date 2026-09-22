@@ -143,6 +143,10 @@ Voir [les changements 0.3.3](importer-app/CHANGELOG.md) et [la validation Electr
 Le front ne stocke aucune donnée métier en localStorage. Les données importantes passent par Neon. La clé Riot n'est jamais exposée côté navigateur.
 
 
+## Commandes du bot Discord
+
+Le bot dispose d’un catalogue de 50 chemins `/nxt`, avec `/nxt help` et `/nxt aide` pour le guide interactif, une liaison personnelle Discord–NXT5 et des commandes de consultation, planning, objectifs et reviews. Le [guide de développement et d’activation](docs/discord-bot-commandes.md) décrit les droits, les deux migrations, les rappels/bilans planifiés et l’ordre déploiement serveur → enregistrement du catalogue Discord. Les contrôles locaux n’attestent pas un enregistrement ou un envoi réel.
+
 ## Connexion à la base de données
 
 Pour créer un compte, les fonctions Netlify doivent recevoir `DATABASE_URL` et `npm run db:migrate` doit avoir réussi sur cette base. Sans le marqueur de migration attendu, les fonctions répondent temporairement 503.

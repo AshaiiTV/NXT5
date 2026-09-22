@@ -16,7 +16,7 @@ Le code permet **plusieurs équipes NXT5 sur le même serveur Discord**, avec **
 
 L’activation ne publie pas l’historique. Une ancienne game peut être partagée explicitement depuis son aperçu. Une destination manuelle continue à recevoir les corrections d’une game déjà partagée. Ajouter une catégorie ou une destination ne déplace pas silencieusement une publication existante dans un nouveau salon.
 
-Les reviews rédigées par le staff, bilans de session, Tendances hebdomadaires, profils et pools sont des extensions prévues après validation du pilote. Les commandes V1 sont `/nxt connecter`, `/nxt statut`, `/nxt pause`, `/nxt reprendre` et `/nxt aide`. La publication d’une game se fait depuis NXT5 ; aucune commande Discord ne donne accès aux données privées d’une autre équipe.
+Le socle historique conserve `/nxt connecter`, `/nxt statut`, `/nxt pause`, `/nxt reprendre` et `/nxt aide`. Le checkout prépare désormais 50 chemins de commande, un guide interactif, les liaisons personnelles, les consultations et les actions de planning, progression et review. Le [guide des commandes et de leur activation](discord-bot-commandes.md) décrit les droits, les nouvelles migrations, la planification et l’enregistrement du catalogue après déploiement du serveur compatible. Ce code ne constitue pas une preuve d’activation en production. La publication d’une game reste disponible depuis NXT5 ; aucune commande ne donne accès aux données privées d’une autre équipe.
 
 ## 2. Architecture et fichiers
 
