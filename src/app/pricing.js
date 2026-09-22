@@ -5,6 +5,7 @@ const TEAM_FEATURES = [
   "1 équipe · jusqu’à 15 membres",
   "Imports, statistiques et reviews",
   "Planning, champion pools et compositions",
+  "Bot Discord · publication des games",
   "Historique complet et export des données",
   "Rôles et accès du staff · assistance standard",
 ];
