@@ -23,6 +23,11 @@
 .discord-link-code > code { display: block; font-size: 1.35rem; letter-spacing: 0.12em; color: #a5f3fc; margin-block: 0.5rem; user-select: all; }
 .discord-link-code .discord-actions { margin-top: 0.5rem; }
 .discord-routes, .discord-history { min-width: 0; }
+.discord-channel-selection { min-width: 0; }
+.discord-channel-selection > * + * { margin-top: .75rem; }
+.discord-channel-picker { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .75rem; }
+.discord-channel-picker > * { min-width: 0; }
+.discord-channel-picker > .discord-actions:only-child { grid-column: 1 / -1; }
 .discord-route { min-width: 0; padding: 1rem 0; border-top: 1px solid rgba(207, 250, 254, 0.13); }
 .discord-route > legend { font-weight: 800; padding-right: 0.5rem; }
 .discord-route > * + * { margin-top: 0.85rem; }
@@ -51,6 +56,7 @@
 .discord-preview-image { width: 100%; height: auto; max-width: 900px; border-radius: 0.5rem; }
 .discord-panel :focus-visible, .discord-share :focus-visible { outline: 2px solid #67e8f9; outline-offset: 3px; }
 @media (max-width: 640px) {
+  .discord-channel-picker { grid-template-columns: minmax(0, 1fr); }
   .discord-panel select, .discord-share select { font-size: 16px !important; }
   .discord-actions > button { flex: 1 1 180px; }
   .discord-heading > button { width: 100%; }
