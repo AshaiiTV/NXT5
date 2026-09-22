@@ -105,7 +105,12 @@ describe('Discord signatures and environment isolation', () => {
     expect(isDiscordEnabled()).toBe(true);
     const publicStatus = publicDiscordStatus();
     expect(JSON.stringify(publicStatus)).not.toMatch(/test-only|aaaaaaaa/);
-    expect(new URL(publicStatus.installUrl!).searchParams.get('permissions')).toBe(String(PERMISSIONS));
+    const invite = new URL(publicStatus.installUrl!);
+    expect(invite.origin).toBe('https://discord.com');
+    expect(invite.searchParams.get('permissions')).toBe('8');
+    expect(invite.searchParams.get('scope')).toBe('bot applications.commands');
+    expect(invite.searchParams.get('client_id')).toBe(APP);
+    expect(invite.searchParams.get('integration_type')).toBe('0');
     vi.stubEnv('CONTEXT', 'dev');
     expect(isDiscordEnabled()).toBe(false);
     vi.stubEnv('DISCORD_ENVIRONMENT', 'test');

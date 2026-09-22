@@ -138,6 +138,21 @@ describe('Discord application identity and public inspection', () => {
 });
 
 describe('Single-command setup and verification', () => {
+  it('upgrades legacy installation defaults to Administrator in both server invitation paths', async () => {
+    const initial = application();
+    initial.install_params.permissions = '117760';
+    initial.integration_types_config['0'].oauth2_install_params.permissions = '117760';
+    mockDiscord(initial);
+    const before = await (await setup(signed(), context())).json();
+    expect(before).toMatchObject({ ready: false, checks: { defaultInstall: false, guildInstall: false } });
+    expect(fetchMock.mock.calls.every(([, options]) => options.method === 'GET')).toBe(true);
+    const after = await (await setup(signed({ action: 'configure', expectedApplicationId: APP }), context())).json();
+    expect(after).toMatchObject({ ready: true, application: { installParams: { permissions: '8', scopes: ['bot', 'applications.commands'] }, guildInstall: { permissions: '8' } } });
+    const patch = JSON.parse(fetchMock.mock.calls.find(([, options]) => options.method === 'PATCH')![1].body);
+    expect(patch.install_params.permissions).toBe('8');
+    expect(patch.integration_types_config['0'].oauth2_install_params.permissions).toBe('8');
+    expect(fetchMock.mock.calls.every(([url]) => !url.includes('/guilds/') && !url.includes('/channels/'))).toBe(true);
+  });
   it('confirms registration when Discord omits optional required=false fields', async () => {
     const registered: any = command();
     for (const subcommand of registered.options) for (const option of subcommand.options || []) if (option.required === false) delete option.required;
