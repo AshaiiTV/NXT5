@@ -370,10 +370,19 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     progressTimer.current = window.setTimeout(() => setUploadProgress(null), 1200);
   }
   function updateLaneAssignment(role, value) {
-    setLaneAssignments((current) => ({ ...current, [role]: value }));
+    setLaneAssignments((current) => swapLaneAssignment(current, role, value));
   }
-  function updateEnemyLaneAssignment(role, value) {
-    setEnemyLaneAssignments((current) => ({ ...current, [role]: value }));
+  function swapLaneAssignment(current, role, value) {
+    const previousRole = value && COMP_ROLES.find((item) => item !== role && current[item] === value);
+    return { ...current, ...(previousRole ? { [previousRole]: current[role] || "" } : {}), [role]: value };
+  }
+  function updateEnemyParticipantRole(participant, role) {
+    const value = previewAssignmentValue(participant);
+    setEnemyLaneAssignments((current) => {
+      if (role) return swapLaneAssignment(current, role, value);
+      const previousRole = COMP_ROLES.find((item) => current[item] === value);
+      return previousRole ? { ...current, [previousRole]: "" } : current;
+    });
   }
   function updatePlayerAssignment(role, value) {
     setPlayerAssignments((current) => ({ ...current, [role]: value }));
@@ -405,7 +414,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     return previewRiotRole(participant) || previewFallbackRole(participant, index);
   }
   function previewAssignmentValue(participant) {
-    return participant?.riotId || participant?.summonerName || participant?.champion || "";
+    return participant?.participantId ? `participant:${participant.participantId}` : "";
   }
   function preportIdentityKeys(participant) {
     const riotId = String(participant?.riotId || "").trim();
@@ -495,6 +504,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }, {});
   }
   function selectImportSide(side) {
+    if (side === allyTeamSide) return;
     const enemySide = side === "BLUE" ? "RED" : "BLUE";
     setAllyTeamSide(side);
     setLaneAssignments(laneAssignmentsForSide(side));
@@ -559,12 +569,18 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }
   }
 
-  const laneAssignmentsReady = COMP_ROLES.every((role) => String(laneAssignments[role] || "").trim() && String(playerAssignments[role] || "").trim());
-  const enemyAssignmentsReady = COMP_ROLES.every((role) => String(enemyLaneAssignments[role] || "").trim());
-  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
   const previewTeams = importPreview?.teams || [];
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
-  const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
+  const enemyPreviewTeam = allyTeamSide ? previewTeams.find((team) => team.side && team.side !== allyTeamSide) : null;
+  const assignmentsReady = (team, assignments) => {
+    const values = COMP_ROLES.map((role) => assignments[role]);
+    return new Set(values).size === COMP_ROLES.length && values.every((value) => value && team?.participants.some((participant) => previewAssignmentValue(participant) === value));
+  };
+  const playerAssignmentsReady = new Set(COMP_ROLES.map((role) => playerAssignments[role])).size === COMP_ROLES.length
+    && COMP_ROLES.every((role) => gameplayRoster.some((player) => player.id === playerAssignments[role]));
+  const laneAssignmentsReady = assignmentsReady(allyPreviewTeam, laneAssignments) && playerAssignmentsReady;
+  const enemyAssignmentsReady = assignmentsReady(enemyPreviewTeam, enemyLaneAssignments);
+  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
   const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
   const importFlowSteps = [
     [Upload, "JSON", "Charge le fichier de la game.", Boolean(importPreview)],
@@ -613,7 +629,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                           </div>
                           <select aria-label={`Champion allié · ${roleLabel(role)}`} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
                             <option value="">Champion joué</option>
-                            {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
+                            {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={previewAssignmentValue(participant)}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
                           </select>
                           <select aria-label={`Profil NXT5 · ${roleLabel(role)}`} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="mt-2 w-full rounded-xl border border-cyan-300/14 bg-cyan-400/[0.07] px-3 py-2 text-xs font-black text-white outline-none">
                             <option value="">Profil NXT5 lié</option>
@@ -625,20 +641,22 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                   </div>
                   <div className="rounded-[1.35rem] border border-rose-300/14 bg-rose-500/[0.055] p-4">
                     <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side || "Side ?"}</Badge></div>
+                    <p className="mb-3 text-sm leading-6 text-slate-300">{enemyPreviewTeam ? "Choisis le poste de chaque champion adverse. Si le poste est déjà pris, les deux champions échangent leur poste." : "Choisis d’abord le côté de notre équipe pour attribuer les postes adverses."}</p>
+                    {enemyPreviewTeam && !enemyAssignmentsReady && <p role="status" className="mb-3 text-sm text-rose-100">Attribue un poste à chaque champion adverse pour confirmer l’import.</p>}
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                      {COMP_ROLES.map((role) => {
-                        const pickedChampion = selectedPreviewParticipant(enemyPreviewTeam, enemyLaneAssignments[role]);
+                      {(enemyPreviewTeam?.participants || []).map((participant) => {
+                        const role = COMP_ROLES.find((item) => enemyLaneAssignments[item] === previewAssignmentValue(participant)) || "";
+                        const champion = championDisplayName(participant.champion);
                         return (
-                        <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", enemyLaneAssignments[role] ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
-                          <ImportRoleHeader role={role} toneName="red" fallbackLabel="Adverse" />
+                        <div key={participant.participantId} className={cx("min-w-0 rounded-2xl border p-3 transition", role ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
-                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Shield className="h-4 w-4" /></span>}
-                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion adverse"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
+                            <ChampionPortrait champion={participant.champion} alt={champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{champion}</p><p className="truncate text-xs font-semibold text-slate-300">{participant.riotId || participant.summonerName || "Adversaire"}</p></div>
                           </div>
-                          <select aria-label={`Champion adverse · ${roleLabel(role)}`} value={enemyLaneAssignments[role] || ""} onChange={(event) => updateEnemyLaneAssignment(role, event.target.value)} disabled={!enemyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
-                            <option value="">Champion adverse</option>
-                            {(enemyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
-                          </select>
+                          <SelectInput label={`Poste · ${champion}`} aria-label={`Poste · ${champion}`} value={role} onChange={(nextRole) => updateEnemyParticipantRole(participant, nextRole)} disabled={importing || fileImporting}>
+                            <option value="">À attribuer</option>
+                            {COMP_ROLES.map((item) => <option key={item} value={item}>{roleLabel(item)}</option>)}
+                          </SelectInput>
                         </div>
                       );})}
                     </div>
