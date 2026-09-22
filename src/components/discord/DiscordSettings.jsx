@@ -114,9 +114,10 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
         <div className="discord-step-panels">
           <section id={`${stepsId}-panel-0`} role="tabpanel" aria-labelledby={`${stepsId}-tab-0`} hidden={activeStep !== 0} tabIndex={0} className="discord-step-panel discord-setup-step">
             <span className="discord-step-kicker">Étape 1</span><h4>Inviter le bot</h4>
-            {connected ? <><Badge tone={verified ? "cyan" : "yellow"}>{verified ? "Installation vérifiée" : "Serveur associé · connexion à vérifier"}</Badge><p>NXT5 a été associé à <strong>{connection.guildName || connection.guildId}</strong>. L’état de la connexion reste visible en haut de cette page.</p><Button type="button" variant="ghost" onClick={() => selectStep(1, true)}>Voir la liaison de l’équipe</Button></> : <>
+            {connected ? <><Badge tone={verified ? "cyan" : "yellow"}>{verified ? "Installation vérifiée" : "Serveur associé · connexion à vérifier"}</Badge><p>NXT5 a été associé à <strong>{connection.guildName || connection.guildId}</strong>. L’état de la connexion reste visible en haut de cette page.</p><DiscordPermissionUpdate installUrl={status.installUrl} guildId={connection.guildId} canManage={canManage} /><Button type="button" variant="ghost" onClick={() => selectStep(1, true)}>Voir la liaison de l’équipe</Button></> : <>
               <p>Invite NXT5 une seule fois sur le serveur. Plusieurs équipes NXT5 peuvent ensuite partager ce serveur, chacune avec sa propre liaison.</p>
               {canManage && <DiscordLink className="discord-invite-button nxt5-button-primary" href={status.installUrl || link?.installUrl} onClick={() => setInvitationOpened(true)}>Ajouter à Discord</DiscordLink>}
+              <p>L’invitation demande l’autorisation Administrateur. Administrateur donne tous les droits au bot sur ce serveur. Un responsable du serveur doit la valider dans Discord.</p>
               <p className="discord-help">Si le bot est déjà présent, passe directement à Relier. Tu dois pouvoir gérer ce serveur Discord. L’ouverture de l’invitation ne confirme pas l’installation : la liaison la vérifiera.</p>
               {invitationOpened && <p role="status" className="discord-help">Invitation ouverte. Termine l’autorisation dans Discord, puis relie ton équipe.</p>}
               <div className="discord-actions"><Button type="button" variant="ghost" icon={Link2} onClick={() => selectStep(1, true)}>Passer à Relier</Button></div>
@@ -141,11 +142,28 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
       </section>
       {connected && canManage && !connection.paused && <div className="discord-actions"><Button type="button" variant="ghost" icon={Pause} disabled={action.busy} onClick={() => action.run("team-discord-connection", { teamId, action: "pause" }, reload, "La diffusion de l’équipe est en pause.")}>Mettre en pause</Button><p className="discord-help">La pause arrête les publications de cette équipe. Les messages déjà envoyés restent visibles.</p></div>}
       <DiscordHistory teamId={teamId} canPublish={canPublish || canManage} revision={revision} showSummary={connected} />
-      <details className="discord-guide discord-section"><summary>Aide et résolution des problèmes</summary><ConnectionHelp /><h4>Le salon n’apparaît pas ou l’envoi échoue ?</h4><p>Vérifie que le bot peut voir le salon, envoyer des messages, intégrer des liens, joindre des fichiers et lire l’historique. Les autorisations propres au salon peuvent remplacer celles du rôle du bot. Reviens ensuite sur cette page et actualise Discord.</p><h4>Que reçoivent les membres du salon ?</h4><p>Le résultat, les statistiques et le visuel de la game. Les notes privées du staff ne sont pas incluses. Le message et son image sont lisibles dans Discord ; ouvrir la game dans NXT5 exige toujours les droits de l’équipe.</p><h4>Un message est « à vérifier » ?</h4><p>Consulte le salon avant toute action. L’historique permet d’associer le message déjà envoyé ; un envoi incertain n’est pas renvoyé automatiquement.</p></details>
+      <details className="discord-guide discord-section"><summary>Aide et résolution des problèmes</summary><ConnectionHelp /><h4>Le salon n’apparaît pas ou l’envoi échoue ?</h4><p>Un responsable peut ouvrir « Mettre à jour les autorisations » dans Inviter ou Choisir les salons, puis valider l’autorisation Administrateur dans Discord. Reviens ensuite dans Choisir les salons et clique sur « Actualiser les salons ».</p><h4>Que reçoivent les membres du salon ?</h4><p>Le résultat, les statistiques et le visuel de la game. Les notes privées du staff ne sont pas incluses. Le message et son image sont lisibles dans Discord ; ouvrir la game dans NXT5 exige toujours les droits de l’équipe.</p><h4>Un message est « à vérifier » ?</h4><p>Consulte le salon avant toute action. L’historique permet d’associer le message déjà envoyé ; un envoi incertain n’est pas renvoyé automatiquement.</p></details>
     </>}
     <div className="discord-actions discord-section"><Button type="button" variant="ghost" icon={RefreshCw} disabled={resource.loading || action.busy} onClick={reload}>Actualiser Discord</Button>{connected && canManage && !confirmDisconnect && <Button type="button" icon={Unplug} variant="danger" disabled={action.busy} onClick={() => setConfirmDisconnect(true)}>Délier cette équipe</Button>}</div>
     {confirmDisconnect && <div className="discord-confirm"><p>Délier <strong>{teamName || "cette équipe"}</strong> de <strong>{connection?.guildName || "ce serveur"}</strong> arrête uniquement ses publications. Le bot reste sur le serveur et les autres équipes gardent leurs liaisons, leurs réglages et leurs envois. Les messages déjà publiés par cette équipe restent visibles et peuvent être retirés depuis son historique.</p><div className="discord-actions"><Button type="button" variant="danger" disabled={action.busy} onClick={() => action.run("team-discord-connection", { teamId, action: "disconnect" }, () => { setConfirmDisconnect(false); setLink(null); setSavedRoutes([]); setTestPassed(false); reload(); }, "Cette équipe a été déliée du serveur. Les autres équipes restent connectées.")}>Confirmer la déliaison</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setConfirmDisconnect(false)}>Annuler</Button></div></div>}
   </Surface>;
+}
+
+function discordPermissionsUrl(installUrl, guildId) {
+  if (typeof guildId !== "string" || !/^\d{17,20}$/.test(guildId)) return null;
+  try {
+    const url = new URL(installUrl);
+    if (url.origin !== "https://discord.com" || url.pathname !== "/oauth2/authorize" || url.username || url.password) return null;
+    url.searchParams.set("guild_id", guildId);
+    url.searchParams.set("disable_guild_select", "true");
+    return url.href;
+  } catch { return null; }
+}
+
+function DiscordPermissionUpdate({ installUrl, guildId, canManage }) {
+  const url = canManage ? discordPermissionsUrl(installUrl, guildId) : null;
+  if (!url) return null;
+  return <div className="discord-permission-update"><DiscordLink href={url}>Mettre à jour les autorisations</DiscordLink><p className="discord-help">Administrateur donne tous les droits au bot sur ce serveur. Un responsable doit valider cette autorisation dans Discord, puis revenir cliquer sur « Actualiser les salons ». Le bot reste installé et les liaisons des équipes sont conservées.</p></div>;
 }
 
 function InstallationProgress({ connected, invitationOpened, routesReady, testPassed, active, selectedStep, onSelect, tabsRef, idPrefix }) {
@@ -171,7 +189,7 @@ function DiscordStepPrerequisite({ title, onLink }) {
 }
 
 function ConnectionHelp() {
-  return <ol className="discord-steps"><li>Invite NXT5 une seule fois sur le serveur avec « Ajouter à Discord ». Si le bot est déjà présent, passe à Relier.</li><li>Crée le code de liaison propre à ton équipe et colle la commande <code>/nxt connecter code:…</code> dans ce serveur avec un compte autorisé à le gérer.</li><li>Enregistre les salons, catégories et mentions de cette équipe. Une équipe reste reliée à un seul serveur ; plusieurs équipes peuvent partager ce serveur. Chacune gère ses propres règles et jusqu’à dix salons.</li><li>Envoie explicitement l’exemple fictif dans un salon, vérifie sa réception, puis active la diffusion. L’installation ne republie pas les anciennes games.</li></ol>;
+  return <ol className="discord-steps"><li>Invite NXT5 une seule fois sur le serveur avec « Ajouter à Discord » et valide l’autorisation Administrateur dans Discord. Si le bot est déjà présent, passe à Relier ; ses autorisations peuvent être mises à jour sans le retirer du serveur.</li><li>Crée le code de liaison propre à ton équipe et colle la commande <code>/nxt connecter code:…</code> dans ce serveur avec un compte autorisé à le gérer.</li><li>Enregistre les salons, catégories et mentions de cette équipe. Une équipe reste reliée à un seul serveur ; plusieurs équipes peuvent partager ce serveur. Chacune gère ses propres règles et jusqu’à dix salons.</li><li>Envoie explicitement l’exemple fictif dans un salon, vérifie sa réception, puis active la diffusion. L’installation ne republie pas les anciennes games.</li></ol>;
 }
 
 function DiscordExample({ teamId }) {
@@ -335,6 +353,7 @@ function DiscordRoutesEditor({ teamId, metadata, channelsLoading, channelsError,
         </SelectInput>}
         <div className="discord-actions">{canManage && <Button type="button" variant="ghost" icon={Plus} disabled={!canAdd} onClick={addChannel}>Ajouter ce salon</Button>}<Button type="button" variant="ghost" icon={refreshing ? Loader2 : RefreshCw} disabled={refreshing || action.busy} onClick={onSaved}>Actualiser les salons</Button></div>
       </div>
+      <DiscordPermissionUpdate installUrl={metadata.installUrl} guildId={metadata.connection?.guildId} canManage={canManage} />
       {refreshing && <p role="status" className="discord-loading"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Actualisation des salons du serveur…</p>}
       <DiscordFeedback error={channelError} />
       {channelsReady && !channels.length && <p className="discord-feedback">Aucun salon disponible sur ce serveur. Vérifie les droits du bot dans Discord, puis actualise les salons.</p>}

@@ -1,5 +1,6 @@
 // Shared by the operator endpoint and the explicit command-registration tool.
-export const DISCORD_INSTALL_PERMISSIONS = '117760';
+// Administrator is explicitly requested for the server installation.
+export const DISCORD_INSTALL_PERMISSIONS = '8';
 export const DISCORD_INSTALL_SCOPES = ['bot', 'applications.commands'];
 
 export function nxtDiscordCommand() {

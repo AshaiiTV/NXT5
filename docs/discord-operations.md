@@ -1,6 +1,6 @@
 # NXT5 → Discord — installation et exploitation
 
-Version V1 · mise à jour du 22 septembre 2026 : sélection des salons depuis NXT5 et serveurs partagés entre plusieurs équipes.
+Version V1 · mise à jour du 22 septembre 2026 : invitation avec Administrateur, sélection des salons depuis NXT5 et serveurs partagés entre plusieurs équipes.
 
 Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
 
@@ -150,7 +150,7 @@ Cette opération appartient à l’administrateur de NXT5 et se fait une fois po
 
 1. Créer ou utiliser l’application officielle **NXT5** dans le [portail développeur Discord](https://discord.com/developers/applications).
 2. Activer l’installation sur serveur (**Guild Install**) et l’option **Public Bot** pour permettre aux responsables des autres serveurs d’inviter le bot. Le parcours actuel utilise l’installation directe, avec `bot_require_code_grant=false`. [Paramètres d’application Discord](https://docs.discord.com/developers/resources/application).
-3. Définir les scopes `bot` et `applications.commands`, avec les permissions de salon détaillées ci-dessous. Le lien d’installation généré par NXT5 laisse le choix du serveur à son responsable. [Installation d’une application](https://docs.discord.com/developers/quick-start/getting-started).
+3. Définir les scopes `bot` et `applications.commands`, avec la permission **Administrateur** (`permissions=8`). Le lien d’installation généré par NXT5 laisse le choix du serveur à son responsable ; le lien de mise à jour d’un serveur déjà relié cible ce serveur avec `guild_id`. [Installation d’une application](https://docs.discord.com/developers/quick-start/getting-started).
 4. Configurer les secrets et l’endpoint d’interactions une fois dans l’environnement NXT5, puis vérifier le PING Discord.
 5. Pour l’ouverture à toutes les équipes, enregistrer les commandes globalement avec la commande ci-dessous. Les nouvelles installations disposent alors des commandes sans opération serveur par serveur. [Portée des commandes Discord](https://docs.discord.com/developers/interactions/application-commands).
 
@@ -187,7 +187,19 @@ node tools/configure-discord.mjs --origin=https://VOTRE-INSTANCE --action=config
 6. Installer l’application sur le serveur pilote à partir du lien fourni dans les réglages NXT5.
 7. Vérifier les permissions réelles du bot dans le salon choisi.
 
-Les permissions demandées sont : voir le salon, envoyer des messages, intégrer des liens, joindre des fichiers et lire l’historique. Le bot n’exige pas la permission Administrateur. Une mention de rôle requiert aussi que ce rôle puisse être mentionné ou que le bot dispose de la permission correspondante dans ce salon.
+Les nouvelles invitations demandent **Administrateur** (`permissions=8`), qui donne au bot toutes les permissions et passe outre les dérogations propres aux salons, y compris privés. Cette portée est indiquée dans NXT5 avant d’ouvrir l’autorisation Discord. [Permissions Discord](https://docs.discord.com/developers/topics/permissions).
+
+L’autorisation ne sélectionne aucune destination et ne lance aucun envoi : chaque équipe conserve ses salons, règles, mentions et activation explicites. Les contrôles de permissions réelles restent appliqués lors du chargement des salons et avant publication, notamment pour les installations existantes dont les droits n’ont pas encore été mis à jour.
+
+### Mettre à jour un bot déjà installé
+
+Le changement des liens et des réglages d’installation de l’application ne modifie pas automatiquement les rôles du bot sur les serveurs existants. Un responsable disposant des droits nécessaires dans Discord doit réaliser la mise à jour :
+
+1. Dans **Bot Discord**, ouvrir **Mettre à jour les autorisations** pour le serveur déjà relié. Le lien demande les scopes `bot` et `applications.commands` et `permissions=8`, avec le `guild_id` du serveur courant.
+2. Autoriser Administrateur dans Discord. Un responsable peut aussi accorder cette permission au rôle du bot directement dans les paramètres du serveur.
+3. Revenir dans NXT5 et cliquer sur **Actualiser les salons** pour relire les permissions et les salons disponibles.
+
+L’ouverture du lien ne prouve pas que l’autorisation a été accordée. NXT5 attend sa vérification côté serveur avant d’actualiser l’état affiché ; une fermeture ou une annulation dans Discord ne vaut pas succès. Le serveur partagé conserve ses liaisons et les destinations propres à chaque équipe. Les salons supportés restent à choisir, ajouter et enregistrer explicitement.
 
 ### Enregistrer les commandes
 
@@ -262,7 +274,9 @@ Compléter cette liste dans le serveur pilote, puis conserver les liens des mess
 - [ ] Ancienne game : aucune publication lors de l’activation, partage explicite possible.
 - [ ] Mention : seulement celle configurée ; une correction ne mentionne pas à nouveau le rôle.
 - [ ] Pause, import, reprise : comportement et historique compris par l’opérateur.
-- [ ] Permission de joindre des fichiers retirée : erreur visible et reprise après réparation.
+- [ ] Administrateur accordé : accès à un salon privé malgré ses dérogations, après actualisation dans NXT5.
+- [ ] Installation existante : ouvrir puis annuler la mise à jour ne valide aucun nouveau droit ; l’autorisation effective suivie d’une actualisation rend les salons accessibles.
+- [ ] Sur le serveur pilote, retirer temporairement Administrateur puis la permission effective de joindre des fichiers : erreur visible et reprise après réparation.
 - [ ] Retrait d’un message connu depuis NXT5 : retrait effectif et état conservé.
 - [ ] Commande sans droits Discord et compte NXT5 d’une autre équipe : accès refusé.
 - [ ] Deux équipes liées au même serveur : salons, règles, tests et historiques restent propres à chacune.

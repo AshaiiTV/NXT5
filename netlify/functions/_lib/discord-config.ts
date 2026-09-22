@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual, createPublicKey, verify } from 'node:crypto';
+import { DISCORD_INSTALL_PERMISSIONS, DISCORD_INSTALL_SCOPES } from '../../../shared/discord-command.js';
 import { getDiscordDeployContext, isDiscordIsolatedContext } from './discord-runtime';
 
 export function discordEnv(name: string): string {
@@ -47,9 +48,8 @@ export function publicDiscordStatus() {
   if (!config.siteUrl) issues.push('Adresse publique NXT5 à configurer.');
   const install = new URL('https://discord.com/oauth2/authorize');
   install.searchParams.set('client_id', config.applicationId);
-  install.searchParams.set('scope', 'bot applications.commands');
-  // View channel, send messages, embeds, attachments, history. No administrator.
-  install.searchParams.set('permissions', String(1024 + 2048 + 16384 + 32768 + 65536));
+  install.searchParams.set('scope', DISCORD_INSTALL_SCOPES.join(' '));
+  install.searchParams.set('permissions', DISCORD_INSTALL_PERMISSIONS);
   install.searchParams.set('integration_type', '0');
   return { configured: config.configured, enabled: isDiscordEnabled(), environment: config.environment, deployContext: getDiscordDeployContext(),
     installUrl: isDiscordId(config.applicationId) ? install.toString() : null, issues };

@@ -137,6 +137,57 @@ describe("Discord settings and permissions", () => {
   });
 });
 
+describe("Discord Administrator authorization", () => {
+  const guildId = "123456789012345678";
+  const installUrl = "https://discord.com/oauth2/authorize?client_id=1551574937159073792&permissions=8&scope=bot%20applications.commands&integration_type=0";
+  const linked = { ...connection, installUrl, connection: { ...connection.connection, guildId } };
+  const updateLinks = (root) => root.findAllByType("a").filter((link) => text(link).startsWith("Mettre à jour les autorisations"));
+  function serve(metadata = linked) {
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? metadata : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] });
+  }
+
+  it("offers managers a server-locked authorization link in invitation and destinations without a mutation handler", async () => {
+    serve();
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    for (const step of [2, 0]) {
+      await openStep(renderer, step);
+      const panel = openPanel(renderer)[0];
+      const [link] = updateLinks(panel);
+      expect(link).toBeDefined();
+      const url = new URL(link.props.href);
+      expect(url.origin).toBe("https://discord.com");
+      expect(url.pathname).toBe("/oauth2/authorize");
+      expect(url.searchParams.get("permissions")).toBe("8");
+      expect(url.searchParams.get("guild_id")).toBe(guildId);
+      expect(url.searchParams.get("disable_guild_select")).toBe("true");
+      expect(url.searchParams.get("scope")).toBe("bot applications.commands");
+      expect(link.props.target).toBe("_blank");
+      expect(link.props.rel).toBe("noopener noreferrer");
+      expect(link.props.onClick).toBeUndefined();
+      expect(text(panel)).toContain("Administrateur donne tous les droits au bot sur ce serveur");
+      expect(text(panel)).toContain("Un responsable doit valider cette autorisation dans Discord");
+      expect(text(panel)).toContain("les liaisons des équipes sont conservées");
+    }
+    expect(posts()).toEqual([]);
+  });
+
+  it("does not offer authorization updates to staff without management rights", async () => {
+    serve();
+    const renderer = await mount(<DiscordSettings teamId="team" canPublish />);
+    expect(updateLinks(renderer.root)).toHaveLength(0);
+    await openStep(renderer, 0);
+    expect(updateLinks(renderer.root)).toHaveLength(0);
+    expect(posts()).toEqual([]);
+  });
+
+  it("does not build an authorization update for an external origin", async () => {
+    serve({ ...linked, installUrl: "https://discord.com.evil.test/oauth2/authorize?permissions=8" });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(updateLinks(renderer.root)).toHaveLength(0);
+    expect(posts()).toEqual([]);
+  });
+});
+
 describe("Discord game publication", () => {
   it("does not load or expose a share control without publication rights", async () => {
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" />);
