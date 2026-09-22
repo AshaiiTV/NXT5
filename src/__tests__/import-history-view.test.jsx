@@ -497,8 +497,8 @@ describe("import flow without a second game list", () => {
     await click(renderer, "Confirmer l’import");
     expect(apiUploadJson.mock.calls[1].slice(0, 2)).toEqual(["matches-import-file", {
       teamId: "team", payload: source, label: "Finale", categoryIds: [], allyTeamSide: "BLUE",
-      laneAssignments: Object.fromEntries(roles.map((role) => [role, `BLUE-${role}#EUW`])),
-      enemyLaneAssignments: Object.fromEntries(roles.map((role) => [role, `RED-${role}#EUW`])),
+      laneAssignments: Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 1}`])),
+      enemyLaneAssignments: Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 6}`])),
       playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])),
     }]);
     expect(props.onImported).toHaveBeenCalledWith(result);
