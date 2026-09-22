@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
-import { beforeAll,beforeEach,afterAll,describe,it,expect,vi } from 'vitest';
+import { beforeAll,beforeEach,afterAll,afterEach,describe,it,expect,vi } from 'vitest';
 const database=vi.hoisted(()=>({pg:null as any,failQuery:null as any}));
 const transport=vi.hoisted(()=>({send:vi.fn(),find:vi.fn(),guild:vi.fn(),connectionTest:vi.fn(),enabled:true}));
 vi.mock('../../netlify/functions/_lib/db',async () => {
@@ -57,7 +57,11 @@ beforeAll(async()=>{
   for(const file of ['20260915_discord_publications.sql','20260921_discord_shared_servers.sql','20260922_discord_bot_workflows.sql'])await database.pg.exec(readFileSync(new URL('../../database/migrations/'+file,import.meta.url),'utf8'));
 },30000);
 afterAll(async()=>database.pg?.close());
+afterEach(()=>vi.unstubAllEnvs());
 beforeEach(async()=>{
+  // CI build metadata must not make this isolated local PostgreSQL suite look
+  // like an unverified hosted invocation. Explicit preview contexts still win.
+  for(const [key,value] of Object.entries({CONTEXT:'production',AWS_LAMBDA_FUNCTION_NAME:'',LAMBDA_TASK_ROOT:'',SITE_ID:''}))vi.stubEnv(key,value);
   await database.pg.exec('truncate users cascade');transport.enabled=true;
   transport.send.mockReset().mockResolvedValue({id:'100000000000000099',channel_id:'100000000000000002'});transport.find.mockReset().mockResolvedValue(null);
   transport.guild.mockReset().mockResolvedValue({channels:[{id:'100000000000000002',canSend:true,name:'équipe'},{id:'100000000000000003',canSend:true,name:'autre salon'}]});
