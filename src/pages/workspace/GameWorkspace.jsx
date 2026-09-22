@@ -1301,7 +1301,10 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
-  const selectedTeamName = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId))?.name || "Notre équipe";
+  const selectedTeam = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId));
+  const selectedTeamName = selectedTeam?.name || "Notre équipe";
+  const teamMember = currentMember?.team_id === selectedTeamId && currentMember?.user_id === user?.id ? currentMember : null;
+  const canPublishDiscord = Boolean(user?.id && (selectedTeam?.owner_id === user.id || canStaffManage(teamMember?.role)));
   const query = new URLSearchParams(route?.search ?? window.location.search);
   const urlMatchId = query.get("match") || "";
   const urlArchiveId = query.get("archive") || "";
@@ -1463,6 +1466,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? "Retour au groupe" : "Retour aux games"}</Button>
         {selectedMatch && <div className="games-detail-actions">
           <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? "Export…" : "Exporter PNG"}</Button>
+          {!loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canPublishDiscord} />}
           <Button type="button" variant="ghost" icon={FileText} onClick={openReview}>{selectedReport ? "Ouvrir la review" : "Créer une review"}</Button>
           <GameActions key={selectedMatchId} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError)} match={selectedMatch} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onDeleted={() => updateLocation({ match: "", ...(selectedArchive && scopedMatches.length <= 1 ? { archive: "" } : {}) })} onUpdated={retryMatchDetail} />
         </div>}
@@ -1471,7 +1475,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement des statistiques détaillées…</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && " Les statistiques déjà chargées restent disponibles."}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button></Surface>}
       {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} statsFirst />}
-      {selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canStaffManage(currentMember?.role)} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Game introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
     </div>}
 

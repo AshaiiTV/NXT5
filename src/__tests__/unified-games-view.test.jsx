@@ -43,6 +43,7 @@ beforeEach(() => {
   vi.stubGlobal("document", { activeElement: { focus: vi.fn() }, body: { style: { overflow: "" } } });
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) }));
   apiFetch.mockImplementation(async (endpoint, options) => {
+    if (endpoint.startsWith("team-discord-connection?")) return { configured: true, connection: null };
     if (endpoint !== "match-details") throw new Error(`Unexpected request: ${endpoint}`);
     const { matchIds, teamId } = JSON.parse(options.body);
     return { matches: details.filter((match) => matchIds.includes(match.id) && match.team_id === teamId) };
@@ -103,6 +104,39 @@ async function browserBack(path) {
 }
 
 describe("unified Games workspace", () => {
+  it.each([
+    ["team owner without membership", "owner", null, true],
+    ["coach of the selected team", "staff", { team_id: "team", user_id: "staff", role: "coach" }, true],
+    ["player", "staff", { team_id: "team", user_id: "staff", role: "player" }, false],
+    ["coach of another team", "staff", { team_id: "other", user_id: "staff", role: "coach" }, false],
+    ["another user's coach membership", "staff", { team_id: "team", user_id: "someone-else", role: "coach" }, false],
+  ])("gates the Discord statistics action for %s", async (_label, userId, currentMember, allowed) => {
+    const originalFetch = apiFetch.getMockImplementation();
+    apiFetch.mockImplementation(async (endpoint, options) => {
+      if (endpoint.startsWith("team-discord-connection?")) return {
+        configured: true, enabled: true,
+        connection: { guildId: "guild", status: "active", paused: false, configVersion: 1 },
+        channels: [{ id: "channel", name: "games", canSend: true }],
+      };
+      if (endpoint.startsWith("team-discord-routes?")) return {
+        guildId: "guild", configVersion: 1,
+        routes: [{ id: "route", channelId: "channel", enabled: false }],
+      };
+      return originalFetch(endpoint, options);
+    });
+    const renderer = await mount("/games?match=one", { ...settings(), user: { id: userId }, currentMember });
+    const publish = button(renderer, "Publier sur Discord");
+    expect(Boolean(publish)).toBe(allowed);
+    if (allowed) {
+      let ancestor = publish;
+      while (ancestor && ancestor.props.className !== "games-detail-actions") ancestor = ancestor.parent;
+      expect(ancestor).toBeTruthy();
+    } else {
+      expect(apiFetch.mock.calls.some(([endpoint]) => endpoint.startsWith("team-discord-"))).toBe(false);
+    }
+    expect(apiFetch.mock.calls.some(([endpoint]) => endpoint.startsWith("team-discord-preview") || endpoint === "team-discord-publish")).toBe(false);
+  });
+
   it.each(["/games", "/integration", "/statistiques"])("opens a direct legacy game at %s and clears stats when browser history has no query", async (path) => {
     const renderer = await mount(`${path}?match=older&category=scrim`);
     expect(apiFetch).toHaveBeenCalledWith("match-details", expect.objectContaining({ body: JSON.stringify({ teamId: "team", matchIds: ["older"] }) }));
@@ -148,7 +182,7 @@ describe("unified Games workspace", () => {
     await click(renderer, "Retour aux games");
     expect(window.location.search).toBe("?context=scrim");
     expect(lists(renderer)).toHaveLength(1);
-    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "match-details")).toHaveLength(1);
   });
 
   it("opens import only when requested and retains the selected game after closing it", async () => {
@@ -243,6 +277,6 @@ describe("unified Games workspace", () => {
     await act(async () => resolveRefresh({ matches: [game("one", { raw: { nxt5Label: "Game corrigée" } })] }));
     expect(trigger.props.disabled).toBe(false);
     expect(text(renderer.root.findByType(MatchDataPanel))).toContain("Game corrigée");
-    expect(apiFetch).toHaveBeenCalledTimes(2);
+    expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "match-details")).toHaveLength(2);
   });
 });

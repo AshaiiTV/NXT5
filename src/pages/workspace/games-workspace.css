@@ -37,7 +37,8 @@
   .games-team-record { gap: 8px 12px; }
   .games-detail-toolbar { gap: 12px; }
   .games-detail-actions { width: 100%; }
-  .games-detail-actions > button:not([aria-label]) { flex: 1 1 120px; }
+  .games-detail-actions > button:not([aria-label]), .games-detail-actions > .discord-share-action { flex: 1 1 max-content; }
+  .games-detail-actions > .discord-share-action > button { width: 100%; }
   .games-group-fields, .games-group-picks { grid-template-columns: minmax(0,1fr); }
   .games-group-tools { margin-left: auto; }
 }

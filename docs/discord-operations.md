@@ -1,6 +1,6 @@
 # NXT5 → Discord — installation et exploitation
 
-Version V1 · mise à jour du 22 septembre 2026 : invitation avec Administrateur, sélection des salons depuis NXT5 et serveurs partagés entre plusieurs équipes.
+Version V1 · mise à jour du 22 septembre 2026 : publication manuelle depuis les statistiques d’une game, invitation avec Administrateur, choix des salons et serveurs partagés entre plusieurs équipes.
 
 Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
 
@@ -236,6 +236,19 @@ Dans **Bot Discord → Choisir les salons**, les propriétaires et capitaines re
 **Actualiser les salons**, placé à proximité du choix, recharge la liste après une modification des salons ou des permissions dans Discord. Le brouillon reste conservé. Pendant le chargement ou en cas d’erreur, attendre la vérification ou réessayer avant d’ajouter et d’enregistrer. Une absence de salon utilisable et la limite atteinte disposent d’une explication visible.
 
 Chaque équipe conserve ses propres destinations, y compris lorsqu’elle partage le serveur avec d’autres équipes. Ce parcours utilise les métadonnées et les points d’accès existants ; il ne demande ni nouvelle commande Discord ni configuration supplémentaire de l’opérateur.
+
+### Publier une game depuis ses statistiques
+
+Le bouton **Publier sur Discord** se trouve en haut des statistiques de la game, à côté d’**Exporter PNG**. Il apparaît pour le propriétaire ou le staff autorisé à publier lorsque l’équipe a un serveur Discord relié et au moins un salon enregistré.
+
+1. Ouvrir le dialogue avec **Publier sur Discord**. Cette ouverture n’envoie aucun message.
+2. Choisir la **Destination Discord**, puis cliquer sur **Préparer l’aperçu**.
+3. Vérifier le salon, le message et le PNG. Le contenu sera lisible par les membres du salon ; le lien vers NXT5 conserve les droits d’accès de l’équipe.
+4. Confirmer avec **Publier dans #…**. L’état de la publication apparaît dans l’historique ; une publication existante pour cette game et cette destination est actualisée.
+
+Une destination dont l’envoi automatique est désactivé reste disponible pour ce partage manuel. La connexion de l’équipe doit toutefois être active : si ses envois sont en pause, le dialogue l’explique et le propriétaire ou un capitaine doit les activer ou les reprendre dans **Bot Discord**. La suspension globale du service empêche également l’envoi.
+
+Le dialogue réutilise le parcours de Games. Un changement d’équipe, de game ou de révision invalide l’ancien aperçu ; ouvrir ou fermer le dialogue ne publie rien. Les contrôles restent utilisables au clavier et sur mobile, avec retour du focus au bouton à la fermeture.
 
 ### Choisir l’équipe dans les commandes Discord
 
