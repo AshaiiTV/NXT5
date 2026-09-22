@@ -85,7 +85,7 @@ class NumberedCanvas(canvas.Canvas):
         self.pages = []
         self.setTitle(f'NXT5 - Charte graphique {version}')
         self.setAuthor('NXT5')
-        self.setSubject(f'Référence complète du site - Discord et exports PNG communs - {publication_date}')
+        self.setSubject(f'Référence complète du site - Statistiques du bot, Discord et exports PNG communs - {publication_date}')
     def showPage(self):
         self.pages.append(dict(self.__dict__))
         self._startPage()
@@ -107,7 +107,7 @@ story += [Paragraph('Charte graphique', cover_title), Paragraph('Une référence
 story += [Paragraph('Fond bleu nuit, accents cyan, bleu et fuchsia. Des données lisibles et des contrôles cohérents, du site aux publications Discord.', cover_intro), Spacer(1, 22)]
 for title, content in [
     ('L’identité reste la même', 'Réutiliser les composants, les logos et les tokens existants. Les boutons gardent leurs angles de 2 px ; les champs et les panneaux restent arrondis.'),
-    ('Les games circulent avec leur contexte', 'Réglages par équipe, aperçu avant publication, suivi des envois et lien vers la bonne game. Les données manquantes restent explicitement signalées.'),
+    ('Le bot se mesure dans l’administration', 'Serveurs, équipes et salons, publications, tentatives et commandes : le dashboard présente l’usage enregistré et son évolution. La période et les limites de collecte restent explicites.'),
     ('Un rendu PNG commun', 'La fiche d’une game partage ses données et ses opérations de dessin entre le navigateur et le serveur. Inter est chargée sous un alias dédié aux exports.'),
 ]:
     story += [Paragraph(title, styles['h3']), Paragraph(content, body)]
@@ -153,6 +153,6 @@ while i < len(lines):
     text = ' '.join(paragraph)
     story.append(Paragraph(inline(text), styles['intro'] if text.startswith('Version ') else body))
 
-doc = SimpleDocTemplate(str(TARGET), pagesize=(PAGE_W,PAGE_H), leftMargin=40, rightMargin=40, topMargin=78, bottomMargin=54, title=f'NXT5 - Charte graphique {version}', author='NXT5', subject=f'Référence du site - Discord et exports PNG communs - {publication_date}')
+doc = SimpleDocTemplate(str(TARGET), pagesize=(PAGE_W,PAGE_H), leftMargin=40, rightMargin=40, topMargin=78, bottomMargin=54, title=f'NXT5 - Charte graphique {version}', author='NXT5', subject=f'Référence du site - Statistiques du bot, Discord et exports PNG communs - {publication_date}')
 doc.build(story, onFirstPage=page_background, onLaterPages=page_background, canvasmaker=NumberedCanvas)
 print(TARGET)
