@@ -132,7 +132,7 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
             </>}
           </section>
           <section id={`${stepsId}-panel-2`} role="tabpanel" aria-labelledby={`${stepsId}-tab-2`} hidden={activeStep !== 2} tabIndex={0} className="discord-step-panel">
-            {connected ? <><DiscordRoutes key={connection.guildId} teamId={teamId} metadata={status} canManage={canManage} revision={revision} onSaved={reload} onRoutes={setSavedRoutes} onSnapshot={setRoutesSnapshot} onDirty={setRoutesDirty} onRefreshing={setRoutesRefreshing} /><div className="discord-actions"><Button type="button" variant="ghost" onClick={() => selectStep(3, true)}>Passer au test et à l’activation</Button></div></> : <DiscordStepPrerequisite title="Choisir les salons" onLink={() => selectStep(1, true)} />}
+            {connected ? <><DiscordRoutes key={connection.guildId} teamId={teamId} metadata={status} channelsLoading={resource.loading} channelsError={resource.error || status.connectionError || (status.health?.verified === false ? "La connexion au serveur Discord doit être vérifiée." : "")} canManage={canManage} revision={revision} onSaved={reload} onRoutes={setSavedRoutes} onSnapshot={setRoutesSnapshot} onDirty={setRoutesDirty} onRefreshing={setRoutesRefreshing} /><div className="discord-actions"><Button type="button" variant="ghost" onClick={() => selectStep(3, true)}>Passer au test et à l’activation</Button></div></> : <DiscordStepPrerequisite title="Choisir les salons" onLink={() => selectStep(1, true)} />}
           </section>
           <section id={`${stepsId}-panel-3`} role="tabpanel" aria-labelledby={`${stepsId}-tab-3`} hidden={activeStep !== 3} tabIndex={0} className="discord-step-panel">
             {connected ? <DiscordActivation key={connection.guildId} {...{ teamId, teamName, canManage, status, savedRoutes, routesSnapshot, routesDirty, routesRefreshing, verified, revision, established }} connectionRefreshing={resource.loading} onChanged={reload} onTestPassed={setTestPassed} /> : <DiscordStepPrerequisite title="Tester et activer" onLink={() => selectStep(1, true)} />}
@@ -280,16 +280,18 @@ function DiscordActivation({ teamId, teamName, canManage, status, savedRoutes, r
     <DiscordFeedback error={action.error} notice={action.notice} />
   </section>;
 }
-function DiscordRoutes({ teamId, metadata, canManage, onSaved, revision, onRoutes, onSnapshot, onDirty, onRefreshing }) {
+function DiscordRoutes({ teamId, metadata, channelsLoading, channelsError, canManage, onSaved, revision, onRoutes, onSnapshot, onDirty, onRefreshing }) {
   const resource = useDiscordResource(discordQuery("team-discord-routes", { teamId }), revision, { keepPreviousData: true });
   useEffect(() => { onRefreshing(resource.loading || Boolean(resource.error)); }, [resource.loading, resource.error, onRefreshing]);
   useEffect(() => { if (resource.data) { onRoutes(resource.data.routes || []); onSnapshot(resource.data); } }, [resource.data, onRoutes, onSnapshot]);
-  return <><DiscordFeedback loading={resource.loading && !resource.data} error={resource.error} />{resource.data && <DiscordRoutesEditor {...{ teamId, metadata, canManage, onSaved, onDirty }} initialRoutes={resource.data.routes || []} />}</>;
+  if (!resource.data) return <section className="discord-section"><h4>Destinations des games</h4><DiscordFeedback loading={resource.loading} error={resource.error} /><p className="discord-help">Les destinations enregistrées doivent être chargées avant de choisir un salon.</p><Button type="button" variant="ghost" icon={RefreshCw} disabled={resource.loading || channelsLoading} onClick={onSaved}>Actualiser les salons</Button></section>;
+  return <><DiscordFeedback error={resource.error} /><DiscordRoutesEditor {...{ teamId, metadata, channelsLoading, channelsError, canManage, onSaved, onDirty }} routesLoading={resource.loading} routesError={resource.error} initialRoutes={resource.data.routes || []} /></>;
 }
 
-function DiscordRoutesEditor({ teamId, metadata, canManage, onSaved, onDirty, initialRoutes }) {
+function DiscordRoutesEditor({ teamId, metadata, channelsLoading, channelsError, routesLoading, routesError, canManage, onSaved, onDirty, initialRoutes }) {
   const normalize = (route) => ({ ...route, channelId: route.channelId || "", categoryIds: route.categoryIds || [], includeHints: route.includeHints === true, mentionRoleId: route.mentionRoleId || "", enabled: route.enabled !== false });
   const [routes, setRoutes] = useState(() => initialRoutes.map(normalize));
+  const [selectedChannelId, setSelectedChannelId] = useState("");
   const [dirty, setDirty] = useState(false);
   const action = useDiscordAction();
   useEffect(() => { onDirty(dirty); }, [dirty, onDirty]);
@@ -300,10 +302,21 @@ function DiscordRoutesEditor({ teamId, metadata, canManage, onSaved, onDirty, in
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty]);
-  const channels = metadata.channels || [], roles = metadata.roles || [], categories = metadata.categories || [];
+  const hasChannelList = Array.isArray(metadata.channels);
+  const channels = hasChannelList ? metadata.channels : [], roles = metadata.roles || [], categories = metadata.categories || [];
+  const channelError = channelsError || (!channelsLoading && !hasChannelList ? "La liste des salons n’a pas pu être chargée. Actualise les salons pour réessayer." : "");
+  const refreshing = channelsLoading || routesLoading;
+  const channelsReady = hasChannelList && !refreshing && !channelError && !routesError;
   const patch = (index, values) => { setRoutes((current) => current.map((route, i) => i === index ? { ...route, ...values } : route)); setDirty(true); };
-  const availableChannels = channels.filter((channel) => channel.canSend !== false && !routes.some((route) => route.channelId === channel.id));
-  const canSave = new Set(routes.map((route) => route.channelId)).size === routes.length && routes.every((route) => route.channelId && channels.some((channel) => channel.id === route.channelId && channel.canSend !== false));
+  const availableChannels = channels.filter((channel) => channel.canSend === true && !routes.some((route) => route.channelId === channel.id));
+  const canAdd = canManage && channelsReady && !action.busy && routes.length < 10 && availableChannels.some((channel) => channel.id === selectedChannelId);
+  const canSave = channelsReady && new Set(routes.map((route) => route.channelId)).size === routes.length && routes.every((route) => route.channelId && channels.some((channel) => channel.id === route.channelId && channel.canSend === true));
+  function addChannel() {
+    if (!canAdd) return;
+    setRoutes((current) => current.length >= 10 || current.some((route) => route.channelId === selectedChannelId) ? current : [...current, normalize({ channelId: selectedChannelId, enabled: true })]);
+    setSelectedChannelId("");
+    setDirty(true);
+  }
   function save(event) {
     event.preventDefault();
     if (!canManage || !dirty || !canSave || action.busy) return;
@@ -313,8 +326,23 @@ function DiscordRoutesEditor({ teamId, metadata, canManage, onSaved, onDirty, in
     <span className="discord-step-kicker">Salons et règles de diffusion</span><h4>Destinations des games</h4>
     <p>Ces destinations et leurs règles s’appliquent uniquement à cette équipe, même si le serveur accueille d’autres équipes NXT5.</p>
     <p>Toute personne ayant accès au salon pourra lire le message et son visuel, même sans compte NXT5. Les liens vers les games conservent les droits d’accès NXT5.</p>
-    {!channels.length && <p className="discord-feedback">Aucun salon disponible. Vérifie les droits du bot dans Discord, puis actualise la connexion.</p>}
-    {!routes.length && <p>Aucune destination. Ajoute un salon pour préparer la diffusion.</p>}
+    <section className="discord-channel-selection" aria-label="Salons disponibles sur le serveur">
+      <div className="discord-channel-picker">
+        {canManage && <SelectInput label="Choisir un salon du serveur" value={selectedChannelId} onChange={setSelectedChannelId} disabled={refreshing || action.busy || !channelsReady || routes.length >= 10}>
+          <option value="">Sélectionner un salon</option>
+          {selectedChannelId && !channels.some((channel) => channel.id === selectedChannelId) && <option value={selectedChannelId} disabled>Salon indisponible</option>}
+          {channels.map((channel) => { const added = routes.some((route) => route.channelId === channel.id); return <option key={channel.id} value={channel.id} disabled={channel.canSend !== true || added}>#{channel.name}{channel.canSend !== true ? " · autorisation manquante" : ""}{added ? " · déjà ajouté" : ""}</option>; })}
+        </SelectInput>}
+        <div className="discord-actions">{canManage && <Button type="button" variant="ghost" icon={Plus} disabled={!canAdd} onClick={addChannel}>Ajouter ce salon</Button>}<Button type="button" variant="ghost" icon={refreshing ? Loader2 : RefreshCw} disabled={refreshing || action.busy} onClick={onSaved}>Actualiser les salons</Button></div>
+      </div>
+      {refreshing && <p role="status" className="discord-loading"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Actualisation des salons du serveur…</p>}
+      <DiscordFeedback error={channelError} />
+      {channelsReady && !channels.length && <p className="discord-feedback">Aucun salon disponible sur ce serveur. Vérifie les droits du bot dans Discord, puis actualise les salons.</p>}
+      {channelsReady && channels.length > 0 && !channels.some((channel) => channel.canSend === true) && <p className="discord-feedback">Aucun salon ne permet l’envoi. Autorise le bot à voir le salon, envoyer des messages et images, intégrer des liens et lire l’historique, puis actualise les salons.</p>}
+      {canManage && routes.length >= 10 ? <p className="discord-help">Limite atteinte : dix destinations par équipe. Supprime une destination pour ajouter un autre salon.</p> : canManage && channelsReady && channels.some((channel) => channel.canSend === true) && !availableChannels.length && <p className="discord-help">Tous les salons utilisables sont déjà ajoutés.</p>}
+      {canManage && <p className="discord-help">Choisis un salon, ajoute-le au brouillon, puis enregistre les destinations. Aucun envoi n’est déclenché par ce choix.</p>}
+    </section>
+    {!routes.length && <p>{canManage ? `${dirty ? "Aucune destination dans le brouillon." : "Aucune destination enregistrée."} Choisis un salon ci-dessus pour préparer la diffusion.` : "Aucune destination n’est configurée pour cette équipe."}</p>}
     <div className="discord-routes">{routes.map((route, index) => <fieldset key={route.id || `new-${index}`} className="discord-route" disabled={!canManage || action.busy}>
       <legend>Destination {index + 1}</legend>
       <div className="discord-form-grid"><SelectInput label={`Salon Discord · destination ${index + 1}`} value={route.channelId} onChange={(value) => patch(index, { channelId: value, mentionRoleId: "" })} required><option value="">Choisir un salon</option>{route.channelId && !channels.some((channel) => channel.id === route.channelId) && <option value={route.channelId} disabled>Salon indisponible</option>}{channels.map((channel) => <option key={channel.id} value={channel.id} disabled={channel.canSend === false || routes.some((other, i) => i !== index && other.channelId === channel.id)}>#{channel.name}{channel.canSend === false ? " · autorisation manquante" : ""}</option>)}</SelectInput>
@@ -326,7 +354,7 @@ function DiscordRoutesEditor({ teamId, metadata, canManage, onSaved, onDirty, in
       {canManage && <Button type="button" variant="ghost" icon={X} onClick={() => { setRoutes((current) => current.filter((_, i) => index !== i)); setDirty(true); }}>Supprimer cette destination</Button>}
     </fieldset>)}</div>
     <DiscordFeedback error={action.error} notice={action.notice} />
-    {canManage && <div className="discord-actions"><Button type="button" variant="ghost" icon={Plus} disabled={action.busy || !availableChannels.length || routes.length >= 10} onClick={() => { setRoutes((current) => [...current, normalize({ channelId: "", enabled: true })]); setDirty(true); }}>Ajouter un salon</Button><Button type="submit" icon={action.busy ? Loader2 : Check} disabled={action.busy || !dirty || !canSave}>Enregistrer les destinations</Button>{dirty && <p className="discord-help" role="status">Modifications non enregistrées.</p>}</div>}
+    {canManage && <div className="discord-actions"><Button type="submit" icon={action.busy ? Loader2 : Check} disabled={action.busy || !dirty || !canSave}>Enregistrer les destinations</Button>{dirty && <p className="discord-help" role="status">Modifications non enregistrées.</p>}</div>}
   </form>;
 }
 

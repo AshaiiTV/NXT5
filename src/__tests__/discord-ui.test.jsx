@@ -53,6 +53,8 @@ describe("Discord settings and permissions", () => {
     expect(button(renderer, "Délier cette équipe")).toBeUndefined();
     expect(button(renderer, "Mettre en pause")).toBeUndefined();
     expect(button(renderer, "Enregistrer les destinations")).toBeUndefined();
+    expect(button(renderer, "Ajouter ce salon")).toBeUndefined();
+    expect(renderer.root.findAllByType("label").some((label) => text(label).startsWith("Choisir un salon du serveur"))).toBe(false);
     expect(renderer.root.findAllByType("fieldset").some((item) => item.props.disabled)).toBe(true);
     expect(posts()).toEqual([]);
   });
@@ -105,8 +107,8 @@ describe("Discord settings and permissions", () => {
     expect(text(renderer.root)).toContain("Ajouter les pistes de review au message");
     const denied = renderer.root.findAllByType("option").find((item) => item.props.value === "channel-denied");
     expect(denied.props.disabled).toBe(true);
-    await click(renderer, "Ajouter un salon");
-    await choose(renderer, "Salon Discord · destination 2", "channel-2");
+    await choose(renderer, "Choisir un salon du serveur", "channel-2");
+    await click(renderer, "Ajouter ce salon");
     const form = renderer.root.findByType("form");
     await act(async () => form.props.onSubmit({ preventDefault() {} }));
     const request = posts().find(([path]) => path === "team-discord-routes");
@@ -550,5 +552,123 @@ describe("Discord dashboard onboarding", () => {
     const summary = renderer.root.findByProps({ className: "discord-publication-summary" });
     expect(text(summary)).toContain("Adversaire A");
     expect(text(summary)).not.toContain("Game en attente");
+  });
+});
+
+describe("Discord channel picker", () => {
+  const picker = (renderer) => renderer.root.findAllByType("label").find((label) => text(label).startsWith("Choisir un salon du serveur")).findByType("select");
+  const routeFields = (renderer) => renderer.root.findAllByProps({ className: "discord-route" }).filter((node) => node.type === "fieldset");
+
+  it("shows the server selector immediately and only saves an explicitly added draft channel", async () => {
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(picker(renderer).props.value).toBe("");
+    expect(picker(renderer).props.required).not.toBe(true);
+    expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
+    expect(button(renderer, "Ajouter un salon")).toBeUndefined();
+    expect(routeFields(renderer)).toHaveLength(0);
+    await choose(renderer, "Choisir un salon du serveur", "channel-2");
+    expect(posts()).toEqual([]);
+    await click(renderer, "Ajouter ce salon");
+    expect(picker(renderer).props.value).toBe("");
+    expect(routeFields(renderer)).toHaveLength(1);
+    expect(routeFields(renderer)[0].findAllByType("select")[0].props.value).toBe("channel-2");
+    expect(posts()).toEqual([]);
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    expect(posts()).toEqual([["team-discord-routes", { teamId: "team", routes: [{ channelId: "channel-2", categoryIds: [], includeHints: false, mentionRoleId: null, enabled: true }] }]]);
+  });
+
+  it("marks denied and already added channels and prevents duplicates even with repeated clicks", async () => {
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const options = picker(renderer).findAllByType("option");
+    const added = options.find((option) => option.props.value === "channel-1");
+    const denied = options.find((option) => option.props.value === "channel-denied");
+    expect(added.props.disabled).toBe(true);
+    expect(text(added)).toContain("#games · déjà ajouté");
+    expect(denied.props.disabled).toBe(true);
+    expect(text(denied)).toContain("autorisation manquante");
+    for (const forbidden of ["channel-1", "channel-denied"]) {
+      await choose(renderer, "Choisir un salon du serveur", forbidden);
+      expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
+      await act(async () => button(renderer, "Ajouter ce salon").props.onClick());
+      expect(routeFields(renderer)).toHaveLength(1);
+    }
+    await choose(renderer, "Choisir un salon du serveur", "channel-2");
+    const add = button(renderer, "Ajouter ce salon").props.onClick;
+    await act(async () => { add(); add(); });
+    expect(routeFields(renderer)).toHaveLength(2);
+    expect(posts()).toEqual([]);
+  });
+
+  it("enforces ten destinations and allows another channel after removing one", async () => {
+    const channels = Array.from({ length: 11 }, (_, index) => ({ id: `channel-${index}`, name: `salon-${index}`, canSend: true }));
+    const routes = channels.slice(0, 10).map((channel, index) => ({ ...route, id: `route-${index}`, channelId: channel.id }));
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { ...connection, channels } : path.startsWith("team-discord-routes") ? { routes, configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(picker(renderer).props.disabled).toBe(true);
+    expect(text(renderer.root)).toContain("Limite atteinte : dix destinations par équipe");
+    await choose(renderer, "Choisir un salon du serveur", "channel-10");
+    await act(async () => button(renderer, "Ajouter ce salon").props.onClick());
+    expect(routeFields(renderer)).toHaveLength(10);
+    await click(renderer, "Supprimer cette destination");
+    expect(picker(renderer).props.disabled).toBe(false);
+    await click(renderer, "Ajouter ce salon");
+    expect(routeFields(renderer)).toHaveLength(10);
+    expect(posts()).toEqual([]);
+  });
+
+  it("keeps the channel draft while refreshing and across the installation steps", async () => {
+    let refreshing = false, resolveChannels;
+    apiFetch.mockImplementation(async (path) => {
+      if (path.startsWith("team-discord-connection")) return refreshing ? new Promise((resolve) => { resolveChannels = resolve; }) : connection;
+      return path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] };
+    });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await choose(renderer, "Choisir un salon du serveur", "channel-2");
+    await click(renderer, "Ajouter ce salon");
+    await openStep(renderer, 1);
+    await openStep(renderer, 2);
+    refreshing = true;
+    await click(renderer, "Actualiser les salons");
+    expect(text(openPanel(renderer)[0])).toContain("Actualisation des salons du serveur");
+    expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
+    expect(button(renderer, "Enregistrer les destinations").props.disabled).toBe(true);
+    expect(routeFields(renderer)[0].findAllByType("select")[0].props.value).toBe("channel-2");
+    await act(async () => resolveChannels(connection));
+    expect(routeFields(renderer)[0].findAllByType("select")[0].props.value).toBe("channel-2");
+    expect(button(renderer, "Enregistrer les destinations").props.disabled).toBe(false);
+    expect(posts()).toEqual([]);
+  });
+
+  it.each([
+    [{ channels: undefined }, "La liste des salons n’a pas pu être chargée"],
+    [{ channels: [], connectionError: "Droits du serveur indisponibles." }, "Droits du serveur indisponibles."],
+    [{ channels: [] }, "Aucun salon disponible sur ce serveur"],
+    [{ channels: [{ id: "denied", name: "privé", canSend: false }] }, "Aucun salon ne permet l’envoi"],
+  ])("distinguishes channel loading failures, empty lists and missing permissions: %o", async (metadata, explanation) => {
+    let recovered = false;
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? recovered ? connection : { ...connection, ...metadata } : path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const panel = openPanel(renderer)[0];
+    expect(text(panel)).toContain(explanation);
+    expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
+    if (metadata.connectionError || metadata.channels === undefined) expect(text(panel)).not.toContain("Aucun salon disponible sur ce serveur");
+    recovered = true;
+    await click(renderer, "Actualiser les salons");
+    expect(picker(renderer).props.disabled).toBe(false);
+    expect(picker(renderer).props.value).toBe("");
+    await choose(renderer, "Choisir un salon du serveur", "channel-2");
+    expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(false);
+    expect(posts()).toEqual([]);
+  });
+
+  it("resets a pending channel selection when switching teams on the same server", async () => {
+    const renderer = await mount(<DiscordSettings teamId="first-team" canManage />);
+    await choose(renderer, "Choisir un salon du serveur", "channel-2");
+    await act(async () => renderer.update(<DiscordSettings teamId="second-team" canManage />));
+    expect(picker(renderer).props.value).toBe("");
+    expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
+    expect(posts()).toEqual([]);
+    expect(apiFetch.mock.calls.some(([path]) => path === "team-discord-routes?teamId=second-team")).toBe(true);
   });
 });

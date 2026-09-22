@@ -1,6 +1,6 @@
 # NXT5 → Discord — installation et exploitation
 
-Version V1 · mise à jour du 21 septembre 2026 : serveurs partagés entre plusieurs équipes.
+Version V1 · mise à jour du 22 septembre 2026 : sélection des salons depuis NXT5 et serveurs partagés entre plusieurs équipes.
 
 Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
 
@@ -212,6 +212,18 @@ Après le déploiement du support des serveurs partagés, l’opérateur doit me
 7. Activer les publications lorsque les essais d’environnement sont terminés.
 
 Répéter ces étapes avec un nouveau code pour chaque autre équipe NXT5 du serveur. Une liaison ne reprend pas les destinations ni l’activation des équipes déjà connectées. Les identifiants de commandes déjà reçues sont enregistrés pour éviter une seconde exécution lors d’un rejeu de la requête signée.
+
+### Choisir les salons depuis NXT5
+
+Dans **Bot Discord → Choisir les salons**, les propriétaires et capitaines retrouvent les contrôles au début de **Destinations des games** :
+
+1. Ouvrir **Choisir un salon du serveur** et sélectionner un nom `#salon` du serveur relié. Aucun salon n’est présélectionné. Les options sans autorisation d’envoi et celles déjà ajoutées à cette équipe sont désactivées.
+2. Cliquer sur **Ajouter ce salon**. Le salon apparaît dans le brouillon ; régler ses catégories, pistes et mentions. Répéter pour les autres destinations, dans la limite de dix par équipe.
+3. Cliquer sur **Enregistrer les destinations** avant le test ou l’activation. Le choix et l’ajout seuls n’enregistrent rien et n’envoient aucun message.
+
+**Actualiser les salons**, placé à proximité du choix, recharge la liste après une modification des salons ou des permissions dans Discord. Le brouillon reste conservé. Pendant le chargement ou en cas d’erreur, attendre la vérification ou réessayer avant d’ajouter et d’enregistrer. Une absence de salon utilisable et la limite atteinte disposent d’une explication visible.
+
+Chaque équipe conserve ses propres destinations, y compris lorsqu’elle partage le serveur avec d’autres équipes. Ce parcours utilise les métadonnées et les points d’accès existants ; il ne demande ni nouvelle commande Discord ni configuration supplémentaire de l’opérateur.
 
 ### Choisir l’équipe dans les commandes Discord
 
