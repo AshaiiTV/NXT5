@@ -17,24 +17,18 @@ function normalizeRiotId(value) {
   return String(value || '').toLowerCase().replace(/\s+/g, '').replace('#', '-');
 }
 
-function normalizeRole(value, participantId = 0) {
-  const roleRaw = String(value || '').toUpperCase();
-  if (roleRaw === 'JUNGLE') return 'JGL';
-  if (roleRaw === 'MIDDLE') return 'MID';
-  if (roleRaw === 'BOTTOM') return 'ADC';
-  if (roleRaw === 'UTILITY' || roleRaw === 'SUPPORT') return 'SUP';
-  if (['TOP', 'JGL', 'MID', 'ADC', 'SUP'].includes(roleRaw)) return roleRaw;
-  const index = ((Number(participantId || 1) - 1) % 5) + 1;
-  return ['TOP', 'JGL', 'MID', 'ADC', 'SUP'][index - 1] || 'UNKNOWN';
-}
-
 function normalizeLoose(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 function normalizeLaneAssignments(value) {
   const source = value && typeof value === 'object' ? value : {};
-  return Object.fromEntries(['TOP', 'JGL', 'MID', 'ADC', 'SUP'].map((role) => [role, normalizeLoose(source[role])]).filter(([, text]) => text));
+  return Object.fromEntries(['TOP', 'JGL', 'MID', 'ADC', 'SUP'].map((role) => {
+    const text = String(source[role] || '').trim();
+    // Preserve the explicit participant namespace; a bad ID must never become
+    // a loose summoner-name match when its punctuation is removed.
+    return [role, /^participant:/i.test(text) ? text.toLowerCase() : normalizeLoose(text)];
+  }).filter(([, text]) => text));
 }
 
 function normalizePlayerAssignments(value) {
@@ -175,10 +169,15 @@ function buildNxt5TimelineEvents(match) {
 }
 
 function manualRoleForParticipant(p, laneAssignments) {
+  const assignments = Object.entries(laneAssignments || {});
+  const participantReference = `participant:${p.participantId}`;
+  const explicitAssignment = assignments.find(([, expected]) => expected === participantReference);
+  if (explicitAssignment) return explicitAssignment[0];
   const champion = normalizeLoose(p.championName);
   const summoner = normalizeLoose(p.summonerName);
   const riot = normalizeLoose(participantRiotId(p));
-  for (const [role, expected] of Object.entries(laneAssignments || {})) {
+  for (const [role, expected] of assignments) {
+    if (String(expected).startsWith('participant:')) continue;
     if (expected && [champion, summoner, riot].includes(normalizeLoose(expected))) return role;
   }
   return null;
@@ -231,7 +230,9 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
     .sort((a, b) => (a.teamId - b.teamId) || ((ROLE_ORDER[a.teamPosition] || 99) - (ROLE_ORDER[b.teamPosition] || 99)))
     .map((p) => {
       const manualRole = p.teamId === allyTeamId ? manualRoleForParticipant(p, laneAssignments) : manualRoleForParticipant(p, enemyLaneAssignments);
-      const role = p.teamId === allyTeamId ? (manualRole || 'UNKNOWN') : (manualRole || normalizeRole(p.teamPosition || p.individualPosition || p.lane, p.participantId));
+      // Both teams require five manual assignments. Falling back to Riot's
+      // role here would silently accept invalid or duplicate enemy selections.
+      const role = manualRole || 'UNKNOWN';
       const kills = Number(p.kills || 0);
       const deaths = Number(p.deaths || 0);
       const assists = Number(p.assists || 0);

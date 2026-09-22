@@ -151,6 +151,71 @@ afterAll(async () => { await database.pg?.close(); });
 afterEach(() => { vi.unstubAllEnvs(); });
 
 describe('atomic match imports against PostgreSQL', () => {
+  it.each(['BLUE', 'RED'])('persists explicit participant selections and enemy role swaps with anonymous names on %s side', async (side) => {
+    const args = importArgs();
+    args.allyTeamSide = side;
+    const allyOffset = side === 'BLUE' ? 0 : 5;
+    const enemyOffset = side === 'BLUE' ? 5 : 0;
+    args.laneAssignments = Object.fromEntries(roles.map((role, index) => [role, `participant:${allyOffset + index + 1}`]));
+    args.enemyLaneAssignments = Object.fromEntries(roles.map((role, index) => [role, `participant:${enemyOffset + index + 1}`]));
+    [args.enemyLaneAssignments.TOP, args.enemyLaneAssignments.JGL] = [args.enemyLaneAssignments.JGL, args.enemyLaneAssignments.TOP];
+    for (const participant of args.match.info.participants) {
+      participant.summonerName = 'Anonymous';
+      participant.riotIdGameName = 'Anonymous';
+      participant.riotIdTagline = '';
+    }
+
+    await persistAnalyzedMatch(args);
+    const saved = await storedMatch();
+    expect(saved.participants).toHaveLength(10);
+    for (const [teamKey, assignments] of [['ALLY', args.laneAssignments], ['ENEMY', args.enemyLaneAssignments]]) {
+      const participants = saved.participants.filter((row: any) => row.team_key === teamKey);
+      expect(Object.fromEntries(participants.map((row: any) => [row.role, `participant:${row.raw.participantId}`]))).toEqual(assignments);
+      if (teamKey === 'ALLY') expect(participants.every((row: any) => row.player_id === args.playerAssignments[row.role])).toBe(true);
+    }
+  });
+
+  it('keeps legacy champion, summoner-name and Riot-ID assignments compatible', async () => {
+    const args = importArgs();
+    args.laneAssignments.TOP = ' player0 # euw ';
+    args.laneAssignments.JGL = 'Player1';
+    args.enemyLaneAssignments.TOP = ' player6 # euw ';
+    args.enemyLaneAssignments.JGL = 'Player5';
+    await persistAnalyzedMatch(args);
+    const saved = await storedMatch();
+    expect(saved.participants.find((row: any) => row.raw.participantId === 7)).toMatchObject({ team_key: 'ENEMY', role: 'TOP' });
+    expect(saved.participants.find((row: any) => row.raw.participantId === 6)).toMatchObject({ team_key: 'ENEMY', role: 'JGL' });
+    expect(saved.participants.filter((row: any) => row.team_key === 'ALLY').every((row: any) => row.player_id === args.playerAssignments[row.role])).toBe(true);
+  });
+
+  it.each([
+    ['laneAssignments', 'participant:6'],
+    ['laneAssignments', 'participant:11'],
+    ['laneAssignments', 'participant:1x'],
+    ['laneAssignments', 'participant:2'],
+    ['enemyLaneAssignments', 'participant:1'],
+    ['enemyLaneAssignments', 'participant:11'],
+    ['enemyLaneAssignments', 'participant:6x'],
+    ['enemyLaneAssignments', 'participant:7'],
+  ])('rejects invalid, wrong-side or duplicate %s token %s before changing the previous import', async (field, value) => {
+    await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    database.statements = [];
+    const next = importArgs(2);
+    next.laneAssignments = Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 1}`]));
+    next.enemyLaneAssignments = Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 6}`]));
+    next[field].TOP = value;
+    // An invalid explicit reference must not fall through to the legacy loose
+    // name matcher, even when that normalized name exists in the right team.
+    const participant = next.match.info.participants[field === 'laneAssignments' ? 0 : 5];
+    participant.summonerName = value.replace(':', '');
+    participant.riotIdGameName = participant.summonerName;
+    participant.riotIdTagline = '';
+    await expect(persistAnalyzedMatch(next)).rejects.toMatchObject({ status: 400 });
+    expect(await storedMatch()).toEqual(before);
+    expect(database.statements.some((query) => /\b(insert|update|delete)\b/i.test(query))).toBe(false);
+  });
+
   it('reimports into the same match with one coherent participant set, archive and metadata', async () => {
     const first = await persistAnalyzedMatch(importArgs());
     const next = importArgs(7);
