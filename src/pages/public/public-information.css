@@ -224,7 +224,7 @@
 .nxt5-contact-privacy > svg { color: var(--nxt5-accent-2); }
 .nxt5-contact-privacy h3 { margin: 1rem 0 0; font-size: clamp(1.25rem, 2vw, 1.5rem); font-weight: 800; line-height: 1.4; }
 .nxt5-contact-privacy p { max-width: 46ch; margin: 1rem 0 0; font-size: 0.875rem; line-height: 1.85; color: #edf5ff; }
-.nxt5-contact-privacy a { display: inline-flex; align-items: center; gap: 0.75rem; min-height: 44px; margin-top: 0.75rem; font-size: 0.8125rem; font-weight: 700; color: var(--nxt5-accent); }
+.nxt5-contact-privacy > a { display: inline-flex; align-items: center; gap: 0.75rem; min-height: 44px; margin-top: 0.75rem; font-size: 0.8125rem; font-weight: 700; color: var(--nxt5-accent); }
 .nxt5-contact-privacy a svg { flex-shrink: 0; }
 .nxt5-support-item + .nxt5-support-item { border-top: 1px solid var(--nxt5-border); }
 .nxt5-support-item summary { min-height: 64px; font-size: 0.9375rem; }
