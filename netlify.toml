@@ -5,6 +5,7 @@
 
 [build.environment]
   NODE_VERSION = "24"
+  VITE_NXT5_SUPPORT_URL = "https://ko-fi.com/nxt5org"
 
 [context.production]
   command = "npm run verify && npm audit --audit-level=moderate && npm run db:migrate"
