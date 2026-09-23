@@ -35,7 +35,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!ok) throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
 
     const activeUser = await recordUserActivity(user);
-    await createSession({ userId: user.id, context, request, remember });
+    await createSession({ userId: user.id, context, request, remember, expectedPasswordHash: user.password_hash });
     return json({ user: safeUser(activeUser) });
   } catch (err) {
     return handleError(err);

@@ -2,6 +2,10 @@
 
 Outil de suivi LoL pour équipes et coachs.
 
+## Sécurité
+
+La [politique de sécurité](SECURITY.md) précise les versions maintenues, le signalement privé d’une vulnérabilité, les contrôles d’exploitation et la réponse aux incidents. Pour un signalement sensible, suivre la [page Contact](https://nxt5.org/contact) et joindre l’équipe en message privé.
+
 ## Stack
 
 - React + Vite

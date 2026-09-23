@@ -179,7 +179,13 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
   };
 }
 
-export async function createSession({ userId, context, request, remember = true }: { userId: string; context: Context; request: Request; remember?: boolean }): Promise<void> {
+export async function createSession({ userId, context, request, remember = true, expectedPasswordHash }: {
+  userId: string;
+  context: Context;
+  request: Request;
+  remember?: boolean;
+  expectedPasswordHash?: string;
+}): Promise<void> {
   await ensureSessionSchema();
   await purgeExpiredAuthData();
   const rawToken = crypto.randomBytes(48).toString('base64url');
@@ -192,10 +198,31 @@ export async function createSession({ userId, context, request, remember = true 
     .trim()
     .slice(0, 64);
 
-  await sql`
-    insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
-    values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
-  `;
+  if (expectedPasswordHash !== undefined) {
+    // Recheck the verified credential atomically with session issuance. Updating
+    // the account also advances xmin: a concurrent credential change with an
+    // older snapshot must retry rather than miss this session during revocation.
+    const created = await sql`
+      with authenticated_account as (
+        update users
+        set password_hash = password_hash
+        where id = ${userId} and password_hash = ${expectedPasswordHash}
+        returning id
+      )
+      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+      select id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
+      from authenticated_account
+      returning id
+    `;
+    if (!created[0]) {
+      throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
+    }
+  } else {
+    await sql`
+      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+      values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
+    `;
+  }
 
   context.cookies.set({
     name: COOKIE_NAME,
