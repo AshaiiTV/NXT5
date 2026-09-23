@@ -36,7 +36,7 @@ export function socialCallbackStatus(search = window.location.search) {
 function Feedback({ children, success = false }) {
   const ref = useRef(null);
   useEffect(() => { ref.current?.focus(); }, [children]);
-  return <div ref={ref} tabIndex={-1} role={success ? "status" : "alert"} className={`rounded-xl border p-3 text-sm font-semibold leading-6 ${success ? "border-cyan-300/25 bg-cyan-400/10 text-cyan-100" : "border-rose-300/25 bg-rose-500/10 text-rose-100"}`}>{children}</div>;
+  return <div ref={ref} tabIndex={-1} role={success ? "status" : "alert"} className={`nxt5-social-feedback ${success ? "is-success" : "is-error"}`}>{children}</div>;
 }
 
 export function SocialNotice({ status = socialCallbackStatus() }) {
@@ -102,12 +102,12 @@ export function SocialLogin({ flow = "login", rememberMe = false, disabled = fal
     catch (err) { setError(err.message || "La connexion n’a pas pu démarrer."); setBusy(""); inFlight.current = false; }
   }
 
-  if (loading) return <p className="mt-4 text-center text-xs text-slate-300" role="status">Chargement des autres méthodes de connexion…</p>;
+  if (loading) return <p className="nxt5-social-loading" role="status">Chargement des autres méthodes de connexion…</p>;
   if (!providers.length && !error) return null;
-  return <section className="mt-5" aria-label="Autres méthodes de connexion">
+  return <section className="nxt5-social-login" aria-label="Autres méthodes de connexion">
     {!!providers.length && <><div className="flex flex-col gap-2">
       {providers.map((provider) => <ProviderSignInButton key={provider.id} provider={provider} disabled={disabled || Boolean(busy)} loading={busy === provider.id} onClick={() => start(provider.id)} />)}
-    </div><p className="mt-5 border-t border-white/10 pt-5 text-center text-sm font-semibold text-slate-300">Ou avec ton e-mail</p></>}
+    </div><p className="nxt5-social-divider">Ou avec ton e-mail</p></>}
     {busy && <p className="mt-3 text-center text-sm text-slate-300" role="status">Ouverture de {providerLabel(busy)}…</p>}
     {error && <div className="mt-3 space-y-2"><Feedback>{error}</Feedback>{!providers.length && <Button type="button" variant="ghost" onClick={() => setAttempt((value) => value + 1)}>Réessayer</Button>}</div>}
   </section>;
@@ -155,13 +155,13 @@ export function SocialSignup({ onComplete, loginHref }) {
   }
 
   if (loading) return <p className="mt-5 text-sm text-slate-300" role="status">Préparation de ton inscription…</p>;
-  return <div className="mt-5 space-y-4">
+  return <div className="nxt5-social-signup">
     {pending && <><p className="flex items-start gap-2 text-sm leading-6 text-cyan-100"><ShieldCheck aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" /><span>Connexion avec {providerLabel(pending.provider)} confirmée. Choisis ton pseudo NXT5 pour terminer.</span></p>
       <form onSubmit={submit} className="nxt5-auth-form">
         <fieldset disabled={saving} className="min-w-0 space-y-4">
           <TextInput label="Pseudo" value={form.displayName} onChange={(displayName) => setForm((current) => ({ ...current, displayName }))} placeholder="Ex : Joueur NXT5" required icon={UserPlus} autoComplete="nickname" />
           <TextInput label="E-mail de récupération" value={form.email} onChange={(email) => setForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoComplete="email" />
-          {(!pending.emailVerified || form.email.trim().toLowerCase() !== pending.email?.toLowerCase()) && <p className="text-xs leading-5 text-slate-300">Nous t’enverrons un lien pour vérifier cette adresse et protéger la récupération de ton compte.</p>}
+          {(!pending.emailVerified || form.email.trim().toLowerCase() !== pending.email?.toLowerCase()) && <p className="nxt5-social-help">Nous t’enverrons un lien pour vérifier cette adresse et protéger la récupération de ton compte.</p>}
           <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} />
           {error && <Feedback>{error}</Feedback>}
           {collision && <a href={loginHref} className="block text-sm font-black text-cyan-200 underline underline-offset-4">Me connecter à mon compte existant</a>}
@@ -241,28 +241,28 @@ export function SocialAccounts({ onStatus }) {
     finally { setBusy(""); inFlight.current = false; }
   }
 
-  return <Surface className="nxt5-social-connections p-5 xl:col-span-2">
+  return <Surface className="nxt5-social-connections xl:col-span-2">
     <Badge tone="cyan">Connexions</Badge>
-    <h3 className="mt-3 text-2xl font-black text-white">Connexions associées</h3>
-    <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Retrouve le même compte NXT5 avec Google, Discord, Apple ou Riot. Associe chaque service depuis cette page.</p>
+    <h3 className="nxt5-social-title">Connexions associées</h3>
+    <p className="nxt5-social-description">Retrouve le même compte NXT5 avec Google, Discord, Apple ou Riot. Associe chaque service depuis cette page.</p>
     {socialCallbackStatus() && <div className="mt-4"><SocialNotice /></div>}
     {loading && <p className="mt-4 text-sm text-slate-300" role="status">Chargement des comptes associés…</p>}
     {error && <div className="mt-4"><Feedback>{error}</Feedback>{!status && <Button type="button" variant="ghost" className="mt-3" onClick={() => setAttempt((value) => value + 1)}>Réessayer</Button>}</div>}
     {success && <div className="mt-4"><Feedback success>{success}</Feedback></div>}
-    {status && <div className="mt-5 divide-y divide-white/10">
+    {status && <div className="nxt5-social-connection-list">
       {PROVIDERS.map((provider) => {
         const available = status.providers?.some((entry) => entry.id === provider.id && entry.enabled === true);
         const linked = status.linked?.find((entry) => entry.provider === provider.id);
-        return <div key={provider.id} className="py-4 first:pt-0 last:pb-0">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        return <div key={provider.id} className="nxt5-social-connection">
+          <div className="nxt5-social-connection-row">
             <div className="min-w-0"><p className="flex flex-wrap items-center gap-2 font-black text-white">{provider.label}{linked && <Badge tone="cyan">Associé</Badge>}</p>
               <p className="mt-1 break-words text-sm leading-6 text-slate-300">{linked ? linked.displayName || `Ton compte ${provider.label}` : available ? "Aucun compte associé" : "Connexion bientôt disponible"}</p>
-              {linked && !available && <p className="mt-1 text-xs leading-5 text-slate-300">La connexion avec ce service est temporairement indisponible.</p>}
+              {linked && !available && <p className="nxt5-social-help">La connexion avec ce service est temporairement indisponible.</p>}
             </div>
             {linked ? <Button type="button" variant="ghost" icon={Unlink} disabled={Boolean(busy) || !status.hasPassword || unlinkProvider === provider.id} onClick={(event) => { trigger.current = event.currentTarget; setUnlinkProvider(provider.id); setPassword(""); setSuccess(""); setError(""); }} aria-label={`Dissocier ${provider.label}`}>Dissocier</Button>
               : available && (provider.id === "google" || provider.id === "apple") ? <div className="nxt5-provider-link-action"><ProviderSignInButton provider={provider} linking disabled={Boolean(busy) || Boolean(unlinkProvider)} loading={busy === provider.id} onClick={() => link(provider.id)} /></div> : <Button type="button" variant="ghost" icon={busy === provider.id ? Loader2 : Link2} disabled={!available || Boolean(busy) || Boolean(unlinkProvider)} onClick={() => link(provider.id)} aria-label={`Associer ${provider.label}`}>{busy === provider.id ? "Ouverture…" : available ? "Associer" : "Indisponible"}</Button>}
           </div>
-          {unlinkProvider === provider.id && <form onSubmit={unlink} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelUnlink(); } }} className="mt-4 space-y-3 border-l-2 border-cyan-300/25 pl-3">
+          {unlinkProvider === provider.id && <form onSubmit={unlink} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelUnlink(); } }} className="nxt5-social-unlink">
             <p className="text-sm leading-6 text-slate-300">Après la dissociation de {provider.label}, ton e-mail et ton mot de passe NXT5 te permettront de te connecter.</p>
             <TextInput label="Mot de passe NXT5" value={password} onChange={setPassword} type="password" required autoFocus autoComplete="current-password" icon={Lock} disabled={Boolean(busy)} />
             <div className="flex flex-wrap gap-2"><Button type="submit" variant="danger" disabled={!password || Boolean(busy)} icon={busy ? Loader2 : Unlink}>{busy ? "Dissociation…" : `Dissocier ${provider.label}`}</Button><Button type="button" variant="ghost" onClick={cancelUnlink} disabled={Boolean(busy)}>Annuler</Button></div>
