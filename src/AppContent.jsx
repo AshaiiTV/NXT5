@@ -15,6 +15,7 @@ import { createPlanningStore, upsertAvailability } from "./utils/planning-store.
 import { useTeamData } from "./hooks/useTeamData.js";
 import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 import { matchDisplayName } from "./utils/matches.js";
+import { getOnboardingSteps } from "./utils/onboarding.js";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
 import PassFeatureGate from "./components/subscriptions/PassFeatureGate.jsx";
 import { isPassFeatureLocked } from "./app/pass-access.js";
@@ -245,10 +246,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
-  const [beginnerCompassHidden, setBeginnerCompassHidden] = useState(() => {
-    try { return window.localStorage.getItem("nxt5_beginner_compass_hidden") === "1"; }
-    catch { return false; }
-  });
+  const [hiddenGuides, setHiddenGuides] = useState({});
 
   function setActive(pageId) {
     startTransition(() => setActiveState(pageId));
@@ -269,9 +267,9 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     setAssistantOpen(true);
   }
 
-  function hideBeginnerCompass() {
-    setBeginnerCompassHidden(true);
-    try { window.localStorage.setItem("nxt5_beginner_compass_hidden", "1"); } catch {}
+  function setBeginnerCompassHidden(hidden) {
+    setHiddenGuides((current) => ({ ...current, [guideStorageKey]: hidden }));
+    try { window.localStorage.setItem(guideStorageKey, hidden ? "1" : "0"); } catch {}
   }
 
   const logout = onLogout;
@@ -306,8 +304,15 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{page}</PassFeatureGate> : page;
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
-  const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
-  const showBeginnerCompass = Boolean(currentTeam && active !== "bot-discord" && !workspaceLocked && !beginnerCompassHidden && currentTeamMatches.length < 5);
+  const guideStorageKey = `nxt5_beginner_compass_hidden:${user.id}:${currentTeam?.id || ""}`;
+  const beginnerCompassHidden = hiddenGuides[guideStorageKey] ?? (() => {
+    try { return window.localStorage.getItem(guideStorageKey) === "1"; } catch { return false; }
+  })();
+  const onboardingSteps = getOnboardingSteps({ data, currentTeam, currentMember, user });
+  const guideAvailable = Boolean(currentTeam && data.selectedTeamId === currentTeam.id && !workspaceLocked && onboardingSteps.some((step) => !step.done));
+  const routeParams = new URLSearchParams(route.search);
+  const guidePage = ["teams", "matches", "reports", "trends"].includes(active) && !routeParams.has("create") && !routeParams.has("invite") && routeParams.get("import") !== "1" && routeParams.get("compose") !== "1";
+  const showBeginnerCompass = guideAvailable && guidePage && !beginnerCompassHidden;
   const assistantWidget = !workspaceLocked && <>
     <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>
       <span aria-hidden="true">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
@@ -385,7 +390,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         />
         <main id="workspace-content" tabIndex={-1} className="nxt5-workspace-main">
           <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-          {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onImport={() => navigate("/games?import=1")} onClose={hideBeginnerCompass} />}
+          {showBeginnerCompass && <BeginnerCompass steps={onboardingSteps} onNavigate={navigate} onClose={() => setBeginnerCompassHidden(true)} />}
+          {guideAvailable && guidePage && active === "teams" && beginnerCompassHidden && <div className="nxt5-compass-resume"><Button type="button" variant="ghost" onClick={() => setBeginnerCompassHidden(false)}>Reprendre le guide de démarrage</Button></div>}
           <React.Fragment>
             <div key={active} className="nxt5-fade-in min-w-0">
               <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? guardedPage : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>

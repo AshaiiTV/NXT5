@@ -2,11 +2,11 @@
 
 Date : 21 septembre 2026. Évolution demandée à partir de la version du site au commit `5d55dae`.
 
-> Ce rapport décrit le parcours vérifié le 21 septembre. Dans ce checkout, la refonte du 23 septembre réunit **Inviter** et **Relier** dans « Connecter le serveur », puis guide vers « Choisir les salons » et « Tester et activer ». Après l’installation, elle ouvre une synthèse compacte avec des accès séparés aux salons, aux rôles dans « Accès », à l’activité et à l’aide. Voir la [charte graphique actuelle](charte-graphique.md) et le [guide d’exploitation](discord-operations.md).
+> Ce rapport décrit le parcours vérifié le 21 septembre. Dans ce checkout, la refonte du 23 septembre réunit **Inviter** et **Relier** dans « Connecter le serveur », puis guide vers « Choisir les salons » et « Tester et activer ». Après l’installation, elle ouvre une synthèse compacte avec des accès séparés aux salons, aux rôles dans « Accès », à l’activité et à l’aide. Voir la [charte graphique actuelle](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) et le [guide d’exploitation](discord-operations.md).
 
 ## Objectif
 
-La page **Bot Discord**, accessible depuis l’espace équipe à `/bot-discord`, réunit l’installation du bot partagé NXT5 et sa gestion quotidienne. Chaque équipe choisit son serveur et ses salons. Le parcours conserve l’identité et les composants NXT5 décrits dans la [charte graphique 1.25](charte-graphique.md).
+La page **Bot Discord**, accessible depuis l’espace équipe à `/bot-discord`, réunit l’installation du bot partagé NXT5 et sa gestion quotidienne. Chaque équipe choisit son serveur et ses salons. Le parcours conserve l’identité et les composants NXT5 décrits dans la [charte graphique 1.25](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md).
 
 ## Parcours d’installation
 

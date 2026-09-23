@@ -1,6 +1,6 @@
 # Discord NXT5 - contrôle de l’interface
 
-15 septembre 2026. Référence : [charte graphique 1.23](charte-graphique.md).
+15 septembre 2026. Référence : [charte graphique 1.23](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md).
 
 ## Périmètre vérifié
 
@@ -46,6 +46,6 @@ Le contrôle complet du dépôt reste `npm run verify` ; le nombre ci-dessus dé
 
 ## Charte PDF
 
-Le [PDF de la charte](charte-graphique.pdf) a été régénéré depuis le Markdown 1.23 : **23 pages**, métadonnées à jour et douze sections principales conservées. Toutes les pages ont été rendues avec Poppler, puis inspectées ; la page Discord a aussi été lue à taille supérieure. Le code d’exemple reste sur une même page. Aucun caractère ne dépasse la zone de sécurité vérifiée dans le PDF.
+Le PDF historique de la charte (retiré ; seule la charte Markdown canonique fait référence) a été régénéré depuis le Markdown 1.23 : **23 pages**, métadonnées à jour et douze sections principales conservées. Toutes les pages ont été rendues avec Poppler, puis inspectées ; la page Discord a aussi été lue à taille supérieure. Le code d’exemple reste sur une même page. Aucun caractère ne dépasse la zone de sécurité vérifiée dans le PDF.
 
 Le générateur réutilisable est `tools/render-charte-graphique.py`. Il nécessite Python avec ReportLab et utilise Arial sur macOS ou DejaVu Sans sur Linux pour la documentation ; la fiche PNG des games utilise bien sa police Inter dédiée, décrite dans la charte.

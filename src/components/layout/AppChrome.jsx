@@ -12,33 +12,28 @@ export function AmbientBackground() {
   return <div className="nxt5-ambient-bg nxt5-ambient-calm" aria-hidden="true"><div className="nxt5-ambient-light" /></div>;
 }
 
-export function BeginnerCompass({ active, data, currentTeam, onNavigate, onImport, onClose }) {
-  if (!currentTeam) return null;
-  const teamMatches = (data.matches || []).filter((match) => match.team_id === currentTeam.id);
-  const teamPlayers = (data.players || []).filter((player) => player.team_id === currentTeam.id);
-  const teamReports = (data.reports || []).filter((report) => report.team_id === currentTeam.id);
-  const steps = [
-    { id: "teams", icon: Users, label: "Roster", text: teamPlayers.length >= 5 ? "5 joueurs réunis" : "Ajoute les 5 joueurs", done: teamPlayers.length >= 5 },
-    { id: "matches", icon: Upload, label: "Première game", text: teamMatches.length ? `${teamMatches.length} game${teamMatches.length > 1 ? "s" : ""} importée${teamMatches.length > 1 ? "s" : ""}` : "Importe une game", done: teamMatches.length >= 1 },
-    { id: "trends", icon: Activity, label: "Tendances", text: teamMatches.length >= 3 ? "3 games disponibles" : "Réunis au moins 3 games", done: teamMatches.length >= 3 },
-    { id: "reports", icon: FileText, label: "Review", text: teamReports.length ? `${teamReports.length} review${teamReports.length > 1 ? "s" : ""}` : "Écris ta première review", done: teamReports.length >= 1 },
-  ];
+const COMPASS_ICONS = { teams: Users, matches: Upload, trends: Activity, reports: FileText };
+
+export function BeginnerCompass({ steps = [], onNavigate, onClose }) {
   const doneCount = steps.filter((step) => step.done).length;
-  const nextStep = steps.find((step) => !step.done) || steps[2];
-  const goToStep = (step) => step.id === "matches" && onImport ? onImport() : onNavigate(step.id);
+  const nextStep = steps.find((step) => !step.done && !step.disabled) || steps.find((step) => !step.done);
+  if (!nextStep) return null;
+  const goToStep = (step) => { if (!step.disabled && step.path) onNavigate(step.path); };
   return <section className="nxt5-compass" aria-labelledby="nxt5-compass-title">
     <div className="nxt5-compass-heading">
-      <div><h2 id="nxt5-compass-title">Les premières étapes</h2><p>{doneCount} sur 4 terminées · Construis l’espace de ton équipe.</p></div>
-      <div className="nxt5-compass-actions">
-        <Button type="button" icon={nextStep.icon} onClick={() => goToStep(nextStep)}>Continuer : {nextStep.label}</Button>
-        <button type="button" className="nxt5-chrome-icon-button" aria-label="Masquer le démarrage guidé" title="Masquer le démarrage guidé" onClick={onClose}><X size={18} aria-hidden="true" /></button>
-      </div>
+      <div><h2 id="nxt5-compass-title">Les premières étapes</h2><p>{doneCount} sur {steps.length} terminées · À ton rythme, avec ton équipe.</p></div>
+      <button type="button" className="nxt5-chrome-icon-button" aria-label="Masquer le démarrage guidé" title="Masquer le démarrage guidé" onClick={onClose}><X size={18} aria-hidden="true" /></button>
+    </div>
+    <div className="nxt5-compass-next">
+      <div><p className="nxt5-compass-next-title">{nextStep.label} <span>· {nextStep.detail}</span></p><p id="nxt5-compass-help">{nextStep.reason || "Choisis une étape pour avancer. Ta progression se met à jour automatiquement."}</p></div>
+      <Button type="button" icon={COMPASS_ICONS[nextStep.id]} onClick={() => goToStep(nextStep)} disabled={nextStep.disabled} aria-describedby="nxt5-compass-help">{nextStep.action}</Button>
     </div>
     <ol className="nxt5-compass-steps">
       {steps.map((step, index) => <li key={step.id}>
-        <button type="button" onClick={() => goToStep(step)} className={cx("nxt5-compass-step", active === step.id && "is-current", step.done && "is-done")}>
+        <button type="button" onClick={() => goToStep(step)} disabled={step.disabled} aria-label={`${step.label} : ${step.action}${step.done ? " · Étape terminée" : ""}`} aria-describedby={`nxt5-compass-${step.id}-detail`} className={cx("nxt5-compass-step", nextStep.id === step.id && "is-current", step.done && "is-done")}>
           <span className="nxt5-compass-number" aria-hidden="true">{step.done ? <Check size={16} /> : index + 1}</span>
-          <span><span className="nxt5-compass-label">{step.label}{step.done && <span className="sr-only"> · Étape terminée</span>}</span><span className="nxt5-compass-detail">{step.text}</span></span>
+          <span className="nxt5-compass-step-copy"><span className="nxt5-compass-label">{step.label}</span><span id={`nxt5-compass-${step.id}-detail`} className="nxt5-compass-detail">{step.disabled ? step.reason : step.detail}</span></span>
+          {!step.disabled && <ChevronRight size={16} className="nxt5-compass-arrow" aria-hidden="true" />}
         </button>
       </li>)}
     </ol>
@@ -167,7 +162,7 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
           <div className="nxt5-team-menu-list">{teams.map((team) => <button key={team.id} type="button" onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); teamTriggerRef.current?.focus(); }} aria-pressed={currentTeam?.id === team.id} className={cx("nxt5-team-option", currentTeam?.id === team.id && "is-selected")}>
             <span aria-hidden="true"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /></span><span className="nxt5-team-option-copy"><strong>{team.name}</strong><span>{team.tag || "TEAM"} · {team.region || "EUW"}</span></span>{currentTeam?.id === team.id && <Check size={16} aria-hidden="true" />}
           </button>)}</div>
-          <button type="button" onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="nxt5-team-create"><Plus size={17} aria-hidden="true" />Créer une équipe</button>
+          <button type="button" onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="nxt5-team-create"><Plus size={17} aria-hidden="true" />Créer ou rejoindre une équipe</button>
         </div>}
       </div>
       {currentTeam && active !== "team-management" && <button type="button" onClick={onManageTeam} aria-label="Gestion de l’équipe" title="Gestion de l’équipe" className="nxt5-chrome-icon-button"><Settings size={18} aria-hidden="true" /></button>}

@@ -6,6 +6,7 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";
 import { useTeamData } from "../hooks/useTeamData.js";
+import { BeginnerCompass } from "../components/layout/AppChrome.jsx";
 
 const simulation = vi.hoisted(() => ({ expired: false }));
 vi.mock("../app/pass-access.js", async (importOriginal) => {
@@ -45,17 +46,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function open(path, { noTeam = false, admin = false } = {}) {
+async function open(path, { noTeam = false, admin = false, snapshot = {}, storage, userId = "user" } = {}) {
   const location = new URL(path, "https://nxt5.test");
   vi.stubGlobal("window", {
     location, history: { replaceState: vi.fn(), pushState: vi.fn() }, scrollTo: vi.fn(),
-    addEventListener: vi.fn(), removeEventListener: vi.fn(), localStorage: { getItem: vi.fn() },
+    addEventListener: vi.fn(), removeEventListener: vi.fn(), localStorage: storage || { getItem: vi.fn(), setItem: vi.fn() },
   });
   vi.stubGlobal("document", { title: "" });
-  apiFetch.mockResolvedValue({ user: { id: "user", email: "user@example.test", email_verified: true, is_platform_admin: admin, subscription: { status: "active" } } });
-  const selectedTeamId = noTeam ? null : "team";
+  apiFetch.mockResolvedValue({ user: { id: userId, email: "user@example.test", email_verified: true, is_platform_admin: admin, subscription: { status: "active" } } });
+  const selectedTeamId = noTeam ? null : snapshot.selectedTeamId || "team";
   useTeamData.mockReturnValue({
-    data: { ...DEFAULT_DATA, selectedTeamId, teams: noTeam ? [] : [{ id: "team", name: "Équipe" }] },
+    data: { ...DEFAULT_DATA, selectedTeamId, teams: noTeam ? [] : [{ id: "team", name: "Équipe" }], ...snapshot },
     selectedTeamId, setSelectedTeamId: vi.fn(), bootstrapReady: true, bootstrapped: true,
   });
   await act(async () => { renderer = TestRenderer.create(<AppLoadingProvider><Suspense fallback="loading"><AppContent /></Suspense></AppLoadingProvider>); });
@@ -126,5 +127,51 @@ describe("future expiration routing, simulated only in tests", () => {
     await open("/equipes", { noTeam: true });
     expect(renderer.root.findAllByProps({ "data-page": "teams" })).toHaveLength(1);
     expect(JSON.stringify(renderer.toJSON())).not.toContain("Prendre le Pass Équipe");
+  });
+});
+
+
+describe("guide progress and per-team preferences", () => {
+  const roster = ["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => ({ id: role, role, team_id: "team" }));
+  it("keeps an unfinished review visible after five games and hides a completed guide", async () => {
+    const snapshot = { players: roster, matches: Array.from({ length: 5 }, (_, i) => ({ id: `game-${i}`, team_id: "team" })) };
+    await open("/equipes", { snapshot });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(1);
+    act(() => renderer.unmount());
+    await open("/equipes", { snapshot: { ...snapshot, reports: [{ id: "review", team_id: "team" }] } });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
+  });
+
+  it("scopes dismissal to account and team and allows reopening it", async () => {
+    const saved = new Map([["nxt5_beginner_compass_hidden", "1"]]);
+    const storage = { getItem: (key) => saved.get(key), setItem: (key, value) => saved.set(key, value) };
+    await open("/equipes", { storage });
+    act(() => renderer.root.findByType(BeginnerCompass).props.onClose());
+    expect(saved.get("nxt5_beginner_compass_hidden:user:team")).toBe("1");
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
+    const resume = renderer.root.findAllByType("button").find((node) => node.children.includes("Reprendre le guide de démarrage"));
+    act(() => resume.props.onClick());
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(1);
+    act(() => renderer.root.findByType(BeginnerCompass).props.onClose());
+    act(() => renderer.unmount());
+    await open("/equipes", { storage, snapshot: { selectedTeamId: "other", teams: [{ id: "other" }] } });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(1);
+    act(() => renderer.unmount());
+    await open("/equipes", { storage, userId: "new-account" });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(1);
+    act(() => renderer.unmount());
+    await open("/equipes", { storage });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
+  });
+
+  it("does not offer a resume button while creating another team", async () => {
+    await open("/equipes?create=1", { storage: { getItem: () => "1" } });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
+    expect(renderer.root.findAllByType("button").some((node) => node.children.includes("Reprendre le guide de démarrage"))).toBe(false);
+  });
+
+  it.each(["/gestion-equipe?section=roster", "/games?import=1", "/rapports?match=game&compose=1"])("keeps the action workspace clear at %s", async (path) => {
+    await open(path);
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
   });
 });
