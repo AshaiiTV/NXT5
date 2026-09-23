@@ -159,11 +159,11 @@ export function CategoryMultiSelect({ categories, selectedIds, onChange, label =
     onChange(ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
   };
   return <div>
-    <p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">{label}</p>
+    <p className="mb-2 text-[13px] font-semibold text-slate-300">{label}</p>
     <div className="flex flex-wrap gap-2">
       {(categories || []).map((category) => {
         const active = ids.includes(String(category.id));
-        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
+        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 py-2 text-[13px] font-semibold transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
       })}
       {!categories?.length && <Badge tone="slate">Aucune catégorie</Badge>}
     </div>
@@ -178,13 +178,13 @@ export function JsonUploadProgress({ progress }) {
   return <div className="rounded-2xl border border-cyan-300/18 bg-cyan-400/[0.07] p-3">
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-cyan-100">{progress.label || phaseLabel}</p>
+        <p className="break-words text-xs font-semibold text-cyan-100">{progress.label || phaseLabel}</p>
         <p className="mt-1 text-xs font-semibold text-slate-300">{phaseLabel} · {uploaded}</p>
       </div>
       <span className="shrink-0 text-sm font-black text-white">{percent}%</span>
     </div>
     <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/35">
-      <div className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-sky-400 to-fuchsia-300 shadow-[0_0_18px_rgba(34,211,238,.35)] transition-[width] duration-150 ease-out" style={{ width: `${percent}%` }} />
+      <div className="h-full rounded-full bg-cyan-300 transition-[width] duration-150 ease-out" style={{ width: `${percent}%` }} />
     </div>
   </div>;
 }
@@ -202,10 +202,10 @@ export function ImportRoleHeader({ role, toneName = "cyan", player = null, fallb
         <RoleIcon role={role} className="h-5 w-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">Poste</span>
-        <span className="block truncate text-sm font-black text-white">{roleLabel(role)}</span>
+        <span className="block break-words text-xs font-semibold text-slate-400">Poste</span>
+        <span className="block break-words text-sm font-black text-white">{roleLabel(role)}</span>
       </span>
-      <span className={cx("min-w-0 max-w-[46%] shrink rounded-lg border px-2 py-1 text-right text-[0.62rem] font-black uppercase tracking-[0.08em]", chipTone)}>
+      <span className={cx("min-w-0 max-w-[46%] shrink rounded-lg border px-2 py-1 text-right text-xs font-semibold", chipTone)}>
         <span className="block truncate">{player?.name || fallbackLabel}</span>
       </span>
     </div>
@@ -558,10 +558,10 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Sélectionne le side de ton équipe, puis valide les lanes et profils avant de confirmer l’import.</p></div>
           </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-4">
-            {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("min-w-0 rounded-2xl p-3", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
-              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="text-xs font-black uppercase tracking-[0.14em]">{index + 1}. {title}</span></span>{done && <Check className="h-4 w-4 shrink-0" />}</div>
-              <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{text}</p>
+          <div className="game-import-steps">
+            {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("game-import-step", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
+              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="text-xs font-semibold">{index + 1}. {title}</span></span>{done && <Check className="h-4 w-4 shrink-0" />}</div>
+              <p className="mt-1 break-words text-xs font-semibold text-slate-400">{text}</p>
             </div>)}
           </div>
               <div className="mt-4 space-y-4">
@@ -570,37 +570,37 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                   <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} />
                 </div>
                 <div className="grid gap-3 lg:grid-cols-2">
-                  {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} className={cx("rounded-2xl border p-4 text-left transition-colors", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
+                  {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} className={cx("game-import-side border p-4 text-left transition-colors", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 " : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
                     <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Blue Side" : "Red Side"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div>
-                    <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="truncate text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
+                    <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="break-words text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
                   </button>)}
                 </div>
                 <div className="grid gap-4 xl:grid-cols-2">
-                  <div className="rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
+                  <div className="game-import-team">
                     <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide || "Side ?"}</Badge></div>
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       {COMP_ROLES.map((role) => {
                         const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
                         const pickedChampion = selectedPreviewParticipant(allyPreviewTeam, laneAssignments[role]);
-                        return <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
+                        return <div key={role} className={cx("game-import-assignment", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
                           <ImportRoleHeader role={role} player={assignedPlayer} />
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Swords className="h-4 w-4" /></span>}
-                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
+                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="break-words text-xs font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
                           </div>
-                          <select aria-label={`Champion allié · ${roleLabel(role)}`} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
+                          <label className="game-import-field"><span>Champion joué</span><select aria-label={`Champion allié · ${roleLabel(role)}`} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
                             <option value="">Champion joué</option>
                             {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={previewAssignmentValue(participant)}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
-                          </select>
-                          <select aria-label={`Profil NXT5 · ${roleLabel(role)}`} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="mt-2 w-full rounded-xl border border-cyan-300/14 bg-cyan-400/[0.07] px-3 py-2 text-xs font-black text-white outline-none">
+                          </select></label>
+                          <label className="game-import-field"><span>Profil lié</span><select aria-label={`Profil NXT5 · ${roleLabel(role)}`} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
                             <option value="">Profil NXT5 lié</option>
                             {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}{player.riot_id ? ` · ${player.riot_id}` : ""}</option>)}
-                          </select>
+                          </select></label>
                         </div>;
                       })}
                     </div>
                   </div>
-                  <div className="rounded-[1.35rem] border border-rose-300/14 bg-rose-500/[0.055] p-4">
+                  <div className="game-import-team">
                     <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side || "Side ?"}</Badge></div>
                     <p className="mb-3 text-sm leading-6 text-slate-300">{enemyPreviewTeam ? "Choisis le poste de chaque champion adverse. Si le poste est déjà pris, les deux champions échangent leur poste." : "Choisis d’abord le côté de notre équipe pour attribuer les postes adverses."}</p>
                     {enemyPreviewTeam && !enemyAssignmentsReady && <p role="status" className="mb-3 text-sm text-rose-100">Attribue un poste à chaque champion adverse pour confirmer l’import.</p>}
@@ -609,10 +609,10 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                         const role = COMP_ROLES.find((item) => enemyLaneAssignments[item] === previewAssignmentValue(participant)) || "";
                         const champion = championDisplayName(participant.champion);
                         return (
-                        <div key={participant.participantId} className={cx("min-w-0 rounded-2xl border p-3 transition", role ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
+                        <div key={participant.participantId} className={cx("game-import-assignment", role ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             <ChampionPortrait champion={participant.champion} alt={champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{champion}</p><p className="truncate text-xs font-semibold text-slate-300">{participant.riotId || participant.summonerName || "Adversaire"}</p></div>
+                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{champion}</p><p className="break-words text-xs font-semibold text-slate-300">{participant.riotId || participant.summonerName || "Adversaire"}</p></div>
                           </div>
                           <SelectInput label={`Poste · ${champion}`} aria-label={`Poste · ${champion}`} value={role} onChange={(nextRole) => updateEnemyParticipantRole(participant, nextRole)} disabled={importing || fileImporting}>
                             <option value="">À attribuer</option>
@@ -626,8 +626,8 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                  {importReady && <div className="rounded-2xl border border-emerald-200/16 bg-emerald-400/[0.055] p-4">
                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                      <div className="min-w-0">
-                       <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-emerald-100">Résumé avant import</p>
-                       <p className="mt-1 truncate text-lg font-black text-white">{importDetails.label}</p>
+                       <p className="text-xs font-semibold text-emerald-100">Résumé avant import</p>
+                       <p className="mt-1 break-words text-lg font-black text-white">{importDetails.label}</p>
                        <p className="mt-1 text-sm font-semibold text-slate-300">{allyTeamSide} side · {COMP_ROLES.map((role) => gameplayRoster.find((player) => player.id === playerAssignments[role])?.name || role).join(" / ")}</p>
                      </div>
                      <Badge tone="green">Prêt</Badge>

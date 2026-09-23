@@ -349,34 +349,34 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
       <PageHeader eyebrow="Équipe" title="Planning" subtitle="Disponibilités des joueurs, du coach et du staff.">
         <div className="flex flex-wrap gap-2">
           {weekOptions.map((week) => (
-            <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} aria-pressed={selectedWeek.start === week.start} className={cx("min-h-11 rounded-xl border px-3 py-2 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
-              <span className="block text-xs font-black uppercase tracking-[0.1em]">{week.label}</span>
+            <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} aria-pressed={selectedWeek.start === week.start} className={cx("nxt5-planning-week min-h-11 rounded-[2px] border px-3 py-2 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
+              <span className="block text-xs font-semibold">{week.label}</span>
               <span className="mt-0.5 block text-xs font-semibold opacity-80">{week.range}</span>
             </button>
           ))}
         </div>
         <div className="flex flex-wrap gap-2">
           {bestCells[0]?.count > 0 && <Badge tone="cyan">Top créneau : {bestCells[0].count}/{planningUnitTotal}</Badge>}
-          <Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} slots 5 joueurs</Badge>
-          {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} slots CS</Badge>}
+          <Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} créneaux à 5 joueurs</Badge>
+          {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} créneaux avec staff</Badge>}
         </div>
       </PageHeader>
       <DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} />
-      {eventMenu && <div ref={eventMenuRef} role="group" aria-label="Type de session" onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="fixed z-[80] w-[228px] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050814]/98 p-2 text-white shadow-[0_18px_48px_rgba(0,0,0,.35)] ring-1 ring-white/10 backdrop-blur-xl" style={{ left: eventMenu.x, top: eventMenu.y }}>
+      {eventMenu && <div ref={eventMenuRef} role="group" aria-label="Type de session" onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="nxt5-planning-menu fixed z-[80] w-[228px] border border-cyan-200/22 p-2 text-white" style={{ left: eventMenu.x, top: eventMenu.y }}>
         <div className="px-2 pb-2 pt-1">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100/80">Choisir un type</p>
+          <p className="text-xs font-semibold text-cyan-100/80">Choisir un type</p>
           <p className="mt-1 truncate text-xs font-bold text-slate-300">{eventMenuDay?.[1] || eventMenu.day} · {eventMenu.time}</p>
         </div>
         <div className="grid gap-1">
-          {PLANNING_EVENT_TYPES.map((item) => <button key={item.id} type="button" onClick={() => applyPlanningEventType(item.id)} className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-transparent px-2.5 py-2 text-left transition hover:border-cyan-200/20 hover:bg-white/[0.06]">
+          {PLANNING_EVENT_TYPES.map((item) => <button key={item.id} type="button" onClick={() => applyPlanningEventType(item.id)} className="flex min-h-11 w-full items-center gap-2 rounded-[2px] border border-transparent px-2.5 py-2 text-left transition hover:border-cyan-200/20 hover:bg-white/[0.06]">
             <span className={cx("h-2.5 w-2.5 rounded-full", item.dot)} />
-            <span className="text-xs font-black uppercase tracking-[0.12em] text-slate-100">{item.label}</span>
+            <span className="text-xs font-semibold text-slate-100">{item.label}</span>
           </button>)}
         </div>
         {eventMenuCurrent && <div className="mt-2 border-t border-white/10 pt-2">
-          <button type="button" onClick={removePlanningEvent} className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-rose-300/15 bg-rose-500/10 px-2.5 py-2 text-left text-rose-100 transition hover:border-rose-200/35 hover:bg-rose-500/16">
+          <button type="button" onClick={removePlanningEvent} className="flex min-h-11 w-full items-center gap-2 rounded-[2px] border border-rose-300/15 bg-rose-500/10 px-2.5 py-2 text-left text-rose-100 transition hover:border-rose-200/35 hover:bg-rose-500/16">
             <Trash2 className="h-3.5 w-3.5" />
-            <span className="text-xs font-black uppercase tracking-[0.12em]">Supprimer</span>
+            <span className="text-xs font-semibold">Supprimer</span>
           </button>
         </div>}
       </div>}
@@ -388,20 +388,20 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
           <Surface className="p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-xl font-black text-white">Planning team</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{editingEvents || (!canEditSelected && canEditEvents) ? "Choisis un créneau pour ajouter une session Scrim, Match ou Review." : canEditSelected ? "Choisis un créneau pour indiquer ta disponibilité." : "Lecture seule."}</p>
+                <h3 className="text-xl font-black text-white">Planning de l’équipe</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-300">{editingEvents || (!canEditSelected && canEditEvents) ? "Choisis un créneau pour ajouter une session Scrim, Match ou Review." : canEditSelected ? "Choisis un créneau pour indiquer ta disponibilité." : "Lecture seule."}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedPlayer && <Badge tone={selectedIsStaff ? "purple" : "blue"}>{selectedDisplayRole}</Badge>}
                 {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} CS</Badge>}
-                <Badge tone={selectedFilledSlots ? "cyan" : "slate"}>{selectedFilledSlots} slots</Badge>
+                <Badge tone={selectedFilledSlots ? "cyan" : "slate"}>{selectedFilledSlots} créneaux</Badge>
                 <Badge tone={selectedFilledDays >= 4 ? "green" : selectedFilledDays ? "purple" : "slate"}>{selectedFilledDays}/7 jours</Badge>
-                <Badge tone={selectedEventCount ? "purple" : "slate"}>{selectedEventCount} event</Badge>
+                <Badge tone={selectedEventCount ? "purple" : "slate"}>{selectedEventCount} session{selectedEventCount > 1 ? "s" : ""}</Badge>
               </div>
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                {selectedIsStaff ? <span title="Coaching Staff" className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200/40 bg-gradient-to-br from-fuchsia-400/20 via-cyan-400/12 to-black/20 text-fuchsia-50 shadow-[0_0_18px_rgba(217,70,239,.16)]"><BookOpen className="h-4 w-4" /><span className="absolute -right-0.5 -top-0.5 h-2 w-2 rotate-45 rounded-[2px] border border-cyan-100/60 bg-cyan-200 shadow-[0_0_10px_rgba(125,211,252,.75)]" /></span> : <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />}
+                {selectedIsStaff ? <span title="Coaching Staff" className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200/40 bg-fuchsia-400/10 text-fuchsia-50 "><BookOpen className="h-4 w-4" /><span className="absolute -right-0.5 -top-0.5 h-2 w-2 rotate-45 rounded-[2px] border border-cyan-100/60 bg-cyan-200 " /></span> : <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />}
                 <div className="min-w-0">
                   <p className="break-words text-sm font-black text-white">{selectedDisplayName}</p>
                   <p className="mt-0.5 text-xs font-semibold text-slate-400">{selectedPlayer ? `${selectedDisplayRole} · ${selectedIsStaff ? "présence staff groupée" : "compte lié"}` : "Lie ton compte à un profil dans Gestion."}</p>
@@ -423,15 +423,15 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
             </div>
             <div className="nxt5-planning-scroll -mx-4 mt-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0" role="region" aria-label="Planning hebdomadaire, défilement horizontal" tabIndex={0}>
               <div className="nxt5-planning-frame">
-                <div className="nxt5-keep-grid nxt5-planning-grid grid overflow-hidden rounded-lg border border-cyan-200/22 bg-cyan-300/18 shadow-[inset_0_0_0_1px_rgba(255,255,255,.045)] [contain:layout_paint]">
+                <div className="nxt5-keep-grid nxt5-planning-grid grid overflow-hidden rounded-lg border border-cyan-200/22 bg-cyan-300/18  [contain:layout_paint]">
                   <div className="nxt5-planning-corner" />
                   {weekDays.map(([day, label, date], dayIndex) => {
                     const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("nxt5-planning-day-header px-1.5 py-1 text-center text-xs font-black uppercase tracking-[0.08em] transition", dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", dayActive ? "nxt5-planning-day-active text-cyan-50" : "text-slate-300 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-xs text-cyan-100/70">{formatPlanningDate(date)}</span></button>;
+                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("nxt5-planning-day-header px-1.5 py-1 text-center text-xs font-semibold transition", dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", dayActive ? "nxt5-planning-day-active text-cyan-50" : "text-slate-300 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-xs text-slate-300">{formatPlanningDate(date)}</span></button>;
                   })}
                   {planningGridRows.map(({ time, cells }) => (
                     <React.Fragment key={time}>
-                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="nxt5-planning-time flex items-center justify-center bg-[#08111f] px-1.5 py-0.5 text-[0.7rem] font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
+                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="nxt5-planning-time flex items-center justify-center bg-[#08111f] px-1.5 py-0.5 text-xs font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
                       {cells.map((cell) => {
                         const day = cell.day;
                         return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={(event) => editingEvents || !canEditSelected ? openPlanningEventMenu(event, day, time) : toggleSlot(day, time)} aria-label={`${weekDays[cell.dayIndex]?.[1]} ${time} · ${cell.title}${canEditSelected ? (cell.activeSlot ? " · Disponible" : " · Indisponible") : ""}`} aria-pressed={editingEvents || !canEditSelected ? undefined : cell.activeSlot} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("nxt5-planning-cell relative min-h-[2.55rem] overflow-hidden px-1 py-1 text-left transition", cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", frameTone(cell.slotEvent), !cell.slotEvent && "hover:bg-cyan-300/[0.055]", !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
@@ -443,7 +443,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
                                   <RoleIcon role={role} lightweight className="h-4 w-4" />
                                 </span>;
                               })}
-                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("nxt5-planning-staff-unit relative inline-flex items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-gradient-to-br from-fuchsia-400/30 via-cyan-400/14 to-black/10 text-fuchsia-50 shadow-[0_0_8px_rgba(217,70,239,.18)]" : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 shadow-[0_0_10px_rgba(255,255,255,.12)]")}><span className="nxt5-planning-staff-icon"><BookOpen /></span>{cell.staffUnit.lit && <span className="absolute right-0 top-0 h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 shadow-[0_0_5px_rgba(125,211,252,.72)]" />}</span>}
+                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("nxt5-planning-staff-unit relative inline-flex items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-fuchsia-400/20 text-fuchsia-50 " : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 ")}><span className="nxt5-planning-staff-icon"><BookOpen /></span>{cell.staffUnit.lit && <span className="absolute right-0 top-0 h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 " />}</span>}
                             </div>
                           </div>
                         </button>;
@@ -454,12 +454,12 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
               </div>
             </div>
             <div className="mt-5">
-              <label htmlFor="planning-note" className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">Note planning</label>
-              <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="nxt5-input-shell nxt5-control mt-2 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
+              <label htmlFor="planning-note" className="text-[13px] font-semibold text-slate-300">Note planning</label>
+              <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} rows={2} placeholder="Contraintes, retard possible, préférence de scrim..." className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
             </div>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold text-slate-400">Les modifications sont sauvegardées automatiquement. Le clic droit ouvre aussi les types de session.</p>
-              <div className="flex items-center gap-2"><Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>Réessayer</Button>}</div>
+              <div className="flex items-center gap-2" role="status" aria-live="polite"><Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>Réessayer</Button>}</div>
             </div>
           </Surface>
 

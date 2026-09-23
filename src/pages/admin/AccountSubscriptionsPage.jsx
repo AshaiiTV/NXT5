@@ -203,7 +203,7 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
         {listError && <div className="as-error" role="alert"><p>{listError}</p><Button type="button" variant="ghost" disabled={listLoading} onClick={loadList}>Réessayer</Button></div>}
         <div aria-busy={listLoading} className="as-account-list">
           {listLoading && !list ? <div aria-label="Chargement des profils"><SkeletonRows count={3} /></div> : list && <>
-            <p className="as-caption" role="status">{listLoading ? "Actualisation des profils…" : `${pagination.total} profil${pagination.total > 1 ? "s" : ""}${query ? ` pour « ${query} »` : ""}`}</p>
+            <p className="as-result-count" role="status">{listLoading ? "Actualisation des profils…" : `${pagination.total} profil${pagination.total > 1 ? "s" : ""}${query ? ` pour « ${query} »` : ""}`}</p>
             {list.accounts.length ? <ul>{list.accounts.map((item) => <li key={item.id}>
               <AccountIdentity account={item} /><SubscriptionSummary subscription={item.subscription} />
               <Button type="button" variant="ghost" disabled={listLoading} aria-label={`Gérer l’abonnement de ${accountLabel(item)}`} onClick={() => setSelectedId(item.id)}>Gérer l’abonnement</Button>
@@ -225,7 +225,7 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
         {account && <>
           <div ref={headingRef} tabIndex={-1} className="as-selected-heading"><AccountIdentity account={account} heading /><SubscriptionSummary subscription={subscription} /></div>
           <form className="as-editor" onSubmit={(event) => { event.preventDefault(); mutate("assign"); }} aria-busy={busy}>
-            <p className="as-caption">La formule enregistrée remplace l’attribution actuelle de ce profil.</p>
+            <div className="as-editor-heading"><h4>Attribution de la formule</h4><p className="as-caption">La formule enregistrée remplace l’attribution actuelle de ce profil.</p></div>
             <fieldset disabled={blocked || conflict || confirmRevoke}>
               <legend className="sr-only">Abonnement de {accountLabel(account)}</legend>
               <div>
@@ -248,7 +248,7 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
               <TextAreaInput label="Note privée" name="note" rows={3} maxLength={NOTE_LIMIT} value={form.note} onChange={(value) => patch("note", value)} placeholder="Motif de l’attribution, accord ou référence interne…" /><p className="as-caption">Visible uniquement dans l’administration · {form.note.length} / {NOTE_LIMIT} caractères</p>
             </fieldset>
             {futureReplacement && <p className="as-replacement-notice">Cette attribution remplace le Pass actuel. Aucun Pass ne sera actif avant le {new Date(subscriptionDateToISO(form.startDate)).toLocaleDateString("fr-FR")}.</p>}
-            <div className="as-editor-actions"><Button type="submit" icon={busy ? Loader2 : Check} disabled={blocked || conflict || confirmRevoke || form.note.length > NOTE_LIMIT}>{busy ? "Enregistrement…" : "Enregistrer l’abonnement"}</Button>{dirty && <Button type="button" variant="ghost" disabled={blocked} onClick={cancelChanges}>Annuler les modifications</Button>}{canRevoke && <Button type="button" variant="danger" disabled={blocked || conflict || confirmRevoke} onClick={() => { setConfirmRevoke(true); setError(""); }}>Retirer l’abonnement</Button>}</div>
+            <div className="as-editor-actions"><Button type="submit" icon={busy ? Loader2 : Check} disabled={blocked || conflict || confirmRevoke || form.note.length > NOTE_LIMIT}>{busy ? "Enregistrement…" : "Enregistrer l’abonnement"}</Button>{dirty && <Button type="button" variant="ghost" disabled={blocked} onClick={cancelChanges}>Annuler les modifications</Button>}{canRevoke && <Button type="button" variant="ghost" className="as-remove-action" disabled={blocked || conflict || confirmRevoke} onClick={() => { setConfirmRevoke(true); setError(""); }}>Retirer l’abonnement</Button>}</div>
           </form>
           {confirmRevoke && <div className="as-revoke" role="group" aria-label="Confirmer le retrait de l’abonnement"><h4>Retirer {getSubscriptionPresentation(subscription).label} ?</h4><p>Le retrait concerne <strong>{accountLabel(account)}</strong>{account.accountName && <> (@{account.accountName})</>} · {account.email}. Le profil n’aura plus de formule active ; aucun nouvel essai ne sera démarré.</p><p>La note privée saisie sera enregistrée avec ce retrait.</p><div className="as-editor-actions"><Button type="button" variant="ghost" disabled={busy} onClick={() => setConfirmRevoke(false)}>Conserver l’abonnement</Button><Button type="button" variant="danger" disabled={blocked || conflict} icon={busy ? Loader2 : X} onClick={() => mutate("revoke")}>{busy ? "Retrait…" : "Confirmer le retrait"}</Button></div></div>}
           {error && <div ref={errorRef} tabIndex={-1} className="as-error" role="alert"><p>{error}</p>{conflict && <p>La dernière attribution doit être relue avant de pouvoir enregistrer ou retirer un abonnement.</p>}</div>}

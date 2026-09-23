@@ -30,12 +30,12 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
   return <div className="trends-overview">
     <header className="trends-overview-intro"><h3>Le briefing de la review</h3><p>Les pistes à discuter en équipe et les games qui permettent de les vérifier.</p></header>
 
-    <Surface><section className="trends-priority" aria-labelledby="trend-priority-title">
+    <Surface className="trends-priority-surface"><section className="trends-priority" aria-labelledby="trend-priority-title">
       <div><p className="trends-eyebrow"><Target aria-hidden="true" /> Axe de travail proposé</p><h3 id="trend-priority-title">{objective.title}</h3><p className="trends-copy">{objective.why}</p><button type="button" className="trends-text-action" onClick={() => onOpenSources({ title: "Sources objectif", subtitle: objective.title, games: objective.sourceGames })}><FileText aria-hidden="true" /> Voir les games sources</button></div>
       <div className="trends-priority-target"><p className="trends-eyebrow">Préparer la suite</p><strong>Transformer ce constat en consignes</strong><p>Retrouve les cibles de l’équipe et de chaque joueur dans Objectifs.</p><Button type="button" variant="ghost" icon={ArrowRight} onClick={onObjectives}>Voir les objectifs par rôle</Button></div>
     </section></Surface>
 
-    <Surface><section aria-labelledby="trend-plan-title">
+    <Surface className="trends-plan-surface"><section aria-labelledby="trend-plan-title">
       <div className="trends-section-heading"><div><p className="trends-eyebrow">Plan de jeu récurrent</p><h3 id="trend-plan-title">{plan.title}</h3></div><Badge tone={plan.toneName}>{plan.value}</Badge></div>
       <p className="trends-copy">{plan.text}</p>
       <button type="button" className="trends-text-action" onClick={() => open(plan)}><FileText aria-hidden="true" /> Examiner les games de ce plan</button>
@@ -52,7 +52,7 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
       </details>
     </section></Surface>
 
-    <Surface><section aria-labelledby="trend-review-title"><div className="trends-section-heading"><div><h3 id="trend-review-title">Les points à vérifier en review</h3><p>Ouvre un axe pour lire le constat et retrouver ses sources.</p></div></div>
+    <Surface className="trends-review-surface"><section aria-labelledby="trend-review-title"><div className="trends-section-heading"><div><h3 id="trend-review-title">Les points à vérifier en review</h3><p>Ouvre un axe pour lire le constat et retrouver ses sources.</p></div></div>
       <div className="trends-review-list">{briefs.filter((brief) => !["Bilan", "Plan de jeu"].includes(brief.label)).map((brief) => <details key={brief.label}><summary><span className="trends-eyebrow">{brief.label}</span><strong>{brief.title}</strong><span>{brief.sourceGames?.length || 0} games</span></summary><div className="trends-review-content"><p>{brief.text}</p>{brief.evidence?.length > 0 && <ul>{brief.evidence.map((item) => <li key={item}>{item}</li>)}</ul>}<button type="button" className="trends-text-action" onClick={() => open(brief)}><FileText aria-hidden="true" /> Voir les games sources</button></div></details>)}</div>
       {alerts.length > 0 && <div className="trends-alerts"><h4>Points de vigilance</h4>{alerts.slice(0, 3).map((alert) => <article key={alert.title}><alert.icon aria-hidden="true" /><div><h5>{alert.title}</h5><p>{alert.text}</p><p>{alert.action}</p></div></article>)}</div>}
     </section></Surface>

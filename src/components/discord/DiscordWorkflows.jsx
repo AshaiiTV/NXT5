@@ -18,7 +18,7 @@ export function DiscordPlanningEvents({ events = [], teamId }) {
         <Badge tone={event.status === "cancelled" ? "red" : event.my_response === "present" ? "green" : "cyan"}>{event.status === "cancelled" ? "Annulée" : event.my_response === "present" ? "Présent" : event.my_response === "absent" ? "Absent" : event.my_response === "retard" ? `Retard · ${event.my_delay_minutes} min` : "Sans réponse"}</Badge>
       </li>)}
     </ul>
-    <p className="mt-2 text-xs leading-5 text-slate-400">Pour modifier une session ou confirmer ta présence, utilise les commandes Événement et Présence du bot.</p>
+    <p className="mt-2 text-[13px] leading-6 text-slate-400">Pour modifier une session ou confirmer ta présence, utilise les commandes Événement et Présence du bot.</p>
   </section></Surface>;
 }
 
@@ -31,6 +31,6 @@ export function DiscordProgressionGoals({ goals = [], teamId, playerId }) {
       <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="min-w-0 flex-1 basis-48 break-words font-semibold text-white">{goal.title}</h4><Badge tone={goal.status === "completed" ? "green" : "purple"}>{goal.status === "completed" ? "Clôturé" : "En cours"}</Badge></div>
       <p className="mt-1 text-sm leading-6 text-slate-300">{goal.player_id ? "Objectif individuel" : "Objectif collectif"}{goal.due_at ? ` · Échéance : ${new Date(goal.due_at).toLocaleDateString("fr-FR")}` : ""}{goal.created_by_name ? ` · ${goal.created_by_name}` : ""}</p>
     </li>)}</ul>
-    <p className="mt-2 text-xs leading-5 text-slate-400">Le suivi et la clôture de ces objectifs se font avec les commandes Objectifs du bot.</p>
+    <p className="mt-2 text-[13px] leading-6 text-slate-400">Le suivi et la clôture de ces objectifs se font avec les commandes Objectifs du bot.</p>
   </section></Surface>;
 }

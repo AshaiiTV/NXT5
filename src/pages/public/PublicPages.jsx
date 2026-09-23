@@ -5,7 +5,7 @@ import { apiFetch } from "../../api/client.js";
 import { AUDIENCE_CONSENT_VERSION, openCookieSettings, trackAudienceEvent } from "../../app/audience-client.js";
 import { cx, readRememberPreference, writeRememberPreference } from "../../app/helpers.js";
 import { isSafeInternalPath } from "../../app/routing.js";
-import { BrandLogo, Nxt5Wordmark, RoleIcon } from "../../components/brand/BrandAssets.jsx";
+import { Nxt5Wordmark, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import "./public-information.css";
@@ -64,9 +64,9 @@ export function SiteHeader({ children, navigate, simple = false }) {
   }
 
   return (
-    <header className={simple ? "nxt5-entry-header" : "relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5"}>
-      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90">{simple ? <Nxt5Wordmark className="nxt5-entry-wordmark" /> : <BrandLogo />}</a>
-      {children && <div className={simple ? "nxt5-entry-header-actions" : "nxt5-panel relative flex shrink-0 items-center gap-3 border border-cyan-200/12 bg-[#050914]/62 p-1.5 shadow-[0_0_32px_rgba(34,211,238,.08)] backdrop-blur-2xl"}>{children}</div>}
+    <header className="nxt5-entry-header">
+      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90"><Nxt5Wordmark className="nxt5-entry-wordmark" /></a>
+      {children && <div className="nxt5-entry-header-actions">{children}</div>}
     </header>
   );
 }
@@ -395,17 +395,17 @@ export function HomeScreen({ navigate }) {
 
 export function NotFoundPage({ navigate }) {
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-entry-page nxt5-auth-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
         <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
       </SiteHeader>
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] w-full max-w-4xl items-center justify-center px-3 pb-12 text-center sm:px-5 sm:pb-16">
-        <Surface glow className="w-full">
+      <main className="nxt5-entry-main nxt5-recovery-main">
+        <Surface className="nxt5-auth-card">
           <Badge tone="red">404</Badge>
-          <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-6xl">Page introuvable</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-7 text-slate-300">Cette URL ne correspond à aucune page NXT5. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.</p>
+          <h1>Page introuvable</h1>
+          <p className="nxt5-auth-intro">Cette URL ne correspond à aucune page NXT5. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Connexion</LinkButton>
@@ -495,28 +495,28 @@ export function ResetPasswordPage({ navigate }) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-entry-page nxt5-auth-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Connexion</LinkButton>
       </SiteHeader>
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] max-w-4xl items-center px-5 pb-16">
-        <Surface glow className="mx-auto w-full max-w-2xl">
+      <main className="nxt5-entry-main nxt5-recovery-main">
+        <Surface className="nxt5-auth-card">
           <Badge tone="purple">Nouveau mot de passe</Badge>
-          <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">Réinitialiser le mot de passe</h1>
+          <h1>Réinitialiser le mot de passe</h1>
           {!token ? (
-            <div className="mt-6 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm font-bold text-rose-100">Lien invalide : aucun token de réinitialisation.</div>
+            <div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>Demander un nouveau lien</LinkButton></div>
           ) : done ? (
             <div className="mt-6 space-y-4">
-              <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-100">Mot de passe mis à jour. Tu peux te reconnecter.</div>
+              <div role="status" className="nxt5-auth-notice is-success">Mot de passe mis à jour. Tu peux te reconnecter.</div>
               <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Retour connexion</LinkButton>
             </div>
           ) : (
-            <form onSubmit={submit} className="mt-6 space-y-4">
+            <form onSubmit={submit} className="nxt5-auth-form">
               <TextInput label="Nouveau mot de passe" value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} />
               <TextInput label="Confirmer" value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
-              {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
-              <Button type="submit" disabled={loading || !form.nextPassword || !form.confirmPassword} icon={loading ?Loader2 : Shield} className="w-full py-4">{loading ?"Mise à jour..." : "Changer le mot de passe"}</Button>
+              {error && <div role="alert" className="nxt5-auth-notice is-error">{error}</div>}
+              <Button type="submit" disabled={loading || !form.nextPassword || !form.confirmPassword} icon={loading ?Loader2 : Shield} className="nxt5-auth-submit">{loading ?"Mise à jour..." : "Changer le mot de passe"}</Button>
             </form>
           )}
         </Surface>

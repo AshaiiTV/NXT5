@@ -46,7 +46,7 @@ export function GameOperationDialog({ title, description, children, onClose, bus
         <div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
         <button type="button" className="game-operation-close" aria-label="Fermer la fenêtre" onClick={close} disabled={busy} autoFocus><X aria-hidden="true" className="h-5 w-5" /></button>
       </header>
-      {children}
+      <div className="game-operation-dialog-content">{children}</div>
     </div>
   </dialog>;
 }

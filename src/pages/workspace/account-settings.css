@@ -1,0 +1,9 @@
+.nxt5-account-settings { display: grid; gap: 1.25rem; }
+.nxt5-account-settings > .nxt5-page-header { margin-bottom: 0; }
+.nxt5-account-visual-options { display: grid; gap: .75rem; margin-top: 1.25rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nxt5-account-visual-option { min-height: 72px; border-radius: var(--nxt5-radius-button); }
+.nxt5-account-notifications { display: grid; margin-top: 1rem; }
+.nxt5-account-notifications > button { border-radius: 0; border: 0; border-top: 1px solid var(--nxt5-border); padding: 1rem 0; background: transparent; box-shadow: none; }
+.nxt5-account-notifications > button > span:first-child > span:first-child { font-size: .875rem; font-weight: 600; }
+.nxt5-account-notifications > button > span:first-child > span:last-child { font-size: .8125rem; font-weight: 400; line-height: 1.6; }
+@media (max-width: 639px) { .nxt5-account-visual-options { grid-template-columns: minmax(0, 1fr); } }

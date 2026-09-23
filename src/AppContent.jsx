@@ -6,7 +6,7 @@ import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/pe
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
-import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks } from "./pages/public/PublicPages.jsx";
+import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks, SiteHeader } from "./pages/public/PublicPages.jsx";
 import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
@@ -41,7 +41,7 @@ function VerifyEmailPage() {
     window.location.replace(`${API_BASE}/verify-email${query}`);
   }, []);
 
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-4 py-10"><Surface glow className="w-full p-6 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Loader2 className="h-6 w-6 animate-spin" /></div><h1 className="mt-5 text-3xl font-black text-white">Vérification en cours</h1><p className="mt-3 text-sm font-semibold leading-6 text-slate-300">On confirme ton adresse e-mail et on te redirige automatiquement.</p></Surface></main></div>;
+  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Loader2 className="h-6 w-6 animate-spin" /></div><h1 className="mt-5 text-3xl font-black text-white">Vérification en cours</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">On confirme ton adresse e-mail et on te redirige automatiquement.</p></Surface></main></div>;
 }
 
 function VerifiedPage({ navigate }) {
@@ -54,7 +54,7 @@ function VerifiedPage({ navigate }) {
       ? ["Lien expiré", "Ce lien a expiré. Renvoie un email de vérification depuis tes paramètres.", "yellow"]
       : ["Lien invalide", "Lien invalide ou déjà utilisé.", "red"];
   const [title, text, tone] = copy;
-  return <div className="relative min-h-screen text-white"><AmbientBackground /><main className="relative z-10 mx-auto flex min-h-screen w-full max-w-xl items-center justify-center px-4 py-10"><Surface glow className="w-full p-6 text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-semibold leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
+  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
 }
 
 function MissingEmailModal({ user, onUserUpdate, pushToast }) {
@@ -81,10 +81,10 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/72 px-4 text-white backdrop-blur-xl">
-      <div className="nxt5-enter w-full max-w-xl overflow-hidden rounded-[1.65rem] border border-cyan-300/25 bg-[#090d1a]/95 p-6 shadow-2xl shadow-black/50">
+      <div className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-cyan-300/25 p-6">
         <Badge tone="orange">Action requise</Badge>
         <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Ajoute ton e-mail de récupération</h2>
-        <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">Les anciens comptes n’avaient pas d’e-mail. Ajoute le tien maintenant pour recevoir les liens de mot de passe oublié.</p>
+        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Les anciens comptes n’avaient pas d’e-mail. Ajoute le tien maintenant pour recevoir les liens de mot de passe oublié.</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <TextInput label="E-mail de récupération" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
           <TextInput label="Mot de passe actuel" value={currentPassword} onChange={setCurrentPassword} type="password" required icon={Lock} />
@@ -137,10 +137,10 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
 
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/78 px-4 text-white backdrop-blur-2xl">
-      <div className="nxt5-enter w-full max-w-xl overflow-hidden rounded-[1.65rem] border border-amber-300/28 bg-[#090d1a]/96 p-6 shadow-2xl shadow-black/55">
+      <div className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
         <Badge tone="orange">Vérification obligatoire</Badge>
         <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton profil</h2>
-        <p className="mt-3 text-sm font-semibold leading-6 text-slate-300">Ton compte utilise l'adresse <span className="font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
+        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Ton compte utilise l'adresse <span className="font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
         <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
           <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Profil non vérifié</p>
           <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications restent bloquées tant que l'e-mail n'est pas confirmé.</p>
@@ -178,12 +178,12 @@ function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
 
   if (!user?.inactivity_notice) return null;
   return <div className="nxt5-fade-in fixed inset-0 z-[210] flex items-end justify-center bg-[#020511]/82 p-3 text-white backdrop-blur-xl sm:items-center sm:p-5">
-    <section role="dialog" aria-modal="true" aria-labelledby="inactivity-return-title" className="nxt5-enter nxt5-panel nxt5-premium-panel relative w-full max-w-2xl overflow-hidden border border-cyan-200/26 bg-[#050814]/98 p-5 shadow-[0_32px_110px_rgba(0,0,0,.78),0_0_46px_rgba(34,211,238,.15)] sm:p-7">
-      <button type="button" onClick={() => acknowledge()} disabled={saving} aria-label="Fermer le message" className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
+    <section role="dialog" aria-modal="true" aria-labelledby="inactivity-return-title" className="nxt5-account-dialog nxt5-enter relative w-full max-w-2xl border border-cyan-200/26 p-5 sm:p-7">
+      <button type="button" onClick={() => acknowledge()} disabled={saving} aria-label="Fermer le message" className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
       <div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-200/28 bg-gradient-to-br from-cyan-400/18 to-fuchsia-400/14 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,.15)]"><Sparkles className="h-7 w-7" /></div>
       <Badge tone="cyan" className="mt-5">Bon retour</Badge>
-      <h2 id="inactivity-return-title" className="mt-3 pr-12 text-3xl font-black tracking-tight text-white sm:text-4xl">Content de te revoir sur NXT5</h2>
-      <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-slate-300 sm:text-base">Ton compte n'avait pas été actif depuis au moins trois mois. Tes équipes et tes données sont toujours disponibles : tu peux reprendre exactement là où tu t'étais arrêté.</p>
+      <h2 id="inactivity-return-title" className="mt-3 pr-12 text-2xl font-bold tracking-tight text-white">Content de te revoir sur NXT5</h2>
+      <p className="mt-3 max-w-xl text-sm font-normal leading-6 text-slate-300 sm:text-base">Ton compte n'avait pas été actif depuis au moins trois mois. Tes équipes et tes données sont toujours disponibles : tu peux reprendre exactement là où tu t'étais arrêté.</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-emerald-200/16 bg-emerald-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-emerald-100"><ShieldCheck className="h-4 w-4" />Données préservées</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">Ce message n'affiche aucun détail sur tes équipes, tes games ou leurs membres.</p></div>
         <div className="rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-cyan-100"><Mail className="h-4 w-4" />Rappel maîtrisé</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">L'e-mail de retour peut être désactivé à tout moment dans les paramètres.</p></div>
@@ -333,8 +333,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
-            <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Ton espace équipe</p></div>
+            <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14" />
+            <div className="min-w-0"><Nxt5Wordmark className="h-auto w-[8.5rem] max-w-[40vw] object-left" /><p className="mt-1 text-xs font-medium text-slate-400">Ton espace équipe</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={() => navigate("/parametres")}>Paramètres</Button>
