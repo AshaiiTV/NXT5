@@ -39,11 +39,31 @@ describe("personal Discord account consent", () => {
   it("requires a second click to revoke an existing link and reflects the result", async () => {
     api.fetch.mockResolvedValueOnce({ link: { discord_user_id: "100000000000000001", discord_label: "Moi" } }).mockResolvedValueOnce({ ok: true });
     await render();
+    expect(text()).toContain("Compte lié à");
+    expect(text()).not.toContain("Identifiant Discord");
+    expect(button("Délier mon compte")).toBeUndefined();
+    expect(button("Gérer").props["aria-expanded"]).toBe(false);
+    await act(async () => button("Gérer").props.onClick());
+    expect(button("Fermer la gestion").props["aria-expanded"]).toBe(true);
+    expect(text()).toContain("Identifiant Discord");
     await act(async () => button("Délier mon compte").props.onClick());
     expect(api.fetch).toHaveBeenCalledOnce();
     await act(async () => button("Confirmer la déliaison").props.onClick());
     expect(api.fetch).toHaveBeenLastCalledWith("discord-account", { method: "DELETE" });
     expect(text()).not.toContain("Compte lié");
     expect(text()).toContain("/nxt compte lier");
+  });
+  it("keeps account management secondary and clears an unconfirmed unlink when closed", async () => {
+    api.fetch.mockResolvedValue({ link: { discord_user_id: "100000000000000001", discord_label: "Moi" } });
+    await render();
+    await act(async () => button("Gérer").props.onClick());
+    await act(async () => button("Délier mon compte").props.onClick());
+    expect(button("Confirmer la déliaison")).toBeDefined();
+    await act(async () => button("Fermer la gestion").props.onClick());
+    expect(button("Confirmer la déliaison")).toBeUndefined();
+    expect(api.fetch).toHaveBeenCalledOnce();
+    await act(async () => button("Gérer").props.onClick());
+    expect(button("Délier mon compte")).toBeDefined();
+    expect(button("Confirmer la déliaison")).toBeUndefined();
   });
 });

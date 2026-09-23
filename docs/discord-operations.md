@@ -215,11 +215,11 @@ Après le déploiement du support des serveurs partagés, l’opérateur doit me
 
 ### Lier l’équipe
 
-1. Sélectionner l’équipe NXT5 et ouvrir **Bot Discord** avec le rôle propriétaire ou capitaine. Si le bot est déjà présent dans le serveur souhaité, ouvrir directement l’étape **Relier**.
+1. Sélectionner l’équipe NXT5 et ouvrir **Bot Discord** avec le rôle propriétaire ou capitaine. Le parcours guide ensuite dans l’ordre **Connecter le serveur → Choisir les salons → Tester et activer**. Si le bot est déjà présent dans le serveur souhaité, passer directement à la liaison par code dans **Connecter le serveur**.
 2. Générer le code temporaire. Il expire après dix minutes et ne fonctionne qu’une fois.
 3. Dans Discord, un responsable disposant de Gérer le serveur ou Administrateur lance `/nxt connecter code:…` avec le code de cette équipe.
 4. Le backend vérifie la présence du bot, le code et les droits NXT5 encore valides de son émetteur.
-5. La connexion arrive en pause. Choisir les salons, catégories, pistes et mentions dans NXT5.
+5. La connexion arrive en pause. Choisir au moins un salon, puis ouvrir les options de ce salon si des catégories, pistes ou mentions sont nécessaires.
 6. Afficher l’aperçu d’une game représentative. Vérifier l’audience, le texte, le PNG et le lien.
 7. Activer les publications lorsque les essais d’environnement sont terminés.
 
@@ -227,15 +227,17 @@ Répéter ces étapes avec un nouveau code pour chaque autre équipe NXT5 du ser
 
 ### Choisir les salons depuis NXT5
 
-Dans **Bot Discord → Choisir les salons**, les propriétaires et capitaines retrouvent les contrôles au début de **Destinations des games** :
+Dans **Bot Discord → Choisir les salons**, les propriétaires et capitaines trouvent directement le choix du salon. Une équipe déjà configurée retrouve ce réglage depuis sa synthèse :
 
 1. Ouvrir **Choisir un salon du serveur** et sélectionner un nom `#salon` du serveur relié. Aucun salon n’est présélectionné. Les options sans autorisation d’envoi et celles déjà ajoutées à cette équipe sont désactivées.
-2. Cliquer sur **Ajouter ce salon**. Le salon apparaît dans le brouillon ; régler ses catégories, pistes et mentions. Répéter pour les autres destinations, dans la limite de dix par équipe.
+2. Cliquer sur **Ajouter ce salon**. Le salon apparaît dans le brouillon ; ouvrir ses options seulement si les catégories, pistes, mentions ou l’automatisation doivent changer. Répéter pour les autres salons, dans la limite de dix par équipe.
 3. Cliquer sur **Enregistrer les destinations** avant le test ou l’activation. Le choix et l’ajout seuls n’enregistrent rien et n’envoient aucun message.
 
 **Actualiser les salons**, placé à proximité du choix, recharge la liste après une modification des salons ou des permissions dans Discord. Le brouillon reste conservé. Pendant le chargement ou en cas d’erreur, attendre la vérification ou réessayer avant d’ajouter et d’enregistrer. Une absence de salon utilisable et la limite atteinte disposent d’une explication visible.
 
 Chaque équipe conserve ses propres destinations, y compris lorsqu’elle partage le serveur avec d’autres équipes. Ce parcours utilise les métadonnées et les points d’accès existants ; il ne demande ni nouvelle commande Discord ni configuration supplémentaire de l’opérateur.
+
+Après l’installation, **Bot Discord** présente d’abord l’équipe, le serveur, l’état de diffusion et l’action utile. Les salons, les rôles autorisés dans **Accès**, l’activité et l’aide restent accessibles séparément. Le filtre de rôles Discord se configure pour une équipe précise et s’ajoute aux droits NXT5 ; il n’ouvre pas l’accès aux autres équipes du serveur.
 
 ### Publier une game depuis ses statistiques
 
