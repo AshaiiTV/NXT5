@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
-import { Check, Download, Loader2, Upload } from "lucide-react";
+import { Check, Download, HelpCircle, Loader2, Upload } from "lucide-react";
 import { Button, SelectInput, Surface } from "../../components/ui/Core.jsx";
+import { ImporterOpeningHelp } from "../../components/importer/ImporterOpeningHelp.jsx";
 import { NXT5_IMPORTER_MAC_URL, NXT5_IMPORTER_MAC_INTEL_URL, NXT5_IMPORTER_WINDOWS_URL } from "../../app/constants.jsx";
 
 const downloads = [
@@ -12,10 +13,17 @@ const downloads = [
 export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onImport, children }) {
   const fileInput = useRef(null);
   const [selectedVersion, setSelectedVersion] = useState(downloads[0].id);
+  const [helpPlatform, setHelpPlatform] = useState(null);
+  const helpTriggerRef = useRef(null);
   const selectedDownload = downloads.find(({ id }) => id === selectedVersion);
+  const openHelp = (event) => {
+    if (event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    helpTriggerRef.current = event.currentTarget;
+    setHelpPlatform(selectedVersion === "windows" ? "windows" : "mac");
+  };
 
   return (
-    <Surface className="min-w-0">
+    <><Surface className="min-w-0">
       <section aria-labelledby="importer-download-title" className="min-w-0 sm:p-2">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-cyan-100">Application de bureau</p>
         <h3 id="importer-download-title" className="mt-2 text-2xl font-black text-white">Télécharge NXT5 Importer</h3>
@@ -27,11 +35,12 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
               {downloads.map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
             </SelectInput>
           </div>
-          <a href={selectedDownload.href} download aria-label={`Télécharger pour ${selectedDownload.label}`} className="nxt5-cyber-button nxt5-control inline-flex min-h-12 items-center justify-center gap-2 border border-cyan-100/20 bg-cyan-400/[0.08] px-5 py-3 text-sm font-black text-white transition-colors hover:border-cyan-200/45 hover:bg-cyan-300/[0.14] active:bg-cyan-300/[0.20]">
+          <a href={selectedDownload.href} download onClick={openHelp} aria-haspopup="dialog" aria-label={`Télécharger pour ${selectedDownload.label}`} className="nxt5-cyber-button nxt5-control inline-flex min-h-12 items-center justify-center gap-2 border border-cyan-100/20 bg-cyan-400/[0.08] px-5 py-3 text-sm font-black text-white transition-colors hover:border-cyan-200/45 hover:bg-cyan-300/[0.14] active:bg-cyan-300/[0.20]">
             <Download className="h-4 w-4 shrink-0 text-cyan-200" aria-hidden="true" />
             Télécharger
           </a>
         </div>
+        <button type="button" onClick={openHelp} aria-haspopup="dialog" className="importer-help-link mt-2 text-left"><HelpCircle aria-hidden="true" className="h-4 w-4" />Aide à l’ouverture sur Windows et Mac</button>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-cyan-100/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
@@ -47,5 +56,6 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
         {children}
       </section>
     </Surface>
+    {helpPlatform && <ImporterOpeningHelp initialPlatform={helpPlatform} onClose={() => setHelpPlatform(null)} returnFocusRef={helpTriggerRef} />}</>
   );
 }
