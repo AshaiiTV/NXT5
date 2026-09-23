@@ -150,6 +150,44 @@ describe('NXT5 registered command contract', () => {
 });
 
 describe('Private Discord help content and navigation', () => {
+  it('explains the current site paths without inventing import or export commands', () => {
+    const games = JSON.stringify(buildDiscordHelp({ page: 'games' }).embeds);
+    expect(games).toContain('Games → Importer une game');
+    expect(games).toContain('Mac Apple Silicon');
+    expect(games).toContain('une seule image, sans ZIP');
+    expect(games).toContain('prépare l’aperçu');
+    expect(games).not.toMatch(/\/nxt (?:import|export)/);
+    const review = JSON.stringify(buildDiscordHelp({ page: 'review' }).embeds);
+    expect(review).toContain('20 games');
+    expect(review).toContain('Statistiques moyennes et adversaires');
+    expect(review).toContain('Suivi');
+    expect(review).not.toContain('Nos drafts');
+  });
+
+  it('distinguishes website sign-in, bot identity, installation and optional support', () => {
+    const welcome = JSON.stringify(buildDiscordHelp().embeds);
+    expect(welcome).toContain('lorsque le service est disponible');
+    expect(welcome).toContain('/nxt compte lier');
+    expect(welcome).toContain('/nxt connecter');
+    const account = JSON.stringify(buildDiscordHelp({ page: 'compte' }).embeds);
+    expect(account).toContain('ne fusionne pas automatiquement');
+    expect(account).toContain('ne remplace pas');
+    const install = JSON.stringify(buildDiscordHelp({ page: 'responsable' }).embeds);
+    expect(install).toContain('anciennes games ne sont pas republiées');
+    expect(install).toContain('ne sont pas encore lancés');
+    expect(install).toContain('ne débloque aucun accès exclusif');
+  });
+
+  it('includes relevant site guidance in individual command help with truthful capabilities', () => {
+    const help = (command: string) => JSON.stringify(buildDiscordHelp({ command }).embeds);
+    expect(help('compte lier')).toContain('confirme sur NXT5, puis reviens confirmer dans Discord');
+    expect(help('compte delier')).toContain('conserve ton compte NXT5');
+    expect(help('derniere')).toContain('ne génère pas d’export à la demande');
+    expect(help('stats tendance')).toContain('7 ou 30 jours');
+    expect(help('stats tendance')).toContain('Bloc de référence');
+    expect(help('review creer')).toContain('brouillon staff pour une game');
+  });
+
   it.each(discordHelpSections.map((section: any) => section.id))('renders tutorial page %s within Discord limits', (page) => {
     const result = buildDiscordHelp({ page });
     assertMessageLimits(result);

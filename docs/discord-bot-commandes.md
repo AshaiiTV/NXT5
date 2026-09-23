@@ -6,6 +6,12 @@ Version du 23 septembre 2026. Ce document décrit le code préparé dans ce chec
 
 `/nxt help` et `/nxt aide` ouvrent le même guide privé : accueil, compte, préparation, games et bilan, reviews, installation. Les boutons Précédent / Accueil / Suivant et le sélecteur changent uniquement la page d’aide. Le catalogue par catégories provient du même fichier que l’enregistrement des commandes : [discord-command.js](../shared/discord-command.js). Aucune liaison n’est nécessaire pour lire l’aide.
 
+Le guide et les fiches de commandes décrivent aussi les parcours actuels du site : Importer Windows/Mac et aide d’ouverture, correction d’une game, export PNG unique, partage Discord avec aperçu, cinq rubriques Tendances, profils Champions / Pool déclaré / Suivi, reviews multi-games et soutien facultatif. Les commandes de lecture réutilisent un PNG déjà publié et à jour lorsqu’il est disponible ; elles ne génèrent pas d’export à la demande. Le catalogue d’aide est statique : il ne prouve pas l’enregistrement distant de chaque commande. Le menu `/nxt` de Discord montre les commandes effectivement proposées.
+
+La connexion au **site avec Google ou Discord**, lorsqu’elle est proposée, ouvre le compte NXT5 et se gère dans **Paramètres → Connexions associées**. Elle ne réalise ni la liaison personnelle du bot ni la connexion d’un serveur. Se connecter au compte NXT5 existant avant d’associer un service évite de créer un second compte ; aucune fusion automatique par adresse e-mail n’est promise. `/nxt compte delier` retire la liaison personnelle du bot en conservant le compte et les connexions au site.
+
+Le soutien Ko-fi reste facultatif et ne débloque aucun accès exclusif. Les abonnements ne sont pas encore lancés ; l’utilisation du bot dépend des droits et de sa configuration. Ces précisions figurent dans le parcours responsable de l’aide.
+
 La liaison d’un **serveur à une équipe** et celle d’un **compte personnel** sont distinctes. Après avoir invité le bot sur le serveur :
 
 1. Chaque personne, **y compris le responsable qui installe le bot**, lance `/nxt compte lier`, ouvre son lien privé, se connecte sur NXT5 et confirme son compte. Elle revient dans Discord, vérifie les deux comptes affichés et confirme la liaison. Le lien expire après dix minutes et n’accorde aucune appartenance à une équipe.
@@ -15,6 +21,8 @@ La liaison d’un **serveur à une équipe** et celle d’un **compte personnel*
 5. Chaque consultation, bouton et confirmation retrouve les droits actuels du compte NXT5 et les rôles Discord fournis par l’interaction. Un changement d’équipe active ne détourne pas une confirmation : celle-ci conserve l’équipe de son aperçu. Si le rôle Discord requis est retiré avant une confirmation, celle-ci est refusée.
 
 Un compte Discord ne peut être lié qu’à un compte NXT5 et réciproquement. Délier le compte révoque les choix personnels et les formulaires/confirmations en attente sans supprimer le compte NXT5, ses équipes ou son historique métier.
+
+Cette actualisation conserve les six rubriques et les cinquante commandes du catalogue. Les nouveaux textes sont livrés avec les fonctions du site ; ils ne nécessitent pas de réenregistrement de commandes Discord.
 
 | Accès du catalogue | Contrôle effectif |
 | --- | --- |

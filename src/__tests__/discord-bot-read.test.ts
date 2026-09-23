@@ -68,6 +68,16 @@ async function report(n: number, opts: any = {}) {
 }
 
 describe('Discord read commands · scoped queries and truthful aggregates', () => {
+  it('guides a team with no games to the existing importer without publishing anything', async () => {
+    const payload = await read('derniere');
+    expect(payload.embeds[0].description).toContain('Games → Importer une game');
+    expect(payload.embeds[0].description).toContain('cinq profils joueurs distincts');
+    expect(payload.components[0].components[0].url).toContain('/games');
+    expect(payload.flags).toBe(64);
+    expect(state.request).not.toHaveBeenCalled();
+    expect(await rows('select * from discord_publications')).toHaveLength(0);
+  });
+
   it('returns null only for unknown commands and validates UUIDs before looking up games', async () => {
     state.sql.mockClear();
     expect(await read('unknown')).toBeNull();

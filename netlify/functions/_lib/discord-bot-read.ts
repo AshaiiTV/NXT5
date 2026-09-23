@@ -196,7 +196,7 @@ async function gameCard(ctx: BotContext, match: Row) {
 async function games(ctx: BotContext, command: string, options: Row) {
   if (command === 'derniere') {
     const latest = await sql(`select m.id from matches m where m.team_id=$1 order by ${MATCH_TIME} desc,m.id desc limit 1`, [ctx.teamId]);
-    return latest[0] ? gameCard(ctx, await singleMatch(ctx, latest[0].id)) : message(ctx, 'Dernière game', 'Aucune game importée pour cette équipe.', [], '/games');
+    return latest[0] ? gameCard(ctx, await singleMatch(ctx, latest[0].id)) : message(ctx, 'Dernière game', 'Aucune game importée pour cette équipe. Sur le site, Games → Importer une game permet de télécharger NXT5 Importer pour Windows ou Mac, puis de charger le JSON. Le capitaine ou le staff autorisé peut réaliser cet import après avoir préparé cinq profils joueurs distincts.', [], '/games');
   }
   if (command === 'game voir') return gameCard(ctx, await singleMatch(ctx, options.game));
   if (command === 'game comparer') {

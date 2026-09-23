@@ -5,30 +5,10 @@ import { apiFetch } from "../../api/client.js";
 import { isSafeInternalPath } from "../../app/routing.js";
 import { cx } from "../../app/helpers.js";
 
-const ROUTE_SUGGESTIONS = [
-  { matches: ["/equipes", "/gestion-equipe"], prompts: ["Comment ajouter un joueur ?", "Comment organiser la Main Team et les Subs ?", "Où modifier les accès de l'équipe ?"] },
-  { matches: ["/games", "/integration", "/statistiques"], prompts: ["Comment lire les statistiques de cette game ?", "Comment importer une game ?", "Comment analyser un groupe de games ?"] },
-  { matches: ["/rapports"], prompts: ["Comment créer une review ?", "Comment lier plusieurs games à une review ?", "Où retrouver mes anciennes reviews ?"] },
-  { matches: ["/tendances"], prompts: ["Comment filtrer les tendances ?", "Comment interpréter les indicateurs d'équipe ?", "Comment ouvrir une game source ?"] },
-  { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une session d'équipe ?"] },
-  { matches: ["/draft/pool"], prompts: ["Comment modifier le pool d'un joueur ?", "Comment classer un champion par tier ?", "À quoi servent les statuts des picks ?"] },
-  { matches: ["/draft/compositions"], prompts: ["Comment créer une composition ?", "Comment utiliser les tiers du Champion Pool ?", "Comment préparer nos drafts ?"] },
-  { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment choisir le profil observé ?", "Comment lire l'historique d'un joueur ?", "Où retrouver ses champions et matchups ?"] },
-];
-
-const DEFAULT_SUGGESTIONS = [
-  "Comment utiliser cette page ?",
-  "Quelle est la prochaine étape conseillée ?",
-  "Où trouver la fonctionnalité que je cherche ?",
-];
+import { suggestionsForRoute } from "./route-suggestions.js";
 
 function messageId() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function suggestionsForRoute(path = "") {
-  const route = ROUTE_SUGGESTIONS.find((item) => item.matches.some((candidate) => item.prefix ? path === candidate || path.startsWith(`${candidate}/`) : path === candidate));
-  return route?.prompts || DEFAULT_SUGGESTIONS;
 }
 
 function responseBody(payload) {
@@ -93,7 +73,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   const requestRef = useRef(null);
   const requestVersionRef = useRef(0);
   const onCloseRef = useRef(onClose);
-  const routeSuggestions = useMemo(() => suggestionsForRoute(route?.path || ""), [route?.path]);
+  const routeSuggestions = useMemo(() => suggestionsForRoute(route), [route?.path, route?.search]);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);

@@ -77,7 +77,8 @@ function knowledgeContext(matches: AssistantKnowledgeMatch[]) {
     path: entry.path,
     summary: entry.summary,
     steps: entry.steps,
-    suggestions: entry.suggestions
+    suggestions: entry.suggestions,
+    faq: (entry.faq || []).map(({ question, answer }) => ({ question, answer }))
   }));
 }
 
