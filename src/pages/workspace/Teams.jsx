@@ -458,7 +458,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   return <div className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une team"} subtitle={hasTeams && !setupOnly ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."}>{hasTeams && !setupOnly && <>
       {canManageTeam && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
-      <Button type="button" variant="ghost" icon={teamSetupOpen ? X : UserPlus} onClick={() => { if (teamSetupOpen) { setTeamSetupOpen(false); openAppPath("/equipes"); } else setTeamSetupOpen(true); }}>{teamSetupOpen ? "Fermer les formulaires" : "Créer ou rejoindre une équipe"}</Button>
+      {teamSetupOpen && <Button type="button" variant="ghost" icon={X} onClick={() => { setTeamSetupOpen(false); openAppPath("/equipes"); }}>Fermer les formulaires</Button>}
     </>}</PageHeader>
     {!hasTeams && <Surface className="mb-5 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

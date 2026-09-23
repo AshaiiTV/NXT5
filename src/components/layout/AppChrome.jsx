@@ -162,7 +162,7 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
           <div className="nxt5-team-menu-list">{teams.map((team) => <button key={team.id} type="button" onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); teamTriggerRef.current?.focus(); }} aria-pressed={currentTeam?.id === team.id} className={cx("nxt5-team-option", currentTeam?.id === team.id && "is-selected")}>
             <span aria-hidden="true"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /></span><span className="nxt5-team-option-copy"><strong>{team.name}</strong><span>{team.tag || "TEAM"} · {team.region || "EUW"}</span></span>{currentTeam?.id === team.id && <Check size={16} aria-hidden="true" />}
           </button>)}</div>
-          <button type="button" onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="nxt5-team-create"><Plus size={17} aria-hidden="true" />Créer une équipe</button>
+          <button type="button" onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="nxt5-team-create"><Plus size={17} aria-hidden="true" />Créer ou rejoindre une équipe</button>
         </div>}
       </div>
       {currentTeam && active !== "team-management" && <button type="button" onClick={onManageTeam} aria-label="Gestion de l’équipe" title="Gestion de l’équipe" className="nxt5-chrome-icon-button"><Settings size={18} aria-hidden="true" /></button>}

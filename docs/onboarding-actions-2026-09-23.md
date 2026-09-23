@@ -4,6 +4,7 @@ Après création d’une équipe vide, le bouton « Continuer : Roster » renvoy
 
 ## Comportement corrigé
 
+- Quand une équipe existe, créer ou rejoindre une autre équipe reste accessible dans le menu du sélecteur d’équipe ; cette action ne figure plus dans l’en-tête du roster. Sans équipe, les formulaires restent affichés directement.
 - Roster ouvre le formulaire à `/gestion-equipe?section=roster`, également accessible depuis le roster vide. Le premier champ reçoit le focus ; après ajout, le poste titulaire manquant suivant est présélectionné.
 - Première game ouvre l’import quand cinq profils joueurs distincts sont disponibles, sinon l’ajout de profils. Une game déjà importée se consulte depuis cette étape.
 - Tendances propose l’import jusqu’à trois games, puis l’analyse. Review ouvre directement la rédaction sur la dernière game, ou la review déjà existante.
@@ -23,4 +24,4 @@ Les API de production, Riot et la persistance réelle ne sont pas couverts par c
 
 ## Référence graphique
 
-La [charte canonique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) a été actualisée en version 1.38 dans le dépôt principal de l’espace de travail. Conformément à la consigne de source unique, ce checkout retire son ancienne copie Markdown, son PDF et son générateur de PDF ; `AGENTS.md` et les anciens rapports pointent vers la source canonique. Aucun symbole de marque incomplet n’est réintroduit.
+La [charte canonique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) a été actualisée en version 1.39 dans le dépôt principal de l’espace de travail. Conformément à la consigne de source unique, ce checkout retire son ancienne copie Markdown, son PDF et son générateur de PDF ; `AGENTS.md` et les anciens rapports pointent vers la source canonique. Aucun symbole de marque incomplet n’est réintroduit.
