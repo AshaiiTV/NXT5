@@ -411,25 +411,6 @@ textarea.nxt5-control:focus {
   flex: 0 0 clamp(0.96rem, 1.35vw, 1.1rem);
 }
 
-.nxt5-planning-staff-unit svg {
-  width: 0.54rem;
-  height: 0.54rem;
-}
-
-.nxt5-planning-staff-icon {
-  display: inline-flex;
-  width: 0.78rem;
-  height: 0.78rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.28rem;
-  border: 1px solid rgba(207, 250, 254, 0.28);
-  background: rgba(8, 17, 31, 0.42);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 0 6px rgba(217, 70, 239, 0.12);
-}
-
 .nxt5-planning-day-base {
   background-color: rgba(8, 17, 31, 0.92);
 }
