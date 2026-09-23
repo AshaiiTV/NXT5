@@ -20,7 +20,7 @@ Pour un environnement de recette, utiliser une origine HTTPS fixe et des identif
 
 ### Mise en service prioritaire — 23 septembre 2026
 
-Le projet Google Cloud **NXT5**, identifiant `nxt5-509508`, a été créé. [Reprendre la configuration Google Auth Platform](https://console.cloud.google.com/auth/overview/create?project=nxt5-509508&supportedpurview=project). Le nom NXT5 est renseigné dans le formulaire initial ; la sélection du contact d’assistance public attend le choix du propriétaire. Aucun client OAuth ni secret n’a encore été créé, et Google reste désactivé sur le site.
+Le projet Google Cloud **NXT5**, identifiant `nxt5-509508`, a été créé. [Ouvrir Google Auth Platform](https://console.cloud.google.com/auth/overview?project=nxt5-509508&supportedpurview=project). La configuration initiale NXT5 est enregistrée : audience externe, contact d’assistance confirmé par le propriétaire et règlement Google accepté avec son autorisation explicite. Le formulaire du client **NXT5 Web — production** est préparé avec l’URI de retour ci-dessous ; sa création et le transfert du secret vers Netlify attendent l’accord demandé au propriétaire. Aucun client OAuth ni secret n’a encore été créé, et Google reste désactivé sur le site.
 
 Valeurs à enregistrer pour le client Web :
 
@@ -38,6 +38,8 @@ Valeurs à enregistrer pour le client Web :
 Google est la première connexion à mettre en service. Apple et Discord restent désactivés ; la demande Riot est déjà envoyée et attend sa réponse. La prévisualisation de la PR 60 est publiée, mais le code d’authentification sociale n’est pas encore en production. La migration `social-auth-20260923-v1` doit être confirmée sur la base cible avant l’activation.
 
 État de déploiement relevé en lecture seule le 23 septembre : production sur `9e30f58`, prévisualisation 60 sur `0afb95a`, variables `GOOGLE_AUTH_*` absentes, migration sociale et table `social_identities` absentes. La prévisualisation hérite actuellement du même `DATABASE_URL` que la production via le contexte `all` : elle ne constitue donc pas un environnement de recette isolé. Prévoir une base distincte pour des essais OAuth isolés ; toute migration sur la connexion actuelle affecterait la production.
+
+La branche sociale intègre désormais les corrections de sécurité de `9e30f58` : atomicité de la récupération, version de compte `xmin`, revalidation des sessions et protection des journaux. TypeScript et la construction Vite réussissent après composition ; aucune nouvelle exécution locale des tests n’a été lancée pour cette intégration. La vérification Netlify de la PR reste à consulter avant fusion et activation.
 
 ### Paramètres techniques
 

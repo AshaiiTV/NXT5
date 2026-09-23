@@ -179,7 +179,14 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
   };
 }
 
-export async function createSession({ userId, context, request, remember = true, socialIdentity, expectedPasswordHash }: { userId: string; context: Context; request: Request; remember?: boolean; expectedPasswordHash?: string; socialIdentity?: { provider: string; subject: string; revision: string | number } }): Promise<void> {
+export async function createSession({ userId, context, request, remember = true, expectedPasswordHash, socialIdentity }: {
+  userId: string;
+  context: Context;
+  request: Request;
+  remember?: boolean;
+  expectedPasswordHash?: string;
+  socialIdentity?: { provider: string; subject: string; revision: string | number };
+}): Promise<void> {
   await ensureSessionSchema();
   await purgeExpiredAuthData();
   const rawToken = crypto.randomBytes(48).toString('base64url');
@@ -193,33 +200,47 @@ export async function createSession({ userId, context, request, remember = true,
     .slice(0, 64);
 
   if (socialIdentity) {
-    const inserted = await sql`
-      with authorized_user as materialized (
-        select id from users
+    // Social sessions participate in the same account-version protocol as
+    // password sessions. A concurrent credential change must observe the new
+    // session or reject its stale xmin; row locking alone does not advance xmin.
+    const created = await sql`
+      with authenticated_account as (
+        update users set social_link_revision = social_link_revision
         where id = ${userId} and social_link_revision = ${socialIdentity.revision}
-        for update
+        returning id
       )
       insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
-      select authorized_user.id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
-      from authorized_user join social_identities on social_identities.user_id = authorized_user.id
+      select authenticated_account.id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
+      from authenticated_account join social_identities on social_identities.user_id = authenticated_account.id
       where social_identities.provider = ${socialIdentity.provider} and social_identities.subject = ${socialIdentity.subject}
       returning id
     `;
-    if (!inserted.length) throw Object.assign(new Error('Association modifiée. Reconnecte-toi à NXT5.'), { status: 401, code: 'SOCIAL_ACCOUNT_CHANGED' });
-  } else if (expectedPasswordHash) {
-    const inserted = await sql`
-      with authorized_user as materialized (
-        select id from users where id = ${userId} and password_hash = ${expectedPasswordHash} for update
+    if (!created[0]) throw Object.assign(new Error('Association modifiée. Reconnecte-toi à NXT5.'), { status: 401, code: 'SOCIAL_ACCOUNT_CHANGED' });
+  } else if (expectedPasswordHash !== undefined) {
+    // Recheck the verified credential atomically with session issuance. Updating
+    // the account also advances xmin: a concurrent credential change with an
+    // older snapshot must retry rather than miss this session during revocation.
+    const created = await sql`
+      with authenticated_account as (
+        update users
+        set password_hash = password_hash
+        where id = ${userId} and password_hash = ${expectedPasswordHash}
+        returning id
       )
       insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
-      select id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip} from authorized_user
+      select id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
+      from authenticated_account
       returning id
     `;
-    if (!inserted.length) throw Object.assign(new Error('Tes identifiants ont changé. Reconnecte-toi.'), { status: 401, code: 'ACCOUNT_CHANGED' });
-  } else await sql`
-    insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
-    values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
-  `;
+    if (!created[0]) {
+      throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
+    }
+  } else {
+    await sql`
+      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+      values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
+    `;
+  }
 
   context.cookies.set({
     name: COOKIE_NAME,

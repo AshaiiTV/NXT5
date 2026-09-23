@@ -18,6 +18,12 @@ async function mount(element) { let renderer; await act(async () => { renderer =
 function text(node) { return typeof node === "string" ? node : (node.children || []).map(text).join(""); }
 function button(renderer, label) { return renderer.root.findAllByType("button").find((item) => text(item) === label); }
 async function click(renderer, label) { const target = button(renderer, label); expect(target, label).toBeTruthy(); expect(target.props.disabled).not.toBe(true); await act(async () => target.props.onClick()); }
+async function clickOverviewAction(renderer) {
+  const overview = renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" });
+  const action = overview.findAllByType("button")[0];
+  expect(action).toBeDefined();
+  await act(async () => action.props.onClick());
+}
 async function choose(renderer, label, value) { const select = renderer.root.findAllByType("label").find((item) => text(item).startsWith(label)).findByType("select"); await act(async () => select.props.onChange({ target: { value } })); }
 function posts() { return apiFetch.mock.calls.filter(([, options]) => options?.method === "POST").map(([path, options]) => [path, JSON.parse(options.body)]); }
 function installationTabs(renderer) { return renderer.root.findAllByProps({ role: "tab" }); }
@@ -52,7 +58,7 @@ describe("Discord settings and permissions", () => {
     expect(text(renderer.root)).toContain("Seuls le propriétaire et les capitaines");
     expect(button(renderer, "Délier cette équipe")).toBeUndefined();
     expect(button(renderer, "Mettre en pause")).toBeUndefined();
-    expect(button(renderer, "Enregistrer les destinations")).toBeUndefined();
+    expect(button(renderer, "Enregistrer les salons")).toBeUndefined();
     expect(button(renderer, "Ajouter ce salon")).toBeUndefined();
     expect(renderer.root.findAllByType("label").some((label) => text(label).startsWith("Choisir un salon du serveur"))).toBe(false);
     expect(renderer.root.findAllByType("fieldset").some((item) => item.props.disabled)).toBe(true);
@@ -62,10 +68,10 @@ describe("Discord settings and permissions", () => {
   it("lets a team skip the invitation when the shared server already has the bot", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { configured: true, enabled: true, connection: null, installUrl: "https://discord.com/oauth2/authorize?client_id=123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="second-team" teamName="Équipe B" canManage />);
-    expect(text(openPanel(renderer)[0])).toContain("Invite NXT5 une seule fois sur le serveur");
-    expect(text(openPanel(renderer)[0])).toContain("Si le bot est déjà présent, passe directement à Relier");
-    await click(renderer, "Passer à Relier");
-    expect(installationTabs(renderer)[1].props["aria-selected"]).toBe(true);
+    expect(text(openPanel(renderer)[0])).toContain("Invite NXT5 sur ton serveur Discord");
+    expect(text(openPanel(renderer)[0])).toContain("Si le bot y est déjà présent, passe directement au code de liaison");
+    expect(button(renderer, "Créer le code de liaison")).toBeDefined();
+    expect(installationTabs(renderer)[0].props["aria-selected"]).toBe(true);
     expect(text(openPanel(renderer)[0])).toContain("Chaque équipe crée son propre code");
     expect(posts()).toEqual([]);
   });
@@ -78,7 +84,8 @@ describe("Discord settings and permissions", () => {
       return path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] };
     });
     const renderer = await mount(<DiscordSettings teamId="first-team" teamName="Équipe A" canManage />);
-    expect(text(openPanel(renderer)[0])).toContain("Ces destinations et leurs règles s’appliquent uniquement à cette équipe");
+    expect(text(renderer.root)).toContain("Les réglages et les rôles de cette équipe ne changent pas ceux des autres équipes");
+    await click(renderer, "Aide et réglages");
     await click(renderer, "Délier cette équipe");
     expect(posts()).toEqual([]);
     expect(text(renderer.root)).toContain("Le bot reste sur le serveur et les autres équipes gardent leurs liaisons, leurs réglages et leurs envois");
@@ -109,7 +116,7 @@ describe("Discord settings and permissions", () => {
     expect(denied.props.disabled).toBe(true);
     await choose(renderer, "Choisir un salon du serveur", "channel-2");
     await click(renderer, "Ajouter ce salon");
-    const form = renderer.root.findByType("form");
+    const form = renderer.root.findAllByType("form").find((item) => text(item).includes("Enregistrer les salons"));
     await act(async () => form.props.onSubmit({ preventDefault() {} }));
     const request = posts().find(([path]) => path === "team-discord-routes");
     expect(request[1].routes[1]).toEqual({ channelId: "channel-2", categoryIds: [], includeHints: false, mentionRoleId: null, enabled: true });
@@ -149,7 +156,7 @@ describe("Discord Administrator authorization", () => {
   it("offers managers a server-locked authorization link in invitation and destinations without a mutation handler", async () => {
     serve();
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    for (const step of [2, 0]) {
+    for (const step of [1, 0]) {
       await openStep(renderer, step);
       const panel = openPanel(renderer)[0];
       const [link] = updateLinks(panel);
@@ -413,12 +420,34 @@ describe("Discord dashboard onboarding", () => {
   const installUrl = "https://discord.com/oauth2/authorize?client_id=123";
   const receipt = (requestId, overrides = {}) => ({ requestId, status: "succeeded", routeId: route.id, channelId: route.channelId, guildId: connection.connection.guildId, configVersion: 3, messageUrl: "https://discord.com/channels/1/2/3", ...overrides });
 
+  it("starts with a compact overview and opens activity, command access and settings on demand", async () => {
+    const renderer = await mount(<DiscordSettings teamId="team" teamName="Équipe A" canManage />);
+    expect(renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" })).toBeDefined();
+    expect(renderer.root.findByProps({ "aria-label": "Configuration du bot" }).props.hidden).toBe(true);
+    expect(text(renderer.root)).toContain("Serveur : Team Discord");
+    expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-deliveries"))).toBe(false);
+    expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-role-access"))).toBe(false);
+
+    await click(renderer, "Activité");
+    expect(renderer.root.findByProps({ "aria-label": "Historique Discord" })).toBeDefined();
+    expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-deliveries"))).toBe(true);
+    await click(renderer, "Retour à l’aperçu");
+    await click(renderer, "Accès aux commandes");
+    expect(renderer.root.findByProps({ "aria-label": "Accès aux commandes de l’équipe" })).toBeDefined();
+    expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-role-access"))).toBe(true);
+    await click(renderer, "Retour à l’aperçu");
+    await click(renderer, "Aide et réglages");
+    expect(button(renderer, "Délier cette équipe")).toBeDefined();
+    expect(posts()).toEqual([]);
+  });
+
   it("opens only the selected named step without completing it or sending requests", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { configured: true, enabled: true, connection: null, installUrl } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    expect(installationTabs(renderer)).toHaveLength(4);
+    expect(installationTabs(renderer)).toHaveLength(3);
+    expect(installationTabs(renderer).map((tab) => tab.props["aria-label"])).toEqual(["Connecter le serveur", "Choisir les salons", "Tester et activer"]);
     expect(installationTabs(renderer)[0].props["aria-selected"]).toBe(true);
-    for (const index of [1, 2, 3, 0]) {
+    for (const index of [1, 2, 0]) {
       await openStep(renderer, index);
       const selected = installationTabs(renderer)[index];
       expect(openPanel(renderer)).toHaveLength(1);
@@ -436,14 +465,13 @@ describe("Discord dashboard onboarding", () => {
     const code = { code: "KEEP-THIS-CODE", expiresAt: new Date(Date.now() + 600000).toISOString() };
     apiFetch.mockImplementation(async (path, options) => options?.method === "POST" ? code : path.startsWith("team-discord-connection") ? { configured: true, enabled: true, connection: null, installUrl } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    await openStep(renderer, 1);
     await click(renderer, "Créer le code de liaison");
-    await openStep(renderer, 0);
-    await openStep(renderer, 3);
+    await openStep(renderer, 2);
     await openStep(renderer, 1);
+    await openStep(renderer, 0);
     await click(renderer, "Actualiser Discord");
     expect(text(openPanel(renderer)[0])).toContain("/nxt connecter code:KEEP-THIS-CODE");
-    expect(installationTabs(renderer)[1].props["aria-selected"]).toBe(true);
+    expect(installationTabs(renderer)[0].props["aria-selected"]).toBe(true);
     expect(posts()).toEqual([["team-discord-connection", { teamId: "team", action: "create-link" }]]);
   });
 
@@ -452,7 +480,7 @@ describe("Discord dashboard onboarding", () => {
     const renderer = await mount(<DiscordSettings teamId="team" teamName="Équipe A" canManage />);
     const invite = renderer.root.findAllByType("a").find((node) => node.props.href === installUrl);
     await act(async () => invite.props.onClick());
-    expect(text(renderer.root)).toContain("Invitation ouverte · à confirmer");
+    expect(text(renderer.root)).toContain("Invitation ouverte. Termine l’autorisation dans Discord");
     expect(text(renderer.root)).toContain("aucun serveur relié");
     expect(text(renderer.root)).toContain("Équipe A");
     expect(posts()).toEqual([]);
@@ -481,17 +509,20 @@ describe("Discord dashboard onboarding", () => {
 
   it("preserves destination edits across steps and connection refreshes", async () => {
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    expect(installationTabs(renderer)[2].props["aria-selected"]).toBe(true);
+    expect(renderer.root.findByProps({ "aria-label": "Configuration du bot" }).props.hidden).toBe(true);
+    await clickOverviewAction(renderer);
+    expect(installationTabs(renderer)[1].props["aria-selected"]).toBe(true);
     await choose(renderer, "Salon Discord · destination 1", "channel-2");
-    await openStep(renderer, 3);
-    expect(text(openPanel(renderer)[0])).toContain("Enregistre tes destinations");
+    await openStep(renderer, 2);
+    expect(text(openPanel(renderer)[0])).toContain("Enregistre tes salons");
     await openStep(renderer, 0);
     await click(renderer, "Actualiser Discord");
     expect(installationTabs(renderer)[0].props["aria-selected"]).toBe(true);
-    await openStep(renderer, 2);
+    await openStep(renderer, 1);
     const select = renderer.root.findAllByType("label").find((node) => text(node).startsWith("Salon Discord · destination 1")).findByType("select");
     expect(select.props.value).toBe("channel-2");
     expect(text(renderer.root)).toContain("Modifications non enregistrées.");
+    await openStep(renderer, 2);
     expect(button(renderer, "Envoyer le message de test").props.disabled).toBe(true);
     expect(posts()).toEqual([]);
   });
@@ -558,18 +589,18 @@ describe("Discord dashboard onboarding", () => {
       return path.startsWith("team-discord-connection") ? paused : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] };
     });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    await openStep(renderer, 3);
+    await openStep(renderer, 2);
     const send = button(renderer, "Envoyer le message de test").props.onClick;
     await act(async () => { void send(); void send(); });
     expect(posts()).toHaveLength(1);
     const signal = apiFetch.mock.calls.find(([path, options]) => path === "team-discord-test" && options?.method === "POST")[1].signal;
+    await openStep(renderer, 1);
     await openStep(renderer, 2);
-    await openStep(renderer, 3);
     expect(signal.aborted).toBe(false);
     expect(button(renderer, "Vérification du test…").props.disabled).toBe(true);
     await act(async () => rejectTest(new Error("Réponse perdue.")));
-    await openStep(renderer, 1);
-    await openStep(renderer, 3);
+    await openStep(renderer, 0);
+    await openStep(renderer, 2);
     await click(renderer, "Vérifier ce même test");
     expect(posts()).toHaveLength(2);
     expect(posts()[0][1].requestId).toBe(posts()[1][1].requestId);
@@ -665,7 +696,7 @@ describe("Discord dashboard onboarding", () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? existing : path.startsWith("team-discord-routes") ? { routes: [route], ...snapshot } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
     expect(button(renderer, "Reprendre les envois")).toBeUndefined();
-    expect(text(renderer.root)).toContain("La connexion et les destinations ont changé pendant leur chargement");
+    expect(text(renderer.root)).toContain("La connexion et les salons ont changé pendant leur chargement");
     expect(posts()).toEqual([]);
   });
 
@@ -680,6 +711,8 @@ describe("Discord dashboard onboarding", () => {
       return path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] };
     });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await clickOverviewAction(renderer);
+    await openStep(renderer, 2);
     await click(renderer, "Reprendre les envois");
     refreshing = true;
     await click(renderer, "Actualiser Discord");
@@ -731,10 +764,12 @@ describe("Discord dashboard onboarding", () => {
 describe("Discord channel picker", () => {
   const picker = (renderer) => renderer.root.findAllByType("label").find((label) => text(label).startsWith("Choisir un salon du serveur")).findByType("select");
   const routeFields = (renderer) => renderer.root.findAllByProps({ className: "discord-route" }).filter((node) => node.type === "fieldset");
+  const openSalons = clickOverviewAction;
 
   it("shows the server selector immediately and only saves an explicitly added draft channel", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await openSalons(renderer);
     expect(picker(renderer).props.value).toBe("");
     expect(picker(renderer).props.required).not.toBe(true);
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
@@ -747,12 +782,13 @@ describe("Discord channel picker", () => {
     expect(routeFields(renderer)).toHaveLength(1);
     expect(routeFields(renderer)[0].findAllByType("select")[0].props.value).toBe("channel-2");
     expect(posts()).toEqual([]);
-    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    await act(async () => renderer.root.findAllByType("form").find((item) => text(item).includes("Enregistrer les salons")).props.onSubmit({ preventDefault() {} }));
     expect(posts()).toEqual([["team-discord-routes", { teamId: "team", routes: [{ channelId: "channel-2", categoryIds: [], includeHints: false, mentionRoleId: null, enabled: true }] }]]);
   });
 
   it("marks denied and already added channels and prevents duplicates even with repeated clicks", async () => {
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await openSalons(renderer);
     const options = picker(renderer).findAllByType("option");
     const added = options.find((option) => option.props.value === "channel-1");
     const denied = options.find((option) => option.props.value === "channel-denied");
@@ -778,8 +814,9 @@ describe("Discord channel picker", () => {
     const routes = channels.slice(0, 10).map((channel, index) => ({ ...route, id: `route-${index}`, channelId: channel.id }));
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { ...connection, channels } : path.startsWith("team-discord-routes") ? { routes, configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await openSalons(renderer);
     expect(picker(renderer).props.disabled).toBe(true);
-    expect(text(renderer.root)).toContain("Limite atteinte : dix destinations par équipe");
+    expect(text(renderer.root)).toContain("Limite atteinte : dix salons par équipe");
     await choose(renderer, "Choisir un salon du serveur", "channel-10");
     await act(async () => button(renderer, "Ajouter ce salon").props.onClick());
     expect(routeFields(renderer)).toHaveLength(10);
@@ -797,19 +834,20 @@ describe("Discord channel picker", () => {
       return path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] };
     });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await openSalons(renderer);
     await choose(renderer, "Choisir un salon du serveur", "channel-2");
     await click(renderer, "Ajouter ce salon");
+    await openStep(renderer, 0);
     await openStep(renderer, 1);
-    await openStep(renderer, 2);
     refreshing = true;
     await click(renderer, "Actualiser les salons");
     expect(text(openPanel(renderer)[0])).toContain("Actualisation des salons du serveur");
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
-    expect(button(renderer, "Enregistrer les destinations").props.disabled).toBe(true);
+    expect(button(renderer, "Enregistrer les salons").props.disabled).toBe(true);
     expect(routeFields(renderer)[0].findAllByType("select")[0].props.value).toBe("channel-2");
     await act(async () => resolveChannels(connection));
     expect(routeFields(renderer)[0].findAllByType("select")[0].props.value).toBe("channel-2");
-    expect(button(renderer, "Enregistrer les destinations").props.disabled).toBe(false);
+    expect(button(renderer, "Enregistrer les salons").props.disabled).toBe(false);
     expect(posts()).toEqual([]);
   });
 
@@ -822,6 +860,7 @@ describe("Discord channel picker", () => {
     let recovered = false;
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? recovered ? connection : { ...connection, ...metadata } : path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    await openSalons(renderer);
     const panel = openPanel(renderer)[0];
     expect(text(panel)).toContain(explanation);
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
@@ -837,8 +876,10 @@ describe("Discord channel picker", () => {
 
   it("resets a pending channel selection when switching teams on the same server", async () => {
     const renderer = await mount(<DiscordSettings teamId="first-team" canManage />);
+    await openSalons(renderer);
     await choose(renderer, "Choisir un salon du serveur", "channel-2");
     await act(async () => renderer.update(<DiscordSettings teamId="second-team" canManage />));
+    await openSalons(renderer);
     expect(picker(renderer).props.value).toBe("");
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
     expect(posts()).toEqual([]);

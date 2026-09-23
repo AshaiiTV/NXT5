@@ -9,6 +9,7 @@ import { usePlanningDraft } from "../../hooks/usePlanningDraft.js";
 import { COMP_ROLES, sortPlayersByRole, canStaffManage, isGameplayRole, isStaffRole, normalizeProfileRole } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Planning.css";
+import { DiscordPlanningEvents } from "../../components/discord/DiscordWorkflows.jsx";
 
 function formatPlanningDate(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
@@ -340,8 +341,8 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedRole, staffPlanningPlayerId, visibleSlotEvents, weekDays]);
 
   if (!selectedTeamId) return <EmptyState icon={CalendarDays} title="Aucune équipe sélectionnée" text="Choisis une équipe pour configurer les disponibilités." />;
-  if (!players.length) return <EmptyState icon={Users} title="Aucun profil" text="Ajoute des joueurs ou du coaching staff pour construire le planning de team." />;
-  if (!linkedPlayer) return <EmptyState icon={Users} title="Aucun profil lié" text="Les joueurs doivent être liés à un compte pour renseigner leurs disponibilités. Le coaching staff utilise désormais une seule entrée partagée dans le planning." />;
+  if (!players.length) return <div className="space-y-4"><DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} /><EmptyState icon={Users} title="Aucun profil" text="Ajoute des joueurs ou du coaching staff pour construire le planning de team." /></div>;
+  if (!linkedPlayer) return <div className="space-y-4"><DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} /><EmptyState icon={Users} title="Aucun profil lié" text="Les joueurs doivent être liés à un compte pour renseigner leurs disponibilités. Le coaching staff utilise désormais une seule entrée partagée dans le planning." /></div>;
 
   return (
     <div className="nxt5-data-dense nxt5-planning-page min-w-0">
@@ -360,6 +361,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
           {staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} slots CS</Badge>}
         </div>
       </PageHeader>
+      <DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} />
       {eventMenu && <div ref={eventMenuRef} role="group" aria-label="Type de session" onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="fixed z-[80] w-[228px] overflow-hidden rounded-2xl border border-cyan-200/22 bg-[#050814]/98 p-2 text-white shadow-[0_18px_48px_rgba(0,0,0,.35)] ring-1 ring-white/10 backdrop-blur-xl" style={{ left: eventMenu.x, top: eventMenu.y }}>
         <div className="px-2 pb-2 pt-1">
           <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100/80">Choisir un type</p>

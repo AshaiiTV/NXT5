@@ -252,7 +252,11 @@ describe('recovery link issuance and compatibility', () => {
     };
     expect((await request()).status).toBe(200);
     expect(state.emails).not.toHaveBeenCalled();
-    expect(await rows('select * from password_reset_tokens where used_at is null')).toHaveLength(0);
+    // Stale issuance is a no-op. An older token can remain stored, but its
+    // recipient snapshot must not authorize recovery for the new address.
+    expect(await rows(`select reset.id from password_reset_tokens reset
+      join users on users.id = reset.user_id
+      where reset.used_at is null and lower(reset.email) = lower(users.email)`)).toHaveLength(0);
   });
 
   it('keeps legacy password reset atomic and usable before the social migration', async () => {

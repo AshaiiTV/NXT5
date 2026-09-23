@@ -2,6 +2,10 @@
 
 Outil de suivi LoL pour équipes et coachs.
 
+## Sécurité
+
+La [politique de sécurité](SECURITY.md) précise les versions maintenues, le signalement privé d’une vulnérabilité, les contrôles d’exploitation et la réponse aux incidents. Pour un signalement sensible, suivre la [page Contact](https://nxt5.org/contact) et joindre l’équipe en message privé.
+
 ## Stack
 
 - React + Vite
@@ -142,6 +146,12 @@ Voir [les changements 0.3.3](importer-app/CHANGELOG.md) et [la validation Electr
 
 Le front ne stocke aucune donnée métier en localStorage. Les données importantes passent par Neon. La clé Riot n'est jamais exposée côté navigateur.
 
+
+## Commandes du bot Discord
+
+Le bot dispose d’un catalogue de 50 chemins `/nxt`, avec `/nxt help` et `/nxt aide` pour le guide interactif, une liaison personnelle Discord–NXT5 et des commandes de consultation, planning, objectifs et reviews. Le [guide de développement et d’activation](docs/discord-bot-commandes.md) décrit les droits, les deux migrations, les rappels/bilans planifiés et l’ordre déploiement serveur → enregistrement du catalogue Discord. Les contrôles locaux n’attestent pas un enregistrement ou un envoi réel.
+
+Le responsable commence par `/nxt compte lier` avant `/nxt connecter` et génère le code avec ce même compte NXT5. Les commandes `connecter`, `statut`, `pause` et `reprendre` exigent d’être propriétaire ou capitaine de l’équipe visée et de disposer de **Gérer le serveur** ou **Administrateur** dans Discord. Partager un serveur Discord ne donne aucun accès aux autres équipes NXT5.
 
 ## Connexion à la base de données
 

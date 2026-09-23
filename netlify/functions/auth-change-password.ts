@@ -25,7 +25,7 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Le nouveau mot de passe doit être différent de l’ancien.'), { status: 400 });
     }
 
-    const rows = await sql`select password_hash from users where id = ${user.id} limit 1`;
+    const rows = await sql`select password_hash, xmin::text as account_version from users where id = ${user.id} limit 1`;
     const passwordHash = rows[0]?.password_hash;
     const passwordOk = passwordHash ? await verifyPassword(currentPassword, passwordHash) : false;
     if (!passwordOk) {
@@ -35,43 +35,46 @@ export default async function handler(request: Request, context: Context): Promi
     const nextPasswordHash = await hashPassword(nextPassword);
     const currentToken = readSessionCookie(context);
     const currentTokenHash = currentToken ? sha256(currentToken) : '';
-    const updated = await sql`
-      with authorized_user as materialized (
-        select id from users
-        where id = ${user.id} and password_hash = ${passwordHash}
-        for update
-      ), authorized_session as materialized (
-        select sessions.user_id from sessions
-        join authorized_user on authorized_user.id = sessions.user_id
-        where sessions.token_hash = ${currentTokenHash}
-          and sessions.revoked_at is null and sessions.expires_at > clock_timestamp()
-        for update of sessions
+    // Credentials, recovery links, sessions and audit history commit together.
+    // Reject reauthentication made stale by another account/recovery change.
+    const changed = await sql`
+      with changed_account as (
+        with authorized_user as materialized (
+          select id from users
+          where id = ${user.id} and password_hash = ${passwordHash}
+            and xmin = ${rows[0].account_version}::xid
+          for update
+        ), authorized_session as materialized (
+          select sessions.user_id from sessions
+          join authorized_user on authorized_user.id = sessions.user_id
+          where sessions.token_hash = ${currentTokenHash}
+            and sessions.revoked_at is null and sessions.expires_at > clock_timestamp()
+          for update of sessions
+        )
+        update users
+        set password_hash = ${nextPasswordHash}, updated_at = now()
+        where id in (select user_id from authorized_session)
+          and password_hash = ${passwordHash}
+          and xmin = ${rows[0].account_version}::xid
+        returning id
+      ), invalidated_tokens as (
+        update password_reset_tokens set used_at = now()
+        where user_id in (select id from changed_account) and used_at is null
+      ), revoked_sessions as (
+        update sessions set revoked_at = now()
+        where user_id in (select id from changed_account)
+          and revoked_at is null and token_hash <> ${currentTokenHash}
+      ), logged_change as (
+        insert into audit_logs (user_id, action, entity_type, metadata)
+        select id, 'auth.password_change', 'user', '{}'::jsonb from changed_account
       )
-      update users
-      set password_hash = ${nextPasswordHash},
-          updated_at = now()
-      from authorized_session
-      where users.id = authorized_session.user_id
-      returning users.id
+      select id from changed_account
     `;
-    if (!updated.length) {
-      throw Object.assign(new Error('Ton compte a changé. Reconnecte-toi avant de modifier ton mot de passe.'), {
+    if (!changed[0]) {
+      throw Object.assign(new Error('Ton compte a changé pendant la modification. Recharge la page puis réessaie.'), {
         status: 409, code: 'ACCOUNT_CHANGED'
       });
     }
-
-    await sql`
-      update sessions
-      set revoked_at = now()
-      where user_id = ${user.id}
-        and revoked_at is null
-        and token_hash <> ${currentTokenHash}
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, metadata)
-      values (${user.id}, 'auth.password_change', 'user', ${JSON.stringify({})}::jsonb)
-    `;
 
     return json({ ok: true });
   } catch (err) {
