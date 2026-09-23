@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Activity, ArrowLeft, BarChart3, Bot, ClipboardList, FileCheck2, LayoutDashboard, LogOut, Mail, Plug, ShoppingBag, Tag, Users } from "lucide-react";
+import { Activity, ArrowLeft, BarChart3, Bot, ClipboardList, FileCheck2, FileImage, LayoutDashboard, LogOut, Mail, Plug, ShoppingBag, Tag, Users } from "lucide-react";
 import { ADMIN_GROUPS, adminPageFromRoute } from "../../app/admin-navigation.js";
 import { AdminNavigationContext } from "../../components/admin/AdminNavigationContext.jsx";
 import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
@@ -14,11 +14,12 @@ const AccessRequestsPage = lazy(() => import("./AccessRequestsPage.jsx"));
 const AccountSubscriptionsPage = lazy(() => import("./AccountSubscriptionsPage.jsx"));
 const PricingPage = lazy(() => import("../public/PricingPage.jsx"));
 const IntegrationsPage = lazy(() => import("./IntegrationsPage.jsx"));
+const ExportsPage = lazy(() => import("./ExportsPage.jsx"));
 const LegalReadinessPage = lazy(() => import("./IntegrationsPage.jsx").then(module => ({ default: module.LegalReadinessPage })));
 const PurchaseHistory = lazy(() => import("./Purchases.jsx").then(module => ({ default: module.PurchaseHistory })));
 const PurchaseOverview = lazy(() => import("./Purchases.jsx").then(module => ({ default: module.PurchaseOverview })));
 
-const ICONS = { overview: LayoutDashboard, teams: Users, usage: Activity, audience: BarChart3, bot: Bot, purchases: ShoppingBag, requests: ClipboardList, subscriptions: Users, pricing: Tag, launch: FileCheck2, reminders: Mail, integrations: Plug };
+const ICONS = { overview: LayoutDashboard, teams: Users, usage: Activity, audience: BarChart3, bot: Bot, purchases: ShoppingBag, requests: ClipboardList, subscriptions: Users, pricing: Tag, launch: FileCheck2, reminders: Mail, integrations: Plug, exports: FileImage };
 
 function AdminContent({ page, route, navigate, user }) {
   if (["overview", "teams", "usage", "reminders"].includes(page.id)) return <AdminDashboard view={page.id} teamFilter={new URLSearchParams(route.search).get("filtre") || "all"} onNavigate={navigate} />;
@@ -28,6 +29,7 @@ function AdminContent({ page, route, navigate, user }) {
   if (page.id === "subscriptions") return <AccountSubscriptionsPage navigate={navigate} embedded initialUserId={new URLSearchParams(route.search).get("userId") || ""} />;
   if (page.id === "pricing") return <PricingPage navigate={navigate} user={user} embedded />;
   if (page.id === "integrations") return <IntegrationsPage navigate={navigate} />;
+  if (page.id === "exports") return <ExportsPage />;
   if (page.id === "launch") return <LegalReadinessPage />;
   return <PurchasesPage />;
 }

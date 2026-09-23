@@ -258,7 +258,7 @@ export function pngImageContain(ctx, image, x, y, w, h) {
   return true;
 }
 
-function pngBlob(canvas) {
+export function pngBlob(canvas) {
   return new Promise((resolve, reject) => canvas.toBlob((image) => image ? resolve(image) : reject(new Error("Impossible de générer le PNG.")), "image/png"));
 }
 
@@ -297,7 +297,7 @@ function pngChunk(type, data = new Uint8Array()) {
 // Stack every section at its original resolution in ONE PNG. Encode small
 // strips into one zlib stream instead of allocating a report-sized canvas:
 // long histories can exceed the browser's canvas height or pixel limits.
-export async function pngDownloadPages(canvases, filename) {
+export async function pngPagesBlob(canvases) {
   if (!canvases.length) throw new Error("Aucune page à exporter.");
   let width = 0;
   let height = 0;
@@ -309,7 +309,7 @@ export async function pngDownloadPages(canvases, filename) {
     height += canvas.height;
   }
   if (width > 0x7fffffff || height > 0x7fffffff) throw new Error("L’export PNG est trop grand. Réduis la sélection.");
-  if (canvases.length === 1) return pngDownload(canvases[0], filename);
+  if (canvases.length === 1) return pngBlob(canvases[0]);
   if (typeof CompressionStream === "undefined") throw new Error("Cet export PNG nécessite un navigateur à jour.");
 
   const header = new Uint8Array(13);
@@ -351,11 +351,15 @@ export async function pngDownloadPages(canvases, filename) {
       chunks.push(pngChunk("IDAT", value));
     }
     chunks.push(pngChunk("IEND"));
-    downloadBlob(new Blob(chunks, { type: "image/png" }), filename);
+    return new Blob(chunks, { type: "image/png" });
   } finally {
     await reader.cancel().catch(() => {});
     reader.releaseLock();
     strip.width = 0;
     strip.height = 0;
   }
+}
+
+export async function pngDownloadPages(canvases, filename) {
+  downloadBlob(await pngPagesBlob(canvases), filename);
 }

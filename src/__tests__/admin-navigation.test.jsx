@@ -21,6 +21,7 @@ vi.mock("../hooks/useTeamData.js", () => ({ useTeamData: vi.fn(() => { throw new
 vi.mock("../pages/admin/AdminDashboard.jsx", () => ({ default: ({ view, teamFilter, onNavigate }) => <section data-admin-view={view} data-team-filter={teamFilter}>{view === "overview" && <button onClick={() => onNavigate("/admin/equipes?filtre=never")}>Voir les équipes sans import</button>}</section> }));
 vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data-admin-view="audience" /> }));
 vi.mock("../pages/admin/BotAnalyticsPage.jsx", () => ({ default: () => <section data-admin-view="bot" /> }));
+vi.mock("../pages/admin/ExportsPage.jsx", () => ({ default: () => <section data-admin-view="exports" /> }));
 vi.mock("../pages/admin/AccessRequestsPage.jsx", () => ({ default: ({ embedded }) => <section data-admin-view="requests" data-embedded={embedded} /> }));
 vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: function SubscriptionsForm({ embedded, initialUserId, navigate }) {
   const [dirty, setDirty] = React.useState(false);
@@ -48,6 +49,7 @@ const routes = [
   ["/admin/abonnements", "subscriptions"],
   ["/admin/tarifs", "pricing"],
   ["/admin/preparer-vente", "launch"],
+  ["/admin/exports", "exports"],
   ["/admin/rappels", "reminders"],
   ["/admin/integrations", "integrations"],
 ];
