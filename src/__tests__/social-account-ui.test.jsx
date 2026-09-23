@@ -7,7 +7,7 @@ import { AuthPage, ResetPasswordPage } from "../pages/public/PublicPages.jsx";
 import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
-vi.mock("../app/audience-client.js", () => ({ openCookieSettings: vi.fn(), trackAudienceEvent: vi.fn() }));
+vi.mock("../app/audience-client.js", async (importOriginal) => ({ ...await importOriginal(), openCookieSettings: vi.fn(), trackAudienceEvent: vi.fn() }));
 vi.mock("../components/account/AccountSubscription.jsx", () => ({ default: () => null }));
 
 const providers = ["google", "discord", "apple", "riot"].map((id) => ({ id, label: id, enabled: true }));
