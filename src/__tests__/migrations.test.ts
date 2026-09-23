@@ -343,4 +343,30 @@ describe('controlled database migrations', () => {
     expect(index[0].indexdef).not.toContain('UNIQUE');
     expect((await db.query("select to_regclass('discord_connections_active_guild') as previous_index")).rows).toEqual([{ previous_index: null }]);
   });
+
+  it('adds optional team-scoped Discord role access without changing existing connections', async () => {
+    const { db, client, migrations } = await fixture();
+    const key = 'discord-bot-role-access-20260923-v1';
+    const beforeRoleAccess = migrations.slice(0, migrations.findIndex(migration => migration.key === key));
+    await applyMigrations(client, beforeRoleAccess);
+    const owner = '00000000-0000-4000-8000-000000000001';
+    const first = '00000000-0000-4000-8000-000000000002';
+    const second = '00000000-0000-4000-8000-000000000003';
+    const guild = '100000000000000001';
+    await db.query("insert into users(id,account_name,name,password_hash) values($1,'role-owner','Owner','unused')", [owner]);
+    await db.query("insert into teams(id,owner_id,name,tag) values($1,$3,'Team A','AAA'),($2,$3,'Team B','BBB')", [first, second, owner]);
+    await db.query("insert into discord_connections(team_id,guild_id,status) values($1,$3,'active'),($2,$3,'active')", [first, second, guild]);
+    const connections = (await db.query('select * from discord_connections order by team_id')).rows;
+
+    expect(await applyMigrations(client, migrations)).toEqual([key]);
+    expect((await db.query('select * from discord_connections order by team_id')).rows).toEqual(connections);
+    expect((await db.query('select * from discord_bot_role_access')).rows).toEqual([]);
+    await db.query('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])',
+      [first, guild, ['200000000000000001']]);
+    expect((await db.query('select team_id,role_ids from discord_bot_role_access')).rows)
+      .toEqual([{ team_id: first, role_ids: ['200000000000000001'] }]);
+    await expect(db.query('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])',
+      [second, guild, []])).rejects.toMatchObject({ code: '23514' });
+    expect(await applyMigrations(client, migrations)).toEqual([]);
+  });
 });

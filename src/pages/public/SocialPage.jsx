@@ -1,4 +1,5 @@
 import React from "react";
+import { NXT5_CONTACT_EMAIL } from "../../../shared/legal.js";
 import { ArrowUpRight, ChevronDown, LifeBuoy, MessageCircle, Radio, Shield, Users } from "lucide-react";
 import { getSocialLinks } from "../../app/social-links.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
@@ -15,7 +16,7 @@ export default function SocialPage({ navigate, user }) {
   const links = getSocialLinks();
   const discord = links.find((network) => network.id === "discord");
   const otherNetworks = links.filter((network) => network.id !== "discord");
-  const supportSections = LEGAL_PAGES["/contact"].sections.slice(1);
+  const supportSections = LEGAL_PAGES["/contact"].sections.filter(([title]) => title !== "Discord NXT5");
   return (
     <div className="nxt5-information-page">
       <AmbientBackground />
@@ -63,7 +64,7 @@ export default function SocialPage({ navigate, user }) {
             <div className="nxt5-contact-privacy">
               <Shield aria-hidden="true" size={24} />
               <h3>Ce qui est privé<br />reste en privé.</h3>
-              <p>Pour ton compte ou tes données personnelles, contacte l’équipe NXT5 par message privé sur Discord. Ne publie jamais de mot de passe ni de donnée sensible dans un salon public.</p>
+              <p>Pour ton compte ou tes données personnelles, écris à <a href={`mailto:${NXT5_CONTACT_EMAIL}`} className="break-words underline underline-offset-4">{NXT5_CONTACT_EMAIL}</a>. Un message privé sur Discord reste possible. Ne publie jamais de mot de passe ni de donnée sensible dans un salon public.</p>
               <PublicTextLink href="/confidentialite" navigate={navigate}>Consulter la confidentialité<ArrowUpRight aria-hidden="true" size={16} /></PublicTextLink>
             </div>
             <Surface className="nxt5-support-surface">

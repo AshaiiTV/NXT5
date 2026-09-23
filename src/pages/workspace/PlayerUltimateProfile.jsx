@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { DiscordProgressionGoals } from "../../components/discord/DiscordWorkflows.jsx";
 import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, Eye, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { profilePathFromView, profileViewFromPath, openAppPath } from "../../app/routing.js";
@@ -486,6 +487,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
       {profileView === "coaching" && <>
         <div className="profile-followup-intro"><h3>Objectifs et notes</h3><p>Les objectifs suivent les games du contexte sélectionné. Les notes restent communes à tous les contextes du joueur.</p></div>
+        <DiscordProgressionGoals goals={data.botGoals} teamId={selectedTeamId} playerId={selectedPlayer.id} />
         <div className="profile-goals"><React.Suspense fallback={<p role="status" className="profile-notice">Chargement des objectifs…</p>}><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /></React.Suspense></div>
         <Surface><div className="profile-section-heading"><h3>Notes de suivi</h3><span>{coachingNote?.updated_at ? `Mise à jour le ${new Date(coachingNote.updated_at).toLocaleString("fr-FR")}` : "Aucune note enregistrée"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</span></div>
           <label className="profile-notes"><span>Bilan du joueur et prochaine étape</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={8} maxLength={4000} placeholder="Ce qui progresse, le point à travailler, la prochaine étape…" /></label>

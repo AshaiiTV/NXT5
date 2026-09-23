@@ -37,6 +37,12 @@
 .discord-categories > legend { font-weight: 600; margin-bottom: 0.4rem; }
 .discord-check { display: flex; gap: 0.65rem; align-items: center; min-height: 44px; cursor: pointer; line-height: 1.5; }
 .discord-check input { width: 18px; height: 18px; flex-shrink: 0; accent-color: #67e8f9; }
+.discord-role-access > * + * { margin-top: .85rem; }
+.discord-role-access h4 { display: inline-flex; align-items: center; gap: .6rem; }
+.discord-role-access fieldset > * + * { margin-top: .75rem; }
+.discord-role-access legend { font-weight: 600; }
+.discord-role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: .25rem 1rem; max-height: 18rem; overflow: auto; padding: .5rem .75rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); background: rgba(3,9,21,.5); }
+.discord-role-grid .discord-check { min-width: 0; overflow-wrap: anywhere; }
 .discord-route:disabled { opacity: 0.8; }
 .discord-route:disabled .discord-check { cursor: default; }
 .discord-history { list-style: none; margin: 0; padding: 0; }
@@ -62,17 +68,26 @@
 }
 @media (prefers-reduced-motion: reduce) { .discord-loading .animate-spin { animation: none; } }
 
-/* Dedicated dashboard: one shared surface, open sections, real connection states. */
+/* Bot Discord: a short setup path and a compact daily overview. */
 .discord-dashboard .discord-eyebrow, .discord-step-kicker { display: block; color: #9caec7; font-size: .6875rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
 .discord-dashboard { container-type: inline-size; }
 .discord-dashboard-status { align-items: flex-start; }
 .discord-dashboard-status h3 { margin-top: .4rem; }
-.discord-last-checked { margin-top: .5rem !important; }
-.discord-configuration-intro { color: #b4c5da; }
 .discord-dashboard p { max-width: 88ch; }
 .discord-dashboard .discord-server { margin-top: .5rem; }
-.discord-install-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0; margin-block: 1.25rem; gap: .5rem; }
-.discord-step-tab { display: flex; align-items: flex-start; gap: .65rem; min-width: 0; min-height: 44px; padding: 1rem .75rem; border: 0; border-bottom: 2px solid var(--nxt5-border); border-radius: var(--nxt5-radius-button, 2px); background: transparent; color: var(--nxt5-text, #f8fafc); text-align: left; cursor: pointer; transition: border-color 160ms, background 160ms; }
+.discord-configuration[hidden], .discord-secondary-panel[hidden] { display: none !important; }
+.discord-overview-main { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.discord-overview-main > div { min-width: 0; }
+.discord-overview-main h4 { margin-top: .2rem; }
+.discord-overview-main p:last-child { margin-top: .4rem; color: #c6d4e5; }
+.discord-overview-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.2rem; padding: .85rem 0; border-block: 1px solid var(--nxt5-border); }
+.discord-overview-facts > div { min-width: 0; }
+.discord-overview-facts dt { font-size: .75rem; color: #c6d4e5; }
+.discord-overview-facts dd { margin-top: .2rem; font-weight: 600; overflow-wrap: anywhere; }
+.discord-overview-links { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+.discord-overview > .discord-help { margin-top: 1rem; }
+.discord-install-progress { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0; margin-block: 1.1rem; gap: .5rem; }
+.discord-step-tab { display: flex; align-items: center; gap: .55rem; min-width: 0; min-height: 44px; padding: .7rem .75rem; border: 0; border-bottom: 2px solid var(--nxt5-border); border-radius: var(--nxt5-radius-button, 2px); background: transparent; color: var(--nxt5-text, #f8fafc); text-align: left; cursor: pointer; transition: border-color 160ms, background 160ms; }
 .discord-step-tab:hover { border-bottom-color: rgba(165,243,252,.4); background: rgba(103,232,249,.035); }
 .discord-install-progress > .is-complete { border-bottom-color: rgba(103,232,249,.25); }
 .discord-install-progress > .is-selected { border-bottom-color: #67e8f9; background: rgba(103,232,249,.065); }
@@ -86,7 +101,6 @@
 .is-complete .discord-progress-number { color: #a5f3fc; border-color: rgba(103,232,249,.4); }
 .discord-install-progress strong { display: block; font-weight: 600; font-size: .875rem; line-height: 1.4; }
 .discord-step-label { min-width: 0; }
-.discord-step-label > span { display: block; color: #9eafc7; font-size: .75rem; line-height: 1.5; margin-top: .3rem; }
 .discord-setup-step { min-width: 0; }
 .discord-setup-step > * + * { margin-top: .85rem; }
 .discord-dashboard a.discord-invite-button { display: inline-flex; min-height: 44px; justify-content: center; padding: .65rem 1rem; border: 1px solid rgba(165,243,252,.36); border-radius: var(--nxt5-radius-button); color: #020611 !important; text-decoration: none; line-height: 1.4; }
@@ -100,7 +114,11 @@
 .discord-example .discord-preview-image { max-width: 650px; }
 @container (max-width: 760px) {
   .discord-channel-picker { grid-template-columns: minmax(0, 1fr); }
-  .discord-install-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 600px) {
+  .discord-overview-main { align-items: stretch; flex-direction: column; }
+  .discord-overview-main > button, .discord-overview-links > button { width: 100%; }
+  .discord-overview-facts, .discord-install-progress { grid-template-columns: minmax(0, 1fr); }
 }
 .discord-permission-update { padding-left: .875rem; border-left: 2px solid rgba(167,139,250,.25); }
 .discord-permission-update .discord-link { font-size: .8125rem; }
@@ -109,9 +127,11 @@
 .discord-dashboard .discord-danger-action:hover { border-color: rgba(253,164,175,.3); background: rgba(253,164,175,.06); }
 @media (max-width: 640px) {
   .discord-dashboard .discord-actions > a, .discord-invite-button { width: 100%; }
-  .discord-install-progress { gap: .6rem; }
-  .discord-step-tab { gap: .4rem; padding: .75rem .55rem; }
-  .discord-install-progress strong { font-size: .8rem; }
+  .discord-overview-main { align-items: stretch; flex-direction: column; }
+  .discord-overview-main > button, .discord-overview-links > button { width: 100%; }
+  .discord-overview-facts { grid-template-columns: minmax(0, 1fr); gap: .65rem; }
+  .discord-install-progress { grid-template-columns: minmax(0, 1fr); gap: .4rem; }
+  .discord-step-tab { padding: .55rem .75rem; }
   .discord-dashboard input, .discord-dashboard select { font-size: 16px !important; }
 }
 

@@ -35,9 +35,11 @@ async function sendResendEmail({ to, subject, text, html }) {
   });
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    console.error('Resend email delivery failed', { status: response.status, detail });
-    throw Object.assign(new Error(`Envoi e-mail impossible.${detail ? ` ${detail}` : ''}`), {
+    // A provider response can echo recipients, links or credentials. Keep only
+    // its status and never attach the raw body to logs or a propagated error.
+    await response.body?.cancel().catch(() => {});
+    console.error('Resend email delivery failed', { status: response.status });
+    throw Object.assign(new Error('Envoi e-mail impossible.'), {
       status: 502,
       code: 'EMAIL_DELIVERY_FAILED',
       publicMessage: `Resend refuse l'envoi de l'e-mail (HTTP ${response.status}). Vérifie RESEND_API_KEY, RESET_EMAIL_FROM et le domaine d'envoi.`
