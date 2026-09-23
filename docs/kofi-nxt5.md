@@ -1,6 +1,6 @@
 # Page Ko-fi NXT5
 
-État au 23 septembre 2026 : profil créé et réglages enregistrés sur [ko-fi.com/nxt5org](https://ko-fi.com/nxt5org). Ko-fi indique encore qu’un compte de réception PayPal ou Stripe doit être relié pour accepter les soutiens. Le lien n’est pas activé sur le site NXT5 tant que cette réception n’est pas validée.
+État au 23 septembre 2026 : profil et réglages enregistrés sur [ko-fi.com/nxt5org](https://ko-fi.com/nxt5org). Le compte PayPal du titulaire est relié et le pays France est confirmé. Ko-fi ne signale plus de configuration manquante ; le formulaire de soutien est accessible. Cette vérification n’a déclenché aucune transaction et n’atteste pas d’un paiement reçu.
 
 ## Profil
 
@@ -36,10 +36,16 @@ Merci pour ton soutien à NXT5 ! Ta contribution encourage le projet et la suite
 - Nom public NXT5 ; adresse `nxt5org` choisie, Ko-fi exigeant au moins cinq caractères.
 - Catégories Gaming et Software ; avatar complet envoyé et cadrage vérifié.
 - Options avancées « Get all of Ko-fi » désactivées.
+- Compte de réception PayPal relié ; pays France enregistré, sans alerte de configuration restante.
+- Adresse publique et formulaires de soutien ponctuel et mensuel vérifiés, sans effectuer de transaction.
 
-## Reste à faire
+## Activation sur NXT5
 
-Le titulaire doit relier son moyen de réception dans [Settings > Payment](https://ko-fi.com/settings?tab=payment), puis valider les permissions du prestataire. Vérifier ensuite que Ko-fi ne signale plus de configuration manquante et que les dons ponctuels et mensuels sont accessibles avant de renseigner `VITE_NXT5_SUPPORT_URL=https://ko-fi.com/nxt5org` dans le site.
+La destination publique validée est `https://ko-fi.com/nxt5org`. La configuration du site la renseigne avec `VITE_NXT5_SUPPORT_URL` dans `[build.environment]` de `netlify.toml`. La publication passe par la PR et une nouvelle construction Netlify contenant la page `/soutenir` ; modifier la configuration ne change pas un bundle déjà publié.
+
+Pour un aperçu Vite lancé directement, définir `VITE_NXT5_SUPPORT_URL=https://ko-fi.com/nxt5org` dans un `.env.local` ignoré par Git ou dans l’environnement du processus. Le fichier `.env.example` conserve une valeur vide. Les détails d’activation et de désactivation sont dans [Soutenir NXT5](soutenir-nxt5.md).
+
+Vérifier ensuite les liens « Soutenir NXT5 » de l’accueil et du pied de page, ainsi que le bouton « Soutenir le projet » sur `/soutenir`, sur ordinateur et mobile. Le bouton ouvre la page Ko-fi validée dans un nouvel onglet ; les choix du montant et de la fréquence restent sur Ko-fi. La connexion de réception se gère dans [Settings > Payment](https://ko-fi.com/settings?tab=payment).
 
 Ne pas effectuer de don de test ni de transaction sans demande spécifique. La vérification doit distinguer configuration prête et paiement réellement reçu.
 
