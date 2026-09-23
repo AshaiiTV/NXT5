@@ -235,6 +235,72 @@ describe('Team context is the intersection of membership and server configuratio
     expect(profile.embeds[0].description).not.toContain('Other guild team');
   });
 
+  it('rejects forced team choices by ID or name without replacing the legitimate selection', async () => {
+    await executeDiscordAccount(interaction(), 'equipe choisir', { nom: teamA });
+    const original = await rows('select * from discord_user_team_choices');
+    for (const target of [privateTeam, 'PRIVATE STAFF TEAM', outsideGuild, 'Other guild team', disconnectedTeam, 'Disconnected team']) {
+      await expect(executeDiscordAccount(interaction(), 'equipe choisir', { nom: target })).rejects.toMatchObject({
+        status: 403, code: 'DISCORD_TEAM_FORBIDDEN', message: 'Cette équipe n’est pas accessible à ton compte sur ce serveur.',
+      });
+      expect(await rows('select * from discord_user_team_choices')).toEqual(original);
+    }
+    expect(await resolveBotContext(actor, guild)).toMatchObject({ teamId: teamA, playerIds: [playerA] });
+  });
+
+  it('does not treat an inaccessible persisted choice as an authorization grant', async () => {
+    const identity = await botIdentity(actor);
+    // Choices can outlive membership or server changes; the stored team ID is
+    // deliberately untrusted even when the database row itself is valid.
+    for (const target of [privateTeam, outsideGuild, disconnectedTeam]) {
+      await rows(`insert into discord_user_team_choices(link_id,guild_id,team_id) values($1,$2,$3)
+        on conflict(link_id,guild_id) do update set team_id=excluded.team_id`, [identity.id, guild, target]);
+      const { teams } = await botTeams(actor, guild);
+      expect(teams.map(team => team.id).sort()).toEqual([teamA, teamB].sort());
+      expect(teams.every(team => !team.selected)).toBe(true);
+      await expect(resolveBotContext(actor, guild)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+      await expect(resolveBotContext(actor, guild, target)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+      for (const command of ['equipe liste', 'compte profil']) {
+        const message = JSON.stringify(await executeDiscordAccount(interaction(), command, {}));
+        for (const name of ['Private staff team', 'Other guild team', 'Disconnected team']) expect(message).not.toContain(name);
+        expect(message).not.toContain(target);
+      }
+    }
+    await rows('delete from team_members where team_id=$1 and user_id=$2', [teamB, member]);
+    expect(await resolveBotContext(actor, guild)).toMatchObject({ teamId: teamA, playerIds: [playerA] });
+  });
+
+  it('requires team membership even when the same account appears in its player roster or administers Discord', async () => {
+    await rows("insert into players(id,team_id,user_id,name,role) values($1,$2,$3,'Private roster entry','MID')", [uuid(22), privateTeam, member]);
+    const discordAdministrator = { ...interaction(), member: { ...interaction().member, permissions: '8' } };
+    expect((await botTeams(actor, guild)).teams.map(team => team.id).sort()).toEqual([teamA, teamB].sort());
+    await expect(resolveBotContext(actor, guild, privateTeam)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+    await expect(executeDiscordAccount(discordAdministrator, 'equipe choisir', { nom: privateTeam })).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+    expect(await rows('select * from discord_user_team_choices')).toHaveLength(0);
+    expect(await resolveBotContext(actor, guild, teamA)).toMatchObject({ playerIds: [playerA] });
+  });
+
+  it('keeps another actor’s selection and privileges separate on a shared server', async () => {
+    await link(otherActor, otherMember);
+    await rows("insert into team_members(team_id,user_id,role) values($1,$2,'captain')", [privateTeam, otherMember]);
+    await executeDiscordAccount(interaction(), 'equipe choisir', { nom: teamB });
+    await executeDiscordAccount(interaction(otherActor), 'equipe choisir', { nom: privateTeam });
+    expect(await resolveBotContext(otherActor, guild)).toMatchObject({ teamId: privateTeam, role: 'captain', canManage: true });
+    expect(await resolveBotContext(actor, guild)).toMatchObject({ teamId: teamB, role: 'player', canManage: false, canStaff: false, playerIds: [playerB] });
+    expect((await botTeams(actor, guild)).teams.filter(team => team.selected).map(team => team.id)).toEqual([teamB]);
+    await expect(resolveBotContext(actor, guild, privateTeam)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+    await expect(resolveBotContext(otherActor, guild, teamB)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+  });
+
+  it('does not let an inaccessible namesake make a legitimate team ambiguous or reveal itself', async () => {
+    await rows('update teams set name=$1 where id=$2', ['ALPHA TEAM', privateTeam]);
+    const selected = await executeDiscordAccount(interaction(), 'equipe choisir', { nom: 'alpha team' });
+    expect(JSON.stringify(selected)).not.toContain(privateTeam);
+    expect(await resolveBotContext(actor, guild, 'ALPHA TEAM')).toMatchObject({ teamId: teamA, playerIds: [playerA] });
+    const list = JSON.stringify(await executeDiscordAccount(interaction(), 'equipe liste', {}));
+    expect(list).not.toContain(privateTeam);
+    expect(list).not.toContain('ALPHA TEAM');
+  });
+
   it('rechecks role and membership instead of trusting the saved selection', async () => {
     await executeDiscordAccount(interaction(), 'equipe choisir', { nom: teamA });
     const captain = await resolveBotContext(actor, guild);
@@ -247,6 +313,10 @@ describe('Team context is the intersection of membership and server configuratio
     await rows('delete from team_members where team_id=$1 and user_id=$2', [teamA, member]);
     await expect(resolveBotContext(actor, guild, teamA)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
     expect((await botTeams(actor, guild)).teams.map(team => team.id)).toEqual([teamB]);
+    expect(await resolveBotContext(actor, guild)).toMatchObject({ teamId: teamB, role: 'player', canManage: false, canStaff: false, playerIds: [playerB] });
+    const profile = JSON.stringify(await executeDiscordAccount(interaction(), 'compte profil', {}));
+    expect(profile).toContain('Beta team');
+    expect(profile).not.toContain('Alpha team');
   });
 
   it('grants the actual owner access without needing a team_members row', async () => {

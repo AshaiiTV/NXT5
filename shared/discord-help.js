@@ -3,6 +3,10 @@ import { discordCommandCatalog, discordCommandCategories, discordHelpSections } 
 const HELP_PREFIX = 'nxt:help:';
 const COLOR = 0x5865f2;
 const field = (name, value) => ({ name, value, inline: false });
+const connectionCommands = new Set(['connecter', 'statut', 'pause', 'reprendre']);
+const accessLabel = entry => connectionCommands.has(entry.path)
+  ? 'Compte lié · propriétaire ou capitaine NXT5 de cette équipe · Gérer le serveur Discord (ou Administrateur)'
+  : entry.access;
 
 // Static copy only: opening or navigating help never reads a team, identity,
 // review, token or any other private data. Permission checks belong to actions.
@@ -12,7 +16,7 @@ const tutorialPages = [
     description: 'Prépare ta session, retrouve tes games et suis les objectifs de ton équipe depuis Discord. Ce guide reste accessible avant de lier ton compte.',
     fields: [
       field('1 · Choisis ton parcours', 'Joueur : ouvre « Mon compte » ou clique sur Suivant. Responsable : ouvre « Installer le bot » dans le menu.'),
-      field('2 · Comprends les deux connexions', '`/nxt compte lier` associe ton compte Discord personnel à NXT5. `/nxt connecter code:<code>` relie une équipe NXT5 au serveur. Chaque joueur effectue sa propre liaison de compte.'),
+      field('2 · Comprends les deux connexions', '`/nxt compte lier` associe ton compte Discord personnel à NXT5. Le responsable effectue aussi cette liaison avant `/nxt connecter code:<code>`, qui relie son équipe NXT5 au serveur. Chaque personne lie son propre compte.'),
       field('3 · Retrouve une commande', '`/nxt help` et `/nxt aide` ouvrent ce guide privé. Le bouton « Commandes » donne accès au catalogue. `/nxt help commande:bilan` explique une commande précise.'),
     ],
   },
@@ -56,12 +60,13 @@ const tutorialPages = [
   },
   {
     title: 'Responsable · Connecte et contrôle le bot',
-    description: 'La gestion du serveur et les publications demandent les droits appropriés. Lire cette page n’accorde aucun accès supplémentaire.',
+    description: 'Pour connecter, consulter le statut, mettre en pause ou reprendre : compte lié, propriétaire ou capitaine NXT5 de l’équipe visée, et permission Discord « Gérer le serveur » ou « Administrateur ». Lire cette page n’accorde aucun accès supplémentaire.',
     fields: [
-      field('1 · Relie ton équipe au serveur', 'Ouvre Bot Discord dans NXT5. Invite le bot si nécessaire, choisis l’équipe et génère son code temporaire. Saisis `/nxt connecter code:<code>` dans Discord pour relier cette équipe au serveur.'),
-      field('2 · Configure et teste', 'Dans NXT5, choisis les salons et catégories, enregistre, teste, puis active les publications. `/nxt statut equipe:<équipe>` vérifie la connexion. `/nxt diffusion test equipe:<équipe>` envoie un test dans le salon configuré.'),
-      field('3 · Maîtrise la diffusion', '`/nxt pause equipe:<équipe>` suspend les publications de l’équipe. `/nxt reprendre equipe:<équipe>` reprend une diffusion configurée. Les consultations restent accessibles. Les rappels ont leur propre réglage : `/nxt reglages rappels`. Vérifie toujours l’équipe ciblée.'),
-      field('4 · Accompagne les membres', 'Chaque joueur commence avec `/nxt help`, `/nxt compte lier`, puis `/nxt equipe choisir`. Vérifie son invitation NXT5 en cas de refus d’accès. Si plusieurs équipes utilisent ce serveur, chacune conserve sa configuration.'),
+      field('1 · Lie d’abord ton compte personnel', 'Invite le bot si nécessaire, puis termine `/nxt compte lier`. Vérifie le compte associé avec `/nxt compte profil`. Cette étape est requise même pour un administrateur Discord.'),
+      field('2 · Relie ton équipe au serveur', 'Avec ce même compte NXT5, ouvre Bot Discord, choisis ton équipe et génère son code temporaire. Saisis `/nxt connecter code:<code>` dans Discord. Le compte lié doit être celui qui a créé le code ; le code d’un autre responsable est refusé.'),
+      field('3 · Configure et teste', 'Dans NXT5, choisis les salons et catégories, enregistre, teste, puis active les publications. `/nxt statut equipe:<équipe>` vérifie la connexion. `/nxt diffusion test equipe:<équipe>` envoie un test dans le salon configuré.'),
+      field('4 · Maîtrise la diffusion', '`/nxt pause equipe:<équipe>` suspend les publications de l’équipe. `/nxt reprendre equipe:<équipe>` reprend une diffusion configurée. Les consultations restent accessibles. Les rappels ont leur propre réglage : `/nxt reglages rappels`. Vérifie toujours l’équipe ciblée.'),
+      field('5 · Accompagne les membres', 'Chaque joueur commence avec `/nxt help`, `/nxt compte lier`, puis `/nxt equipe choisir`. Vérifie son invitation NXT5 en cas de refus. Sur un serveur partagé, gérer Discord ne donne aucun accès aux autres équipes : les droits NXT5 de chaque personne restent appliqués.'),
     ],
   },
 ];
@@ -126,7 +131,7 @@ function catalogPage(index, matches = null) {
   return payload({
     title: matches ? 'Commandes correspondantes' : category.label,
     description: 'Les réponses sont privées. Une commande de publication affiche un aperçu et vérifie tes droits. Les paramètres entre chevrons sont à remplacer ; la fiche de chaque commande distingue les options obligatoires.',
-    fields: commands.map(entry => field('/nxt ' + entry.path, entry.description + '\n**Accès :** ' + entry.access + '\n`' + usage(entry, true) + '`')),
+    fields: commands.map(entry => field('/nxt ' + entry.path, entry.description + '\n**Accès :** ' + accessLabel(entry) + '\n`' + usage(entry, true) + '`')),
     footer: { text: 'Catalogue NXT5 · ' + (index + 1) + '/7 · /nxt help commande:<nom> pour les options' },
   }, navigation({ categoryIndex: index }));
 }
@@ -135,7 +140,9 @@ function commandPage(entry) {
   const required = entry.options.filter(option => option.required);
   const optional = entry.options.filter(option => !option.required);
   const details = list => list.map(option => '`' + option.name + '` : ' + option.description + (option.choices ? ' Choix : ' + option.choices.map(choice => '`' + choice.value + '`').join(', ') + '.' : '')).join('\n');
-  const fields = [field('Utilisation', '`' + usage(entry) + '`'), field('Exemple', '`' + example(entry) + '`'), field('Accès', entry.access === 'Tous' ? 'Disponible avant la liaison de compte. Cette aide reste privée.' : entry.access + '. Ton compte, ton équipe et tes droits sont vérifiés à chaque action.')];
+  const fields = [field('Utilisation', '`' + usage(entry) + '`'), field('Exemple', '`' + example(entry) + '`'), field('Accès', entry.access === 'Tous' ? 'Disponible avant la liaison de compte. Cette aide reste privée.' : accessLabel(entry) + '. Ton compte, ton équipe et tes droits sont vérifiés à chaque action.')];
+  if (entry.path === 'connecter') fields.push(field('Avant de connecter', 'Termine `/nxt compte lier`, puis crée le code de ton équipe avec ce même compte NXT5. Seul le créateur du code peut l’utiliser depuis son compte Discord lié.'));
+  if (connectionCommands.has(entry.path)) fields.push(field('Serveur partagé', 'Gérer le serveur Discord ne donne aucun accès aux autres équipes NXT5. Tu dois être propriétaire ou capitaine de l’équipe visée.'));
   if (required.length) fields.push(field('Options obligatoires', details(required)));
   if (optional.length) fields.push(field('Options facultatives', details(optional)));
   if (!entry.options.length) fields.push(field('Paramètres', 'Cette commande ne demande aucun paramètre.'));

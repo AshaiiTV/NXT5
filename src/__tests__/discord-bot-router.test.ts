@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { generateKeyPairSync, sign } from 'node:crypto';
+import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,7 +64,9 @@ beforeEach(async () => {
     DISCORD_PUBLIC_KEY: publicKey, DISCORD_BOT_TOKEN: 'test-only', DISCORD_WORKER_SECRET: 'test-worker-secret-long-enough-for-config',
     DISCORD_ENVIRONMENT: 'production', DISCORD_PUBLISHING_ENABLED: 'true', AWS_LAMBDA_FUNCTION_NAME: '', LAMBDA_TASK_ROOT: '', SITE_ID: '' })) vi.stubEnv(key, value);
   vi.spyOn(console, 'error').mockImplementation(() => {});
-  state.sql.mockReset().mockImplementation(rows);
+  state.sql.mockReset().mockImplementation((query: any, ...args: any[]) => Array.isArray(query) && query.raw
+    ? rows(query.map((part: string, index: number) => part + (index < args.length ? `$${index + 1}` : '')).join(''), args)
+    : rows(query, args[0] || []));
   state.rate.mockReset().mockResolvedValue(undefined);
   state.fetch.mockReset().mockResolvedValue(new Response('{}', { status: 200 }));
   vi.stubGlobal('fetch', state.fetch);
@@ -199,5 +201,37 @@ describe('Signed Discord HTTP bot routing', () => {
     expect(result.message.embeds[0].title).toBe('Lecture enregistrée');
     expect(await rows('select user_id,report_version from discord_review_reads')).toEqual([{ user_id: member, report_version: 2 }]);
     expect(result.ack.data.flags).toBe(64);
+  });
+
+  it('refuses legacy team commands and a foreign link code to a manager of the shared Discord server', async () => {
+    const serverManager = (path: string, options: any) => ({ ...command(path, options), member: { ...person(), permissions: '32' } });
+    for (const path of ['statut', 'pause', 'reprendre']) {
+      const result = await dispatch(serverManager(path, { equipe: otherTeam }));
+      expect(JSON.stringify(result.message)).toContain('responsable de cette équipe');
+      expect(JSON.stringify(result.message)).not.toContain('PRIVATE_TEAM');
+    }
+    const suggestions = () => dispatch({ type: 4, member: { ...person(), permissions: '32' },
+      data: { name: 'nxt', options: [{ name: 'pause', options: [{ name: 'equipe', value: '', focused: true }] }] } });
+    expect((await suggestions()).ack).toEqual({ type: 8, data: { choices: [] } });
+    const playerStatus = await dispatch(serverManager('statut', { equipe: team }));
+    expect(playerStatus.message.content).toContain('responsable de cette équipe');
+    expect((await rows('select status from discord_connections where team_id=$1', [otherTeam]))[0].status).toBe('active');
+    const code = 'A1B2C3D4E5F60708';
+    await rows("insert into discord_link_codes(code_hash,team_id,created_by,expires_at) values($1,$2,$3,now()+interval '10 minutes')",
+      [createHash('sha256').update(code).digest('hex'), otherTeam, owner]);
+    const refused = await dispatch(serverManager('connecter', { code }));
+    expect(refused.message.content).toContain('responsable de cette équipe');
+    expect((await rows('select consumed_at from discord_link_codes where team_id=$1', [otherTeam]))[0].consumed_at).toBeNull();
+    expect((await rows('select status from discord_connections where team_id=$1', [otherTeam]))[0].status).toBe('active');
+
+    await rows("update team_members set role='captain' where team_id=$1 and user_id=$2", [team, member]);
+    expect((await suggestions()).ack).toEqual({ type: 8, data: { choices: [{ name: 'Team A [AAA] · 00000010', value: team }] } });
+    const implicitTeam = await dispatch(serverManager('statut', {}));
+    expect(implicitTeam.message.content).toContain('Team A');
+    expect(implicitTeam.message.content).not.toContain('PRIVATE_TEAM');
+    const allowed = await dispatch(serverManager('pause', { equipe: team }));
+    expect(allowed.message.content).toContain('Team A');
+    expect((await rows('select status from discord_connections where team_id=$1', [team]))[0].status).toBe('paused');
+    expect((await rows('select status from discord_connections where team_id=$1', [otherTeam]))[0].status).toBe('active');
   });
 });

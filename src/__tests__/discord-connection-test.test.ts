@@ -48,6 +48,7 @@ const owner = id(1), otherOwner = id(2), coach = id(3), player = id(4), captain 
 const team = id(10), otherTeam = id(11), route = id(30), otherRoute = id(31), requestId = id(40);
 const guild = '100000000000000001', channel = '100000000000000002', otherGuild = '100000000000000003', otherChannel = '100000000000000004';
 const messageId = '100000000000000099';
+const captainDiscordId = '100000000000000087';
 const rows = async (sql: string, params: unknown[] = []) => (await state.pg.query(sql, params)).rows as any[];
 const context = { deploy: { context: 'production' } } as any;
 function get(endpoint = 'team-discord-test', teamId = team) {
@@ -65,10 +66,10 @@ beforeAll(async () => {
   state.pg = new PGlite();
   await state.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000','hex')"));
-  for (const filename of ['20260915_discord_publications.sql', '20260921_discord_connection_tests.sql']) {
+  for (const filename of ['20260915_discord_publications.sql', '20260921_discord_connection_tests.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql']) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + filename, import.meta.url), 'utf8'));
   }
-  await state.pg.exec("create table app_schema_migrations(migration_key text primary key); insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-connection-tests-20260921-v1')");
+  await state.pg.exec("create table app_schema_migrations(migration_key text primary key); insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-connection-tests-20260921-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1')");
 }, 30_000);
 beforeEach(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -84,6 +85,7 @@ beforeEach(async () => {
   for (const user of [owner, otherOwner, coach, player, captain]) await rows("insert into users(id,account_name,name,password_hash) values($1,$2,$2,'unused')", [user, `test-${user}`]);
   await rows("insert into teams(id,owner_id,name,tag) values($1,$2,'Private real team','AAA'),($3,$4,'Other team','BBB')", [team, owner, otherTeam, otherOwner]);
   await rows("insert into team_members(team_id,user_id,role) values($1,$2,'coach'),($1,$3,'player'),($1,$4,'captain')", [team, coach, player, captain]);
+  await rows("insert into discord_user_links(discord_user_id,user_id,discord_label) values($1,$2,'Test captain')", [captainDiscordId, captain]);
   await rows("insert into discord_connections(team_id,guild_id,status,created_by) values($1,$2,'paused',$3),($4,$5,'paused',$6)", [team, guild, owner, otherTeam, otherGuild, otherOwner]);
   await rows("insert into discord_routes(id,team_id,guild_id,channel_id,channel_name,automatic,mention_role_id) values($1,$2,$3,$4,'scrims',false,'100000000000000077'),($5,$6,$7,$8,'private',false,null)", [route, team, guild, channel, otherRoute, otherTeam, otherGuild, otherChannel]);
 });
@@ -324,7 +326,7 @@ describe('Connection test permissions and environment boundaries', () => {
 describe('Activation confirms the reviewed destinations', () => {
   const resume = (values = {}) => connection(post({ action: 'resume', expectedGuildId: guild, expectedConfigVersion: 1, ...values }), context);
   const command = (interactionId: string) => withDiscordContext(context, () => executeDiscordCommand({
-    id: interactionId, guild_id: guild, member: { user: { id: '100000000000000087' }, permissions: '32' },
+    id: interactionId, guild_id: guild, member: { user: { id: captainDiscordId }, permissions: '32' },
     data: { options: [{ name: 'reprendre' }] },
   }));
   it('returns destination data together with its exact connection version, including an empty route list', async () => {

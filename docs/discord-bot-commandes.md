@@ -1,15 +1,15 @@
 # Commandes du bot Discord NXT5
 
-Version du 22 septembre 2026. Ce document décrit le code préparé dans ce checkout, pas un déploiement, un enregistrement des commandes ou un envoi réel. Les tests utilisent une base PostgreSQL locale et un transport Discord simulé.
+Version du 23 septembre 2026. Ce document décrit le code préparé dans ce checkout, pas un déploiement, un enregistrement des commandes ou un envoi réel. Les tests utilisent une base PostgreSQL locale et un transport Discord simulé.
 
 ## Parcours et droits
 
 `/nxt help` et `/nxt aide` ouvrent le même guide privé : accueil, compte, préparation, games et bilan, reviews, installation. Les boutons Précédent / Accueil / Suivant et le sélecteur changent uniquement la page d’aide. Le catalogue par catégories provient du même fichier que l’enregistrement des commandes : [discord-command.js](../shared/discord-command.js). Aucune liaison n’est nécessaire pour lire l’aide.
 
-La liaison d’un **serveur à une équipe** et celle d’un **compte personnel** sont distinctes :
+La liaison d’un **serveur à une équipe** et celle d’un **compte personnel** sont distinctes. Après avoir invité le bot sur le serveur :
 
-1. Le responsable invite le bot, crée un code dans NXT5 et utilise `/nxt connecter`. Plusieurs équipes peuvent partager le même serveur, chacune avec ses destinations.
-2. Le membre lance `/nxt compte lier`, ouvre son lien privé, se connecte sur NXT5 et confirme son compte. Il revient dans Discord, vérifie les deux comptes affichés et confirme la liaison. Le lien expire après dix minutes et n’accorde aucune appartenance à une équipe.
+1. Chaque personne, **y compris le responsable qui installe le bot**, lance `/nxt compte lier`, ouvre son lien privé, se connecte sur NXT5 et confirme son compte. Elle revient dans Discord, vérifie les deux comptes affichés et confirme la liaison. Le lien expire après dix minutes et n’accorde aucune appartenance à une équipe.
+2. Le responsable crée le code de son équipe dans NXT5 avec **le même compte que celui lié à Discord** et utilise `/nxt connecter code:…`. Il doit être propriétaire ou capitaine NXT5 de cette équipe et disposer de la permission Discord **Gérer le serveur** ou **Administrateur**. Seul le créateur du code peut l’utiliser. Plusieurs équipes peuvent partager le même serveur, chacune avec ses destinations.
 3. `/nxt equipe liste` montre uniquement ses équipes autorisées reliées à ce serveur. `/nxt equipe choisir nom:…` mémorise un choix **par personne et par serveur** ; il ne change pas l’équipe des autres membres.
 4. Chaque consultation, bouton et confirmation retrouve les droits actuels du compte NXT5. Un changement d’équipe active ne détourne pas une confirmation : celle-ci conserve l’équipe de son aperçu.
 
@@ -21,7 +21,9 @@ Un compte Discord ne peut être lié qu’à un compte NXT5 et réciproquement. 
 | Compte lié | Consultation ou révocation de sa propre association. |
 | Membre | Compte lié et appartenance NXT5 à l’équipe concernée, reliée au serveur courant. |
 | Staff | Propriétaire, capitaine, coach, assistant, analyste, manager ou board NXT5. |
-| Responsable | Propriétaire ou capitaine NXT5 pour les nouveaux réglages. Les anciennes commandes de connexion, statut, pause et reprise conservent leur contrôle de gestion du serveur Discord ; le code de connexion provient d’un propriétaire/capitaine NXT5. |
+| Responsable | Compte personnel lié, propriétaire ou capitaine NXT5 de l’équipe concernée. `/nxt connecter`, `/nxt statut`, `/nxt pause` et `/nxt reprendre` exigent aussi la permission Discord **Gérer le serveur** ou **Administrateur**. Pour connecter, le compte lié doit être le créateur du code. |
+
+Sur un serveur partagé, gérer le serveur Discord ne donne aucun accès aux autres équipes NXT5. Les suggestions de `statut`, `pause` et `reprendre` ne proposent que les équipes dont le compte lié est propriétaire ou capitaine ; saisir le nom ou l’identifiant d’une autre équipe ne contourne pas ce contrôle. Les commandes de lecture et leurs menus restent limités aux équipes dont le compte est membre. Les liens NXT5 revérifient également les droits sur le site.
 
 La commande racine est découvrable par tous (`default_member_permissions: null`). Cela n’accorde aucun accès aux données : les contrôles serveur restent appliqués commande par commande. Les interactions sont limitées aux serveurs, pas aux messages privés.
 
@@ -105,7 +107,7 @@ Les options obligatoires figurent sous la forme `nom:<valeur>` ; les options fac
 
 | Commande | Usage | Accès |
 | --- | --- | --- |
-| `/nxt connecter code:<valeur>` | Relier le serveur à une équipe NXT5. | Responsable |
+| `/nxt connecter code:<valeur>` | Après `/nxt compte lier`, utiliser son propre code pour relier son équipe. | Responsable |
 | `/nxt statut [equipe:<valeur>]` | Afficher l’état de la connexion. | Responsable |
 | `/nxt pause [equipe:<valeur>]` | Suspendre les publications de l’équipe. | Responsable |
 | `/nxt reprendre [equipe:<valeur>]` | Reprendre les publications de l’équipe. | Responsable |
@@ -217,7 +219,7 @@ Ordre de validation :
    node tools/register-discord-commands.mjs --guild=IDENTIFIANT_DU_SERVEUR
    ```
 
-5. Vérifier sur ce serveur : guide, liaison personnelle, sélection entre équipes, refus d’accès d’un autre membre, aperçu/annulation/confirmation, présence, review et lecture versionnée. Les tests d’envoi sont explicites. Contrôler aussi un événement annulé, une connexion mise en pause et la tâche hébergée de cinq minutes.
+5. Vérifier sur ce serveur : guide, liaison personnelle **avant connexion de l’équipe**, refus d’un code créé par un autre compte, sélection entre équipes et refus d’accès à une autre équipe même pour un gestionnaire du serveur Discord. Contrôler aussi aperçu/annulation/confirmation, présence, review et lecture versionnée, événement annulé, connexion mise en pause et tâche hébergée de cinq minutes. Les tests d’envoi sont explicites.
 6. Après validation du pilote, enregistrer la même commande pour l’application publique :
 
    ```sh
