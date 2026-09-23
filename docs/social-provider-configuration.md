@@ -22,7 +22,9 @@ Pour un environnement de recette, utiliser une origine HTTPS fixe et des identif
 
 Le projet Google Cloud **NXT5**, identifiant `nxt5-509508`, et son client **NXT5 Web — production** sont créés. [Ouvrir Google Auth Platform](https://console.cloud.google.com/auth/overview?project=nxt5-509508&supportedpurview=project). Audience externe, état Google **En production**, contact d’assistance confirmé et règlement Google accepté avec l’autorisation explicite du propriétaire. Les pages publiques ci-dessous sont enregistrées. Les seuls scopes déclarés sont `openid` et `userinfo.email`, tous deux non sensibles.
 
-L’identifiant client et son secret sont configurés dans Netlify, limités aux **Functions** et à la **production** ; le secret est marqué `is_secret`. `SOCIAL_AUTH_SITE_ORIGIN` est également configuré. `GOOGLE_AUTH_ENABLED` reste à `false` jusqu’au déploiement validé du code et de la migration. Aucun secret n’est conservé dans le dépôt, la documentation ou les variables du navigateur.
+L’identifiant client et son secret sont configurés dans Netlify, limités aux **Functions** et à la **production** ; le secret est marqué `is_secret`. `SOCIAL_AUTH_SITE_ORIGIN` est également configuré. Pour la mise en service, passer `GOOGLE_AUTH_ENABLED` à `true` après réussite du contrôle Netlify de la PR, puis déployer en production : le build applique la migration avant la publication des fonctions. Aucun secret n’est conservé dans le dépôt, la documentation ou les variables du navigateur.
+
+Google ne demande pas de validation des accès aux données pour les deux scopes retenus. La validation du nom NXT5 nécessite également une preuve de propriété de `https://nxt5.org/`. La balise publique `google-site-verification` fournie par Google Search Console est conservée dans `index.html` ; elle n’est pas un secret OAuth. Après sa publication, terminer la validation de propriété dans Search Console, puis relancer la validation du branding dans Google Auth Platform.
 
 Valeurs enregistrées pour le client Web :
 
@@ -41,7 +43,7 @@ Google est la première connexion à mettre en service. Apple et Discord restent
 
 État de déploiement relevé en lecture seule le 23 septembre avant activation : production sur `af09e80`, migration sociale et table `social_identities` absentes. La prévisualisation hérite actuellement du même `DATABASE_URL` que la production via le contexte `all` : elle ne constitue donc pas un environnement de recette isolé. Prévoir une base distincte pour des essais OAuth isolés ; toute migration sur la connexion actuelle affecterait la production.
 
-La branche sociale intègre désormais les corrections de sécurité de `9e30f58` : atomicité de la récupération, version de compte `xmin`, revalidation des sessions et protection des journaux. TypeScript et la construction Vite réussissent après composition ; aucune nouvelle exécution locale des tests n’a été lancée pour cette intégration. La vérification Netlify de la PR reste à consulter avant fusion et activation.
+La branche sociale intègre les corrections de sécurité de `9e30f58` ainsi que le design et les pages légales de `af09e80` : atomicité de la récupération, version de compte `xmin`, revalidation des sessions et protection des journaux. TypeScript et la construction Vite réussissent après composition ; aucune nouvelle exécution locale des tests n’a été lancée pour cette intégration. La vérification Netlify du dernier commit de la PR doit réussir avant fusion et activation.
 
 ### Paramètres techniques
 
