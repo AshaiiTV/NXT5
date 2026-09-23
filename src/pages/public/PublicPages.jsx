@@ -8,6 +8,7 @@ import { isSafeInternalPath } from "../../app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
+import { RiotLogin, RiotNotice, riotCallbackStatus } from "../../components/account/RiotAccount.jsx";
 import "./public-information.css";
 function MarketingPreview() {
   const metrics = [
@@ -199,6 +200,7 @@ export const LEGAL_PAGES = {
     sections: [
       ["Responsable du traitement", "Le responsable du traitement est l’éditeur non professionnel de NXT5. Les demandes relatives aux données personnelles s’effectuent par message privé via le canal indiqué sur la page Contact. N’envoyez aucune donnée sensible dans un salon Discord public."],
       ["Données de compte et de sécurité", "NXT5 traite l’adresse e-mail, le pseudonyme, le mot de passe sous forme hachée, les préférences de notification, les dates de création et de dernière activité du compte, ainsi que l’état d’envoi d’un éventuel rappel d’inactivité. Pour sécuriser les connexions, le service traite aussi un identifiant de session haché, l’adresse IP, le navigateur utilisé, les tentatives récentes et des journaux d’actions."],
+      ["Association Riot Sign On — ajout du 23 septembre 2026", "L’association d’un compte Riot est facultative et disponible uniquement lorsque Riot Sign On est activé sur NXT5. À ta demande, tu t’authentifies directement auprès de Riot Games, qui transmet à NXT5 un identifiant de compte stable (PUUID) et ton Riot ID public (nom de jeu et tag). NXT5 conserve ces informations, leur lien avec ton compte NXT5 et les dates de l’association pour vérifier cette identité et permettre les connexions suivantes. Le Riot ID déclaré dans un roster ne prouve pas la propriété du compte. Aucun compte NXT5 n’est créé ni fusionné automatiquement. NXT5 ne reçoit pas ton mot de passe Riot et ne conserve pas de jeton d’accès ou de renouvellement Riot pour cette fonctionnalité. L’association et ses informations sont supprimées lors de la dissociation dans Paramètres ou de la suppression de ton compte NXT5. Ton mot de passe NXT5 reste utilisable après la dissociation. Riot traite l’authentification selon sa propre politique de confidentialité ; les données de ton équipe ne lui sont pas transmises par ce parcours."],
       ["Données d’équipe et de jeu", "Le service peut traiter les équipes, rôles et invitations, profils joueurs, Riot IDs, disponibilités, objectifs, notes de coaching, compositions, champion pools, reviews, Game IDs, fichiers de match importés, chronologies de partie, statistiques et pseudonymes publics des participants. Certaines notes peuvent contenir des appréciations rédigées par le staff de l’équipe."],
       ["Mesure de fréquentation — ajout du 14 septembre 2026", "Avec ton consentement préalable, NXT5 mesure les pages consultées, la durée active et le défilement, les sources de visite, les libellés de campagnes, la catégorie d’appareil, la famille du navigateur, le pays approximatif fourni par l’hébergeur et certaines actions réussies (création de compte, connexion, demande d’accès). Des identifiants aléatoires distinguent les navigateurs et les sessions : ces données sont pseudonymisées, pas anonymes. Elles ne sont pas rattachées aux comptes, aux données d’équipe ou aux e-mails. Les paramètres d’URL, les jetons, les contenus saisis et l’adresse IP ne sont pas enregistrés dans les statistiques. Les pages administrateur et les parcours de réinitialisation sont exclus. Les données et preuves de choix sont hébergées par Netlify et Neon, accessibles uniquement à l’administrateur de plateforme, et supprimées automatiquement au terme de leur durée de conservation de 180 jours. Les traitements techniques de sécurité et les journaux propres à l’hébergeur restent distincts. Tu peux refuser sans limiter le service et retirer ton accord à tout moment avec « Gérer mes cookies » dans le pied de page. Le retrait arrête les collectes futures ; les données déjà collectées restent soumises à la durée annoncée et à tes droits d’effacement via la page Contact. La base juridique de cette mesure est ton consentement."],
       ["Demandes d’accès et offres en préparation — ajout du 8 septembre 2026", "Le formulaire Tarifs recueille ton nom de contact, ton e-mail, le nom de ton équipe, ton rôle, la formule souhaitée, le payeur envisagé et ton intention d’achat. Le message libre est facultatif. Ton accord pour être recontacté, sa version et sa date sont enregistrés avec la demande. Ces informations servent uniquement à répondre à ta demande et à préparer l’offre avec les équipes intéressées ; elles sont accessibles à l’administration NXT5 et hébergées par Netlify et Neon. Les coordonnées, réponses et notes de suivi sont supprimées après six mois à compter de la demande, lors du nettoyage quotidien. Aucune inscription à une newsletter ni aucun paiement n’en résulte. Tu peux demander la rectification ou la suppression de ta demande et retirer ton accord par le canal privé de la page Contact."],
@@ -237,6 +239,7 @@ export const LEGAL_PAGES = {
     intro: "NXT5 utilise des cookies nécessaires au service et, uniquement avec ton accord, une mesure interne de fréquentation. Aucun cookie publicitaire n’est utilisé. Politique de mesure d’audience du 14 septembre 2026.",
     sections: [
       ["Cookie de session rb_session", "Ce cookie interne permet de reconnaître une session authentifiée et de protéger l’accès au compte. Il contient un jeton aléatoire ; seule son empreinte est conservée en base. Il est HttpOnly, Secure en production et SameSite=Lax. Sa durée est de 12 heures, ou de 30 jours lorsque l’option « Rester connecté » est activée."],
+      ["Cookie temporaire Riot — ajout du 23 septembre 2026", "Lorsque tu démarres une connexion ou une association Riot, le cookie nécessaire __Host-nxt5_riot_flow relie cette demande à ton navigateur pendant cinq minutes au maximum. Il est Secure, HttpOnly et SameSite=Lax ; il ne contient ni mot de passe ni jeton d’accès Riot. L’état de vérification côté serveur expire également après cinq minutes et ne peut être utilisé qu’une fois. Il est supprimé au retour de Riot ; les demandes abandonnées et expirées sont supprimées lors d’un nouveau démarrage ou du prochain nettoyage quotidien. Ce cookie ne sert pas à mesurer la fréquentation."],
       ["Préférences locales", "Le navigateur peut conserver localement le choix « Rester connecté », le mode de performance graphique et le masquage du guide débutant. Ces valeurs ne servent pas à suivre la navigation et restent sur l’appareil jusqu’à leur remplacement ou leur suppression dans les réglages du navigateur."],
       ["Ton choix", "Le bandeau propose « Tout refuser », « Personnaliser » et « Tout accepter ». La mesure reste désactivée avant ton accord. Le cookie nécessaire nxt5_audience_consent mémorise une référence opaque à ton choix pendant 180 jours. La preuve comprend la version du texte, le choix et les dates correspondantes. Le cookie nécessaire nxt5_audience_optout peut conserver un refus pendant 180 jours et arrête aussi le suivi si la synchronisation avec le serveur échoue."],
       ["Cookies de mesure, facultatifs", "Après acceptation seulement, nxt5_audience_visitor distingue un navigateur pendant 180 jours maximum sans prolongation automatique. nxt5_audience_session regroupe la navigation en sessions de 30 minutes d’inactivité, dans la limite de validité du consentement. Ces cookies internes sont HttpOnly, Secure en HTTPS et SameSite=Lax. Ils contiennent des identifiants aléatoires ; aucun nom, e-mail ou identifiant de compte n’est ajouté aux statistiques."],
@@ -603,7 +606,10 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const querySuffix = window.location.search || "";
+  const riotStatus = riotCallbackStatus();
+  const queryParams = new URLSearchParams(window.location.search);
+  if (riotStatus === "not_linked") queryParams.set("next", "/parametres");
+  const querySuffix = queryParams.size ? `?${queryParams.toString()}` : "";
 
   function patch(key, value) { setForm((current) => ({ ...current, [key]: value })); }
 
@@ -618,7 +624,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
       if (result.user?.id && !result.user.is_platform_admin) void trackAudienceEvent(isRegister ? "signup" : "login");
       writeRememberPreference(rememberMe);
       pushToast({ type: "green", title: isRegister ?"Compte créé" : "Connexion réussie", text: "Bienvenue sur NXT5." });
-      const params = new URLSearchParams(window.location.search);
+      const params = new URLSearchParams(querySuffix);
       const hasInvite = params.has("invite");
       const next = params.get("next");
       const destination = hasInvite
@@ -674,6 +680,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
             <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Connexion</a>
             <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Créer un compte</a>
           </div>
+          {riotStatus && <div className="mt-4"><RiotNotice status={riotStatus} /></div>}
           <form onSubmit={submit} className="mt-5 space-y-4">
             <TextInput label={isRegister ? "E-mail" : "E-mail ou ancien pseudo"} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : "joueur@exemple.com ou ancien pseudo"} type={isRegister ? "email" : "text"} required icon={Mail} />
             {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" required icon={UserPlus} />}
@@ -683,6 +690,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
             {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
             <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
           </form>
+          {!isRegister && <RiotLogin rememberMe={rememberMe} disabled={loading} />}
           {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-cyan-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
           <p className="mt-4 text-center text-sm font-semibold text-slate-300">
             {isRegister ?"Déjà inscrit ?" : "Pas encore de compte ?"}

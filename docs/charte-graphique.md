@@ -556,3 +556,13 @@ Lors d’une évolution visuelle demandée, mettre à jour ce Markdown, sa versi
 Les boutons partagés, liens présentés comme boutons, onglets et boutons de navigation utilisent `--nxt5-radius-button: 0.125rem` (2 px). Le rayon précédent de 12 px, et la proposition intermédiaire de 8 px, restaient trop arrondis. Les actions « Copier Main Team » et « Copier Subs » de la page Équipe suivent cette règle commune, dans leurs états actif et désactivé.
 
 Les champs gardent le token `--nxt5-radius-control` ; les panneaux, avatars, badges et pistes des interrupteurs conservent leur forme. Le badge d’équipe « AH » de la capture est un badge, pas un bouton. Le CTA conserve son texte bleu nuit sur le dégradé de marque et son contraste corrigé. Les variantes de bouton ne peuvent pas réintroduire un rayon plus grand que 2 px.
+
+## Correction du symbole et parcours Riot (23 septembre 2026)
+
+Cette correction utilisateur prime sur la ligne historique « Symbole compact » de la section 4 : les fichiers web `public/assets/nxt5-mark.png` et `nxt5-mark-160.webp` sont interdits, car la branche droite du trident y manque. Utiliser le logo complet ou `public/assets/nxt5-loader-favicon.png` et sa variante `nxt5-loader-favicon-256.webp`, après contrôle visuel des trois branches. Le fichier homonyme de NXT5 Importer est un dessin distinct ; cette correction ne demande pas sa suppression.
+
+- La connexion conserve son formulaire NXT5 habituel. « Se connecter avec Riot » est une action secondaire explicite, réservée à une association déjà existante. Tant que Riot Sign On n’est pas disponible, l’action est désactivée et un texte le signale.
+- Dans Paramètres, un `Surface` partagé présente le compte Riot, son état réel et son Riot ID sans exposer le PUUID. L’association est distincte du roster. Réutiliser `Button`, `TextInput`, `Badge` et les icônes Lucide, sans créer une identité graphique Riot de substitution.
+- Un compte Riot non associé conduit à une connexion ou inscription NXT5 habituelle, puis à une association explicite dans Paramètres. Aucun formulaire ne recueille un mot de passe Riot.
+- La dissociation demande le mot de passe NXT5 et annonce le moyen de connexion de secours. Le formulaire de confirmation s’ouvre sur place, place le focus dans le champ, se ferme avec Annuler ou Échap et restitue le focus au déclencheur.
+- Les statuts de retour et les erreurs ont un texte compréhensible, un rôle accessible et reçoivent le focus. Les boutons de 44 px, les retours à la ligne des Riot IDs, les états d’attente et les commandes empilées préservent l’usage au clavier et sur mobile. Les animations éventuelles sont celles des composants partagés et respectent le mouvement réduit.

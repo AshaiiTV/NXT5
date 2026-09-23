@@ -5,6 +5,7 @@ import { configurePerformanceMode, currentPerformanceMode, setStoredPerformanceM
 import { Badge, Button, PageHeader, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { cx, preciseErrorText } from "../../app/helpers.js";
 import AccountSubscription from "../../components/account/AccountSubscription.jsx";
+import { RiotAccount } from "../../components/account/RiotAccount.jsx";
 
 function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
@@ -123,6 +124,8 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
           <Button type="submit" icon={savingPassword ? Loader2 : ShieldCheck} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ? "Mise à jour..." : "Changer le mot de passe"}</Button>
         </form>
       </Surface>
+
+      <RiotAccount key={user?.id} />
 
       <Surface className="p-5 xl:col-span-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

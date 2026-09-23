@@ -179,7 +179,7 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
   };
 }
 
-export async function createSession({ userId, context, request, remember = true }: { userId: string; context: Context; request: Request; remember?: boolean }): Promise<void> {
+export async function createSession({ userId, context, request, remember = true, riotIdentity }: { userId: string; context: Context; request: Request; remember?: boolean; riotIdentity?: { puuid: string; revision: string | number } }): Promise<void> {
   await ensureSessionSchema();
   await purgeExpiredAuthData();
   const rawToken = crypto.randomBytes(48).toString('base64url');
@@ -192,7 +192,24 @@ export async function createSession({ userId, context, request, remember = true 
     .trim()
     .slice(0, 64);
 
-  await sql`
+  if (riotIdentity) {
+    // Serialize with unlink_riot_identity's user lock. Its revocation epoch
+    // prevents a callback already exchanging a code from restoring access.
+    const inserted = await sql`
+      with authorized_user as materialized (
+        select id from users
+        where id = ${userId} and riot_link_revision = ${riotIdentity.revision}
+          and password_hash <> '' and account_name <> ''
+        for update
+      )
+      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+      select authorized_user.id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
+      from authorized_user join riot_identities on riot_identities.user_id = authorized_user.id
+      where riot_identities.puuid = ${riotIdentity.puuid}
+      returning id
+    `;
+    if (!inserted.length) throw Object.assign(new Error('Association Riot modifiée. Reconnecte-toi à NXT5.'), { status: 401, code: 'RIOT_ACCOUNT_CHANGED' });
+  } else await sql`
     insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
     values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
   `;
