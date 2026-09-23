@@ -26,7 +26,7 @@ export default async function handler(request: Request, context: Context): Promi
     await ensureUserNotificationColumns(sql);
     await ensureEmailVerificationColumns();
     const currentRows = await sql`
-      select email, password_hash
+      select email, password_hash, xmin::text as account_version
       from users
       where id = ${user.id}
       limit 1
@@ -51,19 +51,32 @@ export default async function handler(request: Request, context: Context): Promi
     const verifyTokenHash = verifyToken ? sha256(verifyToken) : null;
     const verifyExpiresAt = emailChanged ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
 
+    // Revoke links delivered to the old address in the same transaction as the
+    // address change, sharing the account version with recovery operations.
     const rows = emailChanged ? await sql`
-      update users
-      set name = ${name},
-          email = ${email},
-          email_verified = false,
-          email_verify_token = ${verifyTokenHash},
-          email_verify_expires_at = ${verifyExpiresAt},
-          updated_at = now()
-      where id = ${user.id}
-        and email is not distinct from ${current.email}
-        and password_hash = ${current.password_hash}
-      returning id, account_name, email, email_verified, name, notif_match, notif_report,
-                notif_inactivity, inactivity_notice_pending, created_at
+      with changed_account as (
+        update users
+        set name = ${name},
+            email = ${email},
+            email_verified = false,
+            email_verify_token = ${verifyTokenHash},
+            email_verify_expires_at = ${verifyExpiresAt},
+            updated_at = now()
+        where id = ${user.id}
+          and email is not distinct from ${current.email}
+          and password_hash = ${current.password_hash}
+          and xmin = ${current.account_version}::xid
+        returning id, account_name, email, email_verified, name, notif_match, notif_report,
+                  notif_inactivity, inactivity_notice_pending, created_at
+      ), invalidated_tokens as (
+        update password_reset_tokens set used_at = now()
+        where user_id in (select id from changed_account) and used_at is null
+      ), logged_change as (
+        insert into audit_logs (user_id, action, entity_type, metadata)
+        select id, 'auth.profile_update', 'user', ${JSON.stringify({ name, email, emailChanged })}::jsonb
+        from changed_account
+      )
+      select * from changed_account
     ` : await sql`
       update users
       set name = ${name},
@@ -83,7 +96,7 @@ export default async function handler(request: Request, context: Context): Promi
       await sendEmailVerificationEmail({ to: email, token: verifyToken });
     }
 
-    await sql`
+    if (!emailChanged) await sql`
       insert into audit_logs (user_id, action, entity_type, metadata)
       values (${user.id}, 'auth.profile_update', 'user', ${JSON.stringify({ name, email, emailChanged })}::jsonb)
     `;

@@ -1,6 +1,8 @@
 const SECURITY_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
+  'Content-Security-Policy': "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+  'Cross-Origin-Resource-Policy': 'same-origin',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Referrer-Policy': 'no-referrer',
@@ -35,12 +37,11 @@ export function assertTrustedMutation(request: Request): void {
 }
 
 export function json(data: unknown, status = 200, headers: HeadersInit = {}) {
+  const responseHeaders = new Headers(SECURITY_HEADERS);
+  new Headers(headers).forEach((value, name) => responseHeaders.set(name, value));
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
-      ...SECURITY_HEADERS,
-      ...headers
-    }
+    headers: responseHeaders
   });
 }
 
@@ -100,18 +101,23 @@ export function assertMethod(request: Request, method: string): void {
 }
 
 export function handleError(err: any): Response {
-  console.error(err);
-  const status = err.status || 500;
+  const failure = err && typeof err === 'object' ? err : {};
+  const status = Number.isInteger(failure.status) && failure.status >= 400 && failure.status <= 599 ? failure.status : 500;
+  const code = typeof failure.code === 'string' && /^[A-Z0-9_]{1,80}$/.test(failure.code) ? failure.code : null;
+  // Errors from database and HTTP clients can contain queries, parameters,
+  // credentials or whole upstream responses. Only log bounded metadata.
+  console.error('[http] Request failed.', { status, code: code || 'UNEXPECTED_ERROR' });
   const serverSideFailure = status >= 500;
-  const payload: Record<string, unknown> = { error: serverSideFailure ? (err.publicMessage || 'Erreur serveur.') : (err.message || 'Erreur serveur.') };
+  const message = serverSideFailure ? failure.publicMessage : failure.message;
+  const payload: Record<string, unknown> = { error: typeof message === 'string' && message ? message : 'Erreur serveur.' };
   const headers: Record<string, string> = {};
-  if (err.code) payload.code = err.code;
-  if (err.retryAfter) {
-    payload.retryAfter = err.retryAfter;
-    headers['Retry-After'] = String(err.retryAfter);
+  if (code) payload.code = code;
+  if (typeof failure.retryAfter === 'number' && Number.isFinite(failure.retryAfter) && failure.retryAfter > 0) {
+    payload.retryAfter = failure.retryAfter;
+    headers['Retry-After'] = String(Math.ceil(failure.retryAfter));
   }
-  if (err.riotStatus) payload.riotStatus = err.riotStatus;
-  if (!serverSideFailure && err.missing) payload.missing = err.missing;
-  if (!serverSideFailure && err.details) payload.details = err.details;
+  if (Number.isInteger(failure.riotStatus) && failure.riotStatus >= 400 && failure.riotStatus <= 599) payload.riotStatus = failure.riotStatus;
+  if (!serverSideFailure && failure.missing) payload.missing = failure.missing;
+  if (!serverSideFailure && failure.details) payload.details = failure.details;
   return json(payload, status, headers);
 }

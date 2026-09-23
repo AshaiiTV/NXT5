@@ -1,0 +1,7 @@
+# NXT5 : suivre les consignes de Contact et joindre l'equipe en message prive.
+# Ne pas publier de details sensibles dans un salon communautaire.
+Contact: https://nxt5.org/contact
+Expires: 2027-03-23T00:00:00Z
+Preferred-Languages: fr, en
+Canonical: https://nxt5.org/.well-known/security.txt
+Policy: https://github.com/AshaiiTV/NXT5/blob/main/SECURITY.md
