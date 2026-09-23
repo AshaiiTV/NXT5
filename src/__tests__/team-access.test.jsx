@@ -46,14 +46,23 @@ describe("joining and creating another team", () => {
     expect(props.setSelectedTeamId).toHaveBeenCalledWith("second");
     expect(props.refreshAll).toHaveBeenCalledWith({ teamId: "second" });
   });
-  it("provides a visible way to enter or dismiss the second-team forms", async () => {
-    const renderer = await render(<Teams {...teamProps()} />);
+  it("keeps second-team access out of the roster header and opens or dismisses it through navigation", async () => {
+    const props = teamProps();
+    const renderer = await render(<Teams {...props} />);
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
-    const open = () => renderer.root.findAllByType(Button).find((button) => button.props.children === "Créer ou rejoindre une équipe");
-    act(() => open().props.onClick());
+    expect(renderer.root.findAllByType(Button).some((button) => button.props.children === "Créer ou rejoindre une équipe")).toBe(false);
+    const showTeamAccessForms = async () => {
+      window.history.pushState({}, "", "/equipes?create=1");
+      await act(async () => renderer.update(<Suspense fallback={<p>Chargement</p>}><Teams {...props} routeSearch={window.location.search} /></Suspense>));
+    };
+    await showTeamAccessForms();
     expect(renderer.root.findAllByType("form")).toHaveLength(2);
+    expect(renderer.root.findByProps({ label: "Nom de team" })).toBeTruthy();
+    expect(renderer.root.findByProps({ label: "Code d’invitation" })).toBeTruthy();
     act(() => renderer.root.findAllByType(Button).find((button) => button.props.children === "Fermer les formulaires").props.onClick());
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    expect(window.location.pathname).toBe("/equipes");
+    expect(window.location.search).toBe("");
   });
 });
 
