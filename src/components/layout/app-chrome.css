@@ -101,18 +101,36 @@
 .nxt5-assistant-launcher:hover { background: #12283d; border-color: #5bafc4; }
 .nxt5-assistant-launcher > span:first-child { display: flex; color: #9be5f2; }
 
-.nxt5-compass { margin-bottom: 1.75rem; padding: 1.25rem 1.5rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel, 16px); background: rgba(15, 29, 47, .5); }
-.nxt5-compass-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.nxt5-compass-heading h2 { color: #f3f7ff; font-size: .9375rem; font-weight: 650; }
-.nxt5-compass-heading p { margin-top: .25rem; color: #a7bbd3; font-size: .8125rem; line-height: 1.6; }
-.nxt5-compass-actions { display: flex; align-items: center; flex: 0 0 auto; gap: .5rem; }
-.nxt5-compass-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0 0; padding: 1rem 0 0; border-top: 1px solid var(--nxt5-border); list-style: none; }
-.nxt5-compass-step { display: flex; align-items: center; gap: .625rem; width: 100%; min-height: 44px; text-align: left; border-radius: var(--nxt5-radius-button); }
-.nxt5-compass-step:hover .nxt5-compass-label, .nxt5-compass-step.is-current .nxt5-compass-label { color: #a9eff9; }
-.nxt5-compass-number { display: grid; place-items: center; flex: 0 0 auto; width: 30px; height: 30px; border: 1px solid #31445e; border-radius: 50%; color: #bed0e7; font-size: .75rem; font-weight: 650; }
+.nxt5-compass { container-type: inline-size; margin-bottom: 1.25rem; padding: 1.25rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel, 16px); background: var(--nxt5-surface); }
+.nxt5-compass-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.nxt5-compass-heading h2 { color: var(--nxt5-text); font-size: 1rem; font-weight: 650; }
+.nxt5-compass-heading p { margin-top: .25rem; color: var(--nxt5-muted); font-size: .8125rem; line-height: 1.6; }
+.nxt5-compass-next { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-left: .875rem; border-left: 2px solid var(--nxt5-accent); }
+.nxt5-compass-next > div { min-width: 0; }
+.nxt5-compass-next-title { color: var(--nxt5-text); font-size: .875rem; font-weight: 600; }
+.nxt5-compass-next-title span { color: var(--nxt5-text-secondary); font-weight: 400; }
+.nxt5-compass-next p + p { margin-top: .25rem; color: var(--nxt5-muted); font-size: .8125rem; line-height: 1.6; }
+.nxt5-compass-next > button { flex-shrink: 0; }
+.nxt5-compass-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin: 1rem 0 0; padding: .875rem 0 0; border-top: 1px solid var(--nxt5-border); list-style: none; }
+.nxt5-compass-step { display: flex; align-items: center; gap: .625rem; width: 100%; min-height: 64px; padding: .5rem; border: 1px solid transparent; text-align: left; border-radius: var(--nxt5-radius-button); transition: background 160ms, border-color 160ms; }
+.nxt5-compass-step:not(:disabled):hover { background: rgba(103, 232, 249, .05); border-color: var(--nxt5-border-strong); }
+.nxt5-compass-step.is-current { background: rgba(103, 232, 249, .04); border-color: rgba(103, 232, 249, .2); }
+.nxt5-compass-step:disabled { cursor: not-allowed; }
+.nxt5-compass-step-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.nxt5-compass-number { display: grid; place-items: center; flex: 0 0 auto; width: 28px; height: 28px; border: 1px solid #31445e; border-radius: 50%; color: #bed0e7; font-size: .75rem; font-weight: 650; }
 .nxt5-compass-step.is-done .nxt5-compass-number { background: rgba(110, 231, 183, .08); color: #9ce7c5; border-color: rgba(110, 231, 183, .22); }
-.nxt5-compass-label { display: block; color: #dae6f4; font-size: .8125rem; font-weight: 600; line-height: 1.5; }
-.nxt5-compass-detail { display: block; color: #9eb3cd; font-size: .75rem; line-height: 1.5; }
+.nxt5-compass-label { display: block; color: var(--nxt5-text-secondary); font-size: .875rem; font-weight: 600; line-height: 1.5; }
+.nxt5-compass-step.is-current .nxt5-compass-label { color: var(--nxt5-accent); }
+.nxt5-compass-detail { display: block; color: var(--nxt5-muted); font-size: .75rem; line-height: 1.5; }
+.nxt5-compass-arrow { flex-shrink: 0; color: var(--nxt5-muted); }
+.nxt5-compass-resume { margin-bottom: 1rem; }
+@container (max-width: 850px) { .nxt5-compass-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 520px) {
+  .nxt5-compass-next { align-items: stretch; flex-direction: column; gap: .75rem; }
+  .nxt5-compass-next > button { align-self: flex-start; }
+  .nxt5-compass-steps { grid-template-columns: 1fr; gap: .25rem; }
+  .nxt5-compass-step { min-height: 52px; }
+}
 .nxt5-api-banner { display: flex; align-items: flex-start; gap: .875rem; margin-bottom: 1.5rem; padding: 1rem 1.25rem; border: 1px solid rgba(251, 191, 36, .2); border-radius: var(--nxt5-radius-panel); background: rgba(120, 73, 8, .10); color: #f8dcb1; }
 .nxt5-api-banner > svg { flex: 0 0 auto; margin-top: .125rem; }
 .nxt5-api-banner > div { flex: 1; min-width: 0; }
@@ -139,11 +157,6 @@
   .nxt5-topbar { padding-inline: 2.5rem; }
 }
 
-@media (max-width: 1100px) {
-  .nxt5-compass-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .nxt5-compass-heading { align-items: flex-start; flex-wrap: wrap; }
-}
-
 @media (max-width: 767px) {
   .nxt5-workspace-main { padding: 1.25rem 1rem; }
   .nxt5-topbar { min-height: 68px; padding: .5rem .75rem; gap: .5rem; }
@@ -158,10 +171,6 @@
   .nxt5-topbar-actions:has(> .nxt5-chrome-icon-button) .nxt5-team-menu { right: -2.75rem; }
   .nxt5-compass { padding: 1rem; }
   .nxt5-compass-heading { gap: .75rem; }
-  .nxt5-compass-actions { width: 100%; justify-content: space-between; }
-  .nxt5-compass-steps { gap: .75rem; margin-top: 1rem; }
-  .nxt5-compass-step { align-items: flex-start; gap: .5rem; }
-  .nxt5-compass-number { margin-top: .125rem; width: 26px; height: 26px; }
   .nxt5-compass-detail { margin-top: .125rem; }
   .nxt5-api-banner { flex-wrap: wrap; padding: 1rem; }
   .nxt5-api-banner > button { margin-left: 2.125rem; }

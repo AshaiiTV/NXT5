@@ -13,6 +13,7 @@ import {
   readRoute,
 } from "../app/routing.js";
 import { Button } from "../components/ui/Core.jsx";
+import { getOnboardingSteps } from "../utils/onboarding.js";
 import { BeginnerCompass, Sidebar } from "../components/layout/AppChrome.jsx";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -57,15 +58,36 @@ describe("unified Games navigation", () => {
     act(() => renderer.unmount());
   });
 
-  it("uses the import entry point from guided onboarding", () => {
-    const onImport = vi.fn();
+  it("opens the actual import form from guided onboarding", () => {
     const onNavigate = vi.fn();
+    const steps = getOnboardingSteps({
+      currentTeam: { id: "team", owner_id: "owner" }, user: { id: "owner" },
+      data: { players: ["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => ({ id: role, role, team_id: "team" })), matches: [], reports: [] },
+    });
     let renderer;
-    act(() => { renderer = TestRenderer.create(<BeginnerCompass active="matches" currentTeam={{ id: "team" }} data={{ players: Array.from({ length: 5 }, (_, id) => ({ id, team_id: "team" })), matches: [], reports: [] }} onNavigate={onNavigate} onImport={onImport} onClose={vi.fn()} />); });
-    const next = renderer.root.findAllByType(Button).find((button) => button.props.children?.some?.((child) => typeof child === "string" && child.includes("Continuer")));
+    act(() => { renderer = TestRenderer.create(<BeginnerCompass steps={steps} onNavigate={onNavigate} onClose={vi.fn()} />); });
+    const next = renderer.root.findByType(Button);
+    expect(next.props.children).toBe("Importer une game");
     act(() => next.props.onClick());
-    expect(onImport).toHaveBeenCalledOnce();
-    expect(onNavigate).not.toHaveBeenCalled();
+    expect(onNavigate).toHaveBeenCalledWith("/games?import=1");
+    act(() => renderer.unmount());
+  });
+
+  it("opens roster management from both the next action and the roster step", () => {
+    const onNavigate = vi.fn(), onClose = vi.fn();
+    const steps = getOnboardingSteps({ data: {}, currentTeam: { id: "team", owner_id: "owner" }, user: { id: "owner" } });
+    let renderer;
+    act(() => { renderer = TestRenderer.create(<BeginnerCompass steps={steps} onNavigate={onNavigate} onClose={onClose} />); });
+    act(() => renderer.root.findByType(Button).props.onClick());
+    const roster = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Roster :"));
+    act(() => roster.props.onClick());
+    expect(onNavigate.mock.calls).toEqual([["/gestion-equipe?section=roster"], ["/gestion-equipe?section=roster"]]);
+    const review = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Review :"));
+    expect(review.props.disabled).toBe(true);
+    act(() => review.props.onClick());
+    expect(onNavigate).toHaveBeenCalledTimes(2);
+    act(() => renderer.root.findByProps({ "aria-label": "Masquer le démarrage guidé" }).props.onClick());
+    expect(onClose).toHaveBeenCalledOnce();
     act(() => renderer.unmount());
   });
 });
