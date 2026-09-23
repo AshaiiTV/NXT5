@@ -49,3 +49,17 @@
     grid-column: auto;
   }
 }
+
+/* A roster is a list of people, with portraits as supporting context. */
+.nxt5-roster-champion { display: flex; min-width: 0; align-items: center; gap: .65rem; padding: .25rem 0; }
+.nxt5-roster-portrait { position: relative; width: 36px; height: 36px; flex-shrink: 0; overflow: hidden; border-radius: 6px; background: var(--nxt5-surface-raised); }
+.nxt5-roster-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.nxt5-roster table td { padding-block: .875rem; }
+.nxt5-roster table thead { font-weight: 600; letter-spacing: .08em; }
+.nxt5-roster-section-header > .nxt5-badge { align-self: flex-start; }
+@media (max-width: 767px) {
+  .nxt5-roster-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .nxt5-roster-actions > button { padding-inline: .5rem; font-size: .75rem; }
+  .nxt5-roster { margin-top: 1rem; }
+  .nxt5-roster-section-header p { font-weight: 400; }
+}

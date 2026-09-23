@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BarChart3, Crown, Settings, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { cx } from "../../app/helpers.js";
+import "./brand.css";
 
 export function ResponsiveImage({ src, sources = [], alt, className = "", fetchPriority, ...props }) {
   const priorityProps = fetchPriority ? { fetchpriority: fetchPriority } : {};
@@ -73,5 +74,5 @@ export function RoleIcon({ role, className = "h-7 w-7", lightweight = false }) {
   ];
   const source = sources[sourceIndex];
   if (!source) return <span className={cx("inline-flex items-center justify-center text-[0.62rem] font-black text-cyan-100", className)}>{roleKey}</span>;
-  return <img src={source} alt={roleKey} className={cx("object-contain opacity-95 invert", !lightweight && "drop-shadow-[0_0_10px_rgba(96,165,250,.28)]", className)} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
+  return <img src={source} alt={roleKey} className={cx("nxt5-role-icon object-contain", className)} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
 }

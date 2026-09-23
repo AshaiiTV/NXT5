@@ -1,5 +1,7 @@
 .nxt5-games-page [hidden] { display: none !important; }
-.games-library-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.nxt5-games-page > .nxt5-page-header { padding-bottom: 18px; margin-bottom: 18px; }
+.nxt5-games-page .ig-description { display: none; }
+.games-library-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .games-library-toolbar > div { flex: 0 1 360px; min-width: 0; }
 .games-team-record { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; color: var(--nxt5-text); font-size: 13px; }
 .games-team-record > span { color: #dbe8f8; font-size: 12px; }
@@ -33,8 +35,10 @@
 .games-group-picks label > span > span { color: #dbe8f8; font-size: 12px; }
 .games-group-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 20px; }
 @media (max-width: 640px) {
+  .nxt5-games-page > .nxt5-page-header { padding-bottom: 16px; margin-bottom: 16px; }
+  .nxt5-games-page .ig-surface { margin-top: 12px; }
   .games-library-toolbar > div { flex-basis: 100%; }
-  .games-team-record { gap: 8px 12px; }
+  .games-team-record { gap: 4px 12px; }
   .games-detail-toolbar { gap: 12px; }
   .games-detail-actions { width: 100%; }
   .games-detail-actions > button:not([aria-label]), .games-detail-actions > .discord-share-action { flex: 1 1 max-content; }
