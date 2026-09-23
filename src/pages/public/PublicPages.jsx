@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { LEGAL_UPDATED_LABEL, LEGAL_VERSION, NXT5_CONTACT_EMAIL, NXT5_EDITOR_NAME } from "../../../shared/legal.js";
-import { ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, ChevronRight, FileText, Loader2, Lock, Mail, Shield, Swords, Target, UserPlus, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, ChevronRight, FileText, Heart, Loader2, Lock, Mail, Shield, Swords, Target, UserPlus, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { AUDIENCE_CONSENT_VERSION, openCookieSettings, trackAudienceEvent } from "../../app/audience-client.js";
 import { cx, readRememberPreference, writeRememberPreference } from "../../app/helpers.js";
 import { isSafeInternalPath } from "../../app/routing.js";
+import { SUPPORT_URL } from "../../app/support.js";
 import { Nxt5Wordmark, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
@@ -104,7 +105,10 @@ export function LegalLinks({ navigate }) {
   return (
     <footer className="nxt5-footer">
       <div className="nxt5-footer-main">
-        <p className="nxt5-footer-signature">Cinq rôles. Une même direction.</p>
+        <div className="nxt5-footer-project">
+          <p className="nxt5-footer-signature">Cinq rôles. Une même direction.</p>
+          {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-footer-support"><Heart aria-hidden="true" size={16} />Soutenir NXT5</PublicTextLink>}
+        </div>
         <nav aria-label="Informations et contact">
           {INFORMATION_GROUPS.map(({ href, label }) => (
             <PublicTextLink key={href} href={href} navigate={navigate}>{label}</PublicTextLink>
@@ -339,6 +343,7 @@ export function HomeScreen({ navigate }) {
       <AmbientBackground />
       <SiteHeader navigate={navigate} simple>
         <a href="#features" className="nxt5-entry-header-link">Fonctionnalités</a>
+        {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-entry-header-link">Soutenir NXT5</PublicTextLink>}
         <LinkButton href="/connexion" navigate={navigate} variant="ghost">Se connecter</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main">
