@@ -9,8 +9,9 @@
     "start": "electron .",
     "test": "node --test test/*.test.mjs",
     "dist:win": "electron-builder --win portable --x64",
-    "dist:mac": "electron-builder --mac zip --x64",
-    "dist:mac:arm": "electron-builder --mac zip --arm64"
+    "dist:mac": "node scripts/build-mac.mjs x64",
+    "dist:mac:arm": "node scripts/build-mac.mjs arm64",
+    "dist:mac:preview": "node scripts/build-mac.mjs --preview"
   },
   "devDependencies": {
     "electron": "44.2.0",
@@ -67,7 +68,12 @@
         }
       ],
       "artifactName": "NXT5-Importer-Mac-${arch}-${version}.${ext}",
-      "hardenedRuntime": true
+      "type": "distribution",
+      "forceCodeSigning": true,
+      "hardenedRuntime": true,
+      "notarize": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     }
   }
 }

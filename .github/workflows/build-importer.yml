@@ -55,6 +55,9 @@ jobs:
   build-mac:
     name: macOS app
     runs-on: macos-latest
+    timeout-minutes: 60
+    outputs:
+      release_ready: ${{ steps.signed-mac.outputs.ready }}
     defaults:
       run:
         working-directory: importer-app
@@ -76,37 +79,45 @@ jobs:
       - name: Test importer
         run: pnpm test
 
-      - name: Build mac app
-        run: |
-          pnpm run dist:mac
-          pnpm run dist:mac:arm
+      - name: Build mac preview (no Apple credentials)
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # This step has no Apple secrets; only the explicit ad-hoc identity is used.
+          CSC_FOR_PULL_REQUEST: "true"
+        run: pnpm run dist:mac:preview
 
-      - name: Package mac apps
+      - name: Sign, notarize and verify mac release archives
+        id: signed-mac
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          VERSION="$(node -p "require('./package.json').version")"
-          make_zip() {
-            ARCH="$1"
-            APP_DIR="release/mac"
-            if [ "$ARCH" = "arm64" ]; then
-              APP_DIR="release/mac-arm64"
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Apple signing secret missing: $name. See importer-app/docs/macos-signing.md."
+              exit 1
             fi
-            APP_PATH="$APP_DIR/NXT5 Importer.app"
-            rm -f "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
-            ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "release/NXT5-Importer-Mac-${ARCH}-${VERSION}.zip"
-          }
-          make_zip x64
-          make_zip arm64
+          done
+          pnpm run dist:mac
+          pnpm run dist:mac:arm
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Upload mac app
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: NXT5-Importer-macOS
-          path: importer-app/release/*.zip
+          name: ${{ steps.signed-mac.outputs.ready == 'true' && 'NXT5-Importer-macOS' || 'NXT5-Importer-macOS-preview' }}
+          path: ${{ steps.signed-mac.outputs.ready == 'true' && 'importer-app/release/*.zip' || 'importer-app/release-preview/*.zip' }}
+          if-no-files-found: error
 
   publish-release:
     name: Publish latest importer release
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && needs.build-mac.outputs.release_ready == 'true'
     runs-on: ubuntu-latest
     needs: [verify-web, build-windows, build-mac]
     permissions:
@@ -125,4 +136,7 @@ jobs:
           body: "Dernière version de NXT5 Importer."
           make_latest: true
           overwrite_files: true
-          files: release-artifacts/**/*
+          fail_on_unmatched_files: true
+          files: |
+            release-artifacts/NXT5-Importer-Windows/*.exe
+            release-artifacts/NXT5-Importer-macOS/*.zip

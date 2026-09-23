@@ -124,7 +124,7 @@ Raccourcis : `Ctrl/⌘ + Entrée` pour exporter, `Ctrl/⌘ + 1`, `2`, `3` pour c
 
 Les mises à jour sont proposées pour l’architecture de l’appareil. Les liens du site suivent la dernière version publiée ; une version demandée explicitement n’est jamais remplacée par une autre.
 
-À chaque pull request touchant `importer-app`, GitHub Actions exécute les tests puis compile les trois applications. La publication de la release est réservée à `main`, après réussite des tests web et des builds desktop.
+À chaque pull request touchant `importer-app`, GitHub Actions exécute les tests puis compile Windows et les deux aperçus Mac. La publication de la release est réservée à `main`, après réussite des tests web et des builds desktop. Les archives Mac de release doivent être signées avec Developer ID, notarisées et acceptées par Gatekeeper après extraction du ZIP final. Configurer les accès Apple suivant [la procédure de signature macOS](importer-app/docs/macos-signing.md) avant d'activer cette publication.
 
 ```sh
 cd importer-app
@@ -132,6 +132,7 @@ pnpm install --frozen-lockfile
 pnpm test
 pnpm start
 # Packaging : pnpm dist:win / pnpm dist:mac / pnpm dist:mac:arm
+# Aperçus Mac sans compte Apple : pnpm dist:mac:preview
 ```
 
 La fenêtre d’enregistrement reprend le dossier du dernier export réussi, même après réouverture de l’application. Si ce dossier n’existe plus, elle revient dans Téléchargements.
