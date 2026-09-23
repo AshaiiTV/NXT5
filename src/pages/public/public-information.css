@@ -16,6 +16,9 @@
   padding-top: 1.25rem;
 }
 .nxt5-footer-signature { margin: 0; font-size: 0.8125rem; font-weight: 600; }
+.nxt5-footer-project { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1.25rem; }
+.nxt5-footer-support { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; font-size: 0.8125rem; font-weight: 600; color: var(--nxt5-accent); }
+.nxt5-footer-support:hover { text-decoration: underline; text-underline-offset: 5px; }
 .nxt5-footer nav { display: flex; flex-wrap: wrap; gap: 0 1.5rem; }
 .nxt5-footer nav a, .nxt5-back-to-top {
   display: inline-flex;

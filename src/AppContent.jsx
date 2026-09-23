@@ -32,6 +32,7 @@ const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.
 
 const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
 const SocialPage = lazy(() => import("./pages/public/SocialPage.jsx"));
+const SupportPage = lazy(() => import("./pages/public/SupportPage.jsx").then((module) => ({ default: module.SupportPage })));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
 
@@ -416,7 +417,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
   const adminPage = adminPageFromRoute(route);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
@@ -426,6 +427,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label="Chargement de l’administration"><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
   if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
+  if (route.path === "/soutenir") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement de la page de soutien…</div>}><SupportPage navigate={navigate} user={user} /></Suspense>;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
@@ -514,6 +516,7 @@ export default function NXT5() {
       "/reglement": "Règlement — NXT5",
       "/contact": "Contact — NXT5",
       "/reseaux": "Réseaux — NXT5",
+      "/soutenir": "Soutenir NXT5",
       "/admin/integrations": "Intégrations — NXT5",
     };
     const adminPage = adminPageFromRoute(route);
