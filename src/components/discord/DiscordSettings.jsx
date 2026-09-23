@@ -3,6 +3,7 @@ import { Check, Copy, Link2, Loader2, MessageSquare, Pause, Play, Plus, RefreshC
 import { apiFetch } from "../../api/client.js";
 import { Badge, Button, SelectInput, Surface } from "../ui/Core.jsx";
 import { DiscordFeedback, DiscordHistory, DiscordLink, DiscordPreview, discordPost, discordQuery, useDiscordAction, useDiscordResource } from "./discord-shared.jsx";
+import DiscordRoleAccess from "./DiscordRoleAccess.jsx";
 
 export default function DiscordSettings({ teamId, teamName, canManage = false, canPublish = false }) {
   if (!teamId || (!canManage && !canPublish)) return null;
@@ -140,6 +141,7 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
           </section>
         </div>
       </section>
+      {connected && <DiscordRoleAccess key={connection.guildId} teamId={teamId} metadata={status} canManage={canManage} revision={revision} />}
       {connected && canManage && !connection.paused && <div className="discord-actions"><Button type="button" variant="ghost" icon={Pause} disabled={action.busy} onClick={() => action.run("team-discord-connection", { teamId, action: "pause" }, reload, "La diffusion de l’équipe est en pause.")}>Mettre en pause</Button><p className="discord-help">La pause arrête les publications de cette équipe. Les messages déjà envoyés restent visibles.</p></div>}
       <DiscordHistory teamId={teamId} canPublish={canPublish || canManage} revision={revision} showSummary={connected} />
       <details className="discord-guide discord-section"><summary>Aide et résolution des problèmes</summary><ConnectionHelp /><h4>Le salon n’apparaît pas ou l’envoi échoue ?</h4><p>Un responsable peut ouvrir « Mettre à jour les autorisations » dans Inviter ou Choisir les salons, puis valider l’autorisation Administrateur dans Discord. Reviens ensuite dans Choisir les salons et clique sur « Actualiser les salons ».</p><h4>Que reçoivent les membres du salon ?</h4><p>Le résultat, les statistiques et le visuel de la game. Les notes privées du staff ne sont pas incluses. Le message et son image sont lisibles dans Discord ; ouvrir la game dans NXT5 exige toujours les droits de l’équipe.</p><h4>Un message est « à vérifier » ?</h4><p>Consulte le salon avant toute action. L’historique permet d’associer le message déjà envoyé ; un envoi incertain n’est pas renvoyé automatiquement.</p></details>

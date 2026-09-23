@@ -109,7 +109,7 @@ describe("Discord settings and permissions", () => {
     expect(denied.props.disabled).toBe(true);
     await choose(renderer, "Choisir un salon du serveur", "channel-2");
     await click(renderer, "Ajouter ce salon");
-    const form = renderer.root.findByType("form");
+    const form = renderer.root.findAllByType("form").find((item) => text(item).includes("Enregistrer les destinations"));
     await act(async () => form.props.onSubmit({ preventDefault() {} }));
     const request = posts().find(([path]) => path === "team-discord-routes");
     expect(request[1].routes[1]).toEqual({ channelId: "channel-2", categoryIds: [], includeHints: false, mentionRoleId: null, enabled: true });
@@ -747,7 +747,7 @@ describe("Discord channel picker", () => {
     expect(routeFields(renderer)).toHaveLength(1);
     expect(routeFields(renderer)[0].findAllByType("select")[0].props.value).toBe("channel-2");
     expect(posts()).toEqual([]);
-    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    await act(async () => renderer.root.findAllByType("form").find((item) => text(item).includes("Enregistrer les destinations")).props.onSubmit({ preventDefault() {} }));
     expect(posts()).toEqual([["team-discord-routes", { teamId: "team", routes: [{ channelId: "channel-2", categoryIds: [], includeHints: false, mentionRoleId: null, enabled: true }] }]]);
   });
 

@@ -7,7 +7,7 @@ export async function beginDiscordAccountLink(interaction: any) {
   assertDiscordArtifactEnvironment();
   const discordUser = interaction.member.user;
   const [linked] = await sql('select id from discord_user_links where discord_user_id=$1', [discordUser.id]);
-  if (linked) return accountStatus(discordUser.id, interaction.guild_id);
+  if (linked) return accountStatus(discordUser.id, interaction.guild_id, interaction.member.roles);
   const token = randomBytes(24).toString('hex');
   const label = String(discordUser.global_name || discordUser.username || discordUser.id).slice(0, 100);
   await sql(`insert into discord_account_link_requests(token_hash,discord_user_id,guild_id,discord_label,expires_at)
@@ -17,9 +17,9 @@ export async function beginDiscordAccountLink(interaction: any) {
     { type: 2, style: 1, label: 'Vérifier la liaison', custom_id: 'nxt:link:review:' + token },
   ] }] };
 }
-export async function accountStatus(discordUserId: string, guildId?: string) {
+export async function accountStatus(discordUserId: string, guildId?: string, memberRoles?: unknown) {
   const link = await botIdentity(discordUserId);
-  const teams = guildId ? (await botTeams(discordUserId, guildId)).teams : [];
+  const teams = guildId ? (await botTeams(discordUserId, guildId, memberRoles)).teams : [];
   const selected = teams.length === 1 ? teams[0] : teams.find(team => team.selected);
   return botMessage('Ton compte Discord', 'Compte NXT5 : **' + botText(link.account_name, 100) + '**.\nÉquipe active : ' + (selected ? botText(selected.name, 100) : 'à choisir') + '.\nUtilise `/nxt equipe choisir` pour sélectionner une équipe de ce serveur.\n`/nxt compte delier` révoque cette liaison personnelle.');
 }
@@ -71,7 +71,7 @@ export async function executeDiscordAccount(interaction: any, command: string, o
   const discordUserId = interaction.member.user.id;
   const guildId = interaction.guild_id;
   if (command === 'compte lier') return beginDiscordAccountLink(interaction);
-  if (command === 'compte profil') return accountStatus(discordUserId, guildId);
+  if (command === 'compte profil') return accountStatus(discordUserId, guildId, interaction.member.roles);
   if (command === 'compte delier') {
     const identity = await botIdentity(discordUserId);
     const token = await saveBotPending({ teamId: '', teamName: '', guildId, discordUserId, userId: identity.user_id,
@@ -82,13 +82,13 @@ export async function executeDiscordAccount(interaction: any, command: string, o
     ] }] };
   }
   if (command === 'equipe liste') {
-    const { teams } = await botTeams(discordUserId, guildId);
+    const { teams } = await botTeams(discordUserId, guildId, interaction.member.roles);
     return botMessage('Tes équipes sur ce serveur', teams.length ? teams.slice(0, 20).map(team => '**' + botText(team.name, 100) + '**' + (team.selected ? ' · sélectionnée' : '') + '\n`' + team.id + '`').join('\n\n') + (teams.length > 20 ? '\n\n20 premières équipes affichées. Utilise les suggestions de /nxt equipe choisir pour rechercher les autres.' : '') : 'Aucune de tes équipes NXT5 n’est reliée à ce serveur. Le capitaine peut la connecter dans NXT5.');
   }
   if (command === 'equipe choisir') {
     assertDiscordArtifactEnvironment();
     if (typeof options.nom !== 'string' || !options.nom.trim()) return executeDiscordAccount(interaction, 'equipe liste', {});
-    const ctx = await resolveBotContext(discordUserId, guildId, options.nom);
+    const ctx = await resolveBotContext(discordUserId, guildId, options.nom, interaction.member.roles);
     await sql(`insert into discord_user_team_choices(link_id,guild_id,team_id) values($1,$2,$3)
       on conflict(link_id,guild_id) do update set team_id=excluded.team_id,updated_at=now()`, [ctx.identityId, guildId, ctx.teamId]);
     return botMessage('Équipe sélectionnée', '**' + botText(ctx.teamName, 100) + '** devient ton équipe par défaut sur ce serveur.');

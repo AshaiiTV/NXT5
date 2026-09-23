@@ -8,7 +8,7 @@ export interface BotContext {
   teamName: string; role: string; canStaff: boolean; canManage: boolean;
   playerIds: string[]; timezone: string; identityId?: string;
 }
-export const BOT_SCHEMA_VERSIONS = ['discord-bot-identity-20260922-v1', 'discord-bot-workflows-20260922-v1'];
+export const BOT_SCHEMA_VERSIONS = ['discord-bot-identity-20260922-v1', 'discord-bot-workflows-20260922-v1', 'discord-bot-role-access-20260923-v1'];
 export async function assertDiscordBotSchemaReady() {
   try {
     const rows = await sql('select migration_key from app_schema_migrations where migration_key=any($1::text[])', [BOT_SCHEMA_VERSIONS]);
@@ -45,24 +45,38 @@ export async function botIdentity(discordUserId: string) {
   if (!link) throw discordError('Lie ton compte avec /nxt compte lier, puis choisis ton équipe avec /nxt equipe choisir.', 403, 'DISCORD_ACCOUNT_REQUIRED');
   return link;
 }
-export async function botTeams(discordUserId: string, guildId: string) {
+export function botMemberRoleIds(memberRoles: unknown): string[] {
+  return Array.isArray(memberRoles) ? memberRoles.filter((role): role is string =>
+    typeof role === 'string' && /^[0-9]{17,20}$/.test(role)) : [];
+}
+export async function botTeams(discordUserId: string, guildId: string, memberRoles?: unknown) {
   const identity = await botIdentity(discordUserId);
-  const teams = await sql(`select t.id,t.name,t.tag,t.owner_id,tm.role,coalesce(s.timezone,'Europe/Paris') as timezone,
-      coalesce(ch.team_id=t.id,false) as selected
+  const candidates = await sql(`select t.id,t.name,t.tag,t.owner_id,tm.role,coalesce(s.timezone,'Europe/Paris') as timezone,
+      coalesce(ch.team_id=t.id,false) as selected,ch.team_id as selected_team_id,
+      a.team_id as role_access_team_id,
+      a.guild_id as role_access_guild_id,to_jsonb(a.role_ids) as role_access_ids
     from teams t join discord_connections c on c.team_id=t.id and c.guild_id=$2 and c.status<>'disconnected'
     left join team_members tm on tm.team_id=t.id and tm.user_id=$1
     left join discord_bot_settings s on s.team_id=t.id
     left join discord_user_team_choices ch on ch.link_id=$3 and ch.guild_id=$2
+    left join discord_bot_role_access a on a.team_id=t.id
     where (t.owner_id=$1 or tm.user_id=$1) order by lower(t.name),t.id`, [identity.user_id, guildId, identity.id]);
-  return { identity, teams };
+  // Discord signs member.roles on every interaction. An absent/malformed role
+  // list must never authorize a configured team; server administrators are not
+  // exempt from that team's explicit role policy.
+  const roles = new Set(botMemberRoleIds(memberRoles));
+  const teams = candidates.filter(team => !team.role_access_team_id ||
+    (team.role_access_guild_id === guildId && Array.isArray(team.role_access_ids) && team.role_access_ids.length > 0
+      && team.role_access_ids.some((role: unknown) => typeof role === 'string' && roles.has(role))));
+  return { identity, teams, hasSelectedTeam: candidates.some(team => Boolean(team.selected_team_id)) };
 }
-export async function resolveBotContext(discordUserId: string, guildId: string, selected?: string): Promise<BotContext> {
-  const { identity, teams } = await botTeams(discordUserId, guildId);
+export async function resolveBotContext(discordUserId: string, guildId: string, selected?: string, memberRoles?: unknown): Promise<BotContext> {
+  const { identity, teams, hasSelectedTeam } = await botTeams(discordUserId, guildId, memberRoles);
   let candidates = teams;
   if (selected) {
     const id = /^[a-f0-9-]{36}$/i.test(selected) ? uuid(selected, 'Équipe').toLowerCase() : null;
     candidates = teams.filter(team => id ? team.id === id : team.name.toLowerCase() === selected.toLowerCase());
-  } else if (teams.length > 1) candidates = teams.filter(team => team.selected);
+  } else if (hasSelectedTeam || teams.length > 1) candidates = teams.filter(team => team.selected);
   if (candidates.length !== 1) throw discordError(teams.length && !selected ? 'Choisis ton équipe avec /nxt equipe choisir nom. Le choix est propre à ce serveur.' : 'Cette équipe n’est pas accessible à ton compte sur ce serveur.', 403, 'DISCORD_TEAM_FORBIDDEN');
   const team = candidates[0];
   const role = team.owner_id === identity.user_id ? 'owner' : String(team.role);

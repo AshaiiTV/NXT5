@@ -81,10 +81,10 @@ beforeAll(async () => {
   const schema=readFileSync(new URL('../../database/schema.sql',import.meta.url),'utf8')
     .replace('create extension if not exists pgcrypto;','').replaceAll('gen_random_bytes(5)',"decode('0000000000','hex')");
   await database.pg.exec(schema);
-  for (const filename of ['20260915_discord_publications.sql','20260921_discord_shared_servers.sql','20260922_discord_bot_identity.sql','20260922_discord_bot_workflows.sql']) {
+  for (const filename of ['20260915_discord_publications.sql','20260921_discord_shared_servers.sql','20260922_discord_bot_identity.sql','20260922_discord_bot_workflows.sql','20260923_discord_bot_role_access.sql']) {
     await database.pg.exec(readFileSync(new URL('../../database/migrations/'+filename,import.meta.url),'utf8'));
   }
-  await database.pg.exec("create table app_schema_migrations(migration_key text primary key);insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1')");
+  await database.pg.exec("create table app_schema_migrations(migration_key text primary key);insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1')");
 },30_000);
 beforeEach(async () => {
   database.failQuery=null;transport.enabled=true;
@@ -551,7 +551,7 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
 describe('Discord command replay and server linkage against PostgreSQL',() => {
   const interaction=(id:string,name:string,code?:string)=>({id,guild_id:'100000000000000001',member:{user:{id:'100000000000000050'},permissions:'32'},data:{options:[{name,options:code ? [{name:'code',value:code}]:[]}]}});
   const otherTeam='a0000000-0000-4000-8000-000000000006';
-  const accessDenied='Lie ton compte Discord à NXT5 et vérifie que tu es responsable de cette équipe.';
+  const accessDenied='Lie ton compte Discord à NXT5 et vérifie que tu es responsable de cette équipe et possèdes son rôle Discord autorisé.';
   beforeEach(async () => {
     await database.pg.query("insert into discord_user_links(discord_user_id,user_id,discord_label) values('100000000000000050',$1,'Test owner')",[userId]);
   });

@@ -53,11 +53,11 @@ beforeAll(async () => {
   state.pg = new PGlite();
   await state.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000','hex')"));
-  for (const file of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql']) {
+  for (const file of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql', '20260923_discord_bot_role_access.sql']) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + file, import.meta.url), 'utf8'));
   }
   await state.pg.exec(`create table app_schema_migrations(migration_key text primary key);
-    insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1')`);
+    insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1')`);
 }, 30_000);
 beforeEach(async () => {
   for (const [key, value] of Object.entries({ PUBLIC_SITE_URL: 'https://nxt5.example', CONTEXT: 'production', DISCORD_APPLICATION_ID: app,

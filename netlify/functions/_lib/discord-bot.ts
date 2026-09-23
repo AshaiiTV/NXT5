@@ -49,7 +49,7 @@ export async function discordMemberTeamChoices(interaction: any) {
   await assertDiscordBotSchemaReady();
   await assertSubjectRateLimit('discord-member-autocomplete', interaction.guild_id + ':' + interaction.member.user.id, { limit: 60, windowSeconds: 60 });
   const query = focused.value.trim().toLowerCase();
-  const { teams } = await botTeams(interaction.member.user.id, interaction.guild_id);
+  const { teams } = await botTeams(interaction.member.user.id, interaction.guild_id, interaction.member.roles);
   return teams.filter(team => !query || `${team.name} ${team.tag || ''} ${team.id}`.toLowerCase().includes(query)).slice(0, 25)
     .map(team => ({ name: String(team.name).slice(0, 80) + ' · ' + team.id.slice(-8), value: team.id }));
 }
@@ -76,7 +76,7 @@ export async function openDiscordBotModal(interaction: any) {
   const token = String(interaction.data.custom_id).replace(/^nxt:modal:open:/, '');
   const pending = await loadBotPending(token, interaction.member.user.id, interaction.guild_id);
   if (pending.kind !== 'modal') throw discordError('Formulaire invalide.');
-  const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, pending.team_id);
+  const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, pending.team_id, interaction.member.roles);
   assertCommandRole(ctx, pending.command);
   const fields = pending.form?.fields;
   if (!Array.isArray(fields) || !fields.length || fields.length > 5) throw discordError('Formulaire indisponible.');
@@ -105,7 +105,7 @@ async function runBotComponent(interaction: any) {
       await loadBotPending(token, discordUserId, guildId, true);
       return unlinkDiscordAccount(discordUserId);
     }
-    const ctx = await resolveBotContext(discordUserId, guildId, pending.team_id);
+    const ctx = await resolveBotContext(discordUserId, guildId, pending.team_id, interaction.member.roles);
     assertCommandRole(ctx, pending.command);
     const options = { ...pending.options };
     const submitted = customId.startsWith('nxt:modal:submit:');
@@ -124,14 +124,14 @@ async function runBotComponent(interaction: any) {
     return runTeamCommand(ctx, pending.command, options, !submitted);
   }
   if (customId.startsWith('nxt:read:bilan:') || customId.startsWith('nxt:read:groupe:')) {
-    const ctx = await resolveBotContext(discordUserId, guildId, uuid(parts[3], 'Équipe'));
+    const ctx = await resolveBotContext(discordUserId, guildId, uuid(parts[3], 'Équipe'), interaction.member.roles);
     const value = interaction.data?.values?.[0];
     if (typeof value !== 'string') throw discordError('Choisis une période ou un groupe.');
     if (parts[2] === 'bilan' && !['semaine','mois','session'].includes(value)) throw discordError('Période invalide.');
     return runTeamCommand(ctx, 'bilan', parts[2] === 'bilan' ? { periode: value } : { periode: 'session', groupe: uuid(value, 'Groupe') });
   }
   if (customId.startsWith('nxt:read:game:') || customId.startsWith('nxt:read:review:')) {
-    const ctx = await resolveBotContext(discordUserId, guildId, uuid(parts[3], 'Équipe'));
+    const ctx = await resolveBotContext(discordUserId, guildId, uuid(parts[3], 'Équipe'), interaction.member.roles);
     const id = uuid(interaction.data?.values?.[0], parts[2] === 'game' ? 'Game' : 'Review');
     return runTeamCommand(ctx, parts[2] === 'game' ? 'game voir' : 'review voir', parts[2] === 'game' ? { game: id } : { review: id });
   }
@@ -142,7 +142,7 @@ async function runBotComponent(interaction: any) {
     if (!row) throw discordError('Ce contenu n’est plus disponible.', 404);
     const version = Number(parts[4]);
     if (!presence && (!Number.isSafeInteger(version) || version < 1)) throw discordError('La version de cette review est invalide. Ouvre la review actuelle.');
-    const ctx = await resolveBotContext(discordUserId, guildId, row.team_id);
+    const ctx = await resolveBotContext(discordUserId, guildId, row.team_id, interaction.member.roles);
     return runTeamCommand(ctx, presence ? 'presence repondre' : 'review lire', presence
       ? { evenement: id, statut: parts[3] } : { review: id, version });
   }
@@ -169,7 +169,7 @@ export async function executeDiscordBot(interaction: any) {
     if (parsed) {
       result = await executeDiscordAccount(interaction, parsed.command, parsed.options);
       if (!result) {
-        const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, parsed.options.equipe);
+        const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, parsed.options.equipe, interaction.member.roles);
         result = await runTeamCommand(ctx, parsed.command, parsed.options);
       }
     } else result = await runBotComponent(interaction);

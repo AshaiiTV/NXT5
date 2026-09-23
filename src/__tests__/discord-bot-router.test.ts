@@ -12,6 +12,7 @@ const id = (n: number) => `72000000-0000-4000-8000-${String(n).padStart(12, '0')
 const owner = id(1), coach = id(2), member = id(3), team = id(10), otherTeam = id(11), matchId = id(20);
 const app = '200000000000000001', guild = '200000000000000002', otherGuild = '200000000000000003';
 const coachDiscord = '200000000000000004', memberDiscord = '200000000000000005';
+const roleA = '200000000000000101', roleB = '200000000000000102';
 const keys = generateKeyPairSync('ed25519');
 const publicKey = (keys.publicKey.export({ format: 'der', type: 'spki' }) as Buffer).subarray(-32).toString('hex');
 let interactionSequence = 0;
@@ -26,6 +27,7 @@ function command(path: string, options: any = {}, discordId = memberDiscord) {
 function component(customId: string, discordId = memberDiscord, values?: string[]) {
   return { type: 3, member: person(discordId), data: { custom_id: customId, component_type: values ? 3 : 2, ...(values ? { values } : {}) } };
 }
+const withRoles = (data: any, roles: string[], permissions = '0') => ({ ...data, member: { ...data.member, roles, permissions } });
 function signed(data: any, changes: any = {}) {
   const payload = { id: String(210000000000000000n + BigInt(++interactionSequence)), application_id: app, guild_id: guild,
     token: 'test-interaction-token', ...data, ...changes };
@@ -53,11 +55,11 @@ beforeAll(async () => {
   state.pg = new PGlite();
   await state.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000','hex')"));
-  for (const file of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql']) {
+  for (const file of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql', '20260923_discord_bot_role_access.sql']) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + file, import.meta.url), 'utf8'));
   }
   await state.pg.exec(`create table app_schema_migrations(migration_key text primary key);
-    insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1')`);
+    insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1')`);
 }, 30_000);
 beforeEach(async () => {
   for (const [key, value] of Object.entries({ PUBLIC_SITE_URL: 'https://nxt5.example', CONTEXT: 'production', DISCORD_APPLICATION_ID: app,
@@ -83,6 +85,100 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(
 afterAll(async () => { await state.pg?.close(); });
 
 describe('Signed Discord HTTP bot routing', () => {
+  it('keeps each shared-server team behind its own Discord role across listing, selection, reads, legacy management and autocomplete', async () => {
+    await rows("insert into team_members(team_id,user_id,role) values($1,$2,'captain')", [otherTeam, member]);
+    await rows("update team_members set role='captain' where team_id=$1 and user_id=$2", [team, member]);
+    await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$3,$4),($2,$3,$5)',
+      [team, otherTeam, guild, [roleA], [roleB]]);
+
+    const accountWithoutRoles = await dispatch(command('equipe liste'));
+    expect(description(accountWithoutRoles)).not.toContain(team);
+    expect(description(accountWithoutRoles)).not.toContain(otherTeam);
+    const listA = await dispatch(withRoles(command('equipe liste'), [roleA]));
+    expect(description(listA)).toContain('Team A');
+    expect(description(listA)).not.toContain(otherTeam);
+    const listB = await dispatch(withRoles(command('equipe liste'), [roleB]));
+    expect(description(listB)).not.toContain(team);
+    expect(description(listB)).toContain(otherTeam);
+
+    const chooseB = await dispatch(withRoles(command('equipe choisir', { nom: otherTeam }), [roleA]));
+    expect(description(chooseB)).toContain('pas accessible');
+    expect(await rows('select team_id from discord_user_team_choices')).toEqual([]);
+    const readB = await dispatch(withRoles(command('derniere', { equipe: otherTeam }), [roleA], '32'));
+    expect(description(readB)).toContain('pas accessible');
+    const readA = await dispatch(withRoles(command('derniere', { equipe: team }), [roleA]));
+    expect(readA.message.embeds[0].title).toContain('Known opponent');
+
+    const legacy = (path: string, teamId: string, roles: string[]) => withRoles(command(path, { equipe: teamId }), roles, '32');
+    for (const path of ['statut', 'pause', 'reprendre']) {
+      const blocked = await dispatch(legacy(path, otherTeam, [roleA]));
+      expect(blocked.message.content).toContain('responsable de cette équipe');
+    }
+    expect((await rows('select status from discord_connections where team_id=$1', [otherTeam]))[0].status).toBe('active');
+    const status = await dispatch(legacy('statut', team, [roleA]));
+    expect(status.message.content).toContain('Team A');
+    const paused = await dispatch(legacy('pause', team, [roleA]));
+    expect(paused.message.content).toContain('Team A');
+    expect((await rows('select status from discord_connections where team_id=$1', [team]))[0].status).toBe('paused');
+
+    const legacyAutocomplete = (roles: string[]) => withRoles({ type: 4, member: person(), data: { name: 'nxt',
+      options: [{ name: 'pause', options: [{ name: 'equipe', value: '', focused: true }] }] } }, roles, '32');
+    expect((await dispatch(legacyAutocomplete([roleA]))).ack.data.choices.map((choice: any) => choice.value)).toEqual([team]);
+    expect((await dispatch(legacyAutocomplete([]))).ack.data.choices).toEqual([]);
+    const memberAutocomplete = (roles: string[]) => withRoles({ type: 4, member: person(), data: { name: 'nxt',
+      options: [{ type: 2, name: 'equipe', options: [{ type: 1, name: 'choisir', options: [{ name: 'nom', value: '', focused: true }] }] }] } }, roles);
+    expect((await dispatch(memberAutocomplete([roleB]))).ack.data.choices.map((choice: any) => choice.value)).toEqual([otherTeam]);
+    expect((await dispatch(memberAutocomplete([]))).ack.data.choices).toEqual([]);
+
+    await dispatch(withRoles(command('equipe choisir', { nom: otherTeam }), [roleB]));
+    expect((await rows('select team_id from discord_user_team_choices'))[0].team_id).toBe(otherTeam);
+    const noFallback = await dispatch(withRoles(command('stats equipe'), [roleA]));
+    expect(description(noFallback)).toContain('Choisis ton équipe');
+  });
+
+  it('rejects stale buttons and menus after a configured Discord role is removed', async () => {
+    await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3)', [team, guild, [roleA]]);
+    const list = await dispatch(withRoles(command('game chercher', { periode: 'semaine' }), [roleA]));
+    const menu = list.message.components[0].components[0];
+    const menuDenied = await dispatch(component(menu.custom_id, memberDiscord, [matchId]));
+    expect(description(menuDenied)).toContain('pas accessible');
+    expect(JSON.stringify(menuDenied.message)).not.toContain('Known opponent');
+    const menuAllowed = await dispatch(withRoles(component(menu.custom_id, memberDiscord, [matchId]), [roleA]));
+    expect(menuAllowed.message.embeds[0].title).toContain('Known opponent');
+
+    const preview = await dispatch(withRoles(command('objectifs definir', { objectif: 'Scoped objective' }, coachDiscord), [roleA]));
+    const confirm = button(preview.message, 'Confirmer');
+    const denied = await dispatch(component(confirm, coachDiscord));
+    expect(description(denied)).toContain('pas accessible');
+    expect(await rows('select title from discord_team_goals')).toEqual([]);
+    const allowed = await dispatch(withRoles(component(confirm, coachDiscord), [roleA]));
+    expect(allowed.message.embeds[0].title).toBe('Objectif créé');
+    expect(await rows('select title from discord_team_goals')).toEqual([{ title: 'Scoped objective' }]);
+  });
+
+  it('rechecks the Discord role at modal opening, submission and final confirmation', async () => {
+    await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3)', [team, guild, [roleA]]);
+    const start = new Date(Date.now() + 3 * 86_400_000);
+    await rows("insert into discord_team_events(id,team_id,title,event_type,starts_at,duration_minutes) values($1,$2,'Original','scrim',$3,60)", [id(40), team, start.toISOString()]);
+    const request = await dispatch(withRoles(command('evenement modifier', { evenement: id(40) }, coachDiscord), [roleA]));
+    const open = button(request.message, 'Ouvrir le formulaire');
+    expect(description(await dispatch(component(open, coachDiscord)))).toContain('pas accessible');
+    const opened = await dispatch(withRoles(component(open, coachDiscord), [roleA]));
+    expect(opened.ack.type).toBe(9);
+    const form = opened.ack.data;
+    const values = form.components.map((row: any) => ({ type: 1, components: row.components.map((input: any) => ({ type: 4,
+      custom_id: input.custom_id, value: input.custom_id === 'titre' ? 'Authorized change' : input.value || '' })) }));
+    const submission = { type: 5, member: person(coachDiscord), data: { custom_id: form.custom_id, components: values } };
+    expect(description(await dispatch(submission))).toContain('pas accessible');
+    expect((await rows('select title from discord_team_events where id=$1', [id(40)]))[0].title).toBe('Original');
+    const preview = await dispatch(withRoles(submission, [roleA]));
+    const confirm = button(preview.message, 'Confirmer');
+    expect(description(await dispatch(component(confirm, coachDiscord)))).toContain('pas accessible');
+    expect((await rows('select title from discord_team_events where id=$1', [id(40)]))[0].title).toBe('Original');
+    const done = await dispatch(withRoles(component(confirm, coachDiscord), [roleA]));
+    expect(done.message.embeds[0].title).toBe('Événement modifié');
+    expect((await rows('select title from discord_team_events where id=$1', [id(40)]))[0].title).toBe('Authorized change');
+  });
   it('keeps help immediately accessible and private without any personal account or database query', async () => {
     await rows('delete from discord_user_links');
     state.sql.mockClear();

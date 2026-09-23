@@ -8,7 +8,7 @@ import { assertDiscordSchemaReady } from './_lib/discord-queue';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { getDiscordGuild } from './_lib/discord-client';
 import { discordBotFailure, discordMemberTeamChoices, executeDiscordBot, immediateDiscordHelp, openDiscordBotModal, parseDiscordCommand } from './_lib/discord-bot';
-import { botIdentity, botTeams, resolveBotContext } from './_lib/discord-bot-common';
+import { assertDiscordBotSchemaReady, botIdentity, botMemberRoleIds, botTeams, resolveBotContext } from './_lib/discord-bot-common';
 import { discordError } from './_lib/discord-access';
 
 function responseMessage(content: string) {
@@ -31,8 +31,9 @@ export async function discordTeamChoices(interaction: any) {
   const option = command?.options?.find((item: any) => item.name === 'equipe' && item.focused === true);
   if (!teamCommands.includes(command?.name) || typeof option?.value !== 'string' || option.value.length > 100) return [];
   await assertDiscordSchemaReady();
+  await assertDiscordBotSchemaReady();
   await assertSubjectRateLimit('discord-autocomplete', interaction.guild_id + ':' + interaction.member.user.id, { limit: 60, windowSeconds: 60 });
-  const { identity, teams } = await botTeams(interaction.member.user.id, interaction.guild_id);
+  const { identity, teams } = await botTeams(interaction.member.user.id, interaction.guild_id, interaction.member.roles);
   const search = option.value.trim().toLowerCase();
   return teams.filter(team => team.owner_id === identity.user_id || ['owner', 'captain'].includes(team.role))
     .filter(team => !search || `${team.name} ${team.tag || ''} ${team.id}`.toLowerCase().includes(search))
@@ -72,9 +73,10 @@ export async function executeDiscordCommand(interaction: any): Promise<string> {
 }
 
 function commandFailureMessage(error:any) {
+  if (error?.code==='DISCORD_BOT_SCHEMA_REQUIRED') return error.message;
   if (error?.code==='23505' || error?.code==='22012') return 'La liaison a changé ou ce code a déjà été utilisé. Actualise NXT5 et réessaie.';
   if (error?.status===429) return 'Trop de commandes rapprochées. Patiente un instant puis réessaie.';
-  if (['DISCORD_ACCOUNT_REQUIRED', 'DISCORD_TEAM_FORBIDDEN', 'DISCORD_ROLE_FORBIDDEN'].includes(error?.code)) return 'Lie ton compte Discord à NXT5 et vérifie que tu es responsable de cette équipe.';
+  if (['DISCORD_ACCOUNT_REQUIRED', 'DISCORD_TEAM_FORBIDDEN', 'DISCORD_ROLE_FORBIDDEN'].includes(error?.code)) return 'Lie ton compte Discord à NXT5 et vérifie que tu es responsable de cette équipe et possèdes son rôle Discord autorisé.';
   return 'L’opération n’a pas pu aboutir. Vérifie la connexion dans NXT5 puis réessaie.';
 }
 
@@ -109,17 +111,24 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
   }
   if (command?.name === 'aide') return 'Invite le bot une seule fois sur ce serveur, puis relie chaque équipe avec son propre code /nxt connecter. Configure ses salons dans NXT5. Pour /nxt statut, /nxt pause et /nxt reprendre, choisis l’option equipe lorsque plusieurs équipes partagent le serveur. Chaque action concerne uniquement l’équipe choisie.';
   if (!teamCommands.includes(command?.name)) return 'Commande inconnue. Utilise /nxt aide.';
+  await assertDiscordBotSchemaReady();
   const option = command.options?.find((item: any) => item.name === 'equipe');
   if (option && (typeof option.value !== 'string' || !option.value.trim() || option.value.length > 100)) return 'Choisis une équipe dans les suggestions de l’option equipe.';
-  const ctx = await resolveBotContext(interaction.member.user.id, guildId, option?.value.trim() || undefined);
+  const ctx = await resolveBotContext(interaction.member.user.id, guildId, option?.value.trim() || undefined, interaction.member.roles);
   if (!ctx.canManage) throw discordError('Cette commande est réservée au responsable NXT5 de cette équipe.', 403, 'DISCORD_ROLE_FORBIDDEN');
   const [connection] = await sql(`select c.*,t.name as team_name from discord_connections c join teams t on t.id=c.team_id
     where c.team_id=$1 and c.guild_id=$2 and c.status<>'disconnected'`, [ctx.teamId, guildId]);
   if (!connection) throw discordError('Cette équipe n’est plus reliée à ce serveur.', 403, 'DISCORD_TEAM_FORBIDDEN');
+  const roleIds = botMemberRoleIds(interaction.member.roles);
+  const roleAccessStillValid = () => sql(`select 1/case when not exists (
+    select 1 from discord_bot_role_access a where a.team_id=$1
+      and (a.guild_id<>$2 or not (a.role_ids && $3::text[]))
+  ) then 1 else 0 end`, [ctx.teamId, guildId, roleIds]);
   if (command?.name === 'pause') {
     await sql.transaction([
       sql("select team_id from discord_connections where team_id=$1 for update",[connection.team_id]),
       sql("select 1/case when exists(select 1 from discord_user_links u join teams t on t.id=$1 left join team_members tm on tm.team_id=t.id and tm.user_id=u.user_id where u.discord_user_id=$2 and (t.owner_id=u.user_id or tm.role in ('owner','captain'))) then 1 else 0 end", [ctx.teamId, interaction.member.user.id]),
+      roleAccessStillValid(),
       sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end",[connection.team_id,guildId,connection.config_version]),
       sql("update discord_connections set status='paused',updated_at=now() where team_id=$1 and guild_id=$2", [connection.team_id, guildId]),
       sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(null,'discord.pause','team',$1,$2::jsonb)",[connection.team_id,JSON.stringify({guildId,discordUserId:interaction.member.user.id,interactionId:interaction.id,source:'discord'})]),
@@ -134,6 +143,7 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
     await sql.transaction([
       sql("select team_id from discord_connections where team_id=$1 for update",[connection.team_id]),
       sql("select 1/case when exists(select 1 from discord_user_links u join teams t on t.id=$1 left join team_members tm on tm.team_id=t.id and tm.user_id=u.user_id where u.discord_user_id=$2 and (t.owner_id=u.user_id or tm.role in ('owner','captain'))) then 1 else 0 end", [ctx.teamId, interaction.member.user.id]),
+      roleAccessStillValid(),
       sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end",[connection.team_id,guildId,connection.config_version]),
       sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1 and guild_id=$2", [connection.team_id, guildId]),
       sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(null,'discord.resume','team',$1,$2::jsonb)",[connection.team_id,JSON.stringify({guildId,discordUserId:interaction.member.user.id,interactionId:interaction.id,source:'discord'})]),

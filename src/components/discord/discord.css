@@ -37,6 +37,12 @@
 .discord-categories > legend { font-weight: 800; margin-bottom: 0.4rem; }
 .discord-check { display: flex; gap: 0.65rem; align-items: center; min-height: 44px; cursor: pointer; line-height: 1.5; }
 .discord-check input { width: 18px; height: 18px; flex-shrink: 0; accent-color: #67e8f9; }
+.discord-role-access > * + * { margin-top: .85rem; }
+.discord-role-access h4 { display: inline-flex; align-items: center; gap: .6rem; }
+.discord-role-access fieldset > * + * { margin-top: .75rem; }
+.discord-role-access legend { font-weight: 800; }
+.discord-role-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: .25rem 1rem; max-height: 18rem; overflow: auto; padding: .5rem .75rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); background: rgba(3,9,21,.5); }
+.discord-role-grid .discord-check { min-width: 0; overflow-wrap: anywhere; }
 .discord-route:disabled { opacity: 0.8; }
 .discord-route:disabled .discord-check { cursor: default; }
 .discord-history { list-style: none; margin: 0; padding: 0; }

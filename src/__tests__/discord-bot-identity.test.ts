@@ -46,9 +46,10 @@ const teamA = uuid(10), teamB = uuid(11), outsideGuild = uuid(12), privateTeam =
 const playerA = uuid(20), playerB = uuid(21);
 const actor = '100000000000000101', otherActor = '100000000000000102';
 const guild = '100000000000000201', otherGuild = '100000000000000202';
+const discordRoleA = '100000000000000301', discordRoleB = '100000000000000302';
 const context = { deploy: { context: 'production' } } as any;
 const rows = async (query: string, params: any[] = []) => (await state.pg.query(query, params)).rows as any[];
-const interaction = (discordUserId = actor, guildId = guild) => ({ guild_id: guildId, member: { user: { id: discordUserId, username: 'Discord player' } } });
+const interaction = (discordUserId = actor, guildId = guild, roles: string[] = []) => ({ guild_id: guildId, member: { roles, user: { id: discordUserId, username: 'Discord player' } } });
 const website = (method: string, token?: string, headers: Record<string, string> = {}, env = context) => accountEndpoint(new Request('https://nxt5.example/.netlify/functions/discord-account' + (method === 'GET' && token ? '?token=' + token : ''), {
   method, headers: { origin: 'https://nxt5.example', 'content-type': 'application/json', ...headers },
   ...(method === 'POST' ? { body: JSON.stringify({ token }) } : {}),
@@ -67,7 +68,7 @@ beforeAll(async () => {
   state.pg = new PGlite();
   await state.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000','hex')"));
-  for (const filename of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql']) {
+  for (const filename of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql', '20260923_discord_bot_role_access.sql']) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + filename, import.meta.url), 'utf8'));
   }
   await state.pg.exec('create table app_schema_migrations(migration_key text primary key)');
@@ -212,6 +213,31 @@ describe('Personal identity linking requires both accounts', () => {
 describe('Team context is the intersection of membership and server configuration', () => {
   beforeEach(async () => { await link(); });
 
+  it('requires the configured Discord role for each team even for a NXT5 captain or Discord administrator', async () => {
+    await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$3,$4),($2,$3,$5)',
+      [teamA, teamB, guild, [discordRoleA], [discordRoleB]]);
+    expect((await botTeams(actor, guild)).teams).toEqual([]);
+    expect((await botTeams(actor, guild, [discordRoleA])).teams.map(team => team.id)).toEqual([teamA]);
+    expect((await botTeams(actor, guild, [discordRoleB])).teams.map(team => team.id)).toEqual([teamB]);
+    expect((await botTeams(actor, guild, [discordRoleA, discordRoleB])).teams.map(team => team.id)).toEqual([teamA, teamB]);
+    expect((await botTeams(actor, guild, [discordRoleA, 123, null])).teams.map(team => team.id)).toEqual([teamA]);
+    expect((await botTeams(actor, guild, 'not-an-array')).teams).toEqual([]);
+    const admin = { ...interaction(actor, guild, [discordRoleB]), member: { ...interaction(actor, guild, [discordRoleB]).member, permissions: '8' } };
+    await expect(executeDiscordAccount(admin, 'equipe choisir', { nom: teamA })).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+    expect((await botTeams(actor, guild, [discordRoleB])).teams.map(team => team.id)).toEqual([teamB]);
+    expect(JSON.stringify(await executeDiscordAccount(admin, 'equipe liste', {}))).not.toContain('Alpha team');
+    await executeDiscordAccount(interaction(actor, guild, [discordRoleB]), 'equipe choisir', { nom: teamB });
+    await expect(resolveBotContext(actor, guild, undefined, [discordRoleA])).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+    expect(await resolveBotContext(actor, guild, undefined, [discordRoleB])).toMatchObject({ teamId: teamB });
+  });
+
+  it('fails closed when a team role policy still refers to a previous guild', async () => {
+    await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3)', [teamA, guild, [discordRoleA]]);
+    await rows('update discord_connections set guild_id=$1 where team_id=$2', [otherGuild, teamA]);
+    expect((await botTeams(actor, otherGuild, [discordRoleA])).teams.map(team => team.id)).toEqual([outsideGuild]);
+    await expect(resolveBotContext(actor, otherGuild, teamA, [discordRoleA])).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+  });
+
   it('excludes another server, disconnected teams and inaccessible memberships', async () => {
     expect((await botTeams(actor, guild)).teams.map(team => team.id).sort()).toEqual([teamA, teamB].sort());
     for (const team of [outsideGuild, privateTeam, disconnectedTeam]) {
@@ -266,6 +292,8 @@ describe('Team context is the intersection of membership and server configuratio
       }
     }
     await rows('delete from team_members where team_id=$1 and user_id=$2', [teamB, member]);
+    await expect(resolveBotContext(actor, guild)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+    await executeDiscordAccount(interaction(), 'equipe choisir', { nom: teamA });
     expect(await resolveBotContext(actor, guild)).toMatchObject({ teamId: teamA, playerIds: [playerA] });
   });
 
@@ -313,6 +341,8 @@ describe('Team context is the intersection of membership and server configuratio
     await rows('delete from team_members where team_id=$1 and user_id=$2', [teamA, member]);
     await expect(resolveBotContext(actor, guild, teamA)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
     expect((await botTeams(actor, guild)).teams.map(team => team.id)).toEqual([teamB]);
+    await expect(resolveBotContext(actor, guild)).rejects.toMatchObject({ code: 'DISCORD_TEAM_FORBIDDEN' });
+    await executeDiscordAccount(interaction(), 'equipe choisir', { nom: teamB });
     expect(await resolveBotContext(actor, guild)).toMatchObject({ teamId: teamB, role: 'player', canManage: false, canStaff: false, playerIds: [playerB] });
     const profile = JSON.stringify(await executeDiscordAccount(interaction(), 'compte profil', {}));
     expect(profile).toContain('Beta team');

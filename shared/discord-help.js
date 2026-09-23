@@ -27,7 +27,7 @@ const tutorialPages = [
       field('1 · Lie ton compte personnel', 'Saisis `/nxt compte lier`, puis ouvre le lien privé. Connecte-toi à NXT5 et confirme sur le site. Reviens dans Discord, clique sur « Vérifier la liaison », contrôle le compte affiché puis clique sur « Confirmer la liaison ». Si le lien expire, relance la commande. Aucun mot de passe n’est à envoyer dans Discord.'),
       field('2 · Choisis ton équipe', 'Saisis `/nxt equipe choisir` et sélectionne une équipe autorisée sur ce serveur. Le bot confirme l’équipe active pour tes prochaines commandes. `/nxt equipe liste` retrouve les choix disponibles.'),
       field('3 · Vérifie ton profil', '`/nxt compte profil` affiche le compte lié et le contexte sélectionné. `/nxt compte delier` te permet de retirer cette association après confirmation.'),
-      field('Aucune équipe disponible ?', 'Fais vérifier ton invitation NXT5 et la liaison du serveur par ton responsable, puis relance `/nxt equipe choisir`. Seules tes équipes autorisées ici sont proposées.'),
+      field('Aucune équipe disponible ?', 'Fais vérifier ton invitation NXT5, la liaison du serveur et, si ton équipe les exige, tes rôles Discord par ton responsable. Relance ensuite `/nxt equipe choisir`.'),
     ],
   },
   {
@@ -64,9 +64,9 @@ const tutorialPages = [
     fields: [
       field('1 · Lie d’abord ton compte personnel', 'Invite le bot si nécessaire, puis termine `/nxt compte lier`. Vérifie le compte associé avec `/nxt compte profil`. Cette étape est requise même pour un administrateur Discord.'),
       field('2 · Relie ton équipe au serveur', 'Avec ce même compte NXT5, ouvre Bot Discord, choisis ton équipe et génère son code temporaire. Saisis `/nxt connecter code:<code>` dans Discord. Le compte lié doit être celui qui a créé le code ; le code d’un autre responsable est refusé.'),
-      field('3 · Configure et teste', 'Dans NXT5, choisis les salons et catégories, enregistre, teste, puis active les publications. `/nxt statut equipe:<équipe>` vérifie la connexion. `/nxt diffusion test equipe:<équipe>` envoie un test dans le salon configuré.'),
+      field('3 · Configure et teste', 'Dans NXT5, choisis les salons, catégories et rôles Discord autorisés pour cette équipe, puis teste et active les publications. Un rôle autorisé ne remplace jamais les droits NXT5. `/nxt statut equipe:<équipe>` vérifie la connexion.'),
       field('4 · Maîtrise la diffusion', '`/nxt pause equipe:<équipe>` suspend les publications de l’équipe. `/nxt reprendre equipe:<équipe>` reprend une diffusion configurée. Les consultations restent accessibles. Les rappels ont leur propre réglage : `/nxt reglages rappels`. Vérifie toujours l’équipe ciblée.'),
-      field('5 · Accompagne les membres', 'Chaque joueur commence avec `/nxt help`, `/nxt compte lier`, puis `/nxt equipe choisir`. Vérifie son invitation NXT5 en cas de refus. Sur un serveur partagé, gérer Discord ne donne aucun accès aux autres équipes : les droits NXT5 de chaque personne restent appliqués.'),
+      field('5 · Accompagne les membres', 'Chaque joueur commence avec `/nxt help`, `/nxt compte lier`, puis `/nxt equipe choisir`. Vérifie son invitation NXT5 et son rôle Discord en cas de refus. Sur un serveur partagé, chaque équipe choisit ses propres rôles autorisés ; même un administrateur Discord ne contourne pas cette règle.'),
     ],
   },
 ];

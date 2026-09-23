@@ -10,8 +10,9 @@ La liaison d’un **serveur à une équipe** et celle d’un **compte personnel*
 
 1. Chaque personne, **y compris le responsable qui installe le bot**, lance `/nxt compte lier`, ouvre son lien privé, se connecte sur NXT5 et confirme son compte. Elle revient dans Discord, vérifie les deux comptes affichés et confirme la liaison. Le lien expire après dix minutes et n’accorde aucune appartenance à une équipe.
 2. Le responsable crée le code de son équipe dans NXT5 avec **le même compte que celui lié à Discord** et utilise `/nxt connecter code:…`. Il doit être propriétaire ou capitaine NXT5 de cette équipe et disposer de la permission Discord **Gérer le serveur** ou **Administrateur**. Seul le créateur du code peut l’utiliser. Plusieurs équipes peuvent partager le même serveur, chacune avec ses destinations.
-3. `/nxt equipe liste` montre uniquement ses équipes autorisées reliées à ce serveur. `/nxt equipe choisir nom:…` mémorise un choix **par personne et par serveur** ; il ne change pas l’équipe des autres membres.
-4. Chaque consultation, bouton et confirmation retrouve les droits actuels du compte NXT5. Un changement d’équipe active ne détourne pas une confirmation : celle-ci conserve l’équipe de son aperçu.
+3. Le responsable peut choisir, dans Bot Discord sur NXT5, les **rôles Discord autorisés pour cette équipe**. S’il en sélectionne, chaque personne doit posséder au moins un de ces rôles **et** conserver ses droits NXT5 sur cette équipe. La sélection est propre à l’équipe, même si plusieurs équipes utilisent le même serveur. Aucun rôle Discord ne donne à lui seul les droits de capitaine ou de staff NXT5.
+4. `/nxt equipe liste` montre uniquement ses équipes autorisées reliées à ce serveur. `/nxt equipe choisir nom:…` mémorise un choix **par personne et par serveur** ; il ne change pas l’équipe des autres membres.
+5. Chaque consultation, bouton et confirmation retrouve les droits actuels du compte NXT5 et les rôles Discord fournis par l’interaction. Un changement d’équipe active ne détourne pas une confirmation : celle-ci conserve l’équipe de son aperçu. Si le rôle Discord requis est retiré avant une confirmation, celle-ci est refusée.
 
 Un compte Discord ne peut être lié qu’à un compte NXT5 et réciproquement. Délier le compte révoque les choix personnels et les formulaires/confirmations en attente sans supprimer le compte NXT5, ses équipes ou son historique métier.
 
@@ -19,11 +20,13 @@ Un compte Discord ne peut être lié qu’à un compte NXT5 et réciproquement. 
 | --- | --- |
 | Tous | Aide et démarrage de la liaison personnelle, dans un serveur. |
 | Compte lié | Consultation ou révocation de sa propre association. |
-| Membre | Compte lié et appartenance NXT5 à l’équipe concernée, reliée au serveur courant. |
+| Membre | Compte lié et appartenance NXT5 à l’équipe concernée, reliée au serveur courant ; si l’équipe a configuré des rôles Discord autorisés, au moins l’un d’eux est aussi requis. |
 | Staff | Propriétaire, capitaine, coach, assistant, analyste, manager ou board NXT5. |
-| Responsable | Compte personnel lié, propriétaire ou capitaine NXT5 de l’équipe concernée. `/nxt connecter`, `/nxt statut`, `/nxt pause` et `/nxt reprendre` exigent aussi la permission Discord **Gérer le serveur** ou **Administrateur**. Pour connecter, le compte lié doit être le créateur du code. |
+| Responsable | Compte personnel lié, propriétaire ou capitaine NXT5 de l’équipe concernée. `/nxt connecter`, `/nxt statut`, `/nxt pause` et `/nxt reprendre` exigent aussi la permission Discord **Gérer le serveur** ou **Administrateur**. Pour connecter, le compte lié doit être le créateur du code. Après connexion, les rôles Discord autorisés de l’équipe s’appliquent aussi aux commandes d’équipe, sans exception administrateur. |
 
-Sur un serveur partagé, gérer le serveur Discord ne donne aucun accès aux autres équipes NXT5. Les suggestions de `statut`, `pause` et `reprendre` ne proposent que les équipes dont le compte lié est propriétaire ou capitaine ; saisir le nom ou l’identifiant d’une autre équipe ne contourne pas ce contrôle. Les commandes de lecture et leurs menus restent limités aux équipes dont le compte est membre. Les liens NXT5 revérifient également les droits sur le site.
+Sur un serveur partagé, gérer le serveur Discord ne donne aucun accès aux autres équipes NXT5. Les suggestions de `statut`, `pause` et `reprendre` ne proposent que les équipes dont le compte lié est propriétaire ou capitaine **et** dont il possède un rôle Discord autorisé si l’équipe a activé ce filtre ; saisir le nom ou l’identifiant d’une autre équipe ne contourne pas ce contrôle. Les commandes de lecture et leurs menus restent limités aux équipes dont le compte est membre et satisfait le même filtre. Les liens NXT5 revérifient également les droits sur le site.
+
+L’aide et les commandes de liaison/consultation du compte personnel restent accessibles pour permettre à chacun de se connecter et de comprendre un refus. `/nxt connecter` reste disponible pour établir la première liaison d’une équipe, avec le code personnel, les droits NXT5 et les permissions Discord indiqués ci-dessus. Une équipe sans filtre de rôles conserve ses contrôles NXT5 actuels. Retirer explicitement le filtre dans Bot Discord revient à ce comportement. Si la liaison de l’équipe passe à un autre serveur alors qu’un filtre existe, ses anciens rôles ne deviennent pas valables dans le nouveau serveur : les commandes d’équipe sont refusées jusqu’à une nouvelle configuration ou à la suppression explicite du filtre.
 
 La commande racine est découvrable par tous (`default_member_permissions: null`). Cela n’accorde aucun accès aux données : les contrôles serveur restent appliqués commande par commande. Les interactions sont limitées aux serveurs, pas aux messages privés.
 
@@ -178,7 +181,7 @@ Le guide reçoit une réponse immédiate. Pour les commandes métier, l’endpoi
 | Planification, dédoublonnage et livraison | [discord-bot-schedule.ts](../netlify/functions/_lib/discord-bot-schedule.ts) |
 | Données de sessions et objectifs pour le site | [discord-bot-bootstrap.ts](../netlify/functions/_lib/discord-bot-bootstrap.ts), [DiscordWorkflows.jsx](../src/components/discord/DiscordWorkflows.jsx) |
 
-Les migrations ajoutent les associations personnelles, demandes de liaison, préférences d’équipe, confirmations/formulaires, événements, présences, objectifs textuels et journaux, notes de draft, réglages, destinataires/lectures de reviews et la file durable. Les reviews existantes sont conservées avec un état publié par défaut ; seuls les nouveaux brouillons sont privés au staff. La liaison personnelle et les préférences peuvent être révoquées sans effacer les données métier.
+Les migrations ajoutent les associations personnelles, demandes de liaison, préférences d’équipe, confirmations/formulaires, événements, présences, objectifs textuels et journaux, notes de draft, réglages, destinataires/lectures de reviews, la file durable et les éventuelles listes de rôles Discord autorisés par équipe. Les reviews existantes sont conservées avec un état publié par défaut ; seuls les nouveaux brouillons sont privés au staff. La liaison personnelle et les préférences peuvent être révoquées sans effacer les données métier.
 
 Le traitement planifié purge les demandes de liaison et formulaires expirés depuis plus d’une heure ainsi que les messages terminés depuis plus de trente jours. Il conserve les envois incertains pour leur rapprochement et les historiques métier. Le nettoyage reste actif lorsque le coupe-circuit des publications est fermé, si la configuration du service est complète.
 
@@ -197,14 +200,15 @@ Les réponses des commandes sont privées. Les messages destinés à un salon pa
 
 ## Développement et activation
 
-Les deux migrations sont inscrites dans [migration-runner.mjs](../tools/migration-runner.mjs) :
+Les trois migrations sont inscrites dans [migration-runner.mjs](../tools/migration-runner.mjs) :
 
 | Clé de disponibilité | Migration |
 | --- | --- |
 | `discord-bot-identity-20260922-v1` | [20260922_discord_bot_identity.sql](../database/migrations/20260922_discord_bot_identity.sql) |
 | `discord-bot-workflows-20260922-v1` | [20260922_discord_bot_workflows.sql](../database/migrations/20260922_discord_bot_workflows.sql) |
+| `discord-bot-role-access-20260923-v1` | [20260923_discord_bot_role_access.sql](../database/migrations/20260923_discord_bot_role_access.sql) |
 
-Le contexte Netlify de production exécute déjà `npm run verify && npm run db:migrate` avant la publication. Le moteur de migration utilise sa transaction/verrou et son registre de checksum. Les nouvelles commandes métier vérifient les deux clés de disponibilité ; l’aide reste utilisable si la mise à jour n’est pas encore appliquée. Ne pas modifier une migration déjà appliquée : une correction ultérieure doit avoir sa propre migration.
+Le contexte Netlify de production exécute déjà `npm run verify && npm run db:migrate` avant la publication. Le moteur de migration utilise sa transaction/verrou et son registre de checksum. Les nouvelles commandes métier vérifient les trois clés de disponibilité ; l’aide reste utilisable si la mise à jour n’est pas encore appliquée. Ne pas modifier une migration déjà appliquée : une correction ultérieure doit avoir sa propre migration.
 
 L’évolution réutilise les secrets et la configuration décrits dans [Discord : exploitation](discord-operations.md), notamment `DISCORD_APPLICATION_ID`, `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_WORKER_SECRET`, `PUBLIC_SITE_URL` et la base Neon. Aucun nouveau jeton personnel ni accès privilégié au contenu des messages n’est requis. Le site, les fonctions et les migrations doivent être livrés ensemble.
 
@@ -212,7 +216,7 @@ Ordre de validation :
 
 1. Exécuter `npm run verify`, puis le build Netlify et la vérification des bundles de rendu selon le guide d’exploitation. Les tests métiers emploient PGlite et un transport simulé.
 2. Pour le pilote, utiliser un site de test autonome en contexte `production`, une base séparée, un bot/serveur de test et `DISCORD_ENVIRONMENT=test`. Les Deploy Previews ne servent pas à envoyer : leurs mutations et secrets Discord sont bloqués.
-3. Déployer le serveur et le site, appliquer les migrations via le flux de build, puis vérifier l’endpoint d’interactions et les deux clés de disponibilité.
+3. Déployer le serveur et le site, appliquer les migrations via le flux de build, puis vérifier l’endpoint d’interactions et les trois clés de disponibilité.
 4. **Après disponibilité du serveur compatible**, enregistrer le catalogue dans le serveur pilote avec les secrets de cette application dans l’environnement :
 
    ```sh
@@ -228,4 +232,4 @@ Ordre de validation :
 
 Le script enregistre uniquement `/nxt` et ne remplace pas les autres commandes de l’application. L’enregistrement Discord est une opération distante distincte du déploiement ; les nouvelles sous-commandes n’apparaissent pas simplement parce que le code est compilé. Ne pas enregistrer simultanément `--guild` et `--global`. Conserver la même version du catalogue que celle du serveur déployé.
 
-Avant l’ouverture, vérifier les destinations et leur audience, le contexte de déploiement, l’exécution planifiée, les deux migrations et la possibilité de consulter les envois incertains. Cette vérification ne nécessite pas de toucher aux données de production pendant le développement. Ce document n’autorise ni n’atteste un déploiement ou un message réel.
+Avant l’ouverture, vérifier les destinations et leur audience, le contexte de déploiement, l’exécution planifiée, les trois migrations, les rôles Discord d’une équipe pilote et la possibilité de consulter les envois incertains. Cette vérification ne nécessite pas de toucher aux données de production pendant le développement. Ce document n’autorise ni n’atteste un déploiement ou un message réel.
