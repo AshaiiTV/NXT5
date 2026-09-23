@@ -1,104 +1,50 @@
 import React, { useState } from "react";
 import { LEGAL_UPDATED_LABEL, LEGAL_VERSION, NXT5_CONTACT_EMAIL, NXT5_EDITOR_NAME } from "../../../shared/legal.js";
-import { Activity, ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, ChevronRight, Crown, Eye, FileText, Flame, Gauge, Loader2, Lock, Mail, Shield, Swords, Target, Upload, UserPlus, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, ChevronRight, FileText, Loader2, Lock, Mail, Shield, Swords, Target, UserPlus, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { AUDIENCE_CONSENT_VERSION, openCookieSettings, trackAudienceEvent } from "../../app/audience-client.js";
-import { DISCORD_INVITE_URL } from "../../app/constants.jsx";
-import { cx, errorToast, readRememberPreference, tone, writeRememberPreference } from "../../app/helpers.js";
+import { cx, readRememberPreference, writeRememberPreference } from "../../app/helpers.js";
 import { isSafeInternalPath } from "../../app/routing.js";
-import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../../components/brand/BrandAssets.jsx";
+import { BrandLogo, Nxt5Wordmark, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import "./public-information.css";
+import "./public-entry.css";
 function MarketingPreview() {
-  const metrics = [
-    [Upload, "Intégration", "Importer les games"],
-    [BarChart3, "Statistiques", "Lire le 5v5"],
-    [Crown, "Compos", "Préparer le draft"],
-    [FileText, "Review", "Structurer la review"],
-  ];
-  const lanes = [["TOP", "Pool"], ["JGL", "Tempo"], ["MID", "Setup"], ["ADC", "DPS"], ["SUP", "Vision"]];
-  const axes = ["Vision", "Objectifs neutres", "Gold diff", "Builds"];
-
   return (
-    <div className="nxt5-enter relative hidden lg:block">
-      <div className="absolute -inset-6 rounded-[1.6rem] bg-gradient-to-r from-cyan-400/34 via-blue-500/18 to-fuchsia-500/30 blur-2xl" />
-      <div className="nxt5-panel nxt5-premium-panel relative overflow-hidden border border-cyan-200/25 p-5 shadow-2xl shadow-cyan-950/20 backdrop-blur-2xl">
-        <div className="relative z-10 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <BrandLogo compact />
-          <div className="text-right">
-            <p className="text-sm font-black text-white">Command center</p>
-            <p className="text-[0.66rem] font-black uppercase tracking-[0.2em] text-cyan-100/75">Draft · Review · Stats</p>
-          </div>
+    <figure className="nxt5-entry-preview">
+      <Surface className="nxt5-entry-preview-surface">
+        <div className="nxt5-entry-preview-top">
+          <span className="nxt5-entry-preview-brand"><Swords aria-hidden="true" size={18} />Games</span>
+          <span className="nxt5-entry-example">Exemple illustratif</span>
         </div>
-        <div className="relative z-10 mt-4 grid grid-cols-4 gap-3">
-          {metrics.map(([Icon, label, text]) => (
-            <div key={label} className="nxt5-panel relative overflow-hidden border border-white/10 bg-white/[0.045] p-4">
-              <Icon className="h-5 w-5 text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" />
-              <p className="mt-3 text-sm font-black text-white">{label}</p>
-              <p className="mt-1 text-[0.68rem] font-black uppercase tracking-[0.13em] text-slate-300">{text}</p>
-            </div>
-          ))}
+        <div className="nxt5-entry-preview-heading">
+          <h2>Scrim d’équipe</h2>
+          <p>Composition alliée · Détail d’une game</p>
         </div>
-        <div className="relative z-10 mt-4 grid grid-cols-[.86fr_1.14fr] gap-4">
-          <div className="nxt5-panel border border-white/10 bg-black/[0.20] p-4">
-            <p className="font-black text-white">Suivi 5v5</p>
-            <p className="text-xs font-semibold text-slate-300">Blue side à gauche, red side à droite.</p>
-            <div className="mt-4 space-y-2">
-              {lanes.map(([role, focus], i) => (
-                <div key={role} className="grid grid-cols-[44px_1fr_auto] items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2">
-                  <RoleIcon role={role} className="h-5 w-5" />
-                  <span className="text-sm font-black text-white">{role}</span>
-                  <Badge tone={i % 2 ? "purple" : "cyan"}>{focus}</Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="nxt5-panel border border-white/10 bg-white/[0.04] p-4">
-            <p className="font-black text-white">Données prêtes à lire</p>
-            <p className="text-xs font-semibold text-slate-300">Le site expose les infos. Le coach garde l’interprétation.</p>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              {axes.map((a, i) => <div key={a} className="rounded-2xl border border-cyan-100/12 bg-black/[0.18] p-3"><div className={cx("mb-3 inline-flex rounded-xl border p-2", tone(i === 0 ? "cyan" : i === 1 ? "purple" : i === 2 ? "blue" : "pink"))}>{i === 0 ? <Eye className="h-4 w-4" /> : i === 1 ? <Target className="h-4 w-4" /> : i === 2 ? <Gauge className="h-4 w-4" /> : <Swords className="h-4 w-4" />}</div><p className="text-sm font-black text-white">{a}</p></div>)}
-            </div>
-          </div>
+        <div className="nxt5-entry-preview-roster" aria-label="Exemple de composition : les cinq rôles de l’équipe">
+          {["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => <div key={role}><RoleIcon role={role} className="h-8 w-8" /><span>{role}</span></div>)}
         </div>
-        <div className="relative z-10 mt-4 overflow-hidden rounded-2xl border border-cyan-200/16 bg-[#020511]/50 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="font-black text-white">Workflow NXT5</p>
-              <p className="mt-1 text-xs font-black uppercase tracking-[0.18em] text-cyan-100/75">Importer → assigner → analyser → review</p>
-            </div>
-            <Badge tone="pink">Next five</Badge>
-          </div>
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {["JSON", "ROSTER", "STATS", "REPORT"].map((step, i) => <div key={step} className="relative rounded-xl border border-white/10 bg-white/[0.035] px-3 py-3 text-center text-[0.66rem] font-black tracking-[0.16em] text-white"><span className="block text-cyan-100/75">0{i + 1}</span>{step}</div>)}
-          </div>
+        <div className="nxt5-entry-preview-readings" aria-label="Informations disponibles dans une game">
+          {[
+            [BarChart3, "Statistiques", "Or, dégâts, vision"],
+            [Target, "Chronologie", "Objectifs et fights"],
+            [FileText, "Review", "Notes du staff"],
+          ].map(([Icon, title, text]) => <div key={title}><Icon aria-hidden="true" size={18} /><strong>{title}</strong><span>{text}</span></div>)}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function StatStrip() {
-  const stats = [
-    [Crown, "Champion Pool", "Picks forts et picks pièges", "cyan"],
-    [Swords, "Games importées", "KDA, dégâts, vision, objectifs", "purple"],
-    [Target, "Axes de progrès", "Ce qu’il faut travailler", "cyan"],
-    [Eye, "Vision & setup", "Avant dragons et Nashor", "blue"],
-    [Flame, "Progression", "Game après game", "pink"],
-  ];
-  return (
-    <div className="nxt5-panel grid gap-3 border border-cyan-200/14 bg-[#050914]/72 p-4 shadow-[0_0_42px_rgba(34,211,238,.08)] backdrop-blur-2xl md:grid-cols-5">
-      {stats.map(([Icon, value, label, t]) => <div key={value} className="flex items-center gap-3 border-white/10 p-3 transition hover:bg-white/[0.035] md:[&:not(:last-child)]:border-r"><div className={cx("rounded-2xl border p-3 shadow-[0_0_22px_rgba(34,211,238,.08)]", tone(t))}><Icon className="h-5 w-5" /></div><div className="min-w-0"><p className="text-sm font-black text-white">{value}</p><p className="text-xs font-bold text-slate-300">{label}</p></div></div>)}
-    </div>
+        <div className="nxt5-entry-preview-footer"><span />Chaque observation reste liée à sa game.</div>
+      </Surface>
+      <figcaption>Illustration du produit, sans donnée d’équipe réelle.</figcaption>
+    </figure>
   );
 }
 
 export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate, target, rel, ...props }) {
-  const base = "nxt5-cyber-button nxt5-control inline-flex min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-black leading-5 transition duration-200 active:translate-y-0";
+  const base = "nxt5-cyber-button nxt5-control inline-flex min-h-11 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-semibold leading-5 transition duration-200";
   const variants = {
-    primary: "nxt5-button-primary border border-cyan-100/36",
-    ghost: "border border-cyan-100/16 bg-[#071221]/72 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05)] hover:-translate-y-0.5 hover:border-cyan-200/45 hover:bg-cyan-300/[0.11]",
+    primary: "nxt5-button-primary border",
+    ghost: "nxt5-button-secondary border",
+    danger: "nxt5-button-danger border",
   };
 
   function go(event) {
@@ -107,10 +53,10 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
     navigate(href);
   }
 
-  return <a {...props} href={href} onClick={go} target={target} rel={target === "_blank" ? "noopener noreferrer" : rel} className={cx(base, variants[variant], className)}>{Icon && <Icon className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
+  return <a {...props} href={href} onClick={go} target={target} rel={target === "_blank" ? "noopener noreferrer" : rel} className={cx(base, variants[variant], className)}>{Icon && <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
 }
 
-export function SiteHeader({ children, navigate }) {
+export function SiteHeader({ children, navigate, simple = false }) {
   function goHome(event) {
     if (!navigate) return;
     event.preventDefault();
@@ -118,9 +64,9 @@ export function SiteHeader({ children, navigate }) {
   }
 
   return (
-    <header className="relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5">
-      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90"><BrandLogo /></a>
-      {children && <div className="nxt5-panel relative flex shrink-0 items-center gap-3 border border-cyan-200/12 bg-[#050914]/62 p-1.5 shadow-[0_0_32px_rgba(34,211,238,.08)] backdrop-blur-2xl">{children}</div>}
+    <header className={simple ? "nxt5-entry-header" : "relative z-10 mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5"}>
+      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90">{simple ? <Nxt5Wordmark className="nxt5-entry-wordmark" /> : <BrandLogo />}</a>
+      {children && <div className={simple ? "nxt5-entry-header-actions" : "nxt5-panel relative flex shrink-0 items-center gap-3 border border-cyan-200/12 bg-[#050914]/62 p-1.5 shadow-[0_0_32px_rgba(34,211,238,.08)] backdrop-blur-2xl"}>{children}</div>}
     </header>
   );
 }
@@ -386,74 +332,60 @@ export function LegalPage({ route, navigate, user }) {
 
 export function HomeScreen({ navigate }) {
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-entry-page nxt5-home-page">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(0,216,255,.18),transparent_24%,transparent_70%,rgba(217,0,255,.14)),linear-gradient(180deg,transparent_0%,rgba(2,5,17,.42)_78%)]" />
-      <SiteHeader navigate={navigate}>
-        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
-        <LinkButton href="/creer-un-compte" navigate={navigate} className="px-3 py-2.5 sm:px-4">Créer un compte</LinkButton>
+      <SiteHeader navigate={navigate} simple>
+        <a href="#features" className="nxt5-entry-header-link">Fonctionnalités</a>
+        <LinkButton href="/connexion" navigate={navigate} variant="ghost">Se connecter</LinkButton>
       </SiteHeader>
-
-      <main className="relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16">
-        <section className="grid min-h-[calc(100vh-104px)] items-start gap-7 py-4 lg:grid-cols-[.78fr_1.22fr] lg:py-6 xl:items-center">
-          <div className="nxt5-enter">
-            <ResponsiveImage src="/assets/nxt5-logo.png" sources={[{ srcSet: "/assets/nxt5-logo-640.webp 640w, /assets/nxt5-logo-320.webp 320w" }]} alt="NXT5" width="1254" height="989" fetchPriority="high" decoding="async" className="mb-4 h-auto w-full max-w-[300px] object-contain object-left drop-shadow-[0_0_42px_rgba(34,211,238,.30)] sm:max-w-[340px] xl:max-w-[380px]" />
-            <Badge tone="cyan" pulse>Outil d'équipe League of Legends</Badge>
-            <h1 className="mt-4 max-w-4xl text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl">
-              Comprends ton <span className="bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-400 bg-clip-text text-transparent drop-shadow-[0_0_26px_rgba(34,211,238,.32)]">équipe</span> sans te perdre dans les <span className="bg-gradient-to-r from-white via-cyan-200 to-fuchsia-300 bg-clip-text text-transparent drop-shadow-[0_0_28px_rgba(217,70,239,.24)]">stats</span>.
-            </h1>
-            <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-slate-200 md:text-lg">Importe tes games, prépare les reviews et suis le travail de l’équipe au même endroit.</p>
-            <div className="mt-4 grid max-w-2xl gap-3 sm:grid-cols-3">
-              {["Crée la team", "Importe les games", "Lis les tendances"].map((label, index) => <div key={label} className="nxt5-panel border border-cyan-200/14 bg-white/[0.035] px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-cyan-100/75">0{index + 1}</p><p className="mt-1 text-sm font-black text-white">{label}</p></div>)}
+      <main className="nxt5-entry-main">
+        <section className="nxt5-entry-hero" aria-labelledby="home-title">
+          <div className="nxt5-entry-hero-copy">
+            <p className="nxt5-entry-eyebrow">Pour les équipes League of Legends</p>
+            <h1 id="home-title">Toute ton équipe.<br /><span>Une même direction.</span></h1>
+            <p className="nxt5-entry-lead">Réunis tes games, ton roster et tes reviews. Retrouve les informations utiles pour préparer la prochaine session.</p>
+            <div className="nxt5-entry-actions">
+              <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>Créer mon espace</LinkButton>
+              <a href="#features" className="nxt5-entry-text-link">Découvrir NXT5<ChevronDown aria-hidden="true" size={16} /></a>
             </div>
-            <div className="mt-5 grid gap-3 sm:flex sm:flex-wrap">
-              <LinkButton href="/creer-un-compte" navigate={navigate} icon={ChevronRight} className="px-6 py-4 sm:px-7">Créer un compte</LinkButton>
-              <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="px-6 py-4 sm:px-7">Se connecter</LinkButton>
-            </div>
+            <p className="nxt5-entry-hero-note">Games · Draft · Review · Planning</p>
           </div>
           <MarketingPreview />
         </section>
 
-        <section id="features" className="mt-4">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <Badge tone="purple">Ce que tu fais avec NXT5</Badge>
-              <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Tout le suivi de l’équipe au même endroit</h2>
-            </div>
-            <p className="max-w-2xl text-sm font-semibold leading-6 text-slate-300">Le premier usage reste guidé. Les analyses avancées arrivent ensuite, quand la team a assez de games.</p>
+        <section id="features" className="nxt5-entry-features" aria-labelledby="features-title">
+          <div className="nxt5-entry-section-heading">
+            <p className="nxt5-entry-eyebrow">Un espace de travail commun</p>
+            <h2 id="features-title">Moins de dispersion.<br />Plus de contexte.</h2>
+            <p>Du premier roster à la prochaine review, garde le fil du travail de l’équipe.</p>
           </div>
-          <div className="grid gap-5 md:grid-cols-3">
-          {[
-            { icon: Users, title: "Pose le roster", text: "Crée la team, ajoute les joueurs et relie les profils. NXT5 sait ensuite à qui appartient chaque donnée.", t: "cyan" },
-            { icon: Swords, title: "Ajoute les games", text: "Importe une game ou un bloc de scrim. Le site garde le side, les champions, les objectifs et les stats importantes.", t: "purple" },
-            { icon: Activity, title: "Compare les blocs", text: "Retrouve les résultats, les écarts par rôle et les games à revoir.", t: "blue" },
-          ].map((item, i) => { const Icon = item.icon; return <Surface key={item.title} delay={i * .06} glow><div className={cx("mb-5 inline-flex rounded-2xl border p-4", tone(item.t))}><Icon className="h-7 w-7" /></div><h3 className="text-xl font-black text-white">{item.title}</h3><p className="mt-3 text-base font-medium leading-7 text-slate-300">{item.text}</p></Surface>; })}
+          <div className="nxt5-entry-feature-list">
+            {[
+              [Users, "Organise l’équipe", "Rassemble les profils, les rôles et les disponibilités. Chacun retrouve sa place et les prochaines sessions."],
+              [BarChart3, "Retrouve tes games", "Importe les matchs, consulte les statistiques et compare les périodes, sans perdre les games sources."],
+              [Target, "Prépare la suite", "Travaille les champion pools, construis tes compositions et garde les observations du staff dans les reviews."],
+            ].map(([Icon, title, text], index) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /><span>0{index + 1}</span></div><h3>{title}</h3><p>{text}</p></article>)}
           </div>
         </section>
 
-        <section id="analytics" className="nxt5-panel nxt5-premium-panel relative mt-14 overflow-hidden border border-cyan-200/18 p-6 shadow-2xl shadow-black/25 md:p-9">
-          <div className="mb-8 text-center"><h2 className="text-3xl font-black text-white md:text-4xl">De la game à la review</h2><p className="mt-3 text-base font-semibold text-slate-300">Les données de la game restent accessibles pendant la review.</p></div>
-          <div className="grid gap-5 md:grid-cols-4">
-            {[["1", Swords, "Importe la game", "Retrouve les champions, le side, le patch et les objectifs."], ["2", Eye, "Vérifie les stats", "Compare la vision, les dégâts, l’or, le KDA et le KP."], ["3", Crown, "Mets les pools à jour", "Classe les picks de chaque joueur selon leur niveau de maîtrise."], ["4", Target, "Prépare la review", "Note ce qui doit être gardé ou corrigé."]].map(([n, Icon, title, text]) => <div key={n} className="nxt5-panel relative border border-cyan-100/14 bg-black/[0.24] p-5 transition hover:-translate-y-1 hover:border-cyan-200/28"><Badge tone={n === "1" ?"cyan" : "purple"}>{n}</Badge><div className="mt-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></div><h3 className="mt-5 text-lg font-black text-white">{title}</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{text}</p></div>)}
+        <section className="nxt5-entry-workflow" aria-labelledby="workflow-title">
+          <div className="nxt5-entry-section-heading">
+            <p className="nxt5-entry-eyebrow">De la game à la review</p>
+            <h2 id="workflow-title">Les données ouvrent la discussion.<br />Le staff garde la décision.</h2>
           </div>
-          <div className="mt-8 flex justify-center"><LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight} className="px-7 py-4">Créer l’espace équipe</LinkButton></div>
+          <ol className="nxt5-entry-steps">
+            {[
+              ["Importe", "Ajoute une game et retrouve sa composition."],
+              ["Observe", "Consulte les écarts et les moments de jeu."],
+              ["Échange", "Prépare une review avec tes observations."],
+              ["Organise", "Garde les points à travailler pour la suite."],
+            ].map(([title, text], index) => <li key={title}><span>0{index + 1}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}
+          </ol>
         </section>
 
-        <section className="mt-10"><StatStrip /></section>
-
-        <section className="mt-14">
-          <Surface glow>
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <Badge tone="cyan">Review ready</Badge>
-                <h2 className="nxt5-metal-text mt-3 text-3xl font-black md:text-4xl">Prépare une review claire</h2>
-              </div>
-              <Nxt5Wordmark className="h-12 w-48 object-right opacity-90" />
-            </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {["Comparer les champions joués et leur volume.", "Voir les écarts de stats de l’équipe.", "Préparer une review pour le staff.", "Préparer la prochaine session avec les données disponibles."].map((item, index) => <div key={item} className="nxt5-panel flex items-center gap-3 border border-white/10 bg-white/[0.035] p-4"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-400/10 text-xs font-black text-cyan-100">0{index + 1}</span><Check className="h-5 w-5 shrink-0 text-emerald-300" /><span className="font-bold text-slate-200">{item}</span></div>)}
-            </div>
-          </Surface>
+        <section className="nxt5-entry-start" aria-labelledby="start-title">
+          <div><p className="nxt5-entry-eyebrow">Ton prochain point d’équipe</p><h2 id="start-title">Commence par réunir ton roster.</h2><p>Crée ton compte, puis ouvre ou rejoins ton espace équipe.</p></div>
+          <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>Créer un compte</LinkButton>
         </section>
       </main>
       <LegalLinks navigate={navigate} />
@@ -512,28 +444,23 @@ export function ForgotPasswordPage({ navigate }) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-entry-page nxt5-auth-page">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(217,70,239,.14),transparent_28%,transparent_67%,rgba(34,211,238,.12))]" />
-      <SiteHeader navigate={navigate}>
-        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Connexion</LinkButton>
+      <SiteHeader navigate={navigate} simple>
+        <PublicTextLink href="/connexion" navigate={navigate} className="nxt5-entry-header-link">Retour à la connexion</PublicTextLink>
       </SiteHeader>
-
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-108px)] max-w-4xl items-center px-5 pb-16">
-        <Surface glow className="mx-auto w-full max-w-2xl">
-          <Badge tone="purple">Sécurité du compte</Badge>
-          <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">Mot de passe oublié</h1>
-          <p className="mt-5 text-base font-semibold leading-8 text-slate-200">Entre l’e-mail de ton compte. NXT5 t’envoie un lien temporaire pour choisir un nouveau mot de passe.</p>
-          <form onSubmit={submit} className="mt-6 space-y-4">
-            <TextInput label="E-mail du compte" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
-            {message && <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-100">{message}</div>}
-            {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
-            <Button type="submit" disabled={loading || !email.trim()} icon={loading ?Loader2 : Mail} className="w-full py-4">{loading ?"Envoi..." : "Envoyer le lien"}</Button>
+      <main className="nxt5-entry-main nxt5-recovery-main">
+        <Surface className="nxt5-auth-card">
+          <p className="nxt5-entry-eyebrow">Récupération du compte</p>
+          <h1>Mot de passe oublié ?</h1>
+          <p className="nxt5-auth-intro">Entre l’e-mail de ton compte pour recevoir un lien de réinitialisation.</p>
+          <form onSubmit={submit} className="nxt5-auth-form">
+            <TextInput label="E-mail du compte" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" autoComplete="email" required icon={Mail} />
+            {message && <div role="status" className="nxt5-auth-notice is-success">{message}</div>}
+            {error && <div role="alert" className="nxt5-auth-notice is-error">{error}</div>}
+            <Button type="submit" disabled={loading || !email.trim()} icon={loading ? Loader2 : Mail} className="nxt5-auth-submit">{loading ? "Envoi..." : "Envoyer le lien"}</Button>
           </form>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Retour connexion</LinkButton>
-            <LinkButton href="/creer-un-compte" navigate={navigate} variant="ghost" icon={UserPlus}>Créer un compte</LinkButton>
-          </div>
+          <p className="nxt5-auth-alternative"><PublicTextLink href="/connexion" navigate={navigate}>Retour à la connexion</PublicTextLink></p>
         </Surface>
       </main>
       <LegalLinks navigate={navigate} />
@@ -645,52 +572,37 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-entry-page nxt5-auth-page">
       <AmbientBackground />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(217,70,239,.14),transparent_28%,transparent_67%,rgba(34,211,238,.12))]" />
-      <SiteHeader navigate={navigate}>
-        <LinkButton href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate} variant="ghost" className="hidden md:inline-flex">
-          {isRegister ?"J’ai déjà un compte" : "Créer un compte"}
-        </LinkButton>
+      <SiteHeader navigate={navigate} simple>
+        <PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate} className="nxt5-entry-header-link">
+          {isRegister ? "J’ai déjà un compte" : "Créer un compte"}
+        </PublicTextLink>
       </SiteHeader>
-
-      <main className="relative z-10 mx-auto grid min-h-[calc(100vh-108px)] w-full max-w-7xl items-center gap-8 px-3 pb-12 sm:px-5 sm:pb-16 lg:grid-cols-[.85fr_1.15fr]">
-        <div className="nxt5-enter">
-          <Badge tone={isRegister ?"purple" : "cyan"} pulse>{isRegister ?"Création de compte" : "Connexion"}</Badge>
-          <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.055em] md:text-7xl">
-            {isRegister ?"Crée ton espace NXT5." : "Retourne dans ton espace NXT5."}
-          </h1>
-          <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">
-            {isRegister
-              ?"Ajoute ton e-mail, choisis ton pseudo, puis lance ton espace équipe."
-              : "Connecte-toi pour retrouver tes teams, tes imports et tes reviews."}
-          </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[[BarChart3, "Profil de jeu"], [Shield, "Draft & rôles"], [Users, "Progression team" ]].map(([Icon, label], index) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Icon className={cx("h-5 w-5", index === 0 ? "text-cyan-200" : "text-cyan-200")} /><p className="mt-3 text-sm font-black text-white">{label}</p></div>)}
-          </div>
-        </div>
-
-        <Surface glow className="mx-auto w-full max-w-xl">
-          <h2 className="text-3xl font-black text-white">{isRegister ?"Créer un compte" : "Connexion"}</h2>
-          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton e-mail sert à te connecter et à récupérer ton compte." : "Entre ton e-mail et ton mot de passe pour accéder au tableau de bord."}</p>
-          <div className="mt-5 flex rounded-2xl border border-white/10 bg-black/[0.18] p-1">
-            <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Connexion</a>
-            <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Créer un compte</a>
-          </div>
-          <form onSubmit={submit} className="mt-5 space-y-4">
-            <TextInput label={isRegister ? "E-mail" : "E-mail ou ancien pseudo"} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : "joueur@exemple.com ou ancien pseudo"} type={isRegister ? "email" : "text"} required icon={Mail} />
-            {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" required icon={UserPlus} />}
-            <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
-            <PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Garde cette session active plus longtemps sur cet appareil." />
-            {isRegister && <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-left"><input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required className="mt-1 h-4 w-4 shrink-0 accent-cyan-300" /><span className="text-sm font-semibold leading-6 text-slate-300">J’accepte les <a href="/conditions" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">conditions générales d’utilisation</a>, le <a href="/reglement" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">règlement NXT5</a> et reconnais avoir lu la <a href="/confidentialite" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">politique de confidentialité</a> (version {LEGAL_VERSION}).</span></label>}
-            {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
-            <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
+      <main className="nxt5-entry-main nxt5-auth-layout">
+        <section className="nxt5-auth-story" aria-labelledby="auth-story-title">
+          <p className="nxt5-entry-eyebrow">Ton espace équipe</p>
+          <h2 id="auth-story-title">Cinq rôles.<br /><span>Un travail commun.</span></h2>
+          <p>Du premier import à la prochaine review, retrouve le contexte dont ton équipe a besoin.</p>
+          <ul>
+            {[[Users, "Un roster, des repères partagés", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Tes games à portée de main", "Les statistiques et leurs sources restent liées."], [FileText, "Le fil de vos reviews", "Les observations du staff accompagnent les games."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{title}</strong><span>{text}</span></div></li>)}
+          </ul>
+        </section>
+        <Surface className="nxt5-auth-card">
+          <p className="nxt5-entry-eyebrow">{isRegister ? "Bienvenue sur NXT5" : "Bon retour sur NXT5"}</p>
+          <h1>{isRegister ? "Créer un compte" : "Connexion"}</h1>
+          <p className="nxt5-auth-intro">{isRegister ? "Crée ton compte pour ouvrir ou rejoindre un espace équipe." : "Retrouve tes équipes, tes games et tes reviews."}</p>
+          <form onSubmit={submit} className="nxt5-auth-form">
+            <TextInput label={isRegister ? "E-mail" : "E-mail ou ancien pseudo"} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : "joueur@exemple.com ou ancien pseudo"} type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
+            {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" autoComplete="nickname" required icon={UserPlus} />}
+            <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required icon={Lock} />
+            <div className="nxt5-auth-preferences"><PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Sur cet appareil." /></div>
+            {isRegister && <label className="nxt5-auth-consent"><input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required /><span>J’accepte les <a href="/conditions">conditions générales d’utilisation</a>, le <a href="/reglement">règlement NXT5</a> et reconnais avoir lu la <a href="/confidentialite">politique de confidentialité</a> (version {LEGAL_VERSION}).</span></label>}
+            {error && <div role="alert" className="nxt5-auth-notice is-error">{error}</div>}
+            <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ? Loader2 : isRegister ? UserPlus : ArrowRight} className="nxt5-auth-submit">{loading ? "Chargement…" : isRegister ? "Créer le compte" : "Entrer dans NXT5"}</Button>
           </form>
-          {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-cyan-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
-          <p className="mt-4 text-center text-sm font-semibold text-slate-300">
-            {isRegister ?"Déjà inscrit ?" : "Pas encore de compte ?"}
-            <a className="font-black text-cyan-200 hover:text-white" href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`}>{isRegister ?" Connexion" : " Créer un compte"}</a>
-          </p>
+          {!isRegister && <div className="nxt5-auth-recovery"><PublicTextLink href="/mot-de-passe-oublie" navigate={navigate}>Mot de passe oublié ?</PublicTextLink></div>}
+          <p className="nxt5-auth-alternative">{isRegister ? "Déjà inscrit ? " : "Pas encore de compte ? "}<PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate}>{isRegister ? "Connexion" : "Créer un compte"}</PublicTextLink></p>
         </Surface>
       </main>
       <LegalLinks navigate={navigate} />
