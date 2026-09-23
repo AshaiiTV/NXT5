@@ -243,7 +243,7 @@ function ProfileLinkAuditPanel({ player, matches, issues, open, canRepair, repai
   const linkedGames = Math.max(0, matches.length - issues.length);
   const complete = issues.length === 0;
   if (complete) return <p className="profile-link-status"><Check aria-hidden="true" className="h-4 w-4" /> {linkedGames} games de l’équipe reliées à ce joueur.</p>;
-  return <section className={cx("mt-4 overflow-hidden border-y", complete ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-amber-300/20 bg-amber-400/[0.055]")}>
+  return <section className={cx("profile-link-audit", complete ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-amber-300/20 bg-amber-400/[0.055]")}>
     <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
         <span className={cx("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", complete ? "border-emerald-300/24 bg-emerald-400/10 text-emerald-100" : "border-amber-300/24 bg-amber-400/10 text-amber-100")}>
@@ -261,12 +261,12 @@ function ProfileLinkAuditPanel({ player, matches, issues, open, canRepair, repai
         const row = item.row;
         const account = row?.riot_id || row?.summoner_name || "Compte non identifié";
         const repairing = repairingId === row?.id;
-        return <div key={item.match.id || item.match.game_id} className="grid gap-3 border-b border-white/[0.07] px-4 py-3 last:border-b-0 lg:grid-cols-[minmax(0,1fr)_minmax(180px,.55fr)_auto] lg:items-center">
+        return <div key={item.match.id || item.match.game_id} className="profile-link-row">
           <div className="flex min-w-0 items-center gap-3">
             {row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-11 w-11 shrink-0 rounded-xl object-cover" /> : <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-slate-400"><Swords className="h-4 w-4" /></span>}
             <div className="min-w-0"><p className="truncate text-sm font-black text-white">{matchDisplayName(item.match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{matchImportDateLabel(item.match)} · {item.match.duration || "--:--"}{row?.champion ? ` · ${championDisplayName(row.champion)}` : ""}</p></div>
           </div>
-          <div className="min-w-0"><p className="truncate text-xs font-black text-slate-100">{account}</p><p className="mt-1 truncate text-xs font-semibold text-amber-100/80">{item.issue}</p></div>
+          <div className="min-w-0"><p className="profile-link-account">{account}</p><p className="profile-link-issue">{item.issue}</p></div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(item.match.id)}`)}>Ouvrir</Button>
             {canRepair && row && <Button type="button" icon={repairing ? Loader2 : RefreshCw} disabled={Boolean(repairingId)} onClick={() => onRepair(item)}>{repairing ? "Correction..." : `Attribuer à ${player.name}`}</Button>}
@@ -476,7 +476,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <section id="profile-panel" role="tabpanel" aria-label={PROFILE_SECTIONS.find((section) => section.id === profileView)?.label} tabIndex={0} className="profile-content" key={`${selectedPlayer.id}-${selectedCategoryId}-${profileView}`}>
       {profileView === "overview" && <>
         {games > 0 ? <>
-          <Surface><div className="profile-section-heading"><h3>Le joueur en un regard</h3><span>Sur la sélection ci-dessus</span></div><dl className="profile-metrics">{metrics.map((metric) => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd><p>{metric.detail}</p></div>)}</dl>{games < 5 && <p className="profile-sample-note">Échantillon limité : {games} games. Confirme les observations sur les prochaines sessions.</p>}</Surface>
+          <Surface className="profile-summary"><div className="profile-section-heading"><h3>Le joueur en un regard</h3><span>Sur la sélection ci-dessus</span></div><dl className="profile-metrics">{metrics.map((metric) => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd><p>{metric.detail}</p></div>)}</dl>{games < 5 && <p className="profile-sample-note">Échantillon limité : {games} games. Confirme les observations sur les prochaines sessions.</p>}</Surface>
           <CoachDiagnosticPanel player={selectedPlayer} games={games} issues={coachIssues} strengths={coachStrengths} onFollowUp={() => { openProfileView("coaching"); requestAnimationFrame(() => document.getElementById("profile-panel")?.focus()); }} />
           <details className="profile-disclosure"><summary>Autres statistiques et aide à la lecture</summary><dl className="profile-secondary-stats"><div><dt>Ratio KDA</dt><dd>{kda}</dd><p>(Kills + assists) ÷ morts, avec un minimum de 1 mort au dénominateur.</p></div><div><dt>Dégâts aux champions</dt><dd>{meanMetric("damage", 0)}</dd><p>Moyenne par game renseignée.</p></div><div><dt>Score de vision</dt><dd>{meanMetric("vision")}</dd><p>Moyenne par game renseignée.</p></div><div><dt>Farm à 20 min</dt><dd>{globalCs.at20 === null ? "—" : `${globalCs.at20} CS`}</dd><p>{cs20Values.length} games renseignées.</p></div></dl><p>La participation aux kills mesure les kills et assists du joueur rapportés aux kills de son équipe. Les CS comptent les sbires et monstres tués. « — » indique une donnée indisponible. Ces statistiques décrivent un résultat ; elles ne démontrent pas sa cause.</p></details>
         </> : <Surface><EmptyState icon={Activity} title="Aucune game dans cette sélection" text={selectedCategoryId ? "Change le contexte pour retrouver les résultats de ce joueur." : "Les résultats apparaîtront dès qu’une game importée sera reliée à ce joueur."} /><Button type="button" variant="ghost" onClick={() => selectedCategoryId ? setSelectedCategoryId("") : openAppPath("/games?import=1")}>{selectedCategoryId ? "Voir tous les contextes" : "Importer des games"}</Button></Surface>}
@@ -489,7 +489,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         <div className="profile-followup-intro"><h3>Objectifs et notes</h3><p>Les objectifs suivent les games du contexte sélectionné. Les notes restent communes à tous les contextes du joueur.</p></div>
         <DiscordProgressionGoals goals={data.botGoals} teamId={selectedTeamId} playerId={selectedPlayer.id} />
         <div className="profile-goals"><React.Suspense fallback={<p role="status" className="profile-notice">Chargement des objectifs…</p>}><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /></React.Suspense></div>
-        <Surface><div className="profile-section-heading"><h3>Notes de suivi</h3><span>{coachingNote?.updated_at ? `Mise à jour le ${new Date(coachingNote.updated_at).toLocaleString("fr-FR")}` : "Aucune note enregistrée"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</span></div>
+        <Surface className="profile-notes-surface"><div className="profile-section-heading"><h3>Notes de suivi</h3><span>{coachingNote?.updated_at ? `Mise à jour le ${new Date(coachingNote.updated_at).toLocaleString("fr-FR")}` : "Aucune note enregistrée"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</span></div>
           <label className="profile-notes"><span>Bilan du joueur et prochaine étape</span><textarea value={coachingContent} onChange={(event) => setCoachingContent(event.target.value.slice(0, 4000))} readOnly={!canEditCoaching} rows={8} maxLength={4000} placeholder="Ce qui progresse, le point à travailler, la prochaine étape…" /></label>
           <div className="profile-scope"><p>{coachingContent.length} / 4 000 caractères{coachingContent !== (coachingNote?.content || "") ? " · Modifications non enregistrées" : ""}</p>{canEditCoaching && <Button type="button" icon={savingCoaching ? Loader2 : Check} disabled={savingCoaching || coachingContent === (coachingNote?.content || "")} onClick={saveCoachingNote}>{savingCoaching ? "Enregistrement…" : "Enregistrer les notes"}</Button>}</div>
         </Surface>
@@ -504,10 +504,10 @@ function CoachDiagnosticPanel({ player, games, issues = [], strengths = [], onFo
   if (!priority) return null;
   const otherSignals = issues.slice(1);
   return <Surface className="profile-review">
-    <p className="profile-eyebrow">Piste de review · à confirmer</p>
+    <div className="profile-review-layout"><div className="profile-review-observation"><p className="profile-eyebrow">Piste de review · à confirmer</p>
     <h3>{priority.title}</h3>
-    <p className="profile-copy">{priority.text}</p>
-    <div className="profile-next-step"><h4>Au prochain bloc</h4><p>{priority.action}</p>{onFollowUp && <button type="button" onClick={onFollowUp} className="profile-text-action">Ouvrir les objectifs et les notes <ArrowRight aria-hidden="true" /></button>}</div>
+    <p className="profile-copy">{priority.text}</p></div>
+    <div className="profile-next-step"><h4>Au prochain bloc</h4><p>{priority.action}</p>{onFollowUp && <button type="button" onClick={onFollowUp} className="profile-text-action">Ouvrir les objectifs et les notes <ArrowRight aria-hidden="true" /></button>}</div></div>
     <details className="profile-disclosure"><summary>Voir les games à l’origine de cette piste <span>{priority.rows?.length || 0} games</span></summary><div className="profile-evidence">{(priority.rows || []).slice(0, 5).map((row, index) => <a key={row.match?.id || index} href={`/games?match=${encodeURIComponent(row.match?.id || "")}`} onClick={(event) => { event.preventDefault(); openAppPath(`/games?match=${encodeURIComponent(row.match?.id || "")}`); }}><span><strong>{matchDisplayName(row.match)}</strong><small>{championDisplayName(row.champion)} · {profileHistoryDateLabel(row)} · {row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"} kills / morts / assists</small></span><ArrowRight aria-hidden="true" /></a>)}</div>{priority.rows?.length > 5 && <p>Les 5 premières games sont affichées. Retrouve toutes les sources dans l’historique.</p>}</details>
     {otherSignals.length > 0 && <details className="profile-disclosure"><summary>Autres pistes à vérifier <span>{otherSignals.length}</span></summary>{otherSignals.map((item) => <article className="profile-other-signal" key={item.title}><h4>{item.title}</h4><p>{item.text}</p><p>{item.action}</p></article>)}</details>}
   </Surface>;
@@ -671,7 +671,7 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
     catch (error) { setExportStatus("L’export a échoué. Réessaie dans un instant."); }
     finally { setExporting(false); }
   }
-  return <Surface>
+  return <Surface className="profile-pool">
     <div className="profile-section-heading"><div><h3>Pool déclaré</h3><p>Les champions et leur statut renseignés pour {selectedPlayer?.name}. Les résultats affichés utilisent le contexte sélectionné.</p></div><Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} disabled={!championPool.length || exporting} onClick={downloadPool}>{exporting ? "Export en cours…" : "Exporter la tier list"}</Button></div>
     {exportStatus && <p role="status" className="profile-notice">{exportStatus}</p>}
     {championPool.length ? <div className="profile-pool-list">{CHAMPION_TIERS.map((tier) => <section key={tier.id} className="profile-pool-tier"><header><div><h4>{tier.id === "danger" ? "En entraînement" : tier.title}</h4><p>{tier.hint}</p></div><span>{rowsByTier[tier.id].length} champions</span></header>{rowsByTier[tier.id].length ? rowsByTier[tier.id].map((row, index) => <ProfilePoolChampionRow key={row.id || `${row.champion}-${index}`} row={row} stat={statsByChampion.get(championAssetId(row.champion))} selectedPlayer={selectedPlayer} />) : <p className="profile-empty-tier">Aucun champion dans cette catégorie.</p>}</section>)}</div> : <EmptyState icon={Shield} title="Aucun champion déclaré" text="Renseigne le pool du joueur dans l’espace Draft pour préparer ses options." />}
@@ -681,7 +681,7 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
 
 function ProfilePoolReadLine({ label, value, detail, toneName = "cyan" }) {
   return <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(70px,.35fr)] items-center gap-3 py-3">
-    <div className="min-w-0"><p className="truncate text-xs font-black uppercase tracking-[0.14em] text-slate-400">{label}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p></div>
+    <div className="min-w-0"><p className="text-[13px] font-semibold text-slate-400">{label}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p></div>
     <p className={cx("truncate text-right text-sm font-black", toneName === "green" ? "text-emerald-100" : toneName === "yellow" ? "text-amber-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
   </div>;
 }
@@ -894,7 +894,7 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
   const pages = Math.max(1, Math.ceil(filteredRows.length / 10));
   const currentPage = Math.min(page, pages);
   const visibleRows = filteredRows.slice((currentPage - 1) * 10, currentPage * 10);
-  return <Surface>
+  return <Surface className="profile-history">
     <div className="profile-section-heading"><div><h3>Historique des games</h3><p>Les plus récentes en premier. Ouvre une game pour revoir le détail et la chronologie.</p></div></div>
     <div className="profile-history-filters profile-filters"><SelectInput label="Champion" value={championFilter} onChange={(value) => { setChampionFilter(value); setPage(1); }}><option value="">Tous les champions</option>{championOptions.map((champion) => <option key={champion} value={champion}>{championDisplayName(champion)}</option>)}</SelectInput><SelectInput label="Résultat" value={resultFilter} onChange={(value) => { setResultFilter(value); setPage(1); }}><option value="all">Tous les résultats</option><option value="win">Victoires</option><option value="loss">Défaites</option></SelectInput></div>
     <div className="profile-scope"><p role="status"><strong>{filteredRows.length} games trouvées</strong> sur {rows.length}</p>{(championFilter || resultFilter !== "all") && <button type="button" className="profile-text-action" onClick={() => { setChampionFilter(""); setResultFilter("all"); setPage(1); }}>Réinitialiser les filtres</button>}</div>
@@ -916,7 +916,7 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
 function ProfileFold({ title, badge, icon: Icon = Activity, toneName = "cyan", children }) {
   const [open, setOpen] = useState(true);
   return <Surface className="min-w-0 p-4">
-    <h3><button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg py-2 text-left transition hover:bg-white/[0.035]">
+    <h3><button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[2px] py-2 text-left transition hover:bg-white/[0.035]">
       <span className="flex min-w-0 items-center gap-3">
         <Icon className={cx("h-5 w-5 shrink-0", toneName === "red" ? "text-rose-100" : toneName === "green" ? "text-emerald-100" : toneName === "purple" ? "text-violet-100" : "text-cyan-100")} aria-hidden="true" />
         <span className="min-w-0"><span className="text-xs font-semibold text-slate-300">{badge}</span><span className="mt-1 block break-words text-xl font-black text-white">{title}</span></span>
@@ -931,7 +931,7 @@ function ProfileHudMetric({ icon: Icon, label, value, detail, tone: t = "cyan" }
   return <div className="min-w-0 border-l border-white/10 px-3 py-1 tabular-nums">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <p className="truncate text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p>
+        <p className="truncate text-[13px] font-semibold text-slate-300">{label}</p>
         <p className="mt-2 truncate text-2xl font-black text-white">{value}</p>
       </div>
       {Icon && <Icon className={cx("h-4 w-4 shrink-0", t === "green" ? "text-emerald-100" : t === "red" ? "text-rose-100" : t === "purple" ? "text-violet-100" : t === "orange" ? "text-fuchsia-100" : "text-cyan-100")} aria-hidden="true" />}

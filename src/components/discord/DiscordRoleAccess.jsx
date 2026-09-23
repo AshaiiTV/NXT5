@@ -78,7 +78,7 @@ export default function DiscordRoleAccess({ teamId, metadata, canManage = false,
       {!policy.enabled && <p>Les membres de cette équipe utilisent les commandes selon leurs droits NXT5. Aucun rôle Discord supplémentaire n’est exigé actuellement.</p>}
       <p className="discord-help">Ce réglage concerne les commandes, uniquement pour cette équipe. Le rôle mentionné dans les annonces se choisit dans les salons ; la visibilité des messages dépend des permissions Discord de chaque salon.</p>
       {canManage && <Button type="button" variant="ghost" aria-expanded={editing} aria-controls={editing ? formId : undefined} disabled={resource.loading || action.busy} onClick={toggleEdit}>{editing ? "Fermer les réglages" : "Modifier l’accès"}</Button>}
-      {canManage && editing && <form id={formId} onSubmit={save}>
+      {canManage && editing && <form id={formId} onSubmit={save} className="discord-role-form">
         <fieldset disabled={!canEdit || stale}>
           <legend>Rôles Discord autorisés</legend>
           <p className="discord-help">Coche un ou plusieurs rôles pour autoriser les commandes de cette équipe. Un administrateur Discord sans l’un de ces rôles ne peut pas contourner cette règle. Maximum 25 rôles.</p>

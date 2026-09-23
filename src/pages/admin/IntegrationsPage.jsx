@@ -5,6 +5,7 @@ import { Badge, Button, PageHeader, Surface } from "../../components/ui/Core.jsx
 import { LinkButton } from "../public/PublicPages.jsx";
 import checklistUrl from "../../../docs/shopify-et-checklist-juridique.md?url";
 import { DiscordAdminStatus } from "../../components/discord/DiscordSettings.jsx";
+import "./integrations.css";
 
 const LEGAL_TASKS = [
   ["Identité du vendeur", "Nom et prénoms avec la mention EI, adresse professionnelle, SIREN/SIRET, immatriculation, e-mail et téléphone. Confirmer le régime de TVA."],
@@ -50,26 +51,26 @@ export default function IntegrationsPage({ navigate }) {
   }
 
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="admin-integration-page">
       <PageHeader
         eyebrow="Configuration"
         title="Intégrations"
         subtitle="Vérifie les connexions Shopify et Discord, et retrouve les liens vers les réseaux sociaux."
       />
-      <Surface glow>
-        <div className="space-y-5 p-2 sm:p-4">
+      <Surface className="admin-integration-card">
+        <div className="admin-integration-content">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="flex items-center gap-3 text-xl font-black"><Plug aria-hidden="true" className="h-6 w-6 text-cyan-200" />Shopify</h3>
+            <h3 className="admin-integration-title"><Plug aria-hidden="true" className="h-6 w-6 text-cyan-200" />Shopify</h3>
             <Badge tone={connection ? "cyan" : "slate"}>{loading ? "Chargement" : connection ? "Connexion vérifiée" : status?.configured ? "Prêt à tester" : "À configurer"}</Badge>
           </div>
           <p className="text-sm leading-7 text-slate-200">Le connecteur lit le nom, le domaine et la devise de la boutique. La mise en vente et l’activation automatique des abonnements restent à finaliser.</p>
           {loading && <p role="status" className="text-sm">Lecture de la configuration…</p>}
-          {status && <p className="break-words text-sm text-slate-200">Boutique : {status.domain || "à renseigner"} · API : {status.apiVersion || "à corriger"}</p>}
+          {status && <dl className="admin-integration-facts"><div><dt>Boutique</dt><dd>{status.domain || "À renseigner"}</dd></div><div><dt>Version de l’API</dt><dd>{status.apiVersion || "À corriger"}</dd></div></dl>}
           {!!status?.issues?.length && <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-amber-100">{status.issues.map((issue) => <li className="break-words" key={issue}>{issue}</li>)}</ul>}
-          <p className="text-sm leading-7 text-slate-300">Dans les variables serveur Netlify, renseigne <code>SHOPIFY_SHOP_DOMAIN</code>, <code>SHOPIFY_CLIENT_ID</code> et <code>SHOPIFY_CLIENT_SECRET</code>, puis redéploie. Le guide de configuration détaille la création de l’application et son installation.</p>
-          {error && <p role="alert" className="rounded-xl border border-rose-300/30 bg-rose-400/10 p-4 text-sm leading-6 text-rose-100">{error}</p>}
-          {connection && <div role="status" className="space-y-2 rounded-xl border border-cyan-200/25 bg-cyan-300/10 p-4 text-sm leading-6">
-            <p className="font-black">{connection.shop.name}</p>
+          <details className="admin-integration-help"><summary>Configurer la connexion Shopify</summary><p className="text-sm leading-7 text-slate-300">Dans les variables serveur Netlify, renseigne <code>SHOPIFY_SHOP_DOMAIN</code>, <code>SHOPIFY_CLIENT_ID</code> et <code>SHOPIFY_CLIENT_SECRET</code>, puis redéploie. Le guide de configuration détaille la création de l’application et son installation.</p></details>
+          {error && <p role="alert" className="admin-integration-error">{error}</p>}
+          {connection && <div role="status" className="admin-integration-result">
+            <p className="font-semibold">{connection.shop.name}</p>
             <p className="break-words">{connection.shop.domain} · {connection.shop.currency}</p>
             <p>Vérifiée le {new Date(connection.checkedAt).toLocaleString("fr-FR")}. API utilisée : {connection.apiVersion}.</p>
             {connection.apiVersion !== connection.requestedApiVersion && <p className="text-amber-100">Shopify a remplacé la version demandée. Actualise SHOPIFY_API_VERSION avec une version prise en charge.</p>}
@@ -85,8 +86,8 @@ export default function IntegrationsPage({ navigate }) {
       </Surface>
       <DiscordAdminStatus />
       <Surface>
-        <div className="space-y-4 p-2 sm:p-4">
-          <h3 className="text-xl font-black">Réseaux sociaux</h3>
+        <div className="admin-integration-content">
+          <h3 className="admin-integration-title">Réseaux sociaux</h3>
           <p className="text-sm leading-7 text-slate-200">Consulte les liens publics de NXT5 et les réseaux renseignés sur le site.</p>
           <LinkButton href="/reseaux" navigate={navigate} variant="ghost">Voir la page Réseaux</LinkButton>
         </div>
@@ -97,20 +98,20 @@ export default function IntegrationsPage({ navigate }) {
 
 export function LegalReadinessPage() {
   return (
-    <div className="min-w-0 space-y-5">
+    <div className="admin-integration-page">
       <PageHeader
         eyebrow="Ventes et accès"
         title="Préparer la vente"
         subtitle="Retrouve les documents et les étapes à préparer avant la commercialisation de NXT5."
       />
       <Surface>
-        <div className="space-y-5 p-2 sm:p-4">
-          <h3 className="text-xl font-black">Check-list juridique</h3>
+        <div className="admin-integration-content">
+          <h3 className="admin-integration-title">Check-list juridique</h3>
           <p className="text-sm leading-7 text-slate-200">Les textes actuels présentent un service gratuit édité à titre non professionnel. Avant de vendre, les documents ci-dessous doivent correspondre à l’entreprise et à l’offre réellement proposées.</p>
-          <ol className="space-y-5">
-            {LEGAL_TASKS.map(([title, description], index) => <li key={title} className="border-t border-cyan-100/10 pt-4"><h4 className="font-black text-cyan-100">{index + 1}. {title}</h4><p className="mt-2 text-sm leading-7 text-slate-200">{description}</p></li>)}
+          <ol className="admin-launch-checklist">
+            {LEGAL_TASKS.map(([title, description], index) => <li key={title}><span className="admin-launch-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><h4>{title}</h4><p>{description}</p></div></li>)}
           </ol>
-          <a href={checklistUrl} download="nxt5-checklist-juridique.md" className="nxt5-control inline-flex min-h-12 max-w-full items-center gap-3 rounded-xl border border-cyan-200/30 px-4 py-3 text-sm font-black text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+          <a href={checklistUrl} download="nxt5-checklist-juridique.md" className="nxt5-control nxt5-button-secondary admin-launch-download">
             <Download aria-hidden="true" className="h-5 w-5 shrink-0" /><span>Télécharger le guide et la check-list complète</span>
           </a>
         </div>

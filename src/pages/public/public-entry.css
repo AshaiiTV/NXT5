@@ -203,3 +203,8 @@
   .nxt5-entry-preview-brand { font-size: .8125rem; }
   .nxt5-entry-steps { grid-template-columns: minmax(0, 1fr); }
 }
+
+.nxt5-account-dialog { max-height: calc(100dvh - 2rem); overflow-y: auto; border-radius: var(--nxt5-radius-panel); background: var(--nxt5-surface); box-shadow: 0 24px 64px #0008; }
+.nxt5-account-dialog h2 { font-size: clamp(1.375rem, 2.3vw, 1.75rem); line-height: 1.3; }
+.nxt5-account-dialog button { border-radius: var(--nxt5-radius-button); }
+.nxt5-account-dialog p { overflow-wrap: anywhere; }

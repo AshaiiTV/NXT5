@@ -91,7 +91,7 @@ export function TrendEvolution({ matches = [], onOpenMatch }) {
       {points.length ? <>
         <SeriesChart series={series} selectedKey={selected?.key} onSelect={selectPoint} />
         {undated.length > 0 && <p className="trend-series-date-note">{undated.length} game{undated.length > 1 ? "s" : ""} sans date : consultable{undated.length > 1 ? "s" : ""} ci-dessous, hors de la courbe.</p>}
-        <div className="trend-series-navigation">
+        <div className="trend-series-inspector"><div className="trend-series-navigation">
           <SelectInput label="Game à examiner" value={selected.key} onChange={selectPoint} aria-label="Game à examiner">
             {dated.length > 0 && <optgroup label="Games dans l’ordre chronologique">{dated.map((point, index) => <option key={point.key} value={point.key}>{index + 1}. {date(point, true)} · {matchDisplayName(point.match)}</option>)}</optgroup>}
             {undated.length > 0 && <optgroup label="Date inconnue · hors courbe">{undated.map((point) => <option key={point.key} value={point.key}>{matchDisplayName(point.match)} · Date inconnue</option>)}</optgroup>}
@@ -109,6 +109,7 @@ export function TrendEvolution({ matches = [], onOpenMatch }) {
             <dl><dt>{metric.label}</dt><dd>{valueLabel(selected, metric)}</dd></dl>
           </div>
           <Button variant="ghost" type="button" onClick={() => onOpenMatch?.(selected.match)}>Ouvrir cette game <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></Button>
+        </div>
         </div>
         <details className="trend-series-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
           <summary>Relevé des {points.length} game{points.length > 1 ? "s" : ""}</summary>

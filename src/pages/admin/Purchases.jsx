@@ -70,7 +70,7 @@ export function PurchaseHistory() {
       <SelectInput label="Statut" aria-label="Statut" value={filters.status} onChange={status => setFilters(previous => ({ ...previous, status, page: 1 }))}>
         <option value="">Tous les statuts</option>{Object.entries(STATUSES).map(([value, status]) => <option key={value} value={value}>{status.label}</option>)}
       </SelectInput>
-      <Button type="submit" variant="ghost"><Search size={16} aria-hidden="true" />Rechercher</Button>
+      <Button type="submit" variant="primary"><Search size={16} aria-hidden="true" />Rechercher</Button>
       {hasFilters && <Button variant="ghost" type="button" onClick={() => { setQuery(""); setFilters({ q: "", status: "", page: 1 }); }}>Effacer les filtres</Button>}
     </form>
     <LoadState {...state} />
@@ -87,7 +87,7 @@ export function PurchaseHistory() {
             <td className="purchase-amount">{money(purchase.amountCents)}</td><td><PurchaseDates purchase={purchase} /></td><td><Status value={purchase.status} /></td>
           </tr>)}</tbody></table></div>
         <ul className="purchase-mobile" aria-label="Commandes">{data.purchases.map(purchase => <li key={purchase.id}>
-          <div className="purchase-card-top"><h4>{purchase.reference}</h4><Status value={purchase.status} /></div>
+          <div className="purchase-card-top"><h4><span className="purchase-card-eyebrow">Commande</span>{purchase.reference}</h4><Status value={purchase.status} /></div>
           <p>{purchase.customerName}{purchase.teamName && ` · ${purchase.teamName}`}</p>
           <dl><div><dt>Offre</dt><dd>{purchase.planLabel}</dd></div><div><dt>Tarif unitaire TTC</dt><dd>{money(purchase.unitAmountCents)}</dd></div><div><dt>Quantité</dt><dd>{number(purchase.quantity)}</dd></div><div><dt>Montant TTC</dt><dd className="purchase-amount">{money(purchase.amountCents)}</dd></div></dl>
           <PurchaseDates purchase={purchase} />

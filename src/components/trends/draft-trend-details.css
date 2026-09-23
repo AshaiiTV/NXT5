@@ -3,7 +3,7 @@
 .draft-detail-content .draft-detail-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--nxt5-border); }
 .draft-detail-content .draft-detail-section > h3 { font-size: 19px; }
 .draft-detail-content .draft-detail-section > h3 + .draft-description { margin-top: 8px; }
-.draft-detail-controls { margin: 20px 0 8px; }
+.draft-detail-controls { margin: 24px 0 8px; padding: 16px 0; border-block: 1px solid var(--nxt5-border); }
 .draft-detail-filter-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .draft-detail-filter-fields > label { min-width: 0; }
 .draft-detail-filter-fields :is(input, select) { min-height: 44px; }
@@ -12,8 +12,8 @@
 .draft-detail-role-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
 .draft-detail-definitions { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 32px; margin-top: 12px !important; }
 .draft-detail-definitions > div { padding: 14px 0; border-bottom: 1px solid var(--nxt5-border); }
-.draft-detail-definitions dt { font-size: 14px; font-weight: 750; }
-.draft-detail-definitions dd { margin-top: 6px; color: #dbe8f8; font-size: 14px; line-height: 1.65; }
+.draft-detail-definitions dt { font-size: 14px; font-weight: 700; }
+.draft-detail-definitions dd { margin-top: 6px; color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.65; }
 .draft-detail-content .draft-champion-copy > span { font-size: 13px; }
 .draft-detail-content .draft-champion-copy > span:last-child { overflow-wrap: anywhere; }
 .draft-detail-content .draft-warning-list { margin: 12px 0; }
@@ -26,3 +26,8 @@
   .draft-detail-filter-fields :is(input, select) { font-size: 16px; }
   .draft-detail-content .draft-detail-section { margin-top: 20px; padding-top: 20px; }
 }
+
+.draft-detail-filter-fields .nxt5-field-label { font-size: 13px; }
+.draft-detail-results .draft-context { color: var(--nxt5-text-secondary); }
+.draft-detail-role-heading h3 { font-size: 20px; font-weight: 700; }
+.draft-detail-definitions dd { color: var(--nxt5-text-secondary); }

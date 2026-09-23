@@ -1,0 +1,8 @@
+.nxt5-assistant-panel { border-radius: var(--nxt5-radius-panel); background: var(--nxt5-surface); }
+.nxt5-assistant-panel button { border-radius: var(--nxt5-radius-button); }
+.nxt5-assistant-panel button:not([disabled]) { min-height: 44px; }
+.nxt5-assistant-panel form > div { border-radius: var(--nxt5-radius-control); }
+.nxt5-assistant-panel textarea { font-weight: 400; }
+@media(max-width: 639px) { .nxt5-assistant-panel textarea { font-size: 1rem; line-height: 1.5; } }
+
+.nxt5-assistant-panel header > div:last-child { margin-left: auto; }

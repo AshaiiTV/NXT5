@@ -71,8 +71,9 @@
   gap: 8px;
   padding: 10px 16px;
   border: 1px solid rgba(207, 250, 254, .36);
+  border-radius: var(--nxt5-radius-button);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 html.nxt5-low-gpu .pass-feature-preview-backdrop { filter: none; opacity: .08; }
@@ -82,3 +83,6 @@ html.nxt5-low-gpu .pass-feature-preview-backdrop { filter: none; opacity: .08; }
   .pass-feature-preview-message .nxt5-control { width: 100%; }
   .pass-feature-preview-backdrop { gap: 16px; padding: 12px; }
 }
+
+.pass-feature-preview-message h2 { font-weight: 650; font-size: 1.5rem; }
+.pass-feature-preview-message { width: 100%; overflow-wrap: anywhere; }

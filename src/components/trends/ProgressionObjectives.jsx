@@ -36,6 +36,7 @@ export function ProgressionObjectives({ teamObjective, roleObjectives, gamesCoun
         <Users aria-hidden="true" /> Contrats joueurs <ArrowUpRight aria-hidden="true" />
       </button>
     </div>
+    {!roleObjectives.length && <p className="objectives-empty">Les consignes par rôle apparaîtront lorsque les participants seront renseignés dans les games de cette sélection.</p>}
     <div className="objectives-role-list">
       {roleObjectives.map((item) => <article key={item.role} className="objectives-role">
         <div className="objectives-role-identity">
