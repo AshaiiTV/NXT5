@@ -37,9 +37,24 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const passwordHash = await hashPassword(nextPassword);
-    // The account row serializes password and recovery changes. Comparing its
-    // version prevents simultaneous redemptions from accepting stale tokens.
-    const changed = await sql`
+    const [schema] = await sql`
+      select to_regprocedure('public.nxt5_reset_password(text,text)') is not null as recovery_ready,
+             to_regclass('public.social_identities') is not null as social_ready
+    `;
+    // A partial migration must never silently preserve social account access.
+    if (schema.social_ready && !schema.recovery_ready) {
+      throw Object.assign(new Error('Migration de récupération du compte requise.'), {
+        status: 503, code: 'SCHEMA_MIGRATION_REQUIRED', publicMessage: 'Service en cours de mise à jour.'
+      });
+    }
+    // The migrated function locks the user before rechecking mailbox ownership,
+    // consuming tokens and removing sessions, OAuth identities and OAuth links
+    // in progress. The Discord bot association is managed separately.
+    // Before migration, retain the optimistic account-version protocol so a
+    // pending redemption cannot use a snapshot replaced by another auth change.
+    const changed = schema.recovery_ready
+      ? await sql`select user_id from nxt5_reset_password(${tokenHash}, ${passwordHash})`
+      : await sql`
       with changed_account as (
         update users
         set password_hash = ${passwordHash}, updated_at = now()

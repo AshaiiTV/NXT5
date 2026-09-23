@@ -358,7 +358,7 @@ describe('controlled database migrations', () => {
     await db.query("insert into discord_connections(team_id,guild_id,status) values($1,$3,'active'),($2,$3,'active')", [first, second, guild]);
     const connections = (await db.query('select * from discord_connections order by team_id')).rows;
 
-    expect(await applyMigrations(client, migrations)).toEqual([key]);
+    expect(await applyMigrations(client, migrations)).toEqual(migrations.slice(beforeRoleAccess.length).map(migration => migration.key));
     expect((await db.query('select * from discord_connections order by team_id')).rows).toEqual(connections);
     expect((await db.query('select * from discord_bot_role_access')).rows).toEqual([]);
     await db.query('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])',
