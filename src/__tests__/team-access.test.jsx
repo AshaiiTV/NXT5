@@ -46,28 +46,41 @@ describe("joining and creating another team", () => {
     expect(props.setSelectedTeamId).toHaveBeenCalledWith("second");
     expect(props.refreshAll).toHaveBeenCalledWith({ teamId: "second" });
   });
-  it("provides a visible way to enter or dismiss the second-team forms", async () => {
-    const renderer = await render(<Teams {...teamProps()} />);
+  it("keeps second-team access out of the roster header and opens or dismisses it through navigation", async () => {
+    const props = teamProps();
+    const renderer = await render(<Teams {...props} />);
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
-    const open = () => renderer.root.findAllByType(Button).find((button) => button.props.children === "Créer ou rejoindre une équipe");
-    act(() => open().props.onClick());
+    expect(renderer.root.findAllByType(Button).some((button) => button.props.children === "Créer ou rejoindre une équipe")).toBe(false);
+    const showTeamAccessForms = async () => {
+      window.history.pushState({}, "", "/equipes?create=1");
+      await act(async () => renderer.update(<Suspense fallback={<p>Chargement</p>}><Teams {...props} routeSearch={window.location.search} /></Suspense>));
+    };
+    await showTeamAccessForms();
     expect(renderer.root.findAllByType("form")).toHaveLength(2);
+    expect(renderer.root.findByProps({ label: "Nom de team" })).toBeTruthy();
+    expect(renderer.root.findByProps({ label: "Code d’invitation" })).toBeTruthy();
     act(() => renderer.root.findAllByType(Button).find((button) => button.props.children === "Fermer les formulaires").props.onClick());
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    expect(window.location.pathname).toBe("/equipes");
+    expect(window.location.search).toBe("");
   });
 });
 
 describe("email change reauthentication", () => {
   it("requires the current password only when the email changes and clears it on success", async () => {
     const user = { id: "u1", name: "Joueur", email: "old@example.com", email_verified: true };
-    apiFetch.mockResolvedValueOnce({ subscription: { planCode: "free", effectivePlanCode: null, status: "none" } });
+    apiFetch.mockImplementation(async (endpoint) => {
+      if (endpoint === "account-subscription") return { subscription: { planCode: "free", effectivePlanCode: null, status: "none" } };
+      if (endpoint === "auth-social-status") return { providers: [], linked: [], hasPassword: true };
+      if (endpoint === "auth-update-profile") return { user: { ...user, email: "new@example.com" } };
+      throw new Error(`Unexpected request: ${endpoint}`);
+    });
     const renderer = await render(<AccountSettings user={user} data={{}} onUserUpdate={vi.fn()} pushToast={vi.fn()} />);
     const emailPassword = () => renderer.root.findAllByType(TextInput).filter((field) => field.props.label === "Mot de passe actuel pour modifier l’e-mail");
     expect(emailPassword()).toHaveLength(0);
     input(renderer, "E-mail", "new@example.com");
     expect(emailPassword()).toHaveLength(1);
     act(() => emailPassword()[0].props.onChange("current-secret"));
-    apiFetch.mockResolvedValueOnce({ user: { ...user, email: "new@example.com" } });
     await act(async () => renderer.root.findAllByType("form")[0].props.onSubmit({ preventDefault() {} }));
     expect(JSON.parse(apiFetch.mock.calls.find(([endpoint]) => endpoint === "auth-update-profile")[1].body)).toMatchObject({ email: "new@example.com", currentPassword: "current-secret" });
     expect(emailPassword()[0].props.value).toBe("");

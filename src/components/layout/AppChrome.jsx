@@ -2,76 +2,51 @@ import React from "react";
 import { Activity, AlertTriangle, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
 import { draftViewFromPath, draftViewLabel, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
-import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
-import { Nxt5Wordmark, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
-import { Badge, Button } from "../ui/Core.jsx";
+import { cx, profileStatusLabel } from "../../app/helpers.js";
+import { Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
+import { Button } from "../ui/Core.jsx";
 import AccountSubscription from "../account/AccountSubscription.jsx";
+import "./app-chrome.css";
 
 export function AmbientBackground() {
-  return (
-    <div className="nxt5-ambient-bg pointer-events-none fixed inset-0 overflow-hidden bg-[#020511]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_10%,rgba(0,216,255,.24),transparent_28%),radial-gradient(circle_at_84%_8%,rgba(217,0,255,.19),transparent_30%),linear-gradient(118deg,rgba(16,76,190,.22)_0%,transparent_24%,transparent_66%,rgba(0,238,255,.14)_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.048)_1px,transparent_1px)] bg-[size:54px_54px] opacity-[0.22]" />
-      <div className="absolute inset-0 bg-[repeating-linear-gradient(123deg,transparent_0,transparent_132px,rgba(0,216,255,.15)_133px,transparent_136px),repeating-linear-gradient(123deg,transparent_0,transparent_214px,rgba(217,0,255,.13)_215px,transparent_218px)]" />
-      <div className="absolute left-[7%] top-[12%] h-[42rem] w-[42rem] rounded-full border border-cyan-300/10 shadow-[0_0_110px_rgba(0,216,255,.14)]" />
-      <div className="absolute right-[9%] top-[10%] h-[31rem] w-[31rem] rounded-full border border-fuchsia-300/10 shadow-[0_0_110px_rgba(217,0,255,.12)]" />
-      <div className="absolute left-[-12%] top-[30%] h-px w-[130%] rotate-[-13deg] bg-gradient-to-r from-transparent via-cyan-200/18 to-transparent" />
-      <div className="absolute left-[-12%] top-[72%] h-px w-[130%] rotate-[-13deg] bg-gradient-to-r from-transparent via-fuchsia-200/16 to-transparent" />
-      <div className="nxt5-beam-forward absolute top-[17%] h-px w-[42vw] rotate-[-13deg] bg-gradient-to-r from-transparent via-cyan-100 to-transparent shadow-[0_0_34px_rgba(34,211,238,.82)]" />
-      <div className="nxt5-beam-reverse absolute top-[61%] h-px w-[48vw] rotate-[-13deg] bg-gradient-to-r from-transparent via-fuchsia-100 to-transparent shadow-[0_0_34px_rgba(217,70,239,.76)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,rgba(2,5,17,.08)_42%,rgba(2,5,17,.94)_100%)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-100/80 to-fuchsia-100/70" />
-    </div>
-  );
+  return <div className="nxt5-ambient-bg nxt5-ambient-calm" aria-hidden="true"><div className="nxt5-ambient-light" /></div>;
 }
 
-export function BeginnerCompass({ active, data, currentTeam, onNavigate, onImport, onClose }) {
-  if (!currentTeam) return null;
-  const teamMatches = (data.matches || []).filter((match) => match.team_id === currentTeam.id);
-  const teamPlayers = (data.players || []).filter((player) => player.team_id === currentTeam.id);
-  const teamReports = (data.reports || []).filter((report) => report.team_id === currentTeam.id);
-  const doneCount = [
-    teamPlayers.length >= 5,
-    teamMatches.length >= 1,
-    teamMatches.length >= 3,
-    teamReports.length >= 1,
-  ].filter(Boolean).length;
-  const steps = [
-    { id: "teams", icon: Users, label: "Roster", text: teamPlayers.length >= 5 ? "Base prête" : "Ajoute les 5 joueurs", done: teamPlayers.length >= 5 },
-    { id: "matches", icon: Upload, label: "Importer", text: teamMatches.length ? `${teamMatches.length} game${teamMatches.length > 1 ? "s" : ""}` : "Ajoute une game", done: teamMatches.length >= 1 },
-    { id: "trends", icon: Activity, label: "Comprendre", text: teamMatches.length >= 3 ? "Tendances fiables" : "Lis les répétitions", done: teamMatches.length >= 3 },
-    { id: "reports", icon: FileText, label: "Décider", text: teamReports.length ? `${teamReports.length} review${teamReports.length > 1 ? "s" : ""}` : "Écris une review", done: teamReports.length >= 1 },
-  ];
-  const nextStep = steps.find((step) => !step.done) || steps[2];
-  const goToStep = (step) => step.id === "matches" && onImport ? onImport() : onNavigate(step.id);
-  return <section className="nxt5-panel nxt5-premium-panel nxt5-surface mb-4 overflow-hidden border p-3">
-    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2"><Badge tone="cyan">Démarrage guidé</Badge><Badge tone={doneCount >= 3 ? "green" : "orange"}>{doneCount}/4</Badge></div>
-        <h2 className="mt-2 text-lg font-black text-white">Commencer avec NXT5</h2>
-        <p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-300">Prépare le roster, importe une game, consulte les stats puis écris la review.</p>
-      </div>
-      <div className="flex shrink-0 flex-wrap gap-2">
-        <Button type="button" icon={nextStep.icon} onClick={() => goToStep(nextStep)} className="px-3 py-2 text-xs">Continuer : {nextStep.label}</Button>
-        <Button type="button" variant="ghost" icon={X} onClick={onClose} className="px-3 py-2 text-xs">Masquer</Button>
-      </div>
+const COMPASS_ICONS = { teams: Users, matches: Upload, trends: Activity, reports: FileText };
+
+export function BeginnerCompass({ steps = [], onNavigate, onClose }) {
+  const doneCount = steps.filter((step) => step.done).length;
+  const nextStep = steps.find((step) => !step.done && !step.disabled) || steps.find((step) => !step.done);
+  if (!nextStep) return null;
+  const goToStep = (step) => { if (!step.disabled && step.path) onNavigate(step.path); };
+  return <section className="nxt5-compass" aria-labelledby="nxt5-compass-title">
+    <div className="nxt5-compass-heading">
+      <div><h2 id="nxt5-compass-title">Les premières étapes</h2><p>{doneCount} sur {steps.length} terminées · À ton rythme, avec ton équipe.</p></div>
+      <button type="button" className="nxt5-chrome-icon-button" aria-label="Masquer le démarrage guidé" title="Masquer le démarrage guidé" onClick={onClose}><X size={18} aria-hidden="true" /></button>
     </div>
-    <div className="mt-3 grid gap-2 md:grid-cols-4">
-      {steps.map((step, index) => {
-        const Icon = step.icon;
-        const selected = active === step.id;
-        return <button key={step.id} type="button" onClick={() => goToStep(step)} className={cx("flex min-w-0 items-center gap-2 rounded-xl border p-2 text-left transition", selected ? "border-cyan-200/32 bg-cyan-300/10" : step.done ? "border-emerald-200/16 bg-emerald-300/[0.045]" : "border-white/10 bg-white/[0.028] hover:border-cyan-200/20 hover:bg-cyan-300/[0.055]")}>
-          <span className={cx("grid h-8 w-8 shrink-0 place-items-center rounded-lg border text-xs font-black", step.done ? "border-emerald-200/24 bg-emerald-300/10 text-emerald-100" : "border-cyan-200/18 bg-cyan-300/10 text-cyan-100")}>{step.done ? <Check className="h-4 w-4" /> : `0${index + 1}`}</span>
-          <span className="min-w-0"><span className="flex items-center gap-1.5 truncate text-xs font-black text-white"><Icon className="h-3.5 w-3.5 shrink-0" />{step.label}</span><span className="mt-0.5 block truncate text-[0.64rem] font-semibold text-slate-400">{step.text}</span></span>
-        </button>;
-      })}
+    <div className="nxt5-compass-next">
+      <div><p className="nxt5-compass-next-title">{nextStep.label} <span>· {nextStep.detail}</span></p><p id="nxt5-compass-help">{nextStep.reason || "Choisis une étape pour avancer. Ta progression se met à jour automatiquement."}</p></div>
+      <Button type="button" icon={COMPASS_ICONS[nextStep.id]} onClick={() => goToStep(nextStep)} disabled={nextStep.disabled} aria-describedby="nxt5-compass-help">{nextStep.action}</Button>
     </div>
+    <ol className="nxt5-compass-steps">
+      {steps.map((step, index) => <li key={step.id}>
+        <button type="button" onClick={() => goToStep(step)} disabled={step.disabled} aria-label={`${step.label} : ${step.action}${step.done ? " · Étape terminée" : ""}`} aria-describedby={`nxt5-compass-${step.id}-detail`} className={cx("nxt5-compass-step", nextStep.id === step.id && "is-current", step.done && "is-done")}>
+          <span className="nxt5-compass-number" aria-hidden="true">{step.done ? <Check size={16} /> : index + 1}</span>
+          <span className="nxt5-compass-step-copy"><span className="nxt5-compass-label">{step.label}</span><span id={`nxt5-compass-${step.id}-detail`} className="nxt5-compass-detail">{step.disabled ? step.reason : step.detail}</span></span>
+          {!step.disabled && <ChevronRight size={16} className="nxt5-compass-arrow" aria-hidden="true" />}
+        </button>
+      </li>)}
+    </ol>
   </section>;
 }
 
 export function ApiBanner({ error, onRetry, retrying = false }) {
   if (!error) return null;
-  return <div className="nxt5-enter-fast mb-5 rounded-3xl border border-amber-300/25 bg-amber-500/10 p-4 text-amber-100 shadow-xl shadow-amber-950/10"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div className="flex items-start gap-3"><div className="rounded-2xl bg-amber-200/10 p-2"><AlertTriangle className="h-5 w-5" /></div><div><p className="font-black">Endpoint/API non disponible</p><p className="mt-1 text-sm leading-6 text-amber-100/75">{error}</p></div></div>{onRetry && <Button type="button" variant="ghost" icon={retrying ? Upload : RefreshCw} disabled={retrying} onClick={onRetry} className="shrink-0 border-amber-200/20 bg-amber-200/10 text-amber-50 hover:border-amber-200/45 hover:bg-amber-200/15">{retrying ? "Chargement..." : "Réessayer"}</Button>}</div></div>;
+  return <div className="nxt5-api-banner" role="alert">
+    <AlertTriangle size={20} aria-hidden="true" />
+    <div><p>Les données n’ont pas pu être actualisées</p><p>{error}</p></div>
+    {onRetry && <Button type="button" variant="ghost" icon={RefreshCw} disabled={retrying} onClick={onRetry}>{retrying ? "Chargement…" : "Réessayer"}</Button>}
+  </div>;
 }
 
 export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer, roleLabel, isPlatformAdmin = false }) {
@@ -79,63 +54,118 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
   const navItems = NAV.filter((item) => PRIMARY_NAV_IDS.includes(item.id) && !item.hidden);
   const moreItems = NAV.filter((item) => MORE_NAV_IDS.includes(item.id) && !item.hidden);
   const profileRole = linkedPlayer?.role || currentMember?.role || "";
-  const go = (pageId) => {
-    setActive(pageId);
-    setOpen(false);
+  const sidebarRef = React.useRef(null);
+  const closeRef = React.useRef(null);
+  const [isDesktop, setIsDesktop] = React.useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(min-width: 1024px)").matches);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
+    const media = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  React.useEffect(() => {
+    if (!open || isDesktop) return undefined;
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // Visibility changes immediately: focusing a still-hidden drawer is ignored.
+    closeRef.current?.focus({ preventScroll: true });
+    const background = [...document.querySelectorAll(".nxt5-app-shell, .nxt5-assistant-launcher, .nxt5-workspace-skip")];
+    const previousInert = background.map((element) => element.inert);
+    background.forEach((element) => { element.inert = true; });
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); setOpen(false); return; }
+      if (event.key !== "Tab") return;
+      const controls = [...sidebarRef.current.querySelectorAll("button, a[href], [tabindex='0']")].filter((node) => !node.disabled && node.getClientRects().length);
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!sidebarRef.current.contains(document.activeElement)) { event.preventDefault(); first?.focus(); }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      background.forEach((element, index) => { element.inert = previousInert[index]; });
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus?.();
+    };
+  }, [open, isDesktop, setOpen]);
+
+  const go = (pageId) => { setActive(pageId); setOpen(false); };
+  const renderNavItem = (item) => {
+    const Icon = item.icon;
+    const selected = active === item.id;
+    return <button key={item.id} type="button" onClick={() => go(item.id)} aria-label={item.label} aria-current={selected ? "page" : undefined} title={item.hint ? `${item.label} · ${item.hint}` : item.label} className={cx("nxt5-sidebar-link", selected && "is-active")}>
+      <Icon size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">{item.label}</span>
+    </button>;
   };
-  return (
-    <>
-      <React.Fragment>{open && <div onClick={() => setOpen(false)} className="nxt5-fade-in fixed inset-0 z-30 bg-black/65 backdrop-blur-sm lg:hidden" />}</React.Fragment>
-      <aside className={cx("nxt5-sidebar fixed left-0 top-0 z-40 flex h-dvh flex-col border-r border-cyan-200/18 bg-[#050917]/90 p-3 text-white shadow-2xl shadow-black/50 backdrop-blur-2xl transition-all duration-300 lg:translate-x-0", collapsed ? "is-collapsed lg:w-24" : "lg:w-64", open ? "translate-x-0 w-[19rem] max-w-[calc(100vw-1rem)]" : "-translate-x-full w-[19rem] max-w-[calc(100vw-1rem)]")}>
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(150deg,rgba(34,211,238,.12),transparent_28%,rgba(217,70,239,.10)_72%,transparent),repeating-linear-gradient(90deg,transparent_0_46px,rgba(255,255,255,.025)_47px,transparent_48px)]" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-cyan-200/65 to-fuchsia-200/30" />
-        <button type="button" onClick={() => setCollapsed(!collapsed)} className="absolute -right-4 top-6 hidden h-9 w-9 items-center justify-center rounded-xl border border-cyan-200/18 bg-[#070d1d] text-cyan-100 shadow-xl shadow-black/40 transition hover:border-cyan-300/45 hover:bg-cyan-400/10 lg:flex" title={collapsed ? "Afficher le menu" : "Cacher le menu"}>
-          <ChevronRight className={cx("h-5 w-5 transition", !collapsed && "rotate-180")} />
-        </button>
-        <div className={cx("relative z-10 mb-5 flex min-h-20 items-center", collapsed ? "justify-center" : "justify-between")}>
-          <div className="flex min-w-0 flex-1 justify-center"><Nxt5Wordmark className={cx("w-full object-contain object-center transition-all duration-300", collapsed ? "h-[4.75rem] max-w-[15rem] lg:h-8 lg:max-w-[4.25rem]" : "h-[4.75rem] max-w-[15rem]")} /></div>
-          <button type="button" aria-label="Fermer le menu" onClick={() => setOpen(false)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl p-2 text-slate-300 hover:bg-white/10 lg:hidden"><X className="h-5 w-5" /></button>
+  return <>
+    {open && <div onClick={() => setOpen(false)} className="nxt5-sidebar-scrim" aria-hidden="true" />}
+    <aside ref={sidebarRef} id="nxt5-sidebar" className={cx("nxt5-sidebar", collapsed && "is-collapsed", open && "is-open")} role={!isDesktop && open ? "dialog" : undefined} aria-modal={!isDesktop && open ? true : undefined} aria-label="Navigation NXT5" aria-hidden={!isDesktop && !open ? true : undefined}>
+      <div className="nxt5-sidebar-brand">
+        <div className="nxt5-sidebar-wordmark"><Nxt5Wordmark className="nxt5-sidebar-wordmark-image" /></div>
+        <div className="nxt5-sidebar-symbol"><ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" className="nxt5-sidebar-symbol-image" /></div>
+        <button ref={closeRef} type="button" aria-label="Fermer le menu" onClick={() => setOpen(false)} className="nxt5-chrome-icon-button nxt5-sidebar-close"><X size={20} aria-hidden="true" /></button>
+      </div>
+      <nav className="nxt5-sidebar-navigation" aria-label="Espace équipe">
+        <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Essentiel</p>{navItems.map(renderNavItem)}</div>
+        {!!moreItems.length && <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Avancé</p>{moreItems.map(renderNavItem)}</div>}
+      </nav>
+      <div className="nxt5-sidebar-footer">
+        {isPlatformAdmin && <button type="button" onClick={() => go("admin")} aria-label="Administration" title="Administration" aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">Administration</span></button>}
+        <div className="nxt5-sidebar-account">
+          <div className="nxt5-sidebar-account-identity"><span className="nxt5-sidebar-avatar"><RoleIcon role={profileRole} className="h-5 w-5" /></span><div className="nxt5-sidebar-label"><p title={user?.name || "Coach"}>{user?.name || "Coach"}</p><span title={linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}>{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</span></div></div>
+          <div className="nxt5-sidebar-subscription nxt5-sidebar-label"><AccountSubscription key={user?.id} compact /></div>
         </div>
-        <nav className="relative z-10 flex-1 space-y-1.5 overflow-y-auto pr-1">
-          <p className={cx("px-3 pb-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-cyan-100/80", collapsed && "lg:hidden")}>Essentiel</p>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const selected = active === item.id;
-            return <button key={item.id} onClick={() => go(item.id)} aria-label={item.label} aria-current={selected ? "page" : undefined} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ? "justify-center px-2 lg:justify-center" : "px-3", selected ? "border-cyan-200/26 bg-gradient-to-r from-cyan-500/26 via-blue-500/14 to-fuchsia-500/18 text-white shadow-[0_0_26px_rgba(34,211,238,.10)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}>
-              <Icon className={cx("h-5 w-5 shrink-0 transition", selected ? "text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.45)]" : "text-slate-300 group-hover:text-cyan-200")} />
-              <span className={cx("min-w-0", collapsed && "lg:hidden")}><span className="block truncate">{item.label}</span>{item.hint && <span className="mt-0.5 block truncate text-[0.64rem] font-semibold text-slate-500 group-hover:text-slate-300">{item.hint}</span>}</span>
-            </button>;
-          })}
-          {!!moreItems.length && <div className="pt-1">
-            <div className={cx("mb-1 border-t border-cyan-200/10", collapsed && "lg:mx-2")} />
-            <div className={cx("space-y-1", !collapsed && "pt-1")}>
-              <p className={cx("px-3 pb-1 text-[0.65rem] font-black uppercase tracking-[0.18em] text-slate-500", collapsed && "lg:hidden")}>Avancé</p>
-              {moreItems.map((item) => {
-                const Icon = item.icon;
-                const selected = active === item.id;
-                return <button key={item.id} type="button" onClick={() => go(item.id)} aria-label={item.label} aria-current={selected ? "page" : undefined} title={item.label} className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ? "justify-center px-2 lg:justify-center" : "px-3", selected ? "border-cyan-200/26 bg-gradient-to-r from-cyan-500/20 via-blue-500/12 to-fuchsia-500/16 text-white shadow-[0_0_22px_rgba(34,211,238,.09)]" : "border-transparent text-slate-400 hover:border-cyan-200/16 hover:bg-white/[0.055] hover:text-white")}>
-                  <Icon className={cx("h-5 w-5 shrink-0 transition", selected ? "text-cyan-100 drop-shadow-[0_0_12px_rgba(34,211,238,.35)]" : "text-slate-300 group-hover:text-cyan-200")} />
-                  <span className={cx("min-w-0", collapsed && "lg:hidden")}><span className="block truncate">{item.label}</span>{item.hint && <span className="mt-0.5 block truncate text-[0.64rem] font-semibold text-slate-500 group-hover:text-slate-300">{item.hint}</span>}</span>
-                </button>;
-              })}
-            </div>
-          </div>}
-        </nav>
-        <div className="relative z-10 shrink-0 space-y-3 pt-3">
-          {isPlatformAdmin && <button type="button" onClick={() => go("admin")} title="Administration" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ? "justify-center px-2 lg:justify-center" : "px-3", ["admin", "access-requests", "account-subscriptions"].includes(active) ? "border-fuchsia-300/35 bg-fuchsia-400/[0.10] text-white shadow-[0_0_22px_rgba(217,70,239,.12)]" : "border-fuchsia-200/15 bg-fuchsia-400/[0.035] text-slate-300 hover:border-fuchsia-300/30 hover:bg-fuchsia-400/[0.08] hover:text-white")}><ShieldCheck className={cx("h-5 w-5 shrink-0 transition", ["admin", "access-requests", "account-subscriptions"].includes(active) ? "text-fuchsia-100" : "text-slate-300 group-hover:text-fuchsia-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Administration</span></button>}
-          <div className={cx("nxt5-panel nxt5-premium-panel relative w-full max-w-full overflow-hidden border border-cyan-200/16 text-left backdrop-blur-2xl", collapsed ? "p-2" : "p-2.5")}><div className="relative z-10"><div className={cx("flex items-center gap-3", collapsed && "lg:justify-center")}><div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/18 bg-cyan-400/10 text-cyan-200"><RoleIcon role={profileRole} className="h-5 w-5" /></div><div className={cx("min-w-0", collapsed && "lg:hidden")}><p className="truncate text-sm font-black text-white">{user?.name || "Coach"}</p><p className="truncate text-xs font-semibold text-slate-300">{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</p></div></div><div className={cx("mt-2 flex flex-wrap gap-1.5", collapsed && "lg:hidden")}><Badge tone={profileStatusTone(currentMember)}>{status}</Badge><AccountSubscription key={user?.id} compact /></div></div></div>
-          <button type="button" onClick={() => go("account-settings")} title="Paramètres" className={cx("group flex w-full items-center gap-3 rounded-xl border py-2.5 text-left text-sm font-black transition duration-200", collapsed ? "justify-center px-2 lg:justify-center" : "px-3", active === "account-settings" ? "border-cyan-300/35 bg-cyan-400/[0.075] text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-white/10 bg-white/[0.025] text-slate-300 hover:border-cyan-300/25 hover:bg-white/[0.055] hover:text-white")}><Settings className={cx("h-5 w-5 shrink-0 transition", active === "account-settings" ? "text-cyan-100" : "text-slate-300 group-hover:text-cyan-200")} /><span className={cx("truncate", collapsed && "lg:hidden")}>Paramètres</span></button>
-          <Button variant="ghost" icon={LogOut} onClick={onLogout} aria-label="Déconnexion" className={cx("w-full", collapsed ? "justify-center px-0" : "justify-start")}><span className={cx(collapsed && "lg:hidden")}>Déconnexion</span></Button>
-        </div>
-      </aside>
-    </>
-  );
+        {renderNavItem({ id: "account-settings", label: "Paramètres", icon: Settings })}
+        <button type="button" className="nxt5-sidebar-link nxt5-sidebar-logout" aria-label="Déconnexion" title="Déconnexion" onClick={onLogout}><LogOut size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">Déconnexion</span></button>
+        <button type="button" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Développer le menu" : "Réduire le menu"} aria-expanded={!collapsed} className="nxt5-sidebar-link nxt5-sidebar-collapse" title={collapsed ? "Développer le menu" : "Réduire le menu"}><ChevronRight size={18} className={collapsed ? "" : "rotate-180"} aria-hidden="true" /><span className="nxt5-sidebar-label">Réduire le menu</span></button>
+      </div>
+    </aside>
+  </>;
 }
 
 export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
-  const navLabel = active === "profile" ? `${nav.label} > ${profileViewLabel(profileViewFromPath(window.location.pathname))}` : active === "draft" ? `${nav.label} > ${draftViewLabel(draftViewFromPath(window.location.pathname))}` : nav.label;
+  const detailLabel = active === "profile" ? profileViewLabel(profileViewFromPath(window.location.pathname)) : active === "draft" ? draftViewLabel(draftViewFromPath(window.location.pathname)) : "";
   const [teamMenuOpen, setTeamMenuOpen] = React.useState(false);
+  const teamPickerRef = React.useRef(null);
+  const teamTriggerRef = React.useRef(null);
   const isAdmin = ["admin", "access-requests", "account-subscriptions"].includes(active);
-  return <header className="nxt5-topbar sticky top-0 z-20 border-b border-cyan-200/14 bg-[#030714]/82 px-3 py-3 text-white shadow-[0_12px_40px_rgba(0,0,0,.22)] backdrop-blur-2xl sm:px-4 sm:py-4 lg:px-8"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(34,211,238,.09),transparent_34%,rgba(217,70,239,.08))]" /><div className="relative flex flex-wrap items-center justify-between gap-2 sm:gap-3"><div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"><button type="button" aria-label="Ouvrir le menu" onClick={() => setOpen(true)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-100/14 bg-white/[0.045] p-2 lg:hidden"><Menu className="h-5 w-5" /></button><div className="hidden md:block">{isAdmin ? <div className="grid h-11 w-11 place-items-center rounded-xl border border-fuchsia-200/25 bg-fuchsia-400/10 text-fuchsia-100"><ShieldCheck className="h-5 w-5" /></div> : <TeamAvatar team={currentTeam} />}</div><div className="relative min-w-0"><p className="truncate text-[0.62rem] font-black uppercase tracking-[0.2em] text-cyan-100/75 sm:text-[0.68rem] sm:tracking-[0.26em]">{navLabel}</p>{isAdmin ? <h1 className="nxt5-metal-text mt-0.5 truncate text-lg font-black tracking-tight sm:text-xl md:text-2xl">Administration</h1> : <><button type="button" aria-expanded={teamMenuOpen} aria-label={`Choisir une équipe : ${currentTeam?.name || nav.label}`} onClick={() => setTeamMenuOpen((open) => !open)} className="mt-0.5 flex max-w-[48vw] items-center gap-1 rounded-xl px-0 py-0 text-left transition hover:text-cyan-100 sm:max-w-[58vw] sm:gap-2"><h1 className="nxt5-metal-text break-words text-lg font-black tracking-tight sm:text-xl md:text-2xl">{currentTeam?.name || nav.label}</h1><ChevronDown className="h-4 w-4 shrink-0 text-cyan-200 sm:h-5 sm:w-5" /></button><React.Fragment>{teamMenuOpen && <div className="nxt5-enter-fast nxt5-panel absolute left-0 top-[calc(100%+0.6rem)] z-50 w-[min(20rem,calc(100vw-5rem))] overflow-hidden border border-cyan-200/30 bg-[#050814] p-2 shadow-[0_30px_80px_rgba(0,0,0,.72),0_0_36px_rgba(34,211,238,.16)] ring-1 ring-white/10"><div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,.12),rgba(5,8,20,.96)_42%,rgba(217,70,239,.10))]" /> <div className="relative z-10">{teams.map((team) => <button key={team.id} onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); }} className={cx("flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition", currentTeam?.id === team.id ? "border-cyan-200/25 bg-cyan-400/14 text-white shadow-[0_0_22px_rgba(34,211,238,.10)]" : "border-transparent bg-[#070d1c] text-slate-200 hover:border-cyan-200/18 hover:bg-[#0b1428] hover:text-white")}><span className="flex min-w-0 items-center gap-3"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /><span className="min-w-0"><span className="block truncate text-sm font-black">{team.name}</span><span className="mt-1 block text-[0.66rem] font-black uppercase tracking-[0.16em] text-slate-300">{team.tag || "TEAM"} · {team.region || "EUW"}</span></span></span>{currentTeam?.id === team.id && <Check className="h-4 w-4 shrink-0 text-cyan-200" />}</button>)}<button onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="mt-2 flex w-full items-center gap-2 rounded-xl border border-cyan-100/22 bg-[#071221] px-4 py-3 text-left text-sm font-black text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-400/12"><Plus className="h-4 w-4" />Créer une nouvelle team</button></div></div>}</React.Fragment></>}</div></div>{currentTeam && !isAdmin && active !== "team-management" && <Button variant="ghost" icon={Settings} onClick={onManageTeam} aria-label="Gestion de l’équipe" className="shrink-0 px-3 sm:px-4"><span className="hidden sm:inline">Gestion</span></Button>}</div></header>;
+
+  React.useEffect(() => {
+    if (!teamMenuOpen) return undefined;
+    const onPointerDown = (event) => { if (!teamPickerRef.current?.contains(event.target)) setTeamMenuOpen(false); };
+    const onKeyDown = (event) => { if (event.key === "Escape") { setTeamMenuOpen(false); teamTriggerRef.current?.focus(); } };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => { document.removeEventListener("pointerdown", onPointerDown); document.removeEventListener("keydown", onKeyDown); };
+  }, [teamMenuOpen]);
+
+  return <header className="nxt5-topbar">
+    <div className="nxt5-topbar-location">
+      <button type="button" aria-label="Ouvrir le menu" aria-controls="nxt5-sidebar" onClick={() => setOpen(true)} className="nxt5-chrome-icon-button nxt5-topbar-menu"><Menu size={20} aria-hidden="true" /></button>
+      <div className="nxt5-topbar-breadcrumb"><h1>{nav.label}</h1>{detailLabel && <><ChevronRight size={14} aria-hidden="true" /><span>{detailLabel}</span></>}</div>
+    </div>
+    {isAdmin ? <span className="nxt5-topbar-admin"><ShieldCheck size={16} aria-hidden="true" />Administration</span> : <div className="nxt5-topbar-actions">
+      <div ref={teamPickerRef} className="nxt5-team-picker">
+        <button ref={teamTriggerRef} type="button" aria-expanded={teamMenuOpen} aria-controls="nxt5-team-picker-menu" aria-label={`Choisir une équipe : ${currentTeam?.name || "Aucune équipe"}`} title={currentTeam?.name || "Choisir une équipe"} onClick={() => setTeamMenuOpen((value) => !value)} className="nxt5-team-trigger">
+          <span className="nxt5-team-trigger-avatar" aria-hidden="true"><TeamAvatar team={currentTeam} className="h-8 w-8" /></span><span>{currentTeam?.name || "Choisir une équipe"}</span><ChevronDown size={16} aria-hidden="true" />
+        </button>
+        {teamMenuOpen && <div className="nxt5-team-menu nxt5-enter-fast" id="nxt5-team-picker-menu">
+          <p className="nxt5-team-menu-label">Mes équipes</p>
+          <div className="nxt5-team-menu-list">{teams.map((team) => <button key={team.id} type="button" onClick={() => { onSelectTeam(team.id); setTeamMenuOpen(false); teamTriggerRef.current?.focus(); }} aria-pressed={currentTeam?.id === team.id} className={cx("nxt5-team-option", currentTeam?.id === team.id && "is-selected")}>
+            <span aria-hidden="true"><TeamAvatar team={team} className="h-9 w-9 shrink-0" /></span><span className="nxt5-team-option-copy"><strong>{team.name}</strong><span>{team.tag || "TEAM"} · {team.region || "EUW"}</span></span>{currentTeam?.id === team.id && <Check size={16} aria-hidden="true" />}
+          </button>)}</div>
+          <button type="button" onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="nxt5-team-create"><Plus size={17} aria-hidden="true" />Créer ou rejoindre une équipe</button>
+        </div>}
+      </div>
+      {currentTeam && active !== "team-management" && <button type="button" onClick={onManageTeam} aria-label="Gestion de l’équipe" title="Gestion de l’équipe" className="nxt5-chrome-icon-button"><Settings size={18} aria-hidden="true" /></button>}
+    </div>}
+  </header>;
 }

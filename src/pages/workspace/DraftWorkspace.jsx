@@ -9,7 +9,7 @@ import { apiFetch } from "../../api/client.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { cx } from "../../app/helpers.js";
 import { compositionSlots, emptyCompositionSlots, jsonList } from "../../utils/planning.js";
-import { POOL_TIER_LABELS, championKey, championAssetId, championDisplayName, championPoolRowsByTier, exportChampionTierListPng, canStaffManage, isGameplayRole, championPoolStatus, CHAMPION_TIERS, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championMatchesLane, ALL_CHAMPION_STYLE_TAGS, championPoolStatusLabel, ChampionPortrait, compositionIdentity, championStyleTone, tagLabel, COMP_ROLES, ChampionBackdrop, championPoolStatusTone, championStyleTags } from "./workspace-shared.jsx";
+import { POOL_TIER_LABELS, championKey, championAssetId, championDisplayName, championPoolRowsByTier, exportChampionTierListPng, canStaffManage, isGameplayRole, championPoolStatus, CHAMPION_TIERS, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championMatchesLane, ALL_CHAMPION_STYLE_TAGS, championPoolStatusLabel, ChampionPortrait, compositionIdentity, championStyleTone, tagLabel, COMP_ROLES, championPoolStatusTone, championStyleTags } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 function championOptions() {
@@ -366,7 +366,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                       <p>{tier.id === "lock" ? "Prêt pour scrim ou match." : tier.id === "pocket" ? "Pour un contexte précis." : tier.id === "work" ? "À confirmer en scrim." : "15 games de training avant validation."}</p>
                     </div>
                     <div className="nxt5-pool-tier-picks">
-                      {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} onMove={saveChampion} />) : <p className="nxt5-pool-tier-empty">{canManageSelectedPool ? "Glisse un champion ici ou ajoute-le depuis le catalogue." : "Aucun champion dans cette catégorie."}</p>}
+                      {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} onMove={saveChampion} />) : <p className="nxt5-pool-tier-empty">{canManageSelectedPool ? "Choisis un champion ou ajoute-le depuis le catalogue." : "Aucun champion dans cette catégorie."}</p>}
                     </div>
                   </section>;
                 })}
@@ -456,13 +456,13 @@ function compositionCounterRecommendations(slots, rows, limitPerRole = 3) {
 function CompositionChampionTile({ row, active, onPick, onDragStart }) {
   const status = championPoolStatus(row);
   const tier = championTierByStatus(status);
-  return <button type="button" draggable aria-pressed={active} onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${championDisplayName(row.champion)} · ${championPoolStatusLabel(status)}`} className={cx("group relative aspect-square min-w-0 rounded-[1.15rem] border p-1 text-left transition duration-200", active ? "border-cyan-200/75 bg-cyan-400/10 ring-1 ring-cyan-200/40" : "border-white/10 bg-black/20 hover:border-cyan-300/35 hover:bg-cyan-400/10")}>
-    <span className="relative block h-full w-full overflow-hidden rounded-[0.88rem] bg-black/45 ring-1 ring-white/10">
-      <ChampionPortrait row={row} champion={row.champion} alt={row.champion} className="h-full w-full rounded-[inherit] object-cover" />
-      <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-black/10" />
-      <ChampionTierMark tier={tier} active className="absolute right-1.5 top-1.5 z-40 h-5 w-5 rounded-md border border-white/60 bg-black/82 [&_svg]:h-3 [&_svg]:w-3" />
-      <span className="absolute inset-x-1.5 bottom-1.5 z-30 truncate text-center text-[0.62rem] font-black text-white drop-shadow-[0_2px_6px_rgba(0,0,0,.9)]">{championDisplayName(row.champion)}</span>
+  const name = championDisplayName(row.champion);
+  return <button type="button" draggable aria-pressed={active} onDragStart={(event) => onDragStart(event, row)} onClick={() => onPick(row)} title={`${name} · ${championPoolStatusLabel(status)}`} className="nxt5-composition-pick">
+    <span className="nxt5-composition-pick-portrait">
+      <ChampionPortrait row={row} champion={row.champion} alt="" className="h-full w-full object-cover" />
+      <ChampionTierMark tier={tier} active className="absolute right-1 top-1 h-6 w-6 rounded-md border border-white/60 bg-black/80 [&_svg]:h-3.5 [&_svg]:w-3.5" />
     </span>
+    <span className="nxt5-composition-pick-name">{name}</span>
   </button>;
 }
 
@@ -482,16 +482,15 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
   return <div className="nxt5-composition-slot group">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <div className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><p className="text-sm font-black uppercase tracking-[0.16em] text-white">{roleLabel(role)}</p></div>
-        <p className="mt-1 truncate text-xs font-bold text-cyan-100/75">{player?.name || "Profil manquant"}</p>
+        <div className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><p className="text-sm font-semibold text-white">{roleLabel(role)}</p></div>
+        <p className="mt-1 break-words text-xs font-bold text-cyan-100/75">{player?.name || "Profil manquant"}</p>
       </div>
-      {pick ? <Badge tone={championPoolStatusTone(status)}>{championPoolStatusLabel(status)}</Badge> : <Badge tone="slate">À PICK</Badge>}
+      {pick ? <Badge tone={championPoolStatusTone(status)}>{championPoolStatusLabel(status)}</Badge> : <Badge tone="slate">À choisir</Badge>}
     </div>
-    {rolePlayers.length > 1 && <div className="mt-3 flex flex-wrap gap-1.5">{rolePlayers.map((item) => <button key={item.id} type="button" onClick={() => onChange(role, { playerId: item.id, poolId: "" })} className={cx("rounded-xl border px-2.5 py-1.5 text-[0.62rem] font-black uppercase tracking-[0.1em] transition", item.id === player?.id ? "border-cyan-200/45 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{item.name}</button>)}</div>}
-    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("relative mt-3 min-h-[168px] overflow-hidden rounded-xl border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
-      {pick && <><ChampionBackdrop champion={pick.champion} /><div className="absolute inset-0 bg-gradient-to-t from-[#050711] via-[#050711]/72 to-transparent" /></>}
-      <div className={cx("relative z-10 flex h-full min-h-[144px] flex-col", pick ? "justify-end" : "justify-center")}>
-        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="truncate text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 truncate text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="mt-3 rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs font-black uppercase tracking-[0.12em] text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Vider</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-black text-white">Glisse un champion ici</p><p className="mt-1 text-xs font-semibold text-slate-300">Pool {player?.name || role}</p></div>}
+    {rolePlayers.length > 1 && <div className="mt-3 flex flex-wrap gap-1.5">{rolePlayers.map((item) => <button key={item.id} type="button" onClick={() => onChange(role, { playerId: item.id, poolId: "" })} aria-pressed={item.id === player?.id} className={cx("nxt5-composition-choice border px-3 py-2 text-[13px] font-semibold transition", item.id === player?.id ? "border-cyan-200/45 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{item.name}</button>)}</div>}
+    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("nxt5-composition-drop relative mt-3 rounded-[10px] border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
+      <div className={cx("relative flex h-full min-h-[136px] flex-col", pick ? "justify-end" : "justify-center")}>
+        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="break-words text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 break-words text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="nxt5-composition-choice mt-3 border border-white/10 bg-black/35 px-3 py-2 text-[13px] font-semibold text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Vider</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-black text-white">Choisis un champion</p><p className="mt-1 text-xs font-semibold text-slate-300">Depuis la banque {player?.name || role}, par clic ou glisser-déposer.</p></div>}
       </div>
     </div>
   </div>;
@@ -506,7 +505,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
   }
   return <div className="nxt5-composition-section">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div><p className="text-xs font-black uppercase tracking-[0.22em] text-cyan-100/80">Banque de champions</p><p className="mt-1 text-sm font-semibold text-slate-300">Glisse une icône vers le cadre de compo correspondant.</p></div>
+      <div><p className="text-xs font-semibold text-cyan-100/80">Banque de champions</p><p className="mt-1 text-sm font-semibold text-slate-300">Clique sur un champion pour l’ajouter à son poste, ou glisse-le dans la composition.</p></div>
       <div className="flex flex-wrap gap-2">
         {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-200">
           <ChampionTierMark tier={tier} active className="h-7 w-7 rounded-xl border-white/18 bg-black/20 [&_svg]:h-4 [&_svg]:w-4" />
@@ -527,15 +526,15 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
           });
         const tierGroups = CHAMPION_TIERS.map((tier) => ({ tier, items: pool.filter((row) => championPoolStatus(row) === tier.id) })).filter((group) => group.items.length);
         return <div key={role} className="nxt5-composition-bank-role">
-          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="truncate text-[0.66rem] font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
-          {tierGroups.length ? <div className="space-y-3">{tierGroups.map(({ tier, items }) => <section key={tier.id}>
+          <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-semibold text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="break-words text-xs font-bold text-cyan-100/80">{player?.name || "Profil manquant"}</span></div>
+          {tierGroups.length ? <div className="nxt5-composition-tier-grid">{tierGroups.map(({ tier, items }) => <section key={tier.id}>
             <div className="mb-2 flex min-w-0 items-center gap-2">
               <ChampionTierMark tier={tier} active className="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />
-              <p className="truncate text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-200">{tierShortLabel[tier.id]}</p>
+              <p className="break-words text-xs font-semibold text-slate-200">{tierShortLabel[tier.id]}</p>
               <span className="h-px min-w-2 flex-1 bg-white/[0.08]" />
-              <span className="text-[0.58rem] font-black tabular-nums text-slate-400">{items.length}</span>
+              <span className="text-xs font-black tabular-nums text-slate-400">{items.length}</span>
             </div>
-            <div className="nxt5-composition-bank-pool grid gap-2">{items.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />)}</div>
+            <div className="nxt5-composition-pick-grid">{items.map((row) => <CompositionChampionTile key={row.id} row={row} active={row.id === slot.poolId} onPick={() => onPick(role, { playerId: row.player_id || player?.id || "", poolId: row.id })} onDragStart={(event) => dragStart(event, row, role)} />)}</div>
           </section>)}</div> : <div className="py-3 text-xs leading-5 text-slate-300">Aucun champion.</div>}
         </div>;
       })}
@@ -548,7 +547,7 @@ function CompositionCounterPanel({ slots, rows, compact = false }) {
   if (!groups.length) return <p className="nxt5-composition-section text-sm leading-6 text-slate-300">Ajoute des champions dans la compo pour afficher les counters probables par rôle.</p>;
   const allCounters = groups.flatMap((group) => group.counters.map((counter) => ({ ...counter, role: group.role }))).sort((a, b) => b.score - a.score);
   if (compact) return <div className="nxt5-composition-section">
-    <h4 className="text-xs font-black uppercase tracking-[0.14em] text-rose-100">Counters à prévoir</h4>
+    <h4 className="text-xs font-semibold text-rose-100">Counters à prévoir</h4>
     <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">{allCounters.slice(0, 5).map((counter) => <div key={`${counter.role}-${counter.champion}`} className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-8 w-8 rounded-lg object-cover" /><span className="text-xs font-semibold text-white">{counter.role} · {championDisplayName(counter.champion)}</span></div>)}</div>
   </div>;
   return <section className="nxt5-composition-section">
@@ -579,38 +578,36 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge><span className="text-xs font-semibold text-slate-300">{picks.length}/5 picks{tags.length ? ` · ${tags.map(tagLabel).join(" · ")}` : ""}</span></div>
           <h3 className="mt-3 break-words text-2xl font-black text-white">{composition.title}</h3>
-          <p className="mt-1 text-xs font-black uppercase tracking-[0.16em] text-cyan-100/72">Créée par {composition.created_by_name || "un membre"}</p>
+          <p className="mt-1 text-xs font-semibold text-cyan-100/72">Créée par {composition.created_by_name || "un membre"}</p>
           {composition.notes && <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}
         </div>
         {canManage && <div className="flex shrink-0 flex-wrap gap-2">
-          <button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" aria-label="Modifier la composition" className="min-h-11 min-w-11 rounded-xl p-3 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button>
-          <button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" aria-label="Dupliquer la composition" className="min-h-11 min-w-11 rounded-xl p-3 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button>
-          <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" aria-label="Supprimer la composition" className="min-h-11 min-w-11 rounded-xl p-3 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" aria-label="Modifier la composition" className="min-h-11 min-w-11 rounded-[2px] p-3 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" aria-label="Dupliquer la composition" className="min-h-11 min-w-11 rounded-[2px] p-3 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button>
+          <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" aria-label="Supprimer la composition" className="min-h-11 min-w-11 rounded-[2px] p-3 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
         </div>}
       </div>
-      <div className="mt-4 overflow-hidden rounded-xl border border-white/10 bg-black/24">
-        <div className="nxt5-composition-card-slots grid gap-px bg-white/10">
+      <div className="nxt5-composition-saved-picks">
+        <div className="nxt5-composition-card-slots grid gap-3">
           {slotPicks.map(({ role, pick }) => {
             const pickStatus = pick ? championPoolStatus(pick) : "";
             const tier = pick ? championTierByStatus(pickStatus) : null;
-            return <div key={role} className={cx("relative min-h-[140px] overflow-hidden bg-[#07101f] p-3", pick ? "text-white" : "text-slate-400")}>
-              {pick && <ChampionBackdrop champion={pick.champion} />}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/12 via-[#06101f]/74 to-[#050814]" />
+            return <div key={role} className={cx("relative min-h-[140px] border-t border-white/10 py-3", pick ? "text-white" : "text-slate-400")}>
               <div className="relative z-10 flex h-full min-h-[116px] flex-col justify-between">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em]"><RoleIcon role={role} className="h-4 w-4 text-cyan-100" />{role}</span>
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold"><RoleIcon role={role} className="h-4 w-4 text-cyan-100" />{role}</span>
                   {tier && <ChampionTierMark tier={tier} active className="h-8 w-8 rounded-xl ring-1 ring-black/45 [&_svg]:h-4 [&_svg]:w-4" />}
                 </div>
                 {pick ? <div className="mt-5">
                   <div className="flex items-end gap-3">
                     <span className="inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-black/45"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span>
                     <div className="min-w-0 pb-1">
-                      <p className="truncate text-lg font-black text-white">{championDisplayName(pick.champion)}</p>
-                      <p className="truncate text-xs font-bold text-slate-200">{pick.player_name || "Joueur"}</p>
+                      <p className="break-words text-lg font-black text-white">{championDisplayName(pick.champion)}</p>
+                      <p className="break-words text-xs font-bold text-slate-200">{pick.player_name || "Joueur"}</p>
                     </div>
                   </div>
                   <p className="mt-3 text-xs font-semibold leading-5 text-cyan-100">{championPoolStatusLabel(pickStatus)}</p>
-                </div> : <div className="flex flex-1 items-center justify-center text-sm font-black uppercase tracking-[0.16em] text-slate-500">Slot vide</div>}
+                </div> : <div className="flex flex-1 items-center justify-center text-sm font-semibold text-slate-500">Slot vide</div>}
               </div>
             </div>;
           })}
@@ -652,7 +649,7 @@ function CompositionSummaryStrip({ players, rows, compositions, formPicks }) {
     ["Compos", compositions.length, "Enregistrées"],
     ["Builder", `${formPicks.length}/5`, "Picks actifs"],
   ];
-  return <div className="nxt5-composition-summary">{items.map(([label, value, detail]) => <div key={label}><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="truncate text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
+  return <div className="nxt5-composition-summary">{items.map(([label, value, detail]) => <div key={label}><p className="text-xs font-semibold text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="break-words text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
 }
 
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -756,7 +753,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">Cinq rôles</span>
+                  <span className="text-xs font-semibold text-cyan-100">Cinq rôles</span>
                   <Badge tone={mastery.tone}>{mastery.label}</Badge>
                 </div>
                 <h3 className="mt-3 text-2xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3>
@@ -772,13 +769,13 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                 <TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} />
                 <div className="flex flex-wrap gap-2">
-                  {tagOptions.map((tag) => <button key={tag} type="button" aria-pressed={form.tags.includes(tag)} onClick={() => toggleCompTag(tag)} className={cx("rounded-lg border px-3 py-2 text-xs font-black uppercase tracking-[0.1em] transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}
+                  {tagOptions.map((tag) => <button key={tag} type="button" aria-pressed={form.tags.includes(tag)} onClick={() => toggleCompTag(tag)} className={cx("nxt5-composition-choice border px-3 py-2 text-[13px] font-semibold transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}
                 </div>
               </div>
 
               <label className="block">
-                <span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">Résumé</span>
-                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft..." rows={3} className="nxt5-input-shell w-full resize-none rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" />
+                <span className="mb-2 block text-[13px] font-semibold text-slate-300">Résumé</span>
+                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft..." rows={3} className="nxt5-input-shell w-full resize-y rounded-[10px] border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" />
               </label>
             </div>
 
@@ -789,7 +786,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
             {formPicks.length > 0 && <div className="nxt5-composition-section">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">Identité en cours</p>
+                  <p className="text-xs font-semibold text-cyan-100">Identité en cours</p>
                   <h4 className="mt-2 text-xl font-black text-white">{tagLabel(formIdentity.primary)}</h4>
                   <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{formIdentity.text}</p>
                 </div>
@@ -802,20 +799,20 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
             <CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} />
           </Surface>
         </form>
-      ) : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour creer des Compos Types." />}
+      ) : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}
 
       <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h3 className="text-xs font-black uppercase tracking-[0.22em] text-slate-300">Compos enregistrees</h3>
+          <h3 className="text-xl font-bold text-white">Compositions enregistrées</h3>
           <p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p>
         </div>
-        <div className="flex w-full rounded-xl border border-white/10 bg-black/20 p-1 md:w-auto">
-          {sideOptions.map((option) => <button key={option.id} type="button" aria-pressed={sideFilter === option.id} onClick={() => setSideFilter(option.id)} className={cx("flex-1 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.12em] transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}
+        <div className="flex w-full flex-wrap gap-2 md:w-auto">
+          {sideOptions.map((option) => <button key={option.id} type="button" aria-pressed={sideFilter === option.id} onClick={() => setSideFilter(option.id)} className={cx("nxt5-composition-choice flex-1 px-3 py-2 text-[13px] font-semibold transition md:flex-none", sideFilter === option.id ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:bg-white/[0.05] hover:text-white")}>{option.label}</button>)}
         </div>
       </div>
 
       <div className="mt-3 grid gap-3">
-        {filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Cree une premiere Compo a partir des Champion Pools de tes joueurs." />}
+        {filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}
       </div>
     </div>
   );

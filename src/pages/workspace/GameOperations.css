@@ -10,7 +10,7 @@
   overscroll-behavior: contain;
   border: 1px solid var(--nxt5-border-strong);
   border-radius: var(--nxt5-radius-panel);
-  background: #07101f;
+  background: var(--nxt5-surface);
   color: var(--nxt5-text);
   box-shadow: 0 24px 80px rgb(0 0 0 / .5);
   container-type: inline-size;
@@ -20,9 +20,9 @@
 .game-operation-dialog-inner { padding: 24px; min-width: 0; }
 .game-operation-dialog-header { display: flex; align-items: start; gap: 16px; justify-content: space-between; margin-bottom: 24px; }
 .game-operation-dialog-header > div { min-width: 0; }
-.game-operation-dialog-header h2 { color: #f8fafc; font-size: 22px; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
-.game-operation-dialog-header p { color: #edf5ff; font-size: 14px; line-height: 1.6; margin-top: 8px; overflow-wrap: anywhere; }
-.game-operation-close, .game-options-trigger { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid transparent; border-radius: 12px; color: #e8f1ff; background: transparent; }
+.game-operation-dialog-header h2 { color: #f8fafc; font-size: 22px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.game-operation-dialog-header p { color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.6; margin-top: 8px; overflow-wrap: anywhere; }
+.game-operation-close, .game-options-trigger { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid transparent; border-radius: 2px; color: #e8f1ff; background: transparent; }
 .game-operation-close:hover, .game-options-trigger:hover { background: rgb(103 232 249 / .08); border-color: var(--nxt5-border); }
 .game-operation-close:focus-visible, .game-options-trigger:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
 .game-operation-close:disabled { opacity: .5; cursor: wait; }
@@ -31,7 +31,7 @@
 .game-operation-dialog .ih-editor, .game-operation-dialog .ih-categories { padding: 0; margin: 0; border: 0; }
 .game-operation-dialog .ih-categories > header { margin-top: 0; }
 .game-operation-dialog .ih-category-list li, .game-operation-dialog .ih-player { min-width: 0; overflow-wrap: anywhere; }
-.game-operation-dialog .ih-player span { color: #edf5ff; }
+.game-operation-dialog .ih-player span { color: var(--nxt5-text-secondary); }
 .game-operation-dialog .ih-editor fieldset { min-width: 0; }
 .game-operation-dialog .ih-edit-fields { grid-template-columns: minmax(0, 1fr); }
 .game-operation-dialog .ih-category-create fieldset { grid-template-columns: minmax(0, 1fr) 160px; }
@@ -40,7 +40,7 @@
 .game-operation-dialog .ih-role-fields { grid-template-columns: minmax(0, 1fr); }
 .game-operation-dialog .ih-editor button[aria-pressed] { min-height: 44px; }
 .game-side-choice { display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); align-items: end; gap: 24px; }
-.game-side-choice p, .game-side-status, .game-side-notice { color: #edf5ff; font-size: 14px; line-height: 1.6; }
+.game-side-choice p, .game-side-status, .game-side-notice { color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.6; }
 .game-side-status { margin: 20px 0; }
 .game-side-notice { margin: 16px 0; padding-left: 12px; border-left: 2px solid var(--nxt5-accent); }
 .game-side-editor .ih-player strong { overflow-wrap: anywhere; }
@@ -54,3 +54,20 @@
   .game-operation-dialog .ih-teams, .game-operation-dialog .ih-category-create fieldset, .game-side-choice { grid-template-columns: minmax(0, 1fr); }
   .game-operation-dialog :is(input, select, textarea) { font-size: 16px; }
 }
+
+.game-import-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin-top: 20px; }
+.game-import-step { min-width: 0; padding: 12px 0; border-top: 2px solid var(--nxt5-border); background: transparent; }
+.game-import-step p { line-height: 1.6; }
+.game-import-side { min-width: 0; min-height: 44px; border-radius: 2px; }
+.game-import-team { min-width: 0; padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
+.game-import-assignment { min-width: 0; padding: 16px 0; border-top: 1px solid var(--nxt5-border); background: transparent; }
+.game-import-field { display: grid; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--nxt5-text-secondary); }
+.game-import-select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: 10px; background: var(--nxt5-bg); color: var(--nxt5-text); font-size: 14px; font-weight: 500; }
+.game-import-select:focus-visible, .game-import-side:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
+.game-import-select:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 720px) {
+  .game-import-steps { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 16px; }
+  .game-import-select { font-size: 16px; }
+}
+.game-operation-dialog-header { position: sticky; top: 0; z-index: 2; padding-bottom: 16px; border-bottom: 1px solid var(--nxt5-border); background: var(--nxt5-surface); }
+.game-operation-dialog-content { min-width: 0; }

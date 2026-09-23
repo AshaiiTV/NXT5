@@ -51,18 +51,22 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
     resultsRef.current?.scrollIntoView({ block: "start" });
   };
 
-  return <Surface className="mt-5">
+  return <Surface className="ig-surface">
     <section className={`imported-games${history ? " import-history" : ""}`} aria-labelledby={titleId}>
       <header className="ig-heading">
-        <div>
-          <h3 id={titleId}>{title || (history ? "Historique des imports" : "Games importées")}</h3>
-          <p>{description || (history ? "Retrouve tes imports, classe tes games et ajuste les assignations." : "Retrouve une game, consulte ses stats et prépare sa review.")}</p>
+        <div className="ig-heading-copy">
+          <div className="ig-heading-title">
+            <h3 id={titleId}>{title || (history ? "Historique des imports" : "Games importées")}</h3>
+            <p className="ig-total"><strong>{matches.length}</strong> game{matches.length > 1 ? "s" : ""}</p>
+          </div>
+          {scopeName && <p className="ig-scope-name">{scopeName}</p>}
+          <p className="ig-description">{description || (history ? "Retrouve tes imports, classe tes games et ajuste les assignations." : "Retrouve une game, consulte ses stats et prépare sa review.")}</p>
         </div>
-        <p className="ig-total"><strong>{matches.length}</strong> {scopeName || `game${matches.length > 1 ? "s" : ""}`}</p>
         {headerActions}
       </header>
       {categoryManager}
 
+      <div className={`ig-controls${showCategoryFilter ? " ig-controls-with-category" : ""}`}>
       <div className="ig-search-row">
         <div className="ig-search">
           <label htmlFor={searchId} className="ig-label">Rechercher une game</label>
@@ -92,6 +96,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
         <SelectInput label="Côté" value={filters.side} onChange={(value) => setFilter("side", value)}>
           <option value="">Tous les côtés</option><option value="blue">Côté bleu</option><option value="red">Côté rouge</option>
         </SelectInput>
+      </div>
       </div>
       <div className="ig-results-summary">
         <p role="status" aria-live="polite">{deferredQuery !== filters.query ? "Recherche en cours…" : `${results.length} game${results.length > 1 ? "s" : ""} ${hasFilters ? `sur ${matches.length}` : "disponible" + (results.length > 1 ? "s" : "")}`}</p>

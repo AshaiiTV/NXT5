@@ -16,7 +16,7 @@ import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
-import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
 import DiscordGameShare from "../../components/discord/DiscordGameShare.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
@@ -242,14 +242,14 @@ function metricSideMarkerMeta(marker) {
 function MetricSideMarker({ marker }) {
   const meta = metricSideMarkerMeta(marker);
   if (!meta) return null;
-  return <span className={cx("inline-flex shrink-0 items-center rounded-lg border px-1.5 py-0.5 text-[0.56rem] font-black uppercase leading-none tracking-[0.08em]", tone(meta.tone))}>{meta.text}</span>;
+  return <span className={cx("inline-flex shrink-0 items-center rounded-lg border px-1.5 py-0.5 text-xs font-black uppercase leading-none tracking-[0.08em]", tone(meta.tone))}>{meta.text}</span>;
 }
 
 function MetricCard({ icon: Icon, label, value, hint, tone: t = "purple", delay = 0, compact = false, sideMarker = "" }) {
   return (
     <Surface delay={delay} className={cx("overflow-hidden", compact ? "min-h-0 p-3" : "min-h-[104px] p-3 sm:p-4")}>
       <div className={cx("flex items-start justify-between", compact ? "gap-3" : "gap-4")}>
-        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className={cx("min-w-0 font-black uppercase tracking-[0.12em] text-slate-300", compact ? "text-[0.62rem]" : "text-[0.68rem]")}>{label}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("line-clamp-2 font-semibold text-slate-300", compact ? "mt-1 text-[0.7rem] leading-4" : "mt-1 text-xs leading-5")}>{hint ?? "En attente de données"}</p></div>
+        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className="min-w-0 text-[13px] font-semibold text-slate-300">{label}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("font-semibold text-slate-300", compact ? "mt-1 text-xs leading-5" : "mt-1 text-xs leading-5")}>{hint ?? "En attente de données"}</p></div>
         <div className={cx("shrink-0 rounded-xl border", compact ? "p-2" : "p-2.5", tone(t))}><Icon className={cx(compact ? "h-4 w-4" : "h-5 w-5")} /></div>
       </div>
     </Surface>
@@ -457,7 +457,7 @@ function ObjectiveFallbackIcon({ type, fallback = "O", className = "" }) {
     "dragon-elder": ["#f0abfc", "#7c3aed", "E"],
   }[type] || ["#dffaff", "#0891b2", fallback];
   const [start, end, text] = config;
-  return <span className={cx("inline-flex items-center justify-center rounded-full border border-white/20 text-[0.58rem] font-black text-white shadow-[0_0_16px_rgba(255,255,255,.16)]", className)} style={{ background: `radial-gradient(circle at 35% 25%, ${start}, ${end} 70%)` }}>{text}</span>;
+  return <span className={cx("inline-flex items-center justify-center rounded-full border border-white/20 text-xs font-black text-white ", className)} style={{ background: `radial-gradient(circle at 35% 25%, ${start}, ${end} 70%)` }}>{text}</span>;
 }
 
 function objectiveSummaryHasData(data) {
@@ -477,24 +477,24 @@ function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) 
   return <section className={cx("min-w-0 px-3 py-3 sm:px-4", isRed ? "bg-rose-500/[0.035]" : "border-b border-white/[0.08] bg-cyan-400/[0.035] xl:border-b-0 xl:border-r")}>
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
-        <span className={cx("h-2 w-2 shrink-0 rounded-full shadow-[0_0_12px_currentColor]", isRed ? "bg-rose-300 text-rose-300" : "bg-cyan-200 text-cyan-200")} />
-        <h4 className="truncate text-[0.68rem] font-black uppercase tracking-[0.12em] text-white">{title}</h4>
+        <span className={cx("h-2 w-2 shrink-0 rounded-full ", isRed ? "bg-rose-300 text-rose-300" : "bg-cyan-200 text-cyan-200")} />
+        <h4 className="break-words text-xs font-semibold text-white">{title}</h4>
       </div>
-      <p className="shrink-0 text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400"><span className="text-white">{data.dragonCount}</span> drake{data.dragonCount > 1 ? "s" : ""}</p>
+      <p className="shrink-0 text-xs font-semibold text-slate-400"><span className="text-white">{data.dragonCount}</span> drake{data.dragonCount > 1 ? "s" : ""}</p>
     </div>
-    <dl className="mt-3 grid grid-cols-5 border-y border-white/[0.07] py-3">
+    <dl className="games-objective-counts">
       {stats.map(([label, value, icon, t], index) => <div key={label} className={cx("min-w-0 px-1 text-center sm:px-2", index > 0 && "border-l border-white/[0.07]")}>
         <dt className="flex min-w-0 flex-col items-center justify-center gap-1.5">
           <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-9 w-9" /></span>
-          <span className="hidden max-w-full truncate text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-400 sm:block">{label}</span>
+          <span className="text-xs font-semibold text-slate-300">{label}</span>
         </dt>
         <dd className="mt-1 text-lg font-black tabular-nums text-white">{value}</dd>
       </div>)}
     </dl>
     {data.dragons.length > 0 && <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
-      <p className="shrink-0 text-[0.54rem] font-black uppercase tracking-[0.14em] text-slate-400">Dragons</p>
+      <p className="shrink-0 text-xs font-semibold text-slate-400">Dragons</p>
       <div className="flex min-w-0 flex-wrap gap-1.5">
-        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
+        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-black text-white", tone(objectiveEventTone(event)))}>
           <ObjectivePictogram type={objectiveDragonIconType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
           {objectiveDragonElement(event)}
           <span className="text-white/65">{event.time}</span>
@@ -511,36 +511,36 @@ function ObjectiveHud({ match, compact = false }) {
   const blueData = objectiveTeamSummary(match, blueTeamKey);
   const redData = objectiveTeamSummary(match, redTeamKey);
   if (!events.length && !objectiveSummaryHasData(blueData) && !objectiveSummaryHasData(redData)) return null;
-  return <div className={cx("rounded-[1.25rem] bg-gradient-to-br from-cyan-400/[0.035] via-black/12 to-fuchsia-400/[0.03] p-3 ring-1 ring-cyan-200/[0.06]", compact ? "mb-3" : "mt-4")}>
+  return <div className={cx("games-objectives", compact ? "mb-3" : "mt-4")}>
     <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 px-1">
       <div className="flex min-w-0 items-center gap-2">
         <Trophy className="h-4 w-4 shrink-0 text-cyan-200" />
-        <h3 className="text-xs font-black uppercase tracking-[0.14em] text-white">Objectifs</h3>
+        <h3 className="text-xs font-semibold text-white">Objectifs</h3>
       </div>
-      {events.length > 0 && <p className="text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400"><span className="text-white">{events.length}</span> prises enregistrées</p>}
+      {events.length > 0 && <p className="text-xs font-semibold text-slate-400"><span className="text-white">{events.length}</span> prises enregistrées</p>}
     </div>
     <div className="grid overflow-hidden rounded-2xl border border-white/[0.08] bg-black/10 xl:grid-cols-2">
       <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Côté bleu" data={blueData} />
       <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Côté rouge" data={redData} />
     </div>
     {events.length ? <>
-      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1">
+      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1" role="region" aria-label="Prises d’objectifs dans le temps" tabIndex={0}>
         <ol className="flex w-max min-w-full items-stretch px-2 py-1">
           {events.map((event, index) => {
             const isRed = event.side === "RED";
             return <li key={`${event.timestamp}-${index}`} className="flex shrink-0 items-center">
-              <div className={cx("relative flex min-h-[4rem] w-[8rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[8.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : "border-cyan-200/12 bg-cyan-400/[0.045]")}>
+              <div className={cx("relative flex min-h-[4rem] w-[10.5rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[10.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : "border-cyan-200/12 bg-cyan-400/[0.045]")}>
                 <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full", isRed ? "bg-rose-300/70" : "bg-cyan-200/70")} />
                 <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(objectiveEventTone(event)))}>
                   <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-center gap-1">
-                    <time className="shrink-0 text-[0.58rem] font-black tabular-nums text-white">{event.time}</time>
+                    <time className="shrink-0 text-xs font-black tabular-nums text-white">{event.time}</time>
                     <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-rose-300" : "bg-cyan-200")} />
-                    <span className={cx("whitespace-nowrap text-[0.48rem] font-black uppercase", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Rouge" : "Bleu"}</span>
+                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Rouge" : "Bleu"}</span>
                   </span>
-                  <span className="mt-0.5 line-clamp-2 block text-[0.68rem] font-black leading-4 text-white">{event.label}</span>
+                  <span className="mt-0.5 block text-xs font-black leading-4 text-white">{event.label}</span>
                 </span>
               </div>
               {index < events.length - 1 && <span className="flex w-3 shrink-0 items-center" aria-hidden="true"><span className="h-px flex-1 bg-white/12" /><span className="h-1 w-1 rounded-full bg-white/25" /></span>}
@@ -654,8 +654,8 @@ function roleDiffRows(match) {
   });
 }
 
-function timelineTeamLabel(teamKey) {
-  if (teamKey === "ALLY") return "NXT5";
+function timelineTeamLabel(teamKey, teamName = "Notre équipe") {
+  if (teamKey === "ALLY") return String(teamName || "Notre équipe").trim() || "Notre équipe";
   if (teamKey === "ENEMY") return "Adversaire";
   return "Contesté";
 }
@@ -706,7 +706,7 @@ function killScoreAtTimestamp(kills, timestamp) {
   }, { ally: 0, enemy: 0 });
 }
 
-function fightWindows(match) {
+function fightWindows(match, teamName) {
   const kills = championKillEvents(match);
   const groups = [];
   let current = [];
@@ -733,7 +733,7 @@ function fightWindows(match) {
       time,
       teamKey,
       toneName: timelineTeamTone(teamKey),
-      title: teamKey === "NEUTRAL" ? "Fight échangé" : `${timelineTeamLabel(teamKey)} gagne le fight`,
+      title: teamKey === "NEUTRAL" ? "Fight échangé" : `${timelineTeamLabel(teamKey, teamName)} gagne le fight`,
       context: `${allyKills}-${enemyKills} kills sur la fenêtre`,
       detail: victims.length ? `Morts: ${victims.join(" · ")}` : `Fight #${index + 1}`,
       allyKills,
@@ -751,7 +751,7 @@ function importantBuildingEvents(match) {
   }).slice(0, 6);
 }
 
-function timelineMilestones(match) {
+function timelineMilestones(match, teamName) {
   const objectives = objectiveContext(match).map((event) => ({
     ...event,
     kind: "objective",
@@ -759,7 +759,7 @@ function timelineMilestones(match) {
     detail: event.context,
     toneName: timelineTeamTone(event.teamKey),
   }));
-  const fights = fightWindows(match).filter((event) => event.killCount >= 3 || Math.abs(event.allyKills - event.enemyKills) >= 2);
+  const fights = fightWindows(match, teamName).filter((event) => event.killCount >= 3 || Math.abs(event.allyKills - event.enemyKills) >= 2);
   const towers = importantBuildingEvents(match).map((event) => ({
     ...event,
     kind: "tower",
@@ -771,12 +771,12 @@ function timelineMilestones(match) {
   return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0)).slice(0, 18);
 }
 
-function MatchTimelineReview({ match }) {
+function MatchTimelineReview({ match, teamName }) {
   const status = timelineStatus(match);
   const objectives = objectiveContext(match);
   const kills = championKillEvents(match);
   const fights = fightWindows(match);
-  const events = timelineMilestones(match);
+  const events = timelineMilestones(match, teamName);
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const finalGoldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
@@ -795,26 +795,26 @@ function MatchTimelineReview({ match }) {
     { id: "late", label: "Late", range: "24+", toneName: "yellow" },
   ].map((phase) => ({ ...phase, events: events.filter((event) => timelinePhaseMeta(event.timestamp).id === phase.id) }));
   const highlight = events.find((event) => event.teamKey === "ENEMY" && ["objective", "fight"].includes(event.kind)) || events.find((event) => event.teamKey === "ALLY" && ["objective", "fight"].includes(event.kind)) || events[0];
-  return <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045]">
-    <div className="border-b border-white/10 bg-black/18 p-4">
+  return <div className="games-timeline-content">
+    <div className="games-timeline-heading">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2"><Badge tone="cyan">Déroulé coach</Badge><Badge tone={status.toneName}>{status.label}</Badge><Badge tone="purple">{kills.length} kills</Badge><Badge tone="slate">{events.length} moments</Badge></div>
           <h4 className="mt-3 text-2xl font-black text-white">Lecture chronologique</h4>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey)} · ${highlight.title}` : "Aucun moment clé détecté dans la timeline importée."}</p>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : "Aucun moment clé détecté dans la timeline importée."}</p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-3 xl:w-[34rem]">
           {goldMarks.map((item) => <TimelineGoldCheckpoint key={item.minute} minute={item.minute} diff={item.diff} />)}
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <TimelineReadoutCard icon={Gauge} label="Économie finale" value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? "Avantage NXT5" : "Avantage adverse"} toneName={diffTone(finalGoldDiff)} />
-        <TimelineReadoutCard icon={Target} label="Objectifs neutres" value={`${allyObjectives}-${enemyObjectives}`} detail="NXT5 - Adversaire" toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
+        <TimelineReadoutCard icon={Gauge} label="Économie finale" value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? `Avantage ${timelineTeamLabel("ALLY", teamName)}` : "Avantage adverse"} toneName={diffTone(finalGoldDiff)} />
+        <TimelineReadoutCard icon={Target} label="Objectifs neutres" value={`${allyObjectives}-${enemyObjectives}`} detail={`${timelineTeamLabel("ALLY", teamName)} · Adversaire`} toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
         <TimelineReadoutCard icon={Swords} label="Fights détectés" value={`${allyFights}-${enemyFights}`} detail="Fenêtres multi-kills" toneName={allyFights >= enemyFights ? "green" : "red"} />
       </div>
     </div>
     {events.length ? <div className="grid gap-3 p-4 xl:grid-cols-3">
-      {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} />)}
+      {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />)}
     </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun déroulé exploitable dans ce JSON pour les moments clés.</p>}
   </div>;
 }
@@ -822,20 +822,20 @@ function MatchTimelineReview({ match }) {
 function TimelineGoldCheckpoint({ minute, diff }) {
   const missing = diff === null;
   return <div className={cx("rounded-2xl border px-3 py-2", missing ? tone("slate") : tone(diffTone(diff)))}>
-    <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] opacity-80">{minute} min</p>
+    <p className="text-xs font-semibold opacity-80">{minute} min</p>
     <p className="mt-1 text-lg font-black leading-none text-white">{missing ? "N/A" : formatSignedShort(diff)}</p>
-    <p className="mt-1 truncate text-[0.62rem] font-semibold opacity-75">écart or</p>
+    <p className="mt-1 break-words text-xs font-semibold opacity-75">écart or</p>
   </div>;
 }
 
 function TimelineReadoutCard({ icon: Icon, label, value, detail, toneName }) {
-  return <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+  return <div className="games-stat-block">
     <div className="flex items-center justify-between gap-3">
-      <p className="truncate text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p>
+      <p className="break-words text-xs font-semibold text-slate-300">{label}</p>
       <div className={cx("rounded-xl border p-2", tone(toneName))}><Icon className="h-4 w-4" /></div>
     </div>
-    <p className="mt-2 truncate text-2xl font-black text-white">{value}</p>
-    <p className="truncate text-xs font-semibold text-slate-300">{detail}</p>
+    <p className="mt-2 break-words text-2xl font-black text-white">{value}</p>
+    <p className="break-words text-xs font-semibold text-slate-300">{detail}</p>
   </div>;
 }
 
@@ -845,7 +845,7 @@ function TimelineEventGlyph({ event }) {
   return <Shield className="h-4 w-4" />;
 }
 
-function TimelineEventCard({ event, index, kills, match }) {
+function TimelineEventCard({ event, index, kills, match, teamName }) {
   const toneName = event.toneName || timelineTeamTone(event.teamKey);
   const score = killScoreAtTimestamp(kills, event.timestamp);
   const gold = timelineGoldDiff(match, event.timestamp);
@@ -854,47 +854,47 @@ function TimelineEventCard({ event, index, kills, match }) {
   const frame = neutral ? "border-amber-200/18 bg-amber-300/[0.055]" : enemy ? "border-rose-300/18 bg-rose-500/[0.055]" : "border-cyan-300/18 bg-cyan-400/[0.055]";
   const rail = neutral ? "bg-amber-200" : enemy ? "bg-rose-200" : "bg-cyan-200";
   const kindLabel = event.kind === "objective" ? "Objectif" : event.kind === "fight" ? "Fight" : "Structure";
-  return <article className={cx("relative overflow-hidden rounded-2xl border p-3", frame)}>
-    <div className={cx("absolute inset-y-3 left-0 w-1 rounded-r-full shadow-[0_0_14px_currentColor]", rail)} />
+  return <article className={cx("games-timeline-event", frame)}>
+    <div className={cx("absolute inset-y-3 left-0 w-1 rounded-r-full ", rail)} />
     <div className="flex items-start gap-3 pl-1">
       <div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><TimelineEventGlyph event={event} /></div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={toneName}>{event.time}</Badge>
           <Badge tone="slate">#{index + 1}</Badge>
-          <Badge tone={toneName}>{timelineTeamLabel(event.teamKey)}</Badge>
+          <Badge tone={toneName}>{timelineTeamLabel(event.teamKey, teamName)}</Badge>
         </div>
-        <p className="mt-2 truncate text-sm font-black text-white">{event.title}</p>
-        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{event.context || event.detail || kindLabel}</p>
-        {event.detail && event.detail !== event.context && <p className="mt-1 line-clamp-1 text-[0.66rem] font-semibold text-slate-400">{event.detail}</p>}
+        <p className="mt-2 break-words text-sm font-black text-white">{event.title}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-300">{event.context || event.detail || kindLabel}</p>
+        {event.detail && event.detail !== event.context && <p className="mt-1 text-xs leading-5 text-slate-400">{event.detail}</p>}
         <div className="mt-3 grid grid-cols-3 gap-1.5">
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-400">Kills</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-400">Gold</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "N/A" : formatSignedShort(gold)}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-400">Type</span><span className="truncate text-xs font-black text-white">{kindLabel}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Kills</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Gold</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "N/A" : formatSignedShort(gold)}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Type</span><span className="break-words text-xs font-black text-white">{kindLabel}</span></span>
         </div>
       </div>
     </div>
   </article>;
 }
 
-function TimelinePhaseColumn({ phase, kills, match }) {
-  return <section className="min-w-0 rounded-2xl border border-white/10 bg-black/18 p-3">
+function TimelinePhaseColumn({ phase, kills, match, teamName }) {
+  return <section className="games-timeline-phase">
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="truncate text-sm font-black text-white">{phase.label}</p>
-        <p className="mt-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{phase.range} min</p>
+        <p className="break-words text-sm font-black text-white">{phase.label}</p>
+        <p className="mt-0.5 text-xs font-semibold text-slate-400">{phase.range} min</p>
       </div>
       <Badge tone={phase.toneName}>{phase.events.length}</Badge>
     </div>
     <div className="space-y-2">
-      {phase.events.length ? phase.events.map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
+      {phase.events.length ? phase.events.map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
     </div>
   </section>;
 }
 
 function RoleDiffPanel({ match }) {
   const rows = roleDiffRows(match);
-  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]"><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{roleLabel(item.role)}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 truncate text-xs font-semibold text-slate-300">CS10 {item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`} · Dégâts {(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">Écart morts {item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></div>;
+  return <section className="games-analysis-section"><h4 className="games-section-heading">Écarts par rôle</h4><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{roleLabel(item.role)}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 break-words text-xs font-semibold text-slate-300">CS10 {item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`} · Dégâts {(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 break-words text-xs font-semibold text-slate-400">Écart morts {item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></section>;
 }
 
 function DeathContextPanel({ match }) {
@@ -906,7 +906,7 @@ function DeathContextPanel({ match }) {
     [Flame, "Shutdowns donnés", data.shutdowns.length, "Bounty timeline", data.shutdowns.length ? "red" : "slate"],
     [Target, "Focus deaths", topRepeated?.deaths || 0, topRepeated ? `${topRepeated.name} · ${championDisplayName(topRepeated.champion)}` : "Aucun profil exposé", topRepeated?.deaths >= 5 ? "red" : "cyan"],
   ];
-  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]"><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, t]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><div className={cx("rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || "Joueur"} meurt avant objectif</div>)}</div>}</div>;
+  return <section className="games-analysis-section"><h4 className="games-section-heading">Contexte des morts</h4><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, t]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-300">{label}</p><div className={cx("rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || "Joueur"} meurt avant objectif</div>)}</div>}</section>;
 }
 
 function DraftImpactPanel({ match }) {
@@ -924,7 +924,7 @@ function DraftImpactPanel({ match }) {
     !tags.some(([tag]) => ["frontline", "tank"].includes(tag)) && "Première ligne peu visible dans la draft.",
     !tags.some(([tag]) => ["engage", "pick"].includes(tag)) && "Initiation ou catch à confirmer.",
   ].filter(Boolean);
-  return <div className="mt-4 rounded-[1.35rem] border border-fuchsia-300/14 bg-fuchsia-400/[0.045] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Lecture draft</Badge><h4 className="mt-3 text-xl font-black text-white">{tagLabel(identity.primary)}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{identity.text}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">Magique {apRatio}%</Badge><Badge tone="yellow">Physique {adRatio}%</Badge><Badge tone="slate">Brut {Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Tags insuffisants</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
+  return <div className="games-analysis-section"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Lecture draft</Badge><h4 className="mt-3 text-xl font-black text-white">{tagLabel(identity.primary)}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{identity.text}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">Magique {apRatio}%</Badge><Badge tone="yellow">Physique {adRatio}%</Badge><Badge tone="slate">Brut {Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Tags insuffisants</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
 }
 
 function GameSummaryPanel({ match }) {
@@ -941,7 +941,7 @@ function GameSummaryPanel({ match }) {
     damageLeader ? `Plus gros impact dégâts sur cette game: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
     weakRole ? `Écart de game à revoir: ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Écart de game: confirmer les rôles importés.",
   ];
-  return <div className="mt-4 rounded-[1.35rem] border border-emerald-300/14 bg-emerald-400/[0.05] p-4"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Résumé game</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="rounded-2xl border border-white/10 bg-black/22 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-emerald-100">Point {index + 1}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
+  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Résumé game</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-[13px] font-semibold text-emerald-100">Point {index + 1}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
 }
 
 function GameMetricSignals({ match }) {
@@ -955,7 +955,7 @@ function GameMetricSignals({ match }) {
   const deaths = sumRows(ally, "deaths");
   const enemyDeaths = sumRows(enemy, "deaths");
 	  const cards = [
-	    [Crown, "Meilleure game", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda}` : "Aucune donnée", "cyan"],
+	    [Crown, "Meilleure game", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda ?? `${strongest.kills ?? "—"}/${strongest.deaths ?? "—"}/${strongest.assists ?? "—"}`}` : "Aucune donnée", "cyan"],
 	    [AlertTriangle, "Morts", exposed, exposed ? `${exposed.deaths || 0} morts · ${championDisplayName(exposed.champion)}` : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
 	    [Flame, "Dégâts", damageLead, damageLead ? formatPoints(damageLead.damage) + " dégâts" : "Aucune donnée", "purple"],
 	    [Eye, "Vision", visionLead, visionLead ? `${visionLead.vision || 0} vision` : "Aucune donnée", "green"],
@@ -964,14 +964,13 @@ function GameMetricSignals({ match }) {
 	    [Gauge, "Écart CS", (csDiff >= 0 ? "+" : "") + formatPoints(csDiff), "Alliés vs adversaires", diffTone(csDiff)],
 	    [Swords, "Morts équipe", `${deaths} / ${enemyDeaths}`, "Alliés vs adversaires", deaths <= enemyDeaths ? "green" : "red"],
 	  ];
-	  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]">
-	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-	  </div>;
+	  return <section className="games-analysis-section"><h4 className="games-section-heading">Signaux individuels</h4>
+	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-1 break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-1 break-words text-sm font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	  </section>;
 	}
 
 function VersusPlayerMini({ row, side, opponent, align = "left" }) {
-  const ahead = row && opponent ? statValue(row, "gold") >= statValue(opponent, "gold") : false;
   const kda = row ? `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}` : "-/-/-";
   const kp = row ? Math.round(parsePercent(row.kill_participation || row.kp)) : 0;
   const spells = row ? summonerSpellIds(row) : [];
@@ -980,23 +979,21 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
     ...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })),
     ...(trinket ? [{ id: trinket, type: "trinket" }] : []),
   ] : [];
-  return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]", ahead && "shadow-[0_0_24px_rgba(34,211,238,.10)]")}>
-    {row && <ChampionBackdrop champion={row.champion} focus="face" />}
-    <div className="absolute inset-0 bg-gradient-to-r from-[#050711]/94 via-[#050711]/78 to-[#050711]/48" />
+  return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]")}>
     <div className={cx("relative z-10 flex min-w-0 items-center gap-2.5", align === "right" && "flex-row-reverse text-right")}>
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35 md:h-14 md:w-14">
         {row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} /> : <Crown className="m-3 h-6 w-6 text-slate-300" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
-        <p className="truncate text-xs font-semibold text-slate-200">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
+        <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
+        <p className="break-words text-xs font-semibold text-slate-200">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
         <div className={cx("mt-2 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
-          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-white">{kda}</span>
-          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200">{kp}% KP</span>
-          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-[0.62rem] font-black text-emerald-50">{creepScore(row)} CS</span>
-          <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} dégâts</span>
-          <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-[0.62rem] font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)} or</span>
-          <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-[0.62rem] font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
+          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-white">{kda}</span>
+          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200">{kp}% KP</span>
+          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-xs font-black text-emerald-50">{creepScore(row)} CS</span>
+          <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} dégâts</span>
+          <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-xs font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)} or</span>
+          <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-xs font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
         </div>
         {(spells.length > 0 || items.length > 0) && <div className={cx("mt-2 flex flex-wrap gap-1", align === "right" && "justify-end")}>
           {spells.map((spell, index) => <HudIcon key={`${row.id || row.riot_id}-instant-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-6 w-6 rounded-lg" />)}
@@ -1054,8 +1051,8 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       <div className={cx("flex min-w-0 items-center gap-3", align === "right" && "justify-end text-right")}>
         <ChampionPortrait row={row} champion={row?.champion} alt={row?.champion || role} className="h-12 w-12 rounded-xl object-cover" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
-          <p className="truncate text-xs font-semibold text-slate-300">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
+          <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
+          <p className="break-words text-xs font-semibold text-slate-300">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
         </div>
       </div>
       <div className={cx("mt-3 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
@@ -1064,29 +1061,26 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       </div>
     </div>;
   };
-  return <div className="nxt5-enter-fast rounded-[1.35rem] border border-white/10 bg-black/28 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
+  return <div className="nxt5-enter-fast games-lane-comparison">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2"><Badge tone="cyan">{roleLabel(role)}</Badge><h5 className="text-base font-black text-white">Comparatif direct de la game</h5></div>
       <Badge tone="slate">Clique la ligne pour refermer</Badge>
     </div>
     <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,.58fr)_minmax(0,1fr)_minmax(0,.58fr)]">
       {renderLoadout(blueRow, "blue", blueTeamKey)}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-        <div className="grid grid-cols-[minmax(86px,.7fr)_minmax(0,1fr)_minmax(72px,.55fr)_minmax(0,1fr)] gap-2 text-xs">
-          <p className="font-black uppercase tracking-[0.14em] text-slate-400">Stat</p>
-          <p className="font-black uppercase tracking-[0.14em] text-cyan-100">Côté bleu</p>
-          <p className="text-center font-black uppercase tracking-[0.14em] text-slate-400">Écart</p>
-          <p className="text-right font-black uppercase tracking-[0.14em] text-rose-100">Côté rouge</p>
-          {metricRows.map(([label, left, right, diff]) => {
+      <div className="games-lane-table-scroll" role="region" aria-label={`Statistiques comparées ${roleLabel(role)}`} tabIndex={0}>
+        <table className="games-lane-table">
+          <caption className="sr-only">Statistiques {roleLabel(role)} : côté bleu, écart et côté rouge</caption>
+          <thead><tr><th scope="col">Stat</th><th scope="col">Côté bleu</th><th scope="col">Écart</th><th scope="col">Côté rouge</th></tr></thead>
+          <tbody>{metricRows.map(([label, left, right, diff]) => {
             const cleanDiff = Number.isFinite(Number(diff)) ? Number(diff) : null;
-            return <React.Fragment key={label}>
-              <p className="rounded-lg bg-black/18 px-2 py-1.5 font-black text-slate-300">{label}</p>
-              <p className="truncate rounded-lg bg-cyan-400/[0.06] px-2 py-1.5 font-black text-white">{left}</p>
-              <p className={cx("rounded-lg px-2 py-1.5 text-center font-black", cleanDiff === null ? "bg-black/18 text-slate-400" : cleanDiff >= 0 ? "bg-cyan-400/10 text-cyan-100" : "bg-rose-500/10 text-rose-100")}>{formatSideDiff(cleanDiff)}</p>
-              <p className="truncate rounded-lg bg-rose-500/[0.06] px-2 py-1.5 text-right font-black text-white">{right}</p>
-            </React.Fragment>;
-          })}
-        </div>
+            return <tr key={label}>
+              <th scope="row">{label}</th><td>{left}</td>
+              <td className={cleanDiff === null ? "text-slate-400" : cleanDiff >= 0 ? "text-cyan-100" : "text-rose-100"}>{formatSideDiff(cleanDiff)}</td>
+              <td>{right}</td>
+            </tr>;
+          })}</tbody>
+        </table>
       </div>
       {renderLoadout(redRow, "red", redTeamKey, "right")}
     </div>
@@ -1094,7 +1088,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       const diff = Number(left || 0) - Number(right || 0);
       const blueWins = direction === "lower" ? diff < 0 : diff > 0;
       const leader = !diff ? "Égal" : blueWins ? "Côté bleu" : "Côté rouge";
-      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
+      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
     })}</div>
   </div>;
 }
@@ -1106,7 +1100,7 @@ function SideColumnHeader({ side, align = "left" }) {
     <span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border bg-black/25", isBlue ? "border-cyan-200/30" : "border-rose-200/30")}>
       <Icon className="h-4 w-4" />
     </span>
-    <span className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-white">{isBlue ? "Côté bleu" : "Côté rouge"}</span>
+    <span className="text-xs font-semibold text-white">{isBlue ? "Côté bleu" : "Côté rouge"}</span>
   </div>;
 }
 
@@ -1120,12 +1114,12 @@ function MatchVersusOverview({ match, teamName }) {
   const redRows = allyIsBlue ? enemy : ally;
   const blueKey = allyIsBlue ? "ALLY" : "ENEMY";
   const redKey = allyIsBlue ? "ENEMY" : "ALLY";
-  return <div className="mt-5 rounded-[1.5rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.07] via-black/25 to-rose-500/[0.055] p-3 sm:p-4">
+  return <div className="games-analysis-section games-versus">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Résumé de la game</h4></div>
+      <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Joueurs et objectifs</h4></div>
     </div>
     <ObjectiveHud match={match} compact />
-    <div className="nxt5-responsive-scroll">
+    <div className="nxt5-responsive-scroll" role="region" aria-label="Comparaison des cinq rôles, défilement horizontal" tabIndex={0}>
       <div className="nxt5-versus-scroll-frame min-w-[860px] lg:min-w-0">
         <div className="nxt5-versus-row-grid mb-2 grid min-w-0 items-center gap-2">
           <SideColumnHeader side="blue" />
@@ -1136,30 +1130,28 @@ function MatchVersusOverview({ match, teamName }) {
           {COMP_ROLES.map((role) => {
             const blueRow = byRole(blueRows, role);
             const redRow = byRole(redRows, role);
-            const allyRow = byRole(ally, role);
-            const enemyRow = byRole(enemy, role);
             const blueGold = blueRow ? statValue(blueRow, "gold") : 0;
             const redGold = redRow ? statValue(redRow, "gold") : 0;
             const diff = (blueKey === "ALLY" ? blueGold - redGold : redGold - blueGold);
             const winningEdge = blueGold === redGold ? "·" : blueGold > redGold ? "<" : ">";
             const open = openRole === role;
             return <div key={role} className={cx("rounded-[1.35rem] transition", open && "bg-cyan-400/[0.045] p-1 ring-1 ring-cyan-200/18")}>
-              <button type="button" aria-expanded={open} onClick={() => setOpenRole(open ? "" : role)} className="nxt5-versus-row-grid grid w-full min-w-0 items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
+              <button type="button" aria-expanded={open} aria-label={`${open ? "Fermer" : "Comparer"} les statistiques ${roleLabel(role)}`} onClick={() => setOpenRole(open ? "" : role)} className="nxt5-versus-row-grid grid w-full min-w-0 items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
                 <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
-                <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/35")}>
+                <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 " : "border-white/10 bg-black/35")}>
                   <RoleIcon role={role} className="h-5 w-5" />
-                  <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
-                  <span className={cx("nxt5-versus-gold-diff mt-1 rounded-lg px-2 py-1 text-[0.62rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatCompactGoldDiff(diff)}</span>
+                  <span className="mt-1 text-xs font-semibold text-white">{role}</span>
+                  <span className={cx("nxt5-versus-gold-diff mt-1 rounded-lg px-2 py-1 text-xs font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatCompactGoldDiff(diff)}</span>
                   <ChevronDown className={cx("mt-1 h-3.5 w-3.5 text-cyan-100 transition", open && "rotate-180")} />
                 </div>
                 <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
               </button>
-              <React.Fragment>{open && <div className="mt-2"><LaneComparisonPanel match={match} role={role} allyRow={allyRow} enemyRow={enemyRow} teamName={teamName} /></div>}</React.Fragment>
             </div>;
           })}
         </div>
       </div>
     </div>
+    {openRole && <LaneComparisonPanel match={match} role={openRole} allyRow={byRole(ally, openRole)} enemyRow={byRole(enemy, openRole)} teamName={teamName} />}
   </div>;
 }
 
@@ -1214,22 +1206,22 @@ function matchCoachSnapshot(match) {
 function MatchCoachBrief({ match }) {
   const snapshot = matchCoachSnapshot(match);
   const matchId = match?.id || "";
-  return <section className="mt-5 overflow-hidden rounded-[1.5rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(34,211,238,.095),rgba(5,8,20,.92)_48%,rgba(168,85,247,.09))] p-4">
+  return <section className="games-analysis-section games-coach-brief">
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,.55fr)] xl:items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2"><Badge tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.label}</Badge><Badge tone="cyan">Review prête</Badge></div>
         <h4 className="mt-3 break-words text-2xl font-black text-white">{snapshot.title}</h4>
         <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{snapshot.summary}</p>
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          {[["À garder", snapshot.keep, "green"], ["À corriger", snapshot.correct, "red"], ["Prochaine action", snapshot.action, "cyan"]].map(([label, value, toneName]) => <div key={label} className="min-w-0 rounded-2xl bg-black/24 p-3">
-            <p className={cx("text-[0.6rem] font-black uppercase tracking-[0.16em]", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{label}</p>
+          {[["À garder", snapshot.keep, "green"], ["À corriger", snapshot.correct, "red"], ["Prochaine action", snapshot.action, "cyan"]].map(([label, value, toneName]) => <div key={label} className="games-stat-block">
+            <p className={cx("text-xs font-semibold", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{label}</p>
             <p className="mt-1.5 text-sm font-black leading-5 text-white">{value}</p>
           </div>)}
         </div>
       </div>
       <div className="grid min-w-0 gap-2">
-        <div className="rounded-2xl bg-black/24 p-3">
-          <p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-400">Lane à review</p>
+        <div className="games-stat-block">
+          <p className="text-xs font-semibold text-slate-400">Lane à review</p>
           <p className="mt-1.5 text-sm font-black leading-5 text-white">{snapshot.roleText}</p>
         </div>
         <Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`)} disabled={!matchId}>Créer la review</Button>
@@ -1237,10 +1229,10 @@ function MatchCoachBrief({ match }) {
       </div>
     </div>
     <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-      {snapshot.metrics.map(([label, value, detail, toneName]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.035] p-3">
-        <p className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
-        <p className={cx("mt-1 truncate text-lg font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
-        <p className="mt-0.5 truncate text-[0.62rem] font-semibold text-slate-400">{detail}</p>
+      {snapshot.metrics.map(([label, value, detail, toneName]) => <div key={label} className="games-stat-block">
+        <p className="break-words text-xs font-semibold text-slate-400">{label}</p>
+        <p className={cx("mt-1 break-words text-lg font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
+        <p className="mt-0.5 break-words text-xs font-semibold text-slate-400">{detail}</p>
       </div>)}
     </div>
   </section>;
@@ -1258,7 +1250,35 @@ function MatchDataPanel({ match, teamName, statsFirst = false }) {
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
   const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
-  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 tabIndex={-1} className="mt-3 break-words text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div>{!statsFirst && <div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button></div>}</div>{statsFirst && metrics}{!statsFirst && <MatchCoachBrief match={match} />}<MatchVersusOverview match={match} teamName={teamName} />{!statsFirst && metrics}{statsFirst && <MatchCoachBrief match={match} />}<GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  return <Surface className="nxt5-match-panel mt-5">
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge>
+          <Badge tone="slate">{match.patch || "Patch ?"}</Badge>
+          <Badge tone="blue">{match.side || "Côté ?"}</Badge>
+          <Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge>
+        </div>
+        <h3 tabIndex={-1} className="mt-3 break-words text-2xl font-black text-white">{matchDisplayName(match)}</h3>
+        <p className="mt-1 text-sm text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
+      </div>
+      {!statsFirst && <Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button>}
+    </div>
+    <GameSummaryPanel match={match} />
+    {statsFirst && metrics}
+    {!statsFirst && <MatchCoachBrief match={match} />}
+    <MatchVersusOverview match={match} teamName={teamName} />
+    {!statsFirst && metrics}
+    {statsFirst && <MatchCoachBrief match={match} />}
+    <GameMetricSignals match={match} />
+    <RoleDiffPanel match={match} />
+    <DeathContextPanel match={match} />
+    <DraftImpactPanel match={match} />
+    <details key={match.id} className="games-timeline-disclosure">
+      <summary><span>Lecture chronologique</span><span className="games-timeline-summary-meta">{timelineStatus(match).label}</span></summary>
+      <MatchTimelineReview match={match} teamName={teamName} />
+    </details>
+  </Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -1289,7 +1309,7 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, sho
       </div>
     </div>
     <div className="nxt5-kpi-grid mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
-    {showGames && <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>}
+    {showGames && <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 " : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200  transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>}
   </Surface>;
 }
 
@@ -1614,7 +1634,7 @@ function renderReportContent(content, rows) {
     if (trimmed === REPORT_REWRITE_MARKER || trimmed === "[NXT5_REPORT_V2]") return null;
     if (!trimmed) return <div key={index} className="h-2" />;
     if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|LECTURE PAR JOUEUR|NOTES STAFF(?: CONSERVÉES)?|REPÈRES)$/i.test(trimmed)) {
-      return <h4 key={index} className={cx("mt-4 rounded-xl border px-3 py-2 text-[0.67rem] font-black uppercase tracking-[0.18em]", sectionTone(trimmed))}>{trimmed.replace(/^#{1,3}\s+/, "")}</h4>;
+      return <h4 key={index} className={cx("games-report-heading", sectionTone(trimmed))}>{trimmed.replace(/^#{1,3}\s+/, "")}</h4>;
     }
     if (/^[-•]\s+/.test(trimmed)) return <p key={index} className="relative min-h-[1.5rem] break-words whitespace-pre-wrap pl-5 text-slate-100 before:absolute before:left-1 before:top-[0.65rem] before:h-1.5 before:w-1.5 before:rounded-full before:bg-cyan-300">{trimmed.replace(/^[-•]\s+/, "")}</p>;
     return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap">{line}</p>;
@@ -1628,7 +1648,7 @@ function ReviewAnalysisStatus({ details }) {
 }
 
 function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
-  return <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/[0.26] p-3 text-[0.82rem] leading-6 text-slate-100 shadow-inner shadow-black/35 sm:p-4 sm:text-sm sm:leading-7">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}</div>;
+  return <div className="games-report-preview">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}</div>;
 }
 
 // V2 was fully editable: preserve its text, including corrections in the coaching block.
@@ -1991,7 +2011,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     ["Draft", "## Draft\n- Pick à sécuriser :\n- Ban prioritaire :\n- Réponse adverse : "],
   ];
   return (
-    <div className="nxt5-data-dense min-w-0 overflow-hidden">
+    <div className="nxt5-data-dense nxt5-reviews-page min-w-0">
       <PageHeader
         eyebrow="Reviews"
         title="Review"
@@ -2008,7 +2028,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
       ]} activeId={workspaceView} onChange={setWorkspaceView} columns="sm:grid-cols-2" />
 
       {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
-        <aside className="min-w-0 overflow-hidden rounded-2xl border border-cyan-200/18 bg-[#070b17]/88 shadow-[0_18px_54px_rgba(0,0,0,.32)] backdrop-blur-2xl 2xl:sticky 2xl:top-4 2xl:self-start">
+        <aside className="games-review-library 2xl:sticky 2xl:top-4 2xl:self-start">
           <div className="border-b border-white/10 px-4 py-4 sm:px-5">
             <div className="flex min-w-0 items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-100"><FileText className="h-5 w-5" /></span>
@@ -2022,14 +2042,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className="flex h-11 items-center gap-2 border-b border-white/12 px-1 transition focus-within:border-cyan-200/55">
+              <label className="games-review-search">
                 <span className="sr-only">Chercher une review</span>
                 <Search className="h-4 w-4 shrink-0 text-cyan-100/70" />
                 <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher par game ou auteur" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
               </label>
               <label className="relative block">
-                <span className="sr-only">Filtrer par contexte</span>
-                <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="h-10 w-full appearance-none border-0 bg-transparent px-1 pr-8 text-sm font-bold text-slate-200 outline-none transition hover:text-white focus:text-white">
+                <span className="games-field-label">Contexte</span>
+                <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="games-review-select">
                   <option value="">Toutes les reviews</option>
                   {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} games</option>)}
                 </select>
@@ -2037,22 +2057,22 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               </label>
             </div>
 
-            {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-[0.68rem] font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span> résultat{filteredReports.length > 1 ? "s" : ""} sur {reports.length}</p>}
+            {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-xs font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span> résultat{filteredReports.length > 1 ? "s" : ""} sur {reports.length}</p>}
           </div>
 
           <div className="nxt5-review-list max-h-[min(66vh,44rem)] overflow-y-auto overscroll-contain">
             {filteredReports.length ? filteredReports.map((report) => {
               const active = selected?.id === report.id;
               const ids = reportMatchIds(report);
-              return <button key={report.id} type="button" aria-current={active ? "true" : undefined} onClick={() => selectReport(report)} className={cx("group/report relative grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.075] px-4 py-3.5 text-left transition last:border-b-0 sm:px-5", active ? "bg-gradient-to-r from-cyan-400/14 via-cyan-300/[0.055] to-transparent" : "hover:bg-white/[0.045]")}>
-                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.9)]" : "bg-transparent group-hover/report:bg-cyan-200/35")} />
+              return <button key={report.id} type="button" aria-current={active ? "true" : undefined} onClick={() => selectReport(report)} className={cx("group/report relative grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.075] px-4 py-3.5 text-left transition last:border-b-0 sm:px-5", active ? "bg-cyan-400/[0.08]" : "hover:bg-white/[0.045]")}>
+                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 " : "bg-transparent group-hover/report:bg-cyan-200/35")} />
                 <span className="min-w-0">
                   <span className={cx("block break-words text-sm font-black leading-5 transition", active ? "text-cyan-50" : "text-white group-hover/report:text-cyan-50")}>{reportDisplayName(report, matches)}</span>
                   {report.discord_status === "draft" && <span className="mt-1 block text-xs font-semibold text-amber-200">Brouillon · staff uniquement</span>}
-                  <span className="mt-1.5 block truncate text-[0.7rem] font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
+                  <span className="mt-1.5 block truncate text-xs font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-1">
-                  <span className={cx("whitespace-nowrap text-[0.65rem] font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} game{ids.length > 1 ? "s" : ""}</span>
+                  <span className={cx("whitespace-nowrap text-xs font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} game{ids.length > 1 ? "s" : ""}</span>
                   <ChevronRight className={cx("h-4 w-4 transition", active ? "translate-x-0.5 text-cyan-100" : "text-slate-600 group-hover/report:translate-x-0.5 group-hover/report:text-cyan-100")} />
                 </span>
               </button>;
@@ -2077,9 +2097,9 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               </div>
             </div>
             <div className="mt-5 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-lg font-black text-white">{selectedMatchIds.length}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Record</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins}W - ${selectedMatches.length - selectedWins}L` : "--"}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Games</p><p className="mt-1 text-lg font-black text-white">{selectedMatchIds.length}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Record</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins}W - ${selectedMatches.length - selectedWins}L` : "--"}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">WR</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
             </div>
             {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} games liées chargées. Les games restantes sont chargées automatiquement pour compléter l’analyse.</p>}
             <div className="mt-5">
@@ -2092,13 +2112,13 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
       {composerOpen && createPortal(
         <div className="nxt5-fade-in fixed inset-0 z-[300] isolate flex items-end justify-center bg-[#020511]/94 backdrop-blur-xl sm:items-center sm:p-3 lg:p-5">
-          <section role="dialog" aria-modal="true" aria-labelledby="review-composer-title" className="nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.82),0_0_54px_rgba(34,211,238,.16)] sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
-            <div className="pointer-events-none absolute inset-x-8 top-0 z-20 h-px bg-gradient-to-r from-transparent via-cyan-100/75 to-fuchsia-100/55" />
+          <section role="dialog" aria-modal="true" aria-labelledby="review-composer-title" className="games-review-composer nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814]  sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
+            <div className="hidden" />
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">L’analyse se complète avec les games liées. Ajoute les notes et les décisions du staff.</p></div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
+                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
                 </div>
               </div>
 
@@ -2107,15 +2127,15 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
                 <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
               <div className="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
-                <div className="flex items-start justify-between gap-3"><div><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-400">{ids.length} game{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-300">Games liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-xs font-semibold text-slate-400">{ids.length} game{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
                 <div className="mt-3 grid grid-cols-2 gap-2"><Button type="button" variant="ghost" icon={Check} onClick={selectAllScopedMatches} disabled={!scopedMatches.length}>Tout lier</Button><Button type="button" variant="ghost" icon={X} onClick={() => setForm((current) => ({ ...current, matchIds: [] }))} disabled={!form.matchIds.length}>Vider</Button></div>
-                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Game"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Side ?"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune game" text="Importe une game ou retire le filtre actif." />}</div>
+                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} aria-pressed={checked} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Game"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Side ?"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune game" text="Importe une game ou retire le filtre actif." />}</div>
               </div>
 
               <div className="min-w-0 space-y-4">
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-xl border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="min-h-[22rem] w-full resize-y rounded-2xl xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Une review peut lier au maximum 20 games. Retire des games pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-xs font-semibold text-slate-300">Notes staff</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">Aperçu de la review</p><Badge tone="slate">Live</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Une review peut lier au maximum 20 games. Retire des games pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
                 </div>
               </div>

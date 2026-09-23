@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import { Activity, AlertTriangle, ArrowRight, BarChart3, BookOpen, CalendarDays, Crown, FileText, MessageCircleQuestion, Settings, Sparkles, Swords, Users } from "lucide-react";
+import "./guide.css";
 import { cx } from "../app/helpers.js";
 import { Badge, Button, PageHeader } from "../components/ui/Core.jsx";
 
@@ -28,16 +29,17 @@ export default function GuidePage({ route, navigate, onOpenAssistant }) {
     <PageHeader eyebrow="Guide NXT5" title="Guide d’utilisation" subtitle="Retrouve le parcours complet ou ouvre directement la section citée par l’assistant.">
       <Button icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.(`Aide-moi sur la section ${current.label} du guide.`)}>Question à l’assistant</Button>
     </PageHeader>
-    <div className="grid overflow-hidden rounded-[1.5rem] border border-white/10 bg-black/15 xl:grid-cols-[17rem_minmax(0,1fr)]">
-      <nav aria-label="Sommaire du guide" className="border-b border-white/10 bg-[#050916]/80 xl:border-b-0 xl:border-r">
-        <div className="flex overflow-x-auto p-2 xl:block xl:max-h-[70vh] xl:overflow-y-auto">
-          {GUIDE_SECTIONS.map((section, index) => { const Icon = section.icon; const active = section.id === current.id; return <button key={section.id} type="button" onClick={() => selectSection(section.id)} aria-current={active ? "page" : undefined} className={cx("group flex min-h-14 shrink-0 items-center gap-3 rounded-xl px-3 text-left text-sm font-black transition xl:w-full", active ? "bg-cyan-300/[0.1] text-white ring-1 ring-cyan-200/20" : "text-slate-400 hover:bg-white/[0.04] hover:text-white")}><span className={cx("text-[0.6rem] tabular-nums", active ? "text-cyan-100" : "text-slate-600")}>{String(index + 1).padStart(2, "0")}</span><Icon className="h-4 w-4 shrink-0" /><span className="whitespace-nowrap">{section.label}</span></button>; })}
+    <div className="nxt5-guide-layout">
+      <nav aria-label="Sommaire du guide" className="nxt5-guide-nav">
+        <label className="nxt5-guide-mobile-label">Rubrique du guide<select value={current.id} onChange={(event) => selectSection(event.target.value)}>{GUIDE_SECTIONS.map((section) => <option key={section.id} value={section.id}>{section.label}</option>)}</select></label>
+        <div className="nxt5-guide-menu">
+          {GUIDE_SECTIONS.map((section, index) => { const Icon = section.icon; const active = section.id === current.id; return <button key={section.id} type="button" onClick={() => selectSection(section.id)} aria-current={active ? "page" : undefined} className={cx("nxt5-guide-link group flex items-center gap-3 px-3 text-left text-sm font-semibold transition", active ? "is-active text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-white")}><span className={cx("text-xs tabular-nums", active ? "text-cyan-100" : "text-slate-600")}>{String(index + 1).padStart(2, "0")}</span><Icon className="h-4 w-4 shrink-0" /><span className="whitespace-nowrap">{section.label}</span></button>; })}
         </div>
       </nav>
       <section className="min-w-0 p-5 sm:p-7 xl:p-10">
         <div className="mx-auto max-w-4xl">
-          <div className="flex items-start gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-200/20 bg-cyan-400/10 text-cyan-100"><CurrentIcon className="h-5 w-5" /></span><div><Badge tone="cyan">{current.label}</Badge><h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">{current.title}</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{current.intro}</p></div></div>
-          <ol className="mt-8 divide-y divide-white/10 border-y border-white/10">{current.steps.map((step, index) => <li key={step} className="grid gap-3 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]"><span className="font-black tabular-nums text-cyan-100/70">{String(index + 1).padStart(2, "0")}</span><p className="text-sm font-bold leading-6 text-slate-100">{step}</p></li>)}</ol>
+          <div className="flex items-start gap-4"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-cyan-200/20 bg-cyan-400/10 text-cyan-100"><CurrentIcon className="h-5 w-5" /></span><div><Badge tone="cyan">{current.label}</Badge><h2 className="mt-3 text-2xl font-bold text-white">{current.title}</h2><p className="mt-2 text-sm font-normal leading-6 text-slate-300">{current.intro}</p></div></div>
+          <ol className="mt-8 divide-y divide-white/10 border-y border-white/10">{current.steps.map((step, index) => <li key={step} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-4"><span className="font-black tabular-nums text-cyan-100/70">{String(index + 1).padStart(2, "0")}</span><p className="text-sm font-normal leading-6 text-slate-100">{step}</p></li>)}</ol>
           <div className="mt-6 flex flex-wrap gap-2"><Button icon={ArrowRight} onClick={() => navigate?.(current.path)}>{current.action}</Button><Button variant="ghost" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.(`Explique-moi la section ${current.label} du guide.`)}>Poser une question</Button></div>
         </div>
       </section>

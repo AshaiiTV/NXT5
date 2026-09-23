@@ -1,0 +1,13 @@
+.nxt5-guide-layout { display: grid; grid-template-columns: 15rem minmax(0, 1fr); border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); overflow: hidden; background: var(--nxt5-surface); }
+.nxt5-guide-nav { border-right: 1px solid var(--nxt5-border); }
+.nxt5-guide-menu { padding: .75rem; }
+.nxt5-guide-link { width: 100%; min-height: 48px; border-radius: var(--nxt5-radius-button); border-left: 2px solid transparent; }
+.nxt5-guide-link.is-active { background: rgba(103,232,249,.07); border-left-color: var(--nxt5-accent); }
+.nxt5-guide-mobile-label { display: none; }
+@media(max-width: 1199px) {
+ .nxt5-guide-layout { grid-template-columns: minmax(0, 1fr); }
+ .nxt5-guide-nav { border-right: 0; border-bottom: 1px solid var(--nxt5-border); padding: 1rem; }
+ .nxt5-guide-menu { display: none; }
+ .nxt5-guide-mobile-label { display: grid; gap: .5rem; color: var(--nxt5-text-secondary); font-size: .8125rem; font-weight: 600; }
+ .nxt5-guide-mobile-label select { width: 100%; min-height: 48px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: #050d1a; color: var(--nxt5-text); padding: .625rem .75rem; font-size: 1rem; }
+}

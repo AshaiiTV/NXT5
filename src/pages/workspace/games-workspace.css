@@ -1,5 +1,7 @@
 .nxt5-games-page [hidden] { display: none !important; }
-.games-library-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.nxt5-games-page > .nxt5-page-header { padding-bottom: 18px; margin-bottom: 18px; }
+.nxt5-games-page .ig-description { display: none; }
+.games-library-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .games-library-toolbar > div { flex: 0 1 360px; min-width: 0; }
 .games-team-record { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; color: var(--nxt5-text); font-size: 13px; }
 .games-team-record > span { color: #dbe8f8; font-size: 12px; }
@@ -33,12 +35,61 @@
 .games-group-picks label > span > span { color: #dbe8f8; font-size: 12px; }
 .games-group-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 20px; }
 @media (max-width: 640px) {
+  .nxt5-games-page > .nxt5-page-header { padding-bottom: 16px; margin-bottom: 16px; }
+  .nxt5-games-page .ig-surface { margin-top: 12px; }
   .games-library-toolbar > div { flex-basis: 100%; }
-  .games-team-record { gap: 8px 12px; }
+  .games-team-record { gap: 4px 12px; }
   .games-detail-toolbar { gap: 12px; }
   .games-detail-actions { width: 100%; }
   .games-detail-actions > button:not([aria-label]), .games-detail-actions > .discord-share-action { flex: 1 1 max-content; }
   .games-detail-actions > .discord-share-action > button { width: 100%; }
   .games-group-fields, .games-group-picks { grid-template-columns: minmax(0,1fr); }
   .games-group-tools { margin-left: auto; }
+}
+
+/* Detailed match reading: one shared surface, open sections and legible data. */
+.games-analysis-section { min-width: 0; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--nxt5-border); }
+.games-summary-point { padding: 12px 0; min-width: 0; }
+.games-summary-point p:last-child { font-weight: 500; line-height: 1.65; color: var(--nxt5-text-secondary); }
+.games-objectives { min-width: 0; }
+.games-objective-counts { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 4px; padding: 16px 0; margin-top: 12px; border-block: 1px solid var(--nxt5-border); }
+.games-lane-comparison { margin-top: 16px; padding-top: 20px; border-top: 1px solid var(--nxt5-border-strong); min-width: 0; }
+.games-lane-table-scroll { min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.games-lane-table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.games-lane-table th, .games-lane-table td { padding: 10px 6px; text-align: right; border-bottom: 1px solid var(--nxt5-border); overflow-wrap: anywhere; }
+.games-lane-table th:first-child { width: 22%; text-align: left; }
+.games-lane-table th { color: var(--nxt5-text-secondary); font-weight: 600; }
+.games-lane-table thead th:nth-child(2) { color: #a5f3fc; }
+.games-lane-table thead th:nth-child(4) { color: #fecdd3; }
+.games-timeline-disclosure { margin-top: 24px; border-top: 1px solid var(--nxt5-border-strong); }
+.games-timeline-disclosure > summary { min-height: 64px; padding-block: 18px; cursor: pointer; color: var(--nxt5-text); font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.games-timeline-summary-meta { display: inline-block; margin-left: 16px; color: var(--nxt5-text-secondary); font-size: 12px; font-weight: 500; }
+.games-timeline-disclosure > summary:focus-visible, .games-lane-table-scroll:focus-visible, .games-review-search:focus-within { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+.games-timeline-content { min-width: 0; }
+.games-timeline-heading { padding-block: 16px; }
+.games-timeline-phase { min-width: 0; padding-top: 16px; border-top: 1px solid var(--nxt5-border); }
+.games-timeline-event { position: relative; min-width: 0; padding: 16px 8px; border-top: 1px solid var(--nxt5-border); background: transparent; }
+.games-review-library { min-width: 0; overflow: hidden; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-surface); }
+.games-review-search { display: flex; gap: 8px; align-items: center; min-height: 44px; padding: 10px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: 10px; background: var(--nxt5-bg); }
+.games-field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--nxt5-text-secondary); }
+.games-review-select { min-height: 44px; width: 100%; appearance: none; padding: 10px 32px 10px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: 10px; background: var(--nxt5-bg); color: var(--nxt5-text); font-size: 14px; }
+.games-review-composer { background: var(--nxt5-surface); box-shadow: 0 24px 80px rgb(0 0 0 / .5); }
+.games-review-composer button { min-height: 44px; border-radius: 2px; }
+.games-review-composer :is(input, select, textarea) { border-radius: 10px; }
+@media (max-width: 640px) {
+  .games-analysis-section { margin-top: 20px; padding-top: 20px; }
+  .games-timeline-summary-meta { display: block; margin: 6px 0 0 20px; }
+  .games-objective-counts { gap: 0; }
+  .games-objective-counts dt > span:first-child { width: 32px; height: 32px; }
+  .games-objective-counts dt img { width: 28px; height: 28px; }
+  .games-review-search input, .games-review-select, .games-review-composer :is(input, select, textarea) { font-size: 16px; }
+}
+.games-section-heading { margin-bottom: 14px; font-size: 18px; line-height: 1.4; font-weight: 700; color: var(--nxt5-text); }
+.games-stat-block { min-width: 0; padding: 12px 0; border-top: 1px solid var(--nxt5-border); }
+.games-report-preview { min-width: 0; color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.8; }
+.games-report-heading { margin-top: 24px; padding: 8px 12px; border-left: 2px solid; font-size: 14px; line-height: 1.6; font-weight: 700; background: transparent; }
+
+@media (max-width: 640px) {
+  .games-lane-table { font-size: 12px; }
+  .games-lane-table th, .games-lane-table td { padding: 10px 4px; }
 }

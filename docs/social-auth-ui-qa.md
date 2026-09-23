@@ -1,0 +1,22 @@
+# Connexions externes — interface et vérifications
+
+Vérifié le 23 septembre 2026. Les contrôles ont été réalisés dans le checkout de la fonctionnalité, avec les réponses des API simulées ; ils ne valident pas les identifiants OAuth de production.
+
+## Marques et provenance
+
+Les boutons Google et Apple utilisent un style propre à leur authentification, limité à ces actions. Le panneau, les champs, Discord, Riot et les autres actions gardent les composants NXT5. Les deux boutons font 52 px de haut, portent le libellé « Continuer avec… » et conservent les noms accessibles sans annoncer les logos décoratifs une seconde fois.
+
+- **Google** : le [guide officiel](https://developers.google.com/identity/branding-guidelines), mis à jour le 7 juillet 2026, prescrit le G en couleurs, des palettes définies et Google Sans Medium. Le bouton utilise le thème clair (`#FFFFFF`, texte `#1F1F1F`, contour `#747775`), un G de 20 px et un espacement de 12 px avant le logo puis 10 px avant le texte. Le rayon est de 4 px, comme le modèle rectangulaire officiel. `public/assets/auth/google-g.svg` provient de l’[archive officielle](https://developers.google.com/static/identity/images/signin-assets.zip), entrée `Android + Web/SVG/Light/Theme=Light, Show text=No, Shape=Square, Platform=Android+Web.svg`. Seuls les deux tracés du cadre ont été retirés et le canevas ramené aux coordonnées du G ; dessin, masques et couleurs du logo sont conservés.
+- **Police Google** : `google-sans-latin-500.woff2` est servi localement, depuis la réponse officielle de [Google Fonts](https://fonts.googleapis.com/css2?family=Google+Sans:wght@500&display=swap), sous-ensemble latin, graisse 500. La [licence SIL OFL officielle](https://github.com/google/fonts/blob/main/ofl/googlesans/OFL.txt) est conservée dans `public/assets/auth/google-sans-OFL.txt`. Aucun appel Google Fonts n’est nécessaire à l’ouverture du formulaire.
+- **Apple** : les [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple/) demandent le logo officiel, un titre autorisé et des couleurs noires ou blanches. Le bouton blanc est adapté au fond sombre NXT5. `public/assets/auth/apple-signin-black.svg` est une copie intacte du fichier `Sign in with Apple - Left Aligned/SVG/Logo - SIWA - Left-aligned - Black - Medium.svg` du [paquet Apple Design Resources](https://devimages-cdn.apple.com/design/resources/download/Logo-Sign-in-with-Apple.dmg), lié depuis [Apple Design Resources](https://developer.apple.com/design/resources/). Le canevas complet mesure 31 × 44 ; son affichage suit la hauteur du bouton, sans recadrage ni padding vertical ajouté. Texte et logo sont noirs, fond blanc, rayon NXT5 de 2 px. La licence d’origine est conservée dans `public/assets/auth/apple-artwork-license.rtf`. L’activation Apple exige la configuration Apple Developer décrite dans le guide de déploiement.
+- **Discord et Riot** : boutons textuels explicites, sans logo reconstitué. Riot reste proposé seulement si le serveur le déclare disponible. Aucun ancien symbole NXT5 incomplet n’est utilisé.
+
+## Contrôles réalisés
+
+- 11 tests dans `src/__tests__/social-account-ui.test.jsx` : services réellement activés, URL de retour sûre, invitation, consentement, e-mail manquant, collision de compte, création sans mot de passe, destination serveur, dissociation, premier mot de passe, révocation de la session après réinitialisation et noms accessibles des marques. Les trois liens légaux annoncent le nouvel onglet.
+- Avec `app-loading.test.jsx` et `pricing-routing.test.jsx` : **51 tests passent**.
+- Navigateur Chromium : inscription, fin d’inscription et paramètres à **320, 360, 390, 768, 1024 et 1440 px**, sans débordement horizontal ni erreur JavaScript. Captures étroites et larges relues après ajout des marques ; G en couleurs et glyphe Apple visibles, textes entiers, champs utilisables.
+- Clavier réel : ouverture de la dissociation avec focus dans le mot de passe, Échap avec retour du focus au déclencheur, erreur serveur annoncée et focalisée. Le retour du focus attend la réactivation du bouton après fermeture.
+- Captures de travail : `/tmp/nxt5-social-signup-{320,1440}.png`, `/tmp/nxt5-social-complete-320.png`, `/tmp/nxt5-social-settings-{320,1440}.png`, `/tmp/nxt5-social-unlink-320.png`. Script local : `/tmp/nxt5-social-ui-visual.mjs`.
+
+La vérification complète du dépôt et l’essai OAuth avec les vrais fournisseurs sont distincts de cette vérification d’interface.
