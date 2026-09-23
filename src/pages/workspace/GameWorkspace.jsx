@@ -2048,6 +2048,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                 <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.9)]" : "bg-transparent group-hover/report:bg-cyan-200/35")} />
                 <span className="min-w-0">
                   <span className={cx("block break-words text-sm font-black leading-5 transition", active ? "text-cyan-50" : "text-white group-hover/report:text-cyan-50")}>{reportDisplayName(report, matches)}</span>
+                  {report.discord_status === "draft" && <span className="mt-1 block text-xs font-semibold text-amber-200">Brouillon · staff uniquement</span>}
                   <span className="mt-1.5 block truncate text-[0.7rem] font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-1">
@@ -2063,7 +2064,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
           {selected ? <>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <Badge tone="purple">Review active</Badge>
+                <Badge tone={selected.discord_status === "draft" ? "amber" : "purple"}>{selected.discord_status === "draft" ? "Brouillon · staff uniquement" : "Review active"}</Badge>
+                {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">Pour la partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.</p>}
                 <h3 className="mt-3 break-words text-3xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
                 <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatchIds.length} game{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</p>
               </div>

@@ -73,7 +73,7 @@ export default async function handler(request: Request, context: Context): Promi
       if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
       const existing = await sql`select * from reports where id = ${reportId} and team_id = ${teamId} limit 1`;
       const report = existing[0];
-      if (!report) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
+      if (!report || (report.discord_status === 'draft' && !isCaptain)) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
         throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le supprimer.'), { status: 403 });
       }
@@ -110,7 +110,7 @@ export default async function handler(request: Request, context: Context): Promi
       if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
       const existing = await sql`select * from reports where id = ${reportId} and team_id = ${teamId} limit 1`;
       const report = existing[0];
-      if (!report) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
+      if (!report || (report.discord_status === 'draft' && !isCaptain)) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
         throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le modifier.'), { status: 403 });
       }

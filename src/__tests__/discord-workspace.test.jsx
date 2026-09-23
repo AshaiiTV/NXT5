@@ -10,6 +10,7 @@ vi.mock("../components/discord/DiscordSettings.jsx", () => ({ default: function 
   const [draft, setDraft] = useState("");
   return <input data-dashboard {...props} value={draft} onChange={(event) => setDraft(event.target.value)} />;
 } }));
+vi.mock("../components/discord/DiscordAccount.jsx", () => ({ default: (props) => <div data-personal-account userId={props.user?.id} /> }));
 
 let renderer;
 const team = { id: "team-a", name: "Alpha", owner_id: "owner" };
@@ -56,6 +57,7 @@ describe("Discord workspace access and navigation", () => {
     render(<DiscordWorkspace {...props(role)} />);
     expect(renderer.root.findAllByProps({ "data-dashboard": true })).toHaveLength(0);
     expect(JSON.stringify(renderer.toJSON())).toContain("La connexion Discord se configure avec ton staff");
+    expect(renderer.root.findByProps({ "data-personal-account": true }).props.userId).toBe(user.id);
   });
 
   it("rejects stale roles from another team or another user", () => {

@@ -81,9 +81,10 @@ beforeAll(async () => {
   const schema=readFileSync(new URL('../../database/schema.sql',import.meta.url),'utf8')
     .replace('create extension if not exists pgcrypto;','').replaceAll('gen_random_bytes(5)',"decode('0000000000','hex')");
   await database.pg.exec(schema);
-  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260915_discord_publications.sql',import.meta.url),'utf8'));
-  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260921_discord_shared_servers.sql',import.meta.url),'utf8'));
-  await database.pg.exec("create table app_schema_migrations(migration_key text primary key);insert into app_schema_migrations values('discord-publications-20260915-v1')");
+  for (const filename of ['20260915_discord_publications.sql','20260921_discord_shared_servers.sql','20260922_discord_bot_identity.sql','20260922_discord_bot_workflows.sql','20260923_discord_bot_role_access.sql']) {
+    await database.pg.exec(readFileSync(new URL('../../database/migrations/'+filename,import.meta.url),'utf8'));
+  }
+  await database.pg.exec("create table app_schema_migrations(migration_key text primary key);insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1')");
 },30_000);
 beforeEach(async () => {
   database.failQuery=null;transport.enabled=true;
@@ -550,11 +551,16 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
 describe('Discord command replay and server linkage against PostgreSQL',() => {
   const interaction=(id:string,name:string,code?:string)=>({id,guild_id:'100000000000000001',member:{user:{id:'100000000000000050'},permissions:'32'},data:{options:[{name,options:code ? [{name:'code',value:code}]:[]}]}});
   const otherTeam='a0000000-0000-4000-8000-000000000006';
-  async function addSharedTeam(name='Academy',guild='100000000000000001') {
+  const accessDenied='Lie ton compte Discord à NXT5 et vérifie que tu es responsable de cette équipe et possèdes son rôle Discord autorisé.';
+  beforeEach(async () => {
+    await database.pg.query("insert into discord_user_links(discord_user_id,user_id,discord_label) values('100000000000000050',$1,'Test owner')",[userId]);
+  });
+  async function addSharedTeam(name='Academy',guild='100000000000000001',role:'captain'|'player'|null='captain') {
     const otherOwner='a0000000-0000-4000-8000-000000000001';
     await database.pg.query("insert into users(id,account_name,name,password_hash) values($1,'other-owner','Other owner','unused')",[otherOwner]);
     await database.pg.query("insert into teams(id,owner_id,name,tag) values($1,$2,$3,'OTH')",[otherTeam,otherOwner,name]);
     await database.pg.query("insert into discord_connections(team_id,guild_id,status,enabled_at) values($1,$2,'active',now()-interval '1 hour')",[otherTeam,guild]);
+    if(role) await database.pg.query('insert into team_members(team_id,user_id,role) values($1,$2,$3)',[otherTeam,userId,role]);
   }
   function teamInteraction(id:string,name:string,team:string) {
     const command=interaction(id,name);
@@ -593,10 +599,10 @@ describe('Discord command replay and server linkage against PostgreSQL',() => {
     expect(await executeDiscordCommand(interaction('100000000000000119','connecter',codes[0]))).toContain('déjà utilisé');
     expect(await rows("select config_version from discord_connections order by team_id")).toEqual([{config_version:2},{config_version:2}]);
   });
-  it.each(['pause','reprendre','statut'])('requires an explicit team for %s on a shared server',async name => {
+  it.each(['pause','reprendre','statut'])('requires a selected team for %s when the actor manages two teams on the server',async name => {
     await addSharedTeam();
     const before=await rows('select team_id,status,config_version from discord_connections order by team_id');
-    expect(await executeDiscordCommand(interaction('100000000000000120',name))).toContain('Choisis l’équipe');
+    expect(await executeDiscordCommand(interaction('100000000000000120',name))).toBe(accessDenied);
     expect(await rows('select team_id,status,config_version from discord_connections order by team_id')).toEqual(before);
     expect(await rows("select action from audit_logs where action in ('discord.pause','discord.resume')")).toEqual([]);
   });
@@ -612,15 +618,15 @@ describe('Discord command replay and server linkage against PostgreSQL',() => {
   });
   it('rejects foreign and disconnected teams, including explicit IDs',async () => {
     await addSharedTeam('Foreign','100000000000000099');
-    expect(await executeDiscordCommand(teamInteraction('100000000000000124','pause',otherTeam))).toContain('n’est pas reliée');
+    expect(await executeDiscordCommand(teamInteraction('100000000000000124','pause',otherTeam))).toBe(accessDenied);
     await database.pg.query("update discord_connections set guild_id='100000000000000001',status='disconnected' where team_id=$1",[otherTeam]);
-    expect(await executeDiscordCommand(teamInteraction('100000000000000125','reprendre',otherTeam))).toContain('n’est pas reliée');
+    expect(await executeDiscordCommand(teamInteraction('100000000000000125','reprendre',otherTeam))).toBe(accessDenied);
     expect(await rows('select status from discord_connections where team_id=$1',[teamId])).toEqual([{status:'active'}]);
     expect(await rows("select action from audit_logs where action in ('discord.pause','discord.resume')")).toEqual([]);
   });
   it('accepts an unambiguous exact name but requires a stable ID for duplicate names',async () => {
     await addSharedTeam('NXT5 test');
-    expect(await executeDiscordCommand(teamInteraction('100000000000000126','pause','nxt5 TEST'))).toContain('Plusieurs équipes');
+    expect(await executeDiscordCommand(teamInteraction('100000000000000126','pause','nxt5 TEST'))).toBe(accessDenied);
     expect(await rows("select team_id from discord_connections where status='paused'")).toEqual([]);
     expect(await executeDiscordCommand(teamInteraction('100000000000000127','pause',otherTeam))).toContain('NXT5 test');
     await database.pg.query("update teams set name='Academy' where id=$1",[otherTeam]);
@@ -633,7 +639,7 @@ describe('Discord command replay and server linkage against PostgreSQL',() => {
     expect(result).toContain('\\[Academy\\]\\(https://example.test\\)');
     expect(await rows('select team_id,status from discord_connections order by team_id')).toEqual([{team_id:teamId,status:'active'},{team_id:otherTeam,status:'paused'}]);
   });
-  it('suggests only linked teams of the current server with stable distinct IDs and literal search',async () => {
+  it('suggests only teams managed by the linked account on this server with stable IDs and literal search',async () => {
     await addSharedTeam('NXT5 test');
     const autocomplete=(search:string,guild='100000000000000001',permissions='32')=>({...interaction('100000000000000129','pause'),guild_id:guild,member:{user:{id:'100000000000000050'},permissions},data:{options:[{name:'pause',options:[{name:'equipe',value:search,focused:true}]}]}});
     const choices=await discordTeamChoices(autocomplete('nxt5'));
@@ -645,6 +651,20 @@ describe('Discord command replay and server linkage against PostgreSQL',() => {
     await database.pg.query("update discord_connections set status='disconnected' where team_id=$1",[otherTeam]);
     expect((await discordTeamChoices(autocomplete(''))).map(choice=>choice.value)).toEqual([teamId]);
     expect(await rows('select * from discord_interaction_receipts')).toEqual([]);
+  });
+  it('keeps another shared team invisible and rejects its IDs even for a Discord server manager',async () => {
+    await addSharedTeam('Private academy','100000000000000001',null);
+    const autocomplete={...interaction('100000000000000132','statut'),data:{options:[{name:'statut',options:[{name:'equipe',value:'',focused:true}]}]}};
+    expect((await discordTeamChoices(autocomplete)).map(choice=>choice.value)).toEqual([teamId]);
+    expect(await executeDiscordCommand(interaction('100000000000000133','statut'))).toContain('NXT5 test : active');
+    for(const [index,name] of ['statut','pause','reprendre'].entries()) {
+      expect(await executeDiscordCommand(teamInteraction(`10000000000000014${index}`,name,otherTeam))).toBe(accessDenied);
+    }
+    expect(await rows('select status from discord_connections where team_id=$1',[otherTeam])).toEqual([{status:'active'}]);
+    expect(await rows("select action from audit_logs where action in ('discord.pause','discord.resume')")).toEqual([]);
+    await database.pg.query("insert into team_members(team_id,user_id,role) values($1,$2,'player')",[otherTeam,userId]);
+    expect((await discordTeamChoices(autocomplete)).map(choice=>choice.value)).toEqual([teamId]);
+    expect(await executeDiscordCommand(teamInteraction('100000000000000145','pause',otherTeam))).toBe(accessDenied);
   });
   it('caps autocomplete at 25 teams while search finds teams beyond the first page',async () => {
     for(let i=0;i<30;i++) {
