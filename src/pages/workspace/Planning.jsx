@@ -440,10 +440,10 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
                             <div className="nxt5-planning-cell-icons flex items-center justify-center gap-1">
                               {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
                                 return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "nxt5-planning-role-lit" : "nxt5-planning-role-dim", selectedRoleHere && "nxt5-planning-role-selected")}>
-                                  <RoleIcon role={role} lightweight className="h-4 w-4" />
+                                  <RoleIcon role={role} lightweight className="h-4 w-4 shrink-0" />
                                 </span>;
                               })}
-                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("nxt5-planning-staff-unit relative inline-flex items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-fuchsia-400/20 text-fuchsia-50 " : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 ")}><span className="nxt5-planning-staff-icon"><BookOpen /></span>{cell.staffUnit.lit && <span className="absolute right-0 top-0 h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 " />}</span>}
+                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("nxt5-planning-staff-unit relative inline-flex items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-fuchsia-400/20 text-fuchsia-50 " : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 ")}><BookOpen className="h-4 w-4 shrink-0" />{cell.staffUnit.lit && <span className="absolute right-0 top-0 h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 " />}</span>}
                             </div>
                           </div>
                         </button>;
