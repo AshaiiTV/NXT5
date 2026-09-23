@@ -176,7 +176,7 @@ function discordPermissionsUrl(installUrl, guildId) {
 function DiscordPermissionUpdate({ installUrl, guildId, canManage }) {
   const url = canManage ? discordPermissionsUrl(installUrl, guildId) : null;
   if (!url) return null;
-  return <div className="discord-permission-update"><DiscordLink href={url}>Mettre à jour les autorisations</DiscordLink><p className="discord-help">Administrateur donne tous les droits au bot sur ce serveur. Un responsable doit valider cette autorisation dans Discord, puis revenir cliquer sur « Actualiser les salons ». Le bot reste installé et les liaisons des équipes sont conservées.</p></div>;
+  return <details className="discord-guide discord-permission-update"><summary>Le bot ne voit pas un salon ?</summary><DiscordLink href={url}>Mettre à jour les autorisations</DiscordLink><p className="discord-help">Administrateur donne tous les droits au bot sur ce serveur. Un responsable doit valider cette autorisation dans Discord, puis revenir cliquer sur « Actualiser les salons ». Le bot reste installé et les liaisons des équipes sont conservées.</p></details>;
 }
 
 function InstallationProgress({ connected, routesReady, active, selectedStep, onSelect, tabsRef, idPrefix }) {
