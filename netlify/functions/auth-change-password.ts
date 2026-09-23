@@ -39,9 +39,21 @@ export default async function handler(request: Request, context: Context): Promi
     // Reject reauthentication made stale by another account/recovery change.
     const changed = await sql`
       with changed_account as (
+        with authorized_user as materialized (
+          select id from users
+          where id = ${user.id} and password_hash = ${passwordHash}
+            and xmin = ${rows[0].account_version}::xid
+          for update
+        ), authorized_session as materialized (
+          select sessions.user_id from sessions
+          join authorized_user on authorized_user.id = sessions.user_id
+          where sessions.token_hash = ${currentTokenHash}
+            and sessions.revoked_at is null and sessions.expires_at > clock_timestamp()
+          for update of sessions
+        )
         update users
         set password_hash = ${nextPasswordHash}, updated_at = now()
-        where id = ${user.id}
+        where id in (select user_id from authorized_session)
           and password_hash = ${passwordHash}
           and xmin = ${rows[0].account_version}::xid
         returning id

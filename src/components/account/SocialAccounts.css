@@ -1,0 +1,115 @@
+/* Scoped to the social sign-in forms; existing workspace controls keep their sizing. */
+.nxt5-social-auth input:not([type="checkbox"]) {
+  min-height: 52px;
+  font-size: 16px;
+}
+
+.nxt5-social-auth button.nxt5-control {
+  min-height: 52px;
+}
+
+@media (max-width: 767px) {
+  .nxt5-social-auth > header > .nxt5-panel {
+    display: none;
+  }
+}
+
+/* Official provider colors are limited to authentication actions.
+   Asset sources and checks: docs/social-auth-ui-qa.md. */
+@font-face {
+  font-family: "NXT5 Google Sans";
+  src: url("/assets/auth/google-sans-latin-500.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+.nxt5-provider-button {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 140px;
+  height: 52px;
+  padding: 0 12px;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  background: #fff;
+  color: #1f1f1f;
+  font-family: "NXT5 Google Sans", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.nxt5-provider-button:focus-visible {
+  outline: 2px solid var(--nxt5-accent);
+  outline-offset: 3px;
+}
+
+.nxt5-provider-button:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 100px rgb(60 64 67 / 8%);
+}
+
+.nxt5-provider-button:active:not(:disabled) {
+  box-shadow: inset 0 0 0 100px rgb(60 64 67 / 12%);
+}
+
+.nxt5-provider-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nxt5-provider-button .nxt5-provider-logo {
+  display: block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.nxt5-provider-button[data-provider="apple"] {
+  grid-template-columns: 36.637px minmax(0, 1fr) 20px;
+  gap: 0;
+  padding-left: 0;
+  border: 0;
+  border-radius: var(--nxt5-radius-button, 2px);
+  color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+}
+
+.nxt5-provider-button[data-provider="apple"] .nxt5-provider-logo {
+  width: auto;
+  height: 52px;
+  max-width: none;
+}
+
+.nxt5-provider-label {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.nxt5-provider-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nxt5-provider-link-action {
+  flex: 0 1 260px;
+  min-width: 0;
+}
+
+@media (max-width: 639px) {
+  .nxt5-provider-link-action {
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nxt5-provider-progress svg { animation: none; }
+}

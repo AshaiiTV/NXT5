@@ -30,9 +30,36 @@ export default async function handler(request: Request): Promise<Response> {
       const origin = process.env.PUBLIC_SITE_URL || new URL(request.url).origin;
       const resetUrl = `${origin.replace(/\/+$/, '')}/reinitialiser-mot-de-passe?token=${encodeURIComponent(token)}`;
 
+      const [schema] = await sql`
+        select to_regprocedure('public.nxt5_reset_password(text,text)') is not null as recovery_ready,
+               to_regclass('public.social_identities') is not null as social_ready
+      `;
+      if (schema.social_ready && !schema.recovery_ready) {
+        throw Object.assign(new Error('Migration de récupération du compte requise.'), {
+          status: 503, code: 'SCHEMA_MIGRATION_REQUIRED', publicMessage: 'Service en cours de mise à jour.'
+        });
+      }
       // Share the account version with password changes and redemptions so a
       // recovery link cannot be issued from an account snapshot they replaced.
-      const issued = await sql`
+      const issued = schema.recovery_ready ? await sql`
+        with changed_account as (
+          update users set updated_at = now()
+          where id = ${user.id} and xmin = ${user.account_version}::xid
+            and lower(email) = ${email}
+          returning id, email
+        ), invalidated_tokens as (
+          update password_reset_tokens set used_at = now()
+          where user_id in (select id from changed_account) and used_at is null
+        ), issued_token as (
+          insert into password_reset_tokens (user_id, token_hash, expires_at, email)
+          select id, ${tokenHash}, ${expiresAt}::timestamptz, email from changed_account
+          returning user_id
+        ), logged_request as (
+          insert into audit_logs (user_id, action, entity_type, metadata)
+          select user_id, 'auth.password_reset_request', 'user', ${JSON.stringify({ email })}::jsonb from issued_token
+        )
+        select user_id from issued_token
+      ` : await sql`
         with changed_account as (
           update users set updated_at = now()
           where id = ${user.id} and xmin = ${user.account_version}::xid

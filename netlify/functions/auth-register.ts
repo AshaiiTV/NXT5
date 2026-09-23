@@ -76,7 +76,7 @@ export default async function handler(request: Request, context: Context): Promi
       values (${user.id}, 'auth.register', 'user', ${JSON.stringify({ email, displayName })}::jsonb)
     `;
 
-    await createSession({ userId: user.id, context, request, remember });
+    await createSession({ userId: user.id, context, request, remember, expectedPasswordHash: passwordHash });
     return json({ user: safeUser(user) });
   } catch (err) {
     if (String(err.message || '').includes('idx_users_email_lower')) err.message = 'Cet e-mail est déjà utilisé.';

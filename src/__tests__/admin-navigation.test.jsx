@@ -87,6 +87,7 @@ async function open(path, account = admin, pending = false) {
   vi.stubGlobal("document", { title: "" });
   apiFetch.mockImplementation(endpoint => {
     if (endpoint === "auth-me") return pending ? new Promise(() => {}) : Promise.resolve({ user: account });
+    if (endpoint === "auth-social-status") return Promise.resolve({ providers: [], linked: [], hasPassword: true });
     if (endpoint === "admin-purchases?view=overview") return Promise.resolve({ totals: { orders: 0, paid: 0, paidCents: 0, pending: 0, averageCents: 0, frequency30d: 0, paid30d: 0, cancelled: 0, refunded: 0 }, monthly: [], generatedAt: "2026-09-14T12:00:00Z" });
     if (endpoint === "admin-purchases?page=1&pageSize=10") return Promise.resolve({ purchases: [], pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 } });
     return Promise.reject(new Error(`Unexpected request: ${endpoint}`));
@@ -303,7 +304,8 @@ describe("administration editor navigation", () => {
     await clickButton("Déconnexion");
     apiFetch.mockResolvedValueOnce({ ok: true });
     await clickButton("Quitter sans enregistrer");
-    expect(apiFetch).toHaveBeenLastCalledWith("auth-logout", { method: "POST" });
+    expect(apiFetch).toHaveBeenCalledWith("auth-logout", { method: "POST" });
+    expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "auth-logout")).toHaveLength(1);
     expect(window.location.pathname).toBe("/connexion");
   });
 });
