@@ -179,7 +179,7 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
   };
 }
 
-export async function createSession({ userId, context, request, remember = true }: { userId: string; context: Context; request: Request; remember?: boolean }): Promise<void> {
+export async function createSession({ userId, context, request, remember = true, socialIdentity, expectedPasswordHash }: { userId: string; context: Context; request: Request; remember?: boolean; expectedPasswordHash?: string; socialIdentity?: { provider: string; subject: string; revision: string | number } }): Promise<void> {
   await ensureSessionSchema();
   await purgeExpiredAuthData();
   const rawToken = crypto.randomBytes(48).toString('base64url');
@@ -192,7 +192,31 @@ export async function createSession({ userId, context, request, remember = true 
     .trim()
     .slice(0, 64);
 
-  await sql`
+  if (socialIdentity) {
+    const inserted = await sql`
+      with authorized_user as materialized (
+        select id from users
+        where id = ${userId} and social_link_revision = ${socialIdentity.revision}
+        for update
+      )
+      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+      select authorized_user.id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
+      from authorized_user join social_identities on social_identities.user_id = authorized_user.id
+      where social_identities.provider = ${socialIdentity.provider} and social_identities.subject = ${socialIdentity.subject}
+      returning id
+    `;
+    if (!inserted.length) throw Object.assign(new Error('Association modifiée. Reconnecte-toi à NXT5.'), { status: 401, code: 'SOCIAL_ACCOUNT_CHANGED' });
+  } else if (expectedPasswordHash) {
+    const inserted = await sql`
+      with authorized_user as materialized (
+        select id from users where id = ${userId} and password_hash = ${expectedPasswordHash} for update
+      )
+      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+      select id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip} from authorized_user
+      returning id
+    `;
+    if (!inserted.length) throw Object.assign(new Error('Tes identifiants ont changé. Reconnecte-toi.'), { status: 401, code: 'ACCOUNT_CHANGED' });
+  } else await sql`
     insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
     values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
   `;

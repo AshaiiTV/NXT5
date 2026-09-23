@@ -6,7 +6,6 @@ const tasks = [
   ["public/assets/nxt5-wordmark.png", "public/assets/nxt5-wordmark-640.webp", { width: 640 }],
   ["public/assets/nxt5-wordmark.png", "public/assets/nxt5-wordmark-320.webp", { width: 320 }],
   ["public/assets/nxt5-loader-favicon.png", "public/assets/nxt5-loader-favicon-256.webp", { width: 256 }],
-  ["public/assets/nxt5-mark.png", "public/assets/nxt5-mark-160.webp", { width: 160 }],
 ];
 
 for (const [input, output, resize] of tasks) {

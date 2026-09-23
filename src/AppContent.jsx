@@ -333,7 +333,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <ResponsiveImage src="/assets/nxt5-mark.png?v=8" sources={[{ srcSet: "/assets/nxt5-mark-160.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
+            <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
             <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -409,7 +409,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
   const adminPage = adminPageFromRoute(route);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/verify-email", "/verified"].includes(route.path);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
@@ -422,9 +422,9 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
-  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
   if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
-  if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} />;
+  if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} onAuth={onAuth} />;
+  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
   if (mode) return <AuthPage mode={mode} onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
   if (routeIsPrivate) return <AuthPage mode="login" onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
   return <HomeScreen navigate={navigate} />;

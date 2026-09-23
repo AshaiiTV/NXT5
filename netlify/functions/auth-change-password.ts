@@ -33,15 +33,33 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     const nextPasswordHash = await hashPassword(nextPassword);
-    await sql`
+    const currentToken = readSessionCookie(context);
+    const currentTokenHash = currentToken ? sha256(currentToken) : '';
+    const updated = await sql`
+      with authorized_user as materialized (
+        select id from users
+        where id = ${user.id} and password_hash = ${passwordHash}
+        for update
+      ), authorized_session as materialized (
+        select sessions.user_id from sessions
+        join authorized_user on authorized_user.id = sessions.user_id
+        where sessions.token_hash = ${currentTokenHash}
+          and sessions.revoked_at is null and sessions.expires_at > clock_timestamp()
+        for update of sessions
+      )
       update users
       set password_hash = ${nextPasswordHash},
           updated_at = now()
-      where id = ${user.id}
+      from authorized_session
+      where users.id = authorized_session.user_id
+      returning users.id
     `;
+    if (!updated.length) {
+      throw Object.assign(new Error('Ton compte a changé. Reconnecte-toi avant de modifier ton mot de passe.'), {
+        status: 409, code: 'ACCOUNT_CHANGED'
+      });
+    }
 
-    const currentToken = readSessionCookie(context);
-    const currentTokenHash = currentToken ? sha256(currentToken) : '';
     await sql`
       update sessions
       set revoked_at = now()

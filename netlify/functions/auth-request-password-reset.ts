@@ -30,11 +30,28 @@ export default async function handler(request: Request): Promise<Response> {
       const origin = process.env.PUBLIC_SITE_URL || new URL(request.url).origin;
       const resetUrl = `${origin.replace(/\/+$/, '')}/reinitialiser-mot-de-passe?token=${encodeURIComponent(token)}`;
 
-      await sql`update password_reset_tokens set used_at = now() where user_id = ${user.id} and used_at is null`;
-      await sql`
-        insert into password_reset_tokens (user_id, token_hash, expires_at)
-        values (${user.id}, ${tokenHash}, ${expiresAt})
+      const [schema] = await sql`
+        select to_regprocedure('public.nxt5_reset_password(text,text)') is not null as recovery_ready,
+               to_regclass('public.social_identities') is not null as social_ready
       `;
+      if (schema.social_ready && !schema.recovery_ready) {
+        throw Object.assign(new Error('Migration de récupération du compte requise.'), {
+          status: 503, code: 'SCHEMA_MIGRATION_REQUIRED', publicMessage: 'Service en cours de mise à jour.'
+        });
+      }
+      const results = await sql.transaction(tx => [
+        tx`select id from users where id = ${user.id} for update`,
+        tx`update password_reset_tokens set used_at = now() where user_id = ${user.id} and used_at is null`,
+        schema.recovery_ready
+          ? tx`insert into password_reset_tokens (user_id, token_hash, expires_at, email)
+              select id, ${tokenHash}, ${expiresAt}, email from users
+              where id = ${user.id} and lower(email) = ${email} returning id`
+          : tx`insert into password_reset_tokens (user_id, token_hash, expires_at)
+              select id, ${tokenHash}, ${expiresAt} from users
+              where id = ${user.id} and lower(email) = ${email} returning id`
+      ]);
+      // An address changed after lookup: do not email a token for another address.
+      if (!results[2].length) return json({ ok: true });
       await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl });
       await sql`
         insert into audit_logs (user_id, action, entity_type, metadata)

@@ -8,6 +8,7 @@ import { isSafeInternalPath } from "../../app/routing.js";
 import { BrandLogo, Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
+import { LegalConsent, SocialLogin, SocialNotice, SocialSignup, socialCallbackStatus, socialReturnContext } from "../../components/account/SocialAccounts.jsx";
 import "./public-information.css";
 function MarketingPreview() {
   const metrics = [
@@ -198,13 +199,14 @@ export const LEGAL_PAGES = {
     intro: "Cette politique décrit précisément les données utilisées par NXT5, leurs finalités, leur durée de conservation, les prestataires concernés et les droits des personnes.",
     sections: [
       ["Responsable du traitement", "Le responsable du traitement est l’éditeur non professionnel de NXT5. Les demandes relatives aux données personnelles s’effectuent par message privé via le canal indiqué sur la page Contact. N’envoyez aucune donnée sensible dans un salon Discord public."],
-      ["Données de compte et de sécurité", "NXT5 traite l’adresse e-mail, le pseudonyme, le mot de passe sous forme hachée, les préférences de notification, les dates de création et de dernière activité du compte, ainsi que l’état d’envoi d’un éventuel rappel d’inactivité. Pour sécuriser les connexions, le service traite aussi un identifiant de session haché, l’adresse IP, le navigateur utilisé, les tentatives récentes et des journaux d’actions."],
+      ["Données de compte et de sécurité", "NXT5 traite l’adresse e-mail, le pseudonyme, le mot de passe sous forme hachée lorsqu’il existe, les préférences de notification, les dates de création et de dernière activité du compte, ainsi que l’état d’envoi d’un éventuel rappel d’inactivité. Pour sécuriser les connexions, le service traite aussi un identifiant de session haché, l’adresse IP, le navigateur utilisé, les tentatives récentes et des journaux d’actions."],
+      ["Connexions Google, Discord, Apple et Riot — ajout du 23 septembre 2026", "Lorsque le service est activé, tu peux créer ton compte ou te connecter avec Google, Discord, Apple ou Riot. Tu t’authentifies directement auprès du fournisseur. NXT5 reçoit son identifiant stable, une adresse e-mail et son statut de vérification lorsqu’ils sont disponibles, ainsi qu’un éventuel nom d’affichage. Riot fournit un PUUID ; ce parcours ne lui demande pas d’e-mail. L’adresse masquée Apple est acceptée. Le pseudo, l’adresse de récupération et les textes applicables sont confirmés avant l’inscription. Une adresse saisie ou modifiée reste à vérifier. NXT5 conserve le fournisseur, l’identifiant stable, le nom d’affichage et la date d’association ; les informations provisoires d’inscription expirent après cinq minutes et sont retirées au prochain nettoyage quotidien ou au démarrage suivant. Aucun compte existant n’est fusionné sur la seule correspondance d’une adresse e-mail. Tu peux associer une méthode depuis Paramètres, puis la retirer en confirmant ton mot de passe NXT5. Une récupération du compte par e-mail retire les associations et termine les sessions ; elles peuvent ensuite être ajoutées à nouveau. NXT5 ne reçoit jamais ton mot de passe fournisseur et ne conserve aucun jeton d’accès, d’identité ou de renouvellement fournisseur. Les associations disparaissent avec la suppression effective du compte NXT5. Chaque fournisseur traite l’authentification selon sa propre politique ; les données de ton équipe ne sont pas transmises par cette connexion."],
       ["Données d’équipe et de jeu", "Le service peut traiter les équipes, rôles et invitations, profils joueurs, Riot IDs, disponibilités, objectifs, notes de coaching, compositions, champion pools, reviews, Game IDs, fichiers de match importés, chronologies de partie, statistiques et pseudonymes publics des participants. Certaines notes peuvent contenir des appréciations rédigées par le staff de l’équipe."],
       ["Mesure de fréquentation — ajout du 14 septembre 2026", "Avec ton consentement préalable, NXT5 mesure les pages consultées, la durée active et le défilement, les sources de visite, les libellés de campagnes, la catégorie d’appareil, la famille du navigateur, le pays approximatif fourni par l’hébergeur et certaines actions réussies (création de compte, connexion, demande d’accès). Des identifiants aléatoires distinguent les navigateurs et les sessions : ces données sont pseudonymisées, pas anonymes. Elles ne sont pas rattachées aux comptes, aux données d’équipe ou aux e-mails. Les paramètres d’URL, les jetons, les contenus saisis et l’adresse IP ne sont pas enregistrés dans les statistiques. Les pages administrateur et les parcours de réinitialisation sont exclus. Les données et preuves de choix sont hébergées par Netlify et Neon, accessibles uniquement à l’administrateur de plateforme, et supprimées automatiquement au terme de leur durée de conservation de 180 jours. Les traitements techniques de sécurité et les journaux propres à l’hébergeur restent distincts. Tu peux refuser sans limiter le service et retirer ton accord à tout moment avec « Gérer mes cookies » dans le pied de page. Le retrait arrête les collectes futures ; les données déjà collectées restent soumises à la durée annoncée et à tes droits d’effacement via la page Contact. La base juridique de cette mesure est ton consentement."],
       ["Demandes d’accès et offres en préparation — ajout du 8 septembre 2026", "Le formulaire Tarifs recueille ton nom de contact, ton e-mail, le nom de ton équipe, ton rôle, la formule souhaitée, le payeur envisagé et ton intention d’achat. Le message libre est facultatif. Ton accord pour être recontacté, sa version et sa date sont enregistrés avec la demande. Ces informations servent uniquement à répondre à ta demande et à préparer l’offre avec les équipes intéressées ; elles sont accessibles à l’administration NXT5 et hébergées par Netlify et Neon. Les coordonnées, réponses et notes de suivi sont supprimées après six mois à compter de la demande, lors du nettoyage quotidien. Aucune inscription à une newsletter ni aucun paiement n’en résulte. Tu peux demander la rectification ou la suppression de ta demande et retirer ton accord par le canal privé de la page Contact."],
       ["Origine des données", "Les données proviennent de l’utilisateur, des autres membres autorisés de son équipe, des fichiers de match importés, de profils de jeu accessibles au public et des API Riot. Une personne peut donc apparaître dans un roster ou un match sans avoir elle-même créé de compte NXT5."],
       ["Finalités et bases juridiques", "La création du compte, l’accès aux équipes, l’import et l’analyse des matchs reposent sur l’exécution des CGU. La sécurisation du service, la prévention des abus, la traçabilité et l’amélioration de sa fiabilité reposent sur l’intérêt légitime de NXT5 et de ses utilisateurs. Les notifications facultatives, dont le rappel unique après trois mois d’inactivité, reposent sur le choix de l’utilisateur et peuvent être désactivées dans les paramètres."],
-      ["Données obligatoires ou facultatives", "L’e-mail, le pseudonyme et le mot de passe sont nécessaires à la création et à la récupération du compte. Sans eux, NXT5 ne peut pas fournir l’accès personnel au service. Les données d’équipe, Riot IDs, disponibilités, imports, notes et réglages de notification sont facultatifs, mais certaines fonctions resteront incomplètes s’ils ne sont pas renseignés."],
+      ["Données obligatoires ou facultatives", "L’e-mail de récupération et le pseudonyme sont nécessaires. L’accès utilise soit un mot de passe NXT5, soit une connexion externe associée. Un mot de passe NXT5 peut être défini ensuite par un lien reçu à l’adresse de récupération. Les données d’équipe, Riot IDs, disponibilités, imports, notes et réglages de notification sont facultatifs, mais certaines fonctions resteront incomplètes s’ils ne sont pas renseignés."],
       ["Accès et destinataires", "Les données d’une équipe sont accessibles aux membres qui y sont autorisés, selon leur rôle. Elles sont aussi traitées, uniquement pour leurs missions techniques, par Netlify (hébergement, fonctions et stockage des images de publication), Neon (base PostgreSQL), Resend (e-mails transactionnels), Riot Games (données de jeu demandées) et OpenAI lorsque l’assistant est utilisé. Lorsqu’une publication Discord est demandée ou que la diffusion automatique est activée, Discord reçoit le contenu publié ; les personnes ayant accès au salon peuvent le consulter, même sans compte NXT5. Discord exploite sa propre plateforme selon sa politique de confidentialité. NXT5 ne vend pas les données et ne les utilise pas pour de la publicité ciblée."],
       ["Assistant NXT5 et intelligence artificielle", "Lorsque l’utilisateur interroge l’assistant, sa question, les six derniers messages au maximum, la page courante et une documentation NXT5 pertinente sont transmis à l’API OpenAI. Les statistiques détaillées de l’équipe ne sont pas envoyées par cette fonction. NXT5 ne conserve pas l’historique de l’assistant dans sa base ; il reste seulement en mémoire dans la page ouverte. OpenAI indique ne pas utiliser par défaut les données de son API pour entraîner ses modèles et peut conserver des journaux de contrôle des abus jusqu’à 30 jours."],
       ["Transferts hors Union européenne", "Netlify, Resend et OpenAI sont établis aux États-Unis et peuvent y traiter des données. Ces transferts sont encadrés, selon le prestataire et le service, par le Data Privacy Framework UE–États-Unis et/ou les clauses contractuelles types de la Commission européenne. La région d’hébergement Neon dépend de la configuration du projet. Pour les contenus transmis au bot, Discord indique traiter et stocker des données aux États-Unis et dans d’autres pays, avec notamment des clauses contractuelles types et les mécanismes d’adéquation applicables. Sa politique, liée ci-dessous, précise ces garanties et ses points de contact. Des informations complémentaires sur les garanties peuvent être demandées à NXT5."],
@@ -237,6 +239,7 @@ export const LEGAL_PAGES = {
     intro: "NXT5 utilise des cookies nécessaires au service et, uniquement avec ton accord, une mesure interne de fréquentation. Aucun cookie publicitaire n’est utilisé. Politique de mesure d’audience du 14 septembre 2026.",
     sections: [
       ["Cookie de session rb_session", "Ce cookie interne permet de reconnaître une session authentifiée et de protéger l’accès au compte. Il contient un jeton aléatoire ; seule son empreinte est conservée en base. Il est HttpOnly, Secure en production et SameSite=Lax. Sa durée est de 12 heures, ou de 30 jours lorsque l’option « Rester connecté » est activée."],
+      ["Cookies temporaires de connexion externe — ajout du 23 septembre 2026", "Lorsque tu démarres une connexion, une inscription ou une association externe, les cookies nécessaires __Host-nxt5_social_flow et __Host-nxt5_social_ticket relient la demande à ton navigateur et permettent son retour sécurisé. Ils sont Secure et HttpOnly, valables cinq minutes au maximum pour chaque étape. Ils ne contiennent ni mot de passe ni jeton d’accès fournisseur. Le cookie de parcours utilise SameSite=None uniquement lors du retour Apple par formulaire ; les autres étapes utilisent SameSite=Lax. L’état de vérification et les résultats provisoires expirent après cinq minutes et ne peuvent être consommés qu’une fois. Les données utilisées sont supprimées pendant la finalisation ; les demandes abandonnées sont retirées au prochain démarrage ou nettoyage quotidien. Ces cookies ne servent pas à mesurer la fréquentation."],
       ["Préférences locales", "Le navigateur peut conserver localement le choix « Rester connecté », le mode de performance graphique et le masquage du guide débutant. Ces valeurs ne servent pas à suivre la navigation et restent sur l’appareil jusqu’à leur remplacement ou leur suppression dans les réglages du navigateur."],
       ["Ton choix", "Le bandeau propose « Tout refuser », « Personnaliser » et « Tout accepter ». La mesure reste désactivée avant ton accord. Le cookie nécessaire nxt5_audience_consent mémorise une référence opaque à ton choix pendant 180 jours. La preuve comprend la version du texte, le choix et les dates correspondantes. Le cookie nécessaire nxt5_audience_optout peut conserver un refus pendant 180 jours et arrête aussi le suivi si la synchronisation avec le serveur échoue."],
       ["Cookies de mesure, facultatifs", "Après acceptation seulement, nxt5_audience_visitor distingue un navigateur pendant 180 jours maximum sans prolongation automatique. nxt5_audience_session regroupe la navigation en sessions de 30 minutes d’inactivité, dans la limite de validité du consentement. Ces cookies internes sont HttpOnly, Secure en HTTPS et SameSite=Lax. Ils contiennent des identifiants aléatoires ; aucun nom, e-mail ou identifiant de compte n’est ajouté aux statistiques."],
@@ -538,7 +541,7 @@ export function ForgotPasswordPage({ navigate }) {
   );
 }
 
-export function ResetPasswordPage({ navigate }) {
+export function ResetPasswordPage({ navigate, onAuth }) {
   const token = new URLSearchParams(window.location.search).get("token") || "";
   const [form, setForm] = useState({ nextPassword: "", confirmPassword: "" });
   const [loading, setLoading] = useState(false);
@@ -555,6 +558,7 @@ export function ResetPasswordPage({ navigate }) {
     setLoading(true);
     try {
       await apiFetch("auth-reset-password", { method: "POST", body: JSON.stringify({ token, nextPassword: form.nextPassword }) });
+      onAuth?.(null);
       setDone(true);
       setForm({ nextPassword: "", confirmPassword: "" });
     } catch (err) {
@@ -578,11 +582,12 @@ export function ResetPasswordPage({ navigate }) {
             <div className="mt-6 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm font-bold text-rose-100">Lien invalide : aucun token de réinitialisation.</div>
           ) : done ? (
             <div className="mt-6 space-y-4">
-              <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-100">Mot de passe mis à jour. Tu peux te reconnecter.</div>
+              <div className="rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-100">Mot de passe mis à jour. Connecte-toi avec ton e-mail et ce mot de passe, puis associe à nouveau tes comptes externes dans Paramètres.</div>
               <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Retour connexion</LinkButton>
             </div>
           ) : (
             <form onSubmit={submit} className="mt-6 space-y-4">
+              <p className="text-sm leading-6 text-slate-300">Cette opération ferme tes sessions et dissocie tes comptes Google, Discord, Apple et Riot. Tu pourras les associer à nouveau après ta connexion avec ton nouveau mot de passe.</p>
               <TextInput label="Nouveau mot de passe" value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} />
               <TextInput label="Confirmer" value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
               {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
@@ -603,7 +608,26 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const querySuffix = window.location.search || "";
+  const socialStatus = socialCallbackStatus();
+  const queryParams = new URLSearchParams(window.location.search);
+  const isSocialComplete = isRegister && queryParams.get("social") === "complete";
+  const returnContext = socialReturnContext();
+  if (socialStatus === "existing_account") returnContext.next = "/parametres";
+  const navigationParams = new URLSearchParams(returnContext);
+  const querySuffix = navigationParams.size ? `?${navigationParams.toString()}` : "";
+
+  function completeAuth(nextUser, serverDestination) {
+    if (nextUser?.id && !nextUser.is_platform_admin) void trackAudienceEvent(isRegister ? "signup" : "login");
+    writeRememberPreference(rememberMe);
+    pushToast({ type: "green", title: isRegister ? "Compte créé" : "Connexion réussie", text: "Bienvenue sur NXT5." });
+    const destination = isSafeInternalPath(serverDestination) && !/[\\\u0000-\u001f\u007f]/.test(serverDestination)
+      ? serverDestination
+      : returnContext.invite
+        ? `/equipes?invite=${encodeURIComponent(returnContext.invite)}`
+        : returnContext.next || (isRegister ? "/equipes?create=1" : "/equipes");
+    navigate(destination, { replace: true });
+    onAuth(nextUser);
+  }
 
   function patch(key, value) { setForm((current) => ({ ...current, [key]: value })); }
 
@@ -615,21 +639,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
       const endpoint = isRegister ?"auth-register" : "auth-login";
       const body = { accountName: form.email, email: form.email, displayName: form.displayName, password: form.password, rememberMe, acceptLegal: isRegister ? legalAccepted : undefined, legalVersion: isRegister ? LEGAL_VERSION : undefined };
       const result = await apiFetch(endpoint, { method: "POST", body: JSON.stringify(body) });
-      if (result.user?.id && !result.user.is_platform_admin) void trackAudienceEvent(isRegister ? "signup" : "login");
-      writeRememberPreference(rememberMe);
-      pushToast({ type: "green", title: isRegister ?"Compte créé" : "Connexion réussie", text: "Bienvenue sur NXT5." });
-      const params = new URLSearchParams(window.location.search);
-      const hasInvite = params.has("invite");
-      const next = params.get("next");
-      const destination = hasInvite
-        ?`/equipes?invite=${encodeURIComponent(params.get("invite"))}`
-        : isSafeInternalPath(next)
-          ?next
-          : isRegister
-            ?"/equipes?create=1"
-            : "/equipes";
-      navigate(destination, { replace: true });
-      onAuth(result.user);
+      completeAuth(result.user);
     } catch (err) {
       if (err?.code === "DB_NOT_CONFIGURED") {
         setError("La création de compte n’est pas encore active. Le site doit être terminé côté déploiement.");
@@ -642,7 +652,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="nxt5-social-auth relative min-h-screen overflow-hidden text-white">
       <AmbientBackground />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(112deg,rgba(217,70,239,.14),transparent_28%,transparent_67%,rgba(34,211,238,.12))]" />
       <SiteHeader navigate={navigate}>
@@ -654,40 +664,41 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
       <main className="relative z-10 mx-auto grid min-h-[calc(100vh-108px)] w-full max-w-7xl items-center gap-8 px-3 pb-12 sm:px-5 sm:pb-16 lg:grid-cols-[.85fr_1.15fr]">
         <div className="nxt5-enter">
           <Badge tone={isRegister ?"purple" : "cyan"} pulse>{isRegister ?"Création de compte" : "Connexion"}</Badge>
-          <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.055em] md:text-7xl">
+          <h1 className="mt-4 max-w-3xl text-4xl font-black leading-[1.05] tracking-[-0.055em] sm:text-5xl lg:text-6xl">
             {isRegister ?"Crée ton espace NXT5." : "Retourne dans ton espace NXT5."}
           </h1>
-          <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-slate-300 md:text-lg">
+          <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-slate-300 md:text-lg">
             {isRegister
               ?"Ajoute ton e-mail, choisis ton pseudo, puis lance ton espace équipe."
               : "Connecte-toi pour retrouver tes teams, tes imports et tes reviews."}
           </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <div className="mt-8 hidden gap-3 lg:grid lg:grid-cols-3">
             {[[BarChart3, "Profil de jeu"], [Shield, "Draft & rôles"], [Users, "Progression team" ]].map(([Icon, label], index) => <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4"><Icon className={cx("h-5 w-5", index === 0 ? "text-cyan-200" : "text-cyan-200")} /><p className="mt-3 text-sm font-black text-white">{label}</p></div>)}
           </div>
         </div>
 
-        <Surface glow className="mx-auto w-full max-w-xl">
-          <h2 className="text-3xl font-black text-white">{isRegister ?"Créer un compte" : "Connexion"}</h2>
-          <p className="mt-2 text-base font-medium text-slate-300">{isRegister ?"Ton e-mail sert à te connecter et à récupérer ton compte." : "Entre ton e-mail et ton mot de passe pour accéder au tableau de bord."}</p>
-          <div className="mt-5 flex rounded-2xl border border-white/10 bg-black/[0.18] p-1">
+        <Surface glow className="mx-auto w-full max-w-[34rem]">
+          <h2 className="text-3xl font-black text-white">{isSocialComplete ? "Termine ton inscription" : isRegister ? "Créer un compte" : "Connexion"}</h2>
+          <p className="mt-2 text-base font-medium text-slate-300">{isSocialComplete ? "Confirme tes informations pour créer ton compte NXT5." : isRegister ? "Choisis une méthode pour créer ton compte NXT5." : "Utilise ton e-mail ou l’un de tes comptes associés."}</p>
+          {!isSocialComplete && <div className="mt-5 flex rounded-2xl border border-white/10 bg-black/[0.18] p-1">
             <a href={`/connexion${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", !isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Connexion</a>
             <a href={`/creer-un-compte${querySuffix}`} className={cx("flex-1 rounded-xl px-4 py-3 text-center text-sm font-black transition", isRegister ?"bg-white/10 text-white" : "text-slate-300 hover:text-white")}>Créer un compte</a>
-          </div>
-          <form onSubmit={submit} className="mt-5 space-y-4">
+          </div>}
+          {socialStatus && <div className="mt-4"><SocialNotice status={socialStatus} /></div>}
+          {isSocialComplete ? <SocialSignup legalVersion={LEGAL_VERSION} onComplete={completeAuth} loginHref="/connexion?next=%2Fparametres" /> : <><SocialLogin flow={isRegister ? "register" : "login"} rememberMe={rememberMe} disabled={loading} /><form onSubmit={submit} className="mt-5 space-y-4">
             <TextInput label={isRegister ? "E-mail" : "E-mail ou ancien pseudo"} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : "joueur@exemple.com ou ancien pseudo"} type={isRegister ? "email" : "text"} required icon={Mail} />
             {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" required icon={UserPlus} />}
             <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" required icon={Lock} />
             <PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Garde cette session active plus longtemps sur cet appareil." />
-            {isRegister && <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-left"><input type="checkbox" checked={legalAccepted} onChange={(event) => setLegalAccepted(event.target.checked)} required className="mt-1 h-4 w-4 shrink-0 accent-cyan-300" /><span className="text-sm font-semibold leading-6 text-slate-300">J’accepte les <a href="/conditions" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">conditions générales d’utilisation</a>, le <a href="/reglement" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">règlement NXT5</a> et reconnais avoir lu la <a href="/confidentialite" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">politique de confidentialité</a> (version {LEGAL_VERSION}).</span></label>}
-            {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
+            {isRegister && <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} version={LEGAL_VERSION} />}
+            {error && <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
             <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ?Loader2 : isRegister ?UserPlus : Lock} className="w-full py-4">{loading ?"Chargement…" : isRegister ?"Créer le compte" : "Entrer dans NXT5"}</Button>
           </form>
           {!isRegister && <div className="mt-4 text-center"><a className="text-sm font-black text-cyan-200 transition hover:text-white" href="/mot-de-passe-oublie">Mot de passe oublié ?</a></div>}
           <p className="mt-4 text-center text-sm font-semibold text-slate-300">
             {isRegister ?"Déjà inscrit ?" : "Pas encore de compte ?"}
             <a className="font-black text-cyan-200 hover:text-white" href={isRegister ?`/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`}>{isRegister ?" Connexion" : " Créer un compte"}</a>
-          </p>
+          </p></>}
         </Surface>
       </main>
       <LegalLinks navigate={navigate} />
