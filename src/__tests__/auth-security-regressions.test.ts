@@ -85,7 +85,7 @@ function resend() {
 }
 function register(email: string) {
   return registerAccount(new Request('https://nxt5.test/register', {
-    method: 'POST', body: JSON.stringify({ email, displayName: 'New account', password, acceptLegal: true, legalVersion: '2026-09-05' })
+    method: 'POST', body: JSON.stringify({ email, displayName: 'New account', password, acceptLegal: true, legalVersion: '2026-09-23' })
   }), context);
 }
 async function user() {
@@ -301,6 +301,8 @@ describe('shared verification email budgets', () => {
     const response = await register('new-account@example.test');
     expect(response.status).toBe(200);
     state.userId = (await response.json()).user.id;
+    const created = (await state.pg.query('select legal_version from users where id = $1', [state.userId])).rows[0];
+    expect(created.legal_version).toBe('2026-09-23');
     await state.pg.query("update users set email_verify_expires_at = now() + interval '23 hours' where id = $1", [state.userId]);
     expect((await resend()).status).toBe(429);
     expect(state.emails).toHaveBeenCalledTimes(1);

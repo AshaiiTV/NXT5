@@ -20,7 +20,7 @@ describe("public legal information", () => {
   it("discloses the real processors and session duration", () => {
     const privacy = JSON.stringify(LEGAL_PAGES["/confidentialite"]);
     const cookies = JSON.stringify(LEGAL_PAGES["/cookies"]);
-    for (const provider of ["Netlify", "Neon", "Resend", "Riot Games", "OpenAI"]) expect(privacy).toContain(provider);
+    for (const provider of ["Netlify", "Neon", "Resend", "Riot Games", "OpenAI", "Discord"]) expect(privacy).toContain(provider);
     expect(cookies).toContain("12 heures");
     expect(cookies).toContain("30 jours");
   });
