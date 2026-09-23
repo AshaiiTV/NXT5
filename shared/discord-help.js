@@ -16,8 +16,9 @@ const tutorialPages = [
     description: 'Prépare ta session, retrouve tes games et suis les objectifs de ton équipe depuis Discord. Ce guide reste accessible avant de lier ton compte.',
     fields: [
       field('1 · Choisis ton parcours', 'Joueur : ouvre « Mon compte » ou clique sur Suivant. Responsable : ouvre « Installer le bot » dans le menu.'),
-      field('2 · Comprends les deux connexions', '`/nxt compte lier` associe ton compte Discord personnel à NXT5. Le responsable effectue aussi cette liaison avant `/nxt connecter code:<code>`, qui relie son équipe NXT5 au serveur. Chaque personne lie son propre compte.'),
-      field('3 · Retrouve une commande', '`/nxt help` et `/nxt aide` ouvrent ce guide privé. Le bouton « Commandes » donne accès au catalogue. `/nxt help commande:bilan` explique une commande précise.'),
+      field('2 · Comprends les trois parcours', 'La connexion au site avec Google ou Discord ouvre ton compte NXT5, lorsque le service est disponible. `/nxt compte lier` associe séparément ton compte personnel au bot. Le responsable effectue aussi cette liaison avant `/nxt connecter code:<code>`, qui relie son équipe NXT5 au serveur. Chaque personne lie son propre compte.'),
+      field('3 · Retrouve une commande', '`/nxt help` et `/nxt aide` ouvrent ce guide privé. « Commandes » présente le catalogue NXT5 ; le menu `/nxt` de Discord montre les commandes effectivement proposées. `/nxt help commande:bilan` explique une commande précise.'),
+      field('Les ajouts du site', 'Games réunit imports, statistiques et exports PNG. Tendances propose Synthèse, Évolution, Comparer, Draft et Objectifs. Profil regroupe Synthèse, Champions, Pool déclaré, Historique et Suivi. Les pages suivantes expliquent comment poursuivre sur le site depuis le bot.'),
     ],
   },
   {
@@ -27,6 +28,7 @@ const tutorialPages = [
       field('1 · Lie ton compte personnel', 'Saisis `/nxt compte lier`, puis ouvre le lien privé. Connecte-toi à NXT5 et confirme sur le site. Reviens dans Discord, clique sur « Vérifier la liaison », contrôle le compte affiché puis clique sur « Confirmer la liaison ». Si le lien expire, relance la commande. Aucun mot de passe n’est à envoyer dans Discord.'),
       field('2 · Choisis ton équipe', 'Saisis `/nxt equipe choisir` et sélectionne une équipe autorisée sur ce serveur. Le bot confirme l’équipe active pour tes prochaines commandes. `/nxt equipe liste` retrouve les choix disponibles.'),
       field('3 · Vérifie ton profil', '`/nxt compte profil` affiche le compte lié et le contexte sélectionné. `/nxt compte delier` te permet de retirer cette association après confirmation.'),
+      field('Déjà connecté avec Google ou Discord ?', 'Sur le site, Paramètres → Connexions associées permet d’ajouter un service disponible au compte NXT5 que tu utilises déjà. Une adresse e-mail identique ne fusionne pas automatiquement deux comptes. Cette connexion au site ne remplace pas `/nxt compte lier` ; la liaison du bot ne rejoint aucune équipe.'),
       field('Aucune équipe disponible ?', 'Fais vérifier ton invitation NXT5, la liaison du serveur et, si ton équipe les exige, tes rôles Discord par ton responsable. Relance ensuite `/nxt equipe choisir`.'),
     ],
   },
@@ -37,6 +39,8 @@ const tutorialPages = [
       field('1 · Consulte le planning', '`/nxt planning` affiche les prochains événements de l’équipe active, leurs horaires et un lien NXT5. `/nxt planning periode:semaine` limite la liste aux sept prochains jours.'),
       field('2 · Confirme ta présence', 'Retrouve l’identifiant de l’événement dans le planning, puis saisis `/nxt presence repondre evenement:<id> statut:present`. Tu peux aussi répondre Présent, Absent ou En retard sous le rappel envoyé par le bot.'),
       field('3 · Relis les objectifs', '`/nxt objectifs liste` affiche les objectifs que tu peux consulter. Les objectifs individuels sont filtrés selon ton rôle. Le bot indique clairement si aucun objectif ou rendez-vous n’est disponible.'),
+      field('Disponibilité ou présence ?', '`/nxt disponibilites definir date:AAAA-MM-JJ debut:HH:MM fin:HH:MM` renseigne un créneau disponible dans le planning. Cette action ne confirme pas ta présence à un événement : utilise aussi `/nxt presence repondre` pour le rendez-vous concerné.'),
+      field('Prépare les picks', '`/nxt pool voir` consulte les pools déclarés ; `/nxt draft compositions` retrouve les compositions enregistrées. Sur le site, Champion Pool classe les picks en Confiance, Situationnel, En validation et En training. Compositions permet de préparer les cinq rôles, le side et le résumé du plan de jeu.'),
     ],
   },
   {
@@ -46,6 +50,9 @@ const tutorialPages = [
       field('1 · Retrouve la dernière game', '`/nxt derniere` affiche son résultat, sa date et le lien NXT5, avec son visuel lorsqu’il est disponible. `/nxt game chercher` retrouve d’autres games par période ou catégorie.'),
       field('2 · Choisis la période du bilan', '`/nxt bilan` propose une session, les sept derniers jours ou les trente derniers jours. Pour une session, sélectionne un groupe de games NXT5 ; sans groupe, choisis une période. Accès direct : `/nxt bilan periode:semaine`.'),
       field('3 · Lis les chiffres dans leur contexte', 'Le bilan précise l’équipe, la période, les filtres et le nombre de games. Une donnée absente reste indisponible. `/nxt stats tendance` compare deux périodes successives sans attribuer de note automatique.'),
+      field('Importer ou corriger une game', 'Sur NXT5, Games → Importer une game propose l’Importer Windows 64 bits, Mac Apple Silicon ou Mac Intel et l’aide de première ouverture. Importe le JSON, vérifie le side, les postes des deux équipes et cinq profils alliés distincts. Les options de la game permettent de corriger les rôles, les profils ou le côté de notre équipe.'),
+      field('Exporter ou publier', 'Sur le site, « Exporter PNG » ou « Exporter le groupe PNG » produit une seule image, sans ZIP. « Publier sur Discord » ouvre un autre parcours : choisis la destination, prépare l’aperçu, puis confirme l’envoi dans le salon configuré. Télécharger une image ne la publie pas.'),
+      field('Aller plus loin dans Tendances', 'Sur le site, filtre par Catégorie et période, puis ouvre Synthèse, Évolution, Comparer, Draft ou Objectifs. Draft détaille les picks de confort, compositions, duos et games à revoir. Les chiffres viennent des imports : ouvre les games sources avant de conclure.'),
     ],
   },
   {
@@ -56,6 +63,8 @@ const tutorialPages = [
       field('2 · Confirme la lecture d’une consigne', 'Sur une review partagée, clique sur Lu ou saisis `/nxt review lire review:<id>`. La confirmation concerne cette version ; elle ne valide pas le contenu de la review.'),
       field('3 · Garde ton rituel', 'Avant la session : `/nxt planning`. Après la session : `/nxt bilan`. Avant la suivante : `/nxt objectifs liste`. Lire une review ne crée pas automatiquement un objectif.'),
       field('Pour le staff', '`/nxt review partager review:<id> canal:<salon>` prépare un aperçu. Vérifie les consignes et la destination avant de confirmer la publication. Les brouillons restent privés.'),
+      field('Review du site ou brouillon du bot ?', 'Sur NXT5, Review → Créer une review permet de sélectionner jusqu’à 20 games ; l’analyse se prépare avec leurs données et les notes staff restent facultatives après chargement complet. `/nxt review creer` prépare un brouillon staff pour une game avec les textes fournis. Ce brouillon ne publie pas automatiquement de consigne dans un salon.'),
+      field('Profil, champions et progression', '`/nxt joueur profil joueur:<id>` ouvre le profil du joueur. Sur le site, choisis la Catégorie puis Champions pour les statistiques, adversaires et équipements ; les matchups se trouvent dans « Statistiques moyennes et adversaires ». Suivi rassemble objectifs et notes. Le pool déclaré reste un classement renseigné, pas une maîtrise calculée automatiquement.'),
     ],
   },
   {
@@ -63,13 +72,25 @@ const tutorialPages = [
     description: 'Pour connecter, consulter le statut, mettre en pause ou reprendre : compte lié, propriétaire ou capitaine NXT5 de l’équipe visée, et permission Discord « Gérer le serveur » ou « Administrateur ». Lire cette page n’accorde aucun accès supplémentaire.',
     fields: [
       field('1 · Lie d’abord ton compte personnel', 'Invite le bot si nécessaire, puis termine `/nxt compte lier`. Vérifie le compte associé avec `/nxt compte profil`. Cette étape est requise même pour un administrateur Discord.'),
-      field('2 · Relie ton équipe au serveur', 'Avec ce même compte NXT5, ouvre Bot Discord, choisis ton équipe et génère son code temporaire. Saisis `/nxt connecter code:<code>` dans Discord. Le compte lié doit être celui qui a créé le code ; le code d’un autre responsable est refusé.'),
-      field('3 · Configure et teste', 'Dans NXT5, choisis les salons, catégories et rôles Discord autorisés pour cette équipe, puis teste et active les publications. Un rôle autorisé ne remplace jamais les droits NXT5. `/nxt statut equipe:<équipe>` vérifie la connexion.'),
+      field('2 · Relie ton équipe au serveur', 'Avec ce même compte NXT5, ouvre Bot Discord, choisis ton équipe et génère son code temporaire, valable dix minutes. Saisis `/nxt connecter code:<code>` dans Discord. Le compte lié doit être celui qui a créé le code ; le code d’un autre responsable est refusé.'),
+      field('3 · Configure et teste', 'Dans NXT5, enregistre les salons et catégories, puis envoie le test fictif et vérifie sa réception. Choisis « Activer la diffusion » puis « Confirmer l’activation ». Les anciennes games ne sont pas republiées automatiquement. « Accès aux commandes » règle les rôles Discord autorisés en complément des droits NXT5 ; ces rôles ne règlent pas la visibilité des salons. `/nxt statut equipe:<équipe>` vérifie la connexion.'),
       field('4 · Maîtrise la diffusion', '`/nxt pause equipe:<équipe>` suspend les publications de l’équipe. `/nxt reprendre equipe:<équipe>` reprend une diffusion configurée. Les consultations restent accessibles. Les rappels ont leur propre réglage : `/nxt reglages rappels`. Vérifie toujours l’équipe ciblée.'),
       field('5 · Accompagne les membres', 'Chaque joueur commence avec `/nxt help`, `/nxt compte lier`, puis `/nxt equipe choisir`. Vérifie son invitation NXT5 et son rôle Discord en cas de refus. Sur un serveur partagé, chaque équipe choisit ses propres rôles autorisés ; même un administrateur Discord ne contourne pas cette règle.'),
+      field('Soutien et accès', 'Les abonnements NXT5 ne sont pas encore lancés ; l’accès au bot dépend des droits et de sa configuration. « Soutenir NXT5 » propose un soutien Ko-fi facultatif lorsque le lien est disponible : il ne débloque aucun accès exclusif. Une attribution administrative ne déclenche ni paiement ni reconduction automatique.'),
     ],
   },
 ];
+
+const commandGuidance = {
+  'compte lier': 'La connexion au site avec Google ou Discord, si proposée, sert à ouvrir ton compte NXT5 habituel. Elle ne remplace pas la liaison personnelle du bot : confirme sur NXT5, puis reviens confirmer dans Discord. Le lien expire après dix minutes.',
+  'compte delier': 'Cette commande révoque la liaison personnelle du bot. Elle conserve ton compte NXT5 et tes connexions Google/Discord au site, gérées dans Paramètres → Connexions associées.',
+  'derniere': 'La game vient des imports de ton équipe. Si un PNG à jour a déjà été publié dans ce serveur, le bot peut le réutiliser ; il ne génère pas d’export à la demande. Sur le site, Games permet d’importer, corriger et exporter en PNG.',
+  'game voir': 'Le lien ouvre les statistiques dans Games. Sur le site, « Exporter PNG » télécharge une image unique ; « Publier sur Discord » demande une destination, un aperçu puis une confirmation. Le bot réutilise seulement un PNG déjà publié et à jour lorsqu’il est disponible.',
+  'stats tendance': 'Le bot compare deux périodes successives de 7 ou 30 jours. Sur le site, Tendances → Comparer propose un Bloc de référence et un Bloc observé ; les filtres Catégorie et période définissent leur périmètre.',
+  'joueur profil': 'Sur le site, le profil propose Synthèse, Champions, Pool déclaré, Historique et Suivi. Les confrontations et équipements sont dans Champions ; les objectifs et notes sont dans Suivi. Sélectionne la Catégorie voulue.',
+  'pool voir': 'Le pool déclaré classe les picks en Confiance, Situationnel, En validation et En training. Ce classement est renseigné par le joueur ou le staff ; les résultats importés ne le changent pas automatiquement. Les exports PNG se trouvent sur le site.',
+  'review creer': 'Le bot prépare un brouillon staff pour une game à partir des textes fournis. Sur le site, Review → Créer une review permet de lier jusqu’à 20 games et de lire l’analyse préparée à partir des sources. La publication Discord reste une action distincte avec aperçu et confirmation.',
+};
 
 function button(label, route, disabled = false, style = 2) {
   const action = ({ 'Précédent': 'previous', Accueil: 'home', Suivant: 'next', Commandes: 'catalogue' })[label];
@@ -130,9 +151,9 @@ function catalogPage(index, matches = null) {
   const commands = matches || discordCommandCatalog.filter(command => command.category === category.id);
   return payload({
     title: matches ? 'Commandes correspondantes' : category.label,
-    description: 'Les réponses sont privées. Une commande de publication affiche un aperçu et vérifie tes droits. Les paramètres entre chevrons sont à remplacer ; la fiche de chaque commande distingue les options obligatoires.',
+    description: 'Ce catalogue décrit les commandes NXT5 ; le menu /nxt de Discord montre celles effectivement proposées. Les réponses sont privées. Une publication demande un aperçu et une confirmation selon tes droits. Remplace les paramètres entre chevrons ; chaque fiche distingue les options obligatoires.',
     fields: commands.map(entry => field('/nxt ' + entry.path, entry.description + '\n**Accès :** ' + accessLabel(entry) + '\n`' + usage(entry, true) + '`')),
-    footer: { text: 'Catalogue NXT5 · ' + (index + 1) + '/7 · /nxt help commande:<nom> pour les options' },
+    footer: { text: 'Catalogue NXT5 · ' + (index + 1) + '/' + discordCommandCategories.length + ' · /nxt help commande:<nom> pour les options' },
   }, navigation({ categoryIndex: index }));
 }
 function commandPage(entry) {
@@ -141,6 +162,7 @@ function commandPage(entry) {
   const optional = entry.options.filter(option => !option.required);
   const details = list => list.map(option => '`' + option.name + '` : ' + option.description + (option.choices ? ' Choix : ' + option.choices.map(choice => '`' + choice.value + '`').join(', ') + '.' : '')).join('\n');
   const fields = [field('Utilisation', '`' + usage(entry) + '`'), field('Exemple', '`' + example(entry) + '`'), field('Accès', entry.access === 'Tous' ? 'Disponible avant la liaison de compte. Cette aide reste privée.' : accessLabel(entry) + '. Ton compte, ton équipe et tes droits sont vérifiés à chaque action.')];
+  if (commandGuidance[entry.path]) fields.push(field('Sur le site et dans le bot', commandGuidance[entry.path]));
   if (entry.path === 'connecter') fields.push(field('Avant de connecter', 'Termine `/nxt compte lier`, puis crée le code de ton équipe avec ce même compte NXT5. Seul le créateur du code peut l’utiliser depuis son compte Discord lié.'));
   if (connectionCommands.has(entry.path)) fields.push(field('Serveur partagé', 'Gérer le serveur Discord ne donne aucun accès aux autres équipes NXT5. Tu dois être propriétaire ou capitaine de l’équipe visée.'));
   if (required.length) fields.push(field('Options obligatoires', details(required)));
@@ -166,7 +188,7 @@ export function buildDiscordHelp({ page = 'accueil', command = '' } = {}) {
   const source = tutorialPages[pageIndex];
   const fields = source.fields.map(item => ({ ...item }));
   if (query) fields.unshift(field('Commande introuvable', 'Ouvre le catalogue avec le bouton Commandes, puis utilise le nom exact affiché : par exemple `/nxt help commande:review liste`.'));
-  return payload({ title: source.title, description: source.description, fields, footer: { text: 'Guide NXT5 · ' + (pageIndex + 1) + '/6 · ' + discordHelpSections[pageIndex].label + ' · Visible uniquement par toi' } }, navigation({ pageIndex }));
+  return payload({ title: source.title, description: source.description, fields, footer: { text: 'Guide NXT5 · ' + (pageIndex + 1) + '/' + discordHelpSections.length + ' · ' + discordHelpSections[pageIndex].label + ' · Visible uniquement par toi' } }, navigation({ pageIndex }));
 }
 
 // The router can pass this result directly to buildDiscordHelp and use an

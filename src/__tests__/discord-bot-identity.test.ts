@@ -95,6 +95,7 @@ describe('Personal identity linking requires both accounts', () => {
   it('stores a hash, stages web consent without linking, then requires the original Discord actor and server', async () => {
     const { response, token } = await begin();
     expect(token).toMatch(/^[a-f0-9]{48}$/);
+    expect(response.embeds[0].description).toContain('ne lie pas automatiquement le bot');
     expect(response.allowed_mentions).toEqual({ parse: [] });
     expect((await rows('select token_hash,user_id from discord_account_link_requests'))[0]).toEqual({ token_hash: botTokenHash(token), user_id: null });
     expect(JSON.stringify(await rows('select * from discord_account_link_requests'))).not.toContain(token);
@@ -112,7 +113,8 @@ describe('Personal identity linking requires both accounts', () => {
     expect(review.components[0].components[0]).toMatchObject({ label: 'Confirmer la liaison', custom_id: 'nxt:link:confirm:' + token });
     await expect(finishDiscordAccountLink(token, otherActor, guild)).rejects.toMatchObject({ code: 'DISCORD_ACCOUNT_LINK_EXPIRED' });
     await expect(finishDiscordAccountLink(token, actor, otherGuild)).rejects.toMatchObject({ code: 'DISCORD_ACCOUNT_LINK_EXPIRED' });
-    await finishDiscordAccountLink(token, actor, guild);
+    const finished = await finishDiscordAccountLink(token, actor, guild);
+    expect(finished.embeds[0].description).toContain('/nxt equipe choisir nom:<équipe>');
     expect(await botIdentity(actor)).toMatchObject({ user_id: member });
     expect(await (await website('GET', token)).json()).toMatchObject({ link: { discord_user_id: actor } });
     expect(await rows('select * from discord_user_links')).toHaveLength(1);
@@ -426,6 +428,7 @@ describe('Pending actions remain bound to identity, actor and server', () => {
   it('allows an unlink confirmation without an active team but still requires the original identity', async () => {
     await rows('delete from team_members where user_id=$1', [member]);
     const response: any = await executeDiscordAccount(interaction(), 'compte delier', {});
+    expect(response.embeds[0].description).toContain('connexions Google/Discord au site seront conservés');
     const token = response.components[0].components[0].custom_id.slice('nxt:confirm:'.length);
     expect(await loadBotPending(token, actor, guild)).toMatchObject({ command: 'compte delier', team_id: null });
     expect(await rows('select * from discord_user_links')).toHaveLength(1);
