@@ -18,6 +18,27 @@ Pour un environnement de recette, utiliser une origine HTTPS fixe et des identif
 
 ## Google
 
+### Mise en service prioritaire — 23 septembre 2026
+
+Le projet Google Cloud **NXT5**, identifiant `nxt5-509508`, a été créé. [Reprendre la configuration Google Auth Platform](https://console.cloud.google.com/auth/overview/create?project=nxt5-509508&supportedpurview=project). Le nom NXT5 est renseigné dans le formulaire initial ; la sélection du contact d’assistance public attend le choix du propriétaire. Aucun client OAuth ni secret n’a encore été créé, et Google reste désactivé sur le site.
+
+Valeurs à enregistrer pour le client Web :
+
+| Paramètre | Valeur |
+| --- | --- |
+| Audience | Externe |
+| Nom de l’application | NXT5 |
+| Domaine autorisé | `nxt5.org` |
+| Page d’accueil | `https://nxt5.org/` |
+| Politique de confidentialité | `https://nxt5.org/confidentialite` |
+| Conditions d’utilisation | `https://nxt5.org/conditions` |
+| URI de redirection | `https://nxt5.org/.netlify/functions/auth-social-callback` |
+| Autorisations | `openid email` |
+
+Google est la première connexion à mettre en service. Apple et Discord restent désactivés ; la demande Riot est déjà envoyée et attend sa réponse. La prévisualisation de la PR 60 est publiée, mais le code d’authentification sociale n’est pas encore en production. La migration `social-auth-20260923-v1` doit être confirmée sur la base cible avant l’activation.
+
+### Paramètres techniques
+
 Créer un client OAuth de type application Web dans Google Cloud, configurer le nom NXT5, le domaine, les pages de confidentialité et conditions ainsi que l’URL de retour ci-dessus. Renseigner `GOOGLE_AUTH_CLIENT_ID` et `GOOGLE_AUTH_CLIENT_SECRET`, puis `GOOGLE_AUTH_ENABLED=true` lorsque le client est prêt pour le public visé. Les autorisations demandées sont `openid email` ; le code serveur emploie PKCE S256 et un nonce. Aucun accès Drive, Contacts ou Calendar n’est demandé. [Configuration et flux OpenID Connect Google](https://developers.google.com/identity/openid-connect/openid-connect), [capacités publiées par Google](https://accounts.google.com/.well-known/openid-configuration).
 
 ## Discord
