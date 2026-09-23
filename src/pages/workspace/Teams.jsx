@@ -3,15 +3,14 @@ import { ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, 
 import { apiFetch } from "../../api/client.js";
 import { openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
-import { cx, tone, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
+import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
 import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta, ROSTER_STATUS_OPTIONS } from "../../utils/roster.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
-import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, sortPlayersByRole, teamMatchRows, buildStaffAlerts, normalizeProfileRole, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
+import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Teams.css";
 import { LinkButton } from "../public/PublicPages.jsx";
 
-const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
 const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
 
 const PROFILE_ROLES = [...COMP_ROLES, "SUB", ...STAFF_ROLES];
@@ -448,7 +447,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams && !setupOnly ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."}>{hasTeams && !setupOnly && <Button type="button" variant="ghost" icon={teamSetupOpen ? X : UserPlus} onClick={() => { if (teamSetupOpen) { setTeamSetupOpen(false); openAppPath("/equipes"); } else setTeamSetupOpen(true); }}>{teamSetupOpen ? "Fermer les formulaires" : "Créer ou rejoindre une équipe"}</Button>}</PageHeader>
+  return <div><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une team"} subtitle={hasTeams && !setupOnly ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."}>{hasTeams && !setupOnly && <Button type="button" variant="ghost" icon={teamSetupOpen ? X : UserPlus} onClick={() => { if (teamSetupOpen) { setTeamSetupOpen(false); openAppPath("/equipes"); } else setTeamSetupOpen(true); }}>{teamSetupOpen ? "Fermer les formulaires" : "Créer ou rejoindre une équipe"}</Button>}</PageHeader>
     {!hasTeams && <Surface className="mb-5 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -488,11 +487,10 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
 
       {selectedTeam && !setupOnly && <div className="space-y-5">
-        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} championPool={data.championPool || data.champion_pool || []} />
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-300">Roster lisible, champions joués et statistiques de profils.</p></div>
-            <div className="flex flex-wrap justify-end gap-2"><Button type="button" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")} disabled={!mainTeamRoster.length}>Copier Main Team · {mainTeamRoster.length}</Button><Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")} disabled={!substituteRoster.length}>Copier Subs · {substituteRoster.length}</Button><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
+            <div className="flex items-center gap-3"><h3 className="text-xl font-black text-white">Roster</h3><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
+            <div className="nxt5-roster-actions flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")} disabled={!mainTeamRoster.length}>Copier Main · {mainTeamRoster.length}</Button><Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")} disabled={!substituteRoster.length}>Copier Subs · {substituteRoster.length}</Button></div>
           </div>
 
           <>
@@ -502,46 +500,6 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
     </div>
   </div>;
-}
-
-function TeamCoachDashboard({ team, players = [], matches = [], championPool = [] }) {
-  const teamMatches = matches.filter((match) => match.team_id === team?.id);
-  const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === team?.id && isGameplayRole(player.role)));
-  const wins = teamMatches.filter((match) => match.result === "Victoire").length;
-  const winrate = Math.round((wins / Math.max(1, teamMatches.length)) * 100);
-  const alerts = buildStaffAlerts(teamMatches, teamPlayers);
-  const rows = teamMatchRows(teamMatches, "ALLY");
-  const poolByRole = ROSTER_ROLE_ORDER.map((role) => {
-    const manual = championPool.filter((row) => row.team_id === team?.id && normalizeProfileRole(row.role) === role);
-    const imported = rows.filter((row) => row.role === role);
-    const picks = Array.from([...manual.map((row) => row.champion), ...imported.map((row) => row.champion)].reduce((map, champion) => map.set(champion, (map.get(champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    return { role, picks };
-  });
-  return <Surface className="mb-5 overflow-hidden p-0">
-    <div className="grid gap-0 2xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
-      <div className="min-w-0 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold"><p className="uppercase tracking-[0.16em] text-cyan-100">Résumé équipe</p><p className="text-slate-300">{teamMatches.length} games</p></div>
-        <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
-        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Priorité de l’équipe, joueur à revoir, pick à garder et game associée.</p>
-        <HomeActionSummary matches={teamMatches} alerts={alerts} />
-      </div>
-      <aside className="border-t border-white/10 p-4 sm:p-5 2xl:border-l 2xl:border-t-0">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bloc actif</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length ? `${winrate}% WR` : "--"}</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/tendances")}>Tendances</Button></div>
-        <div className="mt-4 grid gap-2">
-          {alerts.length ? alerts.slice(0, 3).map((alert) => <div key={alert.title} className="border-t border-white/10 py-3 first:border-0">
-            <div className="flex items-center gap-2"><span className={cx("grid h-7 w-7 place-items-center rounded-lg", tone(alert.toneName))}><alert.icon className="h-3.5 w-3.5" /></span><p className="text-sm font-black text-white">{alert.title}</p></div>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{alert.text}</p>
-          </div>) : <p className="py-3 text-sm font-semibold text-slate-300">Importe quelques games pour générer les alertes staff.</p>}
-        </div>
-      </aside>
-    </div>
-    <div className="border-t border-white/10 p-4">
-      <div className="grid gap-2 lg:grid-cols-5">{poolByRole.map((entry) => <div key={entry.role} className="min-w-0 px-2 py-3">
-        <div className="flex items-center gap-2"><RoleIcon role={entry.role} className="h-4 w-4 text-cyan-100" /><p className="text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(entry.role)}</p></div>
-        <p className="mt-2 break-words text-sm font-semibold text-slate-300">{entry.picks.length ? entry.picks.map(([champion]) => championDisplayName(champion)).join(" · ") : "Pool à remplir"}</p>
-      </div>)}</div>
-    </div>
-  </Surface>;
 }
 
 function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer }) {
@@ -688,7 +646,10 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
 }
 
 function ChampionCircle({ champion, index }) {
-  return <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 px-3 py-2"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-cyan-200/30 bg-black/35"><ChampionPortrait champion={champion.champion} alt={champion.champion} /></div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(champion.champion)}</p><p className="text-xs font-black text-cyan-100/75">#{index + 1} · {champion.games || 0} game{champion.games > 1 ? "s" : ""}</p></div></div>;
+  return <div className="nxt5-roster-champion">
+    <div className="nxt5-roster-portrait"><ChampionPortrait champion={champion.champion} alt={champion.champion} /></div>
+    <div className="min-w-0"><p className="text-sm font-semibold text-white">{championDisplayName(champion.champion)}</p><p className="text-xs text-slate-400">{champion.games || 0} game{champion.games > 1 ? "s" : ""}</p></div>
+  </div>;
 }
 
 function playerImportedChampionStats(player, matches = []) {
@@ -723,7 +684,7 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
   const showActions = Boolean(onCopyOpgg || onSyncPlayer || onEditPlayer || onDeletePlayer);
   const renderSection = (items, title, subtitle, Icon, emptyText) => (
     <div className="min-w-0 overflow-hidden border-t border-white/10">
-      <div className="flex flex-col gap-3 border-b border-white/10 py-4 md:flex-row md:items-center md:justify-between">
+      <div className="nxt5-roster-section-header flex flex-col gap-3 border-b border-white/10 py-4 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></div>
           <div className="min-w-0">
@@ -753,12 +714,12 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
       </div></> : <p className="py-4 text-sm font-semibold leading-6 text-slate-300">{emptyText}</p>}
     </div>
   );
-  return <div className="mt-6 grid gap-5">
-    {renderSection(mainRoster, "Main Team", "Les titulaires utilisés par défaut pour le Multi OP.GG, les drafts et les imports.", Users, "Aucun titulaire défini. Passe un profil en Main Team depuis Gestion.")}
+  return <div className="nxt5-roster mt-6 grid gap-5">
+    {renderSection(mainRoster, "Main Team", "Titulaires actifs pour OP.GG, les drafts et les imports.", Users, "Aucun titulaire défini. Passe un profil en Main Team depuis Gestion.")}
     {renderSection(subRoster, "Subs", "Les remplaçants disponibles, avec leur propre Multi OP.GG.", UserPlus, "Aucun remplaçant défini. Passe un profil en Sub depuis Gestion.")}
     {inactiveRoster.length > 0 && renderSection(inactiveRoster, "Hors roster", "Profils conservés sans être inclus dans les lineups OP.GG.", EyeOff, "")}
     {renderSection(staffRoster, "Coaching staff", "Coachs, managers et staff : accès gestion sans présence dans le draft ni OP.GG.", ShieldCheck, "Aucun membre staff ajouté pour le moment.")}
   </div>;
 }
 
-export { Teams, parseMultiOpgg, decodeLoose, opggUrlFromRiotId, TeamCoachDashboard, HomeActionSummary, TeamManagementPanel, PROFILE_ROLES, RoleTag, PremiumRosterTable, rosterRoleIndex, ImportedChampionBadges, ChampionCircle, playerImportedChampionStats };
+export { Teams, parseMultiOpgg, decodeLoose, opggUrlFromRiotId, TeamManagementPanel, PROFILE_ROLES, RoleTag, PremiumRosterTable, rosterRoleIndex, ImportedChampionBadges, ChampionCircle, playerImportedChampionStats };

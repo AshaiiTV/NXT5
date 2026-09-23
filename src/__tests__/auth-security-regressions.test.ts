@@ -1,3 +1,4 @@
+import { LEGAL_VERSION } from '../../shared/legal.js';
 import { readFileSync } from 'node:fs';
 import bcrypt from 'bcryptjs';
 import { PGlite } from '@electric-sql/pglite';
@@ -85,7 +86,7 @@ function resend() {
 }
 function register(email: string) {
   return registerAccount(new Request('https://nxt5.test/register', {
-    method: 'POST', body: JSON.stringify({ email, displayName: 'New account', password, acceptLegal: true, legalVersion: '2026-09-23' })
+    method: 'POST', body: JSON.stringify({ email, displayName: 'New account', password, acceptLegal: true, legalVersion: LEGAL_VERSION })
   }), context);
 }
 async function user() {

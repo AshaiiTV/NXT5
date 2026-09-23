@@ -309,8 +309,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const currentTeamMatches = currentTeam ? (data.matches || []).filter((match) => match.team_id === currentTeam.id) : [];
   const showBeginnerCompass = Boolean(currentTeam && active !== "bot-discord" && !workspaceLocked && !beginnerCompassHidden && currentTeamMatches.length < 5);
   const assistantWidget = !workspaceLocked && <>
-    <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("group fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-3 z-[80] h-14 items-center gap-2 rounded-2xl border border-cyan-200/30 bg-[#071120]/95 px-4 text-sm font-black text-white shadow-[0_18px_50px_rgba(0,0,0,.55),0_0_28px_rgba(34,211,238,.16)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:border-cyan-100/55 hover:bg-[#0a1a2d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/75 sm:right-5 lg:right-6", assistantOpen ? "hidden sm:inline-flex" : "inline-flex")}>
-      <span className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/12 text-cyan-100 transition group-hover:bg-cyan-300/18">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
+    <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>
+      <span aria-hidden="true">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
       <span className="hidden sm:inline">{assistantOpen ? "Fermer" : "Assistant"}</span>
     </button>
     <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
@@ -334,7 +334,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_0_22px_rgba(34,211,238,.45)] sm:h-14 sm:w-14" />
-            <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Team access</p></div>
+            <div className="min-w-0"><Nxt5Wordmark className="h-11 w-[13rem] max-w-[52vw] object-left sm:h-12 sm:w-[15rem]" /><p className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-cyan-100/55 sm:tracking-[0.24em]">Ton espace équipe</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={() => navigate("/parametres")}>Paramètres</Button>
@@ -355,6 +355,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   return (
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
+      <a className="nxt5-workspace-skip" href="#workspace-content">Aller au contenu</a>
       <Sidebar
         active={active}
         setActive={setActive}
@@ -370,8 +371,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
         isPlatformAdmin={isPlatformAdmin}
       />
       <div
-        className={cx("nxt5-app-shell relative z-10 min-w-0 transition-all duration-300", sidebarCollapsed ? "is-sidebar-collapsed" : "is-sidebar-expanded")}
-        style={{ "--nxt5-sidebar-space": sidebarCollapsed ? "8.5rem" : "19rem" }}
+        className={cx("nxt5-app-shell relative z-10 min-w-0", sidebarCollapsed ? "is-sidebar-collapsed" : "is-sidebar-expanded")}
+        style={{ "--nxt5-sidebar-space": sidebarCollapsed ? "5rem" : "16.5rem" }}
       >
         <Topbar
           active={active}
@@ -382,7 +383,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           onCreateTeam={openTeamCreation}
           onManageTeam={openTeamManagement}
         />
-        <main className="mx-auto w-full min-w-0 max-w-[1720px] px-3 py-5 sm:px-4 sm:py-7 lg:px-8 xl:px-10 2xl:px-12">
+        <main id="workspace-content" tabIndex={-1} className="nxt5-workspace-main">
           <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
           {showBeginnerCompass && <BeginnerCompass active={active} data={data} currentTeam={currentTeam} onNavigate={setActive} onImport={() => navigate("/games?import=1")} onClose={hideBeginnerCompass} />}
           <React.Fragment>

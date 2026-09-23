@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { LEGAL_VERSION } from "../../../shared/legal.js";
 import { Link2, Loader2, Lock, Mail, ShieldCheck, Unlink, UserPlus } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { isSafeInternalPath } from "../../app/routing.js";
@@ -112,7 +113,7 @@ export function SocialLogin({ flow = "login", rememberMe = false, disabled = fal
   </section>;
 }
 
-export function SocialSignup({ legalVersion, onComplete, loginHref }) {
+export function SocialSignup({ onComplete, loginHref }) {
   const [pending, setPending] = useState(null);
   const [form, setForm] = useState({ email: "", displayName: "" });
   const [legalAccepted, setLegalAccepted] = useState(false);
@@ -143,7 +144,7 @@ export function SocialSignup({ legalVersion, onComplete, loginHref }) {
     setError("");
     setCollision(false);
     try {
-      const result = await apiFetch("auth-social-complete", { method: "POST", body: JSON.stringify({ displayName: form.displayName.trim(), email: form.email.trim(), acceptLegal: true, legalVersion }) });
+      const result = await apiFetch("auth-social-complete", { method: "POST", body: JSON.stringify({ displayName: form.displayName.trim(), email: form.email.trim(), acceptLegal: true, legalVersion: LEGAL_VERSION }) });
       if (!result?.user?.id) throw new Error("La création du compte n’a pas pu être confirmée. Réessaie.");
       onComplete(result.user, result.destination);
     } catch (err) {
@@ -156,15 +157,15 @@ export function SocialSignup({ legalVersion, onComplete, loginHref }) {
   if (loading) return <p className="mt-5 text-sm text-slate-300" role="status">Préparation de ton inscription…</p>;
   return <div className="mt-5 space-y-4">
     {pending && <><p className="flex items-start gap-2 text-sm leading-6 text-cyan-100"><ShieldCheck aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" /><span>Connexion avec {providerLabel(pending.provider)} confirmée. Choisis ton pseudo NXT5 pour terminer.</span></p>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} className="nxt5-auth-form">
         <fieldset disabled={saving} className="min-w-0 space-y-4">
           <TextInput label="Pseudo" value={form.displayName} onChange={(displayName) => setForm((current) => ({ ...current, displayName }))} placeholder="Ex : Joueur NXT5" required icon={UserPlus} autoComplete="nickname" />
           <TextInput label="E-mail de récupération" value={form.email} onChange={(email) => setForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoComplete="email" />
           {(!pending.emailVerified || form.email.trim().toLowerCase() !== pending.email?.toLowerCase()) && <p className="text-xs leading-5 text-slate-300">Nous t’enverrons un lien pour vérifier cette adresse et protéger la récupération de ton compte.</p>}
-          <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} version={legalVersion} />
+          <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} />
           {error && <Feedback>{error}</Feedback>}
           {collision && <a href={loginHref} className="block text-sm font-black text-cyan-200 underline underline-offset-4">Me connecter à mon compte existant</a>}
-          <Button type="submit" disabled={saving || !legalAccepted || !form.displayName.trim() || !form.email.trim()} icon={saving ? Loader2 : UserPlus} className="w-full py-4">{saving ? "Création…" : "Créer mon compte NXT5"}</Button>
+          <Button type="submit" disabled={saving || !legalAccepted || !form.displayName.trim() || !form.email.trim()} icon={saving ? Loader2 : UserPlus} className="nxt5-auth-submit">{saving ? "Création…" : "Créer mon compte NXT5"}</Button>
         </fieldset>
       </form></>}
     {!pending && error && <Feedback>{error}</Feedback>}
@@ -172,8 +173,8 @@ export function SocialSignup({ legalVersion, onComplete, loginHref }) {
   </div>;
 }
 
-export function LegalConsent({ checked, onChange, version }) {
-  return <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-black/[0.18] p-4 text-left"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} required className="mt-1 h-4 w-4 shrink-0 accent-cyan-300" /><span className="text-sm font-semibold leading-6 text-slate-300">J’accepte les <a href="/conditions" target="_blank" rel="noopener noreferrer" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">conditions générales d’utilisation<span className="sr-only"> (nouvel onglet)</span></a>, le <a href="/reglement" target="_blank" rel="noopener noreferrer" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">règlement NXT5<span className="sr-only"> (nouvel onglet)</span></a> et reconnais avoir lu la <a href="/confidentialite" target="_blank" rel="noopener noreferrer" className="font-black text-cyan-200 underline decoration-cyan-300/40 underline-offset-4 hover:text-white">politique de confidentialité<span className="sr-only"> (nouvel onglet)</span></a> (version {version}).</span></label>;
+export function LegalConsent({ checked, onChange }) {
+  return <label className="nxt5-auth-consent"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} required /><span>J’accepte les <a href="/conditions" target="_blank" rel="noopener noreferrer">conditions générales d’utilisation<span className="sr-only"> (nouvel onglet)</span></a>, le <a href="/reglement" target="_blank" rel="noopener noreferrer">règlement NXT5<span className="sr-only"> (nouvel onglet)</span></a> et reconnais avoir lu la <a href="/confidentialite" target="_blank" rel="noopener noreferrer">politique de confidentialité<span className="sr-only"> (nouvel onglet)</span></a> (version {LEGAL_VERSION}).</span></label>;
 }
 
 export function SocialAccounts({ onStatus }) {

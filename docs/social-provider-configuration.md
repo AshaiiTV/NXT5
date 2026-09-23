@@ -20,9 +20,11 @@ Pour un environnement de recette, utiliser une origine HTTPS fixe et des identif
 
 ### Mise en service prioritaire — 23 septembre 2026
 
-Le projet Google Cloud **NXT5**, identifiant `nxt5-509508`, a été créé. [Ouvrir Google Auth Platform](https://console.cloud.google.com/auth/overview?project=nxt5-509508&supportedpurview=project). La configuration initiale NXT5 est enregistrée : audience externe, contact d’assistance confirmé par le propriétaire et règlement Google accepté avec son autorisation explicite. Le formulaire du client **NXT5 Web — production** est préparé avec l’URI de retour ci-dessous ; sa création et le transfert du secret vers Netlify attendent l’accord demandé au propriétaire. Aucun client OAuth ni secret n’a encore été créé, et Google reste désactivé sur le site.
+Le projet Google Cloud **NXT5**, identifiant `nxt5-509508`, et son client **NXT5 Web — production** sont créés. [Ouvrir Google Auth Platform](https://console.cloud.google.com/auth/overview?project=nxt5-509508&supportedpurview=project). Audience externe, état Google **En production**, contact d’assistance confirmé et règlement Google accepté avec l’autorisation explicite du propriétaire. Les pages publiques ci-dessous sont enregistrées. Les seuls scopes déclarés sont `openid` et `userinfo.email`, tous deux non sensibles.
 
-Valeurs à enregistrer pour le client Web :
+L’identifiant client et son secret sont configurés dans Netlify, limités aux **Functions** et à la **production** ; le secret est marqué `is_secret`. `SOCIAL_AUTH_SITE_ORIGIN` est également configuré. `GOOGLE_AUTH_ENABLED` reste à `false` jusqu’au déploiement validé du code et de la migration. Aucun secret n’est conservé dans le dépôt, la documentation ou les variables du navigateur.
+
+Valeurs enregistrées pour le client Web :
 
 | Paramètre | Valeur |
 | --- | --- |
@@ -35,9 +37,9 @@ Valeurs à enregistrer pour le client Web :
 | URI de redirection | `https://nxt5.org/.netlify/functions/auth-social-callback` |
 | Autorisations | `openid email` |
 
-Google est la première connexion à mettre en service. Apple et Discord restent désactivés ; la demande Riot est déjà envoyée et attend sa réponse. La prévisualisation de la PR 60 est publiée, mais le code d’authentification sociale n’est pas encore en production. La migration `social-auth-20260923-v1` doit être confirmée sur la base cible avant l’activation.
+Google est la première connexion à mettre en service. Apple et Discord restent désactivés ; la demande Riot est déjà envoyée et attend sa réponse. Le code d’authentification sociale et la migration `social-auth-20260923-v1` doivent être déployés avant l’activation du bouton public.
 
-État de déploiement relevé en lecture seule le 23 septembre : production sur `9e30f58`, prévisualisation 60 sur `0afb95a`, variables `GOOGLE_AUTH_*` absentes, migration sociale et table `social_identities` absentes. La prévisualisation hérite actuellement du même `DATABASE_URL` que la production via le contexte `all` : elle ne constitue donc pas un environnement de recette isolé. Prévoir une base distincte pour des essais OAuth isolés ; toute migration sur la connexion actuelle affecterait la production.
+État de déploiement relevé en lecture seule le 23 septembre avant activation : production sur `af09e80`, migration sociale et table `social_identities` absentes. La prévisualisation hérite actuellement du même `DATABASE_URL` que la production via le contexte `all` : elle ne constitue donc pas un environnement de recette isolé. Prévoir une base distincte pour des essais OAuth isolés ; toute migration sur la connexion actuelle affecterait la production.
 
 La branche sociale intègre désormais les corrections de sécurité de `9e30f58` : atomicité de la récupération, version de compte `xmin`, revalidation des sessions et protection des journaux. TypeScript et la construction Vite réussissent après composition ; aucune nouvelle exécution locale des tests n’a été lancée pour cette intégration. La vérification Netlify de la PR reste à consulter avant fusion et activation.
 

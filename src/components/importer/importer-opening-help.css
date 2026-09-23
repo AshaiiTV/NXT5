@@ -1,0 +1,27 @@
+.game-operation-dialog.importer-opening-dialog { width: min(640px, calc(100vw - 32px)); }
+.importer-opening-help { min-width: 0; }
+.importer-help-tabs { display: flex; gap: 8px; padding-bottom: 20px; }
+.importer-help-tabs > button { flex: 1; }
+.importer-help-tabs > button[aria-selected="true"] { border-color: var(--nxt5-accent); background: rgb(103 232 249 / .1); color: var(--nxt5-accent); }
+.importer-help-content { outline-offset: 4px; }
+.importer-help-content .importer-help-eyebrow { margin: 0 0 6px; color: var(--nxt5-accent); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.importer-help-content h3 { margin: 0; color: var(--nxt5-text); font-size: 18px; font-weight: 800; line-height: 1.4; }
+.importer-help-content p, .importer-help-other p { margin-top: 12px; color: #edf5ff; font-size: 14px; line-height: 1.65; }
+.importer-help-steps { margin: 20px 0 0; padding-left: 24px; list-style: decimal; }
+.importer-help-steps li { padding-left: 6px; color: #edf5ff; font-size: 14px; line-height: 1.65; }
+.importer-help-steps li + li { margin-top: 12px; }
+.importer-help-steps li::marker { color: var(--nxt5-accent); font-weight: 800; }
+.importer-help-steps strong { color: var(--nxt5-text); font-weight: 700; }
+.importer-help-content .importer-help-note { padding-left: 12px; border-left: 2px solid var(--nxt5-accent-2); font-size: 13px; }
+.importer-help-other { margin-top: 20px; border-top: 1px solid var(--nxt5-border); border-bottom: 1px solid var(--nxt5-border); }
+.importer-help-other summary { padding: 14px 0; color: var(--nxt5-text); cursor: pointer; font-size: 14px; font-weight: 700; line-height: 1.5; }
+.importer-help-other summary:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+.importer-help-other[open] { padding-bottom: 12px; }
+.importer-help-other[open] p:first-of-type { margin-top: 0; }
+.importer-help-link { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; color: var(--nxt5-accent); font-size: 14px; font-weight: 650; text-decoration: underline; text-underline-offset: 4px; }
+.importer-help-link svg { flex-shrink: 0; }
+.importer-help-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 20px; }
+@media (max-width: 480px) {
+  .importer-help-actions { flex-direction: column-reverse; align-items: stretch; }
+  .importer-help-actions .importer-help-link { justify-content: center; }
+}

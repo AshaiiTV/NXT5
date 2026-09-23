@@ -6,7 +6,7 @@ import { assertSessionSecret, createSession, ensureEmailVerificationColumns, has
 import { sendEmailVerificationEmail } from './_lib/email';
 import { assertRateLimit, assertVerificationEmailRateLimit } from './_lib/rate-limit';
 
-const LEGAL_VERSION = '2026-09-23';
+import { LEGAL_VERSION } from '../../shared/legal.js';
 
 function accountNameFromEmail(email) {
   const base = normalizeAccountName(email.split('@')[0]).replace(/[^a-z0-9._-]/g, '').slice(0, 18) || 'compte';
@@ -42,7 +42,7 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Mot de passe trop long : 128 caractères maximum.'), { status: 400 });
     }
     if (!acceptLegal || legalVersion !== LEGAL_VERSION) {
-      throw Object.assign(new Error('Tu dois accepter les CGU, le règlement et la politique de confidentialité en vigueur.'), { status: 400, code: 'LEGAL_ACCEPTANCE_REQUIRED' });
+      throw Object.assign(new Error('Tu dois accepter les CGU et le règlement en vigueur et reconnaître avoir lu la politique de confidentialité.'), { status: 400, code: 'LEGAL_ACCEPTANCE_REQUIRED' });
     }
 
     await ensureEmailVerificationColumns();

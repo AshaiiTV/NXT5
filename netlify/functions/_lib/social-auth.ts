@@ -8,7 +8,7 @@ import { SOCIAL_PROVIDERS, type SocialProvider, type VerifiedSocialIdentity } fr
 export const SOCIAL_BROWSER_COOKIE = '__Host-nxt5_social_flow';
 export const SOCIAL_TICKET_COOKIE = '__Host-nxt5_social_ticket';
 export const SOCIAL_SECONDS = 300;
-export const LEGAL_VERSION = '2026-09-23';
+export { LEGAL_VERSION } from '../../../shared/legal.js';
 export const randomSocialValue = () => crypto.randomBytes(32).toString('base64url');
 export const isSocialSecret = (value: string) => /^[A-Za-z0-9_-]{43}$/.test(value);
 
