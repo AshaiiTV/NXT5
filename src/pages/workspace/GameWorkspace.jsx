@@ -22,11 +22,11 @@ import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
 
-async function exportStatsPng({ title, subtitle, matches, filename, team, categories = [], teamName = "Notre équipe", group = false }) {
+async function renderStatsPng({ title, subtitle, matches, team, categories = [], teamName = "Notre équipe", group = false }) {
   const singleMatch = !group && Array.isArray(matches) && matches.filter(Boolean).length === 1 ? matches.filter(Boolean)[0] : null;
   if (singleMatch) {
-    const { downloadGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
-    return downloadGamePublicationPng(buildGamePublicationSnapshot({ team: team || { name: teamName }, match: singleMatch, categories }), filename, {
+    const { renderGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
+    const canvas = await renderGamePublicationPng(buildGamePublicationSnapshot({ team: team || { name: teamName }, match: singleMatch, categories }), {
       async loadAssets(snapshot) {
         const champions = new Map();
         const items = new Map();
@@ -43,6 +43,7 @@ async function exportStatsPng({ title, subtitle, matches, filename, team, catego
         return { champions, items };
       },
     });
+    return [canvas];
   }
   const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
   if (!scoped.length) throw new Error("Aucune game à exporter.");
@@ -218,7 +219,13 @@ async function exportStatsPng({ title, subtitle, matches, filename, team, catego
     pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: `Groupe de games · ${pageIndex + 1}/${plan.length}` });
     pages.push(canvas);
   });
-  await pngDownloadPages(pages, filename || "nxt5-stats-export.png");
+  return pages;
+}
+
+async function exportStatsPng(options) {
+  const pages = await renderStatsPng(options);
+  const singleMatch = !options.group && Array.isArray(options.matches) && options.matches.filter(Boolean).length === 1;
+  await pngDownloadPages(pages, options.filename || (singleMatch ? "nxt5-game.png" : "nxt5-stats-export.png"));
 }
 
 function metricSideMarkerMeta(marker) {
@@ -2141,4 +2148,4 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   );
 }
 
-export { exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
+export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };

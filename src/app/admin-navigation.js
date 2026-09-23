@@ -15,6 +15,7 @@ export const ADMIN_GROUPS = [
     { id: "launch", path: "/admin/preparer-vente", label: "Préparer la vente" },
   ] },
   { label: "Configuration", pages: [
+    { id: "exports", path: "/admin/exports", label: "Exports" },
     { id: "reminders", path: "/admin/rappels", label: "Rappels e-mail" },
     { id: "integrations", path: "/admin/integrations", label: "Intégrations" },
   ] },

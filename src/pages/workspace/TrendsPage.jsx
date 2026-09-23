@@ -117,7 +117,7 @@ export function buildTrendsPngData(matches = []) {
   return { ...results(matches), gold, deaths, kills, sides, roles, champions: [...champions.values()].map((entry) => ({ champion: entry.champion, ...results(entry.matches) })).sort((a, b) => b.games - a.games || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), "fr")) };
 }
 
-export async function exportTrendsPng({ matches = [], teamName = "Notre équipe", categoryName = "Toutes les games", periodLabel = "Historique complet", filename }) {
+export async function renderTrendsPng({ matches = [], teamName = "Notre équipe", categoryName = "Toutes les games", periodLabel = "Historique complet" }) {
   await document.fonts?.ready;
   const report = buildTrendsPngData(matches);
   const champions = report.champions.slice(0, 6);
@@ -202,7 +202,12 @@ export async function exportTrendsPng({ matches = [], teamName = "Notre équipe"
   if (!champions.length) label("Aucun champion renseigné", margin, championY + 160, contentWidth);
   label("— : donnée indisponible · Les comptes sous les moyennes indiquent les games mesurées dans la sélection.", margin, H - 97, contentWidth);
   pngFooter(ctx, { width: W, height: H, label: "Tendances d’équipe" });
-  await pngDownload(canvas, filename || "nxt5-tendances.png");
+  return canvas;
+}
+
+export async function exportTrendsPng(options) {
+  const canvas = await renderTrendsPng(options);
+  await pngDownload(canvas, options.filename || "nxt5-tendances.png");
   return canvas;
 }
 
