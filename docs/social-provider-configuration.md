@@ -37,6 +37,8 @@ Valeurs à enregistrer pour le client Web :
 
 Google est la première connexion à mettre en service. Apple et Discord restent désactivés ; la demande Riot est déjà envoyée et attend sa réponse. La prévisualisation de la PR 60 est publiée, mais le code d’authentification sociale n’est pas encore en production. La migration `social-auth-20260923-v1` doit être confirmée sur la base cible avant l’activation.
 
+État de déploiement relevé en lecture seule le 23 septembre : production sur `9e30f58`, prévisualisation 60 sur `0afb95a`, variables `GOOGLE_AUTH_*` absentes, migration sociale et table `social_identities` absentes. La prévisualisation hérite actuellement du même `DATABASE_URL` que la production via le contexte `all` : elle ne constitue donc pas un environnement de recette isolé. Prévoir une base distincte pour des essais OAuth isolés ; toute migration sur la connexion actuelle affecterait la production.
+
 ### Paramètres techniques
 
 Créer un client OAuth de type application Web dans Google Cloud, configurer le nom NXT5, le domaine, les pages de confidentialité et conditions ainsi que l’URL de retour ci-dessus. Renseigner `GOOGLE_AUTH_CLIENT_ID` et `GOOGLE_AUTH_CLIENT_SECRET`, puis `GOOGLE_AUTH_ENABLED=true` lorsque le client est prêt pour le public visé. Les autorisations demandées sont `openid email` ; le code serveur emploie PKCE S256 et un nonce. Aucun accès Drive, Contacts ou Calendar n’est demandé. [Configuration et flux OpenID Connect Google](https://developers.google.com/identity/openid-connect/openid-connect), [capacités publiées par Google](https://accounts.google.com/.well-known/openid-configuration).
