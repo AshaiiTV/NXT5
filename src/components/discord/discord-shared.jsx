@@ -7,6 +7,12 @@ import "./discord.css";
 export const discordQuery = (endpoint, values) => `${endpoint}?${new URLSearchParams(Object.entries(values).filter(([, value]) => value != null && value !== ""))}`;
 export const discordPost = (body) => ({ method: "POST", body: JSON.stringify(body) });
 
+export function matchingDiscordConfiguration(connection, routes) {
+  if (!connection || !routes) return false;
+  if (routes.guildId != null && routes.guildId !== connection.guildId) return false;
+  return routes.configVersion == null || connection.configVersion == null || String(routes.configVersion) === String(connection.configVersion);
+}
+
 export function useDiscordResource(path, revision = 0, { keepPreviousData = false } = {}) {
   const [state, setState] = useState({ path: null, data: null, loading: true, error: "" });
   useEffect(() => {
@@ -80,7 +86,7 @@ const previewText = (value) => String(value ?? "").replace(/\\([\\`*_{}\[\]<>~|]
 function previewGamePath(value) {
   try {
     const url = new URL(value);
-    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password && url.pathname === "/statistiques"
+    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password && ["/statistiques", "/games"].includes(url.pathname)
       ? url.pathname + url.search : null;
   } catch { return null; }
 }

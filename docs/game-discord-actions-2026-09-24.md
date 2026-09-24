@@ -1,6 +1,6 @@
 # Actions d’une partie — 24 septembre 2026
 
-L’import appartient à la bibliothèque et aux groupes. Dès qu’une partie est ouverte, son bouton et son dialogue disparaissent, même avec une ancienne URL combinant `match` et `import=1`. Les changements de sélection, le retour et la suppression retirent le paramètre d’import pour éviter une réouverture involontaire.
+L’import appartient à la bibliothèque et à la liste des groupes. Dès qu’une partie est ouverte, son bouton et son dialogue disparaissent, même avec une ancienne URL combinant `match` et `import=1`. Les changements de sélection, le retour et la suppression retirent le paramètre d’import pour éviter une réouverture involontaire. L’[extension aux groupes](group-discord-export-2026-09-24.md) applique également cette règle dans le détail d’un groupe.
 
 « Exporter sur Discord » remplace « Publier sur Discord » près d’« Exporter PNG ». Cet accès reste visible pour le propriétaire et le staff autorisé. La fenêtre explique un bot indisponible, une équipe non reliée, une erreur ou un salon manquant. L’unique destination de publication accessible est présélectionnée ; plusieurs destinations exigent un choix. L’aperçu puis « Publier dans #… » réutilisent le circuit du bot existant, avec les mêmes droits, révisions, pauses et protections contre les doublons. Le salon des commandes ne remplace pas la destination de publication.
 

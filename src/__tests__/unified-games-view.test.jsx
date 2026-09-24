@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { readRoute } from "../app/routing.js";
+import DiscordGroupShare from "../components/discord/DiscordGroupShare.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
 import { TabNav } from "../components/ui/Core.jsx";
 import { GameWorkspace, MatchDataPanel } from "../pages/workspace/GameWorkspace.jsx";
@@ -243,17 +244,23 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
     expect(renderer.root.findAllByType(MatchDataPanel)).toHaveLength(0);
     expect(lists(renderer)).toHaveLength(1);
+    if (returnSearch.includes("archive=")) {
+      expect(button(renderer, "Importer une partie")).toBeUndefined();
+      await click(renderer, "Tous les groupes");
+      expect(window.location.search).toBe("?view=groups");
+    }
     await click(renderer, "Importer une partie");
     expect(new URLSearchParams(window.location.search).get("import")).toBe("1");
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
     await click(renderer, "Fermer la fenêtre");
-    expect(window.location.search).toBe(returnSearch);
+    expect(window.location.search).toBe(returnSearch.includes("archive=") ? "?view=groups" : returnSearch);
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
   });
 
-  it("clears an open import when selecting a game so returning does not reopen it", async () => {
+  it("keeps a stale group import closed when opening and returning from a game", async () => {
     const renderer = await mount("/games?archive=block&context=scrim&import=1");
-    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
     await act(async () => renderer.root.findByType(ImportedGames).props.onSelectMatch("one"));
     expect(new URLSearchParams(window.location.search).get("match")).toBe("one");
     expect(new URLSearchParams(window.location.search).has("import")).toBe(false);
@@ -264,7 +271,7 @@ describe("unified Games workspace", () => {
     await click(renderer, "Retour au groupe");
     expect(window.location.search).toBe("?archive=block&context=scrim");
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
-    expect(button(renderer, "Importer une partie")).toBeTruthy();
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
   });
 
   it("does not reopen a stale import after deleting the selected game", async () => {
@@ -276,11 +283,11 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
     expect(lists(renderer)).toHaveLength(1);
-    expect(button(renderer, "Importer une partie")).toBeTruthy();
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
   });
 
   it("opens the imported game directly after the import flow succeeds", async () => {
-    const renderer = await mount("/games?archive=block&import=1");
+    const renderer = await mount("/games?import=1");
     await act(async () => renderer.root.findByType(ImportGameFlow).props.onImported({ match: { id: "imported" } }));
     expect(window.location.search).toBe("?match=imported");
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
@@ -295,6 +302,9 @@ describe("unified Games workspace", () => {
   it("opens a group, its game statistics and returns without duplicating the game list", async () => {
     const renderer = await mount("/statistiques?archive=block");
     expect(text(renderer.root)).toContain("Résultats du groupe");
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    expect(button(renderer, "Exporter sur Discord")).toBeTruthy();
+    expect(renderer.root.findByType(DiscordGroupShare).props.archiveId).toBe("block");
     expect(renderer.root.findAllByType(ImportedGames)).toHaveLength(1);
     expect(lists(renderer)).toHaveLength(1);
     expect(rows(renderer)).toHaveLength(2);
@@ -309,6 +319,7 @@ describe("unified Games workspace", () => {
     expect(rows(renderer)).toHaveLength(2);
     await click(renderer, "Tous les groupes");
     expect(window.location.search).toBe("?view=groups");
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
     expect(lists(renderer)).toHaveLength(0);
     const group = buttons(renderer).find((node) => node.props.className === "games-group-open");
     expect(text(group)).toContain("Bloc scrim");
@@ -328,6 +339,35 @@ describe("unified Games workspace", () => {
     await browserBack("/games");
     expect(lists(renderer)).toHaveLength(1);
     expect(renderer.root.findByType(ImportedGames).props.scopeName).toBe("");
+  });
+
+  it.each(["/games?archive=block&import=1", "/games?archive=missing&import=1"])("does not mount import controls or its dialog inside a direct group URL %s", async (path) => {
+    const renderer = await mount(path);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+  });
+
+  it("does not expose an import through the empty group state", async () => {
+    const props = settings();
+    props.data.matchArchives[0].match_ids = [];
+    const renderer = await mount("/games?archive=block", props);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    expect(renderer.root.findByType(ImportedGames).props.emptyAction).toBeNull();
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    await click(renderer, "Tous les groupes");
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
+  });
+
+  it.each([
+    ["owner", null, true],
+    ["staff", { team_id: "team", user_id: "staff", role: "coach" }, true],
+    ["staff", { team_id: "team", user_id: "staff", role: "player" }, false],
+    ["staff", { team_id: "other", user_id: "staff", role: "coach" }, false],
+  ])("gates group Discord export for %s with membership %o", async (userId, currentMember, allowed) => {
+    const renderer = await mount("/games?archive=block", { ...settings(), user: { id: userId }, currentMember });
+    expect(Boolean(button(renderer, "Exporter sur Discord"))).toBe(allowed);
+    expect(apiFetch.mock.calls.some(([endpoint]) => endpoint.startsWith("team-discord-"))).toBe(false);
   });
 
   it("prioritizes statistics and reveals management actions only through the discrete options control", async () => {

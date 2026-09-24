@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { renderGamePublicationCanvas } from '../../../shared/publications/game-publication-canvas.js';
 import { renderDiscordPublicationCanvas } from '../../../shared/publications/discord-publication-canvas.js';
+import { renderGroupPublicationCanvas } from '../../../shared/publications/group-publication-canvas.js';
 
 let registered = false;
 let logoPromise: ReturnType<typeof loadImage> | undefined;
@@ -29,4 +30,11 @@ export async function renderGamePublicationPng(snapshot, { includeHints = true, 
   const { canvas, width, height } = await renderer(snapshot, { createCanvas, loadLogo: bundledLogo, includeHints });
   const bytes = await canvas.encode('png');
   return { bytes, mimeType: 'image/png' as const, width, height, filename: `nxt5-game-${String(snapshot.entityId || 'export').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}.png` };
+}
+
+export async function renderGroupPublicationPng(snapshot) {
+  prepareFont();
+  const { canvas, width, height } = await renderGroupPublicationCanvas(snapshot, { createCanvas, loadLogo: bundledLogo });
+  const bytes = await canvas.encode('png');
+  return { bytes, mimeType: 'image/png' as const, width, height, filename: `nxt5-group-${String(snapshot.entityId || 'export').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}.png` };
 }

@@ -3,17 +3,11 @@ import { Eye, Loader2, MessageSquare, RefreshCw, Send } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { GameOperationDialog } from "../games/GameOperationDialog.jsx";
 import { Button, SelectInput } from "../ui/Core.jsx";
-import { DiscordFeedback, DiscordHistory, DiscordPreview, discordQuery, useDiscordAction, useDiscordResource } from "./discord-shared.jsx";
+import { DiscordFeedback, DiscordHistory, DiscordPreview, discordQuery, matchingDiscordConfiguration, useDiscordAction, useDiscordResource } from "./discord-shared.jsx";
 
 export default function DiscordGameShare({ teamId, matchId, matchName, matchRevision = "", canPublish = false }) {
   if (!teamId || !matchId || !canPublish) return null;
   return <DiscordGameShareContent key={`${teamId}:${matchId}:${matchRevision}`} {...{ teamId, matchId, matchName }} />;
-}
-
-function matchingConfiguration(connection, routes) {
-  if (!connection || !routes) return false;
-  if (routes.guildId != null && routes.guildId !== connection.guildId) return false;
-  return routes.configVersion == null || connection.configVersion == null || String(routes.configVersion) === String(connection.configVersion);
 }
 
 function DiscordGameShareContent({ teamId, matchId, matchName }) {
@@ -23,7 +17,7 @@ function DiscordGameShareContent({ teamId, matchId, matchName }) {
   const connection = useDiscordResource(discordQuery("team-discord-connection", { teamId }), revision, { keepPreviousData: true });
   const connected = Boolean(connection.data?.connection?.guildId) && connection.data.connection.status !== "disconnected";
   const routes = useDiscordResource(connected ? discordQuery("team-discord-routes", { teamId }) : null, revision, { keepPreviousData: true });
-  const coherent = matchingConfiguration(connection.data?.connection, routes.data);
+  const coherent = matchingDiscordConfiguration(connection.data?.connection, routes.data);
   return <>
     <span ref={trigger} className="discord-share-action"><Button type="button" variant="ghost" icon={MessageSquare} aria-haspopup="dialog" aria-expanded={open} disabled={open} onClick={() => setOpen(true)}>Exporter sur Discord</Button></span>
     {open && <DiscordGameShareForm {...{ teamId, matchId, matchName, connection, routes, connected, coherent, revision }} onReload={() => setRevision((value) => value + 1)} onClose={() => setOpen(false)} returnFocusRef={trigger} />}

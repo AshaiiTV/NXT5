@@ -5,7 +5,7 @@ import path from 'node:path';
 const root = path.resolve(process.argv[2] || '.netlify/functions');
 const manifest = JSON.parse(readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 const checked = [];
-for (const name of ['discord-publish-background', 'team-discord-preview', 'team-discord-test', 'publication-asset']) {
+for (const name of ['discord-publish-background', 'team-discord-preview', 'team-discord-test', 'publication-asset', 'team-discord-group-preview', 'team-discord-group-publish']) {
   const entry = manifest.functions.find((item) => item.name === name);
   if (!entry || entry.runtimeVersion !== 'nodejs24.x') throw new Error(`Missing Node 24 function: ${name}`);
   if (name.endsWith('-background') && entry.invocationMode !== 'background') throw new Error(`Wrong invocation mode: ${name}`);
