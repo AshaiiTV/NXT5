@@ -2,6 +2,8 @@
 .exports-intro > svg { flex-shrink: 0; margin-top: 3px; color: var(--nxt5-accent); }
 .exports-intro strong, .exports-intro span { display: block; }
 .exports-intro strong { margin-bottom: 2px; color: var(--nxt5-text); font-weight: 650; }
+.exports-category { width: min(100%, 320px); margin-bottom: 16px; }
+.exports-category-note { margin-bottom: 16px; color: var(--nxt5-text-secondary); font-size: .875rem; line-height: 1.6; }
 .exports-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
 .exports-filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .exports-filters button[aria-pressed="true"] { border-color: #67e8f966; background: #67e8f914; color: #cffafe; }

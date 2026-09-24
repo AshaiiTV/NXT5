@@ -8,8 +8,9 @@ import { createExportExample } from "../pages/admin/export-examples.js";
 vi.mock("../pages/admin/export-examples.js", () => ({
   createExportExample: vi.fn(),
   EXPORT_TEMPLATES: [
-    { id: "game", title: "Statistiques d’une game", source: "Games", format: "PNG", description: "La game complète." },
-    { id: "audience", title: "Rapport de fréquentation", source: "Administration", format: "CSV", description: "Les mesures du site." },
+    { id: "game", category: "site", title: "Statistiques d’une game", source: "Games", format: "PNG", description: "La game complète." },
+    { id: "audience", category: "site", title: "Rapport de fréquentation", source: "Administration", format: "CSV", description: "Les mesures du site." },
+    { id: "discord-game", category: "bot", title: "Publication d’une game", source: "Bot Discord", format: "PNG", description: "Le visuel publié par le bot." },
   ],
 }));
 
@@ -25,7 +26,7 @@ beforeEach(async () => {
   pngExample = { blob: new Blob([bytes], { type: "image/png" }), filename: "nxt5-game-exemple.png", width: 4, height: 6 };
   const csvText = '"date";"visites"\r\n"2026-09-23";"12"\r\n';
   csvExample = { blob: new Blob(["\uFEFF", csvText], { type: "text/csv;charset=utf-8" }), filename: "nxt5-frequentation-exemple.csv", csvText };
-  createExportExample.mockImplementation(async (id) => id === "game" ? pngExample : csvExample);
+  createExportExample.mockImplementation(async (id) => id === "audience" ? csvExample : pngExample);
   createObjectURL = vi.spyOn(URL, "createObjectURL");
   revokeObjectURL = vi.spyOn(URL, "revokeObjectURL");
   vi.stubGlobal("document", { body: { style: { overflow: "auto" } }, createElement: vi.fn() });
@@ -106,7 +107,7 @@ describe("administration export previews", () => {
     await click("Réessayer", card("game"));
     expect(card("game").findAllByProps({ role: "alert" })).toHaveLength(0);
     expect(card("game").findAllByType("img")).toHaveLength(1);
-    expect(createExportExample.mock.calls.map(([id]) => id)).toEqual(["game", "audience", "game"]);
+    expect(createExportExample.mock.calls.map(([id]) => id)).toEqual(["game", "audience", "discord-game", "game"]);
     expect(revokeObjectURL).not.toHaveBeenCalled();
   });
 
@@ -155,15 +156,41 @@ describe("administration export previews", () => {
     expect(response.headers.get("content-type")).toBe("text/csv;charset=utf-8");
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array(await csvExample.blob.arrayBuffer()));
     await click("Fermer l’aperçu", dialog);
-    await click("Tous (2)");
+    await click("Tous (3)");
     expect(card("game").props.hidden).toBe(false);
-    expect(createExportExample).toHaveBeenCalledTimes(2);
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    expect(createExportExample).toHaveBeenCalledTimes(3);
+    expect(createObjectURL).toHaveBeenCalledTimes(3);
+  });
+
+  it("switches to bot exports from CSV, scopes formats and preserves generated previews", async () => {
+    await mount();
+    await click("Données CSV (1)");
+    const category = renderer.root.findByType("select");
+    await act(async () => category.props.onChange({ target: { value: "bot" } }));
+    expect(card("game").props.hidden).toBe(true);
+    expect(card("audience").props.hidden).toBe(true);
+    expect(card("discord-game").props.hidden).toBe(false);
+    expect(button("Tous (1)").props["aria-pressed"]).toBe(true);
+    expect(text(renderer.root.findByProps({ className: "exports-count" }))).toBe("1 modèle affiché");
+    expect(renderer.root.findAllByType("button").some(node => text(node).includes("Données CSV"))).toBe(false);
+    await click("Images PNG (1)");
+    await click("Voir le modèle", card("discord-game"));
+    expect(renderer.root.findByType("dialog").findByType("a").props.download).toBe(pngExample.filename);
+    await click("Fermer l’aperçu");
+    await act(async () => category.props.onChange({ target: { value: "site" } }));
+    expect(card("game").props.hidden).toBe(false);
+    expect(card("audience").props.hidden).toBe(false);
+    expect(card("discord-game").props.hidden).toBe(true);
+    expect(button("Tous (2)").props["aria-pressed"]).toBe(true);
+    await act(async () => category.props.onChange({ target: { value: "all" } }));
+    expect(card("discord-game").props.hidden).toBe(false);
+    expect(createExportExample).toHaveBeenCalledTimes(3);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
   });
 
   it("releases ready URLs on departure and ignores unfinished generation after unmount", async () => {
     const pending = deferred();
-    createExportExample.mockImplementation(id => id === "game" ? pending.promise : Promise.resolve(csvExample));
+    createExportExample.mockImplementation(id => id !== "audience" ? pending.promise : Promise.resolve(csvExample));
     await mount();
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     const csvUrl = createObjectURL.mock.results[0].value;
