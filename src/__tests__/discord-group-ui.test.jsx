@@ -145,6 +145,26 @@ describe("Discord group export", () => {
     expect(text(renderer.root)).toContain("Le bilan du groupe est publié sur Discord");
   });
 
+  it("keeps the association form and request identity after a mismatched existing message", async () => {
+    serve({
+      publications: [{ id: "history", requestId: "old-request", status: "uncertain" }],
+      publish: () => ({ publication: { requestId: "old-request", status: "uncertain", lastError: "Ce message ne correspond pas à ce bilan du groupe." } }),
+    });
+    const renderer = await mount(); await click(renderer, "Exporter sur Discord");
+    await click(renderer, "Associer le message existant");
+    await act(async () => renderer.root.findByType("input").props.onChange({ target: { value: "123456789012345678" } }));
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    expect(text(renderer.root)).toContain("Ce message ne correspond pas à ce bilan du groupe.");
+    expect(renderer.root.findByType("input").props.value).toBe("123456789012345678");
+    expect(button(renderer, "Vérifier et associer").props.disabled).toBe(false);
+    await click(renderer, "Vérifier ce même envoi");
+    expect(posts()).toEqual([
+      ["team-discord-group-publish", { teamId: "team", archiveId: "group", requestId: "old-request", action: "verify", messageId: "123456789012345678" }],
+      ["team-discord-group-publish", { teamId: "team", archiveId: "group", requestId: "old-request", action: "verify" }],
+    ]);
+    expect(posts().some(([, body]) => !body.action)).toBe(false);
+  });
+
   it.each([
     [{ ...connection, enabled: false }, "Les envois Discord sont suspendus"],
     [{ ...connection, connection: { ...connection.connection, paused: true, status: "paused" } }, "Les envois de l’équipe sont en pause"],

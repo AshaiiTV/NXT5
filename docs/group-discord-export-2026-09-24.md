@@ -15,3 +15,12 @@ La migration additive `20260924_discord_group_exports.sql`, enregistrée dans le
 La production Netlify applique cette migration après les contrôles et avant la publication du site. Les polices Inter, le logo complet et le module Canvas reprennent la configuration existante. Aucun secret Discord n’est transmis au navigateur.
 
 La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) est actualisée à son emplacement canonique ; aucune copie locale n’est créée.
+
+## Validation
+
+- Après intégration de `main` et de la nouvelle page Bot Discord (#76) : TypeScript, 112 suites / 1 924 tests et build de production réussis avec Node 24.
+- Les 23 tests backend spécifiques utilisent PostgreSQL/PGlite pour les contraintes concurrentes, droits, aperçus modifiés, reprise après erreur et association du message. Les 15 tests de migrations passent également.
+- Rendu PNG vérifié visuellement à 960 px avec groupe standard, noms longs, données partielles et groupe de 80 parties ; les cas de taille excessive sont couverts par les tests.
+- Chromium, vrais composants de l’espace Parties et cadre complet, données synthétiques et API simulées : 360, 390, 768, 1024 et 1440 px, aperçu, sélection du salon, focus, retour et association d’un message. Captures et harness locaux dans le dossier ignoré `responsive-audit-shots/group-discord/`.
+
+Aucun message Discord réel n’a été envoyé pendant les tests.
