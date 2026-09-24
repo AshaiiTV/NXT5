@@ -10,8 +10,8 @@
 .profile-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--nxt5-border-strong); }
 .profile-tabs > button { position: relative; flex: 1; min-width: 0; min-height: 64px; padding: 12px; text-align: left; border-radius: var(--nxt5-radius-button, 2px) var(--nxt5-radius-button, 2px) 0 0; color: var(--nxt5-text-secondary); }
 .profile-tabs > button:hover { background: rgba(255,255,255,.035); }
-.profile-tabs > button[aria-selected="true"] { background: rgba(103,232,249,.065); color: var(--nxt5-text); }
-.profile-tabs > button[aria-selected="true"]::after { content: ""; position: absolute; bottom: -1px; left: 12px; right: 12px; height: 3px; background: #67e8f9; }
+.profile-tabs > button[aria-selected="true"] { background: var(--nxt5-spectrum-soft); color: var(--nxt5-text); }
+.profile-tabs > button[aria-selected="true"]::after { content: ""; position: absolute; bottom: -1px; left: 12px; right: 12px; height: 3px; background: var(--nxt5-spectrum-gradient); }
 .profile-tabs strong { display: block; font-size: 14px; font-weight: 700; }
 .profile-tabs span { display: block; margin-top: 4px; font-size: 14px; line-height: 1.5; }
 .profile-mobile-navigation { display: none; }

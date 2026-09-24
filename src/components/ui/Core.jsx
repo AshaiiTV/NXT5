@@ -21,7 +21,7 @@ export function Surface({ children, className = "", delay = 0, glow = false }) {
         className
       )}
     >
-      {glow && <div aria-hidden="true" className="pointer-events-none absolute inset-x-5 top-0 z-[1] h-px bg-gradient-to-r from-transparent via-cyan-100/35 to-fuchsia-100/25" />}
+      {glow && <div aria-hidden="true" className="nxt5-surface-accent pointer-events-none absolute inset-x-5 top-0 z-[1] h-px" />}
       <div className="relative z-10">{children}</div>
     </div>
   );

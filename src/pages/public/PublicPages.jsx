@@ -15,7 +15,7 @@ import "./public-entry.css";
 function MarketingPreview() {
   return (
     <figure className="nxt5-entry-preview">
-      <Surface className="nxt5-entry-preview-surface">
+      <Surface glow className="nxt5-entry-preview-surface">
         <div className="nxt5-entry-preview-top">
           <span className="nxt5-entry-preview-brand"><Swords aria-hidden="true" size={18} />Parties</span>
           <span className="nxt5-entry-example">Exemple illustratif</span>
