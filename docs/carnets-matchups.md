@@ -83,4 +83,4 @@ La fonctionnalité réutilise les données déjà importées. Elle ne change pas
 
 La migration doit être appliquée avec le runner du dépôt avant l'utilisation de l'API. Si elle manque, l'API signale temporairement l'indisponibilité des carnets, sans tenter de créer le schéma pendant la requête. Le parcours de migration et les règles de preview sont décrits dans [Migrations de la base](../database/MIGRATIONS.md).
 
-Les règles visuelles et d'accessibilité figurent dans la [charte graphique](charte-graphique.md), section « Carnets de matchups dans les champions » : onglets accessibles au clavier, focus restitué au retour, contrôles tactiles et formulaires recomposés sur mobile.
+Les règles visuelles et d'accessibilité figurent dans la [charte graphique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md), section « Carnets de matchups dans les champions » : onglets accessibles au clavier, focus restitué au retour, contrôles tactiles et formulaires recomposés sur mobile.
