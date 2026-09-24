@@ -22,10 +22,12 @@ describe("current Discord publication result", () => {
     await send(); await send();
     expect(sends()).toHaveLength(1);
     expect(publication.busy).toBe(true);
+    expect(publication.submitting).toBe(true);
     expect(publication.receipt).toBeNull();
     expect(sends()[0][1].timeoutMs).toBe(60_000);
     await act(async () => finish({ jobs: [receipt] }));
     expect(publication.busy).toBe(false);
+    expect(publication.submitting).toBe(false);
     expect(publication.receipt).toEqual(receipt);
     expect(publication.error).toBe("");
     expect(apiFetch).toHaveBeenCalledTimes(1);
@@ -39,6 +41,7 @@ describe("current Discord publication result", () => {
     await send();
     expect(publication.busy).toBe(true);
     expect(publication.receipt.status).toBe("sending");
+    expect(publication.submitting).toBe(false);
     await act(async () => vi.advanceTimersByTimeAsync(1500));
     expect(publication.busy).toBe(false);
     expect(publication.receipt.status).toBe("succeeded");
@@ -69,6 +72,7 @@ describe("current Discord publication result", () => {
     await send();
     expect(publication.busy).toBe(true);
     expect(publication.receipt).toBeNull();
+    expect(publication.submitting).toBe(false);
     const requestId = JSON.parse(sends()[0][1].body).requestId;
     expect(apiFetch.mock.calls[1][0]).toContain(`requestId=${requestId}`);
     await act(async () => vi.advanceTimersByTimeAsync(1500));
@@ -95,6 +99,7 @@ describe("current Discord publication result", () => {
     await send();
     expect(publication.error).toBe("Les envois sont suspendus.");
     expect(publication.busy).toBe(false);
+    expect(publication.submitting).toBe(false);
     expect(apiFetch).toHaveBeenCalledTimes(1);
   });
 
