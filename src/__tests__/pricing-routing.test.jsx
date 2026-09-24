@@ -1,3 +1,4 @@
+import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -43,7 +44,7 @@ async function open(path) {
     scrollTo: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(),
     localStorage: { getItem: vi.fn() },
   });
-  vi.stubGlobal("document", { title: "" });
+  vi.stubGlobal("document", createSeoDocument());
   await act(async () => { renderer = TestRenderer.create(<AppLoadingProvider><Suspense fallback={<p>Chargement</p>}><NXT5 /></Suspense></AppLoadingProvider>); });
   await act(async () => { await vi.dynamicImportSettled(); });
   return renderer;

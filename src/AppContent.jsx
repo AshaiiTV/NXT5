@@ -7,6 +7,10 @@ import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gam
 import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks, SiteHeader } from "./pages/public/PublicPages.jsx";
+import { FeaturesPage } from "./pages/public/FeaturesPage.jsx";
+import SocialPage from "./pages/public/SocialPage.jsx";
+import { SupportPage } from "./pages/public/SupportPage.jsx";
+import { applyDocumentMetadata } from "./seo/metadata.js";
 import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
@@ -31,8 +35,6 @@ const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx")
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 
 const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
-const SocialPage = lazy(() => import("./pages/public/SocialPage.jsx"));
-const SupportPage = lazy(() => import("./pages/public/SupportPage.jsx").then((module) => ({ default: module.SupportPage })));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
 
@@ -417,7 +419,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
   const adminPage = adminPageFromRoute(route);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/fonctionnalites", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
@@ -425,9 +427,10 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
   if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label="Chargement de l’administration"><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
-  if (route.path === "/reseaux") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement des réseaux…</div>}><SocialPage navigate={navigate} user={user} /></Suspense>;
-  if (route.path === "/soutenir") return <Suspense fallback={<div className="p-6 text-slate-200" role="status">Chargement de la page de soutien…</div>}><SupportPage navigate={navigate} user={user} /></Suspense>;
+  if (route.path === "/reseaux") return <SocialPage navigate={navigate} user={user} />;
+  if (route.path === "/soutenir") return <SupportPage navigate={navigate} user={user} />;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
@@ -499,28 +502,9 @@ export default function NXT5() {
       : ["/games", "/integration", "/statistiques", "/rapports"].includes(route.path)
         ? gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))
       : NAV.find((item) => item.path === route.path)?.label;
-    const publicTitles = {
-      "/": "NXT5",
-      "/tarifs": "Tarifs — NXT5",
-      "/connexion": "Connexion — NXT5",
-      "/creer-un-compte": "Créer un compte — NXT5",
-      "/inscription": "Créer un compte — NXT5",
-      "/mot-de-passe-oublie": "Mot de passe oublié — NXT5",
-      "/reinitialiser-mot-de-passe": "Réinitialiser le mot de passe — NXT5",
-      "/verify-email": "Vérification e-mail — NXT5",
-      "/verified": "E-mail vérifié — NXT5",
-      "/mentions-legales": "Mentions légales — NXT5",
-      "/confidentialite": "Confidentialité — NXT5",
-      "/cookies": "Cookies — NXT5",
-      "/conditions": "Conditions générales d’utilisation — NXT5",
-      "/reglement": "Règlement — NXT5",
-      "/contact": "Contact — NXT5",
-      "/reseaux": "Réseaux — NXT5",
-      "/soutenir": "Soutenir NXT5",
-      "/admin/integrations": "Intégrations — NXT5",
-    };
     const adminPage = adminPageFromRoute(route);
-    document.title = adminPage ? `${adminPage.label} · Administration — NXT5` : publicTitles[route.path] || (navTitle ?`${navTitle} — NXT5` : "NXT5");
+    const title = adminPage ? `${adminPage.label} · Administration — NXT5` : navTitle ? `${navTitle} — NXT5` : undefined;
+    applyDocumentMetadata(isKnownPath(route.path) ? route.path : "/404", { title });
   }, [route.path, route.search]);
 
   useEffect(() => {

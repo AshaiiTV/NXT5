@@ -1,15 +1,15 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import { resolveSeoConfig, withMetadata } from "./tools/seo-build.mjs";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "PUBLIC_");
-  const siteUrl = new URL(process.env.PUBLIC_SITE_URL || env.PUBLIC_SITE_URL || process.env.URL || "https://nxt5.org");
-  if (!["https:", "http:"].includes(siteUrl.protocol) || siteUrl.username || siteUrl.password) throw new Error("PUBLIC_SITE_URL must be an HTTP(S) site URL.");
-  const publicSiteUrl = siteUrl.origin;
+  const seo = resolveSeoConfig({ ...env, ...process.env });
   return {
+  define: { "import.meta.env.NXT5_NOINDEX": JSON.stringify(seo.noindex) },
   plugins: [react(), {
     name: "nxt5-public-site-metadata",
-    transformIndexHtml(html) { return html.replaceAll("%PUBLIC_SITE_URL%", publicSiteUrl); },
+    transformIndexHtml(html) { return withMetadata(html, "/", seo); },
   }],
   // Each PostgreSQL suite starts its own WASM engine. Bound concurrency so the
   // full verification stays reliable alongside native image rendering on CI.
