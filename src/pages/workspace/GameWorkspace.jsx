@@ -1375,7 +1375,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : "games";
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
-  const [importOpen, setImportOpen] = useState(urlImportOpen);
+  const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId);
   const [importBusy, setImportBusy] = useState(false);
   const [workspaceView, setWorkspaceView] = useState(urlView);
   const [exportingStats, setExportingStats] = useState(false);
@@ -1390,11 +1390,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   useEffect(() => {
     setSelectedMatchId(urlMatchId);
     setSelectedArchiveId(urlArchiveId);
-    setImportOpen(urlImportOpen);
+    setImportOpen(urlImportOpen && !urlMatchId);
     setWorkspaceView(urlView);
   }, [urlMatchId, urlArchiveId, urlImportOpen, urlView]);
 
   function updateLocation(changes) {
+    if ("match" in changes) changes = { ...changes, import: "" };
     const next = new URLSearchParams(window.location.search);
     Object.entries(changes).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
     if ("match" in changes) setSelectedMatchId(changes.match || "");
@@ -1524,9 +1525,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
     <PageHeader eyebrow={selectedTeamName} title="Parties" subtitle={selectedMatchId ? "Comprends le résultat, choisis une piste de travail, puis explore les détails." : "Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session."}>
-      <div ref={importTriggerRef}>{renderImportAction(selectedMatchId ? "ghost" : "primary")}</div>
+      {!selectedMatchId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
-    {importOpen && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
+    {importOpen && !selectedMatchId && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
       <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} />
     </GameOperationDialog>}
 
