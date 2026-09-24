@@ -921,7 +921,7 @@ describe("Discord channel picker", () => {
     let recovered = false;
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? recovered ? connection : { ...connection, ...metadata } : path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    await openSalons(renderer);
+    await openStep(renderer, 1);
     const panel = openPanel(renderer)[0];
     expect(text(panel)).toContain(explanation);
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
@@ -945,5 +945,92 @@ describe("Discord channel picker", () => {
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
     expect(posts()).toEqual([]);
     expect(apiFetch.mock.calls.some(([path]) => path === "team-discord-routes?teamId=second-team")).toBe(true);
+  });
+});
+
+
+describe("Discord clarity and truthful overview", () => {
+  const commandsConnection = { ...connection, connection: { ...connection.connection, commandChannelId: "channel-1" } };
+  function serve(metadata, routes = [route]) {
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? metadata
+      : path.startsWith("team-discord-routes") ? { routes, configVersion: 3, guildId: "123" }
+      : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] });
+  }
+
+  it("does not announce manual publishing or a complete setup without a saved destination", async () => {
+    serve(commandsConnection, []);
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const overview = renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" });
+    expect(text(overview)).toContain("Aucun salon de publication enregistré");
+    expect(text(overview)).toContain("Publications à configurer");
+    expect(text(overview)).not.toContain("Tout est en place");
+    expect(discordConnectionState(commandsConnection, { routes: [] })[0]).toBe("Publications à configurer");
+    expect(posts()).toEqual([]);
+  });
+
+  it("does not announce readiness when a saved publication channel loses its send permission", async () => {
+    const metadata = { ...commandsConnection, connection: { ...commandsConnection.connection, commandChannelId: "channel-2" }, channels: commandsConnection.channels.map((channel) => channel.id === route.channelId ? { ...channel, canSend: false } : channel) };
+    serve(metadata);
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const overview = renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" });
+    expect(text(overview)).toContain("Salons à vérifier");
+    expect(text(overview)).not.toContain("Tout est en place");
+    expect(button(renderer, "Vérifier les salons").props.disabled).toBe(false);
+    expect(posts()).toEqual([]);
+  });
+
+  it("keeps activity and help reachable for staff after an team has been disconnected", async () => {
+    serve({ ...connection, connection: { ...connection.connection, status: "disconnected" } });
+    const renderer = await mount(<DiscordSettings teamId="team" canPublish />);
+    const nav = renderer.root.findByProps({ "aria-label": "Gestion du bot de l’équipe" });
+    expect(text(nav)).toContain("Activité");
+    expect(text(nav)).not.toContain("Salons");
+    await click(renderer, "Activité");
+    expect(renderer.root.findByProps({ "aria-label": "Historique Discord" })).toBeDefined();
+    expect(posts()).toEqual([]);
+  });
+
+  it("shows failed initial verification as an error instead of an endless loading state", async () => {
+    apiFetch.mockRejectedValue(new Error("Réseau indisponible"));
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(text(renderer.root)).toContain("Vérification impossible");
+    expect(text(renderer.root)).not.toContain("Vérification…");
+    expect(button(renderer, "Actualiser Discord").props.disabled).toBe(false);
+  });
+
+  it("copies a complete command and opens the correct team channel without publishing", async () => {
+    serve(commandsConnection);
+    const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
+    vi.stubGlobal("navigator", { clipboard });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const copy = renderer.root.findByProps({ "aria-label": "Copier la commande de dernière partie" });
+    await act(async () => copy.props.onClick());
+    expect(clipboard.writeText).toHaveBeenCalledWith("/nxt voir sujet:derniere");
+    expect(text(renderer.root)).toContain("Commande copiée");
+    expect(renderer.root.findAllByType("a").find((link) => link.props.href === "https://discord.com/channels/123/channel-1").props.target).toBe("_blank");
+    expect(posts()).toEqual([]);
+  });
+
+  it("makes a destination refresh failure actionable without declaring the bot ready", async () => {
+    let fail = false;
+    apiFetch.mockImplementation(async (path) => {
+      if (path.startsWith("team-discord-connection")) return commandsConnection;
+      if (path.startsWith("team-discord-routes")) {
+        if (fail) throw new Error("Salons indisponibles");
+        return { routes: [route], configVersion: 3, guildId: "123" };
+      }
+      return { ...preview, latestTest: null };
+    });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    fail = true;
+    await click(renderer, "Actualiser Discord");
+    const overview = renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" });
+    expect(text(overview)).toContain("Publications à vérifier");
+    expect(text(overview)).toContain("#games");
+    expect(text(overview)).not.toContain("Tout est en place");
+    expect(button(renderer, "Vérifier les salons").props.disabled).toBe(false);
+    await click(renderer, "Vérifier les salons");
+    expect(text(openPanel(renderer)[0])).toContain("Salons indisponibles");
+    expect(posts()).toEqual([]);
   });
 });
