@@ -15,7 +15,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
         if (value === null || value === undefined) return null;
         if ([114, 3802].includes(field.dataTypeID)) return JSON.stringify(value);
         if (typeof value === 'boolean') return value ? 't' : 'f';
-        if (value instanceof Date) return value.toISOString();
+        if (value instanceof Date) return value.toISOString().replace('T', ' ').replace('Z', '+00');
         return String(value);
       })), rowCount: result.affectedRows ?? result.rows.length };
     }
@@ -36,6 +36,7 @@ vi.mock('../../netlify/functions/_lib/publication-assets', () => ({ getPublicati
 vi.mock('../../netlify/functions/_lib/publication-render', () => ({ renderGamePublicationPng: state.render }));
 
 import deliveries from '../../netlify/functions/team-discord-deliveries';
+import publish from '../../netlify/functions/team-discord-publish';
 import retry from '../../netlify/functions/team-discord-retry';
 import routes from '../../netlify/functions/team-discord-routes';
 import asset from '../../netlify/functions/publication-asset';
@@ -96,6 +97,113 @@ beforeEach(async () => {
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 afterAll(async () => { await state.pg?.close(); });
+
+describe('Immediate manual Discord publication', () => {
+  const request = (overrides: object = {}) => post({ matchId: match, routeId: route, snapshotRevision: 1, ...overrides });
+
+  it('sends the requested game immediately, ignores older backlog and returns the confirmed Discord link', async () => {
+    const backlog = await seedPublication({ targetMatch: secondMatch, status: 'queued', publicationState: 'pending' });
+    state.send.mockResolvedValue({ id: message });
+    const response = await publish(request(), {} as any);
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0]).toMatchObject({ status: 'succeeded', matchId: match, channelId: channel,
+      routeId: route, configVersion: 1, revision: 1, errorCode: null, lastError: null,
+      messageUrl: `https://discord.com/channels/${guild}/${channel}/${message}` });
+    expect(result.jobs[0].updatedAt).toBeTruthy();
+    expect(state.send).toHaveBeenCalledTimes(1);
+    expect(state.send).toHaveBeenCalledWith(`/channels/${channel}/messages`, expect.objectContaining({ method: 'POST' }));
+    expect(await rows('select status,attempts from publication_jobs where id=$1', [backlog.jobId])).toEqual([{ status: 'queued', attempts: 1 }]);
+    expect(state.wake).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the actual failure category and lets the same explicit share recover after the token is fixed', async () => {
+    state.send.mockRejectedValueOnce(new DiscordApiError(401, 'DISCORD_UNAUTHORIZED'));
+    const failed = await (await publish(request(), {} as any)).json();
+    expect(failed.jobs[0]).toMatchObject({ status: 'blocked', errorCode: 'DISCORD_UNAUTHORIZED', messageUrl: null });
+    expect(failed.jobs[0].lastError).toContain('jeton du bot');
+    const history = await (await deliveries(get('team-discord-deliveries', { matchId: match }), {} as any)).json();
+    expect(history.deliveries[0]).toMatchObject({ id: failed.jobs[0].id, errorCode: 'DISCORD_UNAUTHORIZED',
+      channelId: channel, routeId: route, configVersion: 1, revision: 1, updatedAt: failed.jobs[0].updatedAt });
+    state.send.mockResolvedValue({ id: message });
+    const retried = await (await publish(request(), {} as any)).json();
+    expect(retried.jobs[0]).toMatchObject({ id: failed.jobs[0].id, status: 'succeeded', errorCode: null, lastError: null });
+    expect(await rows('select status,attempts,retry_base_attempts from publication_jobs')).toEqual([{ status: 'succeeded', attempts: 2, retry_base_attempts: 1 }]);
+    expect(await rows('select attempt,status from discord_deliveries order by attempt')).toEqual([{ attempt: 1, status: 'blocked' }, { attempt: 2, status: 'succeeded' }]);
+  });
+
+  it('never double-sends during another request, after confirmation, or after an uncertain acknowledgement', async () => {
+    let announce!: () => void;
+    let release!: () => void;
+    const sending = new Promise<void>(resolve => { announce = resolve; });
+    const complete = new Promise<void>(resolve => { release = resolve; });
+    state.send.mockImplementationOnce(async () => { announce(); await complete; return { id: message }; });
+    const first = publish(request(), {} as any);
+    await sending;
+    try {
+      const concurrent = await publish(request(), {} as any);
+      expect(concurrent.status).toBe(202);
+      expect((await concurrent.json()).jobs[0]).toMatchObject({ status: 'sending', messageUrl: null });
+      expect(state.send).toHaveBeenCalledTimes(1);
+    } finally { release(); }
+    expect((await (await first).json()).jobs[0].status).toBe('succeeded');
+    expect((await (await publish(request(), {} as any)).json()).jobs[0].status).toBe('succeeded');
+    expect(state.send).toHaveBeenCalledTimes(1);
+
+    state.send.mockRejectedValueOnce(new DiscordApiError(503, 'DISCORD_UNAVAILABLE', { ambiguous: true }));
+    const uncertain = await (await publish(request({ matchId: secondMatch }), {} as any)).json();
+    expect(uncertain.jobs[0]).toMatchObject({ status: 'uncertain', messageUrl: null });
+    expect(uncertain.jobs[0].lastError).toContain('Vérifie le salon');
+    expect((await (await publish(request({ matchId: secondMatch }), {} as any)).json()).jobs[0].status).toBe('uncertain');
+    expect(state.send).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves Discord rate-limit backoff when publish is clicked again', async () => {
+    state.send.mockRejectedValueOnce(new DiscordApiError(429, 'DISCORD_RATE_LIMITED', { retryAfter: 30 }));
+    const first = await publish(request(), {} as any);
+    expect(first.status).toBe(202);
+    const job = (await first.json()).jobs[0];
+    expect(job).toMatchObject({ status: 'retry_wait', errorCode: 'DISCORD_RATE_LIMITED', messageUrl: null });
+    const second = await publish(request(), {} as any);
+    expect(second.status).toBe(202);
+    expect((await second.json()).jobs[0]).toMatchObject({ id: job.id, status: 'retry_wait' });
+    expect(state.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not expose raw rendering errors and refuses foreign destinations before sending', async () => {
+    expect((await publish(request({ routeId: otherRoute }), {} as any)).status).toBe(404);
+    expect((await publish(request({ matchId: otherMatch }), {} as any)).status).toBe(404);
+    expect(state.send).not.toHaveBeenCalled();
+    state.render.mockRejectedValueOnce(new Error('SECRET_PROVIDER_DEBUG'));
+    const failed = await publish(request(), {} as any);
+    expect(failed.status).toBe(202);
+    const text = await failed.text();
+    expect(text).not.toContain('SECRET_PROVIDER_DEBUG');
+    expect(JSON.parse(text).jobs[0]).toMatchObject({ status: 'retry_wait', errorCode: 'DISCORD_PUBLICATION_FAILED', messageUrl: null });
+    expect(state.send).not.toHaveBeenCalled();
+  });
+
+  it('correlates polling with this explicit request instead of an old blocked job or another team', async () => {
+    const requestId = id(90);
+    const old = await seedPublication({ status: 'blocked', publicationState: 'blocked' });
+    const lookup = () => deliveries(get('team-discord-deliveries', { matchId: match, requestId }), {} as any);
+    expect((await (await lookup()).json()).deliveries).toEqual([]);
+    // Even a matching request identifier on another team cannot attach an old job.
+    await rows("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'discord.publish_requested','team',$2,$3::jsonb)",
+      [otherOwner, otherTeam, JSON.stringify({ requestId, jobIds: [old.jobId] })]);
+    expect((await (await lookup()).json()).deliveries).toEqual([]);
+    state.send.mockResolvedValue({ id: message });
+    const response = await (await publish(request({ requestId }), {} as any)).json();
+    expect(response.requestId).toBe(requestId);
+    const found = (await (await lookup()).json()).deliveries;
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({ id: response.jobs[0].id, status: 'succeeded' });
+    expect((await (await deliveries(get('team-discord-deliveries', { requestId: id(91) }), {} as any)).json()).deliveries).toEqual([]);
+    expect((await deliveries(get('team-discord-deliveries', { requestId: 'not-a-uuid' }), {} as any)).status).toBe(400);
+    expect((await publish(request({ requestId: 'not-a-uuid' }), {} as any)).status).toBe(400);
+  });
+});
 
 describe('Discord withdrawal HTTP lifecycle', () => {
   it('preserves pending removal after a network error, retries idempotent DELETE, and never republishes', async () => {

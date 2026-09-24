@@ -26,7 +26,15 @@ export async function enqueueManualPublication({teamId, matchId, routeId, expect
     throw error;
   }
   if (!jobs.length) throw Object.assign(new Error('La connexion et la destination doivent être actives et compatibles avec les catégories de cette game.'), {status: 409});
-  return jobs;
+  // The eight-second debounce belongs to automatic imports. An explicit share
+  // is ready now, including a formerly blocked job reused by the SQL function.
+  // Do not disturb a worker that already claimed it or a rate-limit backoff.
+  const ready = await sql`update publication_jobs j set available_at=now(),last_error=null,last_error_code=null,updated_at=now()
+    from discord_publications p where j.id=any(${jobs.map((job) => job.id)}::uuid[]) and j.team_id=${teamId}
+      and p.id=j.publication_id and p.team_id=j.team_id and j.status='queued'
+      and p.state in ('pending','published') and (p.lease_expires_at is null or p.lease_expires_at<now())
+    returning j.*`;
+  return jobs.map((job) => ready.find((updated) => updated.id === job.id) || job);
 }
 
 export async function retryPublicationJob({teamId, jobId}: {teamId: string; jobId: string}) {
@@ -53,12 +61,15 @@ export async function retryPublicationJob({teamId, jobId}: {teamId: string; jobI
 
 // The publication row is the mutex shared by ALL revisions. SKIP LOCKED makes
 // concurrent workers independent without holding a DB transaction over HTTP.
-export async function claimPublicationJob() {
+export async function claimPublicationJob(target?: { teamId: string; jobId: string }) {
   const token = randomUUID();
   const rows = await sql`with candidate as (
     select p.id from discord_publications p join publication_jobs j on j.publication_id=p.id
       join discord_connections c on c.team_id=p.team_id join discord_routes r on r.id=p.route_id
     where j.status in ('queued','retry_wait') and j.available_at<=now() and j.source_revision=p.desired_revision
+      and j.team_id=p.team_id
+      and (${target?.jobId ?? null}::uuid is null or j.id=${target?.jobId ?? null}::uuid)
+      and (${target?.teamId ?? null}::uuid is null or j.team_id=${target?.teamId ?? null}::uuid)
       and p.state in ('pending','published') and (p.lease_expires_at is null or p.lease_expires_at<now())
       and p.source_deleted_at is null
       and c.status='active' and r.enabled and r.guild_id=c.guild_id and r.channel_id=p.channel_id
