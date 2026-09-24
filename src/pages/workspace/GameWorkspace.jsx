@@ -18,6 +18,7 @@ import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
 import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
 import DiscordGameShare from "../../components/discord/DiscordGameShare.jsx";
+import DiscordGroupShare from "../../components/discord/DiscordGroupShare.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
@@ -1375,7 +1376,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : "games";
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
-  const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId);
+  const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
   const [importBusy, setImportBusy] = useState(false);
   const [workspaceView, setWorkspaceView] = useState(urlView);
   const [exportingStats, setExportingStats] = useState(false);
@@ -1390,12 +1391,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   useEffect(() => {
     setSelectedMatchId(urlMatchId);
     setSelectedArchiveId(urlArchiveId);
-    setImportOpen(urlImportOpen && !urlMatchId);
+    setImportOpen(urlImportOpen && !urlMatchId && !urlArchiveId);
     setWorkspaceView(urlView);
   }, [urlMatchId, urlArchiveId, urlImportOpen, urlView]);
 
   function updateLocation(changes) {
-    if ("match" in changes) changes = { ...changes, import: "" };
+    if ("match" in changes || "archive" in changes) changes = { ...changes, import: "" };
     const next = new URLSearchParams(window.location.search);
     Object.entries(changes).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
     if ("match" in changes) setSelectedMatchId(changes.match || "");
@@ -1446,6 +1447,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     updateLocation({ import: "", view: "", archive: "", match: id ? String(id) : "" });
   }
   function renderImportAction(variant = "primary") {
+    if (selectedMatchId || selectedArchiveId) return null;
     if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>Choisir une équipe</Button><p>Crée ou rejoins une équipe pour y retrouver tes parties.</p></div>;
     if (!canImport) return <p className="games-import-help">Le capitaine ou le staff peut importer les parties de ton équipe.</p>;
     if (!importReady) return <div className="games-import-action"><Button type="button" variant={variant} icon={Plus} onClick={() => openAppPath("/gestion-equipe?section=roster")}>Ajouter les joueurs</Button><p>Ajoute au moins 5 profils joueurs distincts pour importer une partie.</p></div>;
@@ -1525,9 +1527,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
     <PageHeader eyebrow={selectedTeamName} title="Parties" subtitle={selectedMatchId ? "Comprends le résultat, choisis une piste de travail, puis explore les détails." : "Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session."}>
-      {!selectedMatchId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
+      {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
-    {importOpen && !selectedMatchId && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
+    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
       <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} />
     </GameOperationDialog>}
 
@@ -1575,7 +1577,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         </form>}
       </Surface>}
       {selectedArchive && <>
-        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir le débrief</Button>}</div></div>
+        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir le débrief</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
