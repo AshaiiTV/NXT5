@@ -34,6 +34,8 @@ describe('controlled database migrations', () => {
     await db.query('select attempts, rate_key, updated_at from rate_limits');
     await db.query('select team_id, player_id from player_coaching_notes');
     await db.query('select user_id, plan_code, starts_at, ends_at, revoked_at, note, revision from account_subscriptions');
+    await db.query('select guild_id, channel_id, config_version from discord_community_settings');
+    await db.query('select reference, application_id, bot_id, content_hash, status, message_id from discord_community_announcements');
     await db.query(`insert into access_requests (contact_name, email, team_name, team_key, role, plan_code, payer, purchase_intent, consent_version)
       values ('Camille', 'fresh@example.test', 'Structure', 'structure', 'manager', 'structure', 'association', 'maybe', 'test')`);
     expect((await db.query('select plan_code from access_requests')).rows).toEqual([{ plan_code: 'structure' }]);

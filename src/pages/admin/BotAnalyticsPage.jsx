@@ -2,6 +2,7 @@ import React, { useEffect, useId, useMemo, useState } from "react";
 import { Activity, BarChart3, Bot, CheckCheck, ChevronLeft, ChevronRight, Hash, RefreshCw, Search, Server, Terminal } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { Badge, Button, PageHeader, SelectInput, SkeletonRows, Surface, TextInput } from "../../components/ui/Core.jsx";
+import CommunityAnnouncementsPanel from "./CommunityAnnouncementsPanel.jsx";
 import "./bot-analytics.css";
 
 const number = value => value == null ? "—" : new Intl.NumberFormat("fr-FR").format(value);
@@ -108,6 +109,7 @@ export default function BotAnalyticsPage({ route = {}, navigate }) {
   const summary = data?.summary;
   return <div className="bot-analytics" data-admin-view="bot">
     <PageHeader eyebrow="Pilotage · Discord" title="Statistiques du bot" subtitle="Suis l’utilisation de NXT5 sur Discord : serveurs, commandes et publications de games."><Button type="button" variant="ghost" icon={RefreshCw} onClick={refresh} disabled={loading}>{loading ? "Actualisation…" : "Actualiser"}</Button></PageHeader>
+    <CommunityAnnouncementsPanel />
     <div className="bot-toolbar" aria-label="Période et actualisation des statistiques"><SelectInput label="Période des publications" value={String(days)} onChange={value => navigate?.(`/admin/bot-discord?days=${value}`)}>{[7, 30, 90].map(value => <option key={value} value={value}>{value} derniers jours</option>)}</SelectInput>{ready && <p>Du {date(data.period.from)} au {date(data.period.to)} · UTC<br />Actualisé le {date(data.generatedAt, true)} UTC</p>}</div>
     {error && <div className="bot-notice bot-notice-error" role="alert"><strong>{data ? "L’actualisation a échoué. Les dernières données restent affichées." : "Statistiques indisponibles."}</strong><p>{error}</p><Button type="button" variant="ghost" onClick={refresh} disabled={loading}>Réessayer</Button></div>}
     {loading && !data && <div role="status" aria-label="Chargement des statistiques du bot"><SkeletonRows count={4} /></div>}
