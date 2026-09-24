@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button, SelectInput, TextAreaInput, TextInput } from "../components/ui/Core.jsx";
 import CommunityAnnouncementsPanel from "../pages/admin/CommunityAnnouncementsPanel.jsx";
-import BotAnalyticsPage from "../pages/admin/BotAnalyticsPage.jsx";
+import BotPublicationsPage from "../pages/admin/BotPublicationsPage.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
 
@@ -225,13 +225,15 @@ describe("community Discord announcements", () => {
     expect(text(renderer)).toContain("À vérifier");
   });
 
-  it("keeps the announcement editor available when analytics fail", async () => {
-    const renderer = await render(<BotAnalyticsPage />);
-    expect(text(renderer)).toContain("Statistiques indisponibles.");
+  it("opens the publications page without requesting statistics", async () => {
+    const renderer = await render(<BotPublicationsPage />);
+    expect(text(renderer)).toContain("Publications du bot");
     expect(editor(renderer)).toBeDefined();
+    expect(apiFetch.mock.calls.map(([path]) => path)).toEqual([ENDPOINT]);
     await fill(renderer);
     await preview(renderer);
     expect(button(renderer, "Publier sur Discord")).toBeDefined();
     expect(post.mock.calls.map(([body]) => body.action)).toEqual(["preview"]);
+    expect(apiFetch.mock.calls.every(([path]) => path === ENDPOINT)).toBe(true);
   });
 });
