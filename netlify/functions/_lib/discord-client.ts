@@ -156,25 +156,37 @@ export function buildDiscordMessage(snapshot: any, options: {
   includeHints?: boolean; mentionRoleId?: string | null; reference: string; siteUrl: string; hasImage?: boolean; filename?: string;
 }) {
   const context = snapshot.context || {};
-  const number = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value) : '—';
-  const pair = (key: string) => number(snapshot.facts?.[key]?.ally) + ' / ' + number(snapshot.facts?.[key]?.enemy);
-  const title = cleanDiscordText(context.teamName || 'Équipe NXT5', 100) + ' / ' + cleanDiscordText(context.opponentName || 'Adversaire', 100);
-  const categories = (Array.isArray(context.categories) ? context.categories : []).map((item) => cleanDiscordText(item.name, 60)).join(' · ').slice(0, 1500);
-  const description = [categories, cleanDiscordText(context.result || 'Résultat indisponible', 40), cleanDiscordText(context.duration || 'Durée indisponible', 40)].filter(Boolean).join(' · ');
+  const finite = (value: unknown) => typeof value === 'number' && Number.isFinite(value);
+  const number = (value: number, compact = false) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: compact ? 1 : 0 }).format(compact && Math.abs(value) >= 1000 ? value / 1000 : value) + (compact && Math.abs(value) >= 1000 ? ' k' : '');
+  const brief = (value: unknown, limit: number) => {
+    const text = String(value ?? '').replace(/\s+/g, ' ').trim();
+    return cleanDiscordText(text.length > limit ? text.slice(0, limit - 1).trimEnd() + '…' : text, limit * 2);
+  };
+  const pair = (key: string, compact = false) => {
+    const fact = snapshot.facts?.[key];
+    return finite(fact?.ally) && finite(fact?.enemy) ? number(fact.ally, compact) + '–' + number(fact.enemy, compact) : null;
+  };
+  const title = brief(context.teamName || 'Équipe NXT5', 95) + ' vs ' + brief(context.opponentName || 'Adversaire', 95);
+  const allCategories = (Array.isArray(context.categories) ? context.categories : []).map((item) => brief(item?.name, 36)).filter(Boolean);
+  const categories = [...allCategories.slice(0, 2), ...(allCategories.length > 2 ? ['+' + (allCategories.length - 2)] : [])].join(' · ');
+  const score = pair('kills');
+  const summary = [brief(context.result || 'Résultat indisponible', 40), score ? score + ' kills' : null, context.duration ? brief(context.duration, 24) : 'Durée indisponible'].filter(Boolean).join(' · ');
+  const description = [summary, categories].filter(Boolean).join('\n');
   const game = new URL('/statistiques', options.siteUrl);
   game.searchParams.set('team', snapshot.teamId);
   game.searchParams.set('match', snapshot.entityId);
-  const fields = [
-    { name: 'Kills · notre équipe / adversaire', value: pair('kills'), inline: true },
-    { name: 'Or · notre équipe / adversaire', value: pair('gold'), inline: true },
-    { name: 'Dragons · notre équipe / adversaire', value: pair('dragons'), inline: true },
-    { name: 'Données disponibles', value: cleanDiscordText(snapshot.coverage?.timeline?.label || 'Chronologie indisponible', 180), inline: false },
-  ];
+  const essentials = [['gold', 'Or'], ['dragons', 'Dragons'], ['towers', 'Tours']].flatMap(([key, label]) => {
+    const value = pair(key, key === 'gold');
+    return value ? [label + ' ' + value] : [];
+  }).join(' · ');
+  // The PNG carries the detail. Keep only a useful text fallback when it cannot
+  // be attached, instead of doubling the card's height with the same numbers.
+  const fields: { name: string; value: string; inline: boolean }[] = [];
+  if (!options.hasImage) fields.push({ name: 'Notre équipe / adversaire', value: essentials || 'Statistiques indisponibles.', inline: false });
   if (options.includeHints) {
-    for (const hint of (Array.isArray(snapshot.reviewHints) ? snapshot.reviewHints : []).slice(0, 2)) {
-      const value = [cleanDiscordText(hint.observation, 460), cleanDiscordText(hint.action, 460)].filter(Boolean).join('\n');
-      if (value) fields.push({ name: 'Piste de review NXT5', value, inline: false });
-    }
+    const hint = (Array.isArray(snapshot.reviewHints) ? snapshot.reviewHints : []).find((item) => item && item.availability !== 'insufficient' && (item.observation || item.action));
+    const value = hint ? [brief(hint.observation, 210), brief(hint.action, 110)].filter(Boolean).join('\n') : '';
+    if (value) fields.push({ name: 'Piste de review', value, inline: false });
   }
   const filename = options.filename || 'nxt5-game.png';
   if (!/^[a-zA-Z0-9_.-]{1,128}\.png$/.test(filename) || !options.reference || options.reference.length > 160) throw new DiscordApiError(400, 'DISCORD_INVALID_REQUEST');
@@ -187,8 +199,8 @@ export function buildDiscordMessage(snapshot: any, options: {
     allowed_mentions: { parse: [], roles: roleId ? [roleId] : [], users: [], replied_user: false },
     nonce: createHash('sha256').update(options.reference).digest('hex').slice(0, 24),
     enforce_nonce: true,
-    attachments: options.hasImage ? [{ id: 0, filename, description: 'Statistiques de la game ' + String(context.gameId || '') }] : [],
-    components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Ouvrir la game sur NXT5', url: game.toString() }] }],
+    attachments: options.hasImage ? [{ id: 0, filename, description: [title, summary, essentials].filter(Boolean).join('. ').slice(0, 1024) }] : [],
+    components: [{ type: 1, components: [{ type: 2, style: 5, label: 'Voir la game sur NXT5', url: game.toString() }] }],
   };
 }
 

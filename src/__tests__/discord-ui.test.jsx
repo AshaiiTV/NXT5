@@ -111,7 +111,7 @@ describe("Discord settings and permissions", () => {
 
   it("defaults to no role mention and no review hints, verifies salons and saves exact destinations", async () => {
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    expect(text(renderer.root)).toContain("Ajouter les pistes de review au message");
+    expect(text(renderer.root)).toContain("Ajouter une piste de review au message");
     const denied = renderer.root.findAllByType("option").find((item) => item.props.value === "channel-denied");
     expect(denied.props.disabled).toBe(true);
     await choose(renderer, "Choisir un salon du serveur", "channel-2");
@@ -412,6 +412,26 @@ describe("Discord game publication", () => {
     expect(safeDiscordUrl("https://discord.com/channels/1/2/3")).toBe("https://discord.com/channels/1/2/3");
     const renderer = await mount(<DiscordPreview preview={{ ...preview, imageDataUrl: "https://attacker.test/track.png" }} />);
     expect(renderer.root.findAllByType("img")).toHaveLength(0);
+  });
+
+  it("previews the image inside its embed and exposes the game action without leaving NXT5", async () => {
+    const renderer = await mount(<DiscordPreview preview={{ ...preview, message: {
+      embeds: [{ title: "NXT \\*A\\* vs Test", description: "Victoire · 19–13 kills · 28:30", footer: { text: "NXT5 · référence" } }],
+      attachments: [{ description: "Résumé de la victoire NXT" }],
+      components: [{ type: 1, components: [
+        { type: 2, style: 5, label: "Voir la game sur NXT5", url: "https://nxt5.org/statistiques?team=team&match=game" },
+        { type: 2, style: 5, label: "Unsafe", url: "javascript:alert(1)" },
+        { type: 2, style: 5, label: "Unrelated", url: "https://attacker.test/phishing" },
+      ] }],
+    } }} />);
+    const embed = renderer.root.findByProps({ className: "discord-embed" });
+    expect(text(embed)).toContain("NXT *A* vs Test");
+    expect(embed.findByType("img").props.alt).toBe("Résumé de la victoire NXT");
+    expect(renderer.root.findAllByType("img")).toHaveLength(1);
+    const game = renderer.root.findAllByType("a").find((link) => text(link).startsWith("Voir la game"));
+    expect(game.props.href).toBe("/statistiques?team=team&match=game");
+    expect(text(renderer.root)).not.toMatch(/Unsafe|Unrelated/);
+    expect(posts()).toEqual([]);
   });
 });
 

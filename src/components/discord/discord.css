@@ -52,19 +52,26 @@
 .discord-health dd { font-size: 1.6rem; font-weight: 650; font-variant-numeric: tabular-nums; }
 .discord-share-action { display: inline-flex; min-width: 0; max-width: 100%; }
 .discord-share-content { min-width: 0; }
-.discord-preview { border-left: 3px solid #67e8f9; padding: 0.5rem 0 0.5rem 1rem; }
+.discord-preview { min-width: 0; max-width: 660px; }
 .discord-preview > * + *, .discord-embed > * + * { margin-top: 0.75rem; }
+.discord-embed { min-width: 0; padding: 16px; border: 1px solid var(--nxt5-border); border-left: 3px solid var(--nxt5-accent); border-radius: var(--nxt5-radius-control); background: var(--nxt5-surface); }
+.discord-embed h5 { font-size: 16px; line-height: 1.4; }
+.discord-embed-footer { color: var(--nxt5-muted); font-size: 11px; line-height: 1.5; }
 .discord-message-content, .discord-embed dd { white-space: pre-wrap; }
 .discord-embed-fields dt { color: var(--nxt5-text-secondary); font-weight: 600; }
 .discord-embed-fields dd { font-variant-numeric: tabular-nums; }
-.discord-preview-image { width: 100%; height: auto; max-width: 900px; border-radius: 0.5rem; }
+.discord-preview-image { display: block; width: 100%; height: auto; border-radius: 6px; }
+.discord-preview-game { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-button); background: var(--nxt5-surface-raised); color: var(--nxt5-text); font-weight: 600; text-decoration: none; }
+.discord-preview-game:hover { border-color: var(--nxt5-accent); }
+.discord-preview-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+.discord-preview-meta .discord-link { font-size: 12px; font-weight: 500; }
 .discord-panel :focus-visible, .discord-share :focus-visible { outline: 2px solid #67e8f9; outline-offset: 3px; }
 @media (max-width: 640px) {
   .discord-channel-picker { grid-template-columns: minmax(0, 1fr); }
   .discord-panel select, .discord-share select { font-size: 16px !important; }
   .discord-actions > button { flex: 1 1 180px; }
   .discord-heading > button { width: 100%; }
-  .discord-preview { padding-left: 0.65rem; }
+  .discord-embed { padding: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .discord-loading .animate-spin { animation: none; } }
 

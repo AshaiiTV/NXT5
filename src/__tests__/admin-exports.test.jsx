@@ -10,7 +10,7 @@ vi.mock("../pages/admin/export-examples.js", () => ({
   EXPORT_TEMPLATES: [
     { id: "game", category: "site", title: "Statistiques d’une game", source: "Games", format: "PNG", description: "La game complète." },
     { id: "audience", category: "site", title: "Rapport de fréquentation", source: "Administration", format: "CSV", description: "Les mesures du site." },
-    { id: "discord-game", category: "bot", title: "Publication d’une game", source: "Bot Discord", format: "PNG", description: "Le visuel publié par le bot." },
+    { id: "discord-game", category: "bot", title: "Synthèse Discord", source: "Bot Discord", format: "PNG", description: "Le visuel publié par le bot." },
   ],
 }));
 
@@ -82,7 +82,7 @@ function deferred() {
 describe("administration export previews", () => {
   it("keeps pending models unavailable and renders the generated image without starting a download", async () => {
     const pending = deferred();
-    createExportExample.mockImplementation(id => id === "game" ? pending.promise : Promise.resolve(csvExample));
+    createExportExample.mockImplementation(id => id === "game" ? pending.promise : Promise.resolve(id === "audience" ? csvExample : pngExample));
     await mount();
     expect(card("game").findAllByProps({ role: "status" })).toHaveLength(1);
     expect(button("Voir le modèle", card("game")).props.disabled).toBe(true);
@@ -186,6 +186,26 @@ describe("administration export previews", () => {
     expect(card("discord-game").props.hidden).toBe(false);
     expect(createExportExample).toHaveBeenCalledTimes(3);
     expect(revokeObjectURL).not.toHaveBeenCalled();
+  });
+
+  it("offers the Discord summary separately and downloads its generated preview", async () => {
+    const bytes = await sharp({ create: { width: 960, height: 1200, channels: 4, background: "#020611" } }).png().toBuffer();
+    const discordExample = { blob: new Blob([bytes], { type: "image/png" }), filename: "nxt5-exemple-fictif-discord-game.png", width: 960, height: 1200 };
+    createExportExample.mockImplementation(async (id) => id === "discord-game" ? discordExample : id === "audience" ? csvExample : pngExample);
+    await mount();
+    await click("Images PNG (2)");
+    expect(card("game").props.hidden).toBe(false);
+    expect(card("discord-game").props.hidden).toBe(false);
+    await click("Agrandir : Synthèse Discord");
+    const dialog = renderer.root.findByType("dialog");
+    expect(text(dialog.findByProps({ id: "export-dialog-title" }))).toBe("Synthèse Discord");
+    expect(text(dialog.findByProps({ id: "export-dialog-description" }))).toContain("données fictives · 960 × 1200 px");
+    const download = dialog.findByType("a");
+    expect(download.props.download).toBe(discordExample.filename);
+    expect(download.props.href).toBe(card("discord-game").findByType("img").props.src);
+    const response = await fetch(download.props.href);
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    expect(card("game").findByType("img").props.width).toBe(4);
   });
 
   it("releases ready URLs on departure and ignores unfinished generation after unmount", async () => {

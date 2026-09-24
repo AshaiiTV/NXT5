@@ -2,6 +2,7 @@ import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { renderGamePublicationCanvas } from '../../../shared/publications/game-publication-canvas.js';
+import { renderDiscordPublicationCanvas } from '../../../shared/publications/discord-publication-canvas.js';
 
 let registered = false;
 let logoPromise: ReturnType<typeof loadImage> | undefined;
@@ -22,9 +23,10 @@ async function bundledLogo() {
   }
   return logoPromise;
 }
-export async function renderGamePublicationPng(snapshot, { includeHints = true }: { includeHints?: boolean } = {}) {
+export async function renderGamePublicationPng(snapshot, { includeHints = true, layout = 'discord' }: { includeHints?: boolean; layout?: 'discord' | 'full' } = {}) {
   prepareFont();
-  const { canvas, width, height } = await renderGamePublicationCanvas(snapshot, { createCanvas, loadLogo: bundledLogo, includeHints });
+  const renderer = layout === 'full' ? renderGamePublicationCanvas : renderDiscordPublicationCanvas;
+  const { canvas, width, height } = await renderer(snapshot, { createCanvas, loadLogo: bundledLogo, includeHints });
   const bytes = await canvas.encode('png');
   return { bytes, mimeType: 'image/png' as const, width, height, filename: `nxt5-game-${String(snapshot.entityId || 'export').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}.png` };
 }

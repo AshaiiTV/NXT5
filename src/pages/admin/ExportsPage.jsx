@@ -48,7 +48,7 @@ function ExportCard({ template, hidden, onPreview }) {
           <span className="export-preview-hint"><Eye size={16} aria-hidden="true" />Agrandir l’aperçu</span>
         </button>}
       </div>
-      <div className="export-card-footer"><span>{example ? isImage ? `${example.width} × ${example.height} px` : "CSV · UTF-8" : template.format}<small>{isImage ? "Une image, tout le contenu" : "Compatible tableur"}</small></span><Button type="button" variant="ghost" icon={Eye} disabled={!example} onClick={openPreview}>Voir le modèle</Button></div>
+      <div className="export-card-footer"><span>{example ? isImage ? `${example.width} × ${example.height} px` : "CSV · UTF-8" : template.format}<small>{isImage ? "Un fichier PNG" : "Compatible tableur"}</small></span><Button type="button" variant="ghost" icon={Eye} disabled={!example} onClick={openPreview}>Voir le modèle</Button></div>
     </Surface>
   </article>;
 }
@@ -89,7 +89,7 @@ export default function ExportsPage() {
   const visibleCount = EXPORT_TEMPLATES.filter(isVisible).length;
   return <div className="exports-page">
     <PageHeader eyebrow="Configuration · Bibliothèque" title="Exports" subtitle="Retrouve les modèles d’export du site et du bot Discord, ouvre chaque aperçu en grand et télécharge un exemple." />
-    <div className="exports-intro"><FileImage size={21} aria-hidden="true" /><p><strong>Les modèles actuels, avec des données fictives.</strong><span>Les aperçus utilisent les rendus des exports du site et des images publiées par le bot Discord.</span></p></div>
+    <div className="exports-intro"><FileImage size={21} aria-hidden="true" /><p><strong>Les modèles actuels, avec des données fictives.</strong><span>Les aperçus utilisent les vrais rendus du site et du bot : bilan détaillé dans Games, synthèse compacte sur Discord.</span></p></div>
     <div className="exports-category"><SelectInput label="Catégorie" aria-label="Catégorie" value={category} onChange={value => { setCategory(value); setFilter("all"); }}>
       <option value="all">Toutes les catégories ({EXPORT_TEMPLATES.length})</option>
       <option value="site">Site ({EXPORT_TEMPLATES.filter(template => template.category === "site").length})</option>
