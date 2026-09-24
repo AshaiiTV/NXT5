@@ -9,7 +9,7 @@ La passe ajoute de légers dégradés cyan, pervenche, violet et fuchsia aux rep
 - Inspection des captures desktop/mobile, des en-têtes, des sélections et des couleurs de données. Le halo d’aperçu a été recentré après contrôle pour fondre ses bords dans le fond ; accueil et CTA final recapturés.
 - Activation au clavier des onglets Parties/Groupes, Analyses et Profil, maintien du focus, sidebar réduite à 80 px, ouverture/fermeture du menu mobile et retour du focus contrôlés.
 
-Les captures avant utilisent le code de `HEAD` archivé séparément ; elles couvrent accueil, équipe et analyses à 390 et 1440 px. Le harness temporaire monte le vrai `App.jsx`, avec session et données fictives, intercepte les requêtes et refuse les mutations. Il ne fait pas partie du produit. Les artefacts de contrôle local se trouvent dans `artifacts/subtle-gradients/`.
+Les captures avant utilisent le code de `f5ee514` archivé séparément ; elles couvrent accueil, équipe et analyses à 390 et 1440 px. Le harness temporaire monte le vrai `App.jsx`, avec session et données fictives, intercepte les requêtes et refuse les mutations. Il ne fait pas partie du produit. Les artefacts de contrôle local se trouvent dans `artifacts/subtle-gradients/`.
 
 ## Contraste
 
@@ -30,5 +30,7 @@ Ces calculs portent sur les tokens et leur composition CSS, pas sur chaque pixel
 ## Vérification du dépôt et limites
 
 `typecheck` et build réussis. La suite couvre 109 fichiers et 1 850 tests : 106 fichiers réussis lors du premier passage, avec 23 dépassements du délai de 5 secondes dans trois suites de base de données sous concurrence. Ces trois suites relancées avec `--maxWorkers=1` passent leurs 76 tests. Ce résultat ne signifie pas que le premier passage complet était entièrement vert.
+
+Les mises à jour Games et Discord des PR #75 et #76 (`3dcb22b`) ont ensuite été intégrées sans conflit. Typecheck et build ont été revérifiés, ainsi que les quatre suites concernées : 121 tests réussis. Six contrôles navigateur supplémentaires (liste Parties, détail de partie et Bot Discord à 390 et 1440 px) passent sans erreur JavaScript ni débordement global, avec Inter chargée.
 
 La vérification est locale et synthétique, sans validation du backend ni déploiement de production. Les ressources distantes sont bloquées dans le navigateur de contrôle : certains portraits et aperçus d’exports montrent leur repli prévu. Ce contrôle de présentation ne certifie pas leur génération réelle ni l’ensemble des parcours fonctionnels.
