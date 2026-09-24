@@ -21,6 +21,7 @@ vi.mock("../hooks/useTeamData.js", () => ({ useTeamData: vi.fn(() => { throw new
 vi.mock("../pages/admin/AdminDashboard.jsx", () => ({ default: ({ view, teamFilter, onNavigate }) => <section data-admin-view={view} data-team-filter={teamFilter}>{view === "overview" && <button onClick={() => onNavigate("/admin/equipes?filtre=never")}>Voir les équipes sans import</button>}</section> }));
 vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data-admin-view="audience" /> }));
 vi.mock("../pages/admin/BotAnalyticsPage.jsx", () => ({ default: () => <section data-admin-view="bot" /> }));
+vi.mock("../pages/admin/BotPublicationsPage.jsx", () => ({ default: () => <section data-admin-view="bot-publications" /> }));
 vi.mock("../pages/admin/ExportsPage.jsx", () => ({ default: () => <section data-admin-view="exports" /> }));
 vi.mock("../pages/admin/AccessRequestsPage.jsx", () => ({ default: ({ embedded }) => <section data-admin-view="requests" data-embedded={embedded} /> }));
 vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: function SubscriptionsForm({ embedded, initialUserId, navigate }) {
@@ -43,6 +44,7 @@ const routes = [
   ["/admin/equipes", "teams"],
   ["/admin/usage", "usage"],
   ["/admin/frequentation", "audience"],
+  ["/admin/bot-discord/publications", "bot-publications"],
   ["/admin/bot-discord", "bot"],
   ["/admin/achats", "purchases"],
   ["/admin/demandes-acces", "requests"],
@@ -141,7 +143,8 @@ const guardedDepartures = [
 
 describe("administration route contract", () => {
   it("recognizes each route and groups every destination exactly once", () => {
-    expect(ADMIN_GROUPS.map(group => group.label)).toEqual(["Pilotage", "Ventes et accès", "Configuration"]);
+    expect(ADMIN_GROUPS.map(group => group.label)).toEqual(["Pilotage", "Bot", "Ventes et accès", "Configuration"]);
+    expect(ADMIN_GROUPS.find(group => group.label === "Bot").pages.map(page => [page.id, page.label])).toEqual([["bot-publications", "Publications"], ["bot", "Statistiques"]]);
     expect(ADMIN_PAGES.map(page => [page.path, page.id])).toEqual(routes);
     for (const [path, id] of routes) {
       expect(adminPageFromRoute({ path: `${path}/` })?.id).toBe(id);
@@ -190,19 +193,19 @@ describe("administration route contract", () => {
     selectedView(id);
   });
 
-  it("updates menu, title and content through links and browser back/forward", async () => {
+  it("keeps publications and statistics as separate Bot pages through links and browser back/forward", async () => {
     await open("/admin");
-    const event = await follow("/admin/achats");
+    const event = await follow("/admin/bot-discord/publications");
     expect(event.preventDefault).toHaveBeenCalledOnce();
-    selectedView("purchases");
-    await follow("/admin/frequentation");
-    selectedView("audience");
+    selectedView("bot-publications");
+    await follow("/admin/bot-discord");
+    selectedView("bot");
     await act(async () => window.history.back());
-    selectedView("purchases");
+    selectedView("bot-publications");
     await act(async () => window.history.back());
     selectedView("overview");
     await act(async () => window.history.forward());
-    selectedView("purchases");
+    selectedView("bot-publications");
     expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "auth-me")).toHaveLength(1);
   });
 
@@ -212,8 +215,8 @@ describe("administration route contract", () => {
     selectedView("teams");
     expect(renderer.root.findByProps({ "data-admin-view": "teams" }).props["data-team-filter"]).toBe("never");
     expect(window.location.search).toBe("?filtre=never");
-    await act(async () => renderer.root.findByType("select").props.onChange({ target: { value: "/admin/rappels" } }));
-    selectedView("reminders");
+    await act(async () => renderer.root.findByType("select").props.onChange({ target: { value: "/admin/bot-discord/publications" } }));
+    selectedView("bot-publications");
     await act(async () => window.history.back());
     selectedView("teams");
     expect(renderer.root.findByProps({ "data-admin-view": "teams" }).props["data-team-filter"]).toBe("never");

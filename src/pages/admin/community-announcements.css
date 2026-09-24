@@ -1,4 +1,5 @@
-.community-announcements { min-width: 0; }
+.bot-publications { min-width: 0; container: bot-publications / inline-size; }
+.community-announcements.nxt5-panel { min-width: 0; padding: 24px; }
 .community-announcements-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .community-announcements-heading > div { min-width: 0; }
 .community-announcements-heading h3 { display: flex; align-items: center; gap: 10px; font-size: 1.125rem; font-weight: 650; }
@@ -34,12 +35,13 @@
 .community-announcement-history li > .nxt5-badge { flex-shrink: 0; }
 .community-announcement-history li p { color: var(--nxt5-muted); font-size: .8125rem; line-height: 1.65; margin-top: 6px; }
 .community-announcements :where(button, input, textarea, select, summary, a, [tabindex]):focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
-@container bot-analytics (max-width: 700px) {
+@container bot-publications (max-width: 700px) {
   .community-announcements-heading { flex-direction: column; }
   .community-announcement-destination { grid-template-columns: minmax(0, 1fr); }
   .community-announcement-destination > button { justify-self: start; }
 }
 @media (max-width: 640px) {
+  .community-announcements.nxt5-panel { padding: 16px; }
   .community-announcements-heading { flex-direction: column; }
   .community-announcement-destination { grid-template-columns: minmax(0, 1fr); }
   .community-announcement-destination > button { justify-self: start; }
