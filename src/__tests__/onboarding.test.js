@@ -12,10 +12,10 @@ const steps = (data = {}, options = {}) => Object.fromEntries(getOnboardingSteps
 describe("guided onboarding actions", () => {
   it("leads an owner with an empty team to the actual roster form", () => {
     const result = steps();
-    expect(result.teams).toMatchObject({ done: false, disabled: false, detail: "0 / 5 postes renseignés", action: "Compléter le roster", path: "/gestion-equipe?section=roster" });
-    expect(result.matches).toMatchObject({ disabled: false, path: "/gestion-equipe?section=roster", action: "Compléter le roster" });
+    expect(result.teams).toMatchObject({ done: false, disabled: false, detail: "0 / 5 postes renseignés", action: "Ajouter les joueurs", path: "/gestion-equipe?section=roster" });
+    expect(result.matches).toMatchObject({ disabled: false, path: "/gestion-equipe?section=roster", action: "Ajouter les joueurs" });
     expect(result.matches.reason).toContain("5 profils joueurs distincts");
-    expect(result.reports).toMatchObject({ done: false, disabled: true, path: "", reason: "Importe une game pour préparer la review." });
+    expect(result.reports).toMatchObject({ done: false, disabled: true, path: "", reason: "Importe une partie pour préparer le débrief." });
   });
 
   it("counts unique Main Team lanes, excluding staff, substitutes and inactive profiles", () => {
@@ -28,13 +28,13 @@ describe("guided onboarding actions", () => {
       { id: "sub", team_id: team.id, role: "SUB", roster_status: "MAIN" },
     ];
     expect(steps({ players }).teams).toMatchObject({ detail: "2 / 5 postes renseignés", done: false });
-    expect(steps({ players: roster() }).teams).toMatchObject({ detail: "5 / 5 postes renseignés", done: true, action: "Voir le roster", path: "/equipes" });
+    expect(steps({ players: roster() }).teams).toMatchObject({ detail: "5 / 5 postes renseignés", done: true, action: "Voir les joueurs", path: "/equipes" });
   });
 
   it("permits import with five distinct gameplay profiles even without five Main Team lanes", () => {
     const players = roster().map((player, index) => ({ ...player, roster_status: index % 2 ? "SUB" : "INACTIVE" }));
     expect(steps({ players }).teams.done).toBe(false);
-    expect(steps({ players }).matches).toMatchObject({ path: "/games?import=1", action: "Importer une game", disabled: false });
+    expect(steps({ players }).matches).toMatchObject({ path: "/games?import=1", action: "Importer une partie", disabled: false });
     const duplicated = [...players.slice(0, 4), players[0], { id: "coach", team_id: team.id, role: "COACH" }];
     expect(steps({ players: duplicated }).matches.path).toBe("/gestion-equipe?section=roster");
   });
@@ -53,7 +53,7 @@ describe("guided onboarding actions", () => {
     expect(empty.matches).toMatchObject({ disabled: true, path: "" });
     expect(empty.matches.reason).toContain("staff");
     const populated = steps({ players: roster(), matches: [match("game")] }, options);
-    expect(populated.teams).toMatchObject({ disabled: false, action: "Voir le roster", path: "/equipes" });
+    expect(populated.teams).toMatchObject({ disabled: false, action: "Voir les joueurs", path: "/equipes" });
     expect(populated.matches).toMatchObject({ disabled: false, path: "/games" });
     expect(populated.trends).toMatchObject({ disabled: true, path: "" });
     expect(populated.reports).toMatchObject({ disabled: false, path: "/rapports?match=game&compose=1" });
@@ -88,19 +88,19 @@ describe("guided onboarding actions", () => {
 
   it("keeps importing toward three games then opens trends", () => {
     const data = { players: roster(), matches: [match("one"), match("two")] };
-    expect(steps(data).matches).toMatchObject({ done: true, action: "Voir les games", path: "/games" });
-    expect(steps(data).trends).toMatchObject({ done: false, detail: "2 / 3 games importées", action: "Importer une game", path: "/games?import=1" });
-    expect(steps({ ...data, matches: [...data.matches, match("three")] }).trends).toMatchObject({ done: true, detail: "3 / 3 games importées", action: "Voir les tendances", path: "/tendances" });
+    expect(steps(data).matches).toMatchObject({ done: true, action: "Voir les parties", path: "/games" });
+    expect(steps(data).trends).toMatchObject({ done: false, detail: "2 / 3 parties importées", action: "Importer une partie", path: "/games?import=1" });
+    expect(steps({ ...data, matches: [...data.matches, match("three")] }).trends).toMatchObject({ done: true, detail: "3 / 3 parties importées", action: "Voir les analyses", path: "/tendances" });
   });
 
   it("starts the first review on the latest game without modifying the source order", () => {
     const matches = [match("old", { game_date: "2026-08-01" }), match("latest /?", { game_date: "2026-09-22" }), match("unknown")];
-    expect(steps({ matches }).reports).toMatchObject({ done: false, disabled: false, action: "Créer une review", path: "/rapports?match=latest%20%2F%3F&compose=1" });
+    expect(steps({ matches }).reports).toMatchObject({ done: false, disabled: false, action: "Créer un débrief", path: "/rapports?match=latest%20%2F%3F&compose=1" });
     expect(matches.map((item) => item.id)).toEqual(["old", "latest /?", "unknown"]);
   });
 
   it("opens an existing review even when it has no linked game", () => {
-    expect(steps({ reports: [report("review /?")] }).reports).toMatchObject({ done: true, disabled: false, path: "/rapports?report=review%20%2F%3F", action: "Voir la review" });
+    expect(steps({ reports: [report("review /?")] }).reports).toMatchObject({ done: true, disabled: false, path: "/rapports?report=review%20%2F%3F", action: "Voir le débrief" });
   });
 
   it("keeps onboarding incomplete after five games until the first review exists", () => {

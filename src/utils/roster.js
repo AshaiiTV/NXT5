@@ -1,7 +1,7 @@
 export const ROSTER_STATUS_OPTIONS = [
-  { id: "MAIN", label: "Main Team", tone: "green" },
-  { id: "SUB", label: "Sub", tone: "orange" },
-  { id: "INACTIVE", label: "Hors roster", tone: "slate" },
+  { id: "MAIN", label: "Titulaire", tone: "green" },
+  { id: "SUB", label: "Remplaçant", tone: "orange" },
+  { id: "INACTIVE", label: "Hors effectif actif", tone: "slate" },
 ];
 
 const ROSTER_STATUS_IDS = new Set(ROSTER_STATUS_OPTIONS.map((item) => item.id));

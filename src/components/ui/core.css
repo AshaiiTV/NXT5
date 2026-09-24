@@ -38,7 +38,7 @@
 .nxt5-field-label {
   display: block;
   margin-bottom: .5rem;
-  font-size: .8125rem;
+  font-size: .875rem;
   font-weight: 600;
   line-height: 1.45;
   color: var(--nxt5-text-secondary);
@@ -94,7 +94,7 @@
 .nxt5-page-header > :first-child { flex: 1 1 20rem; }
 .nxt5-page-eyebrow { margin: 0 0 .5rem; font-size: .6875rem; font-weight: 700; line-height: 1.5; letter-spacing: .14em; text-transform: uppercase; color: var(--nxt5-accent); }
 .nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(1.625rem, 2.3vw, 2.125rem); line-height: 1.15; font-weight: 800; letter-spacing: -.035em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
-.nxt5-page-subtitle { margin: .625rem 0 0; max-width: 65ch; font-size: .875rem; line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
+.nxt5-page-subtitle { margin: .625rem 0 0; max-width: 65ch; font-size: .9375rem; line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
 .nxt5-page-actions { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: .5rem; max-width: 100%; }
 
 @media (max-width: 640px) {
