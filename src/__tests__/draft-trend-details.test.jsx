@@ -31,7 +31,7 @@ function control(Type, label) {
   return renderer.root.findAllByType(Type).find((node) => node.props.label === label);
 }
 function sourceButtons() {
-  return renderer.root.findAllByType("button").filter((node) => String(node.props["aria-label"] || "").startsWith("Voir les games sources :"));
+  return renderer.root.findAllByType("button").filter((node) => String(node.props["aria-label"] || "").startsWith("Voir les parties sources :"));
 }
 
 describe("draft detail data and entry links", () => {
@@ -54,6 +54,9 @@ describe("draft detail data and entry links", () => {
     mount(<DraftTrendsModule model={buildDraftTrendModel(games())} detailHref={(id) => `/tendances/draft/${id}?contexte=scrim&periode=5`} onNavigateDetail={onNavigateDetail} />);
     const links = renderer.root.findAllByType("a").filter((node) => String(node.props["aria-label"] || "").startsWith("Voir le détail :"));
     expect(links).toHaveLength(7);
+    const disclosures = renderer.root.findAllByType("details");
+    expect(disclosures).toHaveLength(2);
+    expect(disclosures.every((detail) => !detail.props.open)).toBe(true);
     expect(new Set(links.map((link) => link.props.href)).size).toBe(7);
     for (const section of DRAFT_DETAIL_SECTIONS) {
       const link = links.find((node) => node.props.href === `/tendances/draft/${section.id}?contexte=scrim&periode=5`);
@@ -123,6 +126,6 @@ describe("draft annex exploration", () => {
     expect(select.props.value).toBe("MID");
     expect(select.findAllByType("option").map((option) => option.props.value)).toContain("MID");
     expect(sourceButtons()).toHaveLength(0);
-    expect(text(renderer.toJSON())).toContain("Aucun pick ne correspond");
+    expect(text(renderer.toJSON())).toContain("Aucun champion ne correspond");
   });
 });

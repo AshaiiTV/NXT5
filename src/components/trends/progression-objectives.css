@@ -249,3 +249,5 @@
 .objectives-role > div { min-width: 0; overflow-wrap: anywhere; }
 .objectives-link:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
 .objectives-empty { padding: 16px 0; color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.65; }
+
+.objectives-intro { max-width: 80ch; margin-top: 12px; color: var(--nxt5-text-secondary); font-size: 15px; line-height: 1.7; }

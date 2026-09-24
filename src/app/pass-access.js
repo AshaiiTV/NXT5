@@ -7,15 +7,15 @@ export const SUBSCRIPTION_RESTRICTIONS_ENABLED = false;
 
 export const PASS_FEATURES = {
   workspace: { label: "Tous les outils", benefit: "utiliser tous les outils de ton équipe" },
-  reviews: { label: "Reviews", benefit: "retrouver tes reviews et préparer les prochaines sessions" },
-  imports: { label: "Imports", benefit: "importer tes games et suivre tes sessions" },
+  reviews: { label: "Débriefs", benefit: "retrouver tes débriefs et préparer les prochaines séances" },
+  imports: { label: "Imports", benefit: "importer tes parties et suivre tes séances" },
   exports: { label: "Exports", benefit: "exporter les analyses de ton équipe" },
-  trends: { label: "Tendances", benefit: "suivre les tendances de ton équipe" },
+  trends: { label: "Analyses", benefit: "comparer les parties de ton équipe" },
   compositions: { label: "Compositions", benefit: "préparer et retrouver tes compositions" },
-  champion_pool: { label: "Champion Pool", benefit: "faire évoluer les champion pools de ton équipe" },
-  planning: { label: "Planning", benefit: "organiser les sessions de ton équipe" },
-  statistics: { label: "Statistiques", benefit: "consulter les statistiques de tes games" },
-  roster: { label: "Roster", benefit: "suivre et organiser ton roster" },
+  champion_pool: { label: "Champions des joueurs", benefit: "préparer les champions de ton équipe" },
+  planning: { label: "Planning", benefit: "organiser les séances de ton équipe" },
+  statistics: { label: "Statistiques", benefit: "consulter les statistiques de tes parties" },
+  roster: { label: "Effectif", benefit: "suivre et organiser les joueurs de ton équipe" },
   profiles: { label: "Profils joueurs", benefit: "suivre la progression de tes joueurs" },
 };
 

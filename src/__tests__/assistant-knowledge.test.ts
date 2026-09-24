@@ -8,6 +8,25 @@ import {
 } from '../../netlify/functions/_lib/assistant-knowledge';
 
 describe('assistant knowledge', () => {
+  it.each([
+    ['Comment préparer un débrief ?', '/rapports', 'reviews'],
+    ['Comment organiser les titulaires et les remplaçants ?', '/equipes', 'teams-and-roster'],
+    ['Comment indiquer le niveau de maîtrise d’un champion ?', '/draft/pool', 'champion-pool'],
+  ])('recognizes the visible wording: %s', (question, route, expected) => {
+    const matches = retrieveAssistantKnowledge(question, route);
+    expect(matches[0].id).toBe(expected);
+    const response = buildFallbackAssistantResponse(question, matches);
+    expect(response.actions[0].path).toBe(matches[0].path);
+  });
+
+  it('explains an incomplete chronology from the game page without inventing missing events', () => {
+    const question = 'Pourquoi la chronologie est-elle incomplète ?';
+    const matches = retrieveAssistantKnowledge(question, '/games');
+    const response = buildFallbackAssistantResponse(question, matches);
+    expect(response.answer).toContain('NXT5 n’invente pas les événements absents du fichier');
+    expect(response.answer).toContain('les statistiques finales restent disponibles');
+  });
+
   it('prioritizes the current page and the user intent', () => {
     const matches = retrieveAssistantKnowledge('Comment corriger le mauvais profil de ma game ?', '/integration');
     expect(matches[0].id).toBe('imports-and-games');

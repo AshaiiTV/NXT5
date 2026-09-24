@@ -95,11 +95,11 @@ export function DiscordPreview({ preview, fictitious = false }) {
   if (!preview) return null;
   const message = preview.message || {};
   const image = typeof preview.imageDataUrl === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=\s]+$/.test(preview.imageDataUrl) ? preview.imageDataUrl : null;
-  const imageAlt = message.attachments?.[0]?.description || (fictitious ? "Exemple fictif du visuel de game envoyé par NXT5" : "Visuel NXT5 de la game, reprenant les statistiques de la publication");
+  const imageAlt = message.attachments?.[0]?.description || (fictitious ? "Exemple fictif du visuel de partie envoyé par NXT5" : "Visuel NXT5 de la partie, reprenant les statistiques de la publication");
   const links = (message.components || []).flatMap((row) => row.components || []).filter((item) => item.type === 2 && item.style === 5 && previewGamePath(item.url));
   return <section className="discord-preview" aria-label="Aperçu de la publication">
     <h4>{fictitious ? "Exemple de message et de visuel" : "Aperçu de la publication"}</h4>
-    {fictitious && <p className="discord-help">Données fictives : cet exemple ne reprend aucune game ni note de ton équipe.</p>}
+    {fictitious && <p className="discord-help">Données fictives : cet exemple ne reprend aucune partie ni note de ton équipe.</p>}
     {!!message.content && <p className="discord-message-content">{message.content}</p>}
     {(message.embeds || []).map((embed, index) => <div className="discord-embed" key={index}>
       {embed.title && <h5>{previewText(embed.title)}</h5>}{embed.description && <p className="discord-message-content">{previewText(embed.description)}</p>}
@@ -131,7 +131,7 @@ function DiscordHistoryContent({ teamId, matchId, revision, canPublish, showSumm
   const issues = deliveries.filter((item) => ["blocked", "failed", "uncertain", "unknown", "withdrawal_pending"].includes(item.status));
   return <section className="discord-section" aria-label="Historique Discord">
     {showSummary && !history.loading && !history.error && <div className="discord-publication-summary">
-      <div><h4>Dernière publication confirmée</h4>{latest ? <><p><strong>{latest.matchLabel || "Game NXT5"}</strong>{latest.channelName ? ` · #${latest.channelName.replace(/^#/, "")}` : ""}</p><DiscordLink href={latest.messageUrl}>Ouvrir la dernière publication</DiscordLink></> : <p>Aucune game publiée dans l’historique disponible. Le message de test reste distinct des games.</p>}</div>
+      <div><h4>Dernière publication confirmée</h4>{latest ? <><p><strong>{latest.matchLabel || "Partie NXT5"}</strong>{latest.channelName ? ` · #${latest.channelName.replace(/^#/, "")}` : ""}</p><DiscordLink href={latest.messageUrl}>Ouvrir la dernière publication</DiscordLink></> : <p>Aucune partie publiée dans l’historique disponible. Le message de test reste distinct des parties.</p>}</div>
       {!!issues.length && <p className="discord-feedback discord-feedback-error">{issues.length} publication{issues.length > 1 ? "s demandent" : " demande"} une vérification. Consulte le motif et les actions dans l’historique ci-dessous.</p>}
     </div>}
     <div className="discord-heading"><h4>Historique des publications</h4><Button type="button" variant="ghost" icon={RefreshCw} disabled={history.loading || action.busy} onClick={reload}>Actualiser l’historique</Button></div>
@@ -140,7 +140,7 @@ function DiscordHistoryContent({ teamId, matchId, revision, canPublish, showSumm
     <ol className="discord-history">{deliveries.map((item) => {
       const uncertain = ["uncertain", "unknown"].includes(item.status);
       return <li key={item.id}>
-        <div className="discord-heading"><strong>{item.matchLabel || "Game NXT5"}</strong><DiscordStatus status={item.status} /></div>
+        <div className="discord-heading"><strong>{item.matchLabel || "Partie NXT5"}</strong><DiscordStatus status={item.status} /></div>
         <p className="discord-help">{item.channelName ? `#${item.channelName.replace(/^#/, "")}` : "Salon Discord"}{item.createdAt ? ` · ${new Date(item.createdAt).toLocaleString("fr-FR")}` : ""}</p>
         {item.lastError && <p className="discord-history-error">{item.lastError}</p>}
         {uncertain && <p>La réception du message doit être vérifiée avant tout nouvel envoi.</p>}
@@ -155,7 +155,7 @@ function DiscordHistoryContent({ teamId, matchId, revision, canPublish, showSumm
           <TextInput label="Identifiant du message Discord" value={resolution.messageId} onChange={(value) => setResolution({ id: item.id, messageId: value.trim() })} required inputMode="numeric" pattern="[0-9]{17,20}" minLength={17} maxLength={20} autoComplete="off" autoFocus disabled={action.busy} />
           <div className="discord-actions"><Button type="submit" icon={Link2} disabled={action.busy || !/^\d{17,20}$/.test(resolution.messageId)}>Vérifier et associer</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setResolution(null)}>Annuler l’association</Button></div>
         </form>}
-        {removeId === item.id && <div className="discord-confirm"><p>Retirer cette publication et son visuel de Discord ? La game restera dans NXT5.</p><div className="discord-actions"><Button type="button" variant="danger" disabled={action.busy} onClick={() => action.run("team-discord-retry", { teamId, deliveryId: item.id, action: "remove" }, () => { setRemoveId(null); reload(); }, "Le retrait du message a été demandé.")}>Confirmer le retrait</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setRemoveId(null)}>Annuler</Button></div></div>}
+        {removeId === item.id && <div className="discord-confirm"><p>Retirer cette publication et son visuel de Discord ? La partie restera dans NXT5.</p><div className="discord-actions"><Button type="button" variant="danger" disabled={action.busy} onClick={() => action.run("team-discord-retry", { teamId, deliveryId: item.id, action: "remove" }, () => { setRemoveId(null); reload(); }, "Le retrait du message a été demandé.")}>Confirmer le retrait</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setRemoveId(null)}>Annuler</Button></div></div>}
       </li>;
     })}</ol>
     {history.data?.hasMore && <p className="discord-help">Les publications les plus récentes sont affichées.</p>}

@@ -14,7 +14,7 @@ const PAGE_SIZE = 10;
 const NOTE_LIMIT = 1000;
 const historyDate = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
 const dateLabel = (value) => value && Number.isFinite(new Date(value).getTime()) ? historyDate.format(new Date(value)) : "Date non disponible";
-const accountLabel = (account) => account?.name || account?.accountName || account?.email || "Profil";
+const accountLabel = (account) => account?.name || account?.accountName || account?.email || "Compte";
 const requestError = (error, fallback) => error?.message || fallback;
 
 function AccountIdentity({ account, heading = false }) {
@@ -29,12 +29,12 @@ function SubscriptionSummary({ subscription }) {
 
 function SubscriptionHistory({ history }) {
   return <section className="as-history" aria-labelledby="subscription-history-title">
-    <header><History aria-hidden="true" /><div><h4 id="subscription-history-title">Historique des attributions</h4><p>Les 10 dernières modifications de ce profil.</p></div></header>
+    <header><History aria-hidden="true" /><div><h4 id="subscription-history-title">Historique des attributions</h4><p>Les 10 dernières modifications d’abonnement de ce compte.</p></div></header>
     {history.length ? <ol>{history.slice(0, 10).map((entry) => <li key={entry.id}>
       <div className="as-history-heading"><strong>{entry.action === "migrate" ? `${getSubscriptionPlanLabel(entry.previousPlanCode)} → ${getSubscriptionPlanLabel(entry.planCode)}` : entry.action === "revoke" ? "Abonnement retiré" : `${getSubscriptionPlanLabel(entry.planCode)} attribué`}</strong><time dateTime={entry.createdAt}>{dateLabel(entry.createdAt)}</time></div>
       <p>{subscriptionPeriodLabel(entry)} · Par {entry.actorName || "Administrateur"}</p>
       {entry.note && <p className="as-history-note">{entry.note}</p>}
-    </li>)}</ol> : <p className="as-caption">Aucune attribution enregistrée pour ce profil.</p>}
+    </li>)}</ol> : <p className="as-caption">Aucune formule attribuée à ce compte pour le moment.</p>}
   </section>;
 }
 
@@ -72,10 +72,10 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
       const params = new URLSearchParams({ q: query, page: String(page), pageSize: String(PAGE_SIZE) });
       const result = await apiFetch(`${ENDPOINT}?${params}`);
       if (sequence !== listSequence.current) return;
-      if (!Array.isArray(result?.accounts) || !result?.pagination) throw new Error("Le serveur n’a pas confirmé la liste des profils.");
+      if (!Array.isArray(result?.accounts) || !result?.pagination) throw new Error("Le serveur n’a pas confirmé la liste des comptes.");
       if (page > Math.max(1, result.pagination.totalPages)) { setPage(Math.max(1, result.pagination.totalPages)); return; }
       setList(result);
-    } catch (err) { if (sequence === listSequence.current) setListError(requestError(err, "Impossible de charger les profils.")); }
+    } catch (err) { if (sequence === listSequence.current) setListError(requestError(err, "Impossible de charger les comptes.")); }
     finally { if (sequence === listSequence.current) setListLoading(false); }
   }, [query, page]);
 
@@ -98,9 +98,9 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
     try {
       const result = await apiFetch(`${ENDPOINT}?${new URLSearchParams({ userId })}`);
       if (sequence !== detailSequence.current || selectedRef.current !== userId) return;
-      if (result?.account?.id !== userId || !result.account.subscription || !Array.isArray(result.history)) throw new Error("Le serveur n’a pas confirmé les informations de ce profil.");
+      if (result?.account?.id !== userId || !result.account.subscription || !Array.isArray(result.history)) throw new Error("Le serveur n’a pas confirmé les informations de ce compte.");
       applyDetail(result);
-    } catch (err) { if (sequence === detailSequence.current && selectedRef.current === userId) setDetailError(requestError(err, "Impossible de charger ce profil.")); }
+    } catch (err) { if (sequence === detailSequence.current && selectedRef.current === userId) setDetailError(requestError(err, "Impossible de charger ce compte.")); }
     finally { if (sequence === detailSequence.current && selectedRef.current === userId) setDetailLoading(false); }
   }, []);
 
@@ -165,7 +165,7 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
       setAnnouncement(action === "revoke" ? `Abonnement retiré pour ${accountLabel(result.account)}.` : `Abonnement enregistré pour ${accountLabel(result.account)}.`);
     } catch (err) {
       if (sequence !== detailSequence.current || selectedRef.current !== userId) return;
-      if (err?.status === 409) { setConflict(true); setError("Cet abonnement a été modifié ailleurs. Ton brouillon est conservé. Actualise le profil avant toute nouvelle modification."); }
+      if (err?.status === 409) { setConflict(true); setError("Cet abonnement a été modifié ailleurs. Ton brouillon est conservé. Actualise le compte avant toute nouvelle modification."); }
       else setError(requestError(err, "Impossible d’enregistrer l’abonnement. Ton brouillon est conservé."));
     } finally {
       if (sequence === detailSequence.current && selectedRef.current === userId) { pendingMutation.current = false; setBusy(false); }
@@ -187,45 +187,45 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
 
   useAdminNavigationGuard({ dirty, disabled: busy });
   return <div className="nxt5-data-dense account-subscriptions-page">
-    <PageHeader eyebrow="Ventes et accès" title="Profils et abonnements" subtitle="Attribue et suis manuellement les formules des comptes NXT5." />
+    <PageHeader eyebrow="Ventes et accès" title="Comptes et abonnements" subtitle="Retrouve un compte, consulte son abonnement ou attribue-lui une formule." />
     {!embedded && <AdminTabNav activeId="account-subscriptions" navigate={navigate} disabled={busy} dirty={dirty} />}
     <p className="as-notice"><ShieldCheck aria-hidden="true" /><span>Découverte : {DISCOVERY_TRIAL_DAYS} jours d’accès complet, puis Pass Équipe pour continuer. Les outils restent ouverts à tous avant le lancement. Les attributions manuelles ne déclenchent aucun paiement ni renouvellement automatique.</span></p>
     <p className="as-announcement" role="status" aria-live="polite">{announcement}</p>
 
     {!selectedId ? <Surface>
       <section aria-labelledby="subscription-accounts-title">
-        <header className="as-section-heading"><div><h3 id="subscription-accounts-title">Trouver un profil</h3><p>Recherche parmi tous les comptes, par nom, pseudo ou e-mail.</p></div></header>
+        <header className="as-section-heading"><div><h3 id="subscription-accounts-title">Trouver un compte</h3><p>Recherche parmi tous les comptes, par nom, pseudo ou e-mail.</p></div></header>
         <form className="as-search" onSubmit={runSearch}>
-          <TextInput label="Rechercher un profil" type="search" name="q" value={search} onChange={setSearch} placeholder="Nom, pseudo ou e-mail" maxLength={100} icon={Search} />
+          <TextInput label="Rechercher un compte" type="search" name="q" value={search} onChange={setSearch} placeholder="Nom, pseudo ou e-mail" maxLength={100} icon={Search} />
           <Button type="submit" icon={listLoading ? Loader2 : Search} disabled={listLoading && search.trim() === query}>Rechercher</Button>
           {(search || query) && <Button type="button" variant="ghost" icon={X} onClick={resetSearch}>Effacer</Button>}
         </form>
         {listError && <div className="as-error" role="alert"><p>{listError}</p><Button type="button" variant="ghost" disabled={listLoading} onClick={loadList}>Réessayer</Button></div>}
         <div aria-busy={listLoading} className="as-account-list">
-          {listLoading && !list ? <div aria-label="Chargement des profils"><SkeletonRows count={3} /></div> : list && <>
-            <p className="as-result-count" role="status">{listLoading ? "Actualisation des profils…" : `${pagination.total} profil${pagination.total > 1 ? "s" : ""}${query ? ` pour « ${query} »` : ""}`}</p>
+          {listLoading && !list ? <div aria-label="Chargement des comptes"><SkeletonRows count={3} /></div> : list && <>
+            <p className="as-result-count" role="status">{listLoading ? "Actualisation des comptes…" : `${pagination.total} compte${pagination.total > 1 ? "s" : ""}${query ? ` pour « ${query} »` : ""}`}</p>
             {list.accounts.length ? <ul>{list.accounts.map((item) => <li key={item.id}>
               <AccountIdentity account={item} /><SubscriptionSummary subscription={item.subscription} />
               <Button type="button" variant="ghost" disabled={listLoading} aria-label={`Gérer l’abonnement de ${accountLabel(item)}`} onClick={() => setSelectedId(item.id)}>Gérer l’abonnement</Button>
-            </li>)}</ul> : !listError && <EmptyState icon={UserRound} title={query ? "Aucun profil trouvé" : "Aucun profil"} text={query ? "Essaie un autre nom, pseudo ou e-mail." : "Les comptes NXT5 apparaîtront ici."} />}
-            {!list.accounts.length && query && <Button type="button" variant="ghost" onClick={resetSearch}>Voir tous les profils</Button>}
+            </li>)}</ul> : !listError && <EmptyState icon={UserRound} title={query ? "Aucun compte trouvé" : "Aucun compte"} text={query ? "Essaie un autre nom, pseudo ou e-mail." : "Les comptes NXT5 apparaîtront ici."} />}
+            {!list.accounts.length && query && <Button type="button" variant="ghost" onClick={resetSearch}>Voir tous les comptes</Button>}
           </>}
         </div>
-        {pagination && pagination.total > 0 && <nav className="as-pagination" aria-label="Pagination des profils">
+        {pagination && pagination.total > 0 && <nav className="as-pagination" aria-label="Pagination des comptes">
           <p>{(pagination.page - 1) * pagination.pageSize + 1}–{Math.min(pagination.page * pagination.pageSize, pagination.total)} sur {pagination.total}</p>
-          <div><Button type="button" variant="ghost" icon={ChevronLeft} aria-label="Page précédente des profils" disabled={listLoading || pagination.page <= 1} onClick={() => setPage(page - 1)} /><span>Page {pagination.page} / {Math.max(1, pagination.totalPages)}</span><Button type="button" variant="ghost" icon={ChevronRight} aria-label="Page suivante des profils" disabled={listLoading || pagination.page >= pagination.totalPages} onClick={() => setPage(page + 1)} /></div>
+          <div><Button type="button" variant="ghost" icon={ChevronLeft} aria-label="Page précédente des comptes" disabled={listLoading || pagination.page <= 1} onClick={() => setPage(page - 1)} /><span>Page {pagination.page} / {Math.max(1, pagination.totalPages)}</span><Button type="button" variant="ghost" icon={ChevronRight} aria-label="Page suivante des comptes" disabled={listLoading || pagination.page >= pagination.totalPages} onClick={() => setPage(page + 1)} /></div>
         </nav>}
       </section>
     </Surface> : <Surface>
       <section aria-labelledby="subscription-editor-title">
-        <div className="as-profile-navigation"><Button type="button" variant="ghost" icon={ArrowLeft} disabled={busy} onClick={() => setSelectedId("")}>{dirty ? "Annuler et changer de profil" : "Changer de profil"}</Button>{account && <Button type="button" variant="ghost" icon={detailLoading ? Loader2 : RefreshCw} disabled={blocked} onClick={() => { setAnnouncement(""); loadDetail(selectedId); }}>{dirty || conflict ? "Abandonner le brouillon et actualiser" : "Actualiser le profil"}</Button>}</div>
-        {!account && <h3 id="subscription-editor-title" className="as-loading-title">Abonnement du profil</h3>}
+        <div className="as-profile-navigation"><Button type="button" variant="ghost" icon={ArrowLeft} disabled={busy} onClick={() => setSelectedId("")}>{dirty ? "Annuler et changer de compte" : "Changer de compte"}</Button>{account && <Button type="button" variant="ghost" icon={detailLoading ? Loader2 : RefreshCw} disabled={blocked} onClick={() => { setAnnouncement(""); loadDetail(selectedId); }}>{dirty || conflict ? "Abandonner le brouillon et actualiser" : "Actualiser le compte"}</Button>}</div>
+        {!account && <h3 id="subscription-editor-title" className="as-loading-title">Abonnement du compte</h3>}
         {detailError && <div ref={errorRef} tabIndex={-1} className="as-error" role="alert"><p>{detailError}{account && " Les informations affichées datent de la dernière lecture réussie."}</p><Button type="button" variant="ghost" disabled={blocked} onClick={() => loadDetail(selectedId)}>Réessayer</Button></div>}
         {detailLoading && !account && <div aria-label="Chargement de l’abonnement"><SkeletonRows count={3} /></div>}
         {account && <>
           <div ref={headingRef} tabIndex={-1} className="as-selected-heading"><AccountIdentity account={account} heading /><SubscriptionSummary subscription={subscription} /></div>
           <form className="as-editor" onSubmit={(event) => { event.preventDefault(); mutate("assign"); }} aria-busy={busy}>
-            <div className="as-editor-heading"><h4>Attribution de la formule</h4><p className="as-caption">La formule enregistrée remplace l’attribution actuelle de ce profil.</p></div>
+            <div className="as-editor-heading"><h4>Attribution de la formule</h4><p className="as-caption">La formule enregistrée remplace l’abonnement actuel de ce compte.</p></div>
             <fieldset disabled={blocked || conflict || confirmRevoke}>
               <legend className="sr-only">Abonnement de {accountLabel(account)}</legend>
               <div>
@@ -242,7 +242,7 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
                 {form.startTrial && <>
                   <div className="as-date-fields"><TextInput label="Date de début de l’essai" name="startsAt" type="date" required value={form.startDate} onChange={(value) => patch("startDate", value)} /></div>
                   {trialPeriod && <p className="as-caption" role="status">{trialPeriod}. Dates en heure locale{timezone ? ` (${timezone})` : ""}.</p>}
-                  <p className="as-caption">L’enregistrement applique cette période uniquement à ce profil. Aucun outil ne sera bloqué avant le lancement des abonnements.</p>
+                  <p className="as-caption">L’enregistrement applique cette période uniquement à ce compte. Aucun outil ne sera bloqué avant le lancement des abonnements.</p>
                 </>}
               </>}
               <TextAreaInput label="Note privée" name="note" rows={3} maxLength={NOTE_LIMIT} value={form.note} onChange={(value) => patch("note", value)} placeholder="Motif de l’attribution, accord ou référence interne…" /><p className="as-caption">Visible uniquement dans l’administration · {form.note.length} / {NOTE_LIMIT} caractères</p>
@@ -250,7 +250,7 @@ export default function AccountSubscriptionsPage({ navigate, initialUserId = "",
             {futureReplacement && <p className="as-replacement-notice">Cette attribution remplace le Pass actuel. Aucun Pass ne sera actif avant le {new Date(subscriptionDateToISO(form.startDate)).toLocaleDateString("fr-FR")}.</p>}
             <div className="as-editor-actions"><Button type="submit" icon={busy ? Loader2 : Check} disabled={blocked || conflict || confirmRevoke || form.note.length > NOTE_LIMIT}>{busy ? "Enregistrement…" : "Enregistrer l’abonnement"}</Button>{dirty && <Button type="button" variant="ghost" disabled={blocked} onClick={cancelChanges}>Annuler les modifications</Button>}{canRevoke && <Button type="button" variant="ghost" className="as-remove-action" disabled={blocked || conflict || confirmRevoke} onClick={() => { setConfirmRevoke(true); setError(""); }}>Retirer l’abonnement</Button>}</div>
           </form>
-          {confirmRevoke && <div className="as-revoke" role="group" aria-label="Confirmer le retrait de l’abonnement"><h4>Retirer {getSubscriptionPresentation(subscription).label} ?</h4><p>Le retrait concerne <strong>{accountLabel(account)}</strong>{account.accountName && <> (@{account.accountName})</>} · {account.email}. Le profil n’aura plus de formule active ; aucun nouvel essai ne sera démarré.</p><p>La note privée saisie sera enregistrée avec ce retrait.</p><div className="as-editor-actions"><Button type="button" variant="ghost" disabled={busy} onClick={() => setConfirmRevoke(false)}>Conserver l’abonnement</Button><Button type="button" variant="danger" disabled={blocked || conflict} icon={busy ? Loader2 : X} onClick={() => mutate("revoke")}>{busy ? "Retrait…" : "Confirmer le retrait"}</Button></div></div>}
+          {confirmRevoke && <div className="as-revoke" role="group" aria-label="Confirmer le retrait de l’abonnement"><h4>Retirer {getSubscriptionPresentation(subscription).label} ?</h4><p>Le retrait concerne <strong>{accountLabel(account)}</strong>{account.accountName && <> (@{account.accountName})</>} · {account.email}. Le compte n’aura plus de formule active ; aucun nouvel essai ne sera démarré.</p><p>La note privée saisie sera enregistrée avec ce retrait.</p><div className="as-editor-actions"><Button type="button" variant="ghost" disabled={busy} onClick={() => setConfirmRevoke(false)}>Conserver l’abonnement</Button><Button type="button" variant="danger" disabled={blocked || conflict} icon={busy ? Loader2 : X} onClick={() => mutate("revoke")}>{busy ? "Retrait…" : "Confirmer le retrait"}</Button></div></div>}
           {error && <div ref={errorRef} tabIndex={-1} className="as-error" role="alert"><p>{error}</p>{conflict && <p>La dernière attribution doit être relue avant de pouvoir enregistrer ou retirer un abonnement.</p>}</div>}
           <SubscriptionHistory history={detail.history} />
         </>}

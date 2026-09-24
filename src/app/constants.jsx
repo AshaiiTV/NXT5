@@ -33,14 +33,14 @@ export const NAV = [
   { id: "audience", label: "Fréquentation", hint: "Audience et conversions", icon: BarChart3, path: "/admin/frequentation", hidden: true },
   { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
   { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
-  { id: "account-subscriptions", label: "Profils et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
+  { id: "account-subscriptions", label: "Comptes et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
 ];
 
 export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
 export const MORE_NAV_IDS = ["reports", "trends", "draft", "bot-discord"];
 
 export const DRAFT_VIEW_ROUTES = [
-  { id: "pool", label: "Champion Pool", path: "pool" },
+  { id: "pool", label: "Champions des joueurs", path: "pool" },
   { id: "compositions", label: "Compositions", path: "compositions" },
 ];
 

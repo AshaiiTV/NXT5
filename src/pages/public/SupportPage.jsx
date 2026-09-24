@@ -25,8 +25,8 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
           <section className="nxt5-support-story" aria-labelledby="support-title">
             <p className="nxt5-entry-eyebrow">Un projet indépendant</p>
             <h1 id="support-title" className="nxt5-page-title">Soutenir NXT5</h1>
-            <p className="nxt5-support-intro">Tu utilises NXT5 avec ton équipe ? Tu peux aussi l’aider à grandir.</p>
-            <p>Je développe NXT5 avec passion pour accompagner les équipes dans leur préparation et leurs reviews. Si l’outil t’est utile, tu peux soutenir son développement et contribuer aux prochaines améliorations.</p>
+            <p className="nxt5-support-intro">Aide à améliorer l’outil que tu utilises avec ton équipe.</p>
+            <p>Je développe NXT5 pour aider les équipes à préparer leurs parties et à en tirer des pistes de progrès. Ton soutien contribue aux prochaines améliorations.</p>
             <ul className="nxt5-support-impact">
               <li><Sparkles aria-hidden="true" size={20} /><div><h2>Faire évoluer l’outil</h2><p>Améliorer les fonctionnalités qui accompagnent le travail de ton équipe.</p></div></li>
               <li><Wrench aria-hidden="true" size={20} /><div><h2>Prendre soin du projet</h2><p>Continuer à corriger, simplifier et améliorer NXT5 au quotidien.</p></div></li>
@@ -35,8 +35,8 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
           <section aria-labelledby="contribute-title" className="nxt5-support-contribute">
             <Surface className="nxt5-support-card">
               <Heart aria-hidden="true" className="nxt5-support-heart" size={28} />
-              <h2 id="contribute-title">Chaque soutien compte.</h2>
-              <p>Une façon d’encourager le projet et la suite de son développement.</p>
+              <h2 id="contribute-title">Contribuer au développement</h2>
+              <p>Tu choisis le montant et la fréquence de ton soutien.</p>
               {destination ? (
                 <>
                   <p className="nxt5-support-choice">Choisis ton montant sur la page de soutien, pour une contribution ponctuelle ou mensuelle.</p>
@@ -55,7 +55,7 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
             </Surface>
             <div className="nxt5-support-community">
               <MessageCircle aria-hidden="true" size={20} />
-              <div><h2>Tes retours comptent aussi.</h2><p>Une idée, un bug ou un partage à une autre équipe : tu peux contribuer à ta manière.</p><PublicTextLink href="/reseaux" navigate={navigate} className="nxt5-entry-text-link">Rejoindre la communauté<ArrowUpRight aria-hidden="true" size={16} /></PublicTextLink></div>
+              <div><h2>Tes retours comptent aussi.</h2><p>Signale un problème, propose une idée ou fais connaître NXT5 à une autre équipe.</p><PublicTextLink href="/reseaux" navigate={navigate} className="nxt5-entry-text-link">Rejoindre la communauté<ArrowUpRight aria-hidden="true" size={16} /></PublicTextLink></div>
             </div>
           </section>
         </div>

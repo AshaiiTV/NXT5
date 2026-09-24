@@ -14,7 +14,7 @@ const ROLES = [
 const PHASES = [
   { id: "app", label: "Ouverture", status: "Ouverture de NXT5", detail: "Ton espace d’équipe se prépare." },
   { id: "session", label: "Connexion", status: "Connexion à ton espace", detail: "On retrouve ton équipe." },
-  { id: "bootstrap", label: "Synchronisation", status: "Synchronisation en cours", detail: "Roster, games, draft et review." },
+  { id: "bootstrap", label: "Synchronisation", status: "Synchronisation en cours", detail: "Tes joueurs, tes parties et tes débriefs." },
 ];
 
 function TeamConvergence() {
@@ -81,9 +81,9 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
           <div className="nxt5-sync-copy">
             <p className="nxt5-sync-eyebrow"><span /> LA SUITE SE JOUE ENSEMBLE</p>
             <h1>Cinq rôles.<br />Une même<br /><span>direction.</span></h1>
-            <p className="nxt5-sync-description">Ton roster, tes games, tes prochaines décisions.</p>
-            <div className="nxt5-sync-disciplines" aria-label="Roster, games, draft et review">
-              <span>ROSTER</span><i /><span>GAMES</span><i /><span>DRAFT</span><i /><span>REVIEW</span>
+            <p className="nxt5-sync-description">Tes joueurs, tes parties, tes prochaines décisions.</p>
+            <div className="nxt5-sync-disciplines" aria-label="Joueurs, parties, choix des champions et débriefs">
+              <span>JOUEURS</span><i /><span>PARTIES</span><i /><span>DRAFT</span><i /><span>DÉBRIEFS</span>
               <ArrowUpRight size={15} aria-hidden="true" />
             </div>
           </div>
@@ -97,11 +97,11 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
               <div><p>{current.status}</p><span>{current.detail}</span></div>
             </div>
             <div className="nxt5-sync-count" aria-hidden="true">
-              {determinate ? <><strong>{loaded}<span> / {progress.total}</span></strong><span>GAMES REÇUES</span></> : <><strong>0{index + 1}<span> / 03</span></strong><span>ÉTAPE EN COURS</span></>}
+              {determinate ? <><strong>{loaded}<span> / {progress.total}</span></strong><span>PARTIES REÇUES</span></> : <><strong>0{index + 1}<span> / 03</span></strong><span>ÉTAPE EN COURS</span></>}
             </div>
           </div>
 
-          <div className={`nxt5-sync-progress${determinate ? " is-determinate" : ""}`} role="progressbar" aria-label={determinate ? "Chargement des games" : current.status} aria-valuemin={determinate ? 0 : undefined} aria-valuemax={determinate ? progress.total : undefined} aria-valuenow={determinate ? loaded : undefined} aria-valuetext={determinate ? `${loaded} games reçues sur ${progress.total}` : `Étape ${index + 1} sur 3 : ${current.label}`}>
+          <div className={`nxt5-sync-progress${determinate ? " is-determinate" : ""}`} role="progressbar" aria-label={determinate ? "Chargement des parties" : current.status} aria-valuemin={determinate ? 0 : undefined} aria-valuemax={determinate ? progress.total : undefined} aria-valuenow={determinate ? loaded : undefined} aria-valuetext={determinate ? `${loaded} parties reçues sur ${progress.total}` : `Étape ${index + 1} sur 3 : ${current.label}`}>
             <span style={determinate ? { transform: `scaleX(${ratio})` } : undefined} />
           </div>
 

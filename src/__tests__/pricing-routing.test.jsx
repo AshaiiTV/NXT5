@@ -140,7 +140,7 @@ describe("private administrator routes", () => {
     await open("/equipes");
     expect(renderer.root.findAllByProps({ "data-team-access": "true" })).toHaveLength(1);
     const actions = renderer.root.findAllByType(Button);
-    expect(actions.some((item) => item.props.children === "Profils et abonnements")).toBe(isAdmin);
+    expect(actions.some((item) => item.props.children === "Comptes et abonnements")).toBe(isAdmin);
     await act(async () => actions.find((item) => item.props.children === "Paramètres").props.onClick());
     expect(window.history.pushState).toHaveBeenCalledWith({}, "", "/parametres");
   });

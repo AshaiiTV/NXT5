@@ -242,7 +242,7 @@ function ProfileLinkAuditPanel({ player, matches, issues, open, canRepair, repai
   if (!player || !COMP_ROLES.includes(normalizeProfileRole(player.role)) || !matches.length) return null;
   const linkedGames = Math.max(0, matches.length - issues.length);
   const complete = issues.length === 0;
-  if (complete) return <p className="profile-link-status"><Check aria-hidden="true" className="h-4 w-4" /> {linkedGames} games de l’équipe reliées à ce joueur.</p>;
+  if (complete) return <p className="profile-link-status"><Check aria-hidden="true" className="h-4 w-4" /> {linkedGames} partie{linkedGames > 1 ? "s" : ""} de l’équipe reliée{linkedGames > 1 ? "s" : ""} à ce joueur.</p>;
   return <section className={cx("profile-link-audit", complete ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-amber-300/20 bg-amber-400/[0.055]")}>
     <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 items-start gap-3">
@@ -250,11 +250,11 @@ function ProfileLinkAuditPanel({ player, matches, issues, open, canRepair, repai
           {complete ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
         </span>
         <div className="min-w-0">
-          <p className="text-sm font-black text-white">{complete ? "Toutes les games sont reliées" : `${issues.length} game${issues.length > 1 ? "s" : ""} non reliée${issues.length > 1 ? "s" : ""} à ce joueur`}</p>
-          <p className="mt-0.5 text-xs font-semibold text-slate-300">{linkedGames} games reliées sur {matches.length} games équipe. Les autres peuvent concerner un remplaçant.</p>
+          <p className="text-sm font-black text-white">{complete ? "Toutes les parties sont reliées" : `${issues.length} partie${issues.length > 1 ? "s" : ""} non reliée${issues.length > 1 ? "s" : ""} à ce joueur`}</p>
+          <p className="mt-0.5 text-xs font-semibold text-slate-300">{linkedGames} partie{linkedGames > 1 ? "s" : ""} reliée{linkedGames > 1 ? "s" : ""} sur {matches.length} parties de l’équipe. Les autres peuvent concerner un remplaçant.</p>
         </div>
       </div>
-      {!complete && <Button type="button" variant="ghost" icon={open ? ChevronDown : ChevronRight} onClick={onToggle} aria-expanded={open}>{open ? "Masquer" : "Voir les games"}</Button>}
+      {!complete && <Button type="button" variant="ghost" icon={open ? ChevronDown : ChevronRight} onClick={onToggle} aria-expanded={open}>{open ? "Masquer" : "Voir les parties"}</Button>}
     </div>
     {open && !complete && <div className="border-t border-white/10">
       {issues.map((item) => {
@@ -383,22 +383,22 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
 	  const lowCsRows = cs10Target ? rows.filter((row) => { const value = csAtMinute(row, 10); return Number.isFinite(value) && value < cs10Target - 8; }) : [];
 
   const coachSignals = games ? [
-    cs10Target && globalCs.at10 !== null && globalCs.at10 < cs10Target - 8 && { kind: "issue", priority: 94, title: "Vérifier le farm en début de game", text: `${globalCs.at10} CS à 10 min en moyenne sur ${cs10Values.length} games renseignées. Le repère proposé pour le poste est de ${cs10Target} CS ; il reste à adapter au matchup.`, action: "Revoir les premières waves et le premier retour à la base, puis comparer le farm à 10 minutes sur les prochaines games.", toneName: "cyan", icon: Target, rows: lowCsRows },
-    highDeathRows.length > 0 && { kind: "issue", priority: 88, title: "Revoir les games avec le plus de morts", text: `${highDeathRows.length} games atteignent au moins ${Math.max(4, Math.ceil(avgDeaths + 1))} morts, pour ${avgDeaths.toFixed(1)} en moyenne sur la sélection. Le score seul ne dit pas si ces morts étaient évitables.`, action: "Classer les morts par contexte : wave, vision ou fight. Choisir ensuite une situation à mieux préparer.", toneName: "cyan", icon: Shield, rows: highDeathRows },
-    lowKpRows.length > 0 && { kind: "issue", priority: 84, title: "Vérifier la participation aux kills", text: `${lowKpRows.length} games sont sous 50 % de participation aux kills de l’équipe. Une stratégie de splitpush peut expliquer cet écart.`, action: "Revoir le placement et les déplacements avant les objectifs. Vérifier si le joueur devait rejoindre son équipe ou maintenir la pression sur une lane.", toneName: "cyan", icon: Swords, rows: lowKpRows },
-    topChampionShare >= 65 && { kind: "issue", priority: 68, title: "Préparer une alternative au champion le plus joué", text: `${championDisplayName(topChampion.champion)} représente ${topChampionShare} % des ${games} games analysées. Ce volume décrit les habitudes de draft, pas la qualité du pool.`, action: `Vérifier dans le pool déclaré quelle alternative jouer si ${championDisplayName(topChampion.champion)} est indisponible.`, toneName: "cyan", icon: Crown, rows: topChampion.rows },
-    { kind: "strength", priority: 1, title: "Choisir un point à confirmer en review", text: "Ces résultats donnent des repères. Ils ne suffisent pas à déterminer, seuls, une priorité de progression.", action: "Ouvrir une game récente, choisir un comportement observable et le suivre sur le prochain bloc.", toneName: "cyan", icon: Target, rows: sortedProfileRows.slice(0, 3) },
+    cs10Target && globalCs.at10 !== null && globalCs.at10 < cs10Target - 8 && { kind: "issue", priority: 94, title: "Vérifier les sbires obtenus en début de partie", text: `${globalCs.at10} sbires et monstres tués (CS) à 10 min en moyenne sur ${cs10Values.length} parties renseignées. Le repère proposé pour le poste est de ${cs10Target} ; il reste à adapter à l’adversaire.`, action: "Revoir les premières vagues de sbires et le premier retour à la base, puis comparer le résultat à 10 minutes sur les prochaines parties.", toneName: "cyan", icon: Target, rows: lowCsRows },
+    highDeathRows.length > 0 && { kind: "issue", priority: 88, title: "Revoir les parties avec le plus de morts", text: `${highDeathRows.length} parties atteignent au moins ${Math.max(4, Math.ceil(avgDeaths + 1))} morts, pour ${avgDeaths.toFixed(1)} en moyenne sur la sélection. Le score seul ne dit pas si ces morts étaient évitables.`, action: "Classer les morts par contexte : gestion des sbires, vision ou combat. Choisir ensuite une situation à mieux préparer.", toneName: "cyan", icon: Shield, rows: highDeathRows },
+    lowKpRows.length > 0 && { kind: "issue", priority: 84, title: "Vérifier la participation aux éliminations", text: `${lowKpRows.length} parties sont sous 50 % de participation aux éliminations de l’équipe. Jouer seul sur une voie pour y maintenir la pression (splitpush) peut expliquer cet écart.`, action: "Revoir le placement et les déplacements avant les objectifs. Vérifier si le joueur devait rejoindre son équipe ou maintenir la pression sur une voie.", toneName: "cyan", icon: Swords, rows: lowKpRows },
+    topChampionShare >= 65 && { kind: "issue", priority: 68, title: "Préparer une alternative au champion le plus joué", text: `${championDisplayName(topChampion.champion)} représente ${topChampionShare} % des ${games} parties analysées. Ce volume décrit les choix de champions, pas leur maîtrise.`, action: `Vérifier dans les champions déclarés quelle alternative jouer si ${championDisplayName(topChampion.champion)} est indisponible.`, toneName: "cyan", icon: Crown, rows: topChampion.rows },
+    { kind: "strength", priority: 1, title: "Choisir un point à confirmer en débrief", text: "Ces résultats donnent des repères. Ils ne suffisent pas à déterminer, seuls, une priorité de progression.", action: "Ouvrir une partie récente, choisir un comportement observable et le suivre sur la prochaine session.", toneName: "cyan", icon: Target, rows: sortedProfileRows.slice(0, 3) },
   ].filter(Boolean).sort((a, b) => b.priority - a.priority) : [];
 
 	  const coachIssues = coachSignals.filter((item) => item.kind === "issue").slice(0, 4);
 	  const coachStrengths = coachSignals.filter((item) => item.kind === "strength").slice(0, 3);
   const coachDecisions = [
-    { label: "Prochaine étape à tester", text: coachIssues[0]?.action || coachStrengths[0]?.action || "Importer des games pour préparer la review.", toneName: "cyan" },
-    { label: "Périmètre", text: `${games} games · ${activeProfileCategory?.name || "Tous les contextes"}`, toneName: "cyan" },
+    { label: "Prochaine étape à tester", text: coachIssues[0]?.action || coachStrengths[0]?.action || "Importer des parties pour préparer le débrief.", toneName: "cyan" },
+    { label: "Périmètre", text: `${games} parties · ${activeProfileCategory?.name || "Tous les contextes"}`, toneName: "cyan" },
   ];
 
-  const coachVerdict = coachIssues[0]?.title || coachStrengths[0]?.title || "Aucune game analysée";
-  const coachSummary = coachIssues.length ? coachIssues[0].text : coachStrengths[0]?.text || "Importe quelques games supplémentaires pour obtenir un bilan.";
+  const coachVerdict = coachIssues[0]?.title || coachStrengths[0]?.title || "Aucune partie analysée";
+  const coachSummary = coachIssues.length ? coachIssues[0].text : coachStrengths[0]?.text || "Importe quelques parties supplémentaires pour obtenir un bilan.";
 
   async function saveCoachingNote() {
     if (!selectedPlayer || !selectedTeamId || !canEditCoaching) return;
@@ -419,14 +419,14 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     const roles = { [item.row.id]: { role: selectedRole, playerId: selectedPlayer.id } };
     const swapsRoles = item.identityMatched && item.recordedRole && item.recordedRole !== selectedRole && item.roleRow?.id && item.roleRow.id !== item.row.id;
     if (swapsRoles) roles[item.roleRow.id] = { role: item.recordedRole, playerId: item.roleRow.player_id || "" };
-    const currentLink = item.currentPlayer && String(item.currentPlayer.id) !== String(selectedPlayer.id) ? ` Cette game est actuellement liée à ${item.currentPlayer.name}.` : "";
+    const currentLink = item.currentPlayer && String(item.currentPlayer.id) !== String(selectedPlayer.id) ? ` Cette partie est actuellement liée à ${item.currentPlayer.name}.` : "";
     const roleChange = swapsRoles ? ` Les postes ${roleLabel(selectedRole)} et ${roleLabel(item.recordedRole)} seront aussi remis dans le bon ordre.` : "";
     if (!window.confirm(`Attribuer ${matchDisplayName(item.match)} à ${selectedPlayer.name} ?${currentLink}${roleChange}`)) return;
     setRepairingProfileLinkId(item.row.id);
     try {
       await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "roles", teamId: selectedTeamId, matchId: item.match.id, roles }) });
       await refreshAll?.();
-      pushToast?.({ type: "green", title: "Game reliée", text: `${matchDisplayName(item.match)} compte maintenant dans le profil de ${selectedPlayer.name}.` });
+      pushToast?.({ type: "green", title: "Partie reliée", text: `${matchDisplayName(item.match)} compte maintenant dans le profil de ${selectedPlayer.name}.` });
     } catch (err) {
       pushToast?.({ type: "red", title: "Liaison impossible", text: err.message });
     } finally {
@@ -455,11 +455,11 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }
   const metrics = [
     { label: "Victoires", value: knownResults ? `${Math.round(wins / knownResults * 100)} %` : "—", detail: `${wins} victoires · ${losses} défaites${knownResults < games ? ` · ${games - knownResults} résultats inconnus` : ""}`, toneName: "cyan" },
-    { label: "Participation aux kills", value: kpRows.length ? `${Math.round(kpRows.reduce((total, row) => total + parsePercent(row.kill_participation ?? row.kp), 0) / kpRows.length)} %` : "—", detail: `Moyenne · ${kpRows.length} games renseignées` },
-    { label: "Morts par game", value: meanMetric("deaths"), detail: `Moyenne · ${metricRows("deaths").length} games renseignées` },
-    { label: "Farm à 10 min", value: globalCs.at10 === null ? "—" : `${globalCs.at10} CS`, detail: `Moyenne · ${cs10Values.length} games renseignées` },
+    { label: "Participation aux éliminations", value: kpRows.length ? `${Math.round(kpRows.reduce((total, row) => total + parsePercent(row.kill_participation ?? row.kp), 0) / kpRows.length)} %` : "—", detail: `Moyenne · ${kpRows.length} parties renseignées`, explanation: "Part des éliminations de l’équipe avec un kill ou une assistance du joueur (KP)." },
+    { label: "Morts par partie", value: meanMetric("deaths"), detail: `Moyenne · ${metricRows("deaths").length} parties renseignées` },
+    { label: "Sbires à 10 min", value: globalCs.at10 === null ? "—" : `${globalCs.at10} CS`, detail: `Moyenne · ${cs10Values.length} parties renseignées`, explanation: "Les CS comptent les sbires et monstres tués." },
   ];
-  if (!selectedPlayer) return <div className="nxt5-profile-page"><PageHeader eyebrow="Équipe" title="Profils joueurs" subtitle="Les résultats, les champions et le suivi de chaque joueur." /><Surface><EmptyState icon={Activity} title="Aucun profil joueur" text="Ajoute un joueur dans la gestion de l’équipe pour consulter son profil." /><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>Gérer les joueurs</Button></Surface></div>;
+  if (!selectedPlayer) return <div className="nxt5-profile-page"><PageHeader eyebrow="Équipe" title="Profils joueurs" subtitle="Les résultats, les champions et le suivi de chaque joueur." /><Surface><EmptyState icon={Activity} title="Aucun profil joueur" text="Ajoute un joueur dans la gestion de l’équipe pour consulter son profil." /><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>Voir l’équipe</Button></Surface></div>;
   return <div className="nxt5-data-dense nxt5-profile-page">
     <PageHeader eyebrow="Profil joueur" title={selectedPlayer.name} subtitle={`${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non renseigné"}${selectedPlayer.user_id === user?.id ? " · Ton profil" : ""}`}>
       <Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} onClick={downloadProfile} disabled={exporting || !games}>{exporting ? "Export en cours…" : "Exporter le résumé"}</Button>
@@ -468,25 +468,25 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <div className="profile-context">
       <div className="profile-filters">
         <SelectInput label="Joueur" value={selectedPlayer.id} onChange={selectProfile}>{players.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>
-        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
       </div>
-      <div className="profile-scope"><p><strong>{games} games analysées</strong> · {activeProfileCategory?.name || "Tous les contextes"}{rows.length ? ` · ${profileHistoryDateLabel(sortedProfileRows[sortedProfileRows.length - 1]) || "date inconnue"} au ${profileHistoryDateLabel(sortedProfileRows[0]) || "date inconnue"}` : ""}</p>{selectedCategoryId && <button type="button" className="profile-text-action" onClick={() => setSelectedCategoryId("")}>Réinitialiser le contexte</button>}</div>
+      <div className="profile-scope"><p><strong>{games} parties analysées</strong> · {activeProfileCategory?.name || "Tous les contextes"}{rows.length ? ` · ${profileHistoryDateLabel(sortedProfileRows[sortedProfileRows.length - 1]) || "date inconnue"} au ${profileHistoryDateLabel(sortedProfileRows[0]) || "date inconnue"}` : ""}</p>{selectedCategoryId && <button type="button" className="profile-text-action" onClick={() => setSelectedCategoryId("")}>Réinitialiser le contexte</button>}</div>
     </div>
     <ProfileNavigation activeId={profileView} onChange={openProfileView} />
     <section id="profile-panel" role="tabpanel" aria-label={PROFILE_SECTIONS.find((section) => section.id === profileView)?.label} tabIndex={0} className="profile-content" key={`${selectedPlayer.id}-${selectedCategoryId}-${profileView}`}>
       {profileView === "overview" && <>
         {games > 0 ? <>
-          <Surface className="profile-summary"><div className="profile-section-heading"><h3>Le joueur en un regard</h3><span>Sur la sélection ci-dessus</span></div><dl className="profile-metrics">{metrics.map((metric) => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd><p>{metric.detail}</p></div>)}</dl>{games < 5 && <p className="profile-sample-note">Échantillon limité : {games} games. Confirme les observations sur les prochaines sessions.</p>}</Surface>
           <CoachDiagnosticPanel player={selectedPlayer} games={games} issues={coachIssues} strengths={coachStrengths} onFollowUp={() => { openProfileView("coaching"); requestAnimationFrame(() => document.getElementById("profile-panel")?.focus()); }} />
-          <details className="profile-disclosure"><summary>Autres statistiques et aide à la lecture</summary><dl className="profile-secondary-stats"><div><dt>Ratio KDA</dt><dd>{kda}</dd><p>(Kills + assists) ÷ morts, avec un minimum de 1 mort au dénominateur.</p></div><div><dt>Dégâts aux champions</dt><dd>{meanMetric("damage", 0)}</dd><p>Moyenne par game renseignée.</p></div><div><dt>Score de vision</dt><dd>{meanMetric("vision")}</dd><p>Moyenne par game renseignée.</p></div><div><dt>Farm à 20 min</dt><dd>{globalCs.at20 === null ? "—" : `${globalCs.at20} CS`}</dd><p>{cs20Values.length} games renseignées.</p></div></dl><p>La participation aux kills mesure les kills et assists du joueur rapportés aux kills de son équipe. Les CS comptent les sbires et monstres tués. « — » indique une donnée indisponible. Ces statistiques décrivent un résultat ; elles ne démontrent pas sa cause.</p></details>
-        </> : <Surface><EmptyState icon={Activity} title="Aucune game dans cette sélection" text={selectedCategoryId ? "Change le contexte pour retrouver les résultats de ce joueur." : "Les résultats apparaîtront dès qu’une game importée sera reliée à ce joueur."} /><Button type="button" variant="ghost" onClick={() => selectedCategoryId ? setSelectedCategoryId("") : openAppPath("/games?import=1")}>{selectedCategoryId ? "Voir tous les contextes" : "Importer des games"}</Button></Surface>}
+          <Surface className="profile-summary"><div className="profile-section-heading"><h3>Les résultats en un regard</h3><span>Sur la sélection ci-dessus · « — » signifie indisponible</span></div><dl className="profile-metrics">{metrics.map((metric) => <div key={metric.label}><dt>{metric.label}</dt><dd>{metric.value}</dd><p>{metric.detail}</p>{metric.explanation && <p className="profile-metric-explanation">{metric.explanation}</p>}</div>)}</dl>{games < 5 && <p className="profile-sample-note">Échantillon limité : {games} parties. Confirme les observations sur les prochaines sessions.</p>}</Surface>
+          <details className="profile-disclosure"><summary>Autres statistiques et aide à la lecture</summary><dl className="profile-secondary-stats"><div><dt>Ratio KDA</dt><dd>{kda}</dd><p>(Kills + assists) ÷ morts, avec un minimum de 1 mort au dénominateur.</p></div><div><dt>Dégâts aux champions</dt><dd>{meanMetric("damage", 0)}</dd><p>Moyenne par partie renseignée.</p></div><div><dt>Score de vision</dt><dd>{meanMetric("vision")}</dd><p>Moyenne par partie renseignée.</p></div><div><dt>Farm à 20 min</dt><dd>{globalCs.at20 === null ? "—" : `${globalCs.at20} CS`}</dd><p>{cs20Values.length} parties renseignées.</p></div></dl><p>La participation aux kills mesure les kills et assists du joueur rapportés aux kills de son équipe. Les CS comptent les sbires et monstres tués. « — » indique une donnée indisponible. Ces statistiques décrivent un résultat ; elles ne démontrent pas sa cause.</p></details>
+        </> : <Surface><EmptyState icon={Activity} title="Aucune partie dans cette sélection" text={selectedCategoryId ? "Change le contexte pour retrouver les résultats de ce joueur." : "Les résultats apparaîtront dès qu’une partie importée sera reliée à ce joueur."} /><Button type="button" variant="ghost" onClick={() => selectedCategoryId ? setSelectedCategoryId("") : openAppPath("/games?import=1")}>{selectedCategoryId ? "Voir tous les contextes" : "Importer une partie"}</Button></Surface>}
         <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />
       </>}
       {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} selectedCategoryId={selectedCategoryId} navigate={navigate} bootstrapRevision={data.bootstrapRevision} />}
       {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} exportRows={rows} category={activeProfileCategory?.name || "Toutes les catégories"} />}
       {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
       {profileView === "coaching" && <>
-        <div className="profile-followup-intro"><h3>Objectifs et notes</h3><p>Les objectifs suivent les games du contexte sélectionné. Les notes restent communes à tous les contextes du joueur.</p></div>
+        <div className="profile-followup-intro"><h3>Objectifs et notes</h3><p>Les objectifs suivent les parties du contexte sélectionné. Les notes restent communes à tous les contextes du joueur.</p></div>
         <DiscordProgressionGoals goals={data.botGoals} teamId={selectedTeamId} playerId={selectedPlayer.id} />
         <div className="profile-goals"><React.Suspense fallback={<p role="status" className="profile-notice">Chargement des objectifs…</p>}><PlayerGoalsPanel goals={data.playerGoals || []} rows={rows} player={selectedPlayer} selectedTeamId={selectedTeamId} canManage={canRepairProfileLinks} refreshAll={refreshAll} pushToast={pushToast} /></React.Suspense></div>
         <Surface className="profile-notes-surface"><div className="profile-section-heading"><h3>Notes de suivi</h3><span>{coachingNote?.updated_at ? `Mise à jour le ${new Date(coachingNote.updated_at).toLocaleString("fr-FR")}` : "Aucune note enregistrée"}{coachingNote?.updated_by_name ? ` · ${coachingNote.updated_by_name}` : ""}</span></div>
@@ -504,11 +504,11 @@ function CoachDiagnosticPanel({ player, games, issues = [], strengths = [], onFo
   if (!priority) return null;
   const otherSignals = issues.slice(1);
   return <Surface className="profile-review">
-    <div className="profile-review-layout"><div className="profile-review-observation"><p className="profile-eyebrow">Piste de review · à confirmer</p>
+    <div className="profile-review-layout"><div className="profile-review-observation"><p className="profile-eyebrow">Point à travailler · à confirmer en débrief</p>
     <h3>{priority.title}</h3>
     <p className="profile-copy">{priority.text}</p></div>
-    <div className="profile-next-step"><h4>Au prochain bloc</h4><p>{priority.action}</p>{onFollowUp && <button type="button" onClick={onFollowUp} className="profile-text-action">Ouvrir les objectifs et les notes <ArrowRight aria-hidden="true" /></button>}</div></div>
-    <details className="profile-disclosure"><summary>Voir les games à l’origine de cette piste <span>{priority.rows?.length || 0} games</span></summary><div className="profile-evidence">{(priority.rows || []).slice(0, 5).map((row, index) => <a key={row.match?.id || index} href={`/games?match=${encodeURIComponent(row.match?.id || "")}`} onClick={(event) => { event.preventDefault(); openAppPath(`/games?match=${encodeURIComponent(row.match?.id || "")}`); }}><span><strong>{matchDisplayName(row.match)}</strong><small>{championDisplayName(row.champion)} · {profileHistoryDateLabel(row)} · {row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"} kills / morts / assists</small></span><ArrowRight aria-hidden="true" /></a>)}</div>{priority.rows?.length > 5 && <p>Les 5 premières games sont affichées. Retrouve toutes les sources dans l’historique.</p>}</details>
+    <div className="profile-next-step"><h4>À essayer à la prochaine session</h4><p>{priority.action}</p>{onFollowUp && <button type="button" onClick={onFollowUp} className="profile-text-action">Ouvrir les objectifs et les notes <ArrowRight aria-hidden="true" /></button>}</div></div>
+    <details className="profile-disclosure"><summary>Voir les parties à l’origine de cette piste <span>{priority.rows?.length || 0} parties</span></summary><div className="profile-evidence">{(priority.rows || []).slice(0, 5).map((row, index) => <a key={row.match?.id || index} href={`/games?match=${encodeURIComponent(row.match?.id || "")}`} onClick={(event) => { event.preventDefault(); openAppPath(`/games?match=${encodeURIComponent(row.match?.id || "")}`); }}><span><strong>{matchDisplayName(row.match)}</strong><small>{championDisplayName(row.champion)} · {profileHistoryDateLabel(row)} · {row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"} kills / morts / assists</small></span><ArrowRight aria-hidden="true" /></a>)}</div>{priority.rows?.length > 5 && <p>Les 5 premières parties sont affichées. Retrouve toutes les sources dans l’historique.</p>}</details>
     {otherSignals.length > 0 && <details className="profile-disclosure"><summary>Autres pistes à vérifier <span>{otherSignals.length}</span></summary>{otherSignals.map((item) => <article className="profile-other-signal" key={item.title}><h4>{item.title}</h4><p>{item.text}</p><p>{item.action}</p></article>)}</details>}
   </Surface>;
 }
@@ -565,25 +565,25 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
     focusTarget.current = openedChampion;
     setOpenedChampion("");
   };
-  if (!championStats.length) return <Surface><EmptyState icon={Crown} title="Aucun champion joué" text={selectedCategoryId ? "Aucune game dans ce contexte pour ce profil." : "Importe une game pour retrouver les champions joués."} /></Surface>;
+  if (!championStats.length) return <Surface><EmptyState icon={Crown} title="Aucun champion joué" text={selectedCategoryId ? "Aucune partie dans ce contexte pour ce profil." : "Importe une partie pour retrouver les champions joués."} /></Surface>;
   return <div className="profile-champions" ref={rootRef}>
     {activeStat ? <>
       <Button type="button" variant="ghost" onClick={backToList} className="profile-champions-back"><ArrowRight aria-hidden="true" className="h-4 w-4 rotate-180" />Retour aux champions</Button>
       <Surface><ChampionProfileDetail key={activeStat.champion} stat={activeStat} rows={activeStat.rows || []} navigate={navigate} bootstrapRevision={bootstrapRevision} /></Surface>
     </> : <Surface>
       <header className="profile-champions-heading">
-        <div><h3 tabIndex={-1}>Champions joués</h3><p>{championStats.length} champion{championStats.length > 1 ? "s" : ""} sur {totalGames} game{totalGames > 1 ? "s" : ""} dans le périmètre sélectionné.</p></div>
+        <div><h3 tabIndex={-1}>Champions joués</h3><p>{championStats.length} champion{championStats.length > 1 ? "s" : ""} sur {totalGames} partie{totalGames > 1 ? "s" : ""} dans le périmètre sélectionné.</p></div>
         <p>Choisis un champion pour voir ses résultats, ses adversaires et ses équipements.</p>
       </header>
       <div className="profile-champions-toolbar">
         <label className="profile-champions-search"><span>Rechercher un champion</span><div><Search aria-hidden="true" className="h-4 w-4" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nom du champion" /></div></label>
-        <SelectInput label="Trier les champions" value={sortMode} onChange={setSortMode}><option value="volume">Nombre de games</option><option value="wr">Taux de victoire</option><option value="kda">Ratio KDA</option><option value="name">Nom du champion</option></SelectInput>
+        <SelectInput label="Trier les champions" value={sortMode} onChange={setSortMode}><option value="volume">Nombre de parties</option><option value="wr">Taux de victoire</option><option value="kda">Ratio KDA</option><option value="name">Nom du champion</option></SelectInput>
       </div>
       <p className="profile-champions-meta" role="status">{sortedStats.length} champion{sortedStats.length > 1 ? "s" : ""} affiché{sortedStats.length > 1 ? "s" : ""}</p>
       <div className="profile-champions-list">
         {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} onClick={() => openChampion(stat.champion)} active={selectedChampion === stat.champion} />) : <p className="profile-champions-empty">Aucun champion ne correspond à « {query} ».</p>}
       </div>
-      <details className="profile-champions-help"><summary>Comment lire ces résultats ?</summary><p>Le taux de victoire porte sur les games dont le résultat est connu. Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. Les résultats décrivent les games importées ; quelques games ne suffisent pas à établir la maîtrise d’un champion ni à décider d’un pick.</p></details>
+      <details className="profile-champions-help"><summary>Comment lire ces résultats ?</summary><p>Le taux de victoire porte sur les parties dont le résultat est connu. Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. Les résultats décrivent les parties importées ; quelques parties ne suffisent pas à établir la maîtrise d’un champion ni à choisir un champion.</p></details>
     </Surface>}
   </div>;
 }
@@ -611,7 +611,7 @@ function profileChampionValue(row, field) {
 
 function profileChampionAverage(rows, getter, decimals = 1, unit = "") {
   const values = rows.map(getter).filter((value) => value !== null && value !== undefined && Number.isFinite(value));
-  return { value: values.length ? `${profileChampionNumber(values.reduce((sum, value) => sum + value, 0) / values.length, decimals)}${unit}` : "—", detail: `${values.length}/${rows.length} games renseignées` };
+  return { value: values.length ? `${profileChampionNumber(values.reduce((sum, value) => sum + value, 0) / values.length, decimals)}${unit}` : "—", detail: `${values.length}/${rows.length} parties renseignées` };
 }
 
 function profileChampionKda(rows = []) {
@@ -630,14 +630,14 @@ function ProfileChampionAction({ item, onSelect }) {
 }
 
 function profileChampionStatusMeta() {
-  return { label: "Résultats observés", toneName: "cyan", text: "À interpréter selon le nombre de games" };
+  return { label: "Résultats observés", toneName: "cyan", text: "À interpréter selon le nombre de parties" };
 }
 
 function ProfileChampionCommandCard({ stat, onClick }) {
   const results = profileChampionResults(stat.rows);
-  return <button type="button" onClick={onClick} data-champion={stat.champion} className="profile-champion-row" aria-label={`Voir ${championDisplayName(stat.champion)}, ${stat.games} games`}>
-    <span className="profile-champion-identity"><ChampionPortrait champion={stat.champion} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /><span><strong>{championDisplayName(stat.champion)}</strong><span className="profile-champions-meta">{stat.games < 5 ? "Peu de games : à confirmer" : `${results.wins} victoire${results.wins > 1 ? "s" : ""} · ${results.losses} défaite${results.losses > 1 ? "s" : ""}`}</span></span></span>
-    <span className="profile-champion-row-metrics"><ProfileChampionMini label="Games" value={stat.games} /><ProfileChampionMini label="Victoires" value={results.rate === null ? "—" : `${profileChampionNumber(results.rate)} %`} /><ProfileChampionMini label="Ratio KDA" value={profileChampionNumber(profileChampionKda(stat.rows).ratio, 2)} /></span>
+  return <button type="button" onClick={onClick} data-champion={stat.champion} className="profile-champion-row" aria-label={`Voir ${championDisplayName(stat.champion)}, ${stat.games} parties`}>
+    <span className="profile-champion-identity"><ChampionPortrait champion={stat.champion} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /><span><strong>{championDisplayName(stat.champion)}</strong><span className="profile-champions-meta">{stat.games < 5 ? "Peu de parties : à confirmer" : `${results.wins} victoire${results.wins > 1 ? "s" : ""} · ${results.losses} défaite${results.losses > 1 ? "s" : ""}`}</span></span></span>
+    <span className="profile-champion-row-metrics"><ProfileChampionMini label="Parties" value={stat.games} /><ProfileChampionMini label="Victoires" value={results.rate === null ? "—" : `${profileChampionNumber(results.rate)} %`} /><ProfileChampionMini label="Ratio KDA" value={profileChampionNumber(profileChampionKda(stat.rows).ratio, 2)} /></span>
     <span className="profile-champion-row-action">Voir le détail<ArrowRight aria-hidden="true" className="h-4 w-4" /></span>
   </button>;
 }
@@ -648,7 +648,7 @@ function ProfileChampionMini({ label, value, toneName = "cyan" }) {
 
 function ProfileChampionDecisionCard({ stat }) {
   if (!stat) return null;
-  return <p className="profile-champions-note">Ces résultats portent sur {stat.games} game{stat.games > 1 ? "s" : ""}. Ils donnent des points à vérifier en review, sans prédire la réussite du prochain pick.</p>;
+  return <p className="profile-champions-note">Ces résultats portent sur {stat.games} partie{stat.games > 1 ? "s" : ""}. Ils donnent des points à vérifier en review, sans prédire la réussite du prochain pick.</p>;
 }
 
 function ProfileChampionPoolView({ championPool = [], championStats = [], selectedPlayer, pushToast, exportRows = [], category = "Toutes les catégories" }) {
@@ -672,10 +672,10 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
     finally { setExporting(false); }
   }
   return <Surface className="profile-pool">
-    <div className="profile-section-heading"><div><h3>Pool déclaré</h3><p>Les champions et leur statut renseignés pour {selectedPlayer?.name}. Les résultats affichés utilisent le contexte sélectionné.</p></div><Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} disabled={!championPool.length || exporting} onClick={downloadPool}>{exporting ? "Export en cours…" : "Exporter la tier list"}</Button></div>
+    <div className="profile-section-heading"><div><h3>Champions déclarés</h3><p>Le pool est la liste des champions préparés pour {selectedPlayer?.name}. Les résultats affichés utilisent le contexte sélectionné.</p></div><Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} disabled={!championPool.length || exporting} onClick={downloadPool}>{exporting ? "Export en cours…" : "Exporter les champions"}</Button></div>
     {exportStatus && <p role="status" className="profile-notice">{exportStatus}</p>}
-    {championPool.length ? <div className="profile-pool-list">{CHAMPION_TIERS.map((tier) => <section key={tier.id} className="profile-pool-tier"><header><div><h4>{tier.id === "danger" ? "En entraînement" : tier.title}</h4><p>{tier.hint}</p></div><span>{rowsByTier[tier.id].length} champions</span></header>{rowsByTier[tier.id].length ? rowsByTier[tier.id].map((row, index) => <ProfilePoolChampionRow key={row.id || `${row.champion}-${index}`} row={row} stat={statsByChampion.get(championAssetId(row.champion))} selectedPlayer={selectedPlayer} />) : <p className="profile-empty-tier">Aucun champion dans cette catégorie.</p>}</section>)}</div> : <EmptyState icon={Shield} title="Aucun champion déclaré" text="Renseigne le pool du joueur dans l’espace Draft pour préparer ses options." />}
-    <div className="profile-pool-footer"><p>Les statuts sont déclarés par l’équipe. Ils ne sont pas calculés à partir du taux de victoire.</p><Button type="button" variant="ghost" onClick={() => openAppPath("/draft/pool")}>Gérer les pools dans Draft <ArrowRight aria-hidden="true" className="h-4 w-4" /></Button></div>
+    {championPool.length ? <div className="profile-pool-list">{CHAMPION_TIERS.map((tier) => <section key={tier.id} className="profile-pool-tier"><header><div><h4>{tier.id === "danger" ? "En entraînement" : tier.title}</h4><p>{tier.hint}</p></div><span>{rowsByTier[tier.id].length} champions</span></header>{rowsByTier[tier.id].length ? rowsByTier[tier.id].map((row, index) => <ProfilePoolChampionRow key={row.id || `${row.champion}-${index}`} row={row} stat={statsByChampion.get(championAssetId(row.champion))} selectedPlayer={selectedPlayer} />) : <p className="profile-empty-tier">Aucun champion dans cette catégorie.</p>}</section>)}</div> : <EmptyState icon={Shield} title="Aucun champion déclaré" text="Renseigne les champions que ce joueur prépare dans l’espace Draft." />}
+    <div className="profile-pool-footer"><p>Les statuts sont déclarés par l’équipe. Ils ne sont pas calculés à partir du taux de victoire.</p><Button type="button" variant="ghost" onClick={() => openAppPath("/draft/pool")}>Gérer les champions dans Draft <ArrowRight aria-hidden="true" className="h-4 w-4" /></Button></div>
   </Surface>;
 }
 
@@ -687,7 +687,7 @@ function ProfilePoolReadLine({ label, value, detail, toneName = "cyan" }) {
 }
 
 function ProfilePoolChampionRow({ row, stat }) {
-  return <div className="profile-pool-champion"><div className="profile-champion-name"><ChampionPortrait row={row} champion={row.champion} alt="" className="h-11 w-11 rounded-lg object-cover" /><strong>{championDisplayName(row.champion)}</strong></div><div className="profile-pool-result">{stat ? <><span><b>{stat.games}</b> games analysées</span><span><b>{stat.winrate === null ? "—" : `${Math.round(stat.winrate)} %`}</b> de victoires</span><span><b>{stat.kda}</b> KDA</span></> : <span>Aucune game analysée dans ce contexte</span>}</div></div>;
+  return <div className="profile-pool-champion"><div className="profile-champion-name"><ChampionPortrait row={row} champion={row.champion} alt="" className="h-11 w-11 rounded-lg object-cover" /><strong>{championDisplayName(row.champion)}</strong></div><div className="profile-pool-result">{stat ? <><span><b>{stat.games}</b> parties analysées</span><span><b>{stat.winrate === null ? "—" : `${Math.round(stat.winrate)} %`}</b> de victoires</span><span><b>{stat.kda}</b> KDA</span></> : <span>Aucune partie analysée dans ce contexte</span>}</div></div>;
 }
 
 function ChampionProfileDetail({ stat, rows = [], navigate, bootstrapRevision }) {
@@ -697,9 +697,9 @@ function ChampionProfileDetail({ stat, rows = [], navigate, bootstrapRevision })
   const csPerMin = profileChampionAverage(rows, (row) => profileChampionValue(row, "cs_per_min"), 1, " / min");
   const participation = profileChampionAverage(rows, profileChampionParticipation, 0, " %");
   const references = [
-    { label: "Dégâts aux champions", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "damage"), 0, " dégâts / game") },
-    { label: "Or gagné", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "gold"), 0, " or / game") },
-    { label: "Score de vision", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "vision"), 1, " / game") },
+    { label: "Dégâts aux champions", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "damage"), 0, " dégâts / partie") },
+    { label: "Or gagné", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "gold"), 0, " or / partie") },
+    { label: "Score de vision", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "vision"), 1, " / partie") },
     { label: "Sbires à 10 minutes", ...profileChampionAverage(rows, (row) => csAtMinute(row, 10), 0, " CS") },
     { label: "Sbires à 20 minutes", ...profileChampionAverage(rows, (row) => csAtMinute(row, 20), 0, " CS") },
   ];
@@ -714,25 +714,25 @@ function ChampionProfileDetail({ stat, rows = [], navigate, bootstrapRevision })
   return <div className="profile-champions profile-champion-detail">
     <header className="profile-champion-detail-heading">
       <ChampionPortrait champion={stat.champion} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-      <div><h3 tabIndex={-1}>{championDisplayName(stat.champion)}</h3><p>{rows.length} game{rows.length > 1 ? "s" : ""} · {results.wins} victoire{results.wins > 1 ? "s" : ""} · {results.losses} défaite{results.losses > 1 ? "s" : ""}{results.count < rows.length ? ` · ${rows.length - results.count} résultat(s) inconnu(s)` : ""}</p></div>
+      <div><h3 tabIndex={-1}>{championDisplayName(stat.champion)}</h3><p>{rows.length} partie{rows.length > 1 ? "s" : ""} · {results.wins} victoire{results.wins > 1 ? "s" : ""} · {results.losses} défaite{results.losses > 1 ? "s" : ""}{results.count < rows.length ? ` · ${rows.length - results.count} résultat(s) inconnu(s)` : ""}</p></div>
     </header>
-    {rows.length < 5 && <p className="profile-champions-note">Peu de games : lis ces résultats comme des observations à confirmer en review.</p>}
+    {rows.length < 5 && <p className="profile-champions-note">Peu de parties : lis ces résultats comme des observations à confirmer en débrief.</p>}
     <div className="profile-champion-metrics">
       <ChampionVisualMetric label="Taux de victoire" value={results.rate === null ? "—" : `${profileChampionNumber(results.rate)} %`} detail={`${results.count}/${rows.length} résultats connus`} />
-      <ChampionVisualMetric label="Ratio KDA" value={profileChampionNumber(kda.ratio, 2)} detail={`${kda.count}/${rows.length} games renseignées${kda.count ? ` · ${kda.kills} kills / ${kda.deaths} morts / ${kda.assists} assists au total` : ""}`} />
+      <ChampionVisualMetric label="Ratio KDA" value={profileChampionNumber(kda.ratio, 2)} detail={`${kda.count}/${rows.length} parties renseignées${kda.count ? ` · ${kda.kills} kills / ${kda.deaths} morts / ${kda.assists} assists au total` : ""}`} />
       <ChampionVisualMetric label="Participation aux kills" value={participation.value} detail={participation.detail} />
       <ChampionVisualMetric label="Sbires par minute" value={csPerMin.value} detail={csPerMin.detail} />
     </div>
     <ChampionLanePanel rows={sortedRows} navigate={navigate} bootstrapRevision={bootstrapRevision} />
     <details className="profile-champions-fold"><summary>Statistiques moyennes et adversaires <span>{matchups.length} adversaire{matchups.length > 1 ? "s" : ""} reconnu{matchups.length > 1 ? "s" : ""}</span></summary>
       <div className="profile-champion-reference-grid">{references.map((item) => <ChampionReferenceLine key={item.label} {...item} />)}</div>
-      <h4>Résultats par adversaire de même rôle</h4><p className="profile-champions-meta">Le résultat est celui de la game entière ; il ne mesure pas à lui seul le duel de lane.</p>
+      <h4>Résultats par adversaire de même rôle</h4><p className="profile-champions-meta">Le résultat est celui de la partie entière ; il ne mesure pas à lui seul le duel sur la voie.</p>
       <div className="profile-champion-matchups">{matchups.length ? matchups.map((item) => {
         const outcome = profileChampionResults(item.rows);
-        return <div className="profile-champion-matchup" key={item.champion}><span className="profile-champion-identity"><ChampionPortrait champion={item.champion} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" /><strong>{championDisplayName(item.champion)}</strong></span><span>{item.rows.length} game{item.rows.length > 1 ? "s" : ""}</span><span>{outcome.rate === null ? "Résultat indisponible" : `${profileChampionNumber(outcome.rate)} % de victoires`}<small>{outcome.count} résultat{outcome.count > 1 ? "s" : ""} connu{outcome.count > 1 ? "s" : ""}</small></span></div>;
+        return <div className="profile-champion-matchup" key={item.champion}><span className="profile-champion-identity"><ChampionPortrait champion={item.champion} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" /><strong>{championDisplayName(item.champion)}</strong></span><span>{item.rows.length} partie{item.rows.length > 1 ? "s" : ""}</span><span>{outcome.rate === null ? "Résultat indisponible" : `${profileChampionNumber(outcome.rate)} % de victoires`}<small>{outcome.count} résultat{outcome.count > 1 ? "s" : ""} connu{outcome.count > 1 ? "s" : ""}</small></span></div>;
       }) : <p>Aucun adversaire de même rôle identifié.</p>}</div>
     </details>
-    <details className="profile-champions-help"><summary>Comment lire les statistiques de ce champion ?</summary><p>Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. La participation aux kills est la part des kills de l’équipe auxquels le joueur a participé. Les CS comptent les sbires et monstres tués. Les moyennes utilisent uniquement les games où la donnée est renseignée ; « — » signifie indisponible.</p><p>Ouvre une game ci-dessus pour comparer les deux joueurs, retrouver leur inventaire final et leurs achats. Les écarts d’or et de dégâts sont mesurés en fin de game ; les écarts de CS indiquent leur minute de mesure.</p></details>
+    <details className="profile-champions-help"><summary>Comment lire les statistiques de ce champion ?</summary><p>Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. La participation aux kills est la part des kills de l’équipe auxquels le joueur a participé. Les CS comptent les sbires et monstres tués. Les moyennes utilisent uniquement les parties où la donnée est renseignée ; « — » signifie indisponible.</p><p>Ouvre une partie ci-dessus pour comparer les deux joueurs, retrouver leur inventaire final et leurs achats. Les écarts d’or et de dégâts sont mesurés en fin de partie ; les écarts de CS indiquent leur minute de mesure.</p></details>
   </div>;
 }
 
@@ -750,7 +750,7 @@ function ChampionReferenceLine({ label, value, detail }) {
 
 function ChampionLanePanel({ rows = [], navigate, bootstrapRevision }) {
   return <section className="profile-champions profile-champion-games">
-    <header className="profile-champions-heading"><div><h4>Games et adversaires</h4><p>Ouvre une ligne pour lire les stats, l’inventaire final et les achats de cette game.</p></div><p className="profile-champions-meta">{rows.length} game{rows.length > 1 ? "s" : ""} · de la plus récente à la plus ancienne</p></header>
+    <header className="profile-champions-heading"><div><h4>Parties et adversaires</h4><p>Ouvre une ligne pour lire les statistiques, l’inventaire final et les achats de cette partie.</p></div><p className="profile-champions-meta">{rows.length} partie{rows.length > 1 ? "s" : ""} · de la plus récente à la plus ancienne</p></header>
     <div className="profile-champion-games-list">{rows.length ? rows.map((row, index) => {
       const enemy = opponentRoleRow(row.match, row.role, rowParticipantId(row));
       const cs10 = csAtMinute(row, 10);
@@ -758,7 +758,7 @@ function ChampionLanePanel({ rows = [], navigate, bootstrapRevision }) {
       const enemyCs10 = enemy ? csAtMinute({ ...enemy, match: row.match }, 10) : null;
       const diff10 = Number.isFinite(cs10) && Number.isFinite(enemyCs10) ? cs10 - enemyCs10 : null;
       return <ChampionLaneGameLine key={`${row.match?.id || row.match?.game_id || index}-lane`} row={row} enemy={enemy} cs10={cs10} cs20={cs20} diff10={diff10} navigate={navigate} bootstrapRevision={bootstrapRevision} />;
-    }) : <p className="profile-champions-empty">Aucune game disponible pour ce champion.</p>}</div>
+    }) : <p className="profile-champions-empty">Aucune partie disponible pour ce champion.</p>}</div>
   </section>;
 }
 
@@ -796,7 +796,7 @@ function ParticipantCompareCard({ title, row, match, toneName = "cyan" }) {
     <div className="profile-champion-participant-stats">{stats.map(([label, value]) => <ProfileChampionMini key={label} label={label} value={value} />)}</div>
     <h6>Inventaire final</h6>
     {items.length ? <ul className="profile-champion-inventory">{items.map((item, index) => <li key={`${title}-item-${index}-${item.id}`}><HudIcon sources={itemIconSources(item.id)} label={item.type === "trinket" ? `Relique ${item.id}` : `Objet ${item.id}`} fallback={item.id} emptyText="?" toneName={toneName} className="h-10 w-10 shrink-0" /><span><ItemNameText itemId={item.id} />{item.type === "trinket" && <small>Relique</small>}</span></li>)}</ul> : <p className="profile-champions-meta">Inventaire final non renseigné.</p>}
-    {timeline.length > 0 && <details className="profile-champion-purchases"><summary>Chronologie des achats <span>· {timeline.length} événements</span></summary><p className="profile-champions-meta">Temps écoulé depuis le début de la game.</p><ol>{timeline.map((event, index) => <li key={`${title}-buy-${index}-${event.timestamp}-${event.itemId}`}><span className="profile-champion-purchase-time">{event.time}</span><HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${itemDisplayName(event.itemId)}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-8 w-8 shrink-0" /><span><strong>{event.label}</strong><span><ItemNameText itemId={event.itemId} secondaryId={event.secondaryId} /></span></span></li>)}</ol></details>}
+    {timeline.length > 0 && <details className="profile-champion-purchases"><summary>Chronologie des achats <span>· {timeline.length} événements</span></summary><p className="profile-champions-meta">Temps écoulé depuis le début de la partie.</p><ol>{timeline.map((event, index) => <li key={`${title}-buy-${index}-${event.timestamp}-${event.itemId}`}><span className="profile-champion-purchase-time">{event.time}</span><HudIcon sources={itemIconSources(event.itemId)} label={`${event.label} ${itemDisplayName(event.itemId)}`} fallback={event.itemId} emptyText="?" toneName={event.toneName} className="h-8 w-8 shrink-0" /><span><strong>{event.label}</strong><span><ItemNameText itemId={event.itemId} secondaryId={event.secondaryId} /></span></span></li>)}</ol></details>}
   </section>;
 }
 
@@ -843,21 +843,21 @@ function ChampionLaneGameLine({ row: summaryRow, enemy: summaryEnemy, cs10, cs20
     return total > 0 && value !== null ? `${profileChampionNumber(value / total * 100)} %` : "—";
   };
   const laneStats = [
-    ["Or en fin de game", difference("gold"), " or"],
-    ["Dégâts en fin de game", difference("damage"), " dégâts"],
+    ["Or en fin de partie", difference("gold"), " or"],
+    ["Dégâts en fin de partie", difference("damage"), " dégâts"],
     ["CS à 10 minutes", currentDiff10, " CS"],
     ["CS à 20 minutes", currentDiff20, " CS"],
   ].map(([label, value, unit]) => [label, signed(value, unit), value === null ? "slate" : value > 0 ? "green" : value < 0 ? "red" : "cyan"]);
   const participation = profileChampionParticipation(row);
   return <details className="profile-champion-game" open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
-    <summary><span className="profile-champion-identity">{enemy?.champion && <ChampionPortrait champion={enemy.champion} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}<span><strong>{enemy?.champion ? `Face à ${championDisplayName(enemy.champion)}` : "Adversaire non identifié"}</strong><span className="profile-champions-meta">{matchDisplayName(match, "Game")} · {profileHistoryDateLabel(row) || "Date inconnue"}</span></span></span><span className={cx("profile-champion-result", match?.result === "Victoire" ? "profile-champion-tone-green" : match?.result === "Défaite" ? "profile-champion-tone-red" : "")}>{match?.result || "Résultat inconnu"}</span><span className="profile-champion-game-toggle">{expanded ? "Refermer" : "Stats et équipements"}<ChevronDown aria-hidden="true" className="h-4 w-4" /></span></summary>
+    <summary><span className="profile-champion-identity">{enemy?.champion && <ChampionPortrait champion={enemy.champion} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}<span><strong>{enemy?.champion ? `Face à ${championDisplayName(enemy.champion)}` : "Adversaire non identifié"}</strong><span className="profile-champions-meta">{matchDisplayName(match, "Partie")} · {profileHistoryDateLabel(row) || "Date inconnue"}</span></span></span><span className={cx("profile-champion-result", match?.result === "Victoire" ? "profile-champion-tone-green" : match?.result === "Défaite" ? "profile-champion-tone-red" : "")}>{match?.result || "Résultat inconnu"}</span><span className="profile-champion-game-toggle">{expanded ? "Refermer" : "Statistiques et équipements"}<ChevronDown aria-hidden="true" className="h-4 w-4" /></span></summary>
     {expanded && <div className="profile-champion-game-content">
-      <div className="profile-champion-game-context"><div><h5>{matchDisplayName(match, "Game")}</h5><p className="profile-champions-meta">{[match?.duration ? `Durée ${match.duration}` : "Durée inconnue", match?.side ? `Côté ${{ Blue: "bleu", Red: "rouge", BLUE: "bleu", RED: "rouge" }[match.side] || match.side}` : "", match?.patch ? `Patch ${match.patch}` : ""].filter(Boolean).join(" · ")}</p><p className="profile-champions-meta">{match?.game_id || "Identifiant de game non renseigné"}</p></div>{targetMatchId && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => navigate?.(`/games?match=${encodeURIComponent(targetMatchId)}`)}>Ouvrir la game</Button>}</div>
+      <div className="profile-champion-game-context"><div><h5>{matchDisplayName(match, "Partie")}</h5><p className="profile-champions-meta">{[match?.duration ? `Durée ${match.duration}` : "Durée inconnue", match?.side ? `Côté ${{ Blue: "bleu", Red: "rouge", BLUE: "bleu", RED: "rouge" }[match.side] || match.side}` : "", match?.patch ? `Patch ${match.patch}` : ""].filter(Boolean).join(" · ")}</p><p className="profile-champions-meta">{match?.game_id || "Identifiant de partie non renseigné"}</p></div>{targetMatchId && <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => navigate?.(`/games?match=${encodeURIComponent(targetMatchId)}`)}>Ouvrir la partie</Button>}</div>
       {loading && <p role="status" className="profile-champions-note">Chargement des statistiques et des achats…</p>}
       {error && <div role="alert" className="profile-champions-error"><p>{error}</p><Button type="button" onClick={retry}>Réessayer</Button></div>}
       <section className="profile-champion-comparison"><h5>Écarts avec l’adversaire de même rôle</h5><p className="profile-champions-meta">Valeur du joueur moins valeur de l’adversaire. « — » : comparaison indisponible.</p><VersusDeltaStack rows={laneStats} /></section>
       <div className="profile-champion-participants"><ParticipantCompareCard title="Joueur du profil" row={row} match={match} toneName="cyan" /><ParticipantCompareCard title="Adversaire de même rôle" row={enemyRow} match={match} toneName="red" /></div>
-      {!loading && !error && !itemBuildTimeline(row).length && !itemBuildTimeline(enemyRow).length && <p className="profile-champions-note">Chronologie des achats non disponible pour cette game. Les inventaires finaux sont affichés lorsqu’ils sont renseignés.</p>}
+      {!loading && !error && !itemBuildTimeline(row).length && !itemBuildTimeline(enemyRow).length && <p className="profile-champions-note">Chronologie des achats non disponible pour cette partie. Les inventaires finaux sont affichés lorsqu’ils sont renseignés.</p>}
       <details className="profile-champion-team-context"><summary>Contexte d’équipe et sbires à 10 / 20 minutes</summary><div className="profile-champion-deltas"><ChampionMiniStat label="Participation aux kills" value={participation === null ? "—" : `${profileChampionNumber(participation)} %`} /><ChampionMiniStat label="Part d’or de l’équipe" value={ownShare("gold")} /><ChampionMiniStat label="Part de dégâts de l’équipe" value={ownShare("damage")} /><ChampionMiniStat label="Écart d’or entre équipes" value={signed(teamDiff("gold"), " or")} /><ChampionMiniStat label="Écart de dégâts entre équipes" value={signed(teamDiff("damage"), " dégâts")} /><ChampionMiniStat label="Dégâts aux tours" value={profileChampionNumber(profileChampionValue(row, "damage_to_turrets"))} /><ChampionMiniStat label="Sbires à 10 minutes" value={currentCs10 === null || currentCs10 === undefined ? "—" : `${profileChampionNumber(currentCs10)} CS`} /><ChampionMiniStat label="Sbires à 20 minutes" value={currentCs20 === null || currentCs20 === undefined ? "—" : `${profileChampionNumber(currentCs20)} CS`} /></div><p className="profile-champions-meta">Les comparaisons d’équipe nécessitent les statistiques des cinq joueurs de chaque côté.</p></details>
     </div>}
   </details>;
@@ -895,9 +895,9 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
   const currentPage = Math.min(page, pages);
   const visibleRows = filteredRows.slice((currentPage - 1) * 10, currentPage * 10);
   return <Surface className="profile-history">
-    <div className="profile-section-heading"><div><h3>Historique des games</h3><p>Les plus récentes en premier. Ouvre une game pour revoir le détail et la chronologie.</p></div></div>
+    <div className="profile-section-heading"><div><h3>Historique des parties</h3><p>Les plus récentes en premier. Ouvre une partie pour revoir le détail et la chronologie.</p></div></div>
     <div className="profile-history-filters profile-filters"><SelectInput label="Champion" value={championFilter} onChange={(value) => { setChampionFilter(value); setPage(1); }}><option value="">Tous les champions</option>{championOptions.map((champion) => <option key={champion} value={champion}>{championDisplayName(champion)}</option>)}</SelectInput><SelectInput label="Résultat" value={resultFilter} onChange={(value) => { setResultFilter(value); setPage(1); }}><option value="all">Tous les résultats</option><option value="win">Victoires</option><option value="loss">Défaites</option></SelectInput></div>
-    <div className="profile-scope"><p role="status"><strong>{filteredRows.length} games trouvées</strong> sur {rows.length}</p>{(championFilter || resultFilter !== "all") && <button type="button" className="profile-text-action" onClick={() => { setChampionFilter(""); setResultFilter("all"); setPage(1); }}>Réinitialiser les filtres</button>}</div>
+    <div className="profile-scope"><p role="status"><strong>{filteredRows.length} parties trouvées</strong> sur {rows.length}</p>{(championFilter || resultFilter !== "all") && <button type="button" className="profile-text-action" onClick={() => { setChampionFilter(""); setResultFilter("all"); setPage(1); }}>Réinitialiser les filtres</button>}</div>
     <div className="profile-history-list">{visibleRows.length ? visibleRows.map((row, index) => {
       const cs10 = csAtMinute(row, 10);
       const cs20 = csAtMinute(row, 20);
@@ -905,10 +905,10 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
       const knownResult = ["Victoire", "Défaite"].includes(row.match?.result);
       const kp = row.kill_participation ?? row.kp;
       return <article key={`${row.match?.id || index}-${row.champion}`} className="profile-history-row">
-        <div className="profile-history-main"><div className="profile-history-identity"><ChampionPortrait row={row} champion={row.champion} alt="" className="h-12 w-12 rounded-lg object-cover" /><div><h4>{championDisplayName(row.champion)}{enemy?.champion && <span> contre {championDisplayName(enemy.champion)}</span>}</h4><p>{matchDisplayName(row.match)}</p><small>{profileHistoryDateLabel(row) || "Date inconnue"} · {row.match?.duration || "Durée inconnue"}</small></div></div><div className="profile-history-result"><span className={knownResult ? row.match.result === "Victoire" ? "profile-win" : "profile-loss" : ""}>{knownResult ? row.match.result : "Résultat inconnu"}</span><strong>{row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"}</strong><small>Kills / morts / assists</small></div><Button type="button" variant="ghost" disabled={!row.match?.id} onClick={() => (navigate || openAppPath)(`/games?match=${encodeURIComponent(row.match.id)}`)} aria-label={`Ouvrir ${matchDisplayName(row.match)}`}>Ouvrir la game <ArrowRight aria-hidden="true" className="h-4 w-4" /></Button></div>
-        <details className="profile-history-details"><summary>Statistiques de la game</summary><dl>{[["Dégâts", row.damage == null ? "—" : formatPoints(row.damage)], ["Or", row.gold == null ? "—" : formatPoints(row.gold)], ["Vision", row.vision ?? "—"], ["Participation aux kills", kp == null || kp === "" ? "—" : `${Math.round(parsePercent(kp))} %`], ["Farm à 10 min", cs10 === null ? "—" : `${cs10} CS`], ["Farm à 20 min", cs20 === null ? "—" : `${cs20} CS`], ["Farm final", row.cs == null ? "—" : `${row.cs} CS`], ["Côté", row.match?.side || "—"], ["Patch", row.match?.patch || "—"]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
+        <div className="profile-history-main"><div className="profile-history-identity"><ChampionPortrait row={row} champion={row.champion} alt="" className="h-12 w-12 rounded-lg object-cover" /><div><h4>{championDisplayName(row.champion)}{enemy?.champion && <span> contre {championDisplayName(enemy.champion)}</span>}</h4><p>{matchDisplayName(row.match)}</p><small>{profileHistoryDateLabel(row) || "Date inconnue"} · {row.match?.duration || "Durée inconnue"}</small></div></div><div className="profile-history-result"><span className={knownResult ? row.match.result === "Victoire" ? "profile-win" : "profile-loss" : ""}>{knownResult ? row.match.result : "Résultat inconnu"}</span><strong>{row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"}</strong><small>Kills / morts / assists</small></div><Button type="button" variant="ghost" disabled={!row.match?.id} onClick={() => (navigate || openAppPath)(`/games?match=${encodeURIComponent(row.match.id)}`)} aria-label={`Ouvrir ${matchDisplayName(row.match)}`}>Ouvrir la partie <ArrowRight aria-hidden="true" className="h-4 w-4" /></Button></div>
+        <details className="profile-history-details"><summary>Statistiques de la partie</summary><dl>{[["Dégâts", row.damage == null ? "—" : formatPoints(row.damage)], ["Or", row.gold == null ? "—" : formatPoints(row.gold)], ["Vision", row.vision ?? "—"], ["Participation aux kills", kp == null || kp === "" ? "—" : `${Math.round(parsePercent(kp))} %`], ["Farm à 10 min", cs10 === null ? "—" : `${cs10} CS`], ["Farm à 20 min", cs20 === null ? "—" : `${cs20} CS`], ["Farm final", row.cs == null ? "—" : `${row.cs} CS`], ["Côté", row.match?.side || "—"], ["Patch", row.match?.patch || "—"]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></details>
       </article>;
-    }) : <EmptyState icon={FileText} title="Aucune game" text={rows.length ? "Aucune game ne correspond aux filtres. Essaie un autre champion ou résultat." : selectedCategoryId ? "Aucune game de ce contexte n’est reliée au joueur." : "Aucune game importée n’est reliée au joueur."} />}</div>
+    }) : <EmptyState icon={FileText} title="Aucune partie" text={rows.length ? "Aucune partie ne correspond aux filtres. Essaie un autre champion ou résultat." : selectedCategoryId ? "Aucune partie de ce contexte n’est reliée au joueur." : "Aucune partie importée n’est reliée au joueur."} />}</div>
     {pages > 1 && <nav className="profile-pagination" aria-label="Pages de l’historique"><Button type="button" variant="ghost" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Précédente</Button><span>Page {currentPage} sur {pages}</span><Button type="button" variant="ghost" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Suivante</Button></nav>}
   </Surface>;
 }

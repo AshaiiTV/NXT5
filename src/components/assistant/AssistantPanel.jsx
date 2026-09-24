@@ -6,14 +6,14 @@ import { isSafeInternalPath } from "../../app/routing.js";
 import { cx } from "../../app/helpers.js";
 
 const ROUTE_SUGGESTIONS = [
-  { matches: ["/equipes", "/gestion-equipe"], prompts: ["Comment ajouter un joueur ?", "Comment organiser la Main Team et les Subs ?", "Où modifier les accès de l'équipe ?"] },
-  { matches: ["/games", "/integration", "/statistiques"], prompts: ["Comment lire les statistiques de cette game ?", "Comment importer une game ?", "Comment analyser un groupe de games ?"] },
-  { matches: ["/rapports"], prompts: ["Comment créer une review ?", "Comment lier plusieurs games à une review ?", "Où retrouver mes anciennes reviews ?"] },
-  { matches: ["/tendances"], prompts: ["Comment filtrer les tendances ?", "Comment interpréter les indicateurs d'équipe ?", "Comment ouvrir une game source ?"] },
-  { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une session d'équipe ?"] },
-  { matches: ["/draft/pool"], prompts: ["Comment modifier le pool d'un joueur ?", "Comment classer un champion par tier ?", "À quoi servent les statuts des picks ?"] },
-  { matches: ["/draft/compositions"], prompts: ["Comment créer une composition ?", "Comment utiliser les tiers du Champion Pool ?", "Comment préparer nos drafts ?"] },
-  { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment choisir le profil observé ?", "Comment lire l'historique d'un joueur ?", "Où retrouver ses champions et matchups ?"] },
+  { matches: ["/equipes", "/gestion-equipe"], prompts: ["Comment ajouter un joueur ?", "Comment organiser les titulaires et les remplaçants ?", "Où modifier les accès de l'équipe ?"] },
+  { matches: ["/games", "/integration", "/statistiques"], prompts: ["Comment lire le bilan de cette partie ?", "Comment importer une partie ?", "Comment analyser un groupe de parties ?"] },
+  { matches: ["/rapports"], prompts: ["Comment préparer un débrief ?", "Comment réunir plusieurs parties dans un débrief ?", "Où retrouver mes anciens débriefs ?"] },
+  { matches: ["/tendances"], prompts: ["Comment choisir les parties à analyser ?", "Comment interpréter les indicateurs d'équipe ?", "Comment retrouver la partie derrière un indicateur ?"] },
+  { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une séance d'équipe ?"] },
+  { matches: ["/draft/pool"], prompts: ["Comment modifier les champions d'un joueur ?", "Comment indiquer le niveau de maîtrise d’un champion ?", "Comment distinguer un champion maîtrisé d’un champion en entraînement ?"] },
+  { matches: ["/draft/compositions"], prompts: ["Comment créer une composition ?", "Comment utiliser les niveaux de maîtrise des champions ?", "Comment préparer nos choix de champions ?"] },
+  { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment consulter le profil d’un joueur ?", "Comment lire l'historique d'un joueur ?", "Où comparer ses champions aux champions adverses ?"] },
 ];
 
 const DEFAULT_SUGGESTIONS = [
@@ -228,7 +228,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
               <h2 id="nxt5-assistant-title" className="truncate text-lg font-black text-white">Assistant NXT5</h2>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">Disponible sur toutes les pages</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">Une aide pour comprendre la page et trouver ta prochaine action</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">

@@ -56,209 +56,297 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: 'Démarrer sur NXT5',
     path: '/equipes',
     actionLabel: 'Voir l’équipe',
-    summary: 'Commence par créer ou rejoindre une équipe, prépare le roster, importe une game, puis note les points à revoir.',
+    summary: "Crée ou rejoins une équipe, ajoute les joueurs, importe une partie, puis prépare un débrief.",
     keywords: ['commencer', 'débuter', 'première fois', 'guide', 'parcours', 'aide', 'utiliser le site'],
     steps: [
-      'Crée une équipe ou rejoins-la avec un code temporaire.',
-      'Ajoute les joueurs, lie leurs comptes et vérifie leurs rôles.',
-      'Importe une première game depuis la page Games.',
-      'Ouvre une game dans Games pour consulter ses statistiques, puis crée une review courte.'
+      "Crée une équipe ou rejoins-la avec un code temporaire.",
+      "Ajoute les profils des joueurs et vérifie leurs postes. Ils pourront être liés à un compte plus tard.",
+      "Dans Parties, choisis Importer une partie. Cinq profils joueurs différents sont nécessaires.",
+      "Lis le bilan de la partie, puis prépare un débrief avec les points à travailler."
     ],
-    suggestions: ['Comment importer ma première game ?', 'Comment préparer correctement le roster ?', 'Comment créer une review utile ?']
+    suggestions: [
+      "Comment importer ma première partie ?",
+      "Comment ajouter les joueurs ?",
+      "Comment préparer un débrief utile ?"
+    ]
   },
   {
     id: 'teams-and-roster',
-    title: 'Équipe, roster et accès',
+    title: "Équipe, joueurs et accès",
     path: '/gestion-equipe',
     actionLabel: 'Gérer l’équipe',
-    summary: 'La page Équipe présente les joueurs et le staff. Gestion équipe sert à ajouter, modifier, classer Main Team ou Sub, lier les comptes, régler les accès et consulter Santé des données.',
-    keywords: ['équipe', 'team', 'roster', 'joueur', 'staff', 'main team', 'sub', 'remplaçant', 'riot id', 'opgg', 'invitation', 'lier compte', 'modifier nom', 'accès', 'santé des données', 'fiabilité'],
+    summary: "Équipe présente les joueurs et l’encadrement. Gestion de l’équipe permet d’ajouter les profils, de choisir les titulaires et remplaçants, de lier les comptes et de régler les accès.",
+    keywords: ['équipe', 'team', 'roster', 'joueur', 'staff', 'main team', 'sub', 'remplaçant', 'riot id', 'opgg', 'invitation', 'lier compte', 'modifier nom', 'accès', 'santé des données', 'fiabilité', "titulaire", "encadrement", "effectif"],
     steps: [
-      'Ouvre Gestion équipe depuis le bouton Gestion en haut de l’application.',
-      'Ajoute ou modifie le profil, son rôle et son groupe Main Team ou Sub.',
-      'Lie le bon compte NXT5 au profil joueur.',
-      'Vérifie l’accès attribué avant de partager le code d’invitation.',
-      'Consulte Santé des données pour vérifier le roster, les profils liés et les imports de l’équipe sélectionnée.'
+      "Ouvre Gestion de l’équipe depuis la page Équipe ou le bouton en haut de l’application.",
+      "Ajoute le profil et son poste, puis choisis Titulaire ou Remplaçant dans Effectif.",
+      "Associe le bon compte NXT5 au profil joueur lorsque la personne a un compte.",
+      "Vérifie le rôle attribué avant de partager un code d’invitation."
     ],
-    suggestions: ['Comment ajouter un joueur ?', 'Comment séparer Main Team et Subs ?', 'Comment modifier le nom ou le rôle d’un profil ?'],
+    suggestions: [
+      "Comment ajouter un joueur ?",
+      "Comment organiser les titulaires et les remplaçants ?",
+      "Comment modifier le nom ou le poste d’un joueur ?"
+    ],
     faq: [
       {
-        question: 'Comment copier l’OP.GG de la Main Team ?',
-        triggers: ['copier opgg', 'op gg main team', 'opgg équipe', 'opgg roster'],
-        answer: 'Dans Équipe, utilise le groupe Main Team : seuls les cinq titulaires y sont regroupés. Le bouton OP.GG de ce groupe copie ou ouvre la composition titulaire sans inclure les Subs ni le staff.'
+        "question": "Comment copier l’OP.GG des titulaires ?",
+        "triggers": [
+          "copier opgg",
+          "op gg main team",
+          "opgg équipe",
+          "opgg roster",
+          "opgg titulaires"
+        ],
+        "answer": "Dans Équipe, utilise Copier OP.GG titulaires. Ce bouton copie le lien du groupe titulaire ; les remplaçants disposent de leur propre bouton et le staff n’est pas inclus."
       },
       {
-        question: 'Pourquoi un joueur a moins de games ?',
-        triggers: ['moins de games', 'games manquantes', 'nombre de games différent', 'adc moins'],
-        answer: 'Le compteur dépend du profil lié à chaque participant importé. Ouvre la game concernée dans Games, vérifie l’assignation du profil et le rôle, puis corrige les anciennes games si le joueur a changé de Riot ID ou a été associé à un doublon.'
+        "question": "Pourquoi un joueur a moins de parties ?",
+        "triggers": [
+          "moins de games",
+          "games manquantes",
+          "nombre de games différent",
+          "adc moins",
+          "moins de parties",
+          "parties manquantes"
+        ],
+        "answer": "Le compteur dépend du profil lié à chaque participant importé. Dans Parties, ouvre la partie concernée, puis ses options pour vérifier le joueur associé et son poste. Corrige l’association si le joueur a changé de Riot ID ou si un profil en double a été choisi."
       }
     ]
   },
   {
     id: 'imports-and-games',
-    title: 'Importer et gérer les games',
+    title: "Importer et gérer les parties",
     path: '/games',
-    actionLabel: 'Ouvrir Games',
-    summary: 'Games réunit l’historique et les statistiques. Le bouton Importer une game ouvre le téléchargement de NXT5 Importer et l’import JSON ; les corrections restent accessibles depuis les options de la game.',
+    actionLabel: "Ouvrir Parties",
+    summary: "Parties réunit les parties importées et leurs bilans. Importer une partie ouvre le choix du fichier. Les corrections restent accessibles depuis les options de chaque partie.",
     keywords: ['import', 'importer', 'json', 'game id', 'games', 'partie', 'side', 'lane', 'profil', 'catégorie', 'scrim', 'upload', 'historique'],
     steps: [
-      'Génère le JSON avec la dernière version de NXT5 Importer.',
-      'Dans Games, clique sur Importer une game, charge le JSON et attends la fin de l’analyse.',
-      'Nomme la game, choisis le contexte et ton side.',
-      'Confirme chaque lane et chaque profil avant de valider.'
+      "Prépare le fichier .json avec NXT5 Importer. L’aide Pas encore de fichier ? explique comment l’obtenir.",
+      "Dans Parties, choisis Importer une partie, puis Choisir mon fichier.",
+      "Choisis le côté de ton équipe, puis vérifie les champions, les postes et les joueurs associés.",
+      "Donne un nom à la partie, ajoute une catégorie si utile, puis confirme l’import."
     ],
-    suggestions: ['Pourquoi mon import échoue ?', 'Comment corriger un mauvais profil ?', 'Comment retrouver une game importée ?'],
+    suggestions: [
+      "Pourquoi mon import échoue ?",
+      "Comment corriger le joueur associé ?",
+      "Comment retrouver une partie importée ?"
+    ],
     faq: [
       {
-        question: 'Pourquoi mon import ne fonctionne pas ?',
-        triggers: ['import échoue', 'import erreur', 'json refusé', 'game introuvable', 'upload bloqué'],
-        answer: 'Vérifie que le JSON vient de la dernière version de NXT5 Importer, que la région correspond au Game ID et que la partie est terminée. Si l’upload passe mais que l’analyse échoue, réexporte la game depuis le PC où elle apparaît dans l’historique du client LoL.'
+        "question": "Pourquoi mon import ne fonctionne pas ?",
+        "triggers": [
+          "import échoue",
+          "import erreur",
+          "json refusé",
+          "game introuvable",
+          "upload bloqué",
+          "import bloqué"
+        ],
+        "answer": "Vérifie que tu peux gérer l’équipe et que cinq profils joueurs différents sont disponibles. Utilise un fichier .json produit par une version récente de NXT5 Importer, pour une partie terminée. Si le chargement réussit mais que l’analyse échoue, exporte à nouveau la partie depuis le PC où elle apparaît dans le client LoL."
       },
       {
-        question: 'Comment corriger une assignation ?',
-        triggers: ['corriger profil', 'mauvaise lane', 'mauvais joueur', 'assignation', 'modifier import'],
-        answer: 'Dans Games, ouvre la game puis ses options de gestion pour corriger les postes et profils. Réassigne le side, les lanes et les profils concernés ; les statistiques, Tendances, Profil et Review se recalculent avec la correction.'
+        "question": "Comment corriger un joueur ou un poste ?",
+        "triggers": [
+          "corriger profil",
+          "mauvaise lane",
+          "mauvais joueur",
+          "assignation",
+          "modifier import",
+          "mauvais poste"
+        ],
+        "answer": "Dans Parties, ouvre la partie puis ses options de gestion. Vérifie le côté, les postes et les joueurs associés avant d’enregistrer. Les bilans et analyses utilisent ensuite ces associations corrigées."
       }
     ]
   },
   {
     id: 'statistics',
-    title: 'Statistiques des games',
+    title: "Lire le bilan d’une partie",
     path: '/games',
-    actionLabel: 'Voir les statistiques',
-    summary: 'Games présente les statistiques d’une game ou d’un groupe : KDA, KP, farm, or, vision, builds, écarts à 10 et 20 minutes, objectifs et timeline.',
-    keywords: ['statistiques', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'or', 'vision', 'build', 'objectif', 'timeline', 'groupe'],
+    actionLabel: "Voir les parties",
+    summary: "Le bilan commence par L’essentiel de la partie. Les statistiques, les points à approfondir et la chronologie s’ouvrent ensuite selon ta question.",
+    keywords: ['statistiques', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'or', 'vision', 'build', 'objectif', 'timeline', 'groupe', "bilan", "chronologie", "écart", "sbires"],
     steps: [
-      'Dans Games, recherche puis ouvre une game pour afficher directement ses statistiques.',
-      'Lis les deux sides et les écarts par rôle.',
-      'Descends vers les objectifs et la timeline pour replacer les chiffres dans le temps.',
-      'Crée un groupe pour comparer plusieurs games du même bloc.'
+      "Dans Parties, recherche puis ouvre la partie qui t’intéresse.",
+      "Lis le résultat, les points à garder ou à vérifier et la prochaine action proposée.",
+      "Ouvre Statistiques et comparaison 5 contre 5 pour les chiffres, ou Chronologie de la partie pour les événements.",
+      "Utilise un groupe pour rapprocher les parties d’une même séance."
     ],
-    suggestions: ['Comment lire la diff à 20 minutes ?', 'Comment créer un groupe de games ?', 'Comment passer des stats à une review ?'],
+    suggestions: [
+      "Comment lire l’écart à 20 minutes ?",
+      "Comment créer un groupe de parties ?",
+      "Comment passer du bilan à un débrief ?"
+    ],
     faq: [
       {
-        question: 'Comment lire les écarts de lane ?',
-        triggers: ['diff10', 'diff20', 'écart lane', 'cs10', 'cs20', 'matchup'],
-        answer: 'CS10 et CS20 montrent le farm du joueur. DIFF10 et DIFF20 le comparent à son adversaire direct. Regarde aussi l’or, les morts et les objectifs pris autour de la lane.'
+        "question": "Comment lire les écarts à 10 et 20 minutes ?",
+        "triggers": [
+          "diff10",
+          "diff20",
+          "écart lane",
+          "cs10",
+          "cs20",
+          "matchup",
+          "écart à 20",
+          "écart à 10"
+        ],
+        "answer": "CS 10 et CS 20 indiquent les sbires et monstres éliminés à 10 et 20 minutes. Dans la comparaison par poste, l’écart affiché compare ces nombres entre les deux adversaires. Relie cet écart à l’or, aux morts et aux événements de la partie avant de conclure."
       }
     ]
   },
   {
     id: 'reviews',
-    title: 'Créer une review',
+    title: "Préparer un débrief",
     path: '/rapports',
-    actionLabel: 'Ouvrir Review',
-    summary: 'Une review garde les notes et les actions décidées après une ou plusieurs games. La bibliothèque permet de les retrouver et de les modifier.',
-    keywords: ['review', 'rapport', 'décision', 'notes', 'game source', 'bibliothèque', 'staff', 'groupe', 'créer review', 'modifier review'],
+    actionLabel: "Ouvrir Débriefs",
+    summary: "Un débrief rassemble les observations et les décisions après une ou plusieurs parties. La bibliothèque permet de les retrouver et de les modifier.",
+    keywords: ['review', 'rapport', 'décision', 'notes', 'game source', 'bibliothèque', 'staff', 'groupe', 'créer review', 'modifier review', "débrief", "debrief", "préparer un débrief", "parties liées"],
     steps: [
-      'Sélectionne une game ou un groupe depuis Games.',
-      'Clique sur Créer une review et donne un titre clair.',
-      'Écris ce qu’on garde, ce qu’on corrige et l’action de la prochaine game.',
-      'Enregistre puis utilise le lien source pour revenir aux données.'
+      "Ouvre une partie ou un groupe depuis Parties.",
+      "Choisis Préparer un débrief pour commencer à partir de ce contexte.",
+      "Écris ce que l’équipe garde, ce qu’elle doit vérifier et l’action à essayer ensuite.",
+      "Enregistre le débrief. Les parties liées permettent de revenir aux données."
     ],
-    suggestions: ['Comment lier plusieurs games ?', 'Que mettre dans une review ?', 'Comment retrouver la game source ?'],
+    suggestions: [
+      "Comment réunir plusieurs parties dans un débrief ?",
+      "Que mettre dans un débrief ?",
+      "Comment retrouver les parties liées ?"
+    ],
     faq: [
       {
-        question: 'Que mettre dans une review ?',
-        triggers: ['quoi écrire review', 'contenu review', 'review utile', 'notes staff'],
-        answer: 'Garde la review courte : une décision conservée, un problème à corriger et une action vérifiable pour la prochaine game. Lie les games sources afin que le staff puisse contrôler le constat sans recopier toutes les statistiques.'
+        "question": "Que mettre dans un débrief ?",
+        "triggers": [
+          "quoi écrire review",
+          "contenu review",
+          "review utile",
+          "notes staff",
+          "débrief utile",
+          "mettre dans un débrief"
+        ],
+        "answer": "Garde le débrief court : une décision utile, un point à vérifier et une action observable pour la prochaine partie. Lie les parties concernées pour permettre à l’équipe de vérifier les observations."
       }
     ]
   },
   {
     id: 'trends',
-    title: 'Tendances d’équipe',
+    title: "Analyser plusieurs parties",
     path: '/tendances',
-    actionLabel: 'Ouvrir Tendances',
-    summary: 'Tendances regroupe les games du contexte choisi : winrate global et par side, résultats par rôle, écarts récurrents et games à revoir.',
-    keywords: ['tendances', 'winrate', 'blue side', 'red side', 'identité', 'pattern', 'rôle moteur', 'bloc', 'contexte', 'filtre', 'game à review'],
+    actionLabel: "Ouvrir Analyses",
+    summary: "Analyses rapproche les résultats de plusieurs parties : taux de victoire, écarts par poste et points récurrents à vérifier.",
+    keywords: ['tendances', 'winrate', 'blue side', 'red side', 'identité', 'pattern', 'rôle moteur', 'bloc', 'contexte', 'filtre', 'game à review', "analyses", "taux de victoire", "côté bleu", "côté rouge", "parties"],
     steps: [
-      'Choisis le contexte de games à analyser.',
-      'Compare le winrate Blue Side et Red Side avec le volume joué.',
-      'Lis les rôles moteurs et les écarts récurrents.',
-      'Ouvre la game associée avant de noter une conclusion.'
+      "Choisis la période et la catégorie de parties à analyser.",
+      "Commence par la synthèse, puis regarde les détails utiles à ta question.",
+      "Compare les résultats des côtés bleu et rouge avec le nombre de parties jouées.",
+      "Ouvre les parties associées avant de retenir une conclusion."
     ],
-    suggestions: ['Comment interpréter le winrate par side ?', 'Comment changer le contexte ?', 'Comment ouvrir une game à review ?']
+    suggestions: [
+      "Comment lire le taux de victoire par côté ?",
+      "Comment choisir les parties à analyser ?",
+      "Comment retrouver une partie derrière un indicateur ?"
+    ]
   },
   {
     id: 'champion-pool',
-    title: 'Champion Pool',
+    title: "Champions des joueurs",
     path: '/draft/pool',
-    actionLabel: 'Ouvrir le Champion Pool',
-    summary: 'Champion Pool organise les picks de chaque joueur par tier de maîtrise et statut : confiance, situationnel, validation ou développement.',
-    keywords: ['champion pool', 'pool', 'champion', 'tier', 'maîtrise', 'confiance', 'situationnel', 'validation', 'développement', 'locke', 'pick'],
+    actionLabel: "Voir les champions",
+    summary: "Le pool de champions rassemble les choix de chaque joueur. Les niveaux de maîtrise et les statuts aident l’équipe à préparer ses compositions.",
+    keywords: ['champion pool', 'pool', 'champion', 'tier', 'maîtrise', 'confiance', 'situationnel', 'validation', 'développement', 'locke', 'pick', "niveau", "entraînement", "champions"],
     steps: [
-      'Choisis le joueur et son rôle.',
-      'Place chaque champion dans le tier adapté à son niveau réel.',
-      'Utilise le statut pour distinguer confiance, situationnel, validation et développement.',
-      'Réutilise ensuite ces picks dans Compos.'
+      "Choisis le joueur et son poste.",
+      "Ajoute un champion et indique son niveau de maîtrise réel.",
+      "Utilise le statut pour distinguer un choix maîtrisé, situationnel, à valider ou en entraînement.",
+      "Retrouve ensuite ces champions dans les compositions."
     ],
-    suggestions: ['Comment classer un champion par tier ?', 'À quoi servent les statuts ?', 'Comment utiliser le pool dans une compo ?']
+    suggestions: [
+      "Comment indiquer le niveau de maîtrise d’un champion ?",
+      "À quoi servent les statuts ?",
+      "Comment utiliser ces champions dans une composition ?"
+    ]
   },
   {
     id: 'compositions',
-    title: 'Compositions et drafts',
+    title: "Préparer les compositions",
     path: '/draft/compositions',
-    actionLabel: 'Ouvrir Compos',
-    summary: 'Compos permet de préparer Nos drafts et Leurs drafts à partir des Champion Pools, avec rôles, side, tags, conditions de jeu et réponses possibles.',
+    actionLabel: "Ouvrir les compositions",
+    summary: "Prépare les cinq champions de ton équipe à partir des champions déclarés par les joueurs.",
     keywords: ['compo', 'composition', 'draft', 'nos drafts', 'leur draft', 'leurs drafts', 'pick', 'ban', 'side', 'counter', 'drag drop'],
     steps: [
-      'Choisis Nos drafts ou Leurs drafts.',
-      'Glisse les champions du bon rôle dans les cinq emplacements.',
-      'Ajoute le side, les tags et une condition de jeu lisible.',
-      'Duplique une base existante pour préparer une variante.'
+      "Donne un nom à la composition.",
+      "Ajoute un champion à chacun des cinq postes.",
+      "Indique le côté et les caractéristiques utiles, puis décris comment jouer cette composition.",
+      "Duplique une composition existante pour préparer une variante."
     ],
-    suggestions: ['Comment créer une composition ?', 'Quelle différence entre Nos drafts et Leurs drafts ?', 'Comment utiliser les tiers du pool ?']
+    suggestions: [
+      "Comment créer une composition ?",
+      "Comment préparer une variante ?",
+      "Comment utiliser les niveaux de maîtrise des champions ?"
+    ]
   },
   {
     id: 'planning',
     title: 'Planning et disponibilités',
     path: '/planning',
     actionLabel: 'Ouvrir le Planning',
-    summary: 'Planning centralise les disponibilités des joueurs et du staff ainsi que les événements Scrim, Match et Review sur les semaines courante et suivante.',
-    keywords: ['planning', 'disponibilité', 'dispo', 'semaine', 'scrim', 'match', 'session', 'événement', 'horaire', 'staff'],
+    summary: "Le planning rassemble les disponibilités des joueurs et du staff, ainsi que les entraînements, matchs et débriefs prévus.",
+    keywords: ['planning', 'disponibilité', 'dispo', 'semaine', 'scrim', 'match', 'session', 'événement', 'horaire', 'staff', "séance", "entraînement", "débrief"],
     steps: [
-      'Choisis la semaine courante ou suivante.',
-      'Renseigne les créneaux disponibles du profil.',
-      'Ajoute les événements d’équipe avec leur type et leur horaire.',
-      'Contrôle les absences avant de confirmer une session.'
+      "Choisis la semaine à préparer.",
+      "Renseigne les créneaux où le joueur ou le membre du staff est disponible.",
+      "Ajoute les séances d’équipe avec leur type et leur horaire.",
+      "Vérifie les disponibilités avant de confirmer une séance."
     ],
-    suggestions: ['Comment renseigner une disponibilité ?', 'Qui peut créer un événement ?', 'Comment changer de semaine ?']
+    suggestions: [
+      "Comment renseigner une disponibilité ?",
+      "Qui peut ajouter une séance ?",
+      "Comment changer de semaine ?"
+    ]
   },
   {
     id: 'player-profile',
-    title: 'Profil joueur et coaching',
+    title: "Profil et suivi du joueur",
     path: '/mon-profil',
-    actionLabel: 'Ouvrir Mon Profil',
-    summary: 'Mon Profil regroupe la synthèse du joueur, ses champions, son pool, son historique, ses objectifs et les notes de coaching liées à son compte.',
-    keywords: ['profil', 'mon profil', 'joueur', 'historique', 'coaching', 'objectif', 'champions', 'matchups', 'progression', 'notes'],
+    actionLabel: "Ouvrir Mon profil",
+    summary: "Le profil réunit le bilan du joueur, ses champions, son historique et ses objectifs. Les notes de suivi restent soumises aux droits d’accès.",
+    keywords: ['profil', 'mon profil', 'joueur', 'historique', 'coaching', 'objectif', 'champions', 'matchups', 'progression', 'notes', "suivi", "duel"],
     steps: [
-      'Vérifie que ton compte est lié au bon profil dans Gestion équipe.',
-      'Utilise Synthèse pour les repères principaux et Historique pour les games.',
-      'Ouvre Pool pour la maîtrise des picks.',
-      'Consulte Coaching pour les objectifs et notes autorisés.'
+      "Vérifie que ton compte est lié au bon joueur dans Gestion de l’équipe.",
+      "Commence par la synthèse pour repérer le point à travailler.",
+      "Ouvre Champions pour comparer les résultats et Champions déclarés pour retrouver les niveaux de maîtrise.",
+      "Consulte l’historique et les parties liées pour vérifier une observation, puis le suivi pour les objectifs et les notes."
     ],
-    suggestions: ['Pourquoi mon profil est vide ?', 'Où voir mon historique ?', 'Comment suivre un objectif de coaching ?'],
+    suggestions: [
+      "Pourquoi mon profil est vide ?",
+      "Où voir mon historique ?",
+      "Comment suivre un objectif ?"
+    ],
     faq: [
       {
-        question: 'Pourquoi mon profil est vide ?',
-        triggers: ['profil vide', 'pas de stats profil', 'aucune game profil', 'historique vide'],
-        answer: 'Vérifie d’abord que ton compte NXT5 est lié au bon profil dans Gestion équipe. Ensuite, contrôle l’assignation de ce profil dans les imports : une game liée à un doublon ou à aucun profil ne peut pas alimenter correctement Mon Profil.'
+        "question": "Pourquoi mon profil est vide ?",
+        "triggers": [
+          "profil vide",
+          "pas de stats profil",
+          "aucune game profil",
+          "historique vide",
+          "aucune partie profil"
+        ],
+        "answer": "Vérifie d’abord que ton compte NXT5 est lié au bon joueur dans Gestion de l’équipe. Contrôle ensuite les joueurs associés aux parties importées : une partie attribuée à un profil en double ou à aucun joueur ne peut pas alimenter correctement ton profil."
       }
     ]
   },
   {
     id: 'permissions-and-account',
-    title: 'Permissions et paramètres',
+    title: "Accès et paramètres du compte",
     path: '/parametres',
     actionLabel: 'Ouvrir les paramètres',
-    summary: 'Les permissions dépendent du rôle dans l’équipe. Les paramètres personnels gèrent le compte et la sécurité ; Gestion équipe règle les rôles, liaisons et accès du roster.',
+    summary: "Ton rôle dans l’équipe détermine les actions disponibles. Paramètres gère ton compte et ta sécurité ; Gestion de l’équipe organise les joueurs et leurs accès.",
     keywords: ['permission', 'droits', 'accès', 'capitaine', 'coach', 'manager', 'analyste', 'joueur', 'compte', 'email', 'mot de passe', 'sécurité', 'paramètres'],
     steps: [
-      'Vérifie ton rôle actuel dans Équipe.',
-      'Utilise Paramètres pour ton compte, ton e-mail et ton mot de passe.',
-      'Utilise Gestion équipe pour les rôles et accès du roster.',
-      'Demande au capitaine ou au staff autorisé si une action reste bloquée.'
+      "Vérifie ton rôle dans l’équipe active.",
+      "Ouvre Paramètres pour ton compte, ton e-mail et ton mot de passe.",
+      "Ouvre Gestion de l’équipe pour les profils joueurs et leurs accès.",
+      "Si une action reste bloquée, demande au capitaine ou à un membre du staff autorisé."
     ],
     suggestions: ['Pourquoi un bouton est bloqué ?', 'Comment modifier un accès ?', 'Comment sécuriser mon compte ?']
   },
@@ -267,25 +355,41 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: 'Résoudre un problème courant',
     path: '/parametres',
     actionLabel: 'Ouvrir les paramètres',
-    summary: 'Les problèmes les plus fréquents viennent d’un ancien JSON, d’une timeline Riot incomplète, d’un mauvais profil assigné, d’un rôle insuffisant ou d’un cache navigateur ancien.',
-    keywords: ['problème', 'erreur', 'bloqué', 'ne marche pas', 'cassé', 'figé', 'chargement', 'timeline', 'image', 'permission', 'cache', 'dépannage'],
+    summary: "Un problème peut venir du fichier importé, d’événements absents, d’un joueur mal associé, des droits d’accès ou d’une ancienne version chargée dans le navigateur.",
+    keywords: ['problème', 'erreur', 'bloqué', 'ne marche pas', 'cassé', 'figé', 'chargement', 'timeline', 'image', 'permission', 'cache', 'dépannage', "chronologie", "partie"],
     steps: [
-      'Recharge la page une fois pour écarter un ancien cache.',
-      'Vérifie le profil, la team active et les permissions.',
-      'Pour un import, régénère le JSON avec la dernière version de l’importer.',
-      'Si le problème persiste, note la page, l’action et le message affiché.'
+      "Recharge la page une fois.",
+      "Vérifie l’équipe active, le joueur concerné et ton rôle.",
+      "Pour un import, prépare à nouveau le fichier avec une version récente de NXT5 Importer.",
+      "Si le problème persiste, note la page, l’action et le message affiché."
     ],
-    suggestions: ['Pourquoi la page reste en chargement ?', 'Pourquoi une timeline est incomplète ?', 'Pourquoi un bouton est désactivé ?'],
+    suggestions: [
+      "Pourquoi la page reste en chargement ?",
+      "Pourquoi la chronologie est-elle incomplète ?",
+      "Pourquoi un bouton est-il désactivé ?"
+    ],
     faq: [
       {
-        question: 'Pourquoi une timeline est incomplète ?',
-        triggers: ['timeline incomplète', 'timeline absente', 'objectifs manquants', 'pas de timeline'],
-        answer: 'NXT5 n’invente pas les événements absents du fichier. Réexporte la game avec un importer récent. Si Riot ne fournit toujours pas la timeline complète, les statistiques finales restent disponibles mais certains timings et objectifs sont masqués.'
+        "question": "Pourquoi la chronologie est-elle incomplète ?",
+        "triggers": [
+          "timeline incomplète",
+          "timeline absente",
+          "objectifs manquants",
+          "pas de timeline",
+          "chronologie incomplète",
+          "chronologie absente"
+        ],
+        "answer": "NXT5 n’invente pas les événements absents du fichier. Prépare à nouveau le fichier avec une version récente de NXT5 Importer. Si Riot ne fournit toujours pas la chronologie complète, les statistiques finales restent disponibles mais certains événements et horaires ne peuvent pas être affichés."
       },
       {
-        question: 'Pourquoi le site reste en chargement ?',
-        triggers: ['site figé', 'chargement infini', 'synchronisation en cours', 'reste bloqué'],
-        answer: 'Recharge d’abord la page. Si l’écran de synchronisation revient, vérifie la connexion puis réessaie. NXT5 doit charger la session et les données de l’équipe ; une erreur serveur doit normalement afficher un bouton Réessayer plutôt que bloquer définitivement l’écran.'
+        "question": "Pourquoi le site reste-t-il en chargement ?",
+        "triggers": [
+          "site figé",
+          "chargement infini",
+          "synchronisation en cours",
+          "reste bloqué"
+        ],
+        "answer": "Recharge la page, puis vérifie ta connexion. Si une erreur apparaît, utilise Réessayer. Si le problème persiste, conserve le message affiché pour le transmettre avec la page concernée."
       }
     ]
   }

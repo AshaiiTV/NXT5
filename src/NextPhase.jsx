@@ -253,7 +253,7 @@ function BlockComparisonRows({ rows }) {
 export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const [leftKey, setLeftKey] = useState("previous");
   const [rightKey, setRightKey] = useState("recent");
-  const options = [{ value: "previous", label: "5 games précédentes" }, { value: "recent", label: "5 dernières games" }, { value: "all", label: "Toutes les games" }, ...categories.map((category) => ({ value: `category:${category.id}`, label: category.name }))];
+  const options = [{ value: "previous", label: "5 parties précédentes" }, { value: "recent", label: "5 dernières parties" }, { value: "all", label: "Toutes les parties" }, ...categories.map((category) => ({ value: `category:${category.id}`, label: category.name }))];
   const referenceKey = options.some((option) => option.value === leftKey) ? leftKey : "previous";
   const observedKey = options.some((option) => option.value === rightKey) ? rightKey : "recent";
   const leftMatches = blockMatches(matches, categories, referenceKey);
@@ -261,14 +261,14 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const left = blockSnapshot(leftMatches);
   const right = blockSnapshot(rightMatches);
   const overlap = blockOverlapCount(leftMatches, rightMatches);
-  const gameCount = (count) => `${count} game${count > 1 ? "s" : ""}`;
+  const gameCount = (count) => `${count} partie${count > 1 ? "s" : ""}`;
   const sideCount = (games, side) => gameCount(games.filter((match) => String(match.side || "").toLowerCase().includes(side)).length);
   const metrics = [
-    { label: "Taux de victoire", detail: "Victoires / games du bloc", before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
-    { label: "Écart d’or moyen", detail: "Notre équipe − adversaire · or / game", before: left.gold, after: right.gold, deltaSuffix: " or" },
-    { label: "Écart de dégâts moyen", detail: "Notre équipe − adversaire · dégâts / game", before: left.damage, after: right.damage, deltaSuffix: " dég." },
-    { label: "Écart de vision moyen", detail: "Notre équipe − adversaire · score / game", before: left.vision, after: right.vision, deltaSuffix: " pts" },
-    { label: "Morts de l’équipe", detail: "Moyenne / game · moins est favorable", before: left.deaths, after: right.deaths, inverse: true, digits: 1 },
+    { label: "Taux de victoire", detail: "Victoires / parties du bloc", before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
+    { label: "Écart d’or moyen", detail: "Notre équipe − adversaire · or / partie", before: left.gold, after: right.gold, deltaSuffix: " or" },
+    { label: "Écart de dégâts moyen", detail: "Notre équipe − adversaire · dégâts / partie", before: left.damage, after: right.damage, deltaSuffix: " dég." },
+    { label: "Écart de vision moyen", detail: "Notre équipe − adversaire · score / partie", before: left.vision, after: right.vision, deltaSuffix: " pts" },
+    { label: "Morts de l’équipe", detail: "Moyenne / partie · moins est favorable", before: left.deaths, after: right.deaths, inverse: true, digits: 1 },
   ];
   const roleMetrics = right.roles.map((role) => {
     const previous = left.roles.find((item) => item.role === role.role);
@@ -280,29 +280,29 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   ];
   return <Panel className="block-comparison">
     <div className="block-comparison-heading">
-      <h3>Comparer deux blocs de games</h3>
-      <p>Mesure les écarts entre deux périodes ou deux catégories de games. Les moyennes et les variations se lisent ici côte à côte.</p>
+      <h3>Ce qui change entre deux sélections</h3>
+      <p>Choisis une référence à gauche, puis les parties à observer à droite. Les résultats montrent ce qui a changé entre les deux sélections.</p>
     </div>
     <div className="block-comparison-selection">
       {[{ label: "Bloc de référence", key: referenceKey, setKey: setLeftKey, games: leftMatches, snapshot: left }, { label: "Bloc observé", key: observedKey, setKey: setRightKey, games: rightMatches, snapshot: right }].map(({ label, key, setKey, games, snapshot }) => <div key={label} className="block-comparison-selector">
         <SelectInput label={label} value={key} onChange={setKey}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SelectInput>
-        <p className="block-comparison-sample"><strong>{gameCount(snapshot.games)}</strong><span>{games.length ? blockDateRange(games) : "Aucune game dans ce bloc"}</span></p>
+        <p className="block-comparison-sample"><strong>{gameCount(snapshot.games)}</strong><span>{games.length ? blockDateRange(games) : "Aucune partie dans ce bloc"}</span></p>
       </div>)}
       <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => { setLeftKey(observedKey); setRightKey(referenceKey); }} className="block-comparison-swap">Inverser les blocs</Button>
     </div>
     <div className="block-comparison-context" aria-live="polite">
-      {(!left.games || !right.games) ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>Sélectionne deux blocs non vides pour calculer les écarts.{(referenceKey === "previous" && !left.games) || (observedKey === "previous" && !right.games) ? " Le bloc précédent apparaît à partir de la 6e game." : ""}</span></p> : overlap > 0 ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{overlap} game{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</span></p> : <p>Aucune game commune aux deux blocs.</p>}
-      <p><strong>Évolution = bloc observé − référence.</strong> Les taux évoluent en points de pourcentage. Les games sont classées par date de jeu.</p>
+      {(!left.games || !right.games) ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>Sélectionne deux blocs non vides pour calculer les écarts.{(referenceKey === "previous" && !left.games) || (observedKey === "previous" && !right.games) ? " Le bloc précédent apparaît à partir de la 6e partie." : ""}</span></p> : overlap > 0 ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{overlap} partie{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</span></p> : <p>Aucune partie commune aux deux blocs.</p>}
+      <p><strong>Évolution = bloc observé − référence.</strong> Les taux évoluent en points de pourcentage. Les parties sont classées par date de jeu.</p>
     </div>
     <div className="block-comparison-section">
       <h4>Résultats de l’équipe</h4>
-      <p className="block-comparison-description">Les écarts d’or, de dégâts et de vision mesurent l’avance sur l’adversaire en fin de game.</p>
+      <p className="block-comparison-description">Les écarts d’or, de dégâts et de vision mesurent l’avance sur l’adversaire en fin de partie.</p>
       <BlockComparisonRows rows={metrics} />
     </div>
     <div className="block-comparison-secondary">
       <section className="block-comparison-section block-comparison-roles">
         <h4>Participation aux kills par rôle</h4>
-        <p className="block-comparison-description">Moyenne du bloc, en %. Le nombre de games précise l’échantillon de chaque rôle.</p>
+        <p className="block-comparison-description">Part des éliminations de l’équipe auxquelles le joueur participe (KP), en moyenne. Le nombre de parties précise l’échantillon de chaque rôle.</p>
         <BlockComparisonRows rows={roleMetrics} />
       </section>
       <section className="block-comparison-section block-comparison-sides">
@@ -311,7 +311,7 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
         <BlockComparisonRows rows={sideMetrics} />
       </section>
     </div>
-    <p className="block-comparison-footnote">— : donnée indisponible. « Favorable » indique le sens de la variation ; tiens compte du nombre de games et des adversaires avant de conclure.</p>
+    <p className="block-comparison-footnote">— : donnée indisponible. « Favorable » indique le sens de la variation ; tiens compte du nombre de parties et des adversaires avant de conclure.</p>
   </Panel>;
 }
 
@@ -380,6 +380,7 @@ function evaluateGoal(goal, rows) {
 }
 
 export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId, canManage, refreshAll, pushToast }) {
+  const metricLabels = { deaths: "Morts par partie", kp: "Participation aux éliminations (KP)", kda: "Ratio KDA", vision: "Score de vision par partie", cs10: "Sbires et monstres à 10 minutes (CS)" };
   const activeGoals = goals.filter((goal) => goal.player_id === player?.id && goal.status !== "archived");
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -395,7 +396,7 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
       const metric = METRICS[form.metric];
       const title = form.title.trim() || `${form.operator === "lte" ? "Limiter" : "Atteindre"} ${metric.label.toLowerCase()}`;
       await apiFetch("player-goals-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, playerId: player.id, ...form, title }) });
-      await refreshAll(); setCreating(false); pushToast?.({ type: "green", title: "Objectif lancé", text: `Suivi sur les ${form.sampleSize} prochaines games.` });
+      await refreshAll(); setCreating(false); pushToast?.({ type: "green", title: "Objectif lancé", text: `Suivi sur les ${form.sampleSize} prochaines parties.` });
     } catch (error) { pushToast?.({ type: "red", title: "Création impossible", text: error.message }); }
     finally { setSaving(false); }
   }
@@ -407,29 +408,29 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
   }
   return <Panel className="profile-goal-panel">
     <header className="profile-goal-heading">
-      <div><p className="profile-goal-eyebrow">Suivi joueur</p><h3>Objectifs mesurés sur les prochaines games</h3><p>Les games importées permettent de suivre chaque cible et de vérifier sa progression.</p></div>
+      <div><p className="profile-goal-eyebrow">Suivi joueur</p><h3>Objectifs mesurés sur les prochaines parties</h3><p>Les parties importées permettent de suivre chaque cible. Seules les parties importées après le début de l’objectif sont comptées.</p></div>
       {canManage && <ActionButton variant={creating ? "ghost" : "primary"} icon={creating ? X : Plus} onClick={() => setCreating((value) => !value)}>{creating ? "Fermer" : "Nouvel objectif"}</ActionButton>}
     </header>
     {creating && <form onSubmit={create} className="profile-goal-form">
-      <SelectInput label="Métrique" value={form.metric} onChange={setMetric}>{Object.entries(METRICS).map(([id, item]) => <option key={id} value={id}>{item.label}</option>)}</SelectInput>
-      <TextInput label="Nom" value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder="Ex. Réduire les morts gratuites" />
-      <TextInput label="Cible" type="number" step="0.1" value={form.targetValue} onChange={(value) => setForm({ ...form, targetValue: Number(value) })} />
-      <SelectInput label="Réussites" value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}><option value="1">1 / 3</option><option value="2">2 / 3</option><option value="3">3 / 3</option></SelectInput>
-      <div className="profile-goal-form-action"><p>La cible sera évaluée sur les {form.sampleSize} prochaines games.</p><ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? "Lancement…" : "Lancer"}</ActionButton></div>
+      <SelectInput label="Mesure à suivre" value={form.metric} onChange={setMetric}>{Object.entries(METRICS).map(([id, item]) => <option key={id} value={id}>{metricLabels[id] || item.label}</option>)}</SelectInput>
+      <TextInput label="Nom" value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder="Ex. Mieux préparer les objectifs" />
+      <TextInput label={form.operator === "lte" ? "Maximum par partie" : "Minimum par partie"} type="number" step="0.1" value={form.targetValue} onChange={(value) => setForm({ ...form, targetValue: Number(value) })} />
+      <SelectInput label="Parties où atteindre la cible" value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}><option value="1">1 / 3</option><option value="2">2 / 3</option><option value="3">3 / 3</option></SelectInput>
+      <div className="profile-goal-form-action"><p>La cible sera évaluée sur les {form.sampleSize} prochaines parties.</p><ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? "Lancement…" : "Lancer"}</ActionButton></div>
     </form>}
     {activeGoals.length ? <div className="profile-goal-list">{activeGoals.map((goal) => {
       const result = evaluateGoal(goal, rows);
       const metric = METRICS[goal.metric] || METRICS.deaths;
       return <article key={goal.id} className="profile-goal-row">
-        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : "En cours"}</Label><span>{result.successes}/{result.required} réussites</span></div><h4>{goal.title}</h4><p>{metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} games</p></div>
+        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : "En cours"}</Label><span>{result.successes}/{result.required} réussites</span></div><h4>{goal.title}</h4><p>{metricLabels[goal.metric] || metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} parties</p></div>
         <div className="profile-goal-progress"><div className="profile-goal-samples">{Array.from({ length: Number(goal.sample_size || 3) }, (_, index) => {
           const value = result.values[index];
           const success = value !== undefined && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value));
-          return <div key={index} className={cx("profile-goal-sample", value === undefined ? "is-pending" : success ? "is-success" : "is-missed")}><span>Game {index + 1}</span><strong>{value === undefined ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? "À jouer" : success ? "Cible atteinte" : "Hors cible"}</small></div>;
-        })}</div><p>Games depuis le {formatDate(goal.starts_at || goal.created_at)}</p></div>
+          return <div key={index} className={cx("profile-goal-sample", value === undefined ? "is-pending" : success ? "is-success" : "is-missed")}><span>Partie {index + 1}</span><strong>{value === undefined ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? "À jouer" : success ? "Cible atteinte" : "Hors cible"}</small></div>;
+        })}</div><p>Parties depuis le {formatDate(goal.starts_at || goal.created_at)}</p></div>
         {canManage && <IconButton icon={Trash2} label="Archiver l'objectif" danger disabled={saving} onClick={() => archive(goal)} />}
       </article>;
-    })}</div> : <div className="profile-goal-empty"><CircleDot aria-hidden="true" /><div><h4>Aucun objectif actif pour ce profil.</h4><p>{canManage ? "Crée une cible mesurable pour suivre les prochaines games du joueur." : "Les objectifs définis par le staff apparaîtront ici."}</p></div></div>}
+    })}</div> : <div className="profile-goal-empty"><CircleDot aria-hidden="true" /><div><h4>Aucun objectif actif pour ce profil.</h4><p>{canManage ? "Crée une cible mesurable pour suivre les prochaines parties du joueur." : "Les objectifs définis par les responsables de l’équipe apparaîtront ici."}</p></div></div>}
   </Panel>;
 }
 

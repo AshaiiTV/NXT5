@@ -2,7 +2,7 @@
 .nxt5-trends-page .trends-filters { margin-bottom: 20px; padding: 4px 0 16px; border-bottom: 1px solid var(--nxt5-border); }
 .trends-filter-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 28px; }
 .trends-filter-controls > label { flex: 0 1 280px; min-width: 0; }
-.trends-filter-controls > label > span { font-size: 13px; letter-spacing: .02em; text-transform: none; }
+.trends-filter-controls > label > span { font-size: 14px; letter-spacing: .02em; text-transform: none; }
 .trends-scope { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-top: 14px; color: var(--nxt5-text-secondary); font-size: 13px; line-height: 1.6; }
 .trends-scope strong { color: var(--nxt5-text); font-weight: 650; }
 .trends-sample-note { display: flex; align-items: start; gap: 10px; margin: 0 0 20px; color: #fde68a; font-size: 14px; line-height: 1.6; }
@@ -31,7 +31,7 @@
 .trends-eyebrow svg { width: 16px; height: 16px; }
 .nxt5-trends-page .trends-priority { display: grid; grid-template-columns: minmax(0,1.45fr) minmax(0,1fr); gap: 32px; padding: 8px 0; }
 .trends-priority h3 { font-size: clamp(24px,3.1cqi,32px); font-weight: 700; letter-spacing: -.025em; line-height: 1.25; margin: 12px 0; max-width: 28ch; }
-.trends-copy { color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.75; max-width: 84ch; }
+.trends-copy { color: var(--nxt5-text-secondary); font-size: 15px; line-height: 1.75; max-width: 84ch; }
 .trends-priority-target { border-left: 2px solid #a78bfa; padding-left: 24px; align-self: center; }
 .trends-priority-target > strong { display: block; margin: 10px 0; font-size: 20px; font-weight: 650; line-height: 1.5; color: #e0f2fe; }
 .trends-priority-target > p:not(.trends-eyebrow) { font-size: 13px; line-height: 1.6; color: var(--nxt5-text-secondary); margin-bottom: 16px; }
@@ -145,7 +145,7 @@
 }
 
 .trends-overview-intro h3 { font-size: 22px; font-weight: 700; line-height: 1.4; }
-.trends-overview-intro p { margin-top: 6px; max-width: 80ch; color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.7; }
+.trends-overview-intro p { margin-top: 6px; max-width: 80ch; color: var(--nxt5-text-secondary); font-size: 15px; line-height: 1.7; }
 .trends-role-details { margin-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .trends-role-details > summary { min-height: 48px; padding: 16px 0; cursor: pointer; font-size: 14px; font-weight: 650; color: var(--nxt5-text-secondary); }
 .trends-role-details[open] > summary { margin-bottom: 4px; }
@@ -180,3 +180,15 @@
   .trends-source-tools :is(input,select) { font-size: 16px; }
   .trends-source-heading > button { width: 100%; }
 }
+
+.trends-secondary-disclosure { min-width: 0; }
+.trends-secondary-disclosure > summary { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 30px 10px 0; list-style: none; cursor: pointer; color: var(--nxt5-text); font-size: 15px; line-height: 1.6; }
+.trends-secondary-disclosure > summary::-webkit-details-marker { display: none; }
+.trends-secondary-disclosure > summary::after { content: "+"; position: absolute; right: 4px; top: 10px; color: var(--nxt5-accent); font-size: 20px; }
+.trends-secondary-disclosure[open] > summary::after { content: "−"; }
+.trends-secondary-disclosure > summary strong { display: block; font-weight: 650; }
+.trends-secondary-disclosure > summary > span { min-width: 0; overflow-wrap: anywhere; }
+.trends-secondary-disclosure > summary > span > span { display: block; margin-top: 4px; color: var(--nxt5-text-secondary); font-size: 14px; }
+.trends-disclosure-content { padding-top: 16px; }
+.trends-disclosure-content > .trends-copy { margin-top: 14px; }
+.draft-analysis-disclosure { border-top: 1px solid var(--nxt5-border); margin-top: 24px; padding-top: 10px; }

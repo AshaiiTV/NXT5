@@ -13,7 +13,7 @@ export const ADMIN_GROUPS = [
   { label: "Ventes et accès", pages: [
     { id: "purchases", path: "/admin/achats", label: "Achats" },
     { id: "requests", path: "/admin/demandes-acces", label: "Demandes d’accès" },
-    { id: "subscriptions", path: "/admin/abonnements", label: "Profils et abonnements" },
+    { id: "subscriptions", path: "/admin/abonnements", label: "Comptes et abonnements" },
     { id: "pricing", path: "/admin/tarifs", label: "Offres et tarifs" },
     { id: "launch", path: "/admin/preparer-vente", label: "Préparer la vente" },
   ] },

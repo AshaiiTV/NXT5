@@ -311,8 +311,8 @@ function TrendsPage({ data, selectedTeamId }) {
     };
   }), [matches]);
   const detailHeader = detailSection && <>
-    <nav aria-label="Retour aux analyses" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour à Draft</a></nav>
-    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Analyses · Draft" title={detailSection.title} subtitle={detailSection.description} /></div>
+    <nav aria-label="Retour aux analyses" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour aux choix des champions</a></nav>
+    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Analyses · Choix des champions" title={detailSection.title} subtitle={detailSection.description} /></div>
   </>;
 
   if (!matches.length) return <div className="nxt5-data-dense nxt5-trends-page">
@@ -990,19 +990,19 @@ function TrendsPage({ data, selectedTeamId }) {
     { label: "Premier objectif", value: game.firstObjective || "—", toneName: game.firstObjective && game.firstObjective !== "—" ? "cyan" : "slate" },
   ];
   const sourceGameRead = (game) => {
-    if (game.result === "Victoire" && game.goldDiff >= 0) return "Victoire avec un avantage d’or en fin de game.";
-    if (game.result === "Victoire" && game.goldDiff < 0) return "Victoire malgré un retard d’or en fin de game : revoir les fights décisifs.";
+    if (game.result === "Victoire" && game.goldDiff >= 0) return "Victoire avec un avantage d’or en fin de partie.";
+    if (game.result === "Victoire" && game.goldDiff < 0) return "Victoire malgré un retard d’or en fin de partie : revoir les combats décisifs.";
     if (game.result === "Défaite" && game.deaths > game.enemyDeaths) return "Plus de morts en défaite : vérifier leur contexte avant de conclure.";
-    if (game.visionDiff < 0) return "Information défavorable : setup objectif ou facecheck à revoir.";
-    return "Game utile pour comparer exécution, tempo objectif et rôle moteur.";
+    if (game.visionDiff < 0) return "Score de vision inférieur : revoir la préparation des objectifs et les entrées dans les zones sans vision.";
+    return "Partie utile pour comparer les décisions, le moment des objectifs et la contribution des rôles.";
   };
   const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
   const trendPanelOptions = [
     ["coach", "Synthèse", Gauge, "Préparer le débrief"],
     ["evolution", "Évolution", Activity, "Suivre partie après partie"],
-    ["comparison", "Comparer", RefreshCw, "Confronter deux sélections"],
-    ["draft", "Draft", Crown, "Champions et compositions"],
+    ["comparison", "Comparer", RefreshCw, "Voir ce qui a changé"],
+    ["draft", "Champions", Crown, "Choix et compositions"],
     ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
   ];
   const showObjectives = () => {
@@ -1036,7 +1036,7 @@ function TrendsPage({ data, selectedTeamId }) {
       </>}
     </div>)}
     </>}
-    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des games : une valeur par game dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les games sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
+    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
     {profileContractsOpen && <TrendContractsDialog objectives={profileAiObjectives} onClose={() => setProfileContractsOpen(false)} onOpenSources={openTrendSources} />}
     {trendSourceModal && <TrendSourcesDialog source={trendSourceModal} onClose={() => setTrendSourceModal(null)} onOpenGame={openSourceGame} signals={sourceGameSignals} read={sourceGameRead} />}
   </div>;

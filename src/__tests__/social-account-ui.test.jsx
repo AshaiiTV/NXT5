@@ -130,6 +130,33 @@ describe("social account entry and completion", () => {
 });
 
 describe("social account settings", () => {
+  it("keeps the password draft and retry action after a failed save in optional settings", async () => {
+    const pushToast = vi.fn();
+    const user = { id: 1, name: "Player", email: "player@example.fr", email_verified: true };
+    const renderer = await render(<AccountSettings user={user} onUserUpdate={vi.fn()} pushToast={pushToast} />);
+    const passwordDetails = renderer.root.findAllByType("details").find((node) => content(node.findByType("summary")).trim() === "Changer mon mot de passe");
+    expect(passwordDetails.props.open).not.toBe(true);
+    edit(renderer, "Mot de passe actuel", "current-password");
+    edit(renderer, "Nouveau mot de passe", "next-password");
+    edit(renderer, "Confirmer le nouveau mot de passe", "next-password");
+    let rejectSave;
+    apiFetch.mockImplementationOnce(() => new Promise((resolve, reject) => { rejectSave = reject; }));
+    let save;
+    await act(async () => { save = passwordDetails.findByType("form").props.onSubmit({ preventDefault() {} }); });
+    expect(button(renderer, "Mise à jour...").props.disabled).toBe(true);
+    expect(apiFetch).toHaveBeenLastCalledWith("auth-change-password", { method: "POST", body: JSON.stringify({ currentPassword: "current-password", nextPassword: "next-password" }) });
+    await act(async () => { rejectSave(new Error("Mot de passe actuel incorrect.")); await save; });
+    expect(renderer.root.findByProps({ label: "Nouveau mot de passe" }).props.value).toBe("next-password");
+    expect(renderer.root.findByProps({ label: "Confirmer le nouveau mot de passe" }).props.value).toBe("next-password");
+    expect(button(renderer, "Changer le mot de passe").props.disabled).toBe(false);
+    expect(pushToast).toHaveBeenCalledWith({ type: "red", title: "Changement impossible", text: "Mot de passe actuel incorrect." });
+    apiFetch.mockResolvedValueOnce({ ok: true });
+    await act(async () => { await passwordDetails.findByType("form").props.onSubmit({ preventDefault() {} }); });
+    expect(renderer.root.findByProps({ label: "Mot de passe actuel" }).props.value).toBe("");
+    expect(renderer.root.findByProps({ label: "Nouveau mot de passe" }).props.value).toBe("");
+    expect(renderer.root.findByProps({ label: "Confirmer le nouveau mot de passe" }).props.value).toBe("");
+  });
+
   it("requires the NXT5 password to unlink and keeps an accessible cancel flow", async () => {
     apiFetch.mockResolvedValueOnce({ providers, hasPassword: true, linked: [{ provider: "discord", displayName: "My Discord" }] });
     const renderer = await render(<SocialAccounts />);
