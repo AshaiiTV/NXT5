@@ -22,6 +22,7 @@ const settings = () => ({
   data: {
     ...DEFAULT_DATA,
     teams: [{ id: "team", name: "Équipe", owner_id: "owner" }],
+    players: ["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => ({ id: `player-${role}`, team_id: "team", role })),
     matches: history,
     matchArchives: [{ id: "block", team_id: "team", name: "Bloc scrim", description: "Session du matin", match_ids: ["one", "two"] }],
   },
@@ -95,7 +96,7 @@ async function click(renderer, label) {
   await act(async () => target.props.onClick());
 }
 function rows(renderer) { return buttons(renderer).filter((node) => node.props.className === "ig-game"); }
-function lists(renderer) { return renderer.root.findAllByProps({ "aria-label": "Liste des games" }).filter(visible); }
+function lists(renderer) { return renderer.root.findAllByProps({ "aria-label": "Liste des parties" }).filter(visible); }
 async function browserBack(path) {
   await act(async () => {
     window.location = new URL(path, window.location);
@@ -104,6 +105,39 @@ async function browserBack(path) {
 }
 
 describe("unified Games workspace", () => {
+  it("takes an owner to the missing players before offering an import", async () => {
+    const props = settings();
+    props.data.players = props.data.players.slice(0, 4);
+    props.data.players.push({ ...props.data.players[0] }, { id: "foreign", team_id: "other", role: "SUP" }, { id: "coach", team_id: "team", role: "COACH" });
+    const renderer = await mount("/games", props);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    expect(text(renderer.root)).toContain("Ajoute au moins 5 profils joueurs distincts");
+    await click(renderer, "Ajouter les joueurs");
+    expect(window.location.pathname).toBe("/gestion-equipe");
+    expect(window.location.search).toBe("?section=roster");
+  });
+
+  it.each([
+    [{ team_id: "team", user_id: "player", role: "player" }],
+    [{ team_id: "other", user_id: "player", role: "coach" }],
+    [{ team_id: "team", user_id: "someone-else", role: "coach" }],
+  ])("explains staff-managed imports to a member without current team permissions", async (currentMember) => {
+    const renderer = await mount("/games", { ...settings(), user: { id: "player" }, currentMember });
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    expect(button(renderer, "Ajouter les joueurs")).toBeUndefined();
+    expect(text(renderer.root)).toContain("Le capitaine ou le staff peut importer les parties de ton équipe.");
+  });
+
+  it("opens an existing linked debrief from the first reading without expanding statistics", async () => {
+    const props = settings();
+    props.data.reports = [{ id: "report-one", team_id: "team", match_ids: ["one"], title: "Décisions" }];
+    const renderer = await mount("/games?match=one", props);
+    expect(button(renderer, "Préparer le débrief")).toBeUndefined();
+    await click(renderer, "Ouvrir le débrief");
+    expect(window.location.pathname).toBe("/rapports");
+    expect(window.location.search).toBe("?report=report-one&match=one");
+  });
+
   it.each([
     ["team owner without membership", "owner", null, true],
     ["coach of the selected team", "staff", { team_id: "team", user_id: "staff", role: "coach" }, true],
@@ -165,21 +199,25 @@ describe("unified Games workspace", () => {
     expect(new URLSearchParams(window.location.search).get("match")).toBe(selectedId);
     const statistics = renderer.root.findByType(MatchDataPanel);
     expect(statistics.props.match.id).toBe(selectedId);
+    expect(text(statistics)).toContain("L’essentiel de la partie");
+    expect(text(statistics)).not.toContain("Vue 5v5");
+    const detail = statistics.findAllByType("details").find((node) => text(node.findByType("summary")).startsWith("Statistiques et comparaison"));
+    expect(detail.props.open).toBe(false);
+    await act(async () => detail.props.onToggle({ currentTarget: { open: true } }));
     const statsText = text(statistics);
     const versusIndex = statsText.indexOf("Vue 5v5");
-    const coachIndex = statsText.indexOf("Review prête");
-    expect(versusIndex).toBeGreaterThan(-1);
-    for (const metric of ["KDA équipe", "Écart dégâts", "Écart or", "Écart vision"]) {
-      expect(statsText.indexOf(metric)).toBeGreaterThan(-1);
+    const coachIndex = statsText.indexOf("L’essentiel de la partie");
+    expect(coachIndex).toBeLessThan(versusIndex);
+    for (const metric of ["Éliminations / morts / assistances", "Écart dégâts", "Écart or", "Écart vision"]) {
+      expect(statsText.indexOf(metric)).toBeGreaterThan(coachIndex);
       expect(statsText.indexOf(metric)).toBeLessThan(versusIndex);
     }
-    expect(coachIndex).toBeGreaterThan(versusIndex);
     expect(button(renderer, "Créer review")).toBeUndefined();
     expect(renderer.root.findAllByType("h3").filter((heading) => text(heading) === `Game ${selectedId}`)).toHaveLength(1);
     expect(lists(renderer)).toHaveLength(0);
     expect(renderer.root.findAllByType(ImportedGames)).toHaveLength(1);
-    expect(button(renderer, "Voir les stats")).toBeUndefined();
-    await click(renderer, "Retour aux games");
+    expect(button(renderer, "Voir le bilan")).toBeUndefined();
+    await click(renderer, "Retour aux parties");
     expect(window.location.search).toBe("?context=scrim");
     expect(lists(renderer)).toHaveLength(1);
     expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "match-details")).toHaveLength(1);
@@ -195,7 +233,7 @@ describe("unified Games workspace", () => {
     expect(window.location.search).toBe("?match=one");
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
     expect(renderer.root.findByType(MatchDataPanel).props.match.id).toBe("one");
-    await click(renderer, "Importer une game");
+    await click(renderer, "Importer une partie");
     expect(new URLSearchParams(window.location.search).get("import")).toBe("1");
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
   });
@@ -207,7 +245,7 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
     expect(renderer.root.findByType(MatchDataPanel).props.match.id).toBe("imported");
     expect(lists(renderer)).toHaveLength(0);
-    await click(renderer, "Retour aux games");
+    await click(renderer, "Retour aux parties");
     expect(lists(renderer)).toHaveLength(1);
   });
 
@@ -256,7 +294,7 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(GameActions)).toHaveLength(1);
     expect(button(renderer, "Options de la game")).toBeTruthy();
     for (const label of ["Modifier les informations", "Corriger les rôles et profils", "Supprimer"]) expect(button(renderer, label)).toBeUndefined();
-    const importButton = renderer.root.findAllByType(Button).find((node) => node.props.children === "Importer une game");
+    const importButton = renderer.root.findAllByType(Button).find((node) => node.props.children === "Importer une partie");
     expect(importButton.props.variant).toBe("ghost");
     await click(renderer, "Options de la game");
     expect(renderer.root.findAllByType("dialog")).toHaveLength(1);

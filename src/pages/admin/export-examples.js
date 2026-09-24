@@ -3,39 +3,44 @@
 // to the product's templates without maintaining separate mock layouts.
 export const EXPORT_TEMPLATES = Object.freeze([
   {
-    id: "game", title: "Statistiques d’une game", source: "Games · Statistiques", format: "PNG",
+    id: "game", category: "site", title: "Statistiques d’une game", source: "Games · Statistiques", format: "PNG",
     description: "Le bilan complet d’une game : les deux équipes, les dix joueurs et les objectifs.",
     uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Bilan détaillé téléchargé depuis Games"],
   },
   {
-    id: "discord-game", title: "Synthèse Discord", source: "Bot Discord · Publication d’une game", format: "PNG",
-    description: "L’essentiel d’une game pour le salon Discord : résultat, écarts collectifs et cinq joueurs de l’équipe.",
-    uses: ["Résultat, adversaire et durée", "Kills et écart d’or final", "Tours, dragons et Nashors", "K/D/A, dégâts et participation des cinq joueurs"],
-  },
-  {
-    id: "group", title: "Groupe de games", source: "Games · Groupe de games", format: "PNG",
+    id: "group", category: "site", title: "Groupe de games", source: "Games · Groupe de games", format: "PNG",
     description: "La synthèse d’une sélection de games, réunie dans une seule image.",
     uses: ["Victoires et moyennes de la sélection", "Comparaison équipe et adversaires", "Liste complète des games", "Champions joués et nombre de picks"],
   },
   {
-    id: "trends", title: "Tendances d’équipe", source: "Tendances · Exporter la synthèse", format: "PNG",
+    id: "trends", category: "site", title: "Tendances d’équipe", source: "Tendances · Exporter la synthèse", format: "PNG",
     description: "Les résultats et les repères collectifs de la catégorie et de la période choisies.",
     uses: ["Taux de victoire et écarts d’or", "Résultats par côté", "Moyennes par rôle", "Champions les plus joués"],
   },
   {
-    id: "profile", title: "Profil joueur", source: "Profils · Exporter le résumé", format: "PNG",
+    id: "profile", category: "site", title: "Profil joueur", source: "Profils · Exporter le résumé", format: "PNG",
     description: "Les statistiques d’un joueur sur les games reliées à son profil.",
     uses: ["Games analysées, victoires et KDA", "Moyennes par game et couverture des données", "CS à 10 et 20 minutes", "Résultats par champion"],
   },
   {
-    id: "pool", title: "Pool de champions déclaré", source: "Profils · Pool déclaré / Champion Pool", format: "PNG",
+    id: "pool", category: "site", title: "Pool de champions déclaré", source: "Profils · Pool déclaré / Champion Pool", format: "PNG",
     description: "Les champions déclarés par le joueur ou le staff, regroupés par niveau de préparation.",
     uses: ["Picks de confiance", "Picks situationnels", "Picks en validation et en entraînement", "Games et taux de victoire disponibles"],
   },
   {
-    id: "audience", title: "Fréquentation du site", source: "Administration · Fréquentation", format: "CSV",
+    id: "audience", category: "site", title: "Fréquentation du site", source: "Administration · Fréquentation", format: "CSV",
     description: "Le fichier de données du tableau de bord d’audience, prêt à ouvrir dans un tableur.",
     uses: ["Période, comparaison et filtres", "Pages, acquisition et campagnes UTM", "Appareils, navigateurs, pays et objectifs", "Évolution quotidienne, activité horaire et temps réel"],
+  },
+  {
+    id: "discord-game", category: "bot", title: "Synthèse Discord", source: "Bot Discord · Publications de games", format: "PNG",
+    description: "L’essentiel d’une game pour le salon Discord : résultat, écarts collectifs et cinq joueurs de l’équipe.",
+    uses: ["Résultat, adversaire et durée", "Kills et écart d’or final", "Tours, dragons et Nashors", "K/D/A, dégâts et participation des cinq joueurs"],
+  },
+  {
+    id: "discord-test", category: "bot", title: "Test de connexion", source: "Bot Discord · Test de connexion", format: "PNG",
+    description: "L’image de démonstration envoyée par le bot pour vérifier la connexion à un salon Discord.",
+    uses: ["Même exemple que le test de connexion", "Objectifs comparés et cinq joueurs fictifs", "Données de démonstration identifiées", "Aucune game réelle"],
   },
 ]);
 
@@ -173,10 +178,17 @@ export async function createExportExample(id) {
   const matches = MATCH_SETTINGS.map(demoMatch);
   const { pngPagesBlob } = await import("../../utils/png-report.js");
   let canvases;
-  if (id === "discord-game") {
-    const { buildGamePublicationSnapshot } = await import("../../../shared/publications/game-publication.js");
+  if (id === "discord-game" || id === "discord-test") {
     const { renderGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
-    const snapshot = buildGamePublicationSnapshot({ team: TEAM, match: matches[0], categories: [CATEGORY] });
+    let snapshot;
+    if (id === "discord-test") {
+      const { buildDiscordDemoSnapshot } = await import("../../../shared/publications/discord-demo.js");
+      snapshot = buildDiscordDemoSnapshot();
+    } else {
+      const { buildGamePublicationSnapshot } = await import("../../../shared/publications/game-publication.js");
+      snapshot = buildGamePublicationSnapshot({ team: TEAM, match: matches[0], categories: [CATEGORY] });
+    }
+    // Both bot examples use the exact compact layout sent to Discord.
     canvases = [await renderGamePublicationPng(snapshot, { layout: "discord" })];
   } else if (id === "game" || id === "group") {
     const { renderStatsPng } = await import("../workspace/GameWorkspace.jsx");

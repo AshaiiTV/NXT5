@@ -84,8 +84,8 @@ describe("trend coach data confidence", () => {
   it("does not call a pattern validated after two wins", () => {
     const games = [gameWithoutTimeline("game-1"), gameWithoutTimeline("game-2")];
     const html = renderToStaticMarkup(<TrendsPage selectedTeamId="team-1" data={{ matches: games }} />);
-    expect(html).toContain("Petit échantillon");
-    expect(html).toContain("les patterns restent à confirmer");
+    expect(html).toContain("Peu de parties");
+    expect(html).toContain("les répétitions restent à confirmer");
     expect(html.toLowerCase()).not.toContain("levier validé");
   });
 });

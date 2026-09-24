@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Download, Eye, FileImage, FileSpreadsheet, Loader2, RefreshCw, X, ZoomIn, ZoomOut } from "lucide-react";
-import { Badge, Button, PageHeader, Surface } from "../../components/ui/Core.jsx";
+import { Badge, Button, PageHeader, SelectInput, Surface } from "../../components/ui/Core.jsx";
 import { createExportExample, EXPORT_TEMPLATES } from "./export-examples.js";
 import "./exports-page.css";
 
@@ -79,16 +79,25 @@ function ExportPreviewDialog({ selection, onClose }) {
 }
 
 export default function ExportsPage() {
+  const [category, setCategory] = useState("all");
   const [filter, setFilter] = useState("all");
   const [selection, setSelection] = useState(null);
-  const imageCount = EXPORT_TEMPLATES.filter(template => template.format === "PNG").length;
-  const csvCount = EXPORT_TEMPLATES.filter(template => template.format === "CSV").length;
-  const visibleCount = EXPORT_TEMPLATES.filter(template => filter === "all" || template.format === filter).length;
+  const categoryTemplates = EXPORT_TEMPLATES.filter(template => category === "all" || template.category === category);
+  const imageCount = categoryTemplates.filter(template => template.format === "PNG").length;
+  const csvCount = categoryTemplates.filter(template => template.format === "CSV").length;
+  const isVisible = template => (category === "all" || template.category === category) && (filter === "all" || template.format === filter);
+  const visibleCount = EXPORT_TEMPLATES.filter(isVisible).length;
   return <div className="exports-page">
-    <PageHeader eyebrow="Configuration · Bibliothèque" title="Exports" subtitle="Retrouve les modèles d’export du site, ouvre chaque aperçu en grand et télécharge un exemple." />
+    <PageHeader eyebrow="Configuration · Bibliothèque" title="Exports" subtitle="Retrouve les modèles d’export du site et du bot Discord, ouvre chaque aperçu en grand et télécharge un exemple." />
     <div className="exports-intro"><FileImage size={21} aria-hidden="true" /><p><strong>Les modèles actuels, avec des données fictives.</strong><span>Les aperçus utilisent les vrais rendus du site et du bot : bilan détaillé dans Games, synthèse compacte sur Discord.</span></p></div>
-    <div className="exports-toolbar"><div role="group" aria-label="Formats d’export" className="exports-filters">{[["all", `Tous (${EXPORT_TEMPLATES.length})`], ["PNG", `Images PNG (${imageCount})`], ["CSV", `Données CSV (${csvCount})`]].map(([value, label]) => <Button key={value} type="button" variant="ghost" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</Button>)}</div><span className="exports-count" aria-live="polite">{visibleCount} {visibleCount === 1 ? "modèle affiché" : "modèles affichés"}</span></div>
-    <section className="exports-catalog" aria-label="Modèles d’export">{EXPORT_TEMPLATES.map(template => <ExportCard key={template.id} template={template} hidden={filter !== "all" && template.format !== filter} onPreview={setSelection} />)}</section>
+    <div className="exports-category"><SelectInput label="Catégorie" aria-label="Catégorie" value={category} onChange={value => { setCategory(value); setFilter("all"); }}>
+      <option value="all">Toutes les catégories ({EXPORT_TEMPLATES.length})</option>
+      <option value="site">Site ({EXPORT_TEMPLATES.filter(template => template.category === "site").length})</option>
+      <option value="bot">Bot Discord ({EXPORT_TEMPLATES.filter(template => template.category === "bot").length})</option>
+    </SelectInput></div>
+    {category === "bot" && <p className="exports-category-note">Les images jointes aux publications et aux tests de connexion du bot. Les bilans, rappels et reviews sont des messages Discord.</p>}
+    <div className="exports-toolbar"><div role="group" aria-label="Formats d’export" className="exports-filters">{[["all", `Tous (${categoryTemplates.length})`], ...(imageCount ? [["PNG", `Images PNG (${imageCount})`]] : []), ...(csvCount ? [["CSV", `Données CSV (${csvCount})`]] : [])].map(([value, label]) => <Button key={value} type="button" variant="ghost" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</Button>)}</div><span className="exports-count" aria-live="polite">{visibleCount} {visibleCount === 1 ? "modèle affiché" : "modèles affichés"}</span></div>
+    <section className="exports-catalog" aria-label="Modèles d’export">{EXPORT_TEMPLATES.map(template => <ExportCard key={template.id} template={template} hidden={!isVisible(template)} onPreview={setSelection} />)}</section>
     {selection && <ExportPreviewDialog selection={selection} onClose={() => setSelection(null)} />}
   </div>;
 }

@@ -19,6 +19,7 @@ export async function loadMigrations() {
     ['discord-bot-workflows-20260922-v1', '../database/migrations/20260922_discord_bot_workflows.sql'],
     ['discord-bot-role-access-20260923-v1', '../database/migrations/20260923_discord_bot_role_access.sql'],
     ['social-auth-20260923-v1', '../database/migrations/20260923_social_auth.sql'],
+    ['discord-community-announcements-20260924-v1', '../database/migrations/20260924_discord_community_announcements.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

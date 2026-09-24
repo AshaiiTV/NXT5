@@ -6,8 +6,8 @@ const GAMEPLAY_ROLES = new Set([...MAIN_ROLES, "SUB"]);
 // Keep these aligned with players-create and matches-import-file authorization.
 const MANAGE_ROLES = new Set(["captain", "coach", "assistant", "analyst", "manager", "board"]);
 const ROSTER_PATH = "/gestion-equipe?section=roster";
-const STAFF_REASON = "Le capitaine ou le staff peut ajouter les joueurs et importer les games.";
-const IMPORT_ROSTER_REASON = "Ajoute au moins 5 profils joueurs distincts pour importer une game.";
+const STAFF_REASON = "Le capitaine ou le staff peut ajouter les joueurs et importer les parties.";
+const IMPORT_ROSTER_REASON = "Ajoute au moins 5 profils joueurs distincts pour importer une partie.";
 
 const sameId = (left, right) => left != null && right != null && String(left) !== "" && String(left) === String(right);
 
@@ -35,44 +35,44 @@ export function getOnboardingSteps({ data = {}, currentTeam, currentMember, user
 
   function importAction() {
     if (canManage) return importReady
-      ? { action: "Importer une game", path: "/games?import=1", disabled: false, reason: "" }
-      : { action: "Compléter le roster", path: ROSTER_PATH, disabled: false, reason: IMPORT_ROSTER_REASON };
-    return { action: "Importer une game", path: "", disabled: true, reason: STAFF_REASON };
+      ? { action: "Importer une partie", path: "/games?import=1", disabled: false, reason: "" }
+      : { action: "Ajouter les joueurs", path: ROSTER_PATH, disabled: false, reason: IMPORT_ROSTER_REASON };
+    return { action: "Importer une partie", path: "", disabled: true, reason: STAFF_REASON };
   }
 
   const latestMatch = sortTrendMatches(matches)[0];
   const firstReport = reports[0];
   const reviewAction = firstReport
-    ? { action: "Voir la review", path: `/rapports?report=${encodeURIComponent(firstReport.id)}`, disabled: false, reason: "" }
+    ? { action: "Voir le débrief", path: `/rapports?report=${encodeURIComponent(firstReport.id)}`, disabled: false, reason: "" }
     : !latestMatch
-      ? { action: "Créer une review", path: "", disabled: true, reason: "Importe une game pour préparer la review." }
+      ? { action: "Créer un débrief", path: "", disabled: true, reason: "Importe une partie pour préparer le débrief." }
       : canReview
-        ? { action: "Créer une review", path: `/rapports?match=${encodeURIComponent(latestMatch.id)}&compose=1`, disabled: false, reason: "" }
-        : { action: "Créer une review", path: "", disabled: true, reason: "Rejoins cette équipe pour créer une review." };
+        ? { action: "Créer un débrief", path: `/rapports?match=${encodeURIComponent(latestMatch.id)}&compose=1`, disabled: false, reason: "" }
+        : { action: "Créer un débrief", path: "", disabled: true, reason: "Rejoins cette équipe pour créer un débrief." };
 
   return [
     {
-      id: "teams", label: "Roster", detail: `${mainRoles.size} / 5 postes renseignés`, done: rosterDone,
-      action: canManage && !rosterDone ? "Compléter le roster" : "Voir le roster",
+      id: "teams", label: "Joueurs", detail: `${mainRoles.size} / 5 postes renseignés`, done: rosterDone,
+      action: canManage && !rosterDone ? "Ajouter les joueurs" : "Voir les joueurs",
       path: canManage && !rosterDone ? ROSTER_PATH : "/equipes",
       disabled: !canManage && !rosterDone,
       reason: !canManage && !rosterDone ? STAFF_REASON : "",
     },
     {
-      id: "matches", label: "Première game", detail: `${matches.length} game${matches.length > 1 ? "s" : ""} importée${matches.length > 1 ? "s" : ""}`,
+      id: "matches", label: "Première partie", detail: `${matches.length} partie${matches.length > 1 ? "s" : ""} importée${matches.length > 1 ? "s" : ""}`,
       done: matches.length >= 1,
       ...(matches.length >= 1
-        ? { action: "Voir les games", path: "/games", disabled: false, reason: "" }
+        ? { action: "Voir les parties", path: "/games", disabled: false, reason: "" }
         : importAction()),
     },
     {
-      id: "trends", label: "Tendances", detail: `${Math.min(matches.length, 3)} / 3 games importées`, done: matches.length >= 3,
+      id: "trends", label: "Premières analyses", detail: `${Math.min(matches.length, 3)} / 3 parties importées`, done: matches.length >= 3,
       ...(matches.length >= 3
-        ? { action: "Voir les tendances", path: "/tendances", disabled: false, reason: "" }
+        ? { action: "Voir les analyses", path: "/tendances", disabled: false, reason: "" }
         : importAction()),
     },
     {
-      id: "reports", label: "Review", detail: `${reports.length} review${reports.length > 1 ? "s" : ""} créée${reports.length > 1 ? "s" : ""}`,
+      id: "reports", label: "Premier débrief", detail: `${reports.length} débrief${reports.length > 1 ? "s" : ""} créé${reports.length > 1 ? "s" : ""}`,
       done: reports.length >= 1, ...reviewAction,
     },
   ];

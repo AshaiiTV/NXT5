@@ -64,7 +64,7 @@ async function change(target, value) {
   await act(async () => target.props.onChange({ target: { value } }));
 }
 async function chooseSide(renderer, side) {
-  const target = renderer.root.findAllByType("button").find((node) => text(node).startsWith(side === "BLUE" ? "Blue Side" : "Red Side"));
+  const target = renderer.root.findAllByType("button").find((node) => text(node).startsWith(side === "BLUE" ? "Côté bleu" : "Côté rouge"));
   expect(target).toBeTruthy();
   await act(async () => target.props.onClick());
 }
@@ -76,13 +76,15 @@ async function load(renderer, source = { label: "Scrim vs adversaires", info: { 
   }));
   return source;
 }
-async function mount() {
+async function mount(overrides = {}) {
   const props = {
     data: {
       ...DEFAULT_DATA,
+      teams: [{ id: "team", owner_id: "owner" }],
       players: roles.map((role) => ({ id: `profile-${role}`, team_id: "team", name: `NXT5 ${role}`, role })),
     },
-    selectedTeamId: "team", refreshAll: vi.fn(), pushToast: vi.fn(), onImported: vi.fn(),
+    selectedTeamId: "team", user: { id: "owner" }, currentMember: { role: "captain" }, refreshAll: vi.fn(), pushToast: vi.fn(), onImported: vi.fn(),
+    ...overrides,
   };
   let renderer;
   await act(async () => { renderer = TestRenderer.create(<ImportGameFlow {...props} />); });
@@ -91,13 +93,39 @@ async function mount() {
 }
 
 describe("enemy role assignment while importing a game", () => {
+  it.each([
+    { role: "member", team_id: "team", user_id: "visitor" },
+    { role: "coach", team_id: "other-team", user_id: "visitor" },
+    { role: "coach", team_id: "team", user_id: "other-user" },
+  ])("explains import access without a file picker for unauthorized membership %j", async (currentMember) => {
+    const { renderer } = await mount({ user: { id: "visitor" }, currentMember });
+    expect(renderer.root.findAllByType(ImporterDownloadPanel)).toHaveLength(0);
+    expect(text(renderer.root)).toContain("L’import est réservé au staff");
+    expect(apiUploadJson).not.toHaveBeenCalled();
+  });
+
+  it("leads an owner with insufficient distinct players directly to their setup", async () => {
+    const { renderer } = await mount({ data: { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: [
+      ...roles.slice(0, 4).map((role) => ({ id: role, team_id: "team", role })),
+      { id: "TOP", team_id: "team", role: "TOP" },
+      { id: "coach", team_id: "team", role: "COACH" },
+      { id: "foreign", team_id: "other-team", role: "SUP" },
+    ] } });
+    expect(renderer.root.findAllByType(ImporterDownloadPanel)).toHaveLength(0);
+    expect(renderer.root.findByType("a").props.href).toBe("/gestion-equipe?section=roster");
+    expect(apiUploadJson).not.toHaveBeenCalled();
+  });
+
   it("waits for our side before showing editable enemy roles", async () => {
     const { renderer } = await mount();
     await load(renderer);
     expect(enemySelects(renderer)).toHaveLength(0);
+    expect(text(renderer.root)).toContain("Choisis le côté de ton équipe pour continuer.");
+    expect(renderer.root.findAllByProps({ label: "Nom de la partie" })).toHaveLength(0);
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
     await chooseSide(renderer, "BLUE");
     expect(enemySelects(renderer)).toHaveLength(5);
+    expect(renderer.root.findAllByProps({ label: "Nom de la partie" })).toHaveLength(1);
     for (const node of enemySelects(renderer)) {
       expect(node.props.disabled).not.toBe(true);
       expect(node.findAllByType("option").map((option) => option.props.value).filter(Boolean)).toEqual(roles);

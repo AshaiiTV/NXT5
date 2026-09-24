@@ -606,11 +606,11 @@ function teamGoldAtMinute(match, teamKey, minute) {
 
 function timelineStatus(match) {
   const frames = storedTimelineFrames(match);
-  if (frames.length) return { label: "Timeline fiable", toneName: "green", detail: `${frames.length} frames Riot` };
+  if (frames.length) return { label: "Chronologie disponible", toneName: "green", detail: `${frames.length} relevés Riot` };
   const events = compactTimelineEvents(match);
   const summaryAvailable = Boolean(match?.raw?.nxt5?.timelineSummary?.available);
-  if (events.length || summaryAvailable) return { label: "Timeline résumée", toneName: "cyan", detail: events.length ? `${events.length} événements indexés` : "Repères CS et vision disponibles" };
-  return { label: "Timeline absente", toneName: "yellow", detail: "Lecture limitée aux stats finales" };
+  if (events.length || summaryAvailable) return { label: "Chronologie résumée", toneName: "cyan", detail: events.length ? `${events.length} événements indexés` : "Repères CS et vision disponibles" };
+  return { label: "Chronologie indisponible", toneName: "yellow", detail: "Seules les statistiques finales sont disponibles" };
 }
 
 function deathContext(match) {
@@ -938,10 +938,10 @@ function GameSummaryPanel({ match }) {
   const firstObjectiveIssue = objectives.find((event) => event.teamKey === "ENEMY" && event.alliedDeathBefore);
   const lines = [
     firstObjectiveIssue ? `Moment à revoir: ${firstObjectiveIssue.time}, ${firstObjectiveIssue.label} adverse après une mort alliée.` : `Économie finale: ${formatGoldDiff(goldDiff)} or, ${goldDiff >= 0 ? "avantage exploitable" : "retard à expliquer"}.`,
-    damageLeader ? `Plus gros impact dégâts sur cette game: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
-    weakRole ? `Écart de game à revoir: ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Écart de game: confirmer les rôles importés.",
+    damageLeader ? `Plus gros impact dégâts sur cette partie: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
+    weakRole ? `Écart à revoir : ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Rôles à confirmer dans les données importées.",
   ];
-  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Résumé game</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-[13px] font-semibold text-emerald-100">Point {index + 1}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
+  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Repères à examiner</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-[13px] font-semibold text-emerald-100">{["Moment clé", "Dégâts", "Écart par rôle"][index]}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
 }
 
 function GameMetricSignals({ match }) {
@@ -1203,42 +1203,68 @@ function matchCoachSnapshot(match) {
   return buildGamePublicationSnapshot({ match }).coach;
 }
 
-function MatchCoachBrief({ match }) {
+function plainCoachText(value) {
+  return String(value || "")
+    .replace(/\bVOD\b/g, "vidéo de la partie")
+    .replace(/\bun setup\b/gi, "une préparation")
+    .replace(/\ble setup\b/gi, "la préparation")
+    .replace(/\bsetup\b/gi, "préparation")
+    .replace(/\bgames\b/gi, "parties")
+    .replace(/\bgame\b/gi, "partie")
+    .replace(/\breview\b/gi, "débrief")
+    .replace(/\bla débrief\b/g, "le débrief")
+    .replace(/\bune débrief\b/g, "un débrief")
+    .replace(/\bde or\b/g, "d’or")
+    .replace(/Écart final : (.+?) en or final entre/g, "Écart d’or final : $1 entre");
+}
+
+function MatchCoachBrief({ match, onReview, hasReview = false }) {
   const snapshot = matchCoachSnapshot(match);
   const matchId = match?.id || "";
-  return <section className="games-analysis-section games-coach-brief">
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,.55fr)] xl:items-start">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2"><Badge tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.label}</Badge><Badge tone="cyan">Review prête</Badge></div>
-        <h4 className="mt-3 break-words text-2xl font-black text-white">{snapshot.title}</h4>
-        <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{snapshot.summary}</p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          {[["À garder", snapshot.keep, "green"], ["À corriger", snapshot.correct, "red"], ["Prochaine action", snapshot.action, "cyan"]].map(([label, value, toneName]) => <div key={label} className="games-stat-block">
-            <p className={cx("text-xs font-semibold", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{label}</p>
-            <p className="mt-1.5 text-sm font-black leading-5 text-white">{value}</p>
-          </div>)}
-        </div>
-      </div>
-      <div className="grid min-w-0 gap-2">
-        <div className="games-stat-block">
-          <p className="text-xs font-semibold text-slate-400">Lane à review</p>
-          <p className="mt-1.5 text-sm font-black leading-5 text-white">{snapshot.roleText}</p>
-        </div>
-        <Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`)} disabled={!matchId}>Créer la review</Button>
-        <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}`)} disabled={!matchId}>Ouvrir Review</Button>
-      </div>
+  return <section className="games-analysis-section games-coach-brief" aria-label="L’essentiel de la partie">
+    <div className="games-brief-heading">
+      <h4 className="games-section-heading">L’essentiel de la partie</h4>
+      <Badge tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.label}</Badge>
     </div>
-    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
+    <p className="games-brief-verdict">{plainCoachText(snapshot.title)}</p>
+    <p className="games-brief-summary">{plainCoachText(snapshot.summary)}</p>
+    <dl className="games-brief-points">
+      {[["À garder", snapshot.keep, "keep"], ["À vérifier", snapshot.correct, "check"], ["Prochaine action", snapshot.action, "next"]].map(([label, value, toneName]) => <div key={label} className={`games-brief-point games-brief-point-${toneName}`}>
+        <dt>{label}</dt><dd>{plainCoachText(value)}</dd>
+      </div>)}
+    </dl>
+    <div className="games-brief-followup">
+      <div><p>Le débrief d’équipe (review) rassemble tes notes et les décisions pour la prochaine session.</p></div>
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? "Ouvrir le débrief" : "Préparer le débrief"}</Button>
+      <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports")}>Tous les débriefs</Button>
+    </div>
+  </section>;
+}
+
+function CoachSupportingMetrics({ match }) {
+  const snapshot = matchCoachSnapshot(match);
+  return <section className="games-analysis-section">
+    <h4 className="games-section-heading">Repères de l’analyse</h4>
+    <p className="games-brief-summary"><strong>Poste à revoir :</strong> {snapshot.roleText.replace(/\bCS10\b/g, "Écart de sbires à 10 min")}</p>
+    <div className="nxt5-kpi-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
       {snapshot.metrics.map(([label, value, detail, toneName]) => <div key={label} className="games-stat-block">
         <p className="break-words text-xs font-semibold text-slate-400">{label}</p>
-        <p className={cx("mt-1 break-words text-lg font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
+        <p className={cx("mt-1 break-words text-lg font-black", toneName === "green" ? "text-emerald-100" : "text-rose-100")}>{value}</p>
         <p className="mt-0.5 break-words text-xs font-semibold text-slate-400">{detail}</p>
       </div>)}
     </div>
   </section>;
 }
 
-function MatchDataPanel({ match, teamName, statsFirst = false }) {
+function GameAnalysisDisclosure({ title, description, children }) {
+  const [open, setOpen] = useState(false);
+  return <details className="games-analysis-disclosure" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary><span><strong>{title}</strong><span>{description}</span></span><ChevronDown aria-hidden="true" /></summary>
+    {open && <div className="games-analysis-disclosure-content">{children}</div>}
+  </details>;
+}
+
+function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -1249,35 +1275,41 @@ function MatchDataPanel({ match, teamName, statsFirst = false }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
+  const side = matchTeamSideKey(match, "ALLY");
+  const status = timelineStatus(match);
+  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="Éliminations / morts / assistances" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} éliminations adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Notre équipe moins l’adversaire" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Or de notre équipe moins l’adversaire" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score de vision : notre équipe moins l’adversaire" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
   return <Surface className="nxt5-match-panel mt-5">
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge>
-          <Badge tone="slate">{match.patch || "Patch ?"}</Badge>
-          <Badge tone="blue">{match.side || "Côté ?"}</Badge>
-          <Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge>
-        </div>
-        <h3 tabIndex={-1} className="mt-3 break-words text-2xl font-black text-white">{matchDisplayName(match)}</h3>
-        <p className="mt-1 text-sm text-slate-300">{match.game_id} · {match.duration || "--:--"}</p>
+    <div className="games-match-context">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Résultat non renseigné"}</Badge>
+        <span>{match.duration ? `Durée : ${match.duration}` : "Durée non renseignée"}</span>
+        <span>{side === "blue" ? "Notre équipe : côté bleu" : side === "red" ? "Notre équipe : côté rouge" : "Côté non renseigné"}</span>
       </div>
-      {!statsFirst && <Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button>}
+      <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>
+      {(match.game_id || match.patch) && <p>{[match.game_id && `Identifiant : ${match.game_id}`, match.patch && `Version du jeu : ${match.patch}`].filter(Boolean).join(" · ")}</p>}
     </div>
-    <GameSummaryPanel match={match} />
-    {statsFirst && metrics}
-    {!statsFirst && <MatchCoachBrief match={match} />}
-    <MatchVersusOverview match={match} teamName={teamName} />
-    {!statsFirst && metrics}
-    {statsFirst && <MatchCoachBrief match={match} />}
-    <GameMetricSignals match={match} />
-    <RoleDiffPanel match={match} />
-    <DeathContextPanel match={match} />
-    <DraftImpactPanel match={match} />
-    <details key={match.id} className="games-timeline-disclosure">
-      <summary><span>Lecture chronologique</span><span className="games-timeline-summary-meta">{timelineStatus(match).label}</span></summary>
-      <MatchTimelineReview match={match} teamName={teamName} />
-    </details>
+    <MatchCoachBrief match={match} onReview={onReview} hasReview={hasReview} />
+    <section className="games-explore" aria-label="Explorer la partie">
+      <h4 className="games-section-heading">Explorer la partie</h4>
+      <p>Ouvre le détail utile à ta question.</p>
+      <div key={match.id}>
+        <GameAnalysisDisclosure title="Statistiques et comparaison 5 contre 5" description="Or, dégâts, vision, joueurs, équipements et objectifs.">
+          {metrics}
+          <MatchVersusOverview match={match} teamName={teamName} />
+          <CoachSupportingMetrics match={match} />
+        </GameAnalysisDisclosure>
+        <GameAnalysisDisclosure title="Points à approfondir" description="Contributions par rôle, contexte des morts et composition de champions (draft).">
+          <GameSummaryPanel match={match} />
+          <GameMetricSignals match={match} />
+          <RoleDiffPanel match={match} />
+          <DeathContextPanel match={match} />
+          <DraftImpactPanel match={match} />
+        </GameAnalysisDisclosure>
+        <GameAnalysisDisclosure title="Chronologie de la partie" description={`${status.label} · ${status.detail}`}>
+          <MatchTimelineReview match={match} teamName={teamName} />
+        </GameAnalysisDisclosure>
+      </div>
+    </section>
   </Surface>;
 }
 
@@ -1314,8 +1346,8 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, sho
 }
 
 const GAME_WORKSPACE_TABS = [
-  { id: "games", label: "Games", icon: Swords, path: "/games" },
-  { id: "review", label: "Review", icon: FileText, path: "/rapports" },
+  { id: "games", label: "Parties", icon: Swords, path: "/games" },
+  { id: "review", label: "Débriefs", icon: FileText, path: "/rapports" },
 ];
 
 function GameWorkspace(props) {
@@ -1331,7 +1363,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const selectedTeam = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId));
   const selectedTeamName = selectedTeam?.name || "Notre équipe";
   const teamMember = currentMember?.team_id === selectedTeamId && currentMember?.user_id === user?.id ? currentMember : null;
-  const canPublishDiscord = Boolean(user?.id && (selectedTeam?.owner_id === user.id || canStaffManage(teamMember?.role)));
+  const canManageTeam = Boolean(selectedTeam && user?.id && (selectedTeam.owner_id === user.id || canStaffManage(teamMember?.role)));
+  const canPublishDiscord = canManageTeam;
+  const canImport = canManageTeam;
+  const importPlayerIds = new Set((data.players || []).filter((player) => String(player.team_id) === String(selectedTeamId) && player.id && [...COMP_ROLES, "SUB"].includes(String(player.role || "").toUpperCase())).map((player) => String(player.id)));
+  const importReady = importPlayerIds.size >= 5;
   const query = new URLSearchParams(route?.search ?? window.location.search);
   const urlMatchId = query.get("match") || "";
   const urlArchiveId = query.get("archive") || "";
@@ -1408,6 +1444,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     setWorkspaceView("games");
     updateLocation({ import: "", view: "", archive: "", match: id ? String(id) : "" });
   }
+  function renderImportAction(variant = "primary") {
+    if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>Choisir une équipe</Button><p>Crée ou rejoins une équipe pour y retrouver tes parties.</p></div>;
+    if (!canImport) return <p className="games-import-help">Le capitaine ou le staff peut importer les parties de ton équipe.</p>;
+    if (!importReady) return <div className="games-import-action"><Button type="button" variant={variant} icon={Plus} onClick={() => openAppPath("/gestion-equipe?section=roster")}>Ajouter les joueurs</Button><p>Ajoute au moins 5 profils joueurs distincts pour importer une partie.</p></div>;
+    return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une partie</Button>;
+  }
   const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : [...current.matchIds, matchId] }));
   const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
   const editArchive = (archive) => {
@@ -1426,7 +1468,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
         await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
       }
-      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe de games est prêt dans Games." });
+      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe est prêt dans Parties." });
       resetArchiveForm();
       setArchiveWorkspaceTab("select");
       await refreshAll?.();
@@ -1481,59 +1523,58 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
-    <PageHeader eyebrow={selectedTeamName} title="Games" subtitle={selectedMatchId ? "Les statistiques de ta game, du résultat au détail par rôle." : "Retrouve tes games et ouvre leurs statistiques."}>
-      <span ref={importTriggerRef}><Button type="button" variant={selectedMatchId ? "ghost" : "primary"} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une game</Button></span>
+    <PageHeader eyebrow={selectedTeamName} title="Parties" subtitle={selectedMatchId ? "Comprends le résultat, choisis une piste de travail, puis explore les détails." : "Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session."}>
+      <div ref={importTriggerRef}>{renderImportAction(selectedMatchId ? "ghost" : "primary")}</div>
     </PageHeader>
-    {importOpen && <GameOperationDialog title="Importer une game" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
+    {importOpen && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
       <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} />
     </GameOperationDialog>}
 
-    {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label="Statistiques de la game">
+    {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label="Analyse de la partie">
       <div className="games-detail-toolbar">
-        <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? "Retour au groupe" : "Retour aux games"}</Button>
+        <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? "Retour au groupe" : "Retour aux parties"}</Button>
         {selectedMatch && <div className="games-detail-actions">
           <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? "Export…" : "Exporter PNG"}</Button>
           {!loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canPublishDiscord} />}
-          <Button type="button" variant="ghost" icon={FileText} onClick={openReview}>{selectedReport ? "Ouvrir la review" : "Créer une review"}</Button>
           <GameActions key={selectedMatchId} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError)} match={selectedMatch} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onDeleted={() => updateLocation({ match: "", ...(selectedArchive && scopedMatches.length <= 1 ? { archive: "" } : {}) })} onUpdated={retryMatchDetail} />
         </div>}
       </div>
-      {!selectedMatch && <div className="games-detail-title"><h3>Statistiques de la game</h3></div>}
+      {!selectedMatch && <div className="games-detail-title"><h3>Analyse de la partie</h3></div>}
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement des statistiques détaillées…</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && " Les statistiques déjà chargées restent disponibles."}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button></Surface>}
-      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} statsFirst />}
-      {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Game introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} />}
+      {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Partie introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
     </div>}
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav label="Bibliothèque de games" items={[{ id: "games", label: "Games", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
+        <TabNav label="Bibliothèque de parties" items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
         {baseMatches.length > 0 && <p className="games-team-record"><span>Équipe</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)} % de victoires</span></p>}
       </div>
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
-        <div className="games-group-heading"><div><h3>Groupes de games</h3><p>Analyse ensemble les games d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
+        <div className="games-group-heading"><div><h3>Groupes de parties</h3><p>Compare les parties d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
         {archiveWorkspaceTab === "select" ? <div className="games-group-list">
           {archives.map((archive) => {
             const groupMatches = baseMatches.filter((match) => archiveMatchIds(archive).includes(match.id));
             const groupWins = groupMatches.filter((match) => match.result === "Victoire").length;
             return <div key={archive.id} className="games-group-row">
-              <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || `${groupMatches.length} games`}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
+              <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || `${groupMatches.length} parties`}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
               <div className="games-group-tools"><button type="button" className="ig-icon-button" aria-label={`Modifier le groupe ${archive.name}`} onClick={() => editArchive(archive)} disabled={savingArchive}><Pencil aria-hidden="true" /></button><button type="button" className="ig-icon-button" aria-label={`Supprimer le groupe ${archive.name}`} onClick={() => deleteArchive(archive)} disabled={savingArchive}><Trash2 aria-hidden="true" /></button></div>
             </div>;
           })}
-          {!archives.length && <EmptyState icon={FileText} title="Aucun groupe" text="Rassemble les games d’un scrim ou d’une compétition pour lire leurs résultats ensemble." />}
+          {!archives.length && <EmptyState icon={FileText} title="Aucun groupe" text="Rassemble les parties d’un entraînement ou d’une compétition pour lire leurs résultats ensemble." />}
         </div> : <form onSubmit={saveArchive} className="games-group-form">
           <fieldset disabled={savingArchive}>
             <div className="games-group-fields"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK — 08/09" required /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Session, objectif du bloc…" /></div>
-            <div className="games-group-heading"><p>{archiveForm.matchIds.length} game(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }))} disabled={!matches.length}>Tout sélectionner</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
+            <div className="games-group-heading"><p>{archiveForm.matchIds.length} partie(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }))} disabled={!matches.length}>Tout sélectionner</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
             <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {match.result || "Résultat inconnu"}</span></span></label>)}</div>
-            {!matches.length && <p>Importe une première game pour créer un groupe.</p>}
+            {!matches.length && <p>Importe une première partie pour créer un groupe.</p>}
             <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>Annuler</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? "Enregistrement…" : archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div>
           </fieldset>
         </form>}
       </Surface>}
       {selectedArchive && <>
-        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir la review</Button>}</div></div>
+        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir le débrief</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
@@ -1542,11 +1583,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         <ImportedGames
           matches={scopedMatches} categories={matchCategories} selectedMatchId={selectedMatchId} selectedMatch={selectedMatch}
           onSelectMatch={selectMatch} showSelection={false} showCategoryFilter allowImportSort
-          title={selectedArchive ? "Games du groupe" : "Toutes les games"}
-          description="Recherche une game et ouvre directement ses statistiques."
+          title={selectedArchive ? "Parties du groupe" : "Toutes les parties"}
+          description="Recherche une partie pour lire son résumé, puis ses statistiques."
           scopeName={selectedArchive?.name || ""}
           headerActions={<GameCategoryManager data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
-          emptyAction={<Button type="button" icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une game</Button>}
+          emptyAction={renderImportAction()}
         />
       </div>
     </div>
@@ -1642,7 +1683,7 @@ function renderReportContent(content, rows) {
 }
 
 function ReviewAnalysisStatus({ details }) {
-  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">Préparation automatique de l’analyse des games liées…</p>;
+  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">Préparation automatique de l’analyse des parties liées…</p>;
   if (details.error) return <div role="alert" className="mb-3 space-y-2 text-sm text-amber-100"><p>{details.error} Le contenu enregistré et les notes restent disponibles.</p><Button type="button" variant="ghost" onClick={details.retry}>Réessayer</Button></div>;
   return null;
 }
@@ -1863,7 +1904,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const formRows = reportRows(matches, form.matchIds);
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
   const selectedMatchForReport = selected ? matches.find((match) => reportMatchIds(selected).includes(match.id) && (!urlMatchId || match.id === urlMatchId)) || matches.find((match) => reportMatchIds(selected).includes(match.id)) : null;
-  const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Review");
+  const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief");
   const reviewMatches = form.matchIds.length ? matches.filter((match) => form.matchIds.includes(match.id)) : [];
   const selectedMatchIds = selected ? reportMatchIds(selected) : [];
   const selectedStatsMatchId = selectedMatchForReport?.id || selectedMatchIds[0] || "";
@@ -1879,7 +1920,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     const author = String(report.author_name || "").toLowerCase();
     return title.includes(searchNeedle) || author.includes(searchNeedle) || String(report.content || "").toLowerCase().includes(searchNeedle);
   });
-  const selectionLabel = reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% WR` : "Aucune game sélectionnée";
+  const selectionLabel = reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Aucune partie sélectionnée";
 
   function startBlankReview() {
     resetReportForm();
@@ -1919,7 +1960,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   useEffect(() => {
     if (!urlComposeReview || !urlMatchId || !requestedMatch) return;
     setSelectedArchiveId("");
-    setForm({ id: null, title: matchDisplayName(requestedMatch, "Review"), content: "", matchIds: [requestedMatch.id] });
+    setForm({ id: null, title: matchDisplayName(requestedMatch, "Débrief"), content: "", matchIds: [requestedMatch.id] });
     setComposerOpen(true);
     setLexiconOpen(false);
     window.history.replaceState({}, "", `/rapports?match=${encodeURIComponent(urlMatchId)}`);
@@ -1970,14 +2011,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     if (saving || !formCanSave) return;
     setSaving(true);
     try {
-      const title = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Review");
+      const title = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief");
       await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: formContent, matchIds: form.matchIds }) });
       resetReportForm();
       setComposerOpen(false);
       setLexiconOpen(false);
       setWorkspaceView("library");
       await refreshAll();
-      pushToast({ type: "green", title: form.id ? "Review mise à jour" : "Review créée", text: "Le contenu de review est enregistré." });
+      pushToast({ type: "green", title: form.id ? "Débrief mis à jour" : "Débrief créé", text: "Le débrief est enregistré." });
     } catch (err) {
       pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
@@ -1987,12 +2028,12 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
   async function deleteReport(report) {
     const canDelete = canCaptainDelete || report.created_by === user?.id;
-    if (!canDelete || !window.confirm("Supprimer cette review ?")) return;
+    if (!canDelete || !window.confirm("Supprimer ce débrief ?")) return;
     setSaving(true);
     try {
       await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, reportId: report.id }) });
       await refreshAll();
-      pushToast({ type: "green", title: "Review supprimée", text: "La review a été retirée." });
+      pushToast({ type: "green", title: "Débrief supprimé", text: "Le débrief a été retiré." });
     } catch (err) {
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
     } finally {
@@ -2004,7 +2045,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const noteTemplates = [
     ["Verdict", "## VERDICT COACH\n- Le fait décisif : \n- La décision attendue : "],
     ["Cause racine", "## CAUSE RACINE\n- Symptôme observé : \n- Décision qui crée le problème : \n- Information manquante : "],
-    ["VOD", "## CHECKPOINTS VOD\n- Timestamp : contexte → décision → conséquence\n- Timestamp : contexte → décision → conséquence"],
+    ["Vidéo", "## CHECKPOINTS VOD\n- Timestamp : contexte → décision → conséquence\n- Timestamp : contexte → décision → conséquence"],
     ["Joueur", "## LECTURE PAR JOUEUR\n### RÔLE · Joueur\n- Catch : timestamp + information disponible\n- Exécution juste : timestamp + décision à reproduire\n- WEAKSIDE : fenêtre + comportement attendu\n- STRONGSIDE : fenêtre + ressource à convertir"],
     ["Plan", "## PLAN D'EXÉCUTION\n- 1. Avant la game : \n- 2. En game : \n- 3. Après la game : "],
     ["Validation", "## VALIDATION\n- Réussi si : \n- Échec si : \n- Mesuré sur : 3 games"],
@@ -2013,16 +2054,16 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   return (
     <div className="nxt5-data-dense nxt5-reviews-page min-w-0">
       <PageHeader
-        eyebrow="Reviews"
-        title="Review"
-        subtitle="L’analyse des games liées est préparée automatiquement. Ajoute tes notes et les décisions du staff."
+        eyebrow="Débrief d’équipe (review)"
+        title="Débriefs"
+        subtitle="Relis les parties, ajoute tes observations et décide avec l’équipe ce que vous travaillerez ensuite."
       >
-        <Button icon={Plus} onClick={startBlankReview}>Créer une review</Button>
-        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/games")}>Voir les stats</Button>
+        <Button icon={Plus} onClick={startBlankReview}>Préparer un débrief</Button>
+        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/games")}>Voir les parties</Button>
       </PageHeader>
 
-      {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la game pour préparer la review…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
-      <TabNav className="mb-5" label="Sections Review" items={[
+      {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la partie pour préparer le débrief…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
+      <TabNav className="mb-5" label="Rubriques des débriefs" items={[
         { id: "library", label: "Bibliothèque", meta: reports.length, icon: FileText },
         { id: "queue", label: "À traiter", meta: pendingReviewCount, icon: Check },
       ]} activeId={workspaceView} onChange={setWorkspaceView} columns="sm:grid-cols-2" />
@@ -2035,23 +2076,23 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <h3 className="text-xl font-black text-white">Bibliothèque</h3>
-                  <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length} review{reports.length > 1 ? "s" : ""}</span>
+                  <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length} débrief{reports.length > 1 ? "s" : ""}</span>
                 </div>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne une review pour l’ouvrir.</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne un débrief pour l’ouvrir.</p>
               </div>
             </div>
 
             <div className="mt-4 space-y-2">
               <label className="games-review-search">
-                <span className="sr-only">Chercher une review</span>
+                <span className="sr-only">Chercher un débrief</span>
                 <Search className="h-4 w-4 shrink-0 text-cyan-100/70" />
-                <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher par game ou auteur" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
+                <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher par partie ou auteur" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
               </label>
               <label className="relative block">
                 <span className="games-field-label">Contexte</span>
                 <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="games-review-select">
-                  <option value="">Toutes les reviews</option>
-                  {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} games</option>)}
+                  <option value="">Tous les débriefs</option>
+                  {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} parties</option>)}
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </label>
@@ -2072,11 +2113,11 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
                   <span className="mt-1.5 block truncate text-xs font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-1">
-                  <span className={cx("whitespace-nowrap text-xs font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} game{ids.length > 1 ? "s" : ""}</span>
+                  <span className={cx("whitespace-nowrap text-xs font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} partie{ids.length > 1 ? "s" : ""}</span>
                   <ChevronRight className={cx("h-4 w-4 transition", active ? "translate-x-0.5 text-cyan-100" : "text-slate-600 group-hover/report:translate-x-0.5 group-hover/report:text-cyan-100")} />
                 </span>
               </button>;
-            }) : <div className="p-4"><EmptyState icon={FileText} title="Aucune review" text="Modifie la recherche ou crée une nouvelle review." /></div>}
+            }) : <div className="p-4"><EmptyState icon={FileText} title="Aucun débrief" text="Modifie la recherche ou prépare un premier débrief." /></div>}
           </div>
         </aside>
 
@@ -2084,29 +2125,29 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
           {selected ? <>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <Badge tone={selected.discord_status === "draft" ? "amber" : "purple"}>{selected.discord_status === "draft" ? "Brouillon · staff uniquement" : "Review active"}</Badge>
-                {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">Pour la partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.</p>}
+                <Badge tone={selected.discord_status === "draft" ? "amber" : "purple"}>{selected.discord_status === "draft" ? "Brouillon · staff uniquement" : "Débrief enregistré"}</Badge>
+                {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">Pour le partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.</p>}
                 <h3 className="mt-3 break-words text-3xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
-                <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatchIds.length} game{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatchIds.length} partie{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-                <Button variant="ghost" icon={ArrowRight} onClick={() => selectedStatsMatchId && openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)} disabled={!selectedStatsMatchId}>Stats</Button>
+                <Button variant="ghost" icon={ArrowRight} onClick={() => selectedStatsMatchId && openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)} disabled={!selectedStatsMatchId}>Voir la partie</Button>
                 <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
                 {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
                 {canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}
               </div>
             </div>
             <div className="mt-5 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Games</p><p className="mt-1 text-lg font-black text-white">{selectedMatchIds.length}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Record</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins}W - ${selectedMatches.length - selectedWins}L` : "--"}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">WR</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Parties</p><p className="mt-1 text-lg font-black text-white">{selectedMatchIds.length}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Résultats</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins} V · ${selectedMatches.length - selectedWins} D` : "--"}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Taux de victoire</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
             </div>
-            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} games liées chargées. Les games restantes sont chargées automatiquement pour compléter l’analyse.</p>}
+            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} parties liées chargées. Les parties restantes sont chargées automatiquement pour compléter l’analyse.</p>}
             <div className="mt-5">
               <ReviewAnalysisStatus details={reviewDetails} />
               <ReportPreview content={selectedContent} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
             </div>
-          </> : <EmptyState icon={FileText} title="Aucune review sélectionnée" text="Choisis une review dans la bibliothèque ou crée-en une nouvelle." />}
+          </> : <EmptyState icon={FileText} title="Aucun débrief sélectionné" text="Choisis un débrief dans la bibliothèque ou prépare-en un nouveau." />}
         </Surface>
       </div>}
 
@@ -2117,8 +2158,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">L’analyse se complète avec les games liées. Ajoute les notes et les décisions du staff.</p></div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
+                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier le débrief" : "Nouveau débrief"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Préparer le débrief"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Choisis les parties à revoir, puis note ce que l’équipe garde, corrige et travaille ensuite.</p></div>
+                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer le débrief"}</Button></div>
                 </div>
               </div>
 
@@ -2127,15 +2168,15 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
                 <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
               <div className="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
-                <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-300">Games liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-xs font-semibold text-slate-400">{ids.length} game{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-300">Parties liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-xs font-semibold text-slate-400">{ids.length} partie{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
                 <div className="mt-3 grid grid-cols-2 gap-2"><Button type="button" variant="ghost" icon={Check} onClick={selectAllScopedMatches} disabled={!scopedMatches.length}>Tout lier</Button><Button type="button" variant="ghost" icon={X} onClick={() => setForm((current) => ({ ...current, matchIds: [] }))} disabled={!form.matchIds.length}>Vider</Button></div>
-                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} aria-pressed={checked} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Game"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Side ?"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune game" text="Importe une game ou retire le filtre actif." />}</div>
+                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} aria-pressed={checked} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Partie"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Côté inconnu"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune partie" text="Importe une partie ou retire le filtre actif." />}</div>
               </div>
 
               <div className="min-w-0 space-y-4">
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-xs font-semibold text-slate-300">Notes staff</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">Aperçu de la review</p><Badge tone="slate">Live</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Une review peut lier au maximum 20 games. Retire des games pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre (si aucune partie n’est liée)" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex. : Débrief de l’entraînement" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">Parties sélectionnées</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Sélectionne des parties"}</p></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-xs font-semibold text-slate-300">Observations et décisions de l’équipe</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">Aperçu du débrief</p><Badge tone="slate">Mis à jour en direct</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
                 </div>
               </div>
