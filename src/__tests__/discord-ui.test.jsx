@@ -292,6 +292,34 @@ describe("Discord game publication", () => {
     expect(text(renderer.root)).not.toContain("file d’envoi");
   });
 
+  it.each(["button", "escape"])("allows closing with %s while checking the publication and cancels polling", async (closeWith) => {
+    const serveMetadata = apiFetch.getMockImplementation();
+    apiFetch.mockImplementation(async (path, options) => {
+      if (path === "team-discord-publish") return { jobs: [{ ...publishedReceipt, status: "queued" }] };
+      if (path.startsWith("team-discord-deliveries")) return { deliveries: [{ ...publishedReceipt, status: "sending" }] };
+      return serveMetadata(path, options);
+    });
+    const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
+    await click(renderer, "Exporter sur Discord");
+    await click(renderer, "Préparer l’aperçu");
+    await click(renderer, "Publier dans #games");
+    expect(button(renderer, "Envoi en cours…").props.disabled).toBe(true);
+    const poll = apiFetch.mock.calls.find(([path]) => path.startsWith("team-discord-deliveries"));
+    expect(poll).toBeDefined();
+    const closeButton = renderer.root.findByProps({ "aria-label": "Fermer la fenêtre" });
+    expect(closeButton.props.disabled).toBe(false);
+    await act(async () => {
+      if (closeWith === "button") closeButton.props.onClick();
+      else {
+        const target = {};
+        renderer.root.findByType("dialog").props.onCancel({ target, currentTarget: target, preventDefault() {} });
+      }
+    });
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    expect(poll[1].signal.aborted).toBe(true);
+    expect(posts()).toHaveLength(1);
+  });
+
   it("keeps preview available but prevents publication while team is paused", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { ...connection, connection: { ...connection.connection, paused: true } } : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-preview") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
