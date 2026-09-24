@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Activity, ArrowLeft, BarChart3, Bot, ClipboardList, FileCheck2, FileImage, LayoutDashboard, LogOut, Mail, Plug, ShoppingBag, Tag, Users } from "lucide-react";
+import { Activity, ArrowLeft, BarChart3, Bot, ClipboardList, FileCheck2, FileImage, LayoutDashboard, LogOut, Mail, Megaphone, Plug, ShoppingBag, Tag, Users } from "lucide-react";
 import { ADMIN_GROUPS, adminPageFromRoute } from "../../app/admin-navigation.js";
 import { AdminNavigationContext } from "../../components/admin/AdminNavigationContext.jsx";
 import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
@@ -10,6 +10,7 @@ import "./administration.css";
 const AdminDashboard = lazy(() => import("./AdminDashboard.jsx"));
 const AudiencePage = lazy(() => import("./AudiencePage.jsx"));
 const BotAnalyticsPage = lazy(() => import("./BotAnalyticsPage.jsx"));
+const BotPublicationsPage = lazy(() => import("./BotPublicationsPage.jsx"));
 const AccessRequestsPage = lazy(() => import("./AccessRequestsPage.jsx"));
 const AccountSubscriptionsPage = lazy(() => import("./AccountSubscriptionsPage.jsx"));
 const PricingPage = lazy(() => import("../public/PricingPage.jsx"));
@@ -19,12 +20,13 @@ const LegalReadinessPage = lazy(() => import("./IntegrationsPage.jsx").then(modu
 const PurchaseHistory = lazy(() => import("./Purchases.jsx").then(module => ({ default: module.PurchaseHistory })));
 const PurchaseOverview = lazy(() => import("./Purchases.jsx").then(module => ({ default: module.PurchaseOverview })));
 
-const ICONS = { overview: LayoutDashboard, teams: Users, usage: Activity, audience: BarChart3, bot: Bot, purchases: ShoppingBag, requests: ClipboardList, subscriptions: Users, pricing: Tag, launch: FileCheck2, reminders: Mail, integrations: Plug, exports: FileImage };
+const ICONS = { overview: LayoutDashboard, teams: Users, usage: Activity, audience: BarChart3, bot: Bot, "bot-publications": Megaphone, purchases: ShoppingBag, requests: ClipboardList, subscriptions: Users, pricing: Tag, launch: FileCheck2, reminders: Mail, integrations: Plug, exports: FileImage };
 
 function AdminContent({ page, route, navigate, user }) {
   if (["overview", "teams", "usage", "reminders"].includes(page.id)) return <AdminDashboard view={page.id} teamFilter={new URLSearchParams(route.search).get("filtre") || "all"} onNavigate={navigate} />;
   if (page.id === "audience") return <AudiencePage />;
   if (page.id === "bot") return <BotAnalyticsPage route={route} navigate={navigate} />;
+  if (page.id === "bot-publications") return <BotPublicationsPage />;
   if (page.id === "requests") return <AccessRequestsPage navigate={navigate} embedded />;
   if (page.id === "subscriptions") return <AccountSubscriptionsPage navigate={navigate} embedded initialUserId={new URLSearchParams(route.search).get("userId") || ""} />;
   if (page.id === "pricing") return <PricingPage navigate={navigate} user={user} embedded />;

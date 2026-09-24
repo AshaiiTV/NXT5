@@ -1,6 +1,10 @@
 # Annonces communautaires Discord
 
-Dans **Administration → Statistiques du bot → Annonces communautaires**, enregistrer le salon de destination, coller le texte de la patch note et préparer l’aperçu. Le bouton **Publier sur Discord** envoie le texte vérifié avec le bot NXT5. Le résultat donne le lien du message ; les vingt dernières annonces restent accessibles dans l’historique. Cette fonction ne programme pas de publications automatiques.
+Dans **Administration → Bot → Publications → Annonces communautaires**, enregistrer le salon de destination, coller le texte de la patch note et préparer l’aperçu. La page est accessible à `/admin/bot-discord/publications`. Le bouton **Publier sur Discord** envoie le texte vérifié avec le bot NXT5. Le résultat donne le lien du message ; les vingt dernières annonces restent accessibles dans l’historique. Cette fonction ne programme pas de publications automatiques.
+
+Le groupe **Bot** contient **Publications**, puis **Statistiques**, dans la sidebar administrative et dans les mêmes groupes du sélecteur mobile **Rubrique**. **Statistiques** conserve l’adresse `/admin/bot-discord` et ses liens de période `?days=7`, `?days=30` ou `?days=90`. Cette page reste en lecture seule et ne charge pas les annonces communautaires.
+
+`BotPublicationsPage.jsx` accueille le composant existant `CommunityAnnouncementsPanel.jsx` ; `BotAnalyticsPage.jsx` se limite aux statistiques. Les deux pages utilisent la navigation commune définie dans `src/app/admin-navigation.js`, sans ajouter d’onglets internes. Le brouillon des annonces conserve la garde `AdminNavigationContext` : un changement de rubrique, y compris vers Statistiques, le retour à l’app ou la déconnexion demande confirmation avant de l’abandonner. La protection de fermeture ou de rechargement de la page et celle des opérations en cours restent actives.
 
 L’endpoint `admin-discord-announcements` est réservé à l’administrateur de plateforme authentifié. Il utilise le bot déjà configuré dans Netlify : aucun jeton Discord n’est renvoyé au navigateur. Les déploiements de prévisualisation, les branches et le contexte local sont refusés avant tout appel Discord. Le coupe-circuit `DISCORD_PUBLISHING_ENABLED` reste appliqué.
 
@@ -18,4 +22,6 @@ Une référence de 1 à 80 caractères (`A-Z`, `a-z`, chiffres, point, tiret, un
 
 Les tests utilisent PostgreSQL local (PGlite) et un transport Discord simulé. Ils ne publient aucun message réel et ne constituent pas une preuve de disponibilité en production.
 
-Validation locale du 24 septembre 2026 : TypeScript et build Vite réussis ; 105 suites et 1 823 tests réussis, avec deux workers et une limite de 30 secondes par test pour les moteurs PostgreSQL locaux. Le parcours de choix du salon, aperçu et confirmation a été contrôlé dans le navigateur avec un transport simulé à 1 440 et 360 px, sans débordement horizontal ni appel Discord réel.
+Validation locale de la première version du 24 septembre 2026, avant la séparation entre Publications et Statistiques : TypeScript et build Vite réussis ; 105 suites et 1 823 tests réussis, avec deux workers et une limite de 30 secondes par test pour les moteurs PostgreSQL locaux. Le parcours de choix du salon, aperçu et confirmation a été contrôlé dans le navigateur avec un transport simulé à 1 440 et 360 px, sans débordement horizontal ni appel Discord réel. Ces résultats ne valident pas à eux seuls la réorganisation ultérieure de la navigation.
+
+Validation de la séparation : TypeScript et build Vite réussis ; 109 suites et 1 850 tests passent. Le cadre administratif et les deux pages ont été contrôlés avec des données fictives et sans envoi, de 360 à 1 440 px, y compris le menu mobile et la confirmation de sortie d’un brouillon. Les styles des publications sont autonomes et ne dépendent plus de la page Statistiques.

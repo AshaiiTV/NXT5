@@ -6,7 +6,6 @@ import { Button, SelectInput, TextInput } from "../components/ui/Core.jsx";
 import BotAnalyticsPage, { BotDailyChart } from "../pages/admin/BotAnalyticsPage.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
-vi.mock("../pages/admin/CommunityAnnouncementsPanel.jsx", () => ({ default: () => <section aria-label="Annonces communautaires" /> }));
 const renderers = [];
 afterEach(() => { renderers.splice(0).forEach(renderer => act(() => renderer.unmount())); vi.resetAllMocks(); });
 const summary = { publications: 25, successfulDeliveries: 32, commands: 8, guilds: 2, failedDeliveries: 3, uncertainDeliveries: 1, connectionTests: 2, successRate: 91.4, connections: 3, activeConnections: 2, pausedConnections: 1, channels: 4, queuedJobs: 2, blockedJobs: 1 };
@@ -36,6 +35,8 @@ describe("bot analytics dashboard", () => {
     apiFetch.mockResolvedValueOnce(report());
     const renderer = await render();
     expect(apiFetch).toHaveBeenCalledWith("admin-discord-analytics?days=30", expect.objectContaining({ signal: expect.any(AbortSignal) }));
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(renderer.root.findAllByType("textarea")).toHaveLength(0);
     expect(values(renderer)).toEqual(["25", "32", "8", "2"]);
     expect(text(renderer)).toContain("91,4");
     expect(text(renderer)).toContain("tests de connexion séparés des publications");

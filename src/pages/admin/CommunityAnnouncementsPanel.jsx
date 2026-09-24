@@ -221,7 +221,7 @@ export default function CommunityAnnouncementsPanel() {
     setReference(newReference()); setContent(""); setPreview(null); setResult(null); setError(""); setNotice("");
   }
 
-  return <Surface className="bot-section community-announcements">
+  return <Surface className="community-announcements">
     <section aria-labelledby={`${id}-title`}>
       <header className="community-announcements-heading">
         <div><h3 id={`${id}-title`}><Megaphone size={20} aria-hidden="true" />Annonces communautaires</h3><p>Prépare les nouveautés NXT5, vérifie le texte et publie avec le bot sur le serveur communautaire.</p></div>

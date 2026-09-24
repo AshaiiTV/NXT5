@@ -5,7 +5,10 @@ export const ADMIN_GROUPS = [
     { id: "teams", path: "/admin/equipes", label: "Équipes" },
     { id: "usage", path: "/admin/usage", label: "Usage du produit" },
     { id: "audience", path: "/admin/frequentation", label: "Fréquentation du site" },
-    { id: "bot", path: "/admin/bot-discord", label: "Statistiques du bot" },
+  ] },
+  { label: "Bot", pages: [
+    { id: "bot-publications", path: "/admin/bot-discord/publications", label: "Publications" },
+    { id: "bot", path: "/admin/bot-discord", label: "Statistiques" },
   ] },
   { label: "Ventes et accès", pages: [
     { id: "purchases", path: "/admin/achats", label: "Achats" },
