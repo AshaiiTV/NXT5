@@ -6,6 +6,7 @@ import { Button, SelectInput, TextInput } from "../components/ui/Core.jsx";
 import BotAnalyticsPage, { BotDailyChart } from "../pages/admin/BotAnalyticsPage.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
+vi.mock("../pages/admin/CommunityAnnouncementsPanel.jsx", () => ({ default: () => <section aria-label="Annonces communautaires" /> }));
 const renderers = [];
 afterEach(() => { renderers.splice(0).forEach(renderer => act(() => renderer.unmount())); vi.resetAllMocks(); });
 const summary = { publications: 25, successfulDeliveries: 32, commands: 8, guilds: 2, failedDeliveries: 3, uncertainDeliveries: 1, connectionTests: 2, successRate: 91.4, connections: 3, activeConnections: 2, pausedConnections: 1, channels: 4, queuedJobs: 2, blockedJobs: 1 };
