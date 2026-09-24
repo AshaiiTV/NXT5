@@ -53,16 +53,16 @@ describe("manual subscriptions account search", () => {
     expect(text(renderer)).toContain(account.accountName);
     expect(text(renderer)).toContain(account.email);
     apiFetch.mockResolvedValueOnce(list({ accounts: [otherAccount], pagination: { page: 2, pageSize: 10, total: 11, totalPages: 2 } }));
-    await click(renderer, "Page suivante des profils");
+    await click(renderer, "Page suivante des comptes");
     expect(apiFetch).toHaveBeenLastCalledWith("admin-account-subscriptions?q=&page=2&pageSize=10");
-    await edit(renderer, "Rechercher un profil", "  absent@example.test  ");
+    await edit(renderer, "Rechercher un compte", "  absent@example.test  ");
     apiFetch.mockResolvedValueOnce(list({ accounts: [], pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 } }));
     await submit(renderer);
     expect(apiFetch).toHaveBeenLastCalledWith("admin-account-subscriptions?q=absent%40example.test&page=1&pageSize=10");
-    expect(text(renderer)).toContain("Aucun profil trouvé");
+    expect(text(renderer)).toContain("Aucun compte trouvé");
     apiFetch.mockResolvedValueOnce(list());
-    await click(renderer, "Voir tous les profils");
-    expect(input(renderer, "Rechercher un profil").props.value).toBe("");
+    await click(renderer, "Voir tous les comptes");
+    expect(input(renderer, "Rechercher un compte").props.value).toBe("");
     expect(apiFetch).toHaveBeenLastCalledWith("admin-account-subscriptions?q=&page=1&pageSize=10");
   });
 
@@ -71,9 +71,9 @@ describe("manual subscriptions account search", () => {
     const renderer = await render();
     let resolveOld;
     apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; }));
-    await edit(renderer, "Rechercher un profil", "Camille");
+    await edit(renderer, "Rechercher un compte", "Camille");
     await submit(renderer);
-    await edit(renderer, "Rechercher un profil", "Luna");
+    await edit(renderer, "Rechercher un compte", "Luna");
     apiFetch.mockResolvedValueOnce(list({ accounts: [otherAccount] }));
     await submit(renderer);
     expect(text(renderer)).toContain("Luna Martin");
@@ -99,20 +99,20 @@ describe("manual subscriptions account search", () => {
     apiFetch.mockRejectedValueOnce(new Error("Accès administrateur requis."));
     const renderer = await render();
     expect(text(renderer)).toContain("Accès administrateur requis.");
-    expect(text(renderer)).not.toContain("Aucun profil");
+    expect(text(renderer)).not.toContain("Aucun compte");
     apiFetch.mockResolvedValueOnce(list());
     await click(renderer, "Réessayer");
     expect(text(renderer)).toContain("Camille Dupont");
   });
 
   it("keeps an unknown direct account unselected and offers a return to all profiles", async () => {
-    apiFetch.mockRejectedValueOnce(Object.assign(new Error("Profil introuvable."), { status: 404 }));
+    apiFetch.mockRejectedValueOnce(Object.assign(new Error("Compte introuvable."), { status: 404 }));
     const renderer = await render({ initialUserId: "missing" });
     expect(apiFetch.mock.calls).toEqual([["admin-account-subscriptions?userId=missing"]]);
-    expect(text(renderer)).toContain("Profil introuvable.");
+    expect(text(renderer)).toContain("Compte introuvable.");
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
     apiFetch.mockResolvedValueOnce(list());
-    await click(renderer, "Changer de profil");
+    await click(renderer, "Changer de compte");
     expect(apiFetch).toHaveBeenLastCalledWith("admin-account-subscriptions?q=&page=1&pageSize=10");
     expect(button(renderer, "Gérer l’abonnement de Camille Dupont")).toBeTruthy();
   });

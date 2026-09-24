@@ -2,9 +2,9 @@ import "../../styles/champion-pool.css";
 import "../../styles/compositions.css";
 import { Crown, Sparkles, Download, Search, Users, Trash2, BookOpen, Check, ChevronDown, Loader2, Plus, X, Clipboard, RefreshCw } from "lucide-react";
 import { DRAFT_VIEW_ROUTES } from "../../app/constants.jsx";
-import { draftPathFromView, draftViewFromPath } from "../../app/routing.js";
-import { TabNav, Badge, Button, EmptyState, PageHeader, Surface, TextInput } from "../../components/ui/Core.jsx";
-import React, { useEffect, useState } from "react";
+import { draftPathFromView, draftViewFromPath, openAppPath } from "../../app/routing.js";
+import { TabNav, Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextInput } from "../../components/ui/Core.jsx";
+import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../api/client.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { cx } from "../../app/helpers.js";
@@ -18,43 +18,43 @@ function championOptions() {
 
 const CHAMPION_TAG_DEFINITIONS = [
   ["engage", "Ouvre les combats avec une initiation claire."],
-  ["dive", "Entre rapidement sur les carries ou la backline adverse."],
-  ["front-to-back", "Joue les fights dans l'ordre, frontline devant et carries protégés."],
+  ["dive", "Atteint rapidement les champions fragiles à l’arrière de l’équipe adverse."],
+  ["front-to-back", "Combat de l’avant vers l’arrière, en protégeant les champions qui infligent les dégâts."],
   ["teamfight", "Fort quand les cinq joueurs combattent ensemble."],
   ["pick", "Cherche à isoler une cible avant un objectif ou une rotation."],
-  ["poke", "Gratte les PV avant d'engager ou de contester une zone."],
+  ["poke", "Réduit les points de vie adverses à distance avant de lancer le combat."],
   ["siege", "Met la pression sur les tours et les objectifs fixes."],
-  ["side", "Crée de la pression sur une side lane."],
+  ["side", "Crée de la pression sur une voie latérale, en haut ou en bas de la carte."],
   ["duel", "Fort en 1v1 ou dans les escarmouches isolées."],
-  ["scaling", "Devient plus puissant avec le temps, les niveaux ou les items."],
-  ["early", "Très fort en début de partie pour prendre le tempo."],
-  ["tempo", "Aide à accélérer la carte, les rotations ou les timings d'objectif."],
+  ["scaling", "Devient plus puissant avec le temps, les niveaux ou les objets."],
+  ["early", "Peut prendre l’avantage dès le début de partie."],
+  ["tempo", "Aide l’équipe à agir avant l’adversaire, par ses déplacements ou autour des objectifs."],
   ["snowball", "Prend beaucoup de valeur quand il obtient une avance tôt."],
   ["assassin", "Menace explosive sur les cibles fragiles."],
   ["burst", "Inflige beaucoup de dégâts sur une fenêtre courte."],
-  ["control", "Contrôle les zones avec des sorts, de la portée ou du zoning."],
+  ["control", "Limite les déplacements adverses et défend une zone grâce à ses sorts."],
   ["frontline", "Peut tenir l'espace devant l'équipe."],
-  ["peel", "Protège un carry contre les engages ou les dives."],
-  ["utility", "Apporte de la vision, du contrôle, du buff ou de la valeur d'équipe."],
-  ["objective", "Très utile pour sécuriser dragons, Nashor, Herald ou tours."],
-  ["roam", "Peut quitter sa lane pour influencer les autres zones."],
+  ["peel", "Protège un allié fragile contre les champions qui l’attaquent."],
+  ["utility", "Aide ses alliés avec de la vision, des contrôles ou des améliorations temporaires."],
+  ["objective", "Aide à prendre les dragons, le Baron Nashor, le Héraut ou les tours."],
+  ["roam", "Peut quitter sa voie pour aider dans les autres zones de la carte."],
   ["skirmish", "Fort dans les combats courts à 2v2 ou 3v3."],
-  ["reset", "Peut enchaîner après un kill ou une exécution réussie."],
-  ["disengage", "Permet de casser l'engage adverse et de reculer proprement."],
+  ["reset", "Peut enchaîner les actions après une élimination."],
+  ["disengage", "Permet d’interrompre l’attaque adverse et de se retirer."],
   ["lockdown", "Peut immobiliser une cible de manière fiable."],
-  ["sustain", "Apporte du soin, de la régénération ou de la tenue en fight."],
+  ["sustain", "Apporte du soin ou de la régénération pour durer dans les combats."],
   ["safe", "Peut jouer avec peu de ressources ou limiter les risques."],
-  ["lane", "Fort dans la phase de lane ou pour créer une priorité locale."],
-  ["farm", "A besoin de ressources et de tempo PvE pour atteindre son pic."],
+  ["lane", "Peut prendre l’avantage sur sa voie et libérer du temps pour agir ailleurs."],
+  ["farm", "A besoin d’or et d’expérience, obtenus sur les sbires et monstres, pour devenir efficace."],
   ["cover", "Protège une action alliée ou accompagne une prise de risque."],
-  ["gank", "Facilite les actions sur les lanes."],
+  ["gank", "Aide à surprendre un adversaire sur sa voie avec le renfort d’un allié."],
   ["disrupt", "Dérange le plan adverse et casse les formations."],
   ["anti-dive", "Répond bien aux compositions qui veulent rentrer dans l'équipe."],
   ["self-peel", "Dispose d'outils personnels pour survivre à une menace."],
   ["attach", "Se lie à un allié et amplifie son impact."],
   ["flank", "Menace forte quand il arrive sur le côté ou dans le dos."],
   ["simple", "Plan de jeu direct, facile à exécuter."],
-  ["playmaker", "Peut créer une action décisive par mécanique ou timing."],
+  ["playmaker", "Peut créer une action décisive grâce à sa précision ou au moment choisi."],
   ["standard", "Profil équilibré sans identité dominante détectée."],
 ];
 
@@ -131,10 +131,10 @@ const DIRECT_COUNTERS = {
 };
 
 const COMPOSITION_TAG_DEFINITIONS = [
-  ["blue side", "Tag de lecture pour les compos pensées côté bleu."],
-  ["red side", "Tag de lecture pour les compos pensées côté rouge."],
-  ["scrim", "Tag libre pour retrouver rapidement les compos travaillées en entraînement."],
-  ["BO", "Tag libre pour les compos préparées dans une logique de série."],
+  ["blue side", "Composition prévue pour jouer du côté bleu de la carte."],
+  ["red side", "Composition prévue pour jouer du côté rouge de la carte."],
+  ["scrim", "Étiquette libre pour retrouver les compositions travaillées en entraînement."],
+  ["BO", "Étiquette libre pour préparer une série de plusieurs matchs."],
 ];
 
 function championTierByStatus(status) {
@@ -159,7 +159,7 @@ function ChampionTierCard({ row, canManage, saving, onDragStart, onDelete, onMov
           {CHAMPION_TIERS.map((tier) => <option key={tier.id} value={tier.id}>{POOL_TIER_LABELS[tier.id]}</option>)}
         </select>
       </span>
-      <button type="button" className="nxt5-pool-remove" aria-label={`Retirer ${name} du pool`} title={`Retirer ${name}`} onClick={() => onDelete(row)} disabled={saving}><X className="h-3.5 w-3.5" /></button>
+      <button type="button" className="nxt5-pool-remove" aria-label={`Retirer ${name} de la liste`} title={`Retirer ${name}`} onClick={() => onDelete(row)} disabled={saving}><X className="h-3.5 w-3.5" /></button>
     </>}
   </div>;
 }
@@ -171,7 +171,7 @@ function ChampionSearchTile({ champion, active, existingRow, canManage, saving, 
     <ChampionPortrait champion={champion} alt={name} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
     <div className="nxt5-pool-search-name">
       <span title={name}>{name}</span>
-      {active && <small><Check className="h-3 w-3" aria-hidden="true" /> Dans le pool</small>}
+      {active && <small><Check className="h-3 w-3" aria-hidden="true" /> Déjà ajouté</small>}
     </div>
     {canManage && <select className="nxt5-pool-classify" aria-label={`Classer ${name}`} value={active ? championPoolStatus(existingRow) : ""} disabled={saving} onChange={(event) => onQuickPick(champion, event.target.value, source.id || null)}>
       <option value="" disabled>Ajouter à…</option>
@@ -191,6 +191,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
   const [laneFilter, setLaneFilter] = useState("ALL");
   const [saving, setSaving] = useState(false);
   const [localPool, setLocalPool] = useState(data.championPool || []);
+  const libraryRef = useRef(null);
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || players[0];
   const canManageSelectedPool = canManageTeamPool || String(selectedPlayer?.user_id || "") === String(user?.id || "");
   const selectedPlayerRows = (localPool || [])
@@ -296,7 +297,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
 
   async function deletePick(row, options = {}) {
     if (!canManageSelectedPool || !row?.id) return;
-    if (options.confirm !== false && !window.confirm("Retirer ce champion du Champion Pool ?")) return;
+    if (options.confirm !== false && !window.confirm("Retirer ce champion de la liste du joueur ?")) return;
     if (String(row.id).startsWith("optimistic-")) {
       setLocalPool((current) => current.filter((item) => item.id !== row.id));
       return;
@@ -330,8 +331,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
 
   return (
     <div className="nxt5-pool-page">
-      <PageHeader eyebrow="Draft" title="Champion Pool" subtitle="Les picks de chaque joueur, classés pour la draft.">
-        <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>Exporter PNG</Button>
+      <PageHeader eyebrow="Draft · Choisir les champions" title="Champions des joueurs" subtitle="Le champion pool est la liste des champions préparés par chaque joueur. Choisis un joueur, puis classe ses champions selon sa maîtrise.">
+        {selectedPlayer && canManageSelectedPool && <Button type="button" icon={Plus} onClick={() => libraryRef.current?.querySelector("input")?.focus()}>Ajouter un champion</Button>}
+        <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>Exporter la liste en PNG</Button>
       </PageHeader>
       {players.length ? (
         <>
@@ -351,8 +353,8 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
             <div className="nxt5-pool-board">
               <div className="nxt5-pool-board-header">
                 <div>
-                  <h3>Pool de {selectedPlayer.name}</h3>
-                  <p>{selectedRows.length} champion{selectedRows.length > 1 ? "s" : ""} · {selectedRows.filter((row) => ["lock", "pocket"].includes(row.status)).length} prêts pour la draft</p>
+                  <h3>Champions de {selectedPlayer.name}</h3>
+                  <p>{selectedRows.length} champion{selectedRows.length > 1 ? "s" : ""} · {selectedRows.filter((row) => ["lock", "pocket"].includes(row.status)).length} de confiance ou situationnels</p>
                 </div>
                 {!canManageSelectedPool && <Badge tone="slate">Lecture seule</Badge>}
                 <span role="status" aria-live="polite" className="text-xs text-slate-400">{saving ? "Enregistrement…" : ""}</span>
@@ -363,7 +365,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
                   return <section key={tier.id} className="nxt5-pool-tier" data-tier={tier.id} aria-labelledby={`pool-tier-${tier.id}`} onDragOver={(event) => canManageSelectedPool && !saving && event.preventDefault()} onDrop={(event) => canManageSelectedPool && !saving && dropOnTier(event, tier.id)}>
                     <div className="nxt5-pool-tier-heading">
                       <h4 id={`pool-tier-${tier.id}`}>{POOL_TIER_LABELS[tier.id]} <span>{items.length}</span></h4>
-                      <p>{tier.id === "lock" ? "Prêt pour scrim ou match." : tier.id === "pocket" ? "Pour un contexte précis." : tier.id === "work" ? "À confirmer en scrim." : "15 games de training avant validation."}</p>
+                      <p>{tier.hint}</p>
                     </div>
                     <div className="nxt5-pool-tier-picks">
                       {items.length ? items.map((row) => <ChampionTierCard key={row.id} row={row} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onDelete={deletePick} onMove={saveChampion} />) : <p className="nxt5-pool-tier-empty">{canManageSelectedPool ? "Choisis un champion ou ajoute-le depuis le catalogue." : "Aucun champion dans cette catégorie."}</p>}
@@ -373,24 +375,24 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
               </div>
             </div>
 
-            <aside className="nxt5-pool-library" aria-label="Catalogue de champions">
+            <aside ref={libraryRef} className="nxt5-pool-library" aria-label="Catalogue de champions">
               <div className="nxt5-pool-library-header"><h3>{canManageSelectedPool ? "Ajouter un champion" : "Catalogue"}</h3><span>{visibleChampions.length}</span></div>
               <TextInput label="Rechercher un champion" value={query} onChange={setQuery} placeholder="Nom du champion…" icon={Search} />
               <div className="nxt5-pool-lanes" role="group" aria-label="Filtrer par rôle">
                 {laneOptions.map((lane) => <button key={lane} type="button" aria-pressed={laneFilter === lane} onClick={() => setLaneFilter(lane)}>{lane === "ALL" ? "Tous" : lane}</button>)}
               </div>
-              <p className="nxt5-pool-library-help">{canManageSelectedPool ? "Choisis une catégorie ou glisse le champion dans le pool." : "Seuls le staff et le joueur lié peuvent modifier ce pool."}</p>
+              <p className="nxt5-pool-library-help">{canManageSelectedPool ? "Utilise « Ajouter à… » pour classer un champion. Les changements s’enregistrent automatiquement." : "Le joueur concerné et le staff autorisé peuvent modifier cette liste."}</p>
               <div className="nxt5-pool-catalogue" key={selectedPlayer.id}>
                 {visibleChampions.length ? visibleChampions.map((champion) => {
                   const key = championAssetId(champion) || championKey(champion);
                   return <ChampionSearchTile key={champion} champion={champion} active={pickedChampionKeys.has(key)} existingRow={selectedChampionByKey.get(key)} canManage={canManageSelectedPool} saving={saving} onDragStart={onDragStart} onQuickPick={saveChampion} />;
                 }) : <div className="nxt5-pool-no-results"><Search className="h-5 w-5" aria-hidden="true" /><p>Aucun champion trouvé.</p><button type="button" onClick={() => { setQuery(""); setLaneFilter("ALL"); }}>Réinitialiser les filtres</button></div>}
               </div>
-              {canManageSelectedPool && <div className="nxt5-pool-remove-zone" onDragOver={(event) => !saving && event.preventDefault()} onDrop={(event) => !saving && dropOnChampionBase(event)}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /><span>Glisse un pick ici pour le retirer</span></div>}
+              {canManageSelectedPool && <div className="nxt5-pool-remove-zone" onDragOver={(event) => !saving && event.preventDefault()} onDrop={(event) => !saving && dropOnChampionBase(event)}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /><span>Glisse un champion ici pour le retirer</span></div>}
             </aside>
           </div>}
         </>
-      ) : <Surface><EmptyState icon={Users} title="Aucun joueur" text="Ajoute le roster avant de construire les Champion Pools." /></Surface>}
+      ) : <Surface><EmptyState icon={Users} title="Ajoutez d’abord les joueurs" text="Le responsable ou le staff doit créer les profils joueurs de l’équipe. Chacun pourra ensuite préparer sa liste de champions." /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>Voir mon équipe</Button></div></Surface>}
     </div>
   );
 }
@@ -471,6 +473,7 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
   const player = players.find((item) => item.id === slot.playerId) || rolePlayers[0];
   const pick = rows.find((row) => row.id === slot.poolId);
   const status = pick ? championPoolStatus(pick) : "";
+  const availableRows = player ? rows.filter((row) => (String(row.player_id || "") === String(player.id) || row.player_name === player.name) && String(row.role || role).toUpperCase() === role) : [];
   function drop(event) {
     event.preventDefault();
     try {
@@ -488,9 +491,10 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
       {pick ? <Badge tone={championPoolStatusTone(status)}>{championPoolStatusLabel(status)}</Badge> : <Badge tone="slate">À choisir</Badge>}
     </div>
     {rolePlayers.length > 1 && <div className="mt-3 flex flex-wrap gap-1.5">{rolePlayers.map((item) => <button key={item.id} type="button" onClick={() => onChange(role, { playerId: item.id, poolId: "" })} aria-pressed={item.id === player?.id} className={cx("nxt5-composition-choice border px-3 py-2 text-[13px] font-semibold transition", item.id === player?.id ? "border-cyan-200/45 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{item.name}</button>)}</div>}
-    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("nxt5-composition-drop relative mt-3 rounded-[10px] border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
+    <div className="mt-3"><SelectInput label={`Champion · ${role}`} value={availableRows.some((row) => row.id === slot.poolId) ? slot.poolId : ""} disabled={!availableRows.length} onChange={(poolId) => { const row = availableRows.find((item) => item.id === poolId); onChange(role, { playerId: row?.player_id || player?.id || "", poolId }); }}><option value="">{availableRows.length ? "Choisir un champion" : "Aucun champion déclaré"}</option>{CHAMPION_TIERS.map((tier) => { const items = availableRows.filter((row) => championPoolStatus(row) === tier.id); return items.length ? <optgroup key={tier.id} label={POOL_TIER_LABELS[tier.id]}>{items.map((row) => <option key={row.id} value={row.id}>{championDisplayName(row.champion)}</option>)}</optgroup> : null; })}</SelectInput></div>
+    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("nxt5-composition-drop relative mt-3 rounded-[10px] border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "is-empty border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
       <div className={cx("relative flex h-full min-h-[136px] flex-col", pick ? "justify-end" : "justify-center")}>
-        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="break-words text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 break-words text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="nxt5-composition-choice mt-3 border border-white/10 bg-black/35 px-3 py-2 text-[13px] font-semibold text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Vider</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-black text-white">Choisis un champion</p><p className="mt-1 text-xs font-semibold text-slate-300">Depuis la banque {player?.name || role}, par clic ou glisser-déposer.</p></div>}
+        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="break-words text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 break-words text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="nxt5-composition-choice mt-3 border border-white/10 bg-black/35 px-3 py-2 text-[13px] font-semibold text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Retirer le champion</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-semibold text-white">{availableRows.length ? "Un champion à choisir" : "Liste de champions à préparer"}</p><p className="mt-1 text-sm leading-6 text-slate-300">{availableRows.length ? "Utilise la liste au-dessus ou les portraits plus bas." : `Ajoute les champions de ${player?.name || "ce joueur"} dans l’onglet Champions des joueurs.`}</p></div>}
       </div>
     </div>
   </div>;
@@ -498,14 +502,14 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
 
 function CompositionChampionBank({ players, rows, slots, onPick }) {
   const tierOrder = { lock: 0, pocket: 1, work: 2, danger: 3 };
-  const tierShortLabel = { lock: "Confiance", pocket: "Situationnel", work: "Validation", danger: "Training" };
+  const tierShortLabel = { lock: "Confiance", pocket: "Situationnel", work: "Validation", danger: "Entraînement" };
   function dragStart(event, row, role) {
     event.dataTransfer.setData("application/json", JSON.stringify({ role, playerId: row.player_id || "", poolId: row.id }));
     event.dataTransfer.effectAllowed = "copy";
   }
   return <div className="nxt5-composition-section">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div><p className="text-xs font-semibold text-cyan-100/80">Banque de champions</p><p className="mt-1 text-sm font-semibold text-slate-300">Clique sur un champion pour l’ajouter à son poste, ou glisse-le dans la composition.</p></div>
+      <div><h4 className="text-base font-semibold text-cyan-100">Champions disponibles par joueur</h4><p className="mt-1 text-sm leading-6 text-slate-300">Clique sur un portrait pour choisir ce champion à son poste. Le glisser-déposer reste disponible.</p></div>
       <div className="flex flex-wrap gap-2">
         {CHAMPION_TIERS.map((tier) => <span key={tier.id} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-200">
           <ChampionTierMark tier={tier} active className="h-7 w-7 rounded-xl border-white/18 bg-black/20 [&_svg]:h-4 [&_svg]:w-4" />
@@ -544,20 +548,20 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
 
 function CompositionCounterPanel({ slots, rows, compact = false }) {
   const groups = compositionCounterRecommendations(slots, rows, compact ? 1 : 3).filter((group) => group.counters.length);
-  if (!groups.length) return <p className="nxt5-composition-section text-sm leading-6 text-slate-300">Ajoute des champions dans la compo pour afficher les counters probables par rôle.</p>;
+  if (!groups.length) return <p className="nxt5-composition-section text-sm leading-6 text-slate-300">Choisis des champions pour voir quelles réponses adverses préparer.</p>;
   const allCounters = groups.flatMap((group) => group.counters.map((counter) => ({ ...counter, role: group.role }))).sort((a, b) => b.score - a.score);
   if (compact) return <div className="nxt5-composition-section">
-    <h4 className="text-xs font-semibold text-rose-100">Counters à prévoir</h4>
+    <h4 className="text-sm font-semibold text-rose-100">Champions adverses à surveiller</h4>
     <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">{allCounters.slice(0, 5).map((counter) => <div key={`${counter.role}-${counter.champion}`} className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-8 w-8 rounded-lg object-cover" /><span className="text-xs font-semibold text-white">{counter.role} · {championDisplayName(counter.champion)}</span></div>)}</div>
   </div>;
   return <section className="nxt5-composition-section">
-    <h3 className="text-xl font-black text-white">Picks à vérifier</h3>
-    <p className="mt-1 text-sm leading-6 text-slate-300">Ces champions peuvent poser problème à la compo selon leurs rôles et leurs styles.</p>
+    <h3 className="text-xl font-black text-white">Champions adverses à surveiller</h3>
+    <p className="mt-1 text-sm leading-6 text-slate-300">Ces adversaires, parfois appelés counters, peuvent gêner vos champions. Les suggestions reposent sur leurs rôles et leurs styles : vérifie-les avec ton équipe.</p>
     <div className="nxt5-composition-counter-roles">
       {groups.map((group) => <div key={group.role} className="min-w-0">
-        <div className="flex items-center gap-2"><RoleIcon role={group.role} className="h-5 w-5" /><h4 className="text-sm font-black text-white">{roleLabel(group.role)}</h4><span className="ml-auto text-xs tabular-nums text-slate-300">{group.counters.length} picks</span></div>
+        <div className="flex items-center gap-2"><RoleIcon role={group.role} className="h-5 w-5" /><h4 className="text-sm font-black text-white">{roleLabel(group.role)}</h4><span className="ml-auto text-xs tabular-nums text-slate-300">{group.counters.length} champions</span></div>
         <div className="mt-2 divide-y divide-white/10">{group.counters.map((counter) => <div key={counter.champion} className="py-3">
-          <div className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="break-words text-sm font-bold text-white">{championDisplayName(counter.champion)}</p><p className="text-xs text-rose-100">Counter probable</p></div></div>
+          <div className="flex min-w-0 items-center gap-2"><ChampionPortrait champion={counter.champion} alt={counter.champion} className="h-10 w-10 shrink-0 rounded-xl object-cover" /><div className="min-w-0 flex-1"><p className="break-words text-sm font-bold text-white">{championDisplayName(counter.champion)}</p><p className="text-xs text-rose-100">Menace à vérifier</p></div></div>
           <p className="mt-2 text-xs leading-5 text-slate-300">{counter.reasons.join(" · ")}</p>
         </div>)}</div>
       </div>)}
@@ -576,14 +580,14 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
         <div className="relative z-10 p-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge><span className="text-xs font-semibold text-slate-300">{picks.length}/5 picks{tags.length ? ` · ${tags.map(tagLabel).join(" · ")}` : ""}</span></div>
+          <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{mastery.label}</Badge><span className="text-sm text-slate-300">{picks.length}/5 champions{tags.length ? ` · ${tags.map(tagLabel).join(" · ")}` : ""}</span></div>
           <h3 className="mt-3 break-words text-2xl font-black text-white">{composition.title}</h3>
           <p className="mt-1 text-xs font-semibold text-cyan-100/72">Créée par {composition.created_by_name || "un membre"}</p>
           {composition.notes && <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}
         </div>
         {canManage && <div className="flex shrink-0 flex-wrap gap-2">
-          <button type="button" onClick={() => onEdit(composition)} disabled={saving} title="Modifier" aria-label="Modifier la composition" className="min-h-11 min-w-11 rounded-[2px] p-3 text-slate-300 transition hover:bg-cyan-400/10 hover:text-cyan-100"><Clipboard className="h-4 w-4" /></button>
-          <button type="button" onClick={() => onDuplicate(composition)} disabled={saving} title="Dupliquer" aria-label="Dupliquer la composition" className="min-h-11 min-w-11 rounded-[2px] p-3 text-slate-300 transition hover:bg-violet-400/10 hover:text-violet-100"><RefreshCw className="h-4 w-4" /></button>
+          <Button type="button" variant="ghost" icon={Clipboard} onClick={() => onEdit(composition)} disabled={saving} aria-label="Modifier la composition">Modifier</Button>
+          <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => onDuplicate(composition)} disabled={saving} aria-label="Dupliquer la composition">Dupliquer</Button>
           <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title="Supprimer" aria-label="Supprimer la composition" className="min-h-11 min-w-11 rounded-[2px] p-3 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
         </div>}
       </div>
@@ -607,17 +611,18 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
                     </div>
                   </div>
                   <p className="mt-3 text-xs font-semibold leading-5 text-cyan-100">{championPoolStatusLabel(pickStatus)}</p>
-                </div> : <div className="flex flex-1 items-center justify-center text-sm font-semibold text-slate-500">Slot vide</div>}
+                </div> : <div className="flex flex-1 items-center justify-center text-sm font-semibold text-slate-500">Champion à choisir</div>}
               </div>
             </div>;
           })}
         </div>
       </div>
-      {(identity.tags.length > 0 || picks.length > 0) && <div className="mt-4 flex flex-wrap items-center gap-2">
+      {picks.length > 0 && <details className="nxt5-composition-details"><summary>Style de jeu et réponses adverses</summary><p className="nxt5-composition-help">Des pistes calculées à partir des champions choisis, à vérifier en équipe.</p><div className="mt-4 flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold text-cyan-100">{tagLabel(identity.primary)}</span>
         <span className="text-xs leading-5 text-slate-300">{identity.tags.map(([tag, count]) => `${tagLabel(tag)} ×${count}`).join(" · ")}</span>
-      </div>}
+      </div>
       <CompositionCounterPanel slots={slots} rows={rows} compact />
+      </details>}
     </div>
   </Surface>;
 }
@@ -625,11 +630,11 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
 function CompositionTagLexicon({ open }) {
   if (!open) return null;
   return <Surface className="mt-4">
-    <h3 className="text-xl font-black text-white">Lexique des tags champions</h3>
-    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Ces tags décrivent l’identité d’un champion dans une Compo Type. Ils servent à lire rapidement le plan de draft, pas à juger automatiquement la compo.</p>
+    <h3 className="text-xl font-black text-white">Comprendre les styles de jeu</h3>
+    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Les étiquettes décrivent ce qu’un champion peut apporter à la composition. Ce sont des repères pour préparer les choix de champions, pas une évaluation certaine du résultat.</p>
     <dl className="nxt5-composition-lexicon">{CHAMPION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag}><dt className="text-sm font-bold text-cyan-100">{tagLabel(tag)}</dt><dd className="mt-1 text-sm leading-6 text-slate-300">{definition}</dd></div>)}</dl>
     <section className="nxt5-composition-section">
-      <h4 className="text-sm font-black text-violet-100">Tags de classement</h4>
+      <h4 className="text-sm font-black text-violet-100">Étiquettes pour retrouver une composition</h4>
       <dl className="nxt5-composition-lexicon">{COMPOSITION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag}><dt className="text-sm font-bold text-violet-100">{tagLabel(tag)}</dt><dd className="mt-1 text-sm leading-6 text-slate-300">{definition}</dd></div>)}</dl>
     </section>
   </Surface>;
@@ -644,10 +649,10 @@ function ChampionPoolColorSummary() {
 function CompositionSummaryStrip({ players, rows, compositions, formPicks }) {
   const locked = rows.filter((row) => ["lock", "pocket"].includes(championPoolStatus(row))).length;
   const items = [
-    ["Roster", `${players.length}/5`, "Profils lanes"],
-    ["Pool draft", rows.length, `${locked} prêts`],
-    ["Compos", compositions.length, "Enregistrées"],
-    ["Builder", `${formPicks.length}/5`, "Picks actifs"],
+    ["Joueurs", players.length, "Profils disponibles"],
+    ["Champions déclarés", rows.length, `${locked} de confiance ou situationnels`],
+    ["Compositions", compositions.length, "Enregistrées"],
+    ["Composition en cours", `${formPicks.length}/5`, "Champions choisis"],
   ];
   return <div className="nxt5-composition-summary">{items.map(([label, value, detail]) => <div key={label}><p className="text-xs font-semibold text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="break-words text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
 }
@@ -686,7 +691,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   }
 
   function duplicateComposition(composition) {
-    setForm({ id: null, title: `${composition.title || "Compo"} copie`, notes: composition.notes || "", tags: jsonList(composition.tags), slots: { ...emptyCompositionSlots(players), ...compositionSlots(composition.slots) } });
+    setForm({ id: null, title: `${composition.title || "Composition"} copie`, notes: composition.notes || "", tags: jsonList(composition.tags), slots: { ...emptyCompositionSlots(players), ...compositionSlots(composition.slots) } });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -698,7 +703,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
       await apiFetch("composition-types-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, compositionId: form.id, title: form.title, notes: form.notes, tags: form.tags, slots: form.slots }) });
       resetCompositionForm();
       await refreshAll();
-      pushToast({ type: "green", title: form.id ? "Compo mise à jour" : "Compo créée", text: "La Compo Type est disponible pour la team." });
+      pushToast({ type: "green", title: form.id ? "Composition mise à jour" : "Composition créée", text: "Ton équipe peut retrouver cette composition dans la liste." });
     } catch (err) {
       pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
@@ -709,12 +714,12 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   async function deleteComposition(compositionId) {
     const composition = compositions.find((item) => item.id === compositionId);
     const canManageComposition = isStaff || composition?.created_by === user?.id;
-    if (!canManageComposition || !window.confirm("Supprimer cette Compo Type ?")) return;
+    if (!canManageComposition || !window.confirm("Supprimer cette composition ?")) return;
     setSaving(true);
     try {
       await apiFetch("composition-types-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, compositionId }) });
       await refreshAll();
-      pushToast({ type: "green", title: "Compo supprimée", text: "La liste est à jour." });
+      pushToast({ type: "green", title: "Composition supprimée", text: "La liste est à jour." });
     } catch (err) {
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
     } finally {
@@ -726,19 +731,19 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   const filteredCompositions = compositions.filter((composition) => sideFilter === "all" || jsonList(composition.tags).includes(sideFilter));
   const sideOptions = [
     { id: "all", label: "Toutes" },
-    { id: "blue side", label: "Blue Side" },
-    { id: "red side", label: "Red Side" },
+    { id: "blue side", label: "Côté bleu" },
+    { id: "red side", label: "Côté rouge" },
   ];
   const formPicks = COMP_ROLES.map((role) => rows.find((row) => row.id === form.slots?.[role]?.poolId)).filter(Boolean);
   const formIdentity = compositionIdentity(formPicks);
   return (
     <div className="nxt5-data-dense nxt5-compositions-page min-w-0 overflow-hidden">
-      <PageHeader eyebrow="Draft" title="Compositions" subtitle="Prépare les picks de chaque rôle à partir des Champion Pools.">
+      <PageHeader eyebrow="Draft · Choisir les champions" title="Préparer une composition" subtitle="Associe un champion à chaque rôle, puis garde votre plan de jeu. Les choix proposés viennent des listes de champions des joueurs.">
+        {compositions.length > 0 && <a href="#nxt5-saved-compositions" className="nxt5-composition-jump">Voir les compositions enregistrées</a>}
         <Button type="button" variant="ghost" icon={BookOpen} aria-expanded={showTagLexicon} onClick={() => setShowTagLexicon((open) => !open)}>
-          Lexique des tags
+          Comprendre les styles de jeu
           <ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} />
         </Button>
-        <ChampionPoolColorSummary />
       </PageHeader>
 
       <CompositionSummaryStrip players={players} rows={rows} compositions={compositions} formPicks={formPicks} />
@@ -756,54 +761,59 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
                   <span className="text-xs font-semibold text-cyan-100">Cinq rôles</span>
                   <Badge tone={mastery.tone}>{mastery.label}</Badge>
                 </div>
-                <h3 className="mt-3 text-2xl font-black text-white">{form.id ? "Modifier la Compo" : "Nouvelle Compo"}</h3>
-                <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Choisis les champions directement dans le pool de chaque poste. Glisse ou sélectionne un champion pour mettre la composition à jour.</p>
+                <h3 className="mt-3 text-2xl font-black text-white">{form.id ? "Modifier la composition" : "Nouvelle composition"}</h3>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Nomme la composition, puis choisis un champion dans la liste de chaque rôle. Tu peux aussi parcourir les portraits plus bas.</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 {form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}
-                <Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button>
               </div>
             </div>
 
             <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,.32fr)] xl:items-start">
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                <TextInput label="Nom de la Compo" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Engage Dragon, Front-to-Back Jinx..." required icon={Sparkles} />
+                <TextInput label="Nom de la composition" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex. : Protéger Jinx, Combattre autour du dragon…" required icon={Sparkles} />
                 <div className="flex flex-wrap gap-2">
-                  {tagOptions.map((tag) => <button key={tag} type="button" aria-pressed={form.tags.includes(tag)} onClick={() => toggleCompTag(tag)} className={cx("nxt5-composition-choice border px-3 py-2 text-[13px] font-semibold transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tagLabel(tag)}</button>)}
+                  {tagOptions.map((tag) => <button key={tag} type="button" aria-pressed={form.tags.includes(tag)} onClick={() => toggleCompTag(tag)} className={cx("nxt5-composition-choice border px-3 py-2 text-sm font-semibold transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{tag === "blue side" ? "Côté bleu" : "Côté rouge"}</button>)}
                 </div>
               </div>
 
               <label className="block">
-                <span className="mb-2 block text-[13px] font-semibold text-slate-300">Résumé</span>
-                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Plan de jeu, conditions de draft..." rows={3} className="nxt5-input-shell w-full resize-y rounded-[10px] border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" />
+                <span className="nxt5-field-label mb-2 block">Plan de jeu (facultatif)</span>
+                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Ex. : protéger le tireur et préparer les combats autour du dragon." rows={3} className="nxt5-input-shell w-full resize-y rounded-[10px] border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" />
               </label>
             </div>
+
+            {!rows.length && <div className="nxt5-composition-prerequisite"><p>Aucun champion n’est encore déclaré. Prépare d’abord les listes des joueurs pour choisir les cinq champions de la composition.</p><Button type="button" variant="ghost" onClick={() => openAppPath("/draft/pool")}>Préparer les listes de champions</Button></div>}
 
             <div className="nxt5-composition-slots mt-4 grid gap-3">
               {COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}
             </div>
 
-            {formPicks.length > 0 && <div className="nxt5-composition-section">
+            <div className="nxt5-composition-form-actions"><p id="composition-save-help">{!canCreate ? "Rejoins l’équipe pour enregistrer une composition." : !form.title.trim() ? "Ajoute un nom pour enregistrer la composition." : `${formPicks.length}/5 champions choisis. Tu peux enregistrer une composition incomplète et la compléter plus tard.`}</p><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()} aria-describedby="composition-save-help">{saving ? "Enregistrement…" : form.id ? "Enregistrer les modifications" : "Créer la composition"}</Button></div>
+
+            <details className="nxt5-composition-details"><summary>Choisir à partir des portraits des champions</summary><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /></details>
+
+            {formPicks.length > 0 && <details className="nxt5-composition-details"><summary>Approfondir : style de jeu et réponses adverses</summary><p className="nxt5-composition-help">La maîtrise vient du classement des champions par les joueurs. Le style et les réponses adverses sont des pistes à vérifier en équipe.</p><div className="nxt5-composition-section">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-cyan-100">Identité en cours</p>
+                  <p className="text-sm font-semibold text-cyan-100">Style de jeu suggéré</p>
                   <h4 className="mt-2 text-xl font-black text-white">{tagLabel(formIdentity.primary)}</h4>
                   <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{formIdentity.text}</p>
                 </div>
-                <Badge tone="cyan">{formPicks.length}/5 picks</Badge>
+                <Badge tone="cyan">{formPicks.length}/5 champions</Badge>
               </div>
               <div className="mt-3 flex flex-wrap gap-2"><p className="text-xs leading-5 text-slate-300">{formIdentity.tags.length ? formIdentity.tags.map(([tag, count]) => `${tagLabel(tag)} ×${count}`).join(" · ") : "Standard"}</p></div>
-            </div>}
+            </div>
 
             <CompositionCounterPanel slots={form.slots} rows={rows} />
-            <CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} />
+            </details>}
           </Surface>
         </form>
-      ) : <EmptyState icon={Users} title="Roster incomplet" text="Ajoute les joueurs TOP, JGL, MID, ADC et SUP pour créer des Compos Types." />}
+      ) : <Surface><EmptyState icon={Users} title="Ajoutez d’abord les joueurs" text="Les profils TOP, JGL, MID, ADC et SUP permettent d’attribuer les champions à chaque rôle." /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>Voir mon équipe</Button></div></Surface>}
 
       <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h3 className="text-xl font-bold text-white">Compositions enregistrées</h3>
+          <h3 id="nxt5-saved-compositions" tabIndex={-1} className="nxt5-composition-saved-heading text-xl font-bold text-white">Compositions enregistrées</h3>
           <p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length} visibles</p>
         </div>
         <div className="flex w-full flex-wrap gap-2 md:w-auto">
@@ -812,7 +822,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
       </div>
 
       <div className="mt-3 grid gap-3">
-        {filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune Compo pour ce side" text="Change le filtre ou ajoute le tag Blue Side / Red Side sur une Compo." /> : <EmptyState icon={Sparkles} title="Aucune Compo Type" text="Crée une première Compo à partir des Champion Pools de tes joueurs." />}
+        {filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title="Aucune composition pour ce côté" text="Choisis « Toutes » ou ajoute l’étiquette Côté bleu ou Côté rouge à une composition." /> : <EmptyState icon={Sparkles} title="Aucune composition enregistrée" text="Prépare ta première composition avec les champions déclarés par les joueurs." />}
       </div>
     </div>
   );

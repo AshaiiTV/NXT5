@@ -49,7 +49,7 @@ export default function DiscordAccount({ user }) {
     <div className="discord-account-heading">
       <div className="min-w-0">
         <h3 className="discord-account-title"><Link2 size={20} aria-hidden="true" /> Mon compte Discord</h3>
-        {!state?.link && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Lie ton compte personnel à NXT5 pour utiliser les commandes dans le salon de ton équipe.</p>}
+        {!state?.link && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Commence par relier tes deux comptes pour utiliser les commandes de ton équipe.</p>}
       </div>
       {state?.link && <Badge tone="cyan">Compte lié</Badge>}
     </div>
@@ -59,7 +59,7 @@ export default function DiscordAccount({ user }) {
         <Button type="button" variant="ghost" aria-expanded={managing} aria-controls={managing ? manageId : undefined} onClick={() => { setManaging((open) => !open); setUnlink(false); }}>{managing ? "Fermer la gestion" : "Gérer"}</Button>
         {managing && <div id={manageId} className="discord-account-management">
           <p className="break-words text-sm leading-6 text-slate-300">Identifiant Discord : {state.link.discord_user_id}</p>
-          <p className="text-sm leading-6 text-slate-300">Va dans le salon Discord associé à ton équipe, puis lance <code className="text-cyan-200">/nxt help</code>. NXT5 reconnaît l’équipe grâce au salon.</p>
+          <p className="text-sm leading-6 text-slate-300">Le salon Discord détermine l’équipe concernée par tes commandes. Tes droits restent ceux de ton compte NXT5.</p>
           {unlink ? <div className="discord-confirm" role="group" aria-label="Confirmer la déliaison">
             <p className="text-sm leading-6 text-slate-200">Retirer cette liaison révoque les accès Discord à ton compte et les actions en attente.</p>
             <div className="flex flex-wrap gap-3"><Button type="button" variant="danger" disabled={busy} onClick={remove}>{busy ? "Déliaison…" : "Confirmer la déliaison"}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => setUnlink(false)}>Conserver la liaison</Button></div>
@@ -75,7 +75,11 @@ export default function DiscordAccount({ user }) {
           : <><p className="text-sm leading-6 text-slate-300">Confirme si ces deux comptes sont les tiens. La dernière validation se fera dans Discord.</p><Button disabled={busy} onClick={prepare}>{busy ? "Confirmation…" : "Confirmer mon compte NXT5"}</Button></>}
         <p className="discord-help">Le lien expire à {new Date(request.expiresAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}. Tu peux en générer un nouveau avec /nxt lier.</p>
       </div> : !error ? <div className="mt-4 space-y-3">
-        <p className="text-sm leading-6 text-slate-200">Dans Discord, lance <code className="break-words text-cyan-200">/nxt lier</code> et ouvre le lien personnel proposé par le bot. Une fois ton compte lié, utilise les commandes dans le salon de ton équipe.</p>
+        <ol className="discord-steps text-sm leading-6 text-slate-200">
+          <li>Dans Discord, lance <code className="break-words text-cyan-200">/nxt lier</code>.</li>
+          <li>Ouvre le lien personnel du bot et confirme ton compte NXT5.</li>
+          <li>Reviens dans Discord pour terminer la liaison.</li>
+        </ol>
         <p className="text-sm leading-6 text-slate-400">Le guide <code>/nxt help</code> est accessible avant la liaison du compte.</p>
       </div> : null}
     {error && <p className="mt-4 break-words text-sm leading-6 text-rose-200" role="alert">{error}</p>}

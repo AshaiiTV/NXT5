@@ -111,7 +111,7 @@ describe("Discord settings and permissions", () => {
 
   it("defaults to no role mention and no review hints, verifies salons and saves exact destinations", async () => {
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    expect(text(renderer.root)).toContain("Ajouter une piste de review au message");
+    expect(text(renderer.root)).toContain("Ajouter une piste de débrief au message");
     const denied = renderer.root.findAllByType("option").find((item) => item.props.value === "channel-denied");
     expect(denied.props.disabled).toBe(true);
     await choose(renderer, "Choisir un salon du serveur", "channel-2");
@@ -583,7 +583,7 @@ describe("Discord dashboard onboarding", () => {
     expect(text(renderer.root)).toContain("Test reçu sur Discord");
     await click(renderer, "Activer la diffusion");
     expect(posts()).toHaveLength(1);
-    expect(text(renderer.root)).toContain("Les anciennes games ne sont pas republiées automatiquement");
+    expect(text(renderer.root)).toContain("Les anciennes parties ne sont pas republiées automatiquement");
     expect(text(renderer.root)).toContain("aucune mention");
     await click(renderer, "Confirmer l’activation");
     expect(posts()[1]).toEqual(["team-discord-connection", { teamId: "team", action: "resume", expectedConfigVersion: 3, expectedGuildId: "123" }]);

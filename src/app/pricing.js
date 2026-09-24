@@ -3,10 +3,10 @@ import { DISCOVERY_TRIAL_DAYS } from "./pass-access.js";
 // Launch proposals for commercial validation. These values do not start a trial or change access.
 const TEAM_FEATURES = [
   "1 équipe · jusqu’à 15 membres",
-  "Imports, statistiques et reviews",
-  "Planning, champion pools et compositions",
+  "Imports, statistiques et débriefs",
+  "Planning, champions des joueurs et compositions",
   "Historique complet et export des données",
-  "Rôles et accès du staff · assistance standard",
+  "Rôles et accès de l’encadrement · assistance standard",
 ];
 
 export const PROPOSED_PLANS = [
@@ -26,9 +26,9 @@ export const PROPOSED_PLANS = [
     months: 1,
     price: "9,90 €",
     period: "TTC / mois / équipe",
-    description: "Pour continuer après l’essai, avec le bot Discord pour publier les games de ton équipe.",
+    description: "Pour continuer après l’essai, avec le bot Discord pour publier les parties de ton équipe.",
     terms: "Mensuel · résiliable à tout moment",
-    features: [...TEAM_FEATURES, "Bot Discord · publication des games"],
+    features: [...TEAM_FEATURES, "Bot Discord · publication des parties"],
   },
 ];
 

@@ -68,7 +68,7 @@ describe("prepared subscription gate", () => {
   it("can display the isolated preview without changing the access policy", () => {
     const subscribe = vi.fn();
     const renderer = render(<PassFeaturePreview feature="champion_pool" onSubscribe={subscribe} />);
-    expect(JSON.stringify(renderer.toJSON())).toContain("Champion Pool");
+    expect(JSON.stringify(renderer.toJSON())).toContain("Champions des joueurs");
     act(() => renderer.root.findByType("button").props.onClick());
     expect(subscribe).toHaveBeenCalledOnce();
     expect(passAccess.getPassFeatureAccess("champion_pool")).toMatchObject({ allowed: true, requiresPass: false });

@@ -244,7 +244,7 @@ export function SocialAccounts({ onStatus }) {
   return <Surface className="nxt5-social-connections xl:col-span-2">
     <Badge tone="cyan">Connexions</Badge>
     <h3 className="nxt5-social-title">Connexions associées</h3>
-    <p className="nxt5-social-description">Retrouve le même compte NXT5 avec Google, Discord, Apple ou Riot. Associe chaque service depuis cette page.</p>
+    <p className="nxt5-social-description">Associe un service pour te reconnecter au même compte NXT5 avec Google, Discord, Apple ou Riot.</p>
     {socialCallbackStatus() && <div className="mt-4"><SocialNotice /></div>}
     {loading && <p className="mt-4 text-sm text-slate-300" role="status">Chargement des comptes associés…</p>}
     {error && <div className="mt-4"><Feedback>{error}</Feedback>{!status && <Button type="button" variant="ghost" className="mt-3" onClick={() => setAttempt((value) => value + 1)}>Réessayer</Button>}</div>}
@@ -256,7 +256,7 @@ export function SocialAccounts({ onStatus }) {
         return <div key={provider.id} className="nxt5-social-connection">
           <div className="nxt5-social-connection-row">
             <div className="min-w-0"><p className="flex flex-wrap items-center gap-2 font-black text-white">{provider.label}{linked && <Badge tone="cyan">Associé</Badge>}</p>
-              <p className="mt-1 break-words text-sm leading-6 text-slate-300">{linked ? linked.displayName || `Ton compte ${provider.label}` : available ? "Aucun compte associé" : "Connexion bientôt disponible"}</p>
+              <p className="mt-1 break-words text-sm leading-6 text-slate-300">{linked ? linked.displayName || `Ton compte ${provider.label}` : available ? "Aucun compte associé" : "Service non disponible"}</p>
               {linked && !available && <p className="nxt5-social-help">La connexion avec ce service est temporairement indisponible.</p>}
             </div>
             {linked ? <Button type="button" variant="ghost" icon={Unlink} disabled={Boolean(busy) || !status.hasPassword || unlinkProvider === provider.id} onClick={(event) => { trigger.current = event.currentTarget; setUnlinkProvider(provider.id); setPassword(""); setSuccess(""); setError(""); }} aria-label={`Dissocier ${provider.label}`}>Dissocier</Button>

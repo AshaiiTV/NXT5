@@ -344,7 +344,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={() => navigate("/parametres")}>Paramètres</Button>
-            {isPlatformAdmin && <Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>Profils et abonnements</Button>}
+            {isPlatformAdmin && <Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>Comptes et abonnements</Button>}
             <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4" aria-label="Déconnexion"><span className="hidden sm:inline">Déconnexion</span></Button>
           </div>
         </div>

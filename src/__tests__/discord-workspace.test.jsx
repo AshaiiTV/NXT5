@@ -56,7 +56,7 @@ describe("Discord workspace access and navigation", () => {
   it.each(["player", null])("explains restricted access for %s without mounting staff-only requests", (role) => {
     render(<DiscordWorkspace {...props(role)} />);
     expect(renderer.root.findAllByProps({ "data-dashboard": true })).toHaveLength(0);
-    expect(JSON.stringify(renderer.toJSON())).toContain("La connexion Discord se configure avec ton staff");
+    expect(JSON.stringify(renderer.toJSON())).toContain("La connexion Discord se configure avec ton encadrement");
     expect(renderer.root.findByProps({ "data-personal-account": true }).props.userId).toBe(user.id);
   });
 

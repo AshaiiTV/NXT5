@@ -38,11 +38,21 @@
 
 .nxt5-planning-week { flex: 1 1 180px; }
 .nxt5-planning-week > span:first-child { font-size: 13px; font-weight: 600; }
-.nxt5-planning-menu { max-width: calc(100vw - 24px); border-radius: 12px; background: var(--nxt5-surface-raised); box-shadow: 0 18px 48px rgba(0,0,0,.4); }
+.nxt5-planning-menu { max-width: calc(100vw - 24px); max-height: min(308px, calc(100dvh - 16px)); overflow-y: auto; border-radius: 12px; background: var(--nxt5-surface-raised); box-shadow: 0 18px 48px rgba(0,0,0,.4); }
 .nxt5-planning-menu button { border-radius: 2px; }
 .nxt5-planning-menu button > span:last-child { font-size: 13px; font-weight: 600; }
 .nxt5-planning-menu button:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: -2px; }
 .nxt5-planning-page textarea { min-height: 96px; font-size: 14px; line-height: 1.6; }
+.nxt5-planning-session-copy { display: grid; gap: 2px; }
+.nxt5-planning-session-copy > span { font-size: 14px; }
+.nxt5-planning-session-copy > small { color: var(--nxt5-text-secondary); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.nxt5-planning-save, .nxt5-planning-actions, .nxt5-planning-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.nxt5-planning-actions { justify-content: space-between; margin-top: 1rem; }
+.nxt5-planning-help { margin-top: .75rem; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-text-secondary); }
+.nxt5-planning-help summary { padding-block: .75rem; min-height: 44px; cursor: pointer; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.nxt5-planning-help p { max-width: 65ch; margin-bottom: .75rem; font-size: 14px; line-height: 1.7; }
+.nxt5-planning-legend { margin-bottom: .75rem; }
+.nxt5-planning-legend > span { display: inline-flex; align-items: center; gap: .5rem; font-size: 13px; }
 @media (max-width: 640px) {
   .nxt5-planning-page textarea { font-size: 16px; }
 }

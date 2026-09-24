@@ -25,8 +25,8 @@ export function DiscordPlanningEvents({ events = [], teamId }) {
 export function DiscordProgressionGoals({ goals = [], teamId, playerId }) {
   const rows = goals.filter(goal => goal.team_id === teamId && (!goal.player_id || goal.player_id === playerId));
   if (!rows.length) return null;
-  return <Surface><section aria-label="Objectifs définis par le staff">
-    <h3 className="text-lg font-bold text-white">Consignes et objectifs du staff</h3>
+  return <Surface><section aria-label="Objectifs définis par l’encadrement">
+    <h3 className="text-lg font-bold text-white">Consignes et objectifs de l’encadrement</h3>
     <ul className="mt-3 divide-y divide-white/10">{rows.map(goal => <li key={goal.id} className="min-w-0 py-3">
       <div className="flex flex-wrap items-start justify-between gap-2"><h4 className="min-w-0 flex-1 basis-48 break-words font-semibold text-white">{goal.title}</h4><Badge tone={goal.status === "completed" ? "green" : "purple"}>{goal.status === "completed" ? "Clôturé" : "En cours"}</Badge></div>
       <p className="mt-1 text-sm leading-6 text-slate-300">{goal.player_id ? "Objectif individuel" : "Objectif collectif"}{goal.due_at ? ` · Échéance : ${new Date(goal.due_at).toLocaleDateString("fr-FR")}` : ""}{goal.created_by_name ? ` · ${goal.created_by_name}` : ""}</p>

@@ -125,6 +125,7 @@
 
 .nxt5-pool-board-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -144,7 +145,7 @@
 .nxt5-pool-board-header p {
   margin: 0.25rem 0 0;
   color: var(--nxt5-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -203,7 +204,7 @@
   display: inline;
   margin: 0;
   color: var(--pool-tier);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 750;
   line-height: 1.45;
 }
@@ -221,7 +222,7 @@
 .nxt5-pool-tier-heading p {
   margin: 0.375rem 0 0;
   color: var(--nxt5-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.5;
 }
@@ -275,7 +276,7 @@
   margin: 0;
   overflow: hidden;
   color: #f1f5f9;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 650;
   overflow-wrap: anywhere;
   white-space: normal;
@@ -336,7 +337,7 @@
   min-height: 3rem;
   margin: 0;
   color: var(--nxt5-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -430,7 +431,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--nxt5-text);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   font-weight: 650;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -464,8 +465,8 @@
 }
 
 .nxt5-pool-page select.nxt5-pool-classify {
-  flex: 0 0 7.5rem;
-  width: 7.5rem;
+  flex: 0 0 8.75rem;
+  width: 8.75rem;
   min-width: 0;
   min-height: 2.75rem;
   padding: 0.375rem 0.25rem 0.375rem 0.5rem;
@@ -473,7 +474,7 @@
   border-radius: 10px;
   background: #0b1524;
   color: #f3f8ff;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
 }
@@ -481,7 +482,7 @@
 .nxt5-pool-library-help {
   margin: 0.75rem 0;
   color: var(--nxt5-text-secondary);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
@@ -591,10 +592,12 @@
   }
 
   .nxt5-pool-page select.nxt5-pool-classify {
-    flex-basis: 8.75rem;
-    width: 8.75rem;
+    flex-basis: 100%;
+    width: 100%;
     font-size: 1rem;
   }
+
+  .nxt5-pool-search-row { flex-wrap: wrap; gap: .625rem; padding-block: .75rem; }
 
   .nxt5-pool-tier-empty {
     min-height: 2.75rem;
