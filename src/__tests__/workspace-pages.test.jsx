@@ -26,8 +26,8 @@ describe("extracted workspace pages", () => {
     const renderer = await render(<Teams {...settings} setupOnly routeSearch="?create=1" />);
     expect(renderer.root.findAllByType("form")).toHaveLength(2);
     const content = JSON.stringify(renderer.toJSON());
-    expect(content).toContain("Créer une team");
-    expect(content).toContain("Rejoindre une team");
+    expect(content).toContain("Créer une équipe");
+    expect(content).toContain("Rejoindre une équipe");
     expect(content).not.toContain("Roster privé");
     expect(content).not.toContain("Décisions staff de la semaine");
   });
@@ -55,10 +55,10 @@ describe("extracted workspace pages", () => {
     const settings = props();
     settings.data.reports = [{ id: "report-old", team_id: "a", match_ids: ["older"], title: "Review ancienne", content: "Notes conservées" }];
     const renderer = await render(<Reports {...settings} />);
-    expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("1 game liée"))).toBe(true);
-    const stats = renderer.root.findAllByType(Button).find((button) => button.props.children === "Stats");
+    expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("1 partie liée"))).toBe(true);
+    const stats = renderer.root.findAllByType(Button).find((button) => button.props.children === "Voir la partie");
     expect(stats.props.disabled).toBe(false);
-    expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("0 sur 1 games liées chargées"))).toBe(true);
+    expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("0 sur 1 parties liées chargées"))).toBe(true);
   });
   it("loads purchase events only when a champion game opens and refreshes them with bootstrap", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) }));

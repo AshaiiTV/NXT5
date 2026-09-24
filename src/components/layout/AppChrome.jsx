@@ -97,11 +97,12 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
   }, [open, isDesktop, setOpen]);
 
   const go = (pageId) => { setActive(pageId); setOpen(false); };
-  const renderNavItem = (item) => {
+  const renderNavItem = (item, showHint = true) => {
     const Icon = item.icon;
     const selected = active === item.id;
-    return <button key={item.id} type="button" onClick={() => go(item.id)} aria-label={item.label} aria-current={selected ? "page" : undefined} title={item.hint ? `${item.label} · ${item.hint}` : item.label} className={cx("nxt5-sidebar-link", selected && "is-active")}>
-      <Icon size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">{item.label}</span>
+    const hintId = item.hint && showHint ? `nxt5-nav-${item.id}-hint` : undefined;
+    return <button key={item.id} type="button" onClick={() => go(item.id)} aria-label={item.label} aria-describedby={hintId} aria-current={selected ? "page" : undefined} title={item.hint ? `${item.label} · ${item.hint}` : item.label} className={cx("nxt5-sidebar-link", selected && "is-active")}>
+      <Icon size={19} aria-hidden="true" /><span className="nxt5-sidebar-label nxt5-sidebar-link-copy"><span>{item.label}</span>{hintId && <span id={hintId} className="nxt5-sidebar-hint">{item.hint}</span>}</span>
     </button>;
   };
   return <>
@@ -113,10 +114,11 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
         <button ref={closeRef} type="button" aria-label="Fermer le menu" onClick={() => setOpen(false)} className="nxt5-chrome-icon-button nxt5-sidebar-close"><X size={20} aria-hidden="true" /></button>
       </div>
       <nav className="nxt5-sidebar-navigation" aria-label="Espace équipe">
-        <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Essentiel</p>{navItems.map(renderNavItem)}</div>
-        {!!moreItems.length && <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Avancé</p>{moreItems.map(renderNavItem)}</div>}
+        <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Au quotidien</p>{navItems.map((item) => renderNavItem(item))}</div>
+        {!!moreItems.length && <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Préparation et partage</p>{moreItems.map((item) => renderNavItem(item))}</div>}
       </nav>
       <div className="nxt5-sidebar-footer">
+        {renderNavItem(NAV.find((item) => item.id === "guide"), false)}
         {isPlatformAdmin && <button type="button" onClick={() => go("admin")} aria-label="Administration" title="Administration" aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">Administration</span></button>}
         <div className="nxt5-sidebar-account">
           <div className="nxt5-sidebar-account-identity"><span className="nxt5-sidebar-avatar"><RoleIcon role={profileRole} className="h-5 w-5" /></span><div className="nxt5-sidebar-label"><p title={user?.name || "Coach"}>{user?.name || "Coach"}</p><span title={linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}>{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</span></div></div>

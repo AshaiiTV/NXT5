@@ -40,21 +40,28 @@ describe("unified Games navigation", () => {
     expect(gameWorkspaceSectionLabel("games")).toBe("Games");
     expect(gameWorkspaceSectionLabel("review")).toBe("Review");
     const visible = NAV.filter((item) => [...PRIMARY_NAV_IDS, ...MORE_NAV_IDS].includes(item.id));
-    expect(visible.filter((item) => item.label === "Games")).toHaveLength(1);
+    expect(visible.filter((item) => item.label === "Parties")).toHaveLength(1);
     expect(visible.some((item) => item.id === "stats")).toBe(false);
     expect(visible.some((item) => item.id === "reports")).toBe(true);
     expect(visible.some((item) => item.id === "trends")).toBe(true);
   });
 
-  it("selects Review in the sidebar and opens Games through its sole entry", () => {
+  it("selects Débriefs, opens Parties and keeps the guide directly accessible", () => {
     const setActive = vi.fn();
+    const setOpen = vi.fn();
     let renderer;
-    act(() => { renderer = TestRenderer.create(<Sidebar active="reports" setActive={setActive} open={false} setOpen={vi.fn()} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />); });
+    act(() => { renderer = TestRenderer.create(<Sidebar active="reports" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />); });
     const selected = renderer.root.findAllByType("button").filter((button) => button.props["aria-current"] === "page");
     expect(selected).toHaveLength(1);
-    expect(selected[0].props["aria-label"]).toBe("Review");
-    act(() => renderer.root.findByProps({ "aria-label": "Games" }).props.onClick());
+    expect(selected[0].props["aria-label"]).toBe("Débriefs");
+    const parties = renderer.root.findByProps({ "aria-label": "Parties" });
+    const purpose = renderer.root.findByProps({ id: parties.props["aria-describedby"] });
+    expect(purpose.children.join("")).toBe("Importer et revoir une partie");
+    act(() => parties.props.onClick());
     expect(setActive).toHaveBeenCalledWith("matches");
+    act(() => renderer.root.findByProps({ "aria-label": "Guide d’utilisation" }).props.onClick());
+    expect(setActive).toHaveBeenLastCalledWith("guide");
+    expect(setOpen).toHaveBeenLastCalledWith(false);
     act(() => renderer.unmount());
   });
 
@@ -67,7 +74,7 @@ describe("unified Games navigation", () => {
     let renderer;
     act(() => { renderer = TestRenderer.create(<BeginnerCompass steps={steps} onNavigate={onNavigate} onClose={vi.fn()} />); });
     const next = renderer.root.findByType(Button);
-    expect(next.props.children).toBe("Importer une game");
+    expect(next.props.children).toBe("Importer une partie");
     act(() => next.props.onClick());
     expect(onNavigate).toHaveBeenCalledWith("/games?import=1");
     act(() => renderer.unmount());
@@ -79,10 +86,10 @@ describe("unified Games navigation", () => {
     let renderer;
     act(() => { renderer = TestRenderer.create(<BeginnerCompass steps={steps} onNavigate={onNavigate} onClose={onClose} />); });
     act(() => renderer.root.findByType(Button).props.onClick());
-    const roster = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Roster :"));
+    const roster = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Joueurs :"));
     act(() => roster.props.onClick());
     expect(onNavigate.mock.calls).toEqual([["/gestion-equipe?section=roster"], ["/gestion-equipe?section=roster"]]);
-    const review = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Review :"));
+    const review = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Premier débrief :"));
     expect(review.props.disabled).toBe(true);
     act(() => review.props.onClick());
     expect(onNavigate).toHaveBeenCalledTimes(2);

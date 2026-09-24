@@ -28,7 +28,7 @@ describe("joining and creating another team", () => {
     const props = teamProps();
     const renderer = await render(<Teams {...props} routeSearch="?create=1" />);
     expect(renderer.root.findAllByType("form")).toHaveLength(2);
-    input(renderer, "Nom de team", "Deuxième équipe");
+    input(renderer, "Nom de l’équipe", "Deuxième équipe");
     input(renderer, "Tag", "TWO");
     apiFetch.mockResolvedValueOnce({ team: { id: "second" } });
     await act(async () => renderer.root.findAllByType("form")[0].props.onSubmit({ preventDefault() {} }));
@@ -57,7 +57,7 @@ describe("joining and creating another team", () => {
     };
     await showTeamAccessForms();
     expect(renderer.root.findAllByType("form")).toHaveLength(2);
-    expect(renderer.root.findByProps({ label: "Nom de team" })).toBeTruthy();
+    expect(renderer.root.findByProps({ label: "Nom de l’équipe" })).toBeTruthy();
     expect(renderer.root.findByProps({ label: "Code d’invitation" })).toBeTruthy();
     act(() => renderer.root.findAllByType(Button).find((button) => button.props.children === "Fermer les formulaires").props.onClick());
     expect(renderer.root.findAllByType("form")).toHaveLength(0);

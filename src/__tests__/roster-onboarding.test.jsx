@@ -51,8 +51,8 @@ describe("first roster setup", () => {
   it("offers a working first-player link and hides empty copy actions", async () => {
     const { renderer } = await render(props());
     expect(content(renderer)).toContain("Ajoute ton premier joueur");
-    expect(content(renderer)).not.toContain("Copier Main");
-    expect(content(renderer)).not.toContain("Copier Subs");
+    expect(content(renderer)).not.toContain("Copier OP.GG titulaires");
+    expect(content(renderer)).not.toContain("Copier OP.GG remplaçants");
     const link = renderer.root.findAllByType("a").find((item) => item.props.href === "/gestion-equipe?section=roster");
     expect(link).toBeTruthy();
     act(() => link.props.onClick({ button: 0, preventDefault() {} }));
@@ -64,15 +64,15 @@ describe("first roster setup", () => {
     const settings = props();
     settings.data.players = [player];
     const { renderer } = await render(settings);
-    expect(content(renderer)).toContain("Copier Main");
-    expect(content(renderer)).not.toContain("Copier Subs");
+    expect(content(renderer)).toContain("Copier OP.GG titulaires");
+    expect(content(renderer)).not.toContain("Copier OP.GG remplaçants");
     expect(renderer.root.findAllByType("a").some((item) => item.props.href === "/gestion-equipe?section=roster")).toBe(true);
   });
 
   it.each(["member", "player"])("explains staff responsibility to a %s without offering an unavailable action", async (role) => {
     const settings = { ...props(), currentMember: { role }, user: { id: "invited" } };
     const { renderer, update, focus } = await render(settings);
-    expect(content(renderer)).toContain("Demande à ton staff de compléter le roster");
+    expect(content(renderer)).toContain("Demande à ton staff d’ajouter les joueurs");
     expect(renderer.root.findAllByType("a").some((item) => item.props.href.startsWith("/gestion-equipe"))).toBe(false);
     await update({ ...settings, managementOnly: true, routeSearch: "?section=roster" });
     expect(renderer.root.findAllByType("form").some((form) => form.props.className === "team-profile-form")).toBe(false);
@@ -113,7 +113,7 @@ describe("first roster setup", () => {
     await act(async () => renderer.root.findAllByType("form").find((form) => form.props.className === "team-profile-form").props.onSubmit({ preventDefault() {} }));
     expect(apiFetch).toHaveBeenCalledWith("players-create", expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Toplaner", riotId: "Toplaner#EUW", opggUrl: "", role: "TOP", rosterStatus: "", teamId: team.id }) }));
     expect(settings.refreshAll).toHaveBeenCalled();
-    expect(renderer.root.findByProps({ label: "Catégorie" }).props.value).toBe("JGL");
+    expect(renderer.root.findByProps({ label: "Poste ou fonction" }).props.value).toBe("JGL");
     expect(renderer.root.findByProps({ label: "Nom" }).props.value).toBe("");
     expect(scrollIntoView).toHaveBeenCalledTimes(1);
   });
@@ -122,7 +122,7 @@ describe("first roster setup", () => {
     const settings = { ...props(), managementOnly: true };
     settings.data.players = [player, { ...player, id: "jgl-sub", role: "JGL", roster_status: "SUB" }];
     const { renderer } = await render(settings);
-    expect(renderer.root.findByProps({ label: "Catégorie" }).props.value).toBe("JGL");
+    expect(renderer.root.findByProps({ label: "Poste ou fonction" }).props.value).toBe("JGL");
   });
 
   it.each([true, false])("focuses profile editing once, then returns to a connected trigger (%s)", async (isConnected) => {
