@@ -98,6 +98,10 @@
 .team-roster-empty > a { flex-shrink: 0; }
 .team-profile-form, .team-profile-edit-fields { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); align-items: end; gap: 16px; margin-top: 20px; }
 .team-profile-form > *, .team-profile-edit-fields > * { min-width: 0; }
+.team-import-next { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; padding: 16px 0 0; border-top: 1px solid var(--nxt5-border); }
+.team-import-next > div { flex: 1 1 22rem; min-width: 0; }
+.team-import-next h5 { font-size: 16px; font-weight: 600; color: var(--nxt5-text); }
+.team-import-next p { max-width: 65ch; margin-top: 6px; font-size: 14px; line-height: 1.65; color: var(--nxt5-text-secondary); }
 .team-profile-edit { margin-top: 24px; padding: 20px; background: var(--nxt5-surface-soft); border-radius: 10px; border-left: 2px solid var(--nxt5-accent); }
 .team-profile-edit-fields { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .nxt5-management-profile { padding: 20px 0; border-top: 1px solid var(--nxt5-border); gap: 16px; }

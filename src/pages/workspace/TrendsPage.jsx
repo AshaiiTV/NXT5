@@ -311,14 +311,14 @@ function TrendsPage({ data, selectedTeamId }) {
     };
   }), [matches]);
   const detailHeader = detailSection && <>
-    <nav aria-label="Retour aux tendances" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour à Draft</a></nav>
-    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Tendances · Draft" title={detailSection.title} subtitle={detailSection.description} /></div>
+    <nav aria-label="Retour aux analyses" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour à Draft</a></nav>
+    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Analyses · Draft" title={detailSection.title} subtitle={detailSection.description} /></div>
   </>;
 
   if (!matches.length) return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc." />}
-    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
-    <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune game dans cette sélection" : "Vos tendances commencent ici"} text={baseMatches.length ? "Choisis un autre contexte pour retrouver les analyses de l’équipe." : "Importe tes premières games pour suivre les résultats et faire émerger les répétitions."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les games" : "Importer des games"}</Button></div></Surface>
+    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles." />}
+    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
+    <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune partie dans cette sélection" : "Vos analyses commencent ici"} text={baseMatches.length ? "Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe." : "Importe tes premières parties pour suivre les résultats et repérer les points à travailler."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les parties" : "Importer une partie"}</Button></div></Surface>
   </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
@@ -999,8 +999,8 @@ function TrendsPage({ data, selectedTeamId }) {
   const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
   const trendPanelOptions = [
-    ["coach", "Synthèse", Gauge, "Préparer la review"],
-    ["evolution", "Évolution", Activity, "Suivre game après game"],
+    ["coach", "Synthèse", Gauge, "Préparer le débrief"],
+    ["evolution", "Évolution", Activity, "Suivre partie après partie"],
     ["comparison", "Comparer", RefreshCw, "Confronter deux sélections"],
     ["draft", "Draft", Crown, "Champions et compositions"],
     ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
@@ -1011,19 +1011,19 @@ function TrendsPage({ data, selectedTeamId }) {
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc.">
+    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.">
       <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? "Export en cours…" : "Exporter la synthèse"}</Button>
     </PageHeader>}
     {exportState === "error" && <p role="alert" className="trends-export-status">L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».</p>}
     {exportState === "done" && <p role="status" className="trends-export-status">La synthèse PNG a été téléchargée.</p>}
     <div className="trends-filters">
       <div className="trends-filter-controls">
-        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
-      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} game{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
+      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} partie{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
     </div>
-    {matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Petit échantillon : les patterns restent à confirmer. Ces observations portent sur {matches.length} game{matches.length > 1 ? "s" : ""}.</span></p>}
+    {matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Peu de parties : les répétitions restent à confirmer. Ces observations portent sur {matches.length} partie{matches.length > 1 ? "s" : ""}.</span></p>}
     {detailSection ? <DraftTrendDetails key={draftDetail} sectionId={draftDetail} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} /> : <>
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={label} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">

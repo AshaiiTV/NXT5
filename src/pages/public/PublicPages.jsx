@@ -17,24 +17,24 @@ function MarketingPreview() {
     <figure className="nxt5-entry-preview">
       <Surface className="nxt5-entry-preview-surface">
         <div className="nxt5-entry-preview-top">
-          <span className="nxt5-entry-preview-brand"><Swords aria-hidden="true" size={18} />Games</span>
+          <span className="nxt5-entry-preview-brand"><Swords aria-hidden="true" size={18} />Parties</span>
           <span className="nxt5-entry-example">Exemple illustratif</span>
         </div>
         <div className="nxt5-entry-preview-heading">
-          <h2>Scrim d’équipe</h2>
-          <p>Composition alliée · Détail d’une game</p>
+          <h2>Partie d’entraînement</h2>
+          <p>Les cinq rôles · Détail d’une partie</p>
         </div>
         <div className="nxt5-entry-preview-roster" aria-label="Exemple de composition : les cinq rôles de l’équipe">
           {["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => <div key={role}><RoleIcon role={role} className="h-8 w-8" /><span>{role}</span></div>)}
         </div>
-        <div className="nxt5-entry-preview-readings" aria-label="Informations disponibles dans une game">
+        <div className="nxt5-entry-preview-readings" aria-label="Informations disponibles dans une partie">
           {[
             [BarChart3, "Statistiques", "Or, dégâts, vision"],
-            [Target, "Chronologie", "Objectifs et fights"],
-            [FileText, "Review", "Notes du staff"],
+            [Target, "Chronologie", "Objectifs et combats"],
+            [FileText, "Débrief", "Points à travailler"],
           ].map(([Icon, title, text]) => <div key={title}><Icon aria-hidden="true" size={18} /><strong>{title}</strong><span>{text}</span></div>)}
         </div>
-        <div className="nxt5-entry-preview-footer"><span />Chaque observation reste liée à sa game.</div>
+        <div className="nxt5-entry-preview-footer"><span />Chaque observation reste liée à sa partie.</div>
       </Surface>
       <figcaption>Illustration du produit, sans donnée d’équipe réelle.</figcaption>
     </figure>
@@ -350,13 +350,13 @@ export function HomeScreen({ navigate }) {
         <section className="nxt5-entry-hero" aria-labelledby="home-title">
           <div className="nxt5-entry-hero-copy">
             <p className="nxt5-entry-eyebrow">Pour les équipes League of Legends</p>
-            <h1 id="home-title">Toute ton équipe.<br /><span>Une même direction.</span></h1>
-            <p className="nxt5-entry-lead">Réunis tes games, ton roster et tes reviews. Retrouve les informations utiles pour préparer la prochaine session.</p>
+            <h1 id="home-title">Comprends tes parties.<br /><span>Prépare la suite.</span></h1>
+            <p className="nxt5-entry-lead">Ajoute tes joueurs, importe une partie et retrouve les points à discuter en équipe. Prépare ta prochaine séance au même endroit.</p>
             <div className="nxt5-entry-actions">
               <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>Créer mon espace</LinkButton>
-              <a href="#features" className="nxt5-entry-text-link">Découvrir NXT5<ChevronDown aria-hidden="true" size={16} /></a>
+              <a href="#workflow" className="nxt5-entry-text-link">Comment ça marche<ChevronDown aria-hidden="true" size={16} /></a>
             </div>
-            <p className="nxt5-entry-hero-note">Games · Draft · Review · Planning</p>
+            <p className="nxt5-entry-hero-note">Un parcours guidé, dès ta première équipe.</p>
           </div>
           <MarketingPreview />
         </section>
@@ -364,35 +364,36 @@ export function HomeScreen({ navigate }) {
         <section id="features" className="nxt5-entry-features" aria-labelledby="features-title">
           <div className="nxt5-entry-section-heading">
             <p className="nxt5-entry-eyebrow">Un espace de travail commun</p>
-            <h2 id="features-title">Moins de dispersion.<br />Plus de contexte.</h2>
-            <p>Du premier roster à la prochaine review, garde le fil du travail de l’équipe.</p>
+            <h2 id="features-title">Tes joueurs, tes parties,<br />tes prochains entraînements.</h2>
+            <p>Retrouve ce qu’il te faut pour organiser l’équipe et comprendre ses parties.</p>
           </div>
           <div className="nxt5-entry-feature-list">
             {[
-              [Users, "Organise l’équipe", "Rassemble les profils, les rôles et les disponibilités. Chacun retrouve sa place et les prochaines sessions."],
-              [BarChart3, "Retrouve tes games", "Importe les matchs, consulte les statistiques et compare les périodes, sans perdre les games sources."],
-              [Target, "Prépare la suite", "Travaille les champion pools, construis tes compositions et garde les observations du staff dans les reviews."],
+              [Users, "Organise l’équipe", "Ajoute les joueurs et leur rôle, puis partage les disponibilités. Chacun retrouve les prochaines séances dans le planning."],
+              [BarChart3, "Comprends tes parties", "Importe une partie pour lire son résultat, les statistiques et les moments clés. Compare ensuite plusieurs parties dans Analyses."],
+              [Target, "Prépare la prochaine séance", "Note les points à travailler dans un débrief. Prépare les choix de champions avec ton équipe dans Draft."],
             ].map(([Icon, title, text], index) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /><span>0{index + 1}</span></div><h3>{title}</h3><p>{text}</p></article>)}
           </div>
         </section>
 
-        <section className="nxt5-entry-workflow" aria-labelledby="workflow-title">
+        <section id="workflow" className="nxt5-entry-workflow" aria-labelledby="workflow-title">
           <div className="nxt5-entry-section-heading">
-            <p className="nxt5-entry-eyebrow">De la game à la review</p>
-            <h2 id="workflow-title">Les données ouvrent la discussion.<br />Le staff garde la décision.</h2>
+            <p className="nxt5-entry-eyebrow">Pour commencer</p>
+            <h2 id="workflow-title">De ta première équipe<br />au premier débrief.</h2>
+            <p>Le site rassemble les faits. Ton équipe décide des points à travailler.</p>
           </div>
           <ol className="nxt5-entry-steps">
             {[
-              ["Importe", "Ajoute une game et retrouve sa composition."],
-              ["Observe", "Consulte les écarts et les moments de jeu."],
-              ["Échange", "Prépare une review avec tes observations."],
-              ["Organise", "Garde les points à travailler pour la suite."],
+              ["Réunis tes joueurs", "Crée ou rejoins une équipe, puis ajoute les profils des joueurs."],
+              ["Importe une partie", "NXT5 Importer récupère le fichier à ajouter dans Parties."],
+              ["Repère les écarts", "Commence par le résumé, puis ouvre les détails utiles."],
+              ["Prépare un débrief", "Garde vos observations et les points à travailler ensemble."],
             ].map(([title, text], index) => <li key={title}><span>0{index + 1}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}
           </ol>
         </section>
 
         <section className="nxt5-entry-start" aria-labelledby="start-title">
-          <div><p className="nxt5-entry-eyebrow">Ton prochain point d’équipe</p><h2 id="start-title">Commence par réunir ton roster.</h2><p>Crée ton compte, puis ouvre ou rejoins ton espace équipe.</p></div>
+          <div><p className="nxt5-entry-eyebrow">À toi de commencer</p><h2 id="start-title">Retrouve ton équipe sur NXT5.</h2><p>Crée ton compte, puis ouvre ou rejoins ton espace équipe.</p></div>
           <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>Créer un compte</LinkButton>
         </section>
       </main>
@@ -598,15 +599,15 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
         <section className="nxt5-auth-story" aria-labelledby="auth-story-title">
           <p className="nxt5-entry-eyebrow">Ton espace équipe</p>
           <h2 id="auth-story-title">Cinq rôles.<br /><span>Un travail commun.</span></h2>
-          <p>Du premier import à la prochaine review, retrouve le contexte dont ton équipe a besoin.</p>
+          <p>Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.</p>
           <ul>
-            {[[Users, "Un roster, des repères partagés", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Tes games à portée de main", "Les statistiques et leurs sources restent liées."], [FileText, "Le fil de vos reviews", "Les observations du staff accompagnent les games."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{title}</strong><span>{text}</span></div></li>)}
+            {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Tes parties à portée de main", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Vos débriefs au même endroit", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{title}</strong><span>{text}</span></div></li>)}
           </ul>
         </section>
         <Surface className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{isRegister ? "Bienvenue sur NXT5" : "Bon retour sur NXT5"}</p>
           <h1>{isSocialComplete ? "Termine ton inscription" : isRegister ? "Créer un compte" : "Connexion"}</h1>
-          <p className="nxt5-auth-intro">{isSocialComplete ? "Confirme tes informations pour créer ton compte NXT5." : isRegister ? "Crée ton compte pour ouvrir ou rejoindre un espace équipe." : "Retrouve tes équipes, tes games et tes reviews."}</p>
+          <p className="nxt5-auth-intro">{isSocialComplete ? "Confirme tes informations pour créer ton compte NXT5." : isRegister ? "Crée ton compte pour ouvrir ou rejoindre un espace équipe." : "Retrouve tes équipes, tes parties et tes débriefs."}</p>
           {socialStatus && <div className="mt-4"><SocialNotice status={socialStatus} /></div>}
           {isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref="/connexion?next=%2Fparametres" /> : <>
           <SocialLogin flow={isRegister ? "register" : "login"} rememberMe={rememberMe} disabled={loading} />

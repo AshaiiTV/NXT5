@@ -57,7 +57,12 @@
 
 .game-import-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin-top: 20px; }
 .game-import-step { min-width: 0; padding: 12px 0; border-top: 2px solid var(--nxt5-border); background: transparent; }
-.game-import-step p { line-height: 1.6; }
+.game-import-step p { font-size: 14px; line-height: 1.6; font-weight: 400; }
+.game-import-step > div > span > span { font-size: 14px; }
+.game-import-status { font-size: 14px; line-height: 1.65; color: var(--nxt5-text-secondary); }
+.game-import-confirmation-fields { padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
+.importer-download-details > summary:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+.importer-download-details > summary { line-height: 1.6; }
 .game-import-side { min-width: 0; min-height: 44px; border-radius: 2px; }
 .game-import-team { min-width: 0; padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .game-import-assignment { min-width: 0; padding: 16px 0; border-top: 1px solid var(--nxt5-border); background: transparent; }

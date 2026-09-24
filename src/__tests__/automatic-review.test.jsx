@@ -100,15 +100,15 @@ describe("automatic reviews in the workspace", () => {
     const requests = [];
     apiFetch.mockImplementation((_path, options) => new Promise((resolve) => requests.push({ resolve, ids: JSON.parse(options.body).matchIds })));
     const renderer = await mount({ matches: [game("one"), game("two")] });
-    act(() => button(renderer, "Créer une review").props.onClick());
+    act(() => button(renderer, "Préparer un débrief").props.onClick());
     act(() => button(renderer, "Tout lier").props.onClick());
     const notes = "  Conserver ce call\n";
     act(() => renderer.root.findByType("textarea").props.onChange({ target: { value: notes } }));
-    expect(button(renderer, "Créer").props.disabled).toBe(true);
+    expect(button(renderer, "Créer le débrief").props.disabled).toBe(true);
     await act(async () => requests.forEach((request) => request.resolve({ matches: request.ids.map(game) })));
     expect(renderer.root.findByType("textarea").props.value).toBe(notes);
     expect(output(renderer)).toContain("GAME 2 · Game two");
-    expect(button(renderer, "Créer").props.disabled).toBe(false);
+    expect(button(renderer, "Créer le débrief").props.disabled).toBe(false);
     const gameTwo = renderer.root.findAllByType("button").find((item) => item.findAllByType("p").some((p) => p.children.join("") === "Game two"));
     await act(async () => gameTwo.props.onClick());
     expect(output(renderer)).not.toContain("GAME 2 · Game two");
