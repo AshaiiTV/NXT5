@@ -21,7 +21,7 @@ Les pages administratives déjà explicites (intégrations, achats, demandes d�
 
 ## Compatibilité avec les évolutions récentes
 
-La branche part de `41bb2d6` et intègre `d888777` de `main`, notamment les PR #74 et #75. Le groupe Bot conserve ses pages distinctes Publications et Statistiques. Le bouton et le dialogue « Exporter sur Discord » restent alignés. L’import demeure accessible depuis la bibliothèque des parties, sans réapparaître dans le détail.
+La branche part de `41bb2d6` et intègre les PR #74 et #75 (`d888777`), puis la PR #76 (`3dcb22b`) arrivée pendant la revue. Le groupe Bot conserve ses pages distinctes Publications et Statistiques. Le bouton et le dialogue « Exporter sur Discord » restent alignés. L’import demeure accessible depuis la bibliothèque des parties, sans réapparaître dans le détail. La nouvelle structure Discord de la PR #76 (compte personnel, copie de commande, état du serveur et usages de l’équipe) prime sur l’ancienne disposition ; seuls les textes compatibles de cette passe s’y ajoutent.
 
 ## Vérification locale
 
@@ -32,8 +32,9 @@ Le contrôle utilise les vrais composants et le cadre complet de l’application
 - Profil : lecture de la synthèse sur mobile, navigation des cinq rubriques par le sélecteur natif, piste avant les chiffres et définitions visibles.
 - Paramètres : ouverture et fermeture au clavier du volet mot de passe ; les tests automatisés couvrent conservation des champs pendant l’erreur, nouvel essai et nettoyage après succès.
 - Après intégration de `main`, la page Statistiques du bot affiche bien le nouveau menu Bot, sans remonter le formulaire Publications.
+- Après intégration de la PR #76, contrôle visuel de Discord à 390 px : compte personnel et gestion de l’équipe séparés, nouvelle navigation conservée, sans débordement. L’état Analyses sans parties et l’aperçu des tarifs ont aussi été relus à cette largeur ; aucun formulaire envoyé.
 
-Le navigateur de contrôle a rencontré des délais techniques en fin de session. Les contrôles complémentaires des écrans vides, des tarifs et de certains rendus finaux n’ont pas tous été achevés dans le navigateur ; les tests de composants, navigation et permissions complètent cette couverture. Les illustrations externes peuvent afficher leur solution de secours dans le banc local. Il ne s’agit ni d’une mesure de compréhension auprès de débutants, ni d’une certification de toutes les opérations en production.
+Le navigateur de contrôle a rencontré des délais techniques en fin de session. Après reprise, les contrôles de l’état vide Analyses, des tarifs et du nouveau Discord ont abouti ; tous les autres états et toutes les variantes finales n’ont pas été parcourus dans le navigateur. Les tests de composants, navigation et permissions complètent cette couverture. Les illustrations externes peuvent afficher leur solution de secours dans le banc local. Il ne s’agit ni d’une mesure de compréhension auprès de débutants, ni d’une certification de toutes les opérations en production.
 
 ## Tests
 
@@ -41,4 +42,6 @@ Les tests ajoutés vérifient des comportements : focus du catalogue sans modifi
 
 La première passe complète a révélé deux assertions sur les anciens libellés, corrigées, et un dépassement du délai par défaut de 5 secondes dans les migrations. Les trois suites concernées ont ensuite réussi en série (54 tests). Un nouveau contrôle complet est exécuté après l’intégration de `main`, avec deux workers et un délai de test de 30 secondes pour cette machine ; ces options ne modifient pas la configuration du projet.
 
-Résultat final après intégration de `main` : **typecheck réussi, 111 suites et 1 869 tests réussis, build de production réussi, `git diff --check` propre**. Commandes : `npm run typecheck`, `npm test -- --maxWorkers=2 --testTimeout=30000`, `npm run build`. La branche est préparée pour revue ; cette passe n’effectue pas de mise en production.
+Contrôle complet après intégration des PR #74 et #75 : **typecheck réussi, 111 suites et 1 869 tests réussis, build de production réussi, `git diff --check` propre**. Commandes : `npm run typecheck`, `npm test -- --maxWorkers=2 --testTimeout=30000`, `npm run build`.
+
+Après l’intégration de la PR #76 : **112 tests réussis sur les quatre suites Discord/compte ciblées**, typecheck et compilation réussis. La nouvelle structure et les fonctions Discord sont conservées ; les différences restantes sur ces composants concernent les textes. La branche est préparée pour revue ; cette passe n’effectue pas de mise en production.
