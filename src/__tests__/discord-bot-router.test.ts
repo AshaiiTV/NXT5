@@ -12,6 +12,7 @@ const id = (n: number) => `72000000-0000-4000-8000-${String(n).padStart(12, '0')
 const owner = id(1), coach = id(2), member = id(3), team = id(10), otherTeam = id(11), matchId = id(20);
 const app = '200000000000000001', guild = '200000000000000002', otherGuild = '200000000000000003';
 const coachDiscord = '200000000000000004', memberDiscord = '200000000000000005';
+const channelA = '200000000000000006', channelB = '200000000000000007', unrelatedChannel = '200000000000000008';
 const roleA = '200000000000000101', roleB = '200000000000000102';
 const keys = generateKeyPairSync('ed25519');
 const publicKey = (keys.publicKey.export({ format: 'der', type: 'spki' }) as Buffer).subarray(-32).toString('hex');
@@ -29,7 +30,7 @@ function component(customId: string, discordId = memberDiscord, values?: string[
 }
 const withRoles = (data: any, roles: string[], permissions = '0') => ({ ...data, member: { ...data.member, roles, permissions } });
 function signed(data: any, changes: any = {}) {
-  const payload = { id: String(210000000000000000n + BigInt(++interactionSequence)), application_id: app, guild_id: guild,
+  const payload = { id: String(210000000000000000n + BigInt(++interactionSequence)), application_id: app, guild_id: guild, channel_id: channelA,
     token: 'test-interaction-token', ...data, ...changes };
   const body = JSON.stringify(payload), timestamp = String(Math.floor(Date.now() / 1000));
   return new Request('https://nxt5.example/.netlify/functions/discord-interactions', { method: 'POST', body,
@@ -44,7 +45,9 @@ async function dispatch(data: any, changes: any = {}) {
   await Promise.all(pending);
   const calls = state.fetch.mock.calls;
   const message = calls.length ? JSON.parse(calls[calls.length - 1][1].body) : null;
-  return { response, ack, message };
+  const published = calls.filter(([url, options]: any[]) => String(url).includes('/channels/') && options?.method === 'POST')
+    .map(([, options]: any[]) => JSON.parse(options.body));
+  return { response, ack, message, published, calls };
 }
 function button(payload: any, label: string) {
   return payload.components.flatMap((row: any) => row.components).find((item: any) => item.label === label)?.custom_id;
@@ -55,11 +58,11 @@ beforeAll(async () => {
   state.pg = new PGlite();
   await state.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000','hex')"));
-  for (const file of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql', '20260923_discord_bot_role_access.sql']) {
+  for (const file of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql', '20260923_discord_bot_role_access.sql', '20260924_discord_command_channel.sql']) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + file, import.meta.url), 'utf8'));
   }
   await state.pg.exec(`create table app_schema_migrations(migration_key text primary key);
-    insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1')`);
+    insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1'),('discord-command-channel-20260924-v1')`);
 }, 30_000);
 beforeEach(async () => {
   for (const [key, value] of Object.entries({ PUBLIC_SITE_URL: 'https://nxt5.example', CONTEXT: 'production', DISCORD_APPLICATION_ID: app,
@@ -76,7 +79,7 @@ beforeEach(async () => {
   await rows(`insert into users(id,account_name,name,password_hash) values($1,'owner','Owner','unused'),($2,'coach','Coach','unused'),($3,'member','Member','unused')`, [owner, coach, member]);
   await rows("insert into teams(id,owner_id,name,tag) values($1,$3,'Team A','AAA'),($2,$3,'PRIVATE_TEAM','BBB')", [team, otherTeam, owner]);
   await rows("insert into team_members(team_id,user_id,role) values($1,$2,'coach'),($1,$3,'player')", [team, coach, member]);
-  await rows("insert into discord_connections(team_id,guild_id,status) values($1,$3,'active'),($2,$3,'active')", [team, otherTeam, guild]);
+  await rows("insert into discord_connections(team_id,guild_id,command_channel_id,status) values($1,$3,$4,'active'),($2,$3,$5,'active')", [team, otherTeam, guild, channelA, channelB]);
   await rows('insert into discord_user_links(discord_user_id,user_id,discord_label) values($1,$2,\'Coach\'),($3,$4,\'Member\')', [coachDiscord, coach, memberDiscord, member]);
   await rows("insert into players(id,team_id,user_id,name,role) values($1,$2,$3,'Member','MID')", [id(30), team, member]);
   await rows("insert into matches(id,team_id,game_id,opponent,result) values($1,$2,'TEST_GAME','Known opponent','Victoire')", [matchId, team]);
@@ -85,29 +88,26 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(
 afterAll(async () => { await state.pg?.close(); });
 
 describe('Signed Discord HTTP bot routing', () => {
-  it('keeps each shared-server team behind its own Discord role across listing, selection, reads, legacy management and autocomplete', async () => {
+  it('binds reads and legacy management to the configured team channel and its Discord role', async () => {
     await rows("insert into team_members(team_id,user_id,role) values($1,$2,'captain')", [otherTeam, member]);
     await rows("update team_members set role='captain' where team_id=$1 and user_id=$2", [team, member]);
     await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$3,$4),($2,$3,$5)',
       [team, otherTeam, guild, [roleA], [roleB]]);
-
-    const accountWithoutRoles = await dispatch(command('equipe liste'));
-    expect(description(accountWithoutRoles)).not.toContain(team);
-    expect(description(accountWithoutRoles)).not.toContain(otherTeam);
-    const listA = await dispatch(withRoles(command('equipe liste'), [roleA]));
-    expect(description(listA)).toContain('Team A');
-    expect(description(listA)).not.toContain(otherTeam);
-    const listB = await dispatch(withRoles(command('equipe liste'), [roleB]));
-    expect(description(listB)).not.toContain(team);
-    expect(description(listB)).toContain(otherTeam);
-
-    const chooseB = await dispatch(withRoles(command('equipe choisir', { nom: otherTeam }), [roleA]));
-    expect(description(chooseB)).toContain('pas accessible');
+    const oldList = await dispatch(command('equipe liste'));
+    expect(description(oldList)).toContain('choix manuel');
+    expect(JSON.stringify(oldList.message)).not.toContain('PRIVATE_TEAM');
+    await dispatch(withRoles(command('equipe choisir', { nom: otherTeam }), [roleA]));
     expect(await rows('select team_id from discord_user_team_choices')).toEqual([]);
-    const readB = await dispatch(withRoles(command('derniere', { equipe: otherTeam }), [roleA], '32'));
-    expect(description(readB)).toContain('pas accessible');
-    const readA = await dispatch(withRoles(command('derniere', { equipe: team }), [roleA]));
-    expect(readA.message.embeds[0].title).toContain('Known opponent');
+    const wrongRole = await dispatch(withRoles(command('voir', { sujet: 'derniere' }), [roleB]));
+    expect(description(wrongRole)).toContain('pas accès');
+    expect(wrongRole.published).toEqual([]);
+    const wrongChannel = await dispatch(withRoles(command('voir', { sujet: 'derniere' }), [roleA]), { channel_id: channelB });
+    expect(description(wrongChannel)).toContain('pas accès');
+    expect(wrongChannel.published).toEqual([]);
+    const readA = await dispatch(withRoles(command('voir', { sujet: 'derniere' }), [roleA]));
+    expect(readA.published[0].embeds[0].title).toContain('Known opponent');
+    expect(readA.message.content).toContain('Résultat envoyé');
+    expect(readA.calls.some(([url]: any[]) => String(url).includes('/channels/' + channelA + '/messages'))).toBe(true);
 
     const legacy = (path: string, teamId: string, roles: string[]) => withRoles(command(path, { equipe: teamId }), roles, '32');
     for (const path of ['statut', 'pause', 'reprendre']) {
@@ -123,17 +123,12 @@ describe('Signed Discord HTTP bot routing', () => {
 
     const legacyAutocomplete = (roles: string[]) => withRoles({ type: 4, member: person(), data: { name: 'nxt',
       options: [{ name: 'pause', options: [{ name: 'equipe', value: '', focused: true }] }] } }, roles, '32');
-    expect((await dispatch(legacyAutocomplete([roleA]))).ack.data.choices.map((choice: any) => choice.value)).toEqual([team]);
+    expect((await dispatch(legacyAutocomplete([roleA]))).ack.data.choices).toEqual([]);
     expect((await dispatch(legacyAutocomplete([]))).ack.data.choices).toEqual([]);
     const memberAutocomplete = (roles: string[]) => withRoles({ type: 4, member: person(), data: { name: 'nxt',
       options: [{ type: 2, name: 'equipe', options: [{ type: 1, name: 'choisir', options: [{ name: 'nom', value: '', focused: true }] }] }] } }, roles);
-    expect((await dispatch(memberAutocomplete([roleB]))).ack.data.choices.map((choice: any) => choice.value)).toEqual([otherTeam]);
+    expect((await dispatch(memberAutocomplete([roleB]))).ack.data.choices).toEqual([]);
     expect((await dispatch(memberAutocomplete([]))).ack.data.choices).toEqual([]);
-
-    await dispatch(withRoles(command('equipe choisir', { nom: otherTeam }), [roleB]));
-    expect((await rows('select team_id from discord_user_team_choices'))[0].team_id).toBe(otherTeam);
-    const noFallback = await dispatch(withRoles(command('stats equipe'), [roleA]));
-    expect(description(noFallback)).toContain('Choisis ton équipe');
   });
 
   it('rejects stale buttons and menus after a configured Discord role is removed', async () => {
@@ -141,7 +136,7 @@ describe('Signed Discord HTTP bot routing', () => {
     const list = await dispatch(withRoles(command('game chercher', { periode: 'semaine' }), [roleA]));
     const menu = list.message.components[0].components[0];
     const menuDenied = await dispatch(component(menu.custom_id, memberDiscord, [matchId]));
-    expect(description(menuDenied)).toContain('pas accessible');
+    expect(description(menuDenied)).toContain('pas accès');
     expect(JSON.stringify(menuDenied.message)).not.toContain('Known opponent');
     const menuAllowed = await dispatch(withRoles(component(menu.custom_id, memberDiscord, [matchId]), [roleA]));
     expect(menuAllowed.message.embeds[0].title).toContain('Known opponent');
@@ -149,7 +144,7 @@ describe('Signed Discord HTTP bot routing', () => {
     const preview = await dispatch(withRoles(command('objectifs definir', { objectif: 'Scoped objective' }, coachDiscord), [roleA]));
     const confirm = button(preview.message, 'Confirmer');
     const denied = await dispatch(component(confirm, coachDiscord));
-    expect(description(denied)).toContain('pas accessible');
+    expect(description(denied)).toContain('pas accès');
     expect(await rows('select title from discord_team_goals')).toEqual([]);
     const allowed = await dispatch(withRoles(component(confirm, coachDiscord), [roleA]));
     expect(allowed.message.embeds[0].title).toBe('Objectif créé');
@@ -162,18 +157,18 @@ describe('Signed Discord HTTP bot routing', () => {
     await rows("insert into discord_team_events(id,team_id,title,event_type,starts_at,duration_minutes) values($1,$2,'Original','scrim',$3,60)", [id(40), team, start.toISOString()]);
     const request = await dispatch(withRoles(command('evenement modifier', { evenement: id(40) }, coachDiscord), [roleA]));
     const open = button(request.message, 'Ouvrir le formulaire');
-    expect(description(await dispatch(component(open, coachDiscord)))).toContain('pas accessible');
+    expect(description(await dispatch(component(open, coachDiscord)))).toContain('pas accès');
     const opened = await dispatch(withRoles(component(open, coachDiscord), [roleA]));
     expect(opened.ack.type).toBe(9);
     const form = opened.ack.data;
     const values = form.components.map((row: any) => ({ type: 1, components: row.components.map((input: any) => ({ type: 4,
       custom_id: input.custom_id, value: input.custom_id === 'titre' ? 'Authorized change' : input.value || '' })) }));
     const submission = { type: 5, member: person(coachDiscord), data: { custom_id: form.custom_id, components: values } };
-    expect(description(await dispatch(submission))).toContain('pas accessible');
+    expect(description(await dispatch(submission))).toContain('pas accès');
     expect((await rows('select title from discord_team_events where id=$1', [id(40)]))[0].title).toBe('Original');
     const preview = await dispatch(withRoles(submission, [roleA]));
     const confirm = button(preview.message, 'Confirmer');
-    expect(description(await dispatch(component(confirm, coachDiscord)))).toContain('pas accessible');
+    expect(description(await dispatch(component(confirm, coachDiscord)))).toContain('pas accès');
     expect((await rows('select title from discord_team_events where id=$1', [id(40)]))[0].title).toBe('Original');
     const done = await dispatch(withRoles(component(confirm, coachDiscord), [roleA]));
     expect(done.message.embeds[0].title).toBe('Événement modifié');
@@ -182,26 +177,54 @@ describe('Signed Discord HTTP bot routing', () => {
   it('keeps help immediately accessible and private without any personal account or database query', async () => {
     await rows('delete from discord_user_links');
     state.sql.mockClear();
-    const result = await dispatch(command('help'));
+    const result = await dispatch(command('help'), { channel_id: unrelatedChannel });
     expect(result.ack).toMatchObject({ type: 4, data: { flags: 64, allowed_mentions: { parse: [] } } });
     expect(state.sql).not.toHaveBeenCalled();
     expect(state.fetch).not.toHaveBeenCalled();
     const next = button(result.ack.data, 'Suivant');
-    const page = await dispatch(component(next));
+    const page = await dispatch(component(next), { channel_id: unrelatedChannel });
     expect(page.ack.type).toBe(7); // updates the existing ephemeral help message
     expect(state.sql).not.toHaveBeenCalled();
     expect(page.ack.data.allowed_mentions.parse).toEqual([]);
   });
 
-  it('acknowledges type 2 before database work and sends the read result to the original private webhook', async () => {
-    const result = await dispatch(command('stats equipe', { periode: 'semaine' }));
+  it('acknowledges before work, posts shareable team data once and keeps the interaction reply private', async () => {
+    const result = await dispatch(command('voir', { sujet: 'stats' }));
     expect(result.ack).toEqual({ type: 5, data: { flags: 64 } });
     expect(result.message.allowed_mentions.parse).toEqual([]);
-    expect(result.message.embeds[0].title).toBe('Statistiques d’équipe');
-    const [url, options] = state.fetch.mock.calls[0];
+    expect(result.message.content).toContain('Résultat envoyé');
+    expect(result.published).toHaveLength(1);
+    expect(result.published[0].embeds[0].title).toBe('Statistiques d’équipe');
+    expect(result.published[0].nonce).toBeDefined();
+    expect(result.published[0].enforce_nonce).toBe(true);
+    expect(result.published[0].allowed_mentions.parse).toEqual([]);
+    const [url, options] = result.calls[result.calls.length - 1];
     expect(url).toBe(`https://discord.com/api/v10/webhooks/${app}/test-interaction-token/messages/@original`);
     expect(options).toMatchObject({ method: 'PATCH', redirect: 'error' });
     expect(await rows('select status from discord_interaction_receipts')).toEqual([{ status: 'completed' }]);
+  });
+
+  it('keeps personal objectives and profile private even inside or outside the team channel', async () => {
+    await rows("insert into discord_team_goals(team_id,player_id,title) values($1,$2,'PERSONAL_TARGET')", [team, id(30)]);
+    const goals = await dispatch(command('voir', { sujet: 'objectifs' }));
+    expect(goals.ack).toEqual({ type: 5, data: { flags: 64 } });
+    expect(goals.message.embeds[0].title).toBe('Objectifs actifs');
+    expect(goals.message.embeds[0].fields[0].name.replaceAll('\\', '')).toBe('PERSONAL_TARGET');
+    expect(goals.published).toEqual([]);
+    const profile = await dispatch(command('profil'), { channel_id: unrelatedChannel });
+    expect(profile.message.embeds[0].title).toBe('Ton compte Discord');
+    expect(profile.published).toEqual([]);
+  });
+
+  it('refuses voir outside the configured channel without publishing data', async () => {
+    const outside = await dispatch(command('voir', { sujet: 'derniere' }), { channel_id: unrelatedChannel });
+    expect(outside.ack).toEqual({ type: 5, data: { flags: 64 } });
+    expect(description(outside)).toContain('salon de commandes');
+    expect(JSON.stringify(outside.message)).not.toContain('Known opponent');
+    expect(outside.published).toEqual([]);
+    const missing = await dispatch(command('voir', { sujet: 'derniere' }), { channel_id: 'invalid' });
+    expect(missing.ack).toMatchObject({ type: 4, data: { flags: 64 } });
+    expect(missing.published).toEqual([]);
   });
 
   it('rejects missing signatures and preview invocations before exposing any read data', async () => {
@@ -218,12 +241,23 @@ describe('Signed Discord HTTP bot routing', () => {
     const opened = await dispatch(component(menu.custom_id, memberDiscord, [matchId]));
     expect(opened.message.embeds[0].title).toContain('Known opponent');
     const wrongGuild = await dispatch(component(menu.custom_id, memberDiscord, [matchId]), { guild_id: otherGuild });
-    expect(description(wrongGuild)).toContain('pas accessible');
+    expect(description(wrongGuild)).toContain('salon de commandes');
     await rows('delete from team_members where team_id=$1 and user_id=$2', [team, member]);
     const removed = await dispatch(component(menu.custom_id, memberDiscord, [matchId]));
-    expect(description(removed)).toContain('pas accessible');
+    expect(description(removed)).toContain('pas accès');
     expect(JSON.stringify(removed.message)).not.toContain('Known opponent');
     expect(removed.ack.data.flags).toBe(64);
+  });
+
+  it('invalidates an existing game menu when the team command channel changes', async () => {
+    const list = await dispatch(command('game chercher', { periode: 'semaine' }));
+    const menu = list.message.components[0].components[0];
+    await rows('update discord_connections set command_channel_id=$2 where team_id=$1', [team, unrelatedChannel]);
+    const oldChannel = await dispatch(component(menu.custom_id, memberDiscord, [matchId]));
+    expect(description(oldChannel)).toContain('salon de commandes');
+    expect(JSON.stringify(oldChannel.message)).not.toContain('Known opponent');
+    const newChannel = await dispatch(component(menu.custom_id, memberDiscord, [matchId]), { channel_id: unrelatedChannel });
+    expect(newChannel.message.embeds[0].title).toContain('Known opponent');
   });
 
   it('rechecks staff privileges at confirmation and binds confirmation tokens to their creator', async () => {
@@ -321,7 +355,7 @@ describe('Signed Discord HTTP bot routing', () => {
     expect((await rows('select status from discord_connections where team_id=$1', [otherTeam]))[0].status).toBe('active');
 
     await rows("update team_members set role='captain' where team_id=$1 and user_id=$2", [team, member]);
-    expect((await suggestions()).ack).toEqual({ type: 8, data: { choices: [{ name: 'Team A [AAA] · 00000010', value: team }] } });
+    expect((await suggestions()).ack).toEqual({ type: 8, data: { choices: [] } });
     const implicitTeam = await dispatch(serverManager('statut', {}));
     expect(implicitTeam.message.content).toContain('Team A');
     expect(implicitTeam.message.content).not.toContain('PRIVATE_TEAM');

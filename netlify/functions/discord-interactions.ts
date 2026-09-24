@@ -6,9 +6,9 @@ import { json } from './_lib/http';
 import { getDiscordConfig, verifyDiscordInteraction, isDiscordId, isDiscordEnabled, publicDiscordStatus } from './_lib/discord-config';
 import { assertDiscordSchemaReady } from './_lib/discord-queue';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
-import { getDiscordGuild } from './_lib/discord-client';
+import { discordRequest, getDiscordGuild } from './_lib/discord-client';
 import { discordBotFailure, discordMemberTeamChoices, executeDiscordBot, immediateDiscordHelp, openDiscordBotModal, parseDiscordCommand } from './_lib/discord-bot';
-import { assertDiscordBotSchemaReady, botIdentity, botMemberRoleIds, botTeams, resolveBotContext } from './_lib/discord-bot-common';
+import { assertDiscordBotSchemaReady, botIdentity, botMemberRoleIds, resolveBotContext } from './_lib/discord-bot-common';
 import { discordError } from './_lib/discord-access';
 
 function responseMessage(content: string) {
@@ -25,19 +25,10 @@ const cleanLabel = (value: unknown, limit = 100) => Array.from(String(value || '
 const teamName = (connection: any) => cleanLabel(connection.team_name || 'Équipe NXT5').replace(/([\\*_`~|<>\[\]()])/g, '\\$1');
 
 // Discord server permissions alone never grant access to another NXT5 team.
-export async function discordTeamChoices(interaction: any) {
-  if (!isDiscordId(interaction.guild_id) || !isDiscordId(interaction.member?.user?.id) || !canManageServer(interaction)) return [];
-  const command = interaction.data?.options?.[0];
-  const option = command?.options?.find((item: any) => item.name === 'equipe' && item.focused === true);
-  if (!teamCommands.includes(command?.name) || typeof option?.value !== 'string' || option.value.length > 100) return [];
-  await assertDiscordSchemaReady();
-  await assertDiscordBotSchemaReady();
-  await assertSubjectRateLimit('discord-autocomplete', interaction.guild_id + ':' + interaction.member.user.id, { limit: 60, windowSeconds: 60 });
-  const { identity, teams } = await botTeams(interaction.member.user.id, interaction.guild_id, interaction.member.roles);
-  const search = option.value.trim().toLowerCase();
-  return teams.filter(team => team.owner_id === identity.user_id || ['owner', 'captain'].includes(team.role))
-    .filter(team => !search || `${team.name} ${team.tag || ''} ${team.id}`.toLowerCase().includes(search))
-    .slice(0, 25).map(team => ({ name: cleanLabel(team.name, 65) + (team.tag ? ' [' + cleanLabel(team.tag, 10) + ']' : '') + ' · ' + team.id.slice(-8), value: team.id }));
+export async function discordTeamChoices(_interaction: any) {
+  // Old registrations may still ask for a manual team. The channel is now the
+  // only source of team context, so never advertise another team's name.
+  return [];
 }
 
 async function autocompleteResponse(interaction: any) {
@@ -76,6 +67,7 @@ function commandFailureMessage(error:any) {
   if (error?.code==='DISCORD_BOT_SCHEMA_REQUIRED') return error.message;
   if (error?.code==='23505' || error?.code==='22012') return 'La liaison a changé ou ce code a déjà été utilisé. Actualise NXT5 et réessaie.';
   if (error?.status===429) return 'Trop de commandes rapprochées. Patiente un instant puis réessaie.';
+  if (error?.code==='DISCORD_CHANNEL_FORBIDDEN') return 'Utilise le salon de commandes associé à ton équipe dans Bot Discord.';
   if (['DISCORD_ACCOUNT_REQUIRED', 'DISCORD_TEAM_FORBIDDEN', 'DISCORD_ROLE_FORBIDDEN'].includes(error?.code)) return 'Lie ton compte Discord à NXT5 et vérifie que tu es responsable de cette équipe et possèdes son rôle Discord autorisé.';
   return 'L’opération n’a pas pu aboutir. Vérifie la connexion dans NXT5 puis réessaie.';
 }
@@ -101,20 +93,20 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
       sql("select team_id from discord_connections where team_id=$1 for update", [code.team_id]),
       sql("select 1/case when exists(select 1 from discord_link_codes l join teams t on t.id=l.team_id left join team_members tm on tm.team_id=l.team_id and tm.user_id=l.created_by join discord_user_links u on u.user_id=l.created_by and u.discord_user_id=$3 where l.id=$1 and l.team_id=$2 and l.consumed_at is null and l.expires_at>now() and (t.owner_id=l.created_by or tm.role in ('owner','captain'))) then 1 else 0 end", [code.id, code.team_id, interaction.member.user.id]),
       sql("update discord_link_codes set consumed_at=now(),guild_id=$2 where id=$1 and consumed_at is null", [code.id, guildId]),
-      sql("update discord_connections set guild_id=$2,status='paused',enabled_at=null,config_version=config_version+1,updated_at=now() where team_id=$1 returning team_id", [code.team_id, guildId]),
+      sql("update discord_connections set command_channel_id=case when guild_id=$2 then command_channel_id else null end,guild_id=$2,status='paused',enabled_at=null,config_version=config_version+1,updated_at=now() where team_id=$1 returning team_id", [code.team_id, guildId]),
       sql("update publication_jobs set status='cancelled',last_error_code='DISCORD_RELINKED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [code.team_id]),
       sql("delete from discord_routes where team_id=$1 and guild_id<>$2", [code.team_id, guildId]),
       sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'discord.connected','team',$2,$3::jsonb)", [code.created_by, code.team_id, JSON.stringify({ guildId, discordUserId: interaction.member.user.id, interactionId:interaction.id })]),
     ]);
     if (!result[3]?.length) return 'La liaison n’a pas été enregistrée. Actualise NXT5.';
-    return 'Serveur relié à cette équipe NXT5. Retourne dans ses réglages pour choisir les salons, tester l’aperçu puis activer les publications. Les autres équipes de ce serveur conservent leurs réglages.';
+    return 'Serveur relié à cette équipe NXT5. Retourne dans Bot Discord pour choisir son salon de commandes et ses salons de publication. Les autres équipes du serveur conservent leurs réglages.';
   }
-  if (command?.name === 'aide') return 'Invite le bot une seule fois sur ce serveur, puis relie chaque équipe avec son propre code /nxt connecter. Configure ses salons dans NXT5. Pour /nxt statut, /nxt pause et /nxt reprendre, choisis l’option equipe lorsque plusieurs équipes partagent le serveur. Chaque action concerne uniquement l’équipe choisie.';
-  if (!teamCommands.includes(command?.name)) return 'Commande inconnue. Utilise /nxt aide.';
+  if (command?.name === 'aide') return 'Ouvre /nxt help pour suivre le tutoriel. Dans NXT5, associe un salon de commandes à chaque équipe ; le salon détermine l’équipe automatiquement.';
+  if (!teamCommands.includes(command?.name)) return 'Commande inconnue. Utilise /nxt help.';
   await assertDiscordBotSchemaReady();
   const option = command.options?.find((item: any) => item.name === 'equipe');
-  if (option && (typeof option.value !== 'string' || !option.value.trim() || option.value.length > 100)) return 'Choisis une équipe dans les suggestions de l’option equipe.';
-  const ctx = await resolveBotContext(interaction.member.user.id, guildId, option?.value.trim() || undefined, interaction.member.roles);
+  if (option && (typeof option.value !== 'string' || !option.value.trim() || option.value.length > 100)) return 'L’ancienne option équipe est invalide. Utilise le salon de commandes de ton équipe.';
+  const ctx = await resolveBotContext(interaction.member.user.id, guildId, interaction.channel_id, interaction.member.roles, option?.value.trim() || undefined);
   if (!ctx.canManage) throw discordError('Cette commande est réservée au responsable NXT5 de cette équipe.', 403, 'DISCORD_ROLE_FORBIDDEN');
   const [connection] = await sql(`select c.*,t.name as team_name from discord_connections c join teams t on t.id=c.team_id
     where c.team_id=$1 and c.guild_id=$2 and c.status<>'disconnected'`, [ctx.teamId, guildId]);
@@ -154,7 +146,7 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
     const status = publicDiscordStatus();
     return 'Connexion de ' + teamName(connection) + ' : ' + (connection.status === 'active' ? 'active' : 'en pause') + '. Envois du service : ' + (status.enabled ? 'actifs' : 'suspendus') + '. Consulte son historique détaillé dans NXT5.';
   }
-  return 'Commande inconnue. Utilise /nxt aide.';
+  return 'Commande inconnue. Utilise /nxt help.';
 }
 
 async function replyToDeferred(interaction: any) {
@@ -162,6 +154,19 @@ async function replyToDeferred(interaction: any) {
   try {
     const legacy = interaction.type === 2 && ['connecter', ...teamCommands].includes(parseDiscordCommand(interaction).command);
     message = legacy ? responseMessage(await executeDiscordCommand(interaction)) : await executeDiscordBot(interaction);
+    if (message?._nxtPublicTeamId && interaction.type === 2) {
+      // Keep the interaction reply private, including authorization or send
+      // errors. Only successful, shareable reads create one channel message.
+      // Revalidate before publishing in case the channel was reassigned while
+      // the data was being fetched.
+      await resolveBotContext(interaction.member.user.id, interaction.guild_id, interaction.channel_id,
+        interaction.member.roles, message._nxtPublicTeamId);
+      const { flags: _flags, _nxtPublicTeamId: _teamId, ...publicMessage } = message;
+      await discordRequest('/channels/' + interaction.channel_id + '/messages', {
+        method: 'POST', body: { ...publicMessage, nonce: interaction.id, enforce_nonce: true },
+      });
+      message = responseMessage('Résultat envoyé dans le salon de ton équipe.');
+    }
   }
   catch (error: any) {
     console.error('[discord-interaction]', { code: error?.code || 'COMMAND_FAILED', status: error?.status || 500 });
@@ -190,7 +195,7 @@ async function handler(request: Request, context: Context) {
   const dataValid = [2, 4].includes(interaction.type) ? interaction.data?.name === 'nxt'
     : typeof interaction.data?.custom_id === 'string' && interaction.data.custom_id.startsWith('nxt:') && interaction.data.custom_id.length <= 100;
   if (![2, 3, 4, 5].includes(interaction.type) || !isDiscordId(interaction.id) || interaction.application_id !== applicationId || !isDiscordId(interaction.guild_id)
-    || !isDiscordId(interaction.member?.user?.id) || !dataValid || typeof interaction.token !== 'string' || !interaction.token || interaction.token.length > 1024) {
+    || !isDiscordId(interaction.member?.user?.id) || !isDiscordId(interaction.channel_id) || !dataValid || typeof interaction.token !== 'string' || !interaction.token || interaction.token.length > 1024) {
     if (interaction.type === 4) return json({ type: 8, data: { choices: [] } });
     return json({ type: 4, data: { ...responseMessage('Cette commande doit être utilisée dans le serveur relié à NXT5.'), flags: 64 } });
   }

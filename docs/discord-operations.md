@@ -1,6 +1,6 @@
 # NXT5 → Discord — installation et exploitation
 
-Version V1 · mise à jour du 22 septembre 2026 : publication manuelle depuis les statistiques d’une game, invitation avec Administrateur, choix des salons et serveurs partagés entre plusieurs équipes.
+Version V1 · mise à jour du 24 septembre 2026 : publication manuelle depuis les statistiques d’une game, serveurs partagés et salon de commandes propre à chaque équipe.
 
 Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
 
@@ -16,7 +16,7 @@ Le code permet **plusieurs équipes NXT5 sur le même serveur Discord**, avec **
 
 L’activation ne publie pas l’historique. Une ancienne game peut être partagée explicitement depuis son aperçu. Une destination manuelle continue à recevoir les corrections d’une game déjà partagée. Ajouter une catégorie ou une destination ne déplace pas silencieusement une publication existante dans un nouveau salon.
 
-Le socle historique conserve `/nxt connecter`, `/nxt statut`, `/nxt pause`, `/nxt reprendre` et `/nxt aide`. Le checkout prépare désormais 50 chemins de commande, un guide interactif, les liaisons personnelles, les consultations et les actions de planning, progression et review. Chaque équipe peut aussi restreindre ses commandes à une sélection de rôles Discord de son propre serveur, en plus des droits NXT5 ; cette sélection ne donne aucun droit sur les autres équipes. Le [guide des commandes et de leur activation](discord-bot-commandes.md) décrit les droits, les nouvelles migrations, la planification et l’enregistrement du catalogue après déploiement du serveur compatible. Ce code ne constitue pas une preuve d’activation en production. La publication d’une game reste disponible depuis NXT5 ; aucune commande ne donne accès aux données privées d’une autre équipe.
+Le parcours des commandes d’équipe part d’un **salon de commandes unique, choisi dans Bot Discord pour chaque équipe**. Dans ce salon, le bot déduit l’équipe du serveur et du salon, puis vérifie le compte personnel lié, l’appartenance NXT5 et, si l’équipe en a défini, un des rôles Discord autorisés. Le joueur n’a pas à saisir ou choisir son équipe. Les réponses partageables (games et bilans agrégés, par exemple) peuvent paraître dans ce salon ; les données personnelles, notes et brouillons restent privés pour l’auteur de la commande. L’aide, la liaison du compte et la première connexion du serveur restent utilisables avant la configuration du salon. Le [guide des commandes](discord-bot-commandes.md) décrit ce parcours, ses droits et l’enregistrement du catalogue. La publication manuelle d’une game depuis NXT5 reste disponible ; aucune commande ne donne accès aux données privées d’une autre équipe.
 
 ## 2. Architecture et fichiers
 
@@ -80,7 +80,7 @@ Préparer les éléments suivants avant une activation réelle :
 - Le propriétaire ou capitaine de l’équipe NXT5 correspondante.
 - Un environnement local Node.js conforme à `package.json` et un bot de test séparé pour les essais réels.
 
-Les commandes passent par les interactions HTTP. Une connexion Gateway permanente et l’accès privilégié au contenu des messages ne sont pas nécessaires à cette V1. Le serveur répond rapidement à l’interaction, puis termine le travail avec une réponse différée privée. Discord impose une première réponse dans les trois secondes. [Documentation des interactions](https://docs.discord.com/developers/interactions/receiving-and-responding).
+Les commandes passent par les interactions HTTP. Une connexion Gateway permanente et l’accès privilégié au contenu des messages ne sont pas nécessaires à cette V1. Le serveur répond rapidement à l’interaction, puis termine le travail avec la visibilité fixée dès cette première réponse : publique dans le salon pour les seuls sujets d’équipe partageables, privée pour l’aide, le compte, les refus et les sujets sensibles. Discord impose une première réponse dans les trois secondes. [Documentation des interactions](https://docs.discord.com/developers/interactions/receiving-and-responding).
 
 ## 4. Variables d’environnement
 
@@ -160,7 +160,7 @@ node tools/register-discord-commands.mjs --global
 
 Cette commande crée ou met à jour uniquement la commande globale `/nxt`, en conservant les autres commandes de l’application. Elle est exécutée par l’opérateur NXT5 avec les identifiants de l’application officielle, pas par chaque équipe. Le code inclut déjà ce mode ; sa présence dans ce guide ne signifie pas qu’il a été exécuté.
 
-Le parcours autonome de chaque équipe est : **Inviter le bot si nécessaire → relier l’équipe avec son code NXT5 → choisir les salons/règles → tester et activer**. Sur un serveur où le bot est déjà présent, chaque nouvelle équipe passe directement à sa propre liaison. Le serveur et les salons de toutes les équipes ne sont pas demandés à l’administrateur NXT5 avant la configuration centrale.
+Le parcours autonome de chaque équipe est : **Inviter le bot si nécessaire → relier l’équipe avec son code NXT5 → choisir son salon de commandes et ses destinations/règles → tester et activer**. Sur un serveur où le bot est déjà présent, chaque nouvelle équipe passe directement à sa propre liaison. Le serveur et les salons de toutes les équipes ne sont pas demandés à l’administrateur NXT5 avant la configuration centrale.
 
 ### Installation avec les secrets conservés dans Netlify
 
@@ -211,7 +211,7 @@ node tools/register-discord-commands.mjs --guild=IDENTIFIANT_DU_SERVEUR_PILOTE
 
 Cette commande écrit dans Discord : elle crée ou met à jour uniquement `/nxt` pour ce serveur. Utiliser une application dédiée à NXT5. Le script ne journalise pas le jeton. L’option `--global` réalise la même opération à l’échelle de l’application ; la réserver à l’ouverture décidée après le pilote.
 
-Après le déploiement du support des serveurs partagés, l’opérateur doit mettre à jour la définition de `/nxt` pour rendre disponible l’option `equipe` et ses suggestions. Il peut utiliser la commande globale ci-dessus ou l’action `configure` de l’outil opérateur hébergé. Cette mise à jour ne publie aucun message Discord.
+Après le déploiement du parcours par salon, l’opérateur met à jour la définition de `/nxt` sur le serveur pilote, puis globalement après validation. L’ancien choix `equipe` n’est plus le moyen de cibler une équipe. L’enregistrement de la commande ne publie aucun message Discord.
 
 ### Lier l’équipe
 
@@ -219,7 +219,7 @@ Après le déploiement du support des serveurs partagés, l’opérateur doit me
 2. Générer le code temporaire. Il expire après dix minutes et ne fonctionne qu’une fois.
 3. Dans Discord, un responsable disposant de Gérer le serveur ou Administrateur lance `/nxt connecter code:…` avec le code de cette équipe.
 4. Le backend vérifie la présence du bot, le code et les droits NXT5 encore valides de son émetteur.
-5. La connexion arrive en pause. Choisir au moins un salon, puis ouvrir les options de ce salon si des catégories, pistes ou mentions sont nécessaires.
+5. La connexion arrive en pause. Choisir un salon de commandes pour cette équipe et au moins une destination de publication, puis ouvrir les options de destination si des catégories, pistes ou mentions sont nécessaires. Une même paire serveur/salon ne peut servir de salon de commandes pour deux équipes.
 6. Afficher l’aperçu d’une game représentative. Vérifier l’audience, le texte, le PNG et le lien.
 7. Activer les publications lorsque les essais d’environnement sont terminés.
 
@@ -235,7 +235,7 @@ Dans **Bot Discord → Choisir les salons**, les propriétaires et capitaines tr
 
 **Actualiser les salons**, placé à proximité du choix, recharge la liste après une modification des salons ou des permissions dans Discord. Le brouillon reste conservé. Pendant le chargement ou en cas d’erreur, attendre la vérification ou réessayer avant d’ajouter et d’enregistrer. Une absence de salon utilisable et la limite atteinte disposent d’une explication visible.
 
-Chaque équipe conserve ses propres destinations, y compris lorsqu’elle partage le serveur avec d’autres équipes. Ce parcours utilise les métadonnées et les points d’accès existants ; il ne demande ni nouvelle commande Discord ni configuration supplémentaire de l’opérateur.
+Chaque équipe conserve ses propres destinations, y compris lorsqu’elle partage le serveur avec d’autres équipes. Le salon de commandes est un réglage distinct des destinations de publication : le choisir ne déclenche aucun envoi. Son identifiant exact, et non son nom ou la préférence du membre, permet de retrouver l’équipe pendant une interaction. En cas de suppression ou de changement de salon, les commandes d’équipe cessent dans l’ancien salon.
 
 Après l’installation, **Bot Discord** présente d’abord l’équipe, le serveur, l’état de diffusion et l’action utile. Les salons, les rôles autorisés dans **Accès**, l’activité et l’aide restent accessibles séparément. Le filtre de rôles Discord se configure pour une équipe précise et s’ajoute aux droits NXT5 ; il n’ouvre pas l’accès aux autres équipes du serveur.
 
@@ -252,15 +252,13 @@ Une destination dont l’envoi automatique est désactivé reste disponible pour
 
 Le dialogue réutilise le parcours de Games. Un changement d’équipe, de game ou de révision invalide l’ancien aperçu ; ouvrir ou fermer le dialogue ne publie rien. Les contrôles restent utilisables au clavier et sur mobile, avec retour du focus au bouton à la fermeture.
 
-### Choisir l’équipe dans les commandes Discord
+### Résoudre l’équipe depuis le salon de commandes
 
-`/nxt statut`, `/nxt pause` et `/nxt reprendre` proposent l’option facultative `equipe`. Les suggestions affichent le nom, le tag lorsqu’il existe et un identifiant court pour distinguer les homonymes ; la valeur transmise reste l’UUID de l’équipe.
+Le responsable configure **un seul salon de commandes par équipe** dans Bot Discord. Deux équipes du même serveur ne peuvent pas prendre le même salon de commandes. Le bot résout l’équipe à partir des identifiants du serveur et du salon exacts avant de lire ou modifier une donnée. Il refuse en privé une commande d’équipe lancée ailleurs, même si le compte a choisi cette équipe sur le site ou possède des droits sur plusieurs équipes. L’aide, les commandes de compte et la première connexion par code expliquent comment terminer la configuration sans dépendre d’un salon déjà relié.
 
-- Avec une seule équipe reliée au serveur, omettre `equipe` conserve le comportement habituel.
-- Avec plusieurs équipes reliées, choisir explicitement une suggestion. Une commande ambiguë est refusée sans modifier aucune équipe.
-- Les suggestions et les actions restent limitées aux équipes du serveur courant et aux responsables disposant des droits Discord requis. Un identifiant appartenant à un autre serveur est refusé.
-- Le salon depuis lequel la commande est lancée ne détermine jamais l’équipe. Aucune commande ne met toutes les équipes en pause ou en reprise d’un seul coup.
-- Le statut et les confirmations de pause ou de reprise nomment l’équipe concernée. `/nxt aide` rappelle le principe d’une invitation du bot et de plusieurs liaisons distinctes.
+Pour chaque commande d’équipe, vérifier dans cet ordre : salon configuré pour une seule équipe du serveur, compte Discord lié à NXT5, appartenance actuelle à cette équipe, rôle Discord autorisé si un filtre existe, puis droit métier correspondant. Un droit de gestion du serveur Discord ne remplace pas l’appartenance NXT5. Les boutons, formulaires et confirmations revérifient les mêmes droits et refusent une configuration devenue périmée. Les seuls boutons admis dans un salon de publication distinct sont « Présent/Absent/En retard » et « Lu » : leur identifiant de message signé doit correspondre à l’envoi enregistré pour cette équipe, ce serveur, ce salon et cet événement ou cette version de review.
+
+Une réponse visible dans le salon est réservée aux données d’équipe partageables. Les informations personnelles, objectifs individuels, notes de review, drafts et reçus de gestion répondent seulement à l’auteur. Le bot échappe les mentions involontaires et n’envoie aucune donnée d’une autre équipe dans le salon.
 
 ### Tester la connexion depuis le dashboard
 
@@ -272,7 +270,7 @@ La migration additive `discord-connection-tests-20260921-v1` ajoute les reçus `
 
 Le frontend ne valide l’étape que si le reçu réussi correspond encore au serveur, à la version de configuration, à la destination et au salon enregistrés. La santé de connexion est indépendante : `team-discord-connection` fournit `health.checkedAt`, `health.verified` et `health.errorCode` après vérification du bot sur le serveur. Un ancien test réussi ne signifie donc pas que les permissions sont toujours valides.
 
-`GET team-discord-routes` retourne les routes, `guildId` et `configVersion` dans un seul snapshot SQL. Le récapitulatif d’activation reprend cette version. `POST team-discord-connection` avec `action: "resume"` exige `expectedGuildId` et `expectedConfigVersion` et refuse une configuration périmée avec `DISCORD_CONFIG_CHANGED`, y compris si elle change pendant le contrôle des permissions. Le site et `/nxt reprendre` refusent également l’activation lorsque le service NXT5 suspend globalement les envois.
+`GET team-discord-routes` retourne les routes, `guildId` et `configVersion` dans un seul snapshot SQL. Le récapitulatif d’activation reprend cette version. `POST team-discord-connection` avec `action: "resume"` exige `expectedGuildId` et `expectedConfigVersion` et refuse une configuration périmée avec `DISCORD_CONFIG_CHANGED`, y compris si elle change pendant le contrôle des permissions. La reprise sur le site NXT5 refuse également l’activation lorsque le service NXT5 suspend globalement les envois.
 
 ## 7. Vérifier un pilote réel
 
@@ -295,7 +293,9 @@ Compléter cette liste dans le serveur pilote, puis conserver les liens des mess
 - [ ] Retrait d’un message connu depuis NXT5 : retrait effectif et état conservé.
 - [ ] Commande sans droits Discord et compte NXT5 d’une autre équipe : accès refusé.
 - [ ] Deux équipes liées au même serveur : salons, règles, tests et historiques restent propres à chacune.
-- [ ] Plusieurs équipes liées : `/nxt pause` sans choix d’équipe est refusé ; un choix explicite ne suspend que cette équipe.
+- [ ] Plusieurs équipes liées : leurs salons de commandes sont distincts ; une commande dans chacun ne cible que son équipe, sans option de choix.
+- [ ] Commande d’équipe hors du salon configuré, compte non lié, membre d’une autre équipe ou rôle Discord retiré : refus privé, sans publication ni mutation.
+- [ ] Réponse de bilan partageable visible dans le bon salon ; détail personnel, note ou brouillon seulement visible par l’auteur.
 - [ ] Déconnexion d’une équipe : l’autre liaison continue à fonctionner et le bot reste dans le serveur.
 
 L’objectif initial du plan est 95 % des publications sous deux minutes et 99 % sous cinq minutes après disponibilité des données. Ce sont des objectifs de pilote à mesurer, pas une garantie obtenue par les essais locaux. Le traitement traite normalement quatre travaux par lot et sérialise les lots ; un import massif ou de nombreuses destinations peut augmenter le délai.
@@ -385,6 +385,7 @@ La maintenance planifiée quotidienne déclenche sa fonction en arrière-plan. E
 - Anciennes tentatives et versions terminées : nettoyage après quatre-vingt-dix jours, en conservant les références encore nécessaires.
 - Codes de liaison : suppression après expiration et délai de grâce d’un jour.
 - Reçus de commandes Discord : sept jours, sans conservation du token d’interaction.
+- Messages de review envoyés avec bouton « Lu » : référence d’envoi conservée tant que la review existe, pour authentifier les clics depuis le salon de publication.
 - Message courant, dernière révision publiée et envois incertains : conservés pour les corrections, le rapprochement et le retrait.
 
 Le nettoyage des images ne supprime pas un message Discord. L’endpoint d’asset contrôle les droits NXT5 et peut régénérer une image conservée sous forme de snapshot selon les conditions du code. Une URL CDN Discord signée ne doit pas servir de seule archive. Les salons qui partagent la même game et les mêmes options réutilisent le PNG. Au-delà de 3 Mio, l’aperçu et l’envoi se replient sur le texte et le lien NXT5 ; il s’agit d’une limite applicative commune, inférieure au plafond du transport Discord.

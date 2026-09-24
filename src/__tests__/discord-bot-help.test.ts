@@ -1,26 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { discordCommandCatalog, discordCommandCategories, discordHelpSections, nxtDiscordCommand } from '../../shared/discord-command.js';
+import { discordCommandCatalog, discordLegacyCommandCatalog, discordCommandCategories, discordHelpSections, nxtDiscordCommand } from '../../shared/discord-command.js';
 import { buildDiscordHelp, resolveDiscordHelpInteraction } from '../../shared/discord-help.js';
 
-const expectedPaths = [
-  'help', 'aide', 'compte lier', 'compte profil', 'compte delier', 'equipe liste', 'equipe choisir',
-  'derniere', 'game voir', 'game chercher', 'game comparer', 'bilan', 'stats equipe', 'stats tendance', 'reglages bilan',
-  'joueur profil', 'joueur stats', 'joueur comparer', 'objectifs liste', 'objectifs definir', 'objectifs terminer', 'objectifs point',
-  'pool voir', 'stats champions', 'pool suggerer', 'draft compositions', 'draft preparer', 'draft notes',
-  'planning', 'evenement creer', 'evenement modifier', 'evenement annuler', 'presence repondre', 'presence liste', 'presence relancer', 'disponibilites definir',
-  'review liste', 'review voir', 'review creer', 'review partager', 'review lire', 'review lectures',
-  'connecter', 'statut', 'pause', 'reprendre', 'reglages canal', 'reglages rappels', 'reglages fuseau', 'diffusion test',
-];
+const visiblePaths = ['help', 'lier', 'profil', 'voir', 'connecter'];
 const length = (value: string) => Array.from(value).length;
 function commandSize(node: any): number {
   return length(node.name || '') + length(node.description || '') + (typeof node.value === 'string' ? length(node.value) : 0)
     + (node.options || []).reduce((sum: number, child: any) => sum + commandSize(child), 0)
     + (node.choices || []).reduce((sum: number, child: any) => sum + commandSize(child), 0);
-}
-function registeredLeaves() {
-  return nxtDiscordCommand().options.flatMap((option: any) => option.type === 2
-    ? option.options.map((child: any) => ({ ...child, path: option.name + ' ' + child.name }))
-    : [{ ...option, path: option.name }]);
 }
 function assertMessageLimits(message: any) {
   expect(message.allowed_mentions).toEqual({ parse: [] });
@@ -70,22 +57,24 @@ function assertMessageLimits(message: any) {
   expect(new Set(ids).size).toBe(ids.length);
 }
 
-describe('NXT5 registered command contract', () => {
-  it('registers all fifty documented paths and opens the server-only root to members', () => {
+describe('NXT5 visible Discord command contract', () => {
+  it('registers only five flat commands while preserving the previous catalogue for parsing', () => {
     const root = nxtDiscordCommand();
     expect(root.default_member_permissions).toBeNull();
     expect(root.contexts).toEqual([0]);
     expect(root.integration_types).toEqual([0]);
-    expect(registeredLeaves().map((item: any) => item.path).sort()).toEqual([...expectedPaths].sort());
-    expect(new Set(registeredLeaves().map((item: any) => item.path)).size).toBe(50);
+    expect(root.options.map((option: any) => option.name)).toEqual(visiblePaths);
+    expect(root.options.every((option: any) => option.type === 1)).toBe(true);
+    expect(discordCommandCatalog.map((entry: any) => entry.path)).toEqual(visiblePaths);
+    expect(discordLegacyCommandCatalog).toHaveLength(50);
+    expect(discordLegacyCommandCatalog.some((entry: any) => entry.path === 'equipe choisir')).toBe(true);
   });
 
-  it('fits Discord schema, nesting, choice and required-option constraints', () => {
+  it('fits Discord schema, choice and required-option constraints', () => {
     const root = nxtDiscordCommand();
     expect(root.options.length).toBeLessThanOrEqual(25);
-    // Discord counts name/description/value text, not JSON punctuation or keys.
     expect(commandSize(root)).toBeLessThanOrEqual(8000);
-    const check = (node: any, depth = 0) => {
+    const check = (node: any) => {
       expect(node.name).toMatch(/^[a-z][a-z_]{0,31}$/);
       expect(length(node.description)).toBeGreaterThan(0);
       expect(length(node.description)).toBeLessThanOrEqual(100);
@@ -94,14 +83,9 @@ describe('NXT5 registered command contract', () => {
         expect(new Set(node.options.map((option: any) => option.name)).size).toBe(node.options.length);
         let optional = false;
         for (const option of node.options) {
-          if (option.type <= 2) {
-            expect(depth).toBeLessThanOrEqual(1);
-            expect(option.required).toBeUndefined();
-          } else {
-            if (!option.required) optional = true;
-            if (option.required) expect(optional).toBe(false);
-          }
-          check(option, depth + 1);
+          if (!option.required) optional = true;
+          if (option.required) expect(optional).toBe(false);
+          check(option);
         }
       }
       if (node.choices) {
@@ -120,32 +104,29 @@ describe('NXT5 registered command contract', () => {
     check(root);
   });
 
-  it('preserves link-code validation and explicit optional team selection', () => {
-    const leaves = registeredLeaves();
-    expect(leaves.find((item: any) => item.path === 'connecter').options).toEqual([
+  it('requires a subject for voir and keeps the installation code validation', () => {
+    const options = nxtDiscordCommand().options;
+    expect(options.find((item: any) => item.name === 'voir').options).toEqual([
+      expect.objectContaining({
+        name: 'sujet', type: 3, required: true,
+        choices: [
+          { name: 'Dernière game', value: 'derniere' }, { name: 'Bilan', value: 'bilan' },
+          { name: 'Statistiques', value: 'stats' }, { name: 'Planning', value: 'planning' },
+          { name: 'Objectifs', value: 'objectifs' }, { name: 'Reviews', value: 'reviews' },
+          { name: 'Draft', value: 'draft' },
+        ],
+      }),
+    ]);
+    expect(options.find((item: any) => item.name === 'connecter').options).toEqual([
       expect.objectContaining({ name: 'code', type: 3, required: true, min_length: 16, max_length: 24 }),
     ]);
-    for (const path of ['statut', 'pause', 'reprendre']) {
-      expect(leaves.find((item: any) => item.path === path).options).toEqual([
-        expect.objectContaining({ name: 'equipe', type: 3, required: false, autocomplete: true }),
-      ]);
-    }
-    const help = leaves.find((item: any) => item.path === 'help');
-    expect(help.options.map((option: any) => [option.name, option.required])).toEqual([['rubrique', false], ['commande', false]]);
+    expect(options.find((item: any) => item.name === 'help').options.map((option: any) => [option.name, option.required])).toEqual([['rubrique', false], ['commande', false]]);
   });
 
-  it('uses channel, boolean and bounded numeric options for mutations', () => {
-    const leaves = registeredLeaves();
-    expect(leaves.find((item: any) => item.path === 'review partager').options).toContainEqual(expect.objectContaining({ name: 'canal', type: 7, required: true, channel_types: [0, 5] }));
-    expect(leaves.find((item: any) => item.path === 'reglages rappels').options).toContainEqual(expect.objectContaining({ name: 'actif', type: 5, required: true }));
-    expect(leaves.find((item: any) => item.path === 'presence repondre').options).toContainEqual(expect.objectContaining({ name: 'retard', type: 4, min_value: 1, max_value: 1440 }));
-    expect(leaves.find((item: any) => item.path === 'disponibilites definir').options.map((option: any) => option.name)).toEqual(['date', 'debut', 'fin']);
-  });
-
-  it('returns independent schemas so setup comparisons cannot mutate the catalogue', () => {
+  it('returns independent schemas for setup comparison', () => {
     const first = nxtDiscordCommand();
     first.options[0].options[0].choices[0].name = 'Changed';
-    expect(nxtDiscordCommand().options[0].options[0].choices[0].name).toBe('Accueil');
+    expect(nxtDiscordCommand().options[0].options[0].choices[0].name).toBe('Démarrer');
   });
 });
 
@@ -153,15 +134,15 @@ describe('Private Discord help content and navigation', () => {
   it.each(discordHelpSections.map((section: any) => section.id))('renders tutorial page %s within Discord limits', (page) => {
     const result = buildDiscordHelp({ page });
     assertMessageLimits(result);
-    expect(result.embeds[0].footer.text).toContain('/6');
+    expect(result.embeds[0].footer.text).toContain('/3');
     expect(result.embeds[0].footer.text).toContain('Visible uniquement par toi');
   });
 
-  it('can complete the tutorial and return home with stateless button routes', () => {
+  it('completes the tutorial and returns home with stateless button routes', () => {
     let result = buildDiscordHelp();
     expect(result.components[0].components[0].disabled).toBe(true);
     expect(result.components[0].components[1].disabled).toBe(true);
-    for (let index = 1; index < 6; index++) {
+    for (let index = 1; index < discordHelpSections.length; index++) {
       const next = result.components[0].components.find((item: any) => item.label === 'Suivant');
       expect(next.disabled).toBe(false);
       const target = resolveDiscordHelpInteraction(next.custom_id);
@@ -170,18 +151,18 @@ describe('Private Discord help content and navigation', () => {
     }
     expect(result.components[0].components.find((item: any) => item.label === 'Suivant').disabled).toBe(true);
     const home = result.components[0].components.find((item: any) => item.label === 'Accueil');
-    expect(buildDiscordHelp(resolveDiscordHelpInteraction(home.custom_id)!).embeds[0].title).toBe('Bienvenue dans le bot NXT5');
+    expect(buildDiscordHelp(resolveDiscordHelpInteraction(home.custom_id)!).embeds[0].title).toBe('NXT5 dans le salon de ton équipe');
   });
 
-  it.each(discordCommandCategories.map((category: any) => category.id))('renders catalogue %s using registered commands only', (category) => {
+  it.each(discordCommandCategories.map((category: any) => category.id))('renders catalogue %s using visible commands only', (category) => {
     const result = buildDiscordHelp({ page: 'catalogue:' + category });
     assertMessageLimits(result);
-    for (const field of result.embeds[0].fields) expect(expectedPaths).toContain(field.name.replace('/nxt ', ''));
+    for (const item of result.embeds[0].fields) expect(visiblePaths).toContain(item.name.replace('/nxt ', ''));
   });
 
-  it('covers all registered commands in the catalogue and gives every one a valid detail page', () => {
-    const advertised = discordCommandCategories.flatMap(category => buildDiscordHelp({ page: 'catalogue:' + category.id }).embeds[0].fields.map((field: any) => field.name.replace('/nxt ', '')));
-    expect(advertised.sort()).toEqual([...expectedPaths].sort());
+  it('covers every visible command and no previous command in the catalogue', () => {
+    const advertised = discordCommandCategories.flatMap(category => buildDiscordHelp({ page: 'catalogue:' + category.id }).embeds[0].fields.map((item: any) => item.name.replace('/nxt ', '')));
+    expect(advertised.sort()).toEqual([...visiblePaths].sort());
     for (const entry of discordCommandCatalog) {
       const result = buildDiscordHelp({ command: entry.path });
       expect(result.embeds[0].title).toBe('/nxt ' + entry.path);
@@ -189,23 +170,25 @@ describe('Private Discord help content and navigation', () => {
       const text = JSON.stringify(result.embeds);
       for (const option of entry.options) expect(text).toContain(option.name);
     }
+    expect(JSON.stringify(buildDiscordHelp({ page: 'catalogue:joueur' }))).not.toContain('equipe choisir');
   });
 
-  it('distinguishes personal linking from server installation without private context', () => {
+  it('teaches the channel-based team context and private personal responses', () => {
     const welcome = JSON.stringify(buildDiscordHelp().embeds);
-    expect(welcome).toContain('/nxt compte lier');
-    expect(welcome).toContain('/nxt connecter code:<code>');
-    expect(welcome).toContain('avant de lier ton compte');
+    expect(welcome).toContain('/nxt lier');
+    expect(welcome).toContain('/nxt voir sujet:derniere');
+    expect(welcome).toContain('aucun nom d’équipe ni identifiant');
+    const player = JSON.stringify(buildDiscordHelp({ page: 'joueur' }).embeds);
+    expect(player).toContain('informations d’équipe');
+    expect(player).toContain('uniquement par toi');
     const install = JSON.stringify(buildDiscordHelp({ page: 'responsable' }).embeds);
-    expect(install).toContain('/nxt statut equipe:<équipe>');
-    expect(install).toContain('aucun accès supplémentaire');
+    expect(install).toContain('un seul salon');
+    expect(install).toContain('/nxt connecter code:<code>');
   });
 
-  it('finds exact commands, group commands and normalized slash input', () => {
-    expect(buildDiscordHelp({ command: ' /NXT   BILAN ' }).embeds[0].title).toBe('/nxt bilan');
-    expect(buildDiscordHelp({ command: 'review' }).embeds[0].fields.map((field: any) => field.name)).toEqual([
-      '/nxt review liste', '/nxt review voir', '/nxt review creer', '/nxt review partager', '/nxt review lire', '/nxt review lectures',
-    ]);
+  it('finds normalized command names without advertising obsolete commands', () => {
+    expect(buildDiscordHelp({ command: ' /NXT   VOIR ' }).embeds[0].title).toBe('/nxt voir');
+    expect(buildDiscordHelp({ command: 'compte lier' }).embeds[0].fields[0].name).toBe('Commande introuvable');
   });
 
   it('does not reflect unknown names or resolve forged custom IDs', () => {
@@ -216,7 +199,7 @@ describe('Private Discord help content and navigation', () => {
     for (const customId of ['nxt:help:page:private-team', 'nxt:help:catalogue:unknown', 'nxt:confirm:secret', 'nxt:help:page:accueil:unexpected', 'nxt:help:select']) {
       expect(resolveDiscordHelpInteraction(customId)).toBeNull();
     }
-    expect(resolveDiscordHelpInteraction('nxt:help:select', ['page:accueil', 'page:compte'])).toBeNull();
+    expect(resolveDiscordHelpInteraction('nxt:help:select', ['page:accueil', 'page:joueur'])).toBeNull();
     expect(resolveDiscordHelpInteraction('nxt:help:select', ['page:accueil:home'])).toBeNull();
   });
 

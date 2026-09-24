@@ -168,15 +168,15 @@ describe('Single-command setup and verification', () => {
     expect(await result.json()).toMatchObject({ ready: true, checks: { globalCommand: true } });
     expect(fetchMock.mock.calls.filter(([url, options]) => url.endsWith('/commands') && options.method === 'POST')).toHaveLength(1);
   });
-  it.each(['required-team', 'missing-required-code', 'missing-autocomplete', 'member-restricted', 'missing-group-command'])('still refuses a mismatched command definition: %s', async (mismatch) => {
+  it.each(['missing-required-topic', 'missing-topic-choice', 'missing-required-code', 'member-restricted', 'missing-command'])('still refuses a mismatched command definition: %s', async (mismatch) => {
     const registered: any = command();
-    const team = registered.options.find((option: any) => option.name === 'statut').options[0];
+    const topic = registered.options.find((option: any) => option.name === 'voir').options[0];
     const code = registered.options.find((option: any) => option.name === 'connecter').options[0];
-    if (mismatch === 'required-team') team.required = true;
+    if (mismatch === 'missing-required-topic') delete topic.required;
+    if (mismatch === 'missing-topic-choice') topic.choices.pop();
     if (mismatch === 'missing-required-code') delete code.required;
-    if (mismatch === 'missing-autocomplete') delete team.autocomplete;
     if (mismatch === 'member-restricted') registered.default_member_permissions = '32';
-    if (mismatch === 'missing-group-command') registered.options.find((option: any) => option.name === 'review').options.pop();
+    if (mismatch === 'missing-command') registered.options.pop();
     fetchMock.mockImplementation(async (url: string) => response(url === BASE + '/applications/@me' ? application() : [registered]));
     const result = await (await setup(signed(), context())).json();
     expect(result).toMatchObject({ ready: false, checks: { globalCommand: false } });

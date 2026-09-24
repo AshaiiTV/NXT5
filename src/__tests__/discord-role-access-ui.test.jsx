@@ -31,7 +31,7 @@ describe("Discord role access settings", () => {
   it("lets a manager select and save only this team's Discord roles", async () => {
     const renderer = await mount();
     expect(text(renderer.root)).toContain("Les membres de cette équipe utilisent les commandes selon leurs droits NXT5");
-    expect(text(renderer.root)).toContain("Le rôle mentionné dans les annonces se choisit dans les salons");
+    expect(text(renderer.root)).toContain("Le rôle mentionné dans les annonces se choisit séparément dans les salons de publication");
     expect(button(renderer, "Enregistrer les rôles autorisés")).toBeUndefined();
     await act(async () => button(renderer, "Modifier l’accès").props.onClick());
     expect(button(renderer, "Enregistrer les rôles autorisés").props.disabled).toBe(true);

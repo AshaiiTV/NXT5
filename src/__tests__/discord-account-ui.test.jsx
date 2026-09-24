@@ -51,7 +51,7 @@ describe("personal Discord account consent", () => {
     await act(async () => button("Confirmer la déliaison").props.onClick());
     expect(api.fetch).toHaveBeenLastCalledWith("discord-account", { method: "DELETE" });
     expect(text()).not.toContain("Compte lié");
-    expect(text()).toContain("/nxt compte lier");
+    expect(text()).toContain("/nxt lier");
   });
   it("keeps account management secondary and clears an unconfirmed unlink when closed", async () => {
     api.fetch.mockResolvedValue({ link: { discord_user_id: "100000000000000001", discord_label: "Moi" } });

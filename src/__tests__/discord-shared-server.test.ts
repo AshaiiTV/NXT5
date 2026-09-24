@@ -46,6 +46,7 @@ const id = (value: number) => `40000000-0000-4000-8000-${String(value).padStart(
 const ownerA = id(1), ownerB = id(2), teamA = id(10), teamB = id(11), routeA = id(20), routeB = id(21);
 const categoryA = id(30), categoryB = id(31), matchA = id(40), matchB = id(41), requestId = id(50);
 const guild = '100000000000000001', channel = '100000000000000002', messageA = '100000000000000003', messageB = '100000000000000004';
+const commandChannelA = '100000000000000005', commandChannelB = '100000000000000006';
 const context = { deploy: { context: 'production' } } as any;
 const rows = async (query: string, values: unknown[] = []) => (await state.pg.query(query, values)).rows as any[];
 const get = (endpoint: string, teamId = teamA) => new Request(`https://nxt5.example/.netlify/functions/${endpoint}?teamId=${teamId}`);
@@ -58,7 +59,15 @@ beforeAll(async () => {
   state.pg = new PGlite();
   await state.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000','hex')"));
-  for (const filename of ['20260915_discord_publications.sql', '20260921_discord_connection_tests.sql', '20260921_discord_shared_servers.sql']) {
+  for (const filename of [
+    '20260915_discord_publications.sql',
+    '20260921_discord_connection_tests.sql',
+    '20260921_discord_shared_servers.sql',
+    '20260922_discord_bot_identity.sql',
+    '20260922_discord_bot_workflows.sql',
+    '20260923_discord_bot_role_access.sql',
+    '20260924_discord_command_channel.sql',
+  ]) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + filename, import.meta.url), 'utf8'));
   }
   await state.pg.exec("create table app_schema_migrations(migration_key text primary key); insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-connection-tests-20260921-v1'),('discord-shared-servers-20260921-v1')");
@@ -78,6 +87,8 @@ beforeEach(async () => {
   await rows("insert into teams(id,owner_id,name,tag) values($1,$2,'Team A','AAA'),($3,$4,'Team B','BBB')", [teamA, ownerA, teamB, ownerB]);
   await rows("insert into match_categories(id,team_id,name) values($1,$2,'Scrims A'),($3,$4,'Scrims B')", [categoryA, teamA, categoryB, teamB]);
   await rows("insert into discord_connections(team_id,guild_id,status,created_by) values($1,$3,'paused',$4),($2,$3,'paused',$5)", [teamA, teamB, guild, ownerA, ownerB]);
+  await rows('update discord_connections set command_channel_id=case when team_id=$1 then $3 else $4 end where team_id in ($1,$2)',
+    [teamA, teamB, commandChannelA, commandChannelB]);
   await rows("insert into discord_routes(id,team_id,guild_id,channel_id,channel_name,automatic) values($1,$2,$5,$6,'shared-games',true),($3,$4,$5,$6,'shared-games',true)", [routeA, teamA, routeB, teamB, guild, channel]);
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
@@ -177,6 +188,8 @@ describe('Several NXT5 teams in one Discord server', () => {
     expect((await connection(post('team-discord-connection', { teamId: teamA, action: 'disconnect' }), context)).status).toBe(200);
     expect(await otherState()).toEqual(before);
     expect((await rows('select status from discord_connections where team_id=$1', [teamA]))[0].status).toBe('disconnected');
+    expect((await rows('select command_channel_id from discord_connections where team_id=$1', [teamA]))[0].command_channel_id).toBeNull();
+    expect((await rows('select command_channel_id from discord_connections where team_id=$1', [teamB]))[0].command_channel_id).toBe(commandChannelB);
     expect((await rows('select status from publication_jobs where team_id=$1', [teamA]))[0].status).toBe('cancelled');
     await rows('delete from teams where id=$1', [teamA]);
     expect(await otherState()).toEqual(before);

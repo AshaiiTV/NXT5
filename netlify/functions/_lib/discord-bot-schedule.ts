@@ -15,7 +15,12 @@ export async function pruneDiscordBotArtifacts() {
       removed as (delete from discord_bot_pending p using stale s where p.token_hash=s.token_hash returning 1) select count(*)::integer as count from removed`),
     sql(`with stale as (select token_hash from discord_account_link_requests where expires_at<now()-interval '1 hour' order by expires_at limit 1000),
       removed as (delete from discord_account_link_requests p using stale s where p.token_hash=s.token_hash returning 1) select count(*)::integer as count from removed`),
-    sql(`with stale as (select id from discord_bot_outbox where state in ('sent','cancelled','failed') and updated_at<now()-interval '30 days' order by updated_at limit 1000),
+    // Keep sent review messages as long as their report exists: their « Lu »
+    // button is bound to this durable message record. Report/team deletion
+    // cascades these rows; unconfirmed or unsent jobs still expire normally.
+    sql(`with stale as (select id from discord_bot_outbox where state in ('sent','cancelled','failed') and updated_at<now()-interval '30 days'
+      and not (kind='review' and state='sent' and message_id is not null and report_id is not null)
+      order by updated_at limit 1000),
       removed as (delete from discord_bot_outbox o using stale s where o.id=s.id returning 1) select count(*)::integer as count from removed`),
   ]);
   return { pending: results[0][0].count, linkRequests: results[1][0].count, outbox: results[2][0].count };

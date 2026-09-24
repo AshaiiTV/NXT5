@@ -47,6 +47,7 @@ const id = (value: number) => `30000000-0000-4000-8000-${String(value).padStart(
 const owner = id(1), otherOwner = id(2), coach = id(3), player = id(4), captain = id(5);
 const team = id(10), otherTeam = id(11), route = id(30), otherRoute = id(31), requestId = id(40);
 const guild = '100000000000000001', channel = '100000000000000002', otherGuild = '100000000000000003', otherChannel = '100000000000000004';
+const commandChannel = '100000000000000005';
 const messageId = '100000000000000099';
 const captainDiscordId = '100000000000000087';
 const rows = async (sql: string, params: unknown[] = []) => (await state.pg.query(sql, params)).rows as any[];
@@ -59,6 +60,12 @@ function post(body = {}, origin = 'https://nxt5.example') {
     method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify({ teamId: team, routeId: route, requestId, ...body }),
   });
 }
+function postConnection(body: Record<string, unknown>, teamId = team) {
+  return new Request('https://nxt5.example/.netlify/functions/team-discord-connection', {
+    method: 'POST', headers: { origin: 'https://nxt5.example', 'content-type': 'application/json' },
+    body: JSON.stringify({ teamId, action: 'command-channel', expectedGuildId: guild, expectedConfigVersion: 1, ...body }),
+  });
+}
 const send = (body = {}) => connectionTest(post(body), context);
 const receipts = () => rows('select * from discord_connection_tests order by created_at, request_id');
 
@@ -66,10 +73,10 @@ beforeAll(async () => {
   state.pg = new PGlite();
   await state.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000','hex')"));
-  for (const filename of ['20260915_discord_publications.sql', '20260921_discord_connection_tests.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql', '20260923_discord_bot_role_access.sql']) {
+  for (const filename of ['20260915_discord_publications.sql', '20260921_discord_shared_servers.sql', '20260921_discord_connection_tests.sql', '20260922_discord_bot_identity.sql', '20260922_discord_bot_workflows.sql', '20260923_discord_bot_role_access.sql', '20260924_discord_command_channel.sql']) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + filename, import.meta.url), 'utf8'));
   }
-  await state.pg.exec("create table app_schema_migrations(migration_key text primary key); insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-connection-tests-20260921-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1')");
+  await state.pg.exec("create table app_schema_migrations(migration_key text primary key); insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-connection-tests-20260921-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1'),('discord-command-channel-20260924-v1')");
 }, 30_000);
 beforeEach(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -80,13 +87,16 @@ beforeEach(async () => {
   state.find.mockResolvedValue(null);
   state.rate.mockResolvedValue(undefined);
   state.render.mockResolvedValue({ bytes: Buffer.from([137, 80, 78, 71]), mimeType: 'image/png', width: 1440, height: 2500, filename: 'nxt5-game-demo-game.png' });
-  state.guild.mockResolvedValue({ guild: { id: guild, name: 'Test guild' }, channels: [{ id: channel, name: 'scrims', canSend: true }], roles: [] });
+  state.guild.mockResolvedValue({ guild: { id: guild, name: 'Test guild' }, channels: [
+    { id: channel, name: 'scrims', canSend: true }, { id: commandChannel, name: 'nxt', canSend: true },
+  ], roles: [] });
   await state.pg.exec('truncate users cascade');
   for (const user of [owner, otherOwner, coach, player, captain]) await rows("insert into users(id,account_name,name,password_hash) values($1,$2,$2,'unused')", [user, `test-${user}`]);
   await rows("insert into teams(id,owner_id,name,tag) values($1,$2,'Private real team','AAA'),($3,$4,'Other team','BBB')", [team, owner, otherTeam, otherOwner]);
   await rows("insert into team_members(team_id,user_id,role) values($1,$2,'coach'),($1,$3,'player'),($1,$4,'captain')", [team, coach, player, captain]);
   await rows("insert into discord_user_links(discord_user_id,user_id,discord_label) values($1,$2,'Test captain')", [captainDiscordId, captain]);
   await rows("insert into discord_connections(team_id,guild_id,status,created_by) values($1,$2,'paused',$3),($4,$5,'paused',$6)", [team, guild, owner, otherTeam, otherGuild, otherOwner]);
+  await rows('update discord_connections set command_channel_id=$2 where team_id=$1', [team, commandChannel]);
   await rows("insert into discord_routes(id,team_id,guild_id,channel_id,channel_name,automatic,mention_role_id) values($1,$2,$3,$4,'scrims',false,'100000000000000077'),($5,$6,$7,$8,'private',false,null)", [route, team, guild, channel, otherRoute, otherTeam, otherGuild, otherChannel]);
 });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
@@ -323,10 +333,50 @@ describe('Connection test permissions and environment boundaries', () => {
   });
 });
 
+describe('Dedicated command channel configuration', () => {
+  it('saves a verified channel without changing publication config version', async () => {
+    const response = await connection(postConnection({ channelId: channel }), context);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true });
+    expect((await rows('select command_channel_id,config_version from discord_connections where team_id=$1', [team]))[0])
+      .toEqual({ command_channel_id: channel, config_version: 1 });
+    expect(await (await connection(get('team-discord-connection'), context)).json())
+      .toMatchObject({ connection: { commandChannelId: channel, configVersion: 1 } });
+    expect((await rows("select metadata from audit_logs where action='discord.command_channel_updated'"))[0].metadata)
+      .toEqual({ channelId: channel });
+  });
+
+  it('refuses an invalid, inaccessible or stale command channel', async () => {
+    expect((await connection(postConnection({ channelId: 'invalid' }), context)).status).toBe(400);
+    const stale = await connection(postConnection({ channelId: channel, expectedConfigVersion: 2 }), context);
+    expect(stale.status).toBe(409);
+    expect(await stale.json()).toMatchObject({ code: 'DISCORD_CONFIG_CHANGED' });
+    state.guild.mockResolvedValueOnce({ guild: { id: guild }, channels: [{ id: channel, canSend: false }], roles: [] });
+    const unavailable = await connection(postConnection({ channelId: channel }), context);
+    expect(unavailable.status).toBe(409);
+    expect(await unavailable.json()).toMatchObject({ code: 'DISCORD_COMMAND_CHANNEL_UNAVAILABLE' });
+    expect((await rows('select command_channel_id from discord_connections where team_id=$1', [team]))[0].command_channel_id)
+      .toBe(commandChannel);
+  });
+
+  it('cannot reserve a channel already assigned to another team on the same server', async () => {
+    const competingTeam = id(12);
+    await rows("insert into teams(id,owner_id,name,tag) values($1,$2,'Competing team','CCC')", [competingTeam, otherOwner]);
+    await rows("insert into discord_connections(team_id,guild_id,status,created_by) values($1,$2,'paused',$3)", [competingTeam, guild, otherOwner]);
+    state.auth.mockResolvedValue({ id: otherOwner });
+    const taken = await connection(postConnection({ channelId: commandChannel }, competingTeam), context);
+    expect(taken.status).toBe(409);
+    expect(await taken.json()).toMatchObject({ code: 'DISCORD_COMMAND_CHANNEL_TAKEN' });
+    expect((await rows('select command_channel_id from discord_connections where team_id=$1', [competingTeam]))[0].command_channel_id)
+      .toBeNull();
+  });
+});
+
 describe('Activation confirms the reviewed destinations', () => {
   const resume = (values = {}) => connection(post({ action: 'resume', expectedGuildId: guild, expectedConfigVersion: 1, ...values }), context);
   const command = (interactionId: string) => withDiscordContext(context, () => executeDiscordCommand({
-    id: interactionId, guild_id: guild, member: { user: { id: captainDiscordId }, permissions: '32' },
+    id: interactionId, guild_id: guild, channel_id: commandChannel,
+    member: { user: { id: captainDiscordId }, permissions: '32' },
     data: { options: [{ name: 'reprendre' }] },
   }));
   it('returns destination data together with its exact connection version, including an empty route list', async () => {

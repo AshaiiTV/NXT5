@@ -1,16 +1,18 @@
 import { sql } from './db';
 import { discordError, uuid } from './discord-access';
 import { assertSubjectRateLimit } from './rate-limit';
-import { discordCommandCatalog } from '../../../shared/discord-command.js';
+import { discordCommandCatalog, discordLegacyCommandCatalog } from '../../../shared/discord-command.js';
 import { buildDiscordHelp, resolveDiscordHelpInteraction } from '../../../shared/discord-help.js';
-import { assertBotStaff, assertDiscordBotSchemaReady, botMessage, botTeams, loadBotPending, resolveBotContext, saveBotPending, type BotContext } from './discord-bot-common';
+import { assertBotStaff, assertDiscordBotSchemaReady, botMessage, loadBotPending, resolveBotContext, saveBotPending, type BotContext, type BotPublishedButton } from './discord-bot-common';
 import { executeDiscordAccount, finishDiscordAccountLink, reviewDiscordAccountLink, unlinkDiscordAccount } from './discord-bot-account';
+import { executeDiscordRead } from './discord-bot-read';
+import { executeDiscordAction } from './discord-bot-actions';
 
 export function parseDiscordCommand(interaction: any) {
   const root = interaction.data?.options?.[0];
   const leaf = root?.type === 2 ? root.options?.[0] : root;
   const command = root?.type === 2 ? `${root.name} ${leaf?.name}` : root?.name;
-  const entry = discordCommandCatalog.find(item => item.path === command);
+  const entry = [...discordCommandCatalog, ...discordLegacyCommandCatalog].find(item => item.path === command);
   if (!entry) throw discordError('Commande inconnue. Ouvre /nxt help.');
   const options: Record<string, any> = Object.create(null);
   for (const option of leaf?.options || []) {
@@ -21,7 +23,10 @@ export function parseDiscordCommand(interaction: any) {
     if (spec.type === 4 && (!Number.isInteger(value) || value < spec.min_value || value > spec.max_value)) throw discordError('Valeur numérique invalide.');
     if (spec.type === 5 && typeof value !== 'boolean') throw discordError('Choisis vrai ou faux.');
     if (spec.type === 7 && (typeof value !== 'string' || !/^[0-9]{17,20}$/.test(value))) throw discordError('Salon Discord invalide.');
-    if (spec.choices && !spec.choices.some(item => item.value === value)) throw discordError('Choix de commande invalide.');
+    const oldHelpChoice = command === 'help' && option.name === 'rubrique'
+      && discordLegacyCommandCatalog.find(item => item.path === 'help')?.options
+        .find(item => item.name === 'rubrique')?.choices?.some(item => item.value === value);
+    if (spec.choices && !spec.choices.some(item => item.value === value) && !oldHelpChoice) throw discordError('Choix de commande invalide.');
     options[option.name] = value;
   }
   if (entry.options.some((spec: any) => spec.required && options[spec.name] === undefined)) throw discordError('Une option obligatoire manque. Relance la commande depuis le menu Discord.');
@@ -38,30 +43,20 @@ export function immediateDiscordHelp(interaction: any) {
   }
   return null;
 }
-export async function discordMemberTeamChoices(interaction: any) {
-  const root = interaction.data?.options?.[0];
-  const leaf = root?.type === 2 ? root.options?.[0] : root;
-  const focused = leaf?.options?.find(option => option.focused);
-  if (!focused || !['equipe','nom'].includes(focused.name) || typeof focused.value !== 'string' || focused.value.length > 100) return [];
-  const command = root?.type === 2 ? `${root.name} ${leaf?.name}` : root?.name;
-  const spec: any = discordCommandCatalog.find(entry => entry.path === command)?.options.find(option => option.name === focused.name);
-  if (!spec?.autocomplete) return [];
-  await assertDiscordBotSchemaReady();
-  await assertSubjectRateLimit('discord-member-autocomplete', interaction.guild_id + ':' + interaction.member.user.id, { limit: 60, windowSeconds: 60 });
-  const query = focused.value.trim().toLowerCase();
-  const { teams } = await botTeams(interaction.member.user.id, interaction.guild_id, interaction.member.roles);
-  return teams.filter(team => !query || `${team.name} ${team.tag || ''} ${team.id}`.toLowerCase().includes(query)).slice(0, 25)
-    .map(team => ({ name: String(team.name).slice(0, 80) + ' · ' + team.id.slice(-8), value: team.id }));
+export async function discordMemberTeamChoices(_interaction: any) {
+  // No active-team picker remains in the command model. Old guild command
+  // registrations can still request autocomplete until they are replaced.
+  return [];
 }
 function assertCommandRole(ctx: BotContext, command: string) {
-  const access = discordCommandCatalog.find(entry => entry.path === command)?.access;
+  const access = [...discordCommandCatalog, ...discordLegacyCommandCatalog].find(entry => entry.path === command)?.access;
   if (!access) throw discordError('Commande inconnue.');
   if (access === 'Staff' || access === 'Responsable') assertBotStaff(ctx, access === 'Responsable');
 }
 async function runTeamCommand(ctx: BotContext, command: string, options: Record<string, any>, confirmed = false) {
   assertCommandRole(ctx, command);
-  const [{ executeDiscordRead }, { executeDiscordAction }] = await Promise.all([import('./discord-bot-read'), import('./discord-bot-actions')]);
-  const result = await executeDiscordRead(ctx, command, options) || await executeDiscordAction(ctx, command, options, confirmed);
+  let result = await executeDiscordRead(ctx, command, options);
+  if (!result) result = await executeDiscordAction(ctx, command, options, confirmed);
   if (!result) throw discordError('Commande inconnue. Ouvre /nxt help.');
   if (!result.modal) return result;
   const form = result.modal;
@@ -71,12 +66,17 @@ async function runTeamCommand(ctx: BotContext, command: string, options: Record<
     { type: 2, style: 2, label: 'Annuler', custom_id: 'nxt:cancel:' + token },
   ] }] };
 }
+function pendingPublishedButton(pending: any): BotPublishedButton | undefined {
+  if (pending.command !== 'presence repondre' || !pending.options?._publishedMessageId) return undefined;
+  return { messageId: pending.options._publishedMessageId, kind: 'presence', entityId: uuid(pending.options.evenement, 'Événement') };
+}
 export async function openDiscordBotModal(interaction: any) {
   await assertDiscordBotSchemaReady();
   const token = String(interaction.data.custom_id).replace(/^nxt:modal:open:/, '');
   const pending = await loadBotPending(token, interaction.member.user.id, interaction.guild_id);
   if (pending.kind !== 'modal') throw discordError('Formulaire invalide.');
-  const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, pending.team_id, interaction.member.roles);
+  const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, interaction.channel_id,
+    interaction.member.roles, pending.team_id, pendingPublishedButton(pending));
   assertCommandRole(ctx, pending.command);
   const fields = pending.form?.fields;
   if (!Array.isArray(fields) || !fields.length || fields.length > 5) throw discordError('Formulaire indisponible.');
@@ -89,15 +89,18 @@ async function runBotComponent(interaction: any) {
   const customId = String(interaction.data?.custom_id || '');
   const discordUserId = interaction.member.user.id;
   const guildId = interaction.guild_id;
+  const channelId = interaction.channel_id;
   const parts = customId.split(':');
   if (customId.startsWith('nxt:link:review:')) return reviewDiscordAccountLink(parts[3], discordUserId, guildId);
   if (['nxt:link:confirm:', 'nxt:link:cancel:'].some(prefix => customId.startsWith(prefix))) return finishDiscordAccountLink(parts[3], discordUserId, guildId, parts[2] === 'cancel');
   if (customId.startsWith('nxt:confirm:') || customId.startsWith('nxt:cancel:') || customId.startsWith('nxt:modal:submit:')) {
     const token = parts[parts.length - 1];
-    // Validate and re-resolve membership before consuming a button. The stored
-    // team is authoritative even if the user's active selection has changed.
+    // Validate the current channel and membership before consuming a button.
+    // The pending action must still belong to the team linked to this channel.
     const pending = await loadBotPending(token, discordUserId, guildId);
     if (customId.startsWith('nxt:cancel:')) {
+      if (pending.team_id) await resolveBotContext(discordUserId, guildId, channelId, interaction.member.roles,
+        pending.team_id, pendingPublishedButton(pending));
       await loadBotPending(token, discordUserId, guildId, true);
       return botMessage('Action annulée', 'Aucune modification n’a été effectuée.');
     }
@@ -105,7 +108,8 @@ async function runBotComponent(interaction: any) {
       await loadBotPending(token, discordUserId, guildId, true);
       return unlinkDiscordAccount(discordUserId);
     }
-    const ctx = await resolveBotContext(discordUserId, guildId, pending.team_id, interaction.member.roles);
+    const ctx = await resolveBotContext(discordUserId, guildId, channelId, interaction.member.roles,
+      pending.team_id, pendingPublishedButton(pending));
     assertCommandRole(ctx, pending.command);
     const options = { ...pending.options };
     const submitted = customId.startsWith('nxt:modal:submit:');
@@ -124,14 +128,14 @@ async function runBotComponent(interaction: any) {
     return runTeamCommand(ctx, pending.command, options, !submitted);
   }
   if (customId.startsWith('nxt:read:bilan:') || customId.startsWith('nxt:read:groupe:')) {
-    const ctx = await resolveBotContext(discordUserId, guildId, uuid(parts[3], 'Équipe'), interaction.member.roles);
+    const ctx = await resolveBotContext(discordUserId, guildId, channelId, interaction.member.roles, uuid(parts[3], 'Équipe'));
     const value = interaction.data?.values?.[0];
     if (typeof value !== 'string') throw discordError('Choisis une période ou un groupe.');
     if (parts[2] === 'bilan' && !['semaine','mois','session'].includes(value)) throw discordError('Période invalide.');
     return runTeamCommand(ctx, 'bilan', parts[2] === 'bilan' ? { periode: value } : { periode: 'session', groupe: uuid(value, 'Groupe') });
   }
   if (customId.startsWith('nxt:read:game:') || customId.startsWith('nxt:read:review:')) {
-    const ctx = await resolveBotContext(discordUserId, guildId, uuid(parts[3], 'Équipe'), interaction.member.roles);
+    const ctx = await resolveBotContext(discordUserId, guildId, channelId, interaction.member.roles, uuid(parts[3], 'Équipe'));
     const id = uuid(interaction.data?.values?.[0], parts[2] === 'game' ? 'Game' : 'Review');
     return runTeamCommand(ctx, parts[2] === 'game' ? 'game voir' : 'review voir', parts[2] === 'game' ? { game: id } : { review: id });
   }
@@ -142,9 +146,11 @@ async function runBotComponent(interaction: any) {
     if (!row) throw discordError('Ce contenu n’est plus disponible.', 404);
     const version = Number(parts[4]);
     if (!presence && (!Number.isSafeInteger(version) || version < 1)) throw discordError('La version de cette review est invalide. Ouvre la review actuelle.');
-    const ctx = await resolveBotContext(discordUserId, guildId, row.team_id, interaction.member.roles);
+    const ctx = await resolveBotContext(discordUserId, guildId, channelId, interaction.member.roles, row.team_id,
+      { messageId: interaction.message?.id, kind: presence ? 'presence' : 'review', entityId: id,
+        ...(!presence ? { version } : {}) });
     return runTeamCommand(ctx, presence ? 'presence repondre' : 'review lire', presence
-      ? { evenement: id, statut: parts[3] } : { review: id, version });
+      ? { evenement: id, statut: parts[3], _publishedMessageId: interaction.message?.id } : { review: id, version });
   }
   throw discordError('Ce bouton n’est plus disponible. Relance /nxt help.');
 }
@@ -169,8 +175,21 @@ export async function executeDiscordBot(interaction: any) {
     if (parsed) {
       result = await executeDiscordAccount(interaction, parsed.command, parsed.options);
       if (!result) {
-        const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, parsed.options.equipe, interaction.member.roles);
-        result = await runTeamCommand(ctx, parsed.command, parsed.options);
+        const ctx = await resolveBotContext(interaction.member.user.id, interaction.guild_id, interaction.channel_id, interaction.member.roles, parsed.options.equipe);
+        if (parsed.command === 'voir') {
+          const topics: Record<string, string> = { derniere: 'derniere', bilan: 'bilan', stats: 'stats equipe', planning: 'planning', objectifs: 'objectifs liste', reviews: 'review liste', draft: 'draft compositions' };
+          const topic = String(parsed.options.sujet || '');
+          const selected = topics[topic];
+          if (!selected) throw discordError('Sujet inconnu. Ouvre /nxt help.');
+          const options = ['bilan', 'stats', 'planning'].includes(topic) ? { periode: 'semaine' } : {};
+          result = await runTeamCommand(ctx, selected, options);
+          if (['derniere', 'bilan', 'stats'].includes(topic)) {
+            result = { ...result, _nxtPublicTeamId: ctx.teamId };
+            for (const embed of result.embeds || []) {
+              if (typeof embed.footer?.text === 'string') embed.footer.text = embed.footer.text.replace('Consultation privée', 'Dans le salon de l’équipe');
+            }
+          }
+        } else result = await runTeamCommand(ctx, parsed.command, parsed.options);
       }
     } else result = await runBotComponent(interaction);
     await sql("update discord_interaction_receipts set status='completed',completed_at=now() where interaction_id=$1", [interaction.id]);

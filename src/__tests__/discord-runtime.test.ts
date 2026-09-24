@@ -36,7 +36,6 @@ import maintenance from '../../netlify/functions/discord-maintenance';
 import maintenanceBackground from '../../netlify/functions/discord-maintenance-background';
 import setup from '../../netlify/functions/discord-setup';
 import connectionTest from '../../netlify/functions/team-discord-test';
-import { BOT_SCHEMA_VERSIONS } from '../../netlify/functions/_lib/discord-bot-common';
 
 const TEAM = '10000000-0000-4000-8000-000000000001';
 const SNAPSHOT = '10000000-0000-4000-8000-000000000002';
@@ -180,34 +179,23 @@ describe('Signed Discord team autocomplete', () => {
   function autocomplete(overrides: Record<string, unknown> = {}) {
     const keys = generateKeyPairSync('ed25519');
     vi.stubEnv('DISCORD_PUBLIC_KEY', keys.publicKey.export({ type: 'spki', format: 'der' }).subarray(-32).toString('hex'));
-    const body = JSON.stringify({ type: 4, id: '100000000000000009', application_id: '100000000000000001', guild_id: '100000000000000003', token: 'interaction-test',
+    const body = JSON.stringify({ type: 4, id: '100000000000000009', application_id: '100000000000000001', guild_id: '100000000000000003', channel_id: '100000000000000005', token: 'interaction-test',
       member: { permissions: '32', user: { id: '100000000000000004' } }, data: { name: 'nxt', options: [{ name: 'pause', options: [{ name: 'equipe', value: 'academy', focused: true }] }] }, ...overrides });
     const timestamp = String(Math.floor(Date.now() / 1000));
     return request('POST', body, { 'x-signature-timestamp': timestamp, 'x-signature-ed25519': sign(null, Buffer.from(timestamp + body), keys.privateKey).toString('hex') });
   }
-  it('answers autocomplete directly with names and stable IDs without running a command', async () => {
-    mocks.sql.mockResolvedValueOnce(BOT_SCHEMA_VERSIONS.map(migration_key => ({ migration_key })))
-      .mockResolvedValueOnce([{ id: SNAPSHOT, user_id: TEAM }])
-      .mockResolvedValueOnce([{ id: TEAM, name: 'Academy', tag: 'ACA', owner_id: TEAM }]);
+  it('does not suggest manual teams from an old Discord registration', async () => {
     const waitUntil = vi.fn();
     const result = await interactions(autocomplete(), { ...netlifyContext('production'), waitUntil });
-    expect(await result.json()).toEqual({ type: 8, data: { choices: [{ name: 'Academy [ACA] · 00000001', value: TEAM }] } });
-    expect(mocks.sql).toHaveBeenCalledTimes(3);
-    expect(mocks.sql.mock.calls[2][0]).toContain('c.guild_id=$2');
-    expect(mocks.sql.mock.calls[2][0]).toContain('tm.user_id=$1');
-    expect(mocks.sql.mock.calls[2][1]).toEqual([TEAM, '100000000000000003', SNAPSHOT]);
+    expect(await result.json()).toEqual({ type: 8, data: { choices: [] } });
+    expect(mocks.sql).not.toHaveBeenCalled();
     expect(waitUntil).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
   it('does not suggest a foreign team to a Discord server manager', async () => {
-    mocks.sql.mockResolvedValueOnce(BOT_SCHEMA_VERSIONS.map(migration_key => ({ migration_key })))
-      .mockResolvedValueOnce([{ id: SNAPSHOT, user_id: TEAM }])
-      .mockResolvedValueOnce([
-        { id: TEAM, name: 'Academy', tag: 'ACA', owner_id: TEAM },
-        { id: '10000000-0000-4000-8000-000000000099', name: 'Foreign', tag: 'BBB', owner_id: SNAPSHOT, role: null },
-      ]);
     const result = await interactions(autocomplete({ data: { name: 'nxt', options: [{ name: 'pause', options: [{ name: 'equipe', value: '', focused: true }] }] } }), netlifyContext('production'));
-    expect(await result.json()).toEqual({ type: 8, data: { choices: [{ name: 'Academy [ACA] · 00000001', value: TEAM }] } });
+    expect(await result.json()).toEqual({ type: 8, data: { choices: [] } });
+    expect(mocks.sql).not.toHaveBeenCalled();
   });
   it.each([
     { member: { permissions: '0', user: { id: '100000000000000004' } } },

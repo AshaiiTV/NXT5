@@ -49,17 +49,17 @@ export default function DiscordAccount({ user }) {
     <div className="discord-account-heading">
       <div className="min-w-0">
         <h3 className="discord-account-title"><Link2 size={20} aria-hidden="true" /> Mon compte Discord</h3>
-        {!state?.link && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Lie ton compte personnel pour utiliser les commandes de tes équipes. Cette liaison reste distincte de la connexion du serveur.</p>}
+        {!state?.link && <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Lie ton compte personnel à NXT5 pour utiliser les commandes dans le salon de ton équipe.</p>}
       </div>
       {state?.link && <Badge tone="cyan">Compte lié</Badge>}
     </div>
     {loading ? <p className="mt-4 text-sm text-slate-300" role="status">Chargement de ta liaison…</p>
       : state?.link ? <div className="discord-account-state">
-        <p className="break-words text-sm leading-6 text-slate-200">Compte lié à <strong>{state.link.discord_label}</strong>.</p>
+        <p className="break-words text-sm leading-6 text-slate-200">Compte lié à <strong>{state.link.discord_label}</strong>. <span className="block text-slate-300">Va dans le salon Discord de ton équipe et lance <code className="text-cyan-200">/nxt help</code> pour commencer.</span></p>
         <Button type="button" variant="ghost" aria-expanded={managing} aria-controls={managing ? manageId : undefined} onClick={() => { setManaging((open) => !open); setUnlink(false); }}>{managing ? "Fermer la gestion" : "Gérer"}</Button>
         {managing && <div id={manageId} className="discord-account-management">
           <p className="break-words text-sm leading-6 text-slate-300">Identifiant Discord : {state.link.discord_user_id}</p>
-          <p className="text-sm leading-6 text-slate-300">Dans Discord, utilise <code className="break-words text-cyan-200">/nxt equipe choisir</code> puis <code className="text-cyan-200">/nxt help</code> pour commencer.</p>
+          <p className="text-sm leading-6 text-slate-300">Va dans le salon Discord associé à ton équipe, puis lance <code className="text-cyan-200">/nxt help</code>. NXT5 reconnaît l’équipe grâce au salon.</p>
           {unlink ? <div className="discord-confirm" role="group" aria-label="Confirmer la déliaison">
             <p className="text-sm leading-6 text-slate-200">Retirer cette liaison révoque les accès Discord à ton compte et les actions en attente.</p>
             <div className="flex flex-wrap gap-3"><Button type="button" variant="danger" disabled={busy} onClick={remove}>{busy ? "Déliaison…" : "Confirmer la déliaison"}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => setUnlink(false)}>Conserver la liaison</Button></div>
@@ -73,9 +73,9 @@ export default function DiscordAccount({ user }) {
         </dl>
         {request.prepared ? <p className="discord-feedback" role="status">Compte NXT5 confirmé. Reviens dans Discord, clique sur « Vérifier la liaison », puis sur « Confirmer la liaison » après avoir vérifié les deux comptes.</p>
           : <><p className="text-sm leading-6 text-slate-300">Confirme si ces deux comptes sont les tiens. La dernière validation se fera dans Discord.</p><Button disabled={busy} onClick={prepare}>{busy ? "Confirmation…" : "Confirmer mon compte NXT5"}</Button></>}
-        <p className="discord-help">Le lien expire à {new Date(request.expiresAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}. Tu peux en générer un nouveau avec /nxt compte lier.</p>
+        <p className="discord-help">Le lien expire à {new Date(request.expiresAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}. Tu peux en générer un nouveau avec /nxt lier.</p>
       </div> : !error ? <div className="mt-4 space-y-3">
-        <p className="text-sm leading-6 text-slate-200">Dans ton serveur Discord, saisis <code className="break-words text-cyan-200">/nxt compte lier</code> et ouvre le lien personnel proposé par le bot.</p>
+        <p className="text-sm leading-6 text-slate-200">Dans Discord, lance <code className="break-words text-cyan-200">/nxt lier</code> et ouvre le lien personnel proposé par le bot. Une fois ton compte lié, utilise les commandes dans le salon de ton équipe.</p>
         <p className="text-sm leading-6 text-slate-400">Le guide <code>/nxt help</code> est accessible avant la liaison du compte.</p>
       </div> : null}
     {error && <p className="mt-4 break-words text-sm leading-6 text-rose-200" role="alert">{error}</p>}

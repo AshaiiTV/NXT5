@@ -21,26 +21,25 @@ const date = (name = 'date', required = true) => text(name, 'Date au format AAAA
 const time = (name = 'heure', required = true) => text(name, 'Heure au format HH:MM.', required, { min_length: 5, max_length: 5 });
 
 export const discordHelpSections = [
-  { id: 'accueil', label: 'Accueil', description: 'Découvrir le bot et choisir son parcours' },
-  { id: 'compte', label: 'Mon compte', description: 'Lier son compte et choisir son équipe' },
-  { id: 'preparer', label: 'Avant la session', description: 'Planning, disponibilités et objectifs' },
-  { id: 'games', label: 'Games et bilan', description: 'Retrouver une game et lire les résultats' },
-  { id: 'review', label: 'Reviews et progression', description: 'Consulter les reviews et les priorités' },
-  { id: 'responsable', label: 'Installer le bot', description: 'Connecter une équipe et gérer sa diffusion' },
+  { id: 'accueil', label: 'Démarrer', description: 'Les trois étapes pour utiliser NXT5' },
+  { id: 'joueur', label: 'Pour les joueurs', description: 'Consulter les données dans le salon de son équipe' },
+  { id: 'responsable', label: 'Pour les responsables', description: 'Relier une équipe et choisir son salon' },
 ];
 export const discordCommandCategories = [
-  { id: 'comptes', label: 'Aide, comptes et équipes' },
-  { id: 'games', label: 'Games, statistiques et bilans' },
-  { id: 'joueurs', label: 'Joueurs et objectifs' },
-  { id: 'draft', label: 'Pools et préparation de draft' },
-  { id: 'planning', label: 'Planning et présences' },
-  { id: 'reviews', label: 'Reviews et consignes' },
-  { id: 'gestion', label: 'Connexion et réglages' },
+  { id: 'joueur', label: 'Joueurs' },
+  { id: 'gestion', label: 'Responsables' },
+];
+// Kept solely to validate interactions sent from guilds that still have the
+// previous registration. New registrations use discordCommandCatalog below.
+const legacyHelpSections = [
+  { id: 'accueil', label: 'Accueil' }, { id: 'compte', label: 'Mon compte' },
+  { id: 'preparer', label: 'Avant la session' }, { id: 'games', label: 'Games et bilan' },
+  { id: 'review', label: 'Reviews et progression' }, { id: 'responsable', label: 'Installer le bot' },
 ];
 const command = (path, description, categoryId, access, options = []) => ({ path, description, category: categoryId, access, options });
 
-export const discordCommandCatalog = [
-  command('help', 'Ouvrir le tutoriel et le catalogue.', 'comptes', 'Tous', [choice('rubrique', 'Page du tutoriel.', discordHelpSections.map(section => [section.id, section.label])), text('commande', 'Commande à expliquer, par exemple bilan.')]),
+export const discordLegacyCommandCatalog = [
+  command('help', 'Ouvrir le tutoriel et le catalogue.', 'comptes', 'Tous', [choice('rubrique', 'Page du tutoriel.', legacyHelpSections.map(section => [section.id, section.label])), text('commande', 'Commande à expliquer, par exemple bilan.')]),
   command('aide', 'Ouvrir le tutoriel NXT5.', 'comptes', 'Tous'),
   command('compte lier', 'Lier ton compte Discord à NXT5.', 'comptes', 'Tous'),
   command('compte profil', 'Voir ton compte et ton équipe active.', 'comptes', 'Compte lié'),
@@ -98,25 +97,29 @@ export const discordCommandCatalog = [
   command('diffusion test', 'Tester le salon configuré.', 'gestion', 'Responsable', [team()]),
 ];
 
-const groupDescriptions = {
-  compte: 'Gérer ton compte personnel.', equipe: 'Choisir ton équipe active.', game: 'Retrouver et comparer les games.',
-  stats: 'Consulter les statistiques.', reglages: 'Régler la diffusion de l’équipe.', joueur: 'Consulter les profils joueurs.',
-  objectifs: 'Suivre les objectifs de travail.', pool: 'Préparer les pools de champions.', draft: 'Préparer les prochaines drafts.',
-  evenement: 'Gérer les rendez-vous.', presence: 'Confirmer les présences.', disponibilites: 'Renseigner tes disponibilités.',
-  review: 'Consulter et partager les reviews.', diffusion: 'Vérifier la publication Discord.',
-};
+export const discordCommandCatalog = [
+  command('help', 'Découvrir comment utiliser le bot NXT5.', 'joueur', 'Tous', [
+    choice('rubrique', 'Page du tutoriel.', discordHelpSections.map(section => [section.id, section.label])),
+    text('commande', 'Nom d’une commande, par exemple voir.'),
+  ]),
+  command('lier', 'Associer ton compte Discord à NXT5.', 'joueur', 'Tous'),
+  command('profil', 'Vérifier ton compte NXT5 lié.', 'joueur', 'Compte lié'),
+  command('voir', 'Consulter les données de ton équipe dans son salon.', 'joueur', 'Membre', [
+    choice('sujet', 'Données à afficher.', [
+      ['derniere', 'Dernière game'], ['bilan', 'Bilan'], ['stats', 'Statistiques'],
+      ['planning', 'Planning'], ['objectifs', 'Objectifs'], ['reviews', 'Reviews'], ['draft', 'Draft'],
+    ], true),
+  ]),
+  command('connecter', 'Relier une équipe NXT5 à ce serveur.', 'gestion', 'Responsable', [
+    text('code', 'Code temporaire fourni par NXT5.', true, { min_length: 16, max_length: 24 }),
+  ]),
+];
 
 export function nxtDiscordCommand() {
-  const options = [];
-  for (const entry of discordCommandCatalog) {
-    const [root, subcommand] = entry.path.split(' ');
-    const definition = { type: 1, name: subcommand || root, description: entry.description };
-    if (entry.options.length) definition.options = structuredClone(entry.options);
-    if (!subcommand) { options.push(definition); continue; }
-    let group = options.find(option => option.name === root);
-    if (!group) { group = { type: 2, name: root, description: groupDescriptions[root], options: [] }; options.push(group); }
-    group.options.push(definition);
-  }
+  const options = discordCommandCatalog.map(entry => ({
+    type: 1, name: entry.path, description: entry.description,
+    ...(entry.options.length ? { options: structuredClone(entry.options) } : {}),
+  }));
   return {
     type: 1, name: 'nxt', description: 'Préparer, suivre et partager la vie de ton équipe NXT5.',
     // Opening the root makes help and member reads discoverable. Every handler

@@ -76,7 +76,7 @@ export default function DiscordRoleAccess({ teamId, metadata, canManage = false,
       {stale && <p role="alert" className="discord-feedback discord-feedback-error">Cette règle vient d’un autre serveur Discord. Les commandes de l’équipe restent bloquées tant qu’un responsable ne supprime pas cette ancienne restriction, puis choisit les rôles du serveur actuel.</p>}
       {!stale && policy.enabled && <p>Pour utiliser les commandes de cette équipe, il faut les droits NXT5 et au moins un de ces rôles Discord : <strong>{policy.roleIds.map((id) => `@${availableRoles.find((role) => role.id === id)?.name || "rôle indisponible"}`).join(", ")}</strong>.</p>}
       {!policy.enabled && <p>Les membres de cette équipe utilisent les commandes selon leurs droits NXT5. Aucun rôle Discord supplémentaire n’est exigé actuellement.</p>}
-      <p className="discord-help">Ce réglage concerne les commandes, uniquement pour cette équipe. Le rôle mentionné dans les annonces se choisit dans les salons ; la visibilité des messages dépend des permissions Discord de chaque salon.</p>
+      <p className="discord-help">Le salon détermine l’équipe ; ces rôles ajoutent un contrôle d’accès pour ses commandes. Ils ne donnent aucun droit sur une autre équipe. Le rôle mentionné dans les annonces se choisit séparément dans les salons de publication.</p>
       {canManage && <Button type="button" variant="ghost" aria-expanded={editing} aria-controls={editing ? formId : undefined} disabled={resource.loading || action.busy} onClick={toggleEdit}>{editing ? "Fermer les réglages" : "Modifier l’accès"}</Button>}
       {canManage && editing && <form id={formId} onSubmit={save} className="discord-role-form">
         <fieldset disabled={!canEdit || stale}>
