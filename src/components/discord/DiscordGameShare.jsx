@@ -67,7 +67,7 @@ function DiscordGameShareForm({ teamId, matchId, matchName, connection, routes, 
     if (busy || publication.needsVerification || !ready || !validDestination || !validPreviewRevision) return;
     void publication.send({ teamId, matchId, routeId, snapshotRevision: preview.snapshotRevision }, { channelId: channel.id, configVersion: connection.data.connection.configVersion });
   }
-  return <GameOperationDialog title="Exporter sur Discord" description={matchName || "Partie sélectionnée"} onClose={onClose} busy={preparing} returnFocusRef={returnFocusRef}>
+  return <GameOperationDialog title="Exporter sur Discord" description={matchName || "Partie sélectionnée"} onClose={onClose} busy={preparing || publication.submitting} returnFocusRef={returnFocusRef}>
     <div className="discord-share discord-share-content">
       <DiscordFeedback loading={refreshing} error={metadataError || previewError} />
       {connection.data?.configured === false && <p>Le bot Discord n’est pas encore disponible.</p>}

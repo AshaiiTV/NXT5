@@ -292,6 +292,29 @@ describe("Discord game publication", () => {
     expect(text(renderer.root)).not.toContain("file d’envoi");
   });
 
+  it("prevents closing from aborting the initial publication request", async () => {
+    let finish;
+    const serveMetadata = apiFetch.getMockImplementation();
+    apiFetch.mockImplementation((path, options) => path === "team-discord-publish"
+      ? new Promise((resolve) => { finish = resolve; }) : serveMetadata(path, options));
+    const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
+    await click(renderer, "Exporter sur Discord");
+    await click(renderer, "Préparer l’aperçu");
+    await click(renderer, "Publier dans #games");
+    const request = apiFetch.mock.calls.find(([path]) => path === "team-discord-publish");
+    expect(renderer.root.findByProps({ "aria-label": "Fermer la fenêtre" }).props.disabled).toBe(true);
+    await act(async () => {
+      const target = {};
+      renderer.root.findByType("dialog").props.onCancel({ target, currentTarget: target, preventDefault() {} });
+    });
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    expect(request[1].signal.aborted).toBe(false);
+    expect(posts()).toHaveLength(1);
+    await act(async () => finish({ jobs: [publishedReceipt] }));
+    expect(renderer.root.findByProps({ "aria-label": "Fermer la fenêtre" }).props.disabled).toBe(false);
+    expect(text(renderer.root)).toContain("Publié sur Discord.");
+  });
+
   it.each(["button", "escape"])("allows closing with %s while checking the publication and cancels polling", async (closeWith) => {
     const serveMetadata = apiFetch.getMockImplementation();
     apiFetch.mockImplementation(async (path, options) => {

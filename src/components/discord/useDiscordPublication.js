@@ -19,6 +19,7 @@ function pause(signal) {
 export function useDiscordPublication() {
   const active = useRef(null);
   const attempt = useRef(null);
+  const [submitting, setSubmitting] = useState(false);
   const [state, setState] = useState({ busy: false, receipt: null, error: "", needsVerification: false });
   useEffect(() => () => active.current?.abort(), []);
 
@@ -70,9 +71,16 @@ export function useDiscordPublication() {
     // locks provide idempotence, including when the previous response was lost.
     const requestBody = { ...body, requestId: crypto.randomUUID() };
     attempt.current = { body: requestBody, ...context, ids: null };
+    setSubmitting(true);
     setState({ busy: true, receipt: null, error: "", needsVerification: false });
     try {
-      const result = await apiFetch("team-discord-publish", { ...discordPost(requestBody), signal: controller.signal, timeoutMs: 60_000 });
+      let result;
+      try {
+        result = await apiFetch("team-discord-publish", { ...discordPost(requestBody), signal: controller.signal, timeoutMs: 60_000 });
+      } finally {
+        // Closing must not abort the initial submission; subsequent reads may be stopped.
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
       if (controller.signal.aborted) return;
       attempt.current.ids = result?.jobs?.map((job) => job.id).filter(Boolean) || [];
       if (!accept(result?.jobs?.[0], controller)) await track(controller);
@@ -99,5 +107,5 @@ export function useDiscordPublication() {
     attempt.current = null;
     setState({ busy: false, receipt: null, error: "", needsVerification: false });
   }
-  return { ...state, send, verify, clear };
+  return { ...state, submitting, send, verify, clear };
 }
