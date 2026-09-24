@@ -60,6 +60,11 @@
   --nxt5-accent-2: #a78bfa;
   --nxt5-danger: #fda4af;
   --nxt5-primary-gradient: linear-gradient(to right, #22d3ee, #3b82f6, #d946ef);
+  /* Decorative accents; primary actions and semantic state colors stay distinct. */
+  --nxt5-spectrum-stops: #67e8f9, #818cf8 38%, #a78bfa 65%, #e879f9;
+  --nxt5-spectrum-gradient: linear-gradient(105deg, var(--nxt5-spectrum-stops));
+  --nxt5-spectrum-soft: linear-gradient(105deg, rgba(103, 232, 249, .07), rgba(139, 92, 246, .12) 62%, rgba(232, 121, 249, .07));
+  --nxt5-spectrum-text: linear-gradient(105deg, #a5f3fc, #c4b5fd 55%, #f0abfc);
   --nxt5-radius-panel: 1rem;
   --nxt5-radius-control: 0.625rem;
   --nxt5-radius-button: 0.125rem;

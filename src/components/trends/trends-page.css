@@ -11,8 +11,8 @@
 .trends-tabs { display: flex; border-bottom: 1px solid var(--nxt5-border-strong); gap: 6px; }
 .trends-tabs > button { position: relative; display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; border-radius: var(--nxt5-radius-button, 2px) var(--nxt5-radius-button, 2px) 0 0; min-height: 64px; padding: 12px; text-align: left; color: var(--nxt5-text-secondary); }
 .trends-tabs > button:hover { background: rgba(255,255,255,.035); }
-.trends-tabs > button[aria-selected="true"] { color: var(--nxt5-text); background: rgba(103,232,249,.07); }
-.trends-tabs > button[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 12px -1px; height: 3px; background: var(--nxt5-accent); }
+.trends-tabs > button[aria-selected="true"] { color: var(--nxt5-text); background: var(--nxt5-spectrum-soft); }
+.trends-tabs > button[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 12px -1px; height: 3px; background: var(--nxt5-spectrum-gradient); }
 .trends-tabs svg { width: 18px; height: 18px; flex-shrink: 0; color: #a5f3fc; }
 .trends-tabs strong { font-size: 14px; font-weight: 700; }
 .trends-tabs small { display: block; margin-top: 3px; font-size: 13px; line-height: 1.45; color: var(--nxt5-text-secondary); }

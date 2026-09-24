@@ -11,7 +11,7 @@
   inset: 0;
   background:
     radial-gradient(ellipse at 12% 0%, rgba(21, 128, 162, .12), transparent 48%),
-    radial-gradient(ellipse at 92% 3%, rgba(116, 66, 170, .10), transparent 42%);
+    radial-gradient(ellipse at 92% 3%, rgba(139, 92, 246, .18), transparent 48%);
 }
 
 .nxt5-sidebar {
@@ -45,8 +45,8 @@
 .nxt5-sidebar-link + .nxt5-sidebar-link { margin-top: .25rem; }
 .nxt5-sidebar-link > svg { flex: 0 0 auto; color: #8ea5c1; }
 .nxt5-sidebar-link:hover { color: #f3f7ff; background: rgba(166, 194, 231, .055); }
-.nxt5-sidebar-link.is-active { background: rgba(77, 201, 231, .09); color: #edfaff; font-weight: 650; }
-.nxt5-sidebar-link.is-active::before { content: ""; position: absolute; inset: .65rem auto .65rem 0; width: 2px; background: var(--nxt5-accent, #67e8f9); }
+.nxt5-sidebar-link.is-active { background: var(--nxt5-spectrum-soft); color: #edfaff; font-weight: 650; }
+.nxt5-sidebar-link.is-active::before { content: ""; position: absolute; inset: .65rem auto .65rem 0; width: 2px; background: linear-gradient(to bottom, var(--nxt5-spectrum-stops)); }
 .nxt5-sidebar-link.is-active > svg { color: var(--nxt5-accent, #67e8f9); }
 .nxt5-sidebar-label { min-width: 0; }
 .nxt5-sidebar-link-copy { display: flex; flex-direction: column; gap: .125rem; }
