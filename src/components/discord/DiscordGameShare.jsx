@@ -24,21 +24,22 @@ function DiscordGameShareContent({ teamId, matchId, matchName }) {
   const connected = Boolean(connection.data?.connection?.guildId) && connection.data.connection.status !== "disconnected";
   const routes = useDiscordResource(connected ? discordQuery("team-discord-routes", { teamId }) : null, revision, { keepPreviousData: true });
   const coherent = matchingConfiguration(connection.data?.connection, routes.data);
-  const eligible = connection.data?.configured && connected && coherent && !connection.loading && !routes.loading && !connection.error && !routes.error && !connection.data.connectionError && connection.data.health?.verified !== false && Array.isArray(routes.data?.routes) && routes.data.routes.length > 0;
   return <>
-    {(eligible || open) && <span ref={trigger} className="discord-share-action"><Button type="button" variant="ghost" icon={MessageSquare} aria-haspopup="dialog" aria-expanded={open} disabled={!eligible || open} onClick={() => { if (eligible) setOpen(true); }}>Publier sur Discord</Button></span>}
+    <span ref={trigger} className="discord-share-action"><Button type="button" variant="ghost" icon={MessageSquare} aria-haspopup="dialog" aria-expanded={open} disabled={open} onClick={() => setOpen(true)}>Exporter sur Discord</Button></span>
     {open && <DiscordGameShareForm {...{ teamId, matchId, matchName, connection, routes, connected, coherent, revision }} onReload={() => setRevision((value) => value + 1)} onClose={() => setOpen(false)} returnFocusRef={trigger} />}
   </>;
 }
 
 function DiscordGameShareForm({ teamId, matchId, matchName, connection, routes, connected, coherent, revision, onReload, onClose, returnFocusRef }) {
-  const [routeId, setRouteId] = useState("");
+  const [chosenRouteId, setRouteId] = useState(null);
   const [preview, setPreview] = useState(null);
   const [preparing, setPreparing] = useState(false);
   const [previewError, setPreviewError] = useState("");
   const previewRequest = useRef(null);
   const action = useDiscordAction();
   const destinations = Array.isArray(routes.data?.routes) ? routes.data.routes : [];
+  const availableDestinations = destinations.filter((route) => connection.data?.channels?.some((channel) => channel.id === route.channelId && channel.canSend !== false));
+  const routeId = chosenRouteId ?? (coherent && availableDestinations.length === 1 ? availableDestinations[0].id : "");
   const selectedRoute = destinations.find((route) => route.id === routeId);
   const channel = connection.data?.channels?.find((item) => item.id === selectedRoute?.channelId);
   const refreshing = connection.loading || routes.loading;
@@ -71,11 +72,11 @@ function DiscordGameShareForm({ teamId, matchId, matchName, connection, routes, 
     if (busy || !ready || !validDestination || !validPreviewRevision) return;
     action.run("team-discord-publish", { teamId, matchId, routeId, snapshotRevision: preview.snapshotRevision }, () => { setPreview(null); onReload(); }, "Publication ajoutée à la file d’envoi. Son état apparaît dans l’historique.");
   }
-  return <GameOperationDialog title="Publier sur Discord" description={matchName || "Game sélectionnée"} onClose={onClose} busy={busy} returnFocusRef={returnFocusRef}>
+  return <GameOperationDialog title="Exporter sur Discord" description={matchName || "Partie sélectionnée"} onClose={onClose} busy={busy} returnFocusRef={returnFocusRef}>
     <div className="discord-share discord-share-content">
       <DiscordFeedback loading={refreshing} error={metadataError || previewError || action.error} notice={action.notice} />
       {connection.data?.configured === false && <p>Le bot Discord n’est pas encore disponible.</p>}
-      {!connected && !connection.loading && <p>Cette équipe n’est plus reliée à un serveur Discord. <a className="discord-link" href="/bot-discord">Ouvrir Bot Discord</a></p>}
+      {connection.data?.configured && !connected && !connection.loading && !metadataError && <p>Relie le bot au serveur Discord de cette équipe pour y envoyer tes parties. <a className="discord-link" href="/bot-discord">Configurer Bot Discord</a></p>}
       {connection.data?.enabled === false && <p>Les envois Discord sont suspendus pour toutes les équipes. <a className="discord-link" href="/bot-discord">Ouvrir Bot Discord</a></p>}
       {connection.data?.connection?.paused && <p>Les envois de l’équipe sont en pause. Le propriétaire ou un capitaine peut les reprendre dans <a className="discord-link" href="/bot-discord">Bot Discord</a>.</p>}
       {!refreshing && connected && !coherent && <p role="alert">Les réglages Discord ont changé. Actualise les salons avant de préparer une publication.</p>}

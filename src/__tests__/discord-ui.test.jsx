@@ -206,42 +206,51 @@ describe("Discord game publication", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
-  it("waits for both connection and destination metadata before showing the action", async () => {
+  it("keeps the export visible while loading and only enables preview with verified metadata", async () => {
     let resolveConnection, resolveRoutes;
     apiFetch.mockImplementation((path) => path.startsWith("team-discord-connection") ? new Promise((resolve) => { resolveConnection = resolve; }) : new Promise((resolve) => { resolveRoutes = resolve; }));
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    expect(renderer.toJSON()).toBeNull();
+    await click(renderer, "Exporter sur Discord");
+    expect(text(renderer.root)).toContain("Chargement de Discord");
+    expect(button(renderer, "Préparer l’aperçu")).toBeUndefined();
     await act(async () => resolveConnection(connection));
-    expect(renderer.toJSON()).toBeNull();
+    expect(button(renderer, "Préparer l’aperçu")).toBeUndefined();
     await act(async () => resolveRoutes({ routes: [route], guildId: "123", configVersion: 3 }));
-    expect(button(renderer, "Publier sur Discord")).toBeDefined();
+    expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(false);
+    expect(renderer.root.findByType("select").props.value).toBe("route-1");
     expect(posts()).toEqual([]);
   });
 
   it.each([
-    [{ configured: false }, { routes: [route] }],
-    [{ ...connection, connection: null }, { routes: [route] }],
-    [{ ...connection, connection: { ...connection.connection, status: "disconnected" } }, { routes: [route] }],
-    [connection, { routes: [] }],
-    [connection, { routes: [route], guildId: "another-server", configVersion: 3 }],
-    [connection, { routes: [route], guildId: "123", configVersion: 4 }],
-  ])("hides the action for unavailable or inconsistent destination metadata: %o", async (metadata, routes) => {
+    [{ configured: false }, { routes: [route] }, "Le bot Discord n’est pas encore disponible"],
+    [{ ...connection, connection: null }, { routes: [route] }, "Relie le bot au serveur Discord de cette équipe"],
+    [{ ...connection, connection: { ...connection.connection, status: "disconnected" } }, { routes: [route] }, "Relie le bot au serveur Discord de cette équipe"],
+    [connection, { routes: [] }, "Aucune destination configurée"],
+    [connection, { routes: [route], guildId: "another-server", configVersion: 3 }, "Les réglages Discord ont changé"],
+    [connection, { routes: [route], guildId: "123", configVersion: 4 }, "Les réglages Discord ont changé"],
+  ])("explains unavailable or inconsistent metadata from the visible export action: %o", async (metadata, routes, explanation) => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? metadata : routes);
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    expect(renderer.toJSON()).toBeNull();
+    await click(renderer, "Exporter sur Discord");
+    expect(text(renderer.root)).toContain(explanation);
+    expect(button(renderer, "Préparer l’aperçu")?.props.disabled).not.toBe(false);
     expect(posts()).toEqual([]);
   });
 
-  it.each(["team-discord-connection", "team-discord-routes"])("hides the action when metadata request %s fails", async (failedPath) => {
+  it.each(["team-discord-connection", "team-discord-routes"])("offers retry from the export dialog when metadata request %s fails", async (failedPath) => {
     apiFetch.mockImplementation(async (path) => { if (path.startsWith(failedPath)) throw new Error("Service indisponible"); return connection; });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    expect(renderer.toJSON()).toBeNull();
+    await click(renderer, "Exporter sur Discord");
+    expect(text(renderer.root)).toContain("Service indisponible");
+    expect(button(renderer, "Réessayer")).toBeDefined();
+    expect(button(renderer, "Préparer l’aperçu")?.props.disabled).not.toBe(false);
+    expect(posts()).toEqual([]);
   });
 
   it("accepts a saved destination with automatic publication disabled", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [{ ...route, enabled: false }], guildId: "123", configVersion: 3 } : path.startsWith("team-discord-preview") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    await click(renderer, "Publier sur Discord");
+    await click(renderer, "Exporter sur Discord");
     expect(text(renderer.root)).toContain("#games · publication manuelle");
     await choose(renderer, "Destination Discord", "route-1");
     await click(renderer, "Préparer l’aperçu");
@@ -252,7 +261,7 @@ describe("Discord game publication", () => {
   it("opens a configured destination without current send permissions and explains the disabled choice", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { ...connection, channels: [{ id: "channel-1", name: "games", canSend: false }] } : path.startsWith("team-discord-routes") ? { routes: [route], guildId: "123", configVersion: 3 } : { deliveries: [] });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    await click(renderer, "Publier sur Discord");
+    await click(renderer, "Exporter sur Discord");
     expect(renderer.root.findAllByType("option").find((option) => option.props.value === "route-1").props.disabled).toBe(true);
     expect(text(renderer.root)).toContain("Les salons sans autorisation d’envoi sont désactivés");
     await choose(renderer, "Destination Discord", "route-1");
@@ -264,13 +273,13 @@ describe("Discord game publication", () => {
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" matchName="Ma game" canPublish />);
     expect(apiFetch.mock.calls.map(([path]) => path)).toEqual(["team-discord-connection?teamId=team", "team-discord-routes?teamId=team"]);
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
-    expect(button(renderer, "Publier sur Discord").props["aria-haspopup"]).toBe("dialog");
-    await click(renderer, "Publier sur Discord");
+    expect(button(renderer, "Exporter sur Discord").props["aria-haspopup"]).toBe("dialog");
+    await click(renderer, "Exporter sur Discord");
     expect(renderer.root.findByType("dialog").props["aria-modal"]).toBe("true");
     expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-deliveries"))).toBe(true);
     expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-preview"))).toBe(false);
-    expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(true);
-    await choose(renderer, "Destination Discord", "route-1");
+    expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(false);
+    expect(renderer.root.findByType("select").props.value).toBe("route-1");
     expect(button(renderer, "Publier dans #games")).toBeUndefined();
     await click(renderer, "Préparer l’aperçu");
     expect(renderer.root.findByType("img").props.src).toBe(preview.imageDataUrl);
@@ -283,7 +292,7 @@ describe("Discord game publication", () => {
   it("keeps preview available but prevents publication while team is paused", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? { ...connection, connection: { ...connection.connection, paused: true } } : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-preview") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    await click(renderer, "Publier sur Discord"); await choose(renderer, "Destination Discord", "route-1"); await click(renderer, "Préparer l’aperçu");
+    await click(renderer, "Exporter sur Discord"); await choose(renderer, "Destination Discord", "route-1"); await click(renderer, "Préparer l’aperçu");
     expect(button(renderer, "Publier dans #games").props.disabled).toBe(true);
     expect(text(renderer.root)).toContain("Les envois de l’équipe sont en pause");
     expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/bot-discord")).toBe(true);
@@ -291,10 +300,40 @@ describe("Discord game publication", () => {
     expect(posts()).toEqual([]);
   });
 
+  it("requires a choice with multiple team destinations and discards the previous channel preview", async () => {
+    const secondRoute = { ...route, id: "route-2", channelId: "channel-2" };
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [route, secondRoute], guildId: "123", configVersion: 3 } : path.startsWith("team-discord-preview") ? preview : { deliveries: [] });
+    const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
+    await click(renderer, "Exporter sur Discord");
+    expect(renderer.root.findByType("select").props.value).toBe("");
+    expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(true);
+    await choose(renderer, "Destination Discord", "route-1");
+    await click(renderer, "Préparer l’aperçu");
+    await choose(renderer, "Destination Discord", "route-2");
+    expect(renderer.root.findAllByType("img")).toHaveLength(0);
+    expect(button(renderer, "Publier dans #second")).toBeUndefined();
+    expect(posts()).toEqual([]);
+    await click(renderer, "Préparer l’aperçu");
+    expect(apiFetch.mock.calls.some(([path]) => path === "team-discord-preview?teamId=team&matchId=game&routeId=route-2")).toBe(true);
+    await click(renderer, "Publier dans #second");
+    expect(posts()).toEqual([["team-discord-publish", { teamId: "team", matchId: "game", routeId: "route-2", snapshotRevision: 0 }]]);
+  });
+
+  it("preselects only the destination the bot can use and respects an explicitly cleared choice", async () => {
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [{ ...route, id: "denied", channelId: "channel-denied" }, route], guildId: "123", configVersion: 3 } : { deliveries: [] });
+    const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
+    await click(renderer, "Exporter sur Discord");
+    expect(renderer.root.findByType("select").props.value).toBe("route-1");
+    expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(false);
+    await choose(renderer, "Destination Discord", "");
+    expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(true);
+    expect(posts()).toEqual([]);
+  });
+
   it("publishes a text-only preview with a valid revision when the image is unavailable", async () => {
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-preview") ? { ...preview, imageDataUrl: null } : { deliveries: [] });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    await click(renderer, "Publier sur Discord"); await choose(renderer, "Destination Discord", "route-1"); await click(renderer, "Préparer l’aperçu");
+    await click(renderer, "Exporter sur Discord"); await choose(renderer, "Destination Discord", "route-1"); await click(renderer, "Préparer l’aperçu");
     expect(renderer.root.findAllByType("img")).toHaveLength(0);
     expect(text(renderer.root)).toContain("Visuel indisponible pour cet aperçu");
     await click(renderer, "Publier dans #games");
@@ -305,7 +344,7 @@ describe("Discord game publication", () => {
     let resolvePreview;
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-preview") ? new Promise((resolve) => { resolvePreview = resolve; }) : { deliveries: [] });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="old" canPublish />);
-    await click(renderer, "Publier sur Discord"); await choose(renderer, "Destination Discord", "route-1");
+    await click(renderer, "Exporter sur Discord"); await choose(renderer, "Destination Discord", "route-1");
     await act(async () => { void button(renderer, "Préparer l’aperçu").props.onClick(); });
     const signal = apiFetch.mock.calls.find(([path]) => path.startsWith("team-discord-preview"))[1].signal;
     await act(async () => renderer.update(<DiscordGameShare teamId="team" {...nextMatch} canPublish />));
@@ -327,7 +366,7 @@ describe("Discord game publication", () => {
       return path.startsWith("team-discord-routes") ? { routes: [route], guildId: "123", configVersion: 3 } : path.startsWith("team-discord-preview") ? preview : { deliveries: [] };
     });
     const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
-    await click(renderer, "Publier sur Discord");
+    await click(renderer, "Exporter sur Discord");
     await choose(renderer, "Destination Discord", "route-1");
     await click(renderer, "Préparer l’aperçu");
     await click(renderer, "Publier dans #games");
@@ -353,7 +392,9 @@ describe("Discord game publication", () => {
     await act(async () => renderer.update(<DiscordGameShare teamId="new" matchId="game" canPublish />));
     expect(oldSignal.aborted).toBe(true);
     await act(async () => resolveOld(connection));
-    expect(renderer.toJSON()).toBeNull();
+    await click(renderer, "Exporter sur Discord");
+    expect(text(renderer.root)).toContain("Relie le bot au serveur Discord de cette équipe");
+    expect(button(renderer, "Préparer l’aperçu")).toBeUndefined();
     expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-routes"))).toBe(false);
     expect(posts()).toEqual([]);
   });
@@ -362,7 +403,7 @@ describe("Discord game publication", () => {
     let resolvePublish;
     apiFetch.mockImplementation(async (path, options) => options?.method === "POST" ? new Promise((resolve) => { resolvePublish = resolve; }) : path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [route], guildId: "123", configVersion: 3 } : path.startsWith("team-discord-preview") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordGameShare teamId="first" matchId="game" canPublish />);
-    await click(renderer, "Publier sur Discord"); await choose(renderer, "Destination Discord", "route-1"); await click(renderer, "Préparer l’aperçu");
+    await click(renderer, "Exporter sur Discord"); await choose(renderer, "Destination Discord", "route-1"); await click(renderer, "Préparer l’aperçu");
     await click(renderer, "Publier dans #games");
     const signal = apiFetch.mock.calls.find(([, options]) => options?.method === "POST")[1].signal;
     await act(async () => renderer.update(<DiscordGameShare teamId="second" matchId="game" canPublish />));
@@ -880,7 +921,7 @@ describe("Discord channel picker", () => {
     let recovered = false;
     apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? recovered ? connection : { ...connection, ...metadata } : path.startsWith("team-discord-routes") ? { routes: [], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-test") ? preview : { deliveries: [] });
     const renderer = await mount(<DiscordSettings teamId="team" canManage />);
-    await openSalons(renderer);
+    await openStep(renderer, 1);
     const panel = openPanel(renderer)[0];
     expect(text(panel)).toContain(explanation);
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
@@ -904,5 +945,92 @@ describe("Discord channel picker", () => {
     expect(button(renderer, "Ajouter ce salon").props.disabled).toBe(true);
     expect(posts()).toEqual([]);
     expect(apiFetch.mock.calls.some(([path]) => path === "team-discord-routes?teamId=second-team")).toBe(true);
+  });
+});
+
+
+describe("Discord clarity and truthful overview", () => {
+  const commandsConnection = { ...connection, connection: { ...connection.connection, commandChannelId: "channel-1" } };
+  function serve(metadata, routes = [route]) {
+    apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? metadata
+      : path.startsWith("team-discord-routes") ? { routes, configVersion: 3, guildId: "123" }
+      : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : { deliveries: [] });
+  }
+
+  it("does not announce manual publishing or a complete setup without a saved destination", async () => {
+    serve(commandsConnection, []);
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const overview = renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" });
+    expect(text(overview)).toContain("Aucun salon de publication enregistré");
+    expect(text(overview)).toContain("Publications à configurer");
+    expect(text(overview)).not.toContain("Tout est en place");
+    expect(discordConnectionState(commandsConnection, { routes: [] })[0]).toBe("Publications à configurer");
+    expect(posts()).toEqual([]);
+  });
+
+  it("does not announce readiness when a saved publication channel loses its send permission", async () => {
+    const metadata = { ...commandsConnection, connection: { ...commandsConnection.connection, commandChannelId: "channel-2" }, channels: commandsConnection.channels.map((channel) => channel.id === route.channelId ? { ...channel, canSend: false } : channel) };
+    serve(metadata);
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const overview = renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" });
+    expect(text(overview)).toContain("Salons à vérifier");
+    expect(text(overview)).not.toContain("Tout est en place");
+    expect(button(renderer, "Vérifier les salons").props.disabled).toBe(false);
+    expect(posts()).toEqual([]);
+  });
+
+  it("keeps activity and help reachable for staff after an team has been disconnected", async () => {
+    serve({ ...connection, connection: { ...connection.connection, status: "disconnected" } });
+    const renderer = await mount(<DiscordSettings teamId="team" canPublish />);
+    const nav = renderer.root.findByProps({ "aria-label": "Gestion du bot de l’équipe" });
+    expect(text(nav)).toContain("Activité");
+    expect(text(nav)).not.toContain("Salons");
+    await click(renderer, "Activité");
+    expect(renderer.root.findByProps({ "aria-label": "Historique Discord" })).toBeDefined();
+    expect(posts()).toEqual([]);
+  });
+
+  it("shows failed initial verification as an error instead of an endless loading state", async () => {
+    apiFetch.mockRejectedValue(new Error("Réseau indisponible"));
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    expect(text(renderer.root)).toContain("Vérification impossible");
+    expect(text(renderer.root)).not.toContain("Vérification…");
+    expect(button(renderer, "Actualiser Discord").props.disabled).toBe(false);
+  });
+
+  it("copies a complete command and opens the correct team channel without publishing", async () => {
+    serve(commandsConnection);
+    const clipboard = { writeText: vi.fn().mockResolvedValue(undefined) };
+    vi.stubGlobal("navigator", { clipboard });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    const copy = renderer.root.findByProps({ "aria-label": "Copier la commande de dernière partie" });
+    await act(async () => copy.props.onClick());
+    expect(clipboard.writeText).toHaveBeenCalledWith("/nxt voir sujet:derniere");
+    expect(text(renderer.root)).toContain("Commande copiée");
+    expect(renderer.root.findAllByType("a").find((link) => link.props.href === "https://discord.com/channels/123/channel-1").props.target).toBe("_blank");
+    expect(posts()).toEqual([]);
+  });
+
+  it("makes a destination refresh failure actionable without declaring the bot ready", async () => {
+    let fail = false;
+    apiFetch.mockImplementation(async (path) => {
+      if (path.startsWith("team-discord-connection")) return commandsConnection;
+      if (path.startsWith("team-discord-routes")) {
+        if (fail) throw new Error("Salons indisponibles");
+        return { routes: [route], configVersion: 3, guildId: "123" };
+      }
+      return { ...preview, latestTest: null };
+    });
+    const renderer = await mount(<DiscordSettings teamId="team" canManage />);
+    fail = true;
+    await click(renderer, "Actualiser Discord");
+    const overview = renderer.root.findByProps({ "aria-label": "Aperçu du bot Discord" });
+    expect(text(overview)).toContain("Publications à vérifier");
+    expect(text(overview)).toContain("#games");
+    expect(text(overview)).not.toContain("Tout est en place");
+    expect(button(renderer, "Vérifier les salons").props.disabled).toBe(false);
+    await click(renderer, "Vérifier les salons");
+    expect(text(openPanel(renderer)[0])).toContain("Salons indisponibles");
+    expect(posts()).toEqual([]);
   });
 });

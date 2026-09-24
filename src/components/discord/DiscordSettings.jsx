@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Check, Copy, Link2, Loader2, MessageSquare, Pause, Play, Plus, RefreshCw, Unplug, X } from "lucide-react";
+import { ArrowRight, Check, CircleHelp, Copy, Hash, History, LayoutDashboard, Link2, Loader2, MessageSquare, Pause, Play, Plus, RefreshCw, Send, ShieldCheck, Unplug, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { Badge, Button, SelectInput, Surface } from "../ui/Core.jsx";
 import { DiscordFeedback, DiscordHistory, DiscordLink, DiscordPreview, discordPost, discordQuery, useDiscordAction, useDiscordResource } from "./discord-shared.jsx";
@@ -17,6 +17,7 @@ export function discordConnectionState(status, { loading = false, error = "", ro
   if (!status.connection?.guildId || status.connection.status === "disconnected") return ["À connecter", "slate"];
   if (status.enabled === false) return ["Service NXT5 suspendu", "yellow"];
   if (status.connection.paused) return ["Équipe en pause", "yellow"];
+  if (!routes.length) return ["Publications à configurer", "yellow"];
   if (!routes.some((route) => route.enabled)) return ["Diffusion manuelle", "cyan"];
   return ["Diffusion active", "green"];
 }
@@ -33,10 +34,14 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
   const [routesSnapshot, setRoutesSnapshot] = useState(null);
   const [routesDirty, setRoutesDirty] = useState(false);
   const [routesRefreshing, setRoutesRefreshing] = useState(true);
-  const [testPassed, setTestPassed] = useState(false);
+  const [routesError, setRoutesError] = useState("");
+  const [, setTestPassed] = useState(false);
   const [selectedView, setSelectedView] = useState(null);
   const [accessOpened, setAccessOpened] = useState(false);
   const stepTabs = useRef([]);
+  const stepFocus = useRef(null);
+  const navFocus = useRef(null);
+  const navButtons = useRef({});
   const stepsId = useId();
   const resource = useDiscordResource(discordQuery("team-discord-connection", { teamId }), revision, { keepPreviousData: true });
   const action = useDiscordAction();
@@ -49,21 +54,36 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
   const verified = connected && !resource.error && !status.connectionError && status.health?.verified !== false;
   const reload = useCallback(() => { setRoutesRefreshing(true); setRevision((value) => value + 1); }, []);
   const established = connected && (Boolean(connection.enabledAt) || !connection.paused);
-  const [statusLabel, statusTone] = discordConnectionState(status, { loading: resource.loading, error: resource.error, routes: savedRoutes });
+  const [knownStatusLabel, knownStatusTone] = discordConnectionState(status, { loading: resource.loading, error: resource.error, routes: savedRoutes });
+  const unavailableRoutes = verified && !routesRefreshing && savedRoutes.some((route) => !status.channels?.some((channel) => channel.id === route.channelId && channel.canSend));
+  const [statusLabel, statusTone] = unavailableRoutes ? ["Salons à vérifier", "yellow"] : routesError && connected ? ["Publications à vérifier", "yellow"] : connected && routesRefreshing && verified && !connection.paused && status.enabled !== false
+    ? ["Vérification des publications…", "slate"] : [knownStatusLabel, knownStatusTone];
   const command = link?.code ? `/nxt connecter code:${link.code}` : "";
   const currentDestinations = connected && routesSnapshot?.guildId === connection.guildId && String(routesSnapshot?.configVersion) === String(connection.configVersion);
-  const routesReady = currentDestinations && savedRoutes.length > 0 && !routesDirty;
+  const routesReady = currentDestinations && savedRoutes.length > 0 && !routesDirty && !unavailableRoutes;
   const active = established && !connection.paused && status.enabled !== false && verified;
   const view = selectedView ?? (!canManage || established ? "overview" : !connected ? "connect" : commandsReady && routesReady ? "activate" : "salons");
   const activeStep = ["connect", "salons", "activate"].indexOf(view);
   const selectStep = (index, focus = false) => {
+    if (focus) stepFocus.current = index;
     setSelectedView(["connect", "salons", "activate"][index]);
-    if (focus) stepTabs.current[index]?.focus();
   };
   const openView = (next) => {
     if (next === "access") setAccessOpened(true);
+    navFocus.current = next;
     setSelectedView(next);
   };
+
+  useEffect(() => {
+    if (stepFocus.current != null && activeStep >= 0) {
+      stepTabs.current[stepFocus.current]?.focus();
+      stepFocus.current = null;
+    }
+    if (navFocus.current) {
+      navButtons.current[navFocus.current]?.focus();
+      navFocus.current = null;
+    }
+  }, [selectedView, activeStep]);
 
   useEffect(() => {
     setLinkExpired(false);
@@ -109,51 +129,70 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
     catch { setCopyNotice("Sélectionne la commande affichée pour la copier."); }
   }
 
-  const progress = <InstallationProgress connected={connected} routesReady={commandsReady && routesReady} active={active} selectedStep={activeStep} onSelect={selectStep} tabsRef={stepTabs} idPrefix={stepsId} />;
-  const nextAction = !connected ? ["Connecter le serveur", 0] : !commandsReady ? ["Associer le salon des commandes", 1] : !routesReady ? ["Choisir un salon de publication", 1] : !established ? ["Tester et activer", 2] : connection.paused ? ["Reprendre les envois", 2] : ["Gérer les salons", 1];
-  const routeNames = savedRoutes.map((route) => `#${route.channelName || status?.channels?.find((channel) => channel.id === route.channelId)?.name || route.channelId}`);
+  const progress = <InstallationProgress connected={connected} routesReady={commandsReady && routesReady} active={active && routesReady} selectedStep={activeStep} onSelect={selectStep} tabsRef={stepTabs} idPrefix={stepsId} />;
+  const nextAction = !connected ? ["Connecter le serveur", 0]
+    : !verified ? ["Vérifier la connexion", 0]
+    : routesError || unavailableRoutes ? ["Vérifier les salons", 1]
+    : !commandsReady ? ["Associer le salon des commandes", 1]
+    : !routesReady ? ["Choisir un salon de publication", 1]
+    : !established ? ["Tester et activer", 2]
+    : connection.paused ? ["Reprendre les envois", 2] : ["Gérer les salons", 1];
+  const ready = active && commandsReady && routesReady && !routesRefreshing;
+  const automaticRoutes = savedRoutes.filter((route) => route.enabled);
+  const commandDestination = commandsReady && verified ? `https://discord.com/channels/${encodeURIComponent(connection.guildId)}/${encodeURIComponent(commandChannelId)}` : null;
+  const navigation = [
+    ["overview", "Vue d’ensemble", LayoutDashboard],
+    ...(canManage ? [["salons", "Salons", Hash], ["access", "Accès aux commandes", ShieldCheck]] : []),
+    ["activity", "Activité", History], ["settings", "Aide et réglages", CircleHelp],
+  ];
   return <Surface className="discord-panel discord-dashboard">
     <div className="discord-heading discord-dashboard-status">
-      <div><p className="discord-eyebrow">Bot Discord · équipe</p><h3><MessageSquare aria-hidden="true" className="h-5 w-5" />{teamName || "Ton équipe"}</h3><p className="discord-server">Serveur : <strong>{connected ? connection.guildName || connection.guildId : "aucun serveur relié"}</strong></p></div>
-      <Badge tone={statusTone}>{statusLabel}</Badge>
+      <div className="discord-team-identity"><span className="discord-team-icon"><MessageSquare size={23} aria-hidden="true" /></span><div><p className="discord-eyebrow">Pour l’équipe</p><h3>Le bot de {teamName || "ton équipe"}</h3><p className="discord-server">Serveur : <strong>{!status ? resource.loading ? "vérification en cours" : "état indisponible" : connected ? connection.guildName || connection.guildId : "aucun serveur relié"}</strong></p></div></div>
+      <Badge tone={resource.error ? "yellow" : verified ? "green" : connected ? "yellow" : "slate"}>{!status ? resource.loading ? "Vérification…" : "Vérification impossible" : !status.configured ? "Service indisponible" : verified ? "Serveur relié" : connected ? "Connexion à vérifier" : "À installer"}</Badge>
     </div>
     <DiscordFeedback loading={resource.loading && !status} error={resource.error || action.error || status?.connectionError} notice={action.notice} />
     {status?.configured === false && <p className="discord-feedback">Le bot Discord n’est pas encore disponible. Un administrateur NXT5 doit terminer sa configuration.</p>}
     {status?.configured && status.enabled === false && <p className="discord-feedback">Les envois Discord sont suspendus pour toutes les équipes par NXT5. Les réglages restent disponibles ; le test et l’activation attendent la reprise du service.</p>}
-    {!canManage && <p className="discord-help">Seuls le propriétaire et les capitaines peuvent configurer le bot pour cette équipe. Tu peux consulter son activité et partager les games selon tes droits.</p>}
+    {!canManage && <p className="discord-help">Seuls le propriétaire et les capitaines peuvent configurer le bot pour cette équipe. Tu peux consulter son activité et partager les parties selon tes droits.</p>}
     {status?.configured && <>
-      {view === "overview" && <section className="discord-section discord-overview" aria-label="Aperçu du bot Discord">
-        <div className="discord-overview-main"><div><p className="discord-step-kicker">{canManage ? active && commandsReady ? "Action rapide" : "Prochaine étape" : "Configuration de l’équipe"}</p><h4>{canManage ? active && commandsReady ? "Le bot est prêt" : nextAction[0] : connected ? "Suivre les publications" : "Serveur à connecter"}</h4><p>{!connected ? "Le propriétaire ou un capitaine doit relier l’équipe à son serveur Discord." : !commandsReady ? "Associe un salon à cette équipe pour que ses membres liés puissent y utiliser les commandes NXT5." : !routesReady ? "Ajoute un salon distinct pour publier les games de l’équipe." : connection.paused ? "Les envois de cette équipe sont en pause." : "Dans son salon de commandes, NXT5 reconnaît cette équipe automatiquement."}</p></div>{canManage && <Button type="button" onClick={() => selectStep(nextAction[1])}>{nextAction[0]}</Button>}</div>
-        <dl className="discord-overview-facts"><div><dt>Salon des commandes</dt><dd>{!connected ? "À configurer" : commandsReady ? commandChannelName ? `#${commandChannelName}` : "Salon à vérifier" : "À choisir"}</dd></div><div><dt>Salons de publication des games</dt><dd>{!connected ? "À configurer" : routesRefreshing ? "Chargement…" : routeNames.length ? routeNames.join(", ") : "Aucun salon enregistré"}</dd></div><div><dt>Publication</dt><dd>{statusLabel}</dd></div></dl>
-        <div className="discord-overview-links">{canManage && <Button type="button" variant="ghost" onClick={() => openView("access")}>Accès aux commandes</Button>}<Button type="button" variant="ghost" onClick={() => openView("activity")}>Activité</Button><Button type="button" variant="ghost" onClick={() => openView("settings")}>Aide et réglages</Button></div>
-        <p className="discord-help">Les réglages et les rôles de cette équipe ne changent pas ceux des autres équipes. Chaque équipe possède son salon de commandes. Ton compte Discord personnel se lie séparément, plus haut sur la page.</p>
+      {(established || activeStep < 0) && <nav className="discord-team-nav" aria-label="Gestion du bot de l’équipe">{navigation.map(([id, label, Icon]) => <button type="button" key={id} ref={(node) => { navButtons.current[id] = node; }} aria-current={view === id || id === "salons" && activeStep >= 0 ? "page" : undefined} onClick={() => openView(id)}><Icon size={17} aria-hidden="true" /><span>{label}</span></button>)}</nav>}
+      {view === "overview" && <section className="discord-overview" aria-label="Aperçu du bot Discord">
+        <div className={`discord-next-action${ready ? " is-ready" : ""}`}>
+          <div><p className="discord-step-kicker">{ready ? "Tout est en place" : "La prochaine étape"}</p><h4>{ready ? "Ton équipe peut utiliser le bot" : status.enabled === false ? "Les publications sont suspendues" : routesError || unavailableRoutes ? "Vérifie les salons de publication" : !verified && connected ? "Vérifie la connexion au serveur" : canManage ? nextAction[0] : connected ? "Suivre les publications" : "Serveur à connecter"}</h4><p>{!connected ? "Le propriétaire ou un capitaine relie l’équipe à son serveur Discord." : !verified ? "La dernière vérification a échoué. Actualise Discord avant de poursuivre." : routesError ? "Les salons n’ont pas pu être actualisés. Ouvre-les pour réessayer ; les réglages connus sont conservés." : unavailableRoutes ? "Le bot ne peut plus publier dans un salon enregistré. Vérifie ses autorisations ou choisis un autre salon." : !commandsReady ? "Choisis le salon où les membres utiliseront les commandes de cette équipe." : routesRefreshing ? "Vérification des salons de publication enregistrés…" : !routesReady ? "Choisis où le bot doit publier les résultats des parties." : status.enabled === false ? "Les publications reprendront lorsque NXT5 aura réactivé le service." : connection.paused ? "Les publications sont en pause. Les messages déjà envoyés restent dans Discord." : "Les commandes et les publications ont chacune leur destination ci-dessous."}</p></div>
+          {canManage && <Button type="button" icon={!verified && connected ? RefreshCw : ArrowRight} variant={ready ? "ghost" : "primary"} disabled={resource.loading || routesRefreshing && connected && !routesError} onClick={() => !verified && connected ? reload() : selectStep(nextAction[1], true)}>{nextAction[0]}</Button>}
+        </div>
+        <div className="discord-usage-grid">
+          <section className="discord-usage"><div className="discord-usage-title"><Hash size={20} aria-hidden="true" /><h4>Utiliser les commandes</h4></div><p>Consulter les informations de ton équipe dans Discord.</p><dl><dt>Salon de ton équipe</dt><dd>{!connected ? "Serveur à connecter" : !verified ? "Connexion à vérifier" : commandsReady ? `#${commandChannelName}` : "Salon à choisir"}</dd></dl>{commandsReady && verified ? <><DiscordQuickCommand /><DiscordLink href={commandDestination}>Ouvrir le salon</DiscordLink><p className="discord-help">Chaque membre doit avoir lié son compte personnel.</p></> : <p className="discord-help">Un salon réservé à cette équipe permet au bot de la reconnaître automatiquement.</p>}</section>
+          <section className="discord-usage"><div className="discord-usage-title"><Send size={20} aria-hidden="true" /><h4>Recevoir les parties</h4></div><p>Partager les résultats et leur image récapitulative.</p><Badge tone={statusTone}>{statusLabel}</Badge>{savedRoutes.length > 0 ? <ul className="discord-destination-list">{savedRoutes.map((route) => <li key={route.id || route.channelId}><strong>#{route.channelName || status?.channels?.find((channel) => channel.id === route.channelId)?.name || route.channelId}</strong><span>{route.enabled ? "Automatique" : "Manuel"}</span></li>)}</ul> : <p className="discord-help">{routesRefreshing && connected ? "Chargement des salons…" : "Aucun salon de publication enregistré."}</p>}<p className="discord-help">{automaticRoutes.length ? "Les nouvelles parties correspondant aux catégories choisies sont publiées automatiquement lorsque les envois sont actifs." : "Le partage manuel se lance depuis une partie dans NXT5."}</p></section>
+        </div>
+        <p className="discord-help discord-team-scope">Les réglages et les rôles de cette équipe ne changent pas ceux des autres équipes. La liaison de ton compte personnel se gère au-dessus.</p>
       </section>}
       <section hidden={activeStep < 0} className="discord-section discord-configuration" aria-label="Configuration du bot">
-        <div className="discord-heading"><p className="discord-step-kicker">{established ? "Modifier la configuration" : "Mise en route"}</p>{established && <Button type="button" variant="ghost" onClick={() => openView("overview")}>Retour à l’aperçu</Button>}</div>
-        <p className="discord-help">Avance à ton rythme : changer d’étape n’enregistre rien et n’envoie aucun message.</p>
-        {progress}
+        <div className="discord-heading"><div><h4>{established ? "Configuration de l’équipe" : "Installer le bot"}</h4><p className="discord-help">Pour le propriétaire ou un capitaine.</p></div>{established && <Button type="button" variant="ghost" onClick={() => openView("overview")}>Retour à l’aperçu</Button>}</div>
+        <div className="discord-install-layout">{progress}
         <div className="discord-step-panels">
           <section id={`${stepsId}-panel-0`} role="tabpanel" aria-labelledby={`${stepsId}-tab-0`} hidden={activeStep !== 0} tabIndex={0} className="discord-step-panel discord-setup-step">
-            <span className="discord-step-kicker">Étape 1</span><h4>Connecter le serveur</h4>
+            <h4>Connecter le serveur</h4>
             {connected ? <><Badge tone={verified ? "cyan" : "yellow"}>{verified ? "Équipe et serveur associés" : "Connexion à vérifier"}</Badge><p><strong>{teamName || "Ton équipe"}</strong> est reliée à <strong>{connection.guildName || connection.guildId}</strong>.</p><DiscordPermissionUpdate installUrl={status.installUrl} guildId={connection.guildId} canManage={canManage} /><Button type="button" variant="primary" onClick={() => selectStep(1, true)}>Choisir les salons</Button></> : <>
-              <p>1. Invite NXT5 sur ton serveur Discord. Si le bot y est déjà présent, passe directement au code de liaison.</p>
-              {canManage && <DiscordLink className="discord-invite-button nxt5-button-primary" href={status.installUrl || link?.installUrl} onClick={() => setInvitationOpened(true)}>Ajouter à Discord</DiscordLink>}
-              <p className="discord-help">L’invitation demande l’autorisation Administrateur, qui donne tous les droits au bot sur ce serveur, y compris dans les salons privés. Un responsable du serveur doit la valider dans Discord. L’ouverture de l’invitation ne confirme pas l’installation.</p>
+              <div className="discord-connect-task"><h5>1. Ajouter NXT5 dans Discord</h5><p>Invite NXT5 sur ton serveur Discord. Si le bot y est déjà présent, passe directement au code de liaison.</p>
+              {canManage && <DiscordLink className={`discord-invite-button ${link || invitationOpened ? "nxt5-button-secondary" : "nxt5-button-primary"}`} href={status.installUrl || link?.installUrl} onClick={() => setInvitationOpened(true)}>Ajouter à Discord</DiscordLink>}
+              <p className="discord-help">Un responsable du serveur valide l’autorisation Administrateur dans Discord. Elle donne tous les droits au bot, y compris dans les salons privés.</p>
               {invitationOpened && <p role="status" className="discord-help">Invitation ouverte. Termine l’autorisation dans Discord, puis utilise le code ci-dessous.</p>}
-              <p>2. Crée un code propre à cette équipe et colle la commande dans le serveur où le bot est présent. Chaque équipe crée son propre code, même sur un serveur partagé.</p>
-              {canManage && <Button type="button" variant={link && !linkExpired ? "ghost" : "primary"} icon={action.busy ? Loader2 : Link2} disabled={action.busy} onClick={() => { setCopyNotice(""); action.run("team-discord-connection", { teamId, action: "create-link" }, setLink); }}>{link ? "Créer un nouveau code" : "Créer le code de liaison"}</Button>}
+              </div><div className="discord-connect-task"><h5>2. Relier cette équipe au serveur</h5><p>Crée un code propre à cette équipe et colle la commande dans le serveur où le bot est présent. Chaque équipe crée son propre code, même sur un serveur partagé.</p>
+              {canManage && <Button type="button" variant={link && !linkExpired || !invitationOpened ? "ghost" : "primary"} icon={action.busy ? Loader2 : Link2} disabled={action.busy} onClick={() => { setCopyNotice(""); action.run("team-discord-connection", { teamId, action: "create-link" }, setLink); }}>{link ? "Créer un nouveau code" : "Créer le code de liaison"}</Button>}
               {link?.code && <div className="discord-link-code"><p>Commande de liaison à usage unique</p><code>{command}</code><p className="discord-help">{linkExpired ? "Ce code a expiré. Crée un nouveau code." : `Valable jusqu’au ${new Date(link.expiresAt).toLocaleString("fr-FR")}. Un nouveau code remplace le précédent.`}</p><div className="discord-actions"><Button type="button" icon={Copy} variant="primary" disabled={linkExpired || action.busy} onClick={copyCommand}>Copier la commande</Button><Button type="button" icon={RefreshCw} variant="ghost" disabled={action.busy || resource.loading} onClick={reload}>Vérifier la connexion</Button></div>{copyNotice && <p role="status">{copyNotice}</p>}<p className="discord-help" role="status">{watchingLink ? "Vérification automatique de la liaison pendant deux minutes…" : "Tu peux vérifier la connexion ici ou revenir sur cet onglet après la commande."}</p></div>}
-              <DiscordExample teamId={teamId} />
+              </div><DiscordExample teamId={teamId} />
             </>}
           </section>
           <section id={`${stepsId}-panel-1`} role="tabpanel" aria-labelledby={`${stepsId}-tab-1`} hidden={activeStep !== 1} tabIndex={0} className="discord-step-panel">
-            {connected ? <><DiscordCommandChannel key={connection.guildId} teamId={teamId} teamName={teamName} metadata={status} canManage={canManage} loading={resource.loading} error={resource.error || status.connectionError} onSaved={reload} /><DiscordRoutes key={connection.guildId} teamId={teamId} metadata={status} channelsLoading={resource.loading} channelsError={resource.error || status.connectionError || (status.health?.verified === false ? "La connexion au serveur Discord doit être vérifiée." : "")} canManage={canManage} revision={revision} onSaved={reload} onRoutes={setSavedRoutes} onSnapshot={setRoutesSnapshot} onDirty={setRoutesDirty} onRefreshing={setRoutesRefreshing} /><div className="discord-actions"><Button type="button" variant={routesReady ? "primary" : "ghost"} onClick={() => selectStep(2, true)}>Passer au test et à l’activation</Button></div></> : <DiscordStepPrerequisite title="Choisir les salons" onLink={() => selectStep(0, true)} />}
+            {connected ? <><DiscordCommandChannel key={`commands-${connection.guildId}`} teamId={teamId} teamName={teamName} metadata={status} canManage={canManage} loading={resource.loading} error={resource.error || status.connectionError} onSaved={reload} /><DiscordRoutes key={`routes-${connection.guildId}`} teamId={teamId} metadata={status} channelsLoading={resource.loading} channelsError={resource.error || status.connectionError || (status.health?.verified === false ? "La connexion au serveur Discord doit être vérifiée." : "")} canManage={canManage} revision={revision} onSaved={reload} onRoutes={setSavedRoutes} onSnapshot={setRoutesSnapshot} onDirty={setRoutesDirty} onRefreshing={setRoutesRefreshing} onError={setRoutesError} /><div className="discord-actions"><Button type="button" variant={routesReady ? "primary" : "ghost"} onClick={() => selectStep(2, true)}>Passer au test et à l’activation</Button></div></> : <DiscordStepPrerequisite title="Choisir les salons" onLink={() => selectStep(0, true)} />}
           </section>
           <section id={`${stepsId}-panel-2`} role="tabpanel" aria-labelledby={`${stepsId}-tab-2`} hidden={activeStep !== 2} tabIndex={0} className="discord-step-panel">
             {connected ? <DiscordActivation key={connection.guildId} {...{ teamId, teamName, canManage, status, savedRoutes, routesSnapshot, routesDirty, routesRefreshing, verified, revision, established }} connectionRefreshing={resource.loading} onChanged={reload} onActivated={() => setSelectedView(null)} onTestPassed={setTestPassed} /> : <DiscordStepPrerequisite title="Tester et activer" onLink={() => selectStep(0, true)} />}
           </section>
         </div>
-        <div className="discord-overview-links discord-setup-links">{connected && canManage && <Button type="button" variant="ghost" onClick={() => openView("access")}>Accès aux commandes</Button>}<Button type="button" variant="ghost" onClick={() => openView("activity")}>Activité</Button><Button type="button" variant="ghost" onClick={() => openView("settings")}>Aide et réglages</Button></div>
+        </div>
+        {!established && <div className="discord-overview-links discord-setup-links">{connected && canManage && <Button type="button" variant="ghost" onClick={() => openView("access")}>Accès aux commandes</Button>}<Button type="button" variant="ghost" onClick={() => openView("activity")}>Activité</Button><Button type="button" variant="ghost" onClick={() => openView("settings")}>Aide et réglages</Button></div>}
       </section>
       {view === "access" && <div className="discord-section"><Button type="button" variant="ghost" onClick={() => openView("overview")}>Retour à l’aperçu</Button></div>}
       {connected && accessOpened && <div hidden={view !== "access"} className="discord-secondary-panel"><DiscordRoleAccess key={connection.guildId} teamId={teamId} metadata={status} canManage={canManage} revision={revision} /></div>}
@@ -163,6 +202,14 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
     <div className="discord-actions discord-section"><Button type="button" variant="ghost" icon={RefreshCw} disabled={resource.loading || action.busy} onClick={reload}>Actualiser Discord</Button>{view === "settings" && connected && canManage && !confirmDisconnect && <Button type="button" icon={Unplug} variant="ghost" className="discord-danger-action" disabled={action.busy} onClick={() => setConfirmDisconnect(true)}>Délier cette équipe</Button>}</div>
     {view === "settings" && confirmDisconnect && <div className="discord-confirm"><p>Délier <strong>{teamName || "cette équipe"}</strong> de <strong>{connection?.guildName || "ce serveur"}</strong> arrête uniquement ses publications. Le bot reste sur le serveur et les autres équipes gardent leurs liaisons, leurs réglages et leurs envois. Les messages déjà publiés par cette équipe restent visibles et peuvent être retirés depuis son historique.</p><div className="discord-actions"><Button type="button" variant="danger" disabled={action.busy} onClick={() => action.run("team-discord-connection", { teamId, action: "disconnect" }, () => { setConfirmDisconnect(false); setSelectedView(null); setLink(null); setSavedRoutes([]); setTestPassed(false); reload(); }, "Cette équipe a été déliée du serveur. Les autres équipes restent connectées.")}>Confirmer la déliaison</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setConfirmDisconnect(false)}>Annuler</Button></div></div>}
   </Surface>;
+}
+
+function DiscordQuickCommand() {
+  const [notice, setNotice] = useState("");
+  return <div className="discord-quick-command"><p className="discord-help">Pour voir la dernière partie :</p><div><code>/nxt voir sujet:derniere</code><Button type="button" variant="ghost" icon={Copy} aria-label="Copier la commande de dernière partie" onClick={async () => {
+    try { await navigator.clipboard.writeText("/nxt voir sujet:derniere"); setNotice("Commande copiée. Colle-la dans le salon de ton équipe."); }
+    catch { setNotice("Sélectionne la commande affichée pour la copier."); }
+  }}>Copier</Button></div>{notice && <p className="discord-help" role="status">{notice}</p>}</div>;
 }
 
 function discordPermissionsUrl(installUrl, guildId) {
@@ -184,9 +231,9 @@ function DiscordPermissionUpdate({ installUrl, guildId, canManage }) {
 
 function InstallationProgress({ connected, routesReady, active, selectedStep, onSelect, tabsRef, idPrefix }) {
   const steps = [
-    ["Connecter le serveur", connected],
-    ["Choisir les salons", routesReady],
-    ["Tester et activer", active],
+    ["Connecter le serveur", connected, "Serveur", "Ajouter le bot et relier l’équipe"],
+    ["Choisir les salons", routesReady, "Salons", "Choisir où utiliser et lire le bot"],
+    ["Tester et activer", active, "Activation", "Vérifier un envoi avant de démarrer"],
   ];
   function onKeyDown(event, index) {
     const next = event.key === "ArrowRight" || event.key === "ArrowDown" ? (index + 1) % steps.length
@@ -196,7 +243,7 @@ function InstallationProgress({ connected, routesReady, active, selectedStep, on
     event.preventDefault();
     onSelect(next, true);
   }
-  return <div className="discord-install-progress" role="tablist" aria-label="Étapes de configuration Discord">{steps.map(([title, done], index) => <button type="button" key={title} ref={(node) => { tabsRef.current[index] = node; }} id={`${idPrefix}-tab-${index}`} role="tab" aria-label={title} aria-selected={selectedStep === index} aria-controls={`${idPrefix}-panel-${index}`} tabIndex={selectedStep === index ? 0 : -1} className={`discord-step-tab${done ? " is-complete" : ""}${selectedStep === index ? " is-selected" : ""}`} onClick={() => onSelect(index)} onKeyDown={(event) => onKeyDown(event, index)}><span className="discord-progress-number" aria-hidden="true">{done ? <Check size={17} /> : index + 1}</span><span className="discord-step-label"><strong>{title}</strong><span className="sr-only">. {done ? "Étape terminée." : "Étape à terminer."}</span></span></button>)}</div>;
+  return <div className="discord-install-progress" role="tablist" aria-label="Étapes de configuration Discord">{steps.map(([title, done, shortTitle, description], index) => <button type="button" key={title} ref={(node) => { tabsRef.current[index] = node; }} id={`${idPrefix}-tab-${index}`} role="tab" aria-label={title} aria-selected={selectedStep === index} aria-controls={`${idPrefix}-panel-${index}`} tabIndex={selectedStep === index ? 0 : -1} className={`discord-step-tab${done ? " is-complete" : ""}${selectedStep === index ? " is-selected" : ""}`} onClick={() => onSelect(index)} onKeyDown={(event) => onKeyDown(event, index)}><span className="discord-progress-number" aria-hidden="true">{done ? <Check size={17} /> : index + 1}</span><span className="discord-step-label"><strong>{shortTitle}</strong><span className="discord-step-description">{description}</span><span className="sr-only">. {done ? "Étape terminée." : "Étape à terminer."}</span></span></button>)}</div>;
 }
 
 function DiscordStepPrerequisite({ title, onLink }) {
@@ -226,7 +273,7 @@ function DiscordCommandChannel({ teamId, teamName, metadata, canManage, loading,
     }, () => { setDirty(false); onSaved(); }, "Salon des commandes enregistré.");
   }
   return <section className="discord-command-channel" aria-labelledby={titleId}>
-    <div className="discord-heading"><h4 id={titleId}>Salon des commandes · {teamName || "ton équipe"}</h4><Badge tone={currentChannelId && currentChannel?.canSend === true ? "cyan" : "yellow"}>{currentChannelId ? currentChannel?.canSend === true ? "Associé" : "À vérifier" : "À choisir"}</Badge></div>
+    <p className="discord-task-label">Usage 1 · Les commandes</p><div className="discord-heading"><h4 id={titleId}>Où utiliser le bot ?</h4><Badge tone={currentChannelId && currentChannel?.canSend === true ? "cyan" : "yellow"}>{currentChannelId ? currentChannel?.canSend === true ? "Associé" : "À vérifier" : "À choisir"}</Badge></div>
     <p>{currentChannelId ? currentChannel ? <>Les commandes lancées dans <strong>#{currentChannel.name}</strong> concernent automatiquement <strong>{teamName || "cette équipe"}</strong>.</> : loading ? "Vérification du salon enregistré…" : "Le salon enregistré n’est plus disponible. Choisis un autre salon." : "Choisis un salon réservé aux commandes de cette équipe. Les joueurs doivent avoir lié leur compte Discord à NXT5 et appartenir à cette équipe."}</p>
     <p className="discord-help">Un même salon ne peut pas servir aux commandes de plusieurs équipes. Les réponses destinées au salon sont visibles par ses membres ; les informations personnelles restent privées.</p>
     {canManage && <form className="discord-command-channel-form" onSubmit={save}>
@@ -345,18 +392,18 @@ function DiscordActivation({ teamId, teamName, canManage, status, savedRoutes, r
   </>;
   return <section className="discord-section discord-activation" aria-label="Test et activation">
     {!snapshotsMatch && !routesRefreshing && !connectionRefreshing && <p className="discord-feedback">La connexion et les salons ont changé pendant leur chargement. Actualise Discord avant l’activation.</p>}
-    <span className="discord-step-kicker">Étape 3</span><h4>Vérifier et activer</h4>{testContent}
-    {connection.paused && canManage && <>
+    <span className="discord-step-kicker">Étape 3</span><h4>Tester et activer</h4><div className="discord-activation-task"><h5>1. Vérifier la réception d’un exemple</h5>{testContent}</div>
+    {connection.paused && canManage && <div className="discord-activation-task"><h5>2. {established ? "Reprendre les publications" : "Autoriser les publications"}</h5>
       {!established && !testPassed && <p className="discord-help">La première activation sera disponible après la confirmation du test.</p>}
       {canActivate && !confirmActivation && <Button type="button" icon={Play} disabled={action.busy} onClick={() => setConfirmActivation(true)}>{established ? "Reprendre les envois" : "Activer la diffusion"}</Button>}
       {confirmActivation && <div className="discord-confirm" role="region" aria-label="Confirmer la diffusion"><h4>{established ? "Reprendre" : "Activer"} pour {teamName || "ton équipe"}</h4><p>Serveur : <strong>{connection.guildName || connection.guildId}</strong>.</p><ul className="discord-steps">{savedRoutes.map((route) => <li key={route.id}><strong>#{route.channelName || status.channels?.find((channel) => channel.id === route.channelId)?.name || route.channelId}</strong> · {route.enabled ? "nouvelles games automatiques" : "partages manuels"} · {route.categoryIds?.length ? route.categoryIds.map((id) => status.categories?.find((category) => category.id === id)?.name || "Catégorie supprimée").join(", ") : "toutes les catégories"}{route.mentionRoleId ? ` · mention @${status.roles?.find((role) => role.id === route.mentionRoleId)?.name || "rôle configuré"}` : " · aucune mention"}</li>)}</ul><p>Toute personne ayant accès à ces salons pourra lire les messages et leurs visuels. Les anciennes games ne sont pas republiées automatiquement.</p>{!automaticRoutes.length && <p>Les salons sont réglés sur le partage manuel. Aucune nouvelle game ne sera envoyée automatiquement.</p>}<div className="discord-actions"><Button type="button" icon={action.busy ? Loader2 : Play} disabled={!canActivate || action.busy} onClick={() => action.run("team-discord-connection", { teamId, action: "resume", expectedConfigVersion: routesSnapshot.configVersion, expectedGuildId: routesSnapshot.guildId }, () => { setConfirmActivation(false); onChanged(); onActivated(); }, "La diffusion de l’équipe a repris.")}>Confirmer l’activation</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setConfirmActivation(false)}>Annuler l’activation</Button></div></div>}
-    </>}
+    </div>}
     <DiscordFeedback error={action.error} notice={action.notice} />
   </section>;
 }
-function DiscordRoutes({ teamId, metadata, channelsLoading, channelsError, canManage, onSaved, revision, onRoutes, onSnapshot, onDirty, onRefreshing }) {
+function DiscordRoutes({ teamId, metadata, channelsLoading, channelsError, canManage, onSaved, revision, onRoutes, onSnapshot, onDirty, onRefreshing, onError }) {
   const resource = useDiscordResource(discordQuery("team-discord-routes", { teamId }), revision, { keepPreviousData: true });
-  useEffect(() => { onRefreshing(resource.loading || Boolean(resource.error)); }, [resource.loading, resource.error, onRefreshing]);
+  useEffect(() => { onRefreshing(resource.loading || Boolean(resource.error)); onError(resource.error); }, [resource.loading, resource.error, onRefreshing, onError]);
   useEffect(() => { if (resource.data) { onRoutes(resource.data.routes || []); onSnapshot(resource.data); } }, [resource.data, onRoutes, onSnapshot]);
   if (!resource.data) return <section className="discord-section"><h4>Salons de publication</h4><DiscordFeedback loading={resource.loading} error={resource.error} /><p className="discord-help">Chargement des salons enregistrés…</p><Button type="button" variant="ghost" icon={RefreshCw} disabled={resource.loading || channelsLoading} onClick={onSaved}>Actualiser les salons</Button></section>;
   return <><DiscordFeedback error={resource.error} /><DiscordRoutesEditor {...{ teamId, metadata, channelsLoading, channelsError, canManage, onSaved, onDirty }} routesLoading={resource.loading} routesError={resource.error} initialRoutes={resource.data.routes || []} /></>;
@@ -397,8 +444,8 @@ function DiscordRoutesEditor({ teamId, metadata, channelsLoading, channelsError,
     action.run("team-discord-routes", { teamId, routes: routes.map(({ id, channelId, categoryIds, includeHints, mentionRoleId, enabled }) => ({ ...(id ? { id } : {}), channelId, categoryIds, includeHints, mentionRoleId: mentionRoleId || null, enabled })) }, () => { setDirty(false); onSaved(); }, "Salons enregistrés.");
   }
   return <form className="discord-section" onSubmit={save}>
-    <span className="discord-step-kicker">Publication des games</span><h4>Salons de publication</h4>
-    <p>Ces destinations servent à publier les games. Le salon des commandes ci-dessus détermine l’équipe lorsqu’un joueur utilise le bot.</p>
+    <span className="discord-task-label">Usage 2 · Les publications</span><h4>Où recevoir les résultats ?</h4>
+    <p>Choisis les salons qui recevront les parties et leur image récapitulative. Tu peux reprendre le salon des commandes ou en choisir un autre.</p>
     <p className="discord-help">Toute personne ayant accès au salon pourra lire le message et son visuel, même sans compte NXT5. Les liens vers les games conservent les droits d’accès NXT5.</p>
     <section className="discord-channel-selection" aria-label="Salons disponibles sur le serveur">
       <div className="discord-channel-picker">
@@ -423,8 +470,8 @@ function DiscordRoutesEditor({ teamId, metadata, channelsLoading, channelsError,
       const channelName = channel?.name || route.channelName || "Salon indisponible";
       const mentionName = roles.find((role) => role.id === route.mentionRoleId)?.name || "rôle indisponible";
       return <fieldset key={route.id || `new-${index}`} className="discord-route" disabled={!canManage || action.busy}>
-        <legend>#{channelName}</legend>
-        <label className="discord-check"><input type="checkbox" checked={route.enabled} onChange={(event) => patch(index, { enabled: event.target.checked })} />Diffuser automatiquement les nouvelles games correspondantes</label>
+        <legend>#{channelName} <span className="discord-route-mode">{route.enabled ? "Automatique" : "Manuel"}</span></legend>
+        <label className="discord-check"><input type="checkbox" checked={route.enabled} onChange={(event) => patch(index, { enabled: event.target.checked })} />Publier automatiquement les nouvelles parties</label>
         <p className="discord-help">{route.categoryIds.length ? `${route.categoryIds.length} catégorie${route.categoryIds.length > 1 ? "s" : ""}` : "Toutes les catégories"}{route.mentionRoleId ? ` · Mention @${mentionName}` : ""}{route.includeHints ? " · Piste de review" : ""}</p>
         <details className="discord-guide">
           <summary>Options du salon <span className="sr-only">#{channelName}</span></summary>

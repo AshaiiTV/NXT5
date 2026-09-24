@@ -5,7 +5,7 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { readRoute } from "../app/routing.js";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
-import { Button, TabNav } from "../components/ui/Core.jsx";
+import { TabNav } from "../components/ui/Core.jsx";
 import { GameWorkspace, MatchDataPanel } from "../pages/workspace/GameWorkspace.jsx";
 import { GameActions, ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
 
@@ -159,7 +159,7 @@ describe("unified Games workspace", () => {
       return originalFetch(endpoint, options);
     });
     const renderer = await mount("/games?match=one", { ...settings(), user: { id: userId }, currentMember });
-    const publish = button(renderer, "Publier sur Discord");
+    const publish = button(renderer, "Exporter sur Discord");
     expect(Boolean(publish)).toBe(allowed);
     if (allowed) {
       let ancestor = publish;
@@ -177,6 +177,7 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findByType(MatchDataPanel).props.match.id).toBe("older");
     expect(renderer.root.findAllByType(ImportedGames)).toHaveLength(1);
     expect(lists(renderer)).toHaveLength(0);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
     expect(window.location.pathname).toBe(path);
     expect(window.location.search).toBe("?match=older&category=scrim");
     await browserBack(path);
@@ -184,6 +185,7 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByProps({ id: "selected-game-stats" })).toHaveLength(0);
     expect(lists(renderer)).toHaveLength(1);
     expect(rows(renderer)).toHaveLength(2);
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
   });
 
   it("keeps one library and opens a clicked game immediately with a canonical URL", async () => {
@@ -192,6 +194,7 @@ describe("unified Games workspace", () => {
     expect(lists(renderer)).toHaveLength(1);
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
     expect(rows(renderer)).toHaveLength(2);
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
     const selectedId = rows(renderer)[0].props["data-match-id"];
     await act(async () => rows(renderer)[0].props.onClick());
     expect(window.location.pathname).toBe("/games");
@@ -215,27 +218,65 @@ describe("unified Games workspace", () => {
     expect(button(renderer, "Créer review")).toBeUndefined();
     expect(renderer.root.findAllByType("h3").filter((heading) => text(heading) === `Game ${selectedId}`)).toHaveLength(1);
     expect(lists(renderer)).toHaveLength(0);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
     expect(renderer.root.findAllByType(ImportedGames)).toHaveLength(1);
     expect(button(renderer, "Voir le bilan")).toBeUndefined();
     await click(renderer, "Retour aux parties");
     expect(window.location.search).toBe("?context=scrim");
     expect(lists(renderer)).toHaveLength(1);
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
     expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "match-details")).toHaveLength(1);
   });
 
-  it("opens import only when requested and retains the selected game after closing it", async () => {
-    const renderer = await mount("/games?match=one&import=1");
-    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
-    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+  it.each([
+    ["/games?match=one&import=1", "Retour aux parties", ""],
+    ["/games?archive=block&match=one&import=1", "Retour au groupe", "?archive=block"],
+  ])("keeps imports closed on a direct game URL %s and available after returning", async (path, returnLabel, returnSearch) => {
+    const renderer = await mount(path);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
     expect(renderer.root.findByType(MatchDataPanel).props.match.id).toBe("one");
     expect(renderer.root.findAllByType(ImportedGames)).toHaveLength(1);
-    await click(renderer, "Fermer la fenêtre");
-    expect(window.location.search).toBe("?match=one");
+    await click(renderer, returnLabel);
+    expect(window.location.search).toBe(returnSearch);
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
-    expect(renderer.root.findByType(MatchDataPanel).props.match.id).toBe("one");
+    expect(renderer.root.findAllByType(MatchDataPanel)).toHaveLength(0);
+    expect(lists(renderer)).toHaveLength(1);
     await click(renderer, "Importer une partie");
     expect(new URLSearchParams(window.location.search).get("import")).toBe("1");
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
+    await click(renderer, "Fermer la fenêtre");
+    expect(window.location.search).toBe(returnSearch);
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+  });
+
+  it("clears an open import when selecting a game so returning does not reopen it", async () => {
+    const renderer = await mount("/games?archive=block&context=scrim&import=1");
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
+    await act(async () => renderer.root.findByType(ImportedGames).props.onSelectMatch("one"));
+    expect(new URLSearchParams(window.location.search).get("match")).toBe("one");
+    expect(new URLSearchParams(window.location.search).has("import")).toBe(false);
+    expect(renderer.root.findByType(MatchDataPanel).props.match.id).toBe("one");
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    await click(renderer, "Retour au groupe");
+    expect(window.location.search).toBe("?archive=block&context=scrim");
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
+  });
+
+  it("does not reopen a stale import after deleting the selected game", async () => {
+    const renderer = await mount("/games?archive=block&match=one&import=1");
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    await act(async () => renderer.root.findByType(GameActions).props.onDeleted());
+    expect(window.location.search).toBe("?archive=block");
+    expect(renderer.root.findAllByType(MatchDataPanel)).toHaveLength(0);
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    expect(lists(renderer)).toHaveLength(1);
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
   });
 
   it("opens the imported game directly after the import flow succeeds", async () => {
@@ -245,8 +286,10 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(0);
     expect(renderer.root.findByType(MatchDataPanel).props.match.id).toBe("imported");
     expect(lists(renderer)).toHaveLength(0);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
     await click(renderer, "Retour aux parties");
     expect(lists(renderer)).toHaveLength(1);
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
   });
 
   it("opens a group, its game statistics and returns without duplicating the game list", async () => {
@@ -294,8 +337,7 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(GameActions)).toHaveLength(1);
     expect(button(renderer, "Options de la game")).toBeTruthy();
     for (const label of ["Modifier les informations", "Corriger les rôles et profils", "Supprimer"]) expect(button(renderer, label)).toBeUndefined();
-    const importButton = renderer.root.findAllByType(Button).find((node) => node.props.children === "Importer une partie");
-    expect(importButton.props.variant).toBe("ghost");
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
     await click(renderer, "Options de la game");
     expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
     for (const label of ["Modifier les informations", "Corriger les rôles et profils", "Supprimer"]) expect(button(renderer, label)).toBeTruthy();
