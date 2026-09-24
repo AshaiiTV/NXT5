@@ -458,7 +458,7 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     expect(snapshots[0].body.context).toEqual(snapshots[1].body.context);
     expect(snapshots[0].content_hash).not.toBe(snapshots[1].content_hash);
     expect(transport.render).toHaveBeenCalledTimes(2);
-    expect(transport.send.mock.calls[1][1].body.embeds[0].fields.some((field:any)=>field.name==='Piste de review NXT5')).toBe(true);
+    expect(transport.send.mock.calls[1][1].body.embeds[0].fields.some((field:any)=>field.name==='Piste de review')).toBe(true);
     expect(transport.send.mock.calls[1][1].body.allowed_mentions.roles).toEqual([]);
   });
   it('requires an explicit retry after a known Discord message disappears and never creates a replacement',async () => {

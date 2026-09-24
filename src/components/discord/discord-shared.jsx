@@ -75,21 +75,37 @@ export function DiscordStatus({ status }) {
   return <Badge tone={tone}>{label}</Badge>;
 }
 
+// These values are escaped for Discord, but remain plain React text here.
+const previewText = (value) => String(value ?? "").replace(/\\([\\`*_{}\[\]<>~|])/g, "$1");
+function previewGamePath(value) {
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password && url.pathname === "/statistiques"
+      ? url.pathname + url.search : null;
+  } catch { return null; }
+}
+
 export function DiscordPreview({ preview, fictitious = false }) {
   if (!preview) return null;
   const message = preview.message || {};
   const image = typeof preview.imageDataUrl === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=\s]+$/.test(preview.imageDataUrl) ? preview.imageDataUrl : null;
+  const imageAlt = message.attachments?.[0]?.description || (fictitious ? "Exemple fictif du visuel de game envoyé par NXT5" : "Visuel NXT5 de la game, reprenant les statistiques de la publication");
+  const links = (message.components || []).flatMap((row) => row.components || []).filter((item) => item.type === 2 && item.style === 5 && previewGamePath(item.url));
   return <section className="discord-preview" aria-label="Aperçu de la publication">
     <h4>{fictitious ? "Exemple de message et de visuel" : "Aperçu de la publication"}</h4>
     {fictitious && <p className="discord-help">Données fictives : cet exemple ne reprend aucune game ni note de ton équipe.</p>}
     {!!message.content && <p className="discord-message-content">{message.content}</p>}
     {(message.embeds || []).map((embed, index) => <div className="discord-embed" key={index}>
-      {embed.title && <h5>{embed.title}</h5>}{embed.description && <p className="discord-message-content">{embed.description}</p>}
-      {!!embed.fields?.length && <dl className="discord-embed-fields">{embed.fields.map((field, i) => <div key={i}><dt>{field.name}</dt><dd>{field.value}</dd></div>)}</dl>}
-      {embed.footer?.text && <p className="discord-help">{embed.footer.text}</p>}
+      {embed.title && <h5>{previewText(embed.title)}</h5>}{embed.description && <p className="discord-message-content">{previewText(embed.description)}</p>}
+      {!!embed.fields?.length && <dl className="discord-embed-fields">{embed.fields.map((field, i) => <div key={i}><dt>{previewText(field.name)}</dt><dd>{previewText(field.value)}</dd></div>)}</dl>}
+      {image && index === 0 && <img className="discord-preview-image" src={image} alt={previewText(imageAlt)} />}
+      {embed.footer?.text && <p className="discord-embed-footer">{embed.footer.text}</p>}
     </div>)}
-    {image ? <><img className="discord-preview-image" src={image} alt={fictitious ? "Exemple fictif du visuel de game envoyé par NXT5" : "Visuel NXT5 de la game, reprenant les statistiques de la publication"} /><a className="discord-link" href={image} download="nxt5-discord-apercu.png">Télécharger le visuel pour le voir en détail</a></> : <p className="discord-help">Visuel indisponible pour cet aperçu.</p>}
-    {preview.snapshotRevision != null && <p className="discord-help">Version des données : {preview.snapshotRevision}</p>}
+    {image && !message.embeds?.length && <img className="discord-preview-image" src={image} alt={previewText(imageAlt)} />}
+    {!!links.length && <div className="discord-actions discord-preview-buttons">{links.map((link, index) => <a className="discord-preview-game" href={previewGamePath(link.url)} key={index}>{previewText(link.label)}<ExternalLink aria-hidden="true" className="h-4 w-4" /></a>)}</div>}
+    <div className="discord-preview-meta">{image ? <a className="discord-link" href={image} download="nxt5-discord-apercu.png">Télécharger le visuel</a> : <p className="discord-help">Visuel indisponible pour cet aperçu.</p>}
+      {preview.snapshotRevision != null && <p className="discord-help">Version des données : {preview.snapshotRevision}</p>}
+    </div>
   </section>;
 }
 

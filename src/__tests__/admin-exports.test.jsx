@@ -9,6 +9,7 @@ vi.mock("../pages/admin/export-examples.js", () => ({
   createExportExample: vi.fn(),
   EXPORT_TEMPLATES: [
     { id: "game", title: "Statistiques d’une game", source: "Games", format: "PNG", description: "La game complète." },
+    { id: "discord-game", title: "Synthèse Discord", source: "Bot Discord", format: "PNG", description: "L’essentiel pour le salon." },
     { id: "audience", title: "Rapport de fréquentation", source: "Administration", format: "CSV", description: "Les mesures du site." },
   ],
 }));
@@ -25,7 +26,7 @@ beforeEach(async () => {
   pngExample = { blob: new Blob([bytes], { type: "image/png" }), filename: "nxt5-game-exemple.png", width: 4, height: 6 };
   const csvText = '"date";"visites"\r\n"2026-09-23";"12"\r\n';
   csvExample = { blob: new Blob(["\uFEFF", csvText], { type: "text/csv;charset=utf-8" }), filename: "nxt5-frequentation-exemple.csv", csvText };
-  createExportExample.mockImplementation(async (id) => id === "game" ? pngExample : csvExample);
+  createExportExample.mockImplementation(async (id) => id === "audience" ? csvExample : pngExample);
   createObjectURL = vi.spyOn(URL, "createObjectURL");
   revokeObjectURL = vi.spyOn(URL, "revokeObjectURL");
   vi.stubGlobal("document", { body: { style: { overflow: "auto" } }, createElement: vi.fn() });
@@ -81,7 +82,7 @@ function deferred() {
 describe("administration export previews", () => {
   it("keeps pending models unavailable and renders the generated image without starting a download", async () => {
     const pending = deferred();
-    createExportExample.mockImplementation(id => id === "game" ? pending.promise : Promise.resolve(csvExample));
+    createExportExample.mockImplementation(id => id === "game" ? pending.promise : Promise.resolve(id === "audience" ? csvExample : pngExample));
     await mount();
     expect(card("game").findAllByProps({ role: "status" })).toHaveLength(1);
     expect(button("Voir le modèle", card("game")).props.disabled).toBe(true);
@@ -106,7 +107,7 @@ describe("administration export previews", () => {
     await click("Réessayer", card("game"));
     expect(card("game").findAllByProps({ role: "alert" })).toHaveLength(0);
     expect(card("game").findAllByType("img")).toHaveLength(1);
-    expect(createExportExample.mock.calls.map(([id]) => id)).toEqual(["game", "audience", "game"]);
+    expect(createExportExample.mock.calls.map(([id]) => id)).toEqual(["game", "discord-game", "audience", "game"]);
     expect(revokeObjectURL).not.toHaveBeenCalled();
   });
 
@@ -143,6 +144,7 @@ describe("administration export previews", () => {
     await mount();
     await click("Données CSV (1)");
     expect(card("game").props.hidden).toBe(true);
+    expect(card("discord-game").props.hidden).toBe(true);
     expect(card("audience").props.hidden).toBe(false);
     expect(text(renderer.root.findByProps({ className: "exports-count" }))).toBe("1 modèle affiché");
     await click("Voir le modèle", card("audience"));
@@ -155,23 +157,44 @@ describe("administration export previews", () => {
     expect(response.headers.get("content-type")).toBe("text/csv;charset=utf-8");
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array(await csvExample.blob.arrayBuffer()));
     await click("Fermer l’aperçu", dialog);
-    await click("Tous (2)");
+    await click("Tous (3)");
     expect(card("game").props.hidden).toBe(false);
-    expect(createExportExample).toHaveBeenCalledTimes(2);
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    expect(card("discord-game").props.hidden).toBe(false);
+    expect(createExportExample).toHaveBeenCalledTimes(3);
+    expect(createObjectURL).toHaveBeenCalledTimes(3);
+  });
+
+  it("offers the Discord summary separately and downloads its generated preview", async () => {
+    const bytes = await sharp({ create: { width: 960, height: 1200, channels: 4, background: "#020611" } }).png().toBuffer();
+    const discordExample = { blob: new Blob([bytes], { type: "image/png" }), filename: "nxt5-exemple-fictif-discord-game.png", width: 960, height: 1200 };
+    createExportExample.mockImplementation(async (id) => id === "discord-game" ? discordExample : id === "audience" ? csvExample : pngExample);
+    await mount();
+    await click("Images PNG (2)");
+    expect(card("game").props.hidden).toBe(false);
+    expect(card("discord-game").props.hidden).toBe(false);
+    await click("Agrandir : Synthèse Discord");
+    const dialog = renderer.root.findByType("dialog");
+    expect(text(dialog.findByProps({ id: "export-dialog-title" }))).toBe("Synthèse Discord");
+    expect(text(dialog.findByProps({ id: "export-dialog-description" }))).toContain("données fictives · 960 × 1200 px");
+    const download = dialog.findByType("a");
+    expect(download.props.download).toBe(discordExample.filename);
+    expect(download.props.href).toBe(card("discord-game").findByType("img").props.src);
+    const response = await fetch(download.props.href);
+    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
+    expect(card("game").findByType("img").props.width).toBe(4);
   });
 
   it("releases ready URLs on departure and ignores unfinished generation after unmount", async () => {
     const pending = deferred();
-    createExportExample.mockImplementation(id => id === "game" ? pending.promise : Promise.resolve(csvExample));
+    createExportExample.mockImplementation(id => id === "game" ? pending.promise : Promise.resolve(id === "audience" ? csvExample : pngExample));
     await mount();
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-    const csvUrl = createObjectURL.mock.results[0].value;
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    const readyUrls = createObjectURL.mock.results.map(result => result.value);
     await act(async () => renderer.unmount());
     renderer = undefined;
-    expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith(csvUrl);
+    readyUrls.forEach(url => expect(revokeObjectURL).toHaveBeenCalledWith(url));
     await act(async () => pending.resolve(pngExample));
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-    expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    expect(revokeObjectURL).toHaveBeenCalledTimes(2);
   });
 });

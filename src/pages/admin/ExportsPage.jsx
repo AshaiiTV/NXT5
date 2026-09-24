@@ -48,7 +48,7 @@ function ExportCard({ template, hidden, onPreview }) {
           <span className="export-preview-hint"><Eye size={16} aria-hidden="true" />Agrandir l’aperçu</span>
         </button>}
       </div>
-      <div className="export-card-footer"><span>{example ? isImage ? `${example.width} × ${example.height} px` : "CSV · UTF-8" : template.format}<small>{isImage ? "Une image, tout le contenu" : "Compatible tableur"}</small></span><Button type="button" variant="ghost" icon={Eye} disabled={!example} onClick={openPreview}>Voir le modèle</Button></div>
+      <div className="export-card-footer"><span>{example ? isImage ? `${example.width} × ${example.height} px` : "CSV · UTF-8" : template.format}<small>{isImage ? "Un fichier PNG" : "Compatible tableur"}</small></span><Button type="button" variant="ghost" icon={Eye} disabled={!example} onClick={openPreview}>Voir le modèle</Button></div>
     </Surface>
   </article>;
 }
@@ -86,7 +86,7 @@ export default function ExportsPage() {
   const visibleCount = EXPORT_TEMPLATES.filter(template => filter === "all" || template.format === filter).length;
   return <div className="exports-page">
     <PageHeader eyebrow="Configuration · Bibliothèque" title="Exports" subtitle="Retrouve les modèles d’export du site, ouvre chaque aperçu en grand et télécharge un exemple." />
-    <div className="exports-intro"><FileImage size={21} aria-hidden="true" /><p><strong>Les modèles actuels, avec des données fictives.</strong><span>Les aperçus utilisent le même rendu que les exports de l’application. Le visuel de game est aussi utilisé sur Discord.</span></p></div>
+    <div className="exports-intro"><FileImage size={21} aria-hidden="true" /><p><strong>Les modèles actuels, avec des données fictives.</strong><span>Les aperçus utilisent les vrais rendus du site et du bot : bilan détaillé dans Games, synthèse compacte sur Discord.</span></p></div>
     <div className="exports-toolbar"><div role="group" aria-label="Formats d’export" className="exports-filters">{[["all", `Tous (${EXPORT_TEMPLATES.length})`], ["PNG", `Images PNG (${imageCount})`], ["CSV", `Données CSV (${csvCount})`]].map(([value, label]) => <Button key={value} type="button" variant="ghost" aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</Button>)}</div><span className="exports-count" aria-live="polite">{visibleCount} {visibleCount === 1 ? "modèle affiché" : "modèles affichés"}</span></div>
     <section className="exports-catalog" aria-label="Modèles d’export">{EXPORT_TEMPLATES.map(template => <ExportCard key={template.id} template={template} hidden={filter !== "all" && template.format !== filter} onPreview={setSelection} />)}</section>
     {selection && <ExportPreviewDialog selection={selection} onClose={() => setSelection(null)} />}

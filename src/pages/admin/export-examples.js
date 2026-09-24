@@ -5,7 +5,12 @@ export const EXPORT_TEMPLATES = Object.freeze([
   {
     id: "game", title: "Statistiques d’une game", source: "Games · Statistiques", format: "PNG",
     description: "Le bilan complet d’une game : les deux équipes, les dix joueurs et les objectifs.",
-    uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Même rendu pour les publications Discord"],
+    uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Bilan détaillé téléchargé depuis Games"],
+  },
+  {
+    id: "discord-game", title: "Synthèse Discord", source: "Bot Discord · Publication d’une game", format: "PNG",
+    description: "L’essentiel d’une game pour le salon Discord : résultat, écarts collectifs et cinq joueurs de l’équipe.",
+    uses: ["Résultat, adversaire et durée", "Kills et écart d’or final", "Tours, dragons et Nashors", "K/D/A, dégâts et participation des cinq joueurs"],
   },
   {
     id: "group", title: "Groupe de games", source: "Games · Groupe de games", format: "PNG",
@@ -168,7 +173,12 @@ export async function createExportExample(id) {
   const matches = MATCH_SETTINGS.map(demoMatch);
   const { pngPagesBlob } = await import("../../utils/png-report.js");
   let canvases;
-  if (id === "game" || id === "group") {
+  if (id === "discord-game") {
+    const { buildGamePublicationSnapshot } = await import("../../../shared/publications/game-publication.js");
+    const { renderGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
+    const snapshot = buildGamePublicationSnapshot({ team: TEAM, match: matches[0], categories: [CATEGORY] });
+    canvases = [await renderGamePublicationPng(snapshot, { layout: "discord" })];
+  } else if (id === "game" || id === "group") {
     const { renderStatsPng } = await import("../workspace/GameWorkspace.jsx");
     canvases = await renderStatsPng({
       title: "Bloc de scrims · exemple fictif", subtitle: CATEGORY.name,
