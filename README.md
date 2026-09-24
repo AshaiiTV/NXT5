@@ -149,9 +149,9 @@ Le front ne stocke aucune donnée métier en localStorage. Les données importan
 
 ## Commandes du bot Discord
 
-Le bot dispose d’un catalogue de 50 chemins `/nxt`, avec `/nxt help` et `/nxt aide` pour le guide interactif, une liaison personnelle Discord–NXT5 et des commandes de consultation, planning, objectifs et reviews. Le [guide de développement et d’activation](docs/discord-bot-commandes.md) décrit les droits, les deux migrations, les rappels/bilans planifiés et l’ordre déploiement serveur → enregistrement du catalogue Discord. Les contrôles locaux n’attestent pas un enregistrement ou un envoi réel.
+Le bot propose cinq commandes visibles : `/nxt help`, `/nxt lier`, `/nxt profil`, `/nxt voir` et `/nxt connecter`. Après la liaison personnelle Discord–NXT5, l’équipe est reconnue grâce au salon de commandes qui lui est réservé ; `/nxt voir` rassemble les consultations courantes. Le [guide de développement et d’activation](docs/discord-bot-commandes.md) décrit les droits, les rappels/bilans planifiés et l’ordre déploiement serveur → enregistrement de la commande Discord. Les contrôles locaux n’attestent pas un enregistrement ou un envoi réel.
 
-Le responsable commence par `/nxt compte lier` avant `/nxt connecter` et génère le code avec ce même compte NXT5. Les commandes `connecter`, `statut`, `pause` et `reprendre` exigent d’être propriétaire ou capitaine de l’équipe visée et de disposer de **Gérer le serveur** ou **Administrateur** dans Discord. Partager un serveur Discord ne donne aucun accès aux autres équipes NXT5.
+Le responsable commence par `/nxt lier` avant `/nxt connecter` et génère le code avec ce même compte NXT5. `/nxt connecter` exige d’être propriétaire ou capitaine de l’équipe visée et de disposer de **Gérer le serveur** ou **Administrateur** dans Discord. Chaque équipe configure son propre salon de commandes et, si nécessaire, les rôles Discord autorisés. Partager un serveur Discord ne donne aucun accès aux autres équipes NXT5.
 
 ## Connexion à la base de données
 
