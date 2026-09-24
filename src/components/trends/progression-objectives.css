@@ -1,6 +1,6 @@
 .nxt5-objectives-content {
   container-type: inline-size;
-  padding: clamp(4px, 1.2vw, 16px);
+  padding: 0;
   color: var(--nxt5-text);
 }
 
@@ -16,13 +16,13 @@
 .objectives-heading h3,
 .objectives-roles-heading h4 {
   font-size: 18px;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.4;
 }
 
 .objectives-heading > p {
-  color: #dbe8f8;
-  font-size: 12px;
+  color: var(--nxt5-text-secondary);
+  font-size: 13px;
 }
 
 .objectives-team {
@@ -32,12 +32,11 @@
 }
 
 .nxt5-objectives-content .objectives-eyebrow {
-  color: #c2d0e3;
-  font-size: 11px;
+  color: var(--nxt5-text-secondary);
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.5;
-  letter-spacing: .12em;
-  text-transform: uppercase;
+  letter-spacing: normal;
 }
 
 .objectives-priority > .objectives-eyebrow {
@@ -57,16 +56,16 @@
 .objectives-priority h4 {
   max-width: 22ch;
   margin: 12px 0;
-  font-size: clamp(26px, 3.6cqi, 36px);
-  font-weight: 850;
-  line-height: 1.12;
+  font-size: clamp(24px, 3cqi, 30px);
+  font-weight: 700;
+  line-height: 1.25;
   letter-spacing: -.035em;
   text-wrap: balance;
 }
 
 .objectives-reason {
   max-width: 62ch;
-  color: #dbe8f8;
+  color: var(--nxt5-text-secondary);
   font-size: 14px;
   line-height: 1.65;
 }
@@ -85,7 +84,7 @@
   margin-top: 10px;
   color: #cffafe;
   font-size: clamp(21px, 2.7cqi, 28px);
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.3;
   letter-spacing: -.025em;
   text-wrap: balance;
@@ -96,7 +95,7 @@
   flex-wrap: wrap;
   gap: 4px 10px;
   margin-top: 14px;
-  color: #c2d0e3;
+  color: var(--nxt5-text-secondary);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -109,8 +108,8 @@
 
 .objectives-checkpoint {
   margin-top: 6px;
-  color: #c2d0e3;
-  font-size: 12px;
+  color: var(--nxt5-text-secondary);
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -126,9 +125,9 @@
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  border-radius: 6px;
+  border-radius: var(--nxt5-radius-button, 2px);
   color: #cffafe;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 650;
   line-height: 1.5;
   text-align: left;
@@ -172,28 +171,28 @@
 
 .objectives-role-name {
   font-size: 14px;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.5;
 }
 
 .objectives-role-current {
   margin-top: 4px;
-  color: #c2d0e3;
-  font-size: 12px;
+  color: var(--nxt5-text-secondary);
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
 }
 
 .objectives-role-instruction h5 {
   font-size: 15px;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.4;
 }
 
 .objectives-role-instruction > p {
   max-width: 68ch;
   margin-top: 6px;
-  color: #dbe8f8;
+  color: var(--nxt5-text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -210,7 +209,7 @@
   .objectives-team {
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
     gap: 40px;
-    padding: 36px 0;
+    padding: 28px 0;
   }
 
   .objectives-role {
@@ -246,3 +245,9 @@
     flex-shrink: 0;
   }
 }
+
+.objectives-role > div { min-width: 0; overflow-wrap: anywhere; }
+.objectives-link:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+.objectives-empty { padding: 16px 0; color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.65; }
+
+.objectives-intro { max-width: 80ch; margin-top: 12px; color: var(--nxt5-text-secondary); font-size: 15px; line-height: 1.7; }

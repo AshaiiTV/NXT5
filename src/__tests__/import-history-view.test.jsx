@@ -56,7 +56,7 @@ function games(count = 24, teamId = "team") {
 function settings(overrides = {}) {
   return {
     data: { ...DEFAULT_DATA, teams: [{ id: "team", name: "Équipe", owner_id: "owner" }, { id: "other-team", name: "Deuxième équipe", owner_id: "someone-else" }], players: roster, matches: [...games(), ...games(1, "other-team")], matchCategories: categories },
-    selectedTeamId: "team", currentMember: { role: "coach" }, user: { id: "coach" },
+    selectedTeamId: "team", currentMember: { role: "coach", team_id: "team", user_id: "coach" }, user: { id: "coach" },
     refreshAll: vi.fn().mockResolvedValue(undefined), pushToast: vi.fn(), ...overrides,
   };
 }
@@ -491,14 +491,14 @@ describe("import flow without a second game list", () => {
     await load(renderer, JSON.stringify(source));
     expect(apiUploadJson.mock.calls[0].slice(0, 2)).toEqual(["matches-import-file", { teamId: "team", payload: source, previewOnly: true }]);
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
-    const blue = renderer.root.findAllByType("button").find((node) => text(node).startsWith("Blue Side"));
+    const blue = renderer.root.findAllByType("button").find((node) => text(node).startsWith("Côté bleu"));
     await act(async () => blue.props.onClick());
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
     await click(renderer, "Confirmer l’import");
     expect(apiUploadJson.mock.calls[1].slice(0, 2)).toEqual(["matches-import-file", {
       teamId: "team", payload: source, label: "Finale", categoryIds: [], allyTeamSide: "BLUE",
-      laneAssignments: Object.fromEntries(roles.map((role) => [role, `BLUE-${role}#EUW`])),
-      enemyLaneAssignments: Object.fromEntries(roles.map((role) => [role, `RED-${role}#EUW`])),
+      laneAssignments: Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 1}`])),
+      enemyLaneAssignments: Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 6}`])),
       playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])),
     }]);
     expect(props.onImported).toHaveBeenCalledWith(result);
@@ -513,9 +513,9 @@ describe("import flow without a second game list", () => {
     apiUploadJson.mockResolvedValueOnce({ match: preview }).mockRejectedValueOnce(new Error("Connexion interrompue"));
     const { renderer, props } = await renderFlow();
     await load(renderer, JSON.stringify({ label: "Brouillon à garder" }));
-    await act(async () => renderer.root.findAllByType("button").find((node) => text(node).startsWith("Blue Side")).props.onClick());
+    await act(async () => renderer.root.findAllByType("button").find((node) => text(node).startsWith("Côté bleu")).props.onClick());
     await click(renderer, "Confirmer l’import");
-    expect(input(renderer, "Nom de la game").props.value).toBe("Brouillon à garder");
+    expect(input(renderer, "Nom de la partie").props.value).toBe("Brouillon à garder");
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
     expect(props.onImported).not.toHaveBeenCalled();
     expect(props.refreshAll).not.toHaveBeenCalled();

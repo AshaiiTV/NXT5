@@ -1,0 +1,8 @@
+# NXT5 : joindre l'editeur par e-mail ou suivre les consignes de Contact.
+# Ne pas publier de details sensibles dans un salon communautaire.
+Contact: mailto:sachad.d91@gmail.com
+Contact: https://nxt5.org/contact
+Expires: 2027-03-23T00:00:00Z
+Preferred-Languages: fr, en
+Canonical: https://nxt5.org/.well-known/security.txt
+Policy: https://github.com/AshaiiTV/NXT5/blob/main/SECURITY.md

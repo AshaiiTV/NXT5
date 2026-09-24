@@ -67,7 +67,7 @@ describe("workflow calculations", () => {
 
   it("shows an unavailable comparison when the previous block is empty", () => {
     const html = renderToStaticMarkup(<BlockComparisonPanel matches={[match("a", "Victoire", 12000, 10000)]} />);
-    expect(html).toContain("Aucune game dans ce bloc");
+    expect(html).toContain("Aucune partie dans ce bloc");
     expect(html).toContain("deux blocs non vides");
     expect(html).toContain("31 juil. 2026");
     expect(html).not.toContain("+100 pts");
@@ -79,8 +79,8 @@ describe("workflow calculations", () => {
     const html = renderToStaticMarkup(<BlockComparisonPanel matches={games} />);
     expect(html).toContain("+100 pts");
     expect(html).not.toContain("+100%");
-    expect(html).toContain("Aucune game commune");
-    expect(html).toContain("5 games");
+    expect(html).toContain("Aucune partie commune");
+    expect(html).toContain("5 parties");
   });
 
   it("recognizes every supported timeline storage shape", () => {

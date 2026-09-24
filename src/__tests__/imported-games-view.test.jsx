@@ -88,7 +88,7 @@ describe("imported games interactions", () => {
     await click(renderer, "Page suivante");
     expect(rows(renderer)).toHaveLength(10);
     expect(rowLabels(renderer)[0]).toContain("EUW1_13");
-    expect(text(renderer.root.findByProps({ "aria-label": "Pagination des games" }))).toContain("Page 2 / 3");
+    expect(text(renderer.root.findByProps({ "aria-label": "Pagination des parties" }))).toContain("Page 2 / 3");
     expect(resultsNode.focus).toHaveBeenCalledWith({ preventScroll: true });
     expect(resultsNode.scrollIntoView).toHaveBeenCalledWith({ block: "start" });
     await click(renderer, "Page suivante");
@@ -102,7 +102,7 @@ describe("imported games interactions", () => {
   it.each([
     ["search", async (renderer) => search(renderer, "Club"), "EUW1_30", 30],
     ["result", async (renderer) => filter(renderer, "Résultat", "Victoire"), "EUW1_29", 15],
-    ["review", async (renderer) => filter(renderer, "Review", "done"), "EUW1_30", 15],
+    ["review", async (renderer) => filter(renderer, "Débrief", "done"), "EUW1_30", 15],
     ["side", async (renderer) => filter(renderer, "Côté", "blue"), "EUW1_29", 15],
     ["sort", async (renderer) => filter(renderer, "Trier par", "oldest"), "EUW1_1", 30],
   ])("returns to page one after changing %s", async (_name, change, firstGame, resultCount) => {
@@ -112,7 +112,7 @@ describe("imported games interactions", () => {
     expect(rows(renderer)).toHaveLength(10);
     expect(rowLabels(renderer)[0]).toMatch(new RegExp(`${firstGame}$`));
     expect(button(renderer, "Page précédente").props.disabled).toBe(true);
-    expect(text(renderer.root.findByProps({ role: "status" }))).toContain(`${resultCount} games`);
+    expect(text(renderer.root.findByProps({ role: "status" }))).toContain(`${resultCount} parties`);
   });
 
   it("resets the page when changing the page size", async () => {
@@ -132,7 +132,7 @@ describe("imported games interactions", () => {
     await filter(renderer, "Résultat", "Victoire");
     await search(renderer, "introuvable");
     expect(rows(renderer)).toHaveLength(0);
-    expect(text(renderer.root.findByProps({ className: "ig-empty" }))).toContain("Aucune game ne correspond");
+    expect(text(renderer.root.findByProps({ className: "ig-empty" }))).toContain("Aucune partie ne correspond");
     expect(button(renderer, "Page suivante")).toBeUndefined();
     const reset = renderer.root.findByProps({ className: "ig-empty" }).findByType("button");
     await act(async () => reset.props.onClick());
@@ -156,7 +156,7 @@ describe("imported games interactions", () => {
     await click(renderer, "Afficher dans la liste");
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("");
     expect(select(renderer, "Résultat").props.value).toBe("");
-    expect(text(renderer.root.findByProps({ "aria-label": "Pagination des games" }))).toContain("Page 3 / 3");
+    expect(text(renderer.root.findByProps({ "aria-label": "Pagination des parties" }))).toContain("Page 3 / 3");
     const active = rows(renderer).filter((node) => node.props["aria-pressed"]);
     expect(active).toHaveLength(1);
     expect(active[0].props["aria-label"]).toContain("EUW1_3");
@@ -169,22 +169,22 @@ describe("imported games interactions", () => {
     const renderer = await render(<ImportedGames {...listProps({ selectedMatchId: selected.id, selectedMatch: selected })} />);
     expect(text(renderer.root.findByProps({ className: "ig-selection" }))).toContain("hors des résultats affichés");
     expect(button(renderer, "Afficher dans la liste")).toBeUndefined();
-    expect(button(renderer, "Voir les stats")).toBeTruthy();
-    expect(button(renderer, "Créer une review")).toBeTruthy();
+    expect(button(renderer, "Voir le bilan")).toBeTruthy();
+    expect(button(renderer, "Créer un débrief")).toBeTruthy();
   });
 
   it("calls selection, deselection, stats and review creation actions", async () => {
     const selected = games(1)[0];
     const settings = listProps({ matches: [selected], selectedMatchId: selected.id, selectedMatch: selected });
     const renderer = await render(<ImportedGames {...settings} />);
-    await click(renderer, "Voir les stats");
-    await click(renderer, "Créer une review");
+    await click(renderer, "Voir le bilan");
+    await click(renderer, "Créer un débrief");
     expect(settings.onViewStats).toHaveBeenCalledTimes(1);
     expect(settings.onCreateReview).toHaveBeenCalledTimes(1);
     expect(settings.onOpenReview).not.toHaveBeenCalled();
     await act(async () => rows(renderer)[0].props.onClick());
     expect(settings.onSelectMatch).toHaveBeenLastCalledWith("");
-    await click(renderer, "Désélectionner la game");
+    await click(renderer, "Désélectionner la partie");
     expect(settings.onSelectMatch).toHaveBeenCalledTimes(2);
     await act(async () => renderer.update(<ImportedGames {...settings} selectedMatchId="" selectedMatch={null} />));
     await act(async () => rows(renderer)[0].props.onClick());
@@ -195,9 +195,9 @@ describe("imported games interactions", () => {
     const selected = games(1)[0];
     const settings = listProps({ matches: [selected], selectedMatchId: selected.id, selectedMatch: selected, selectedReport: { id: "report" } });
     const renderer = await render(<ImportedGames {...settings} />);
-    expect(button(renderer, "Créer une review")).toBeUndefined();
-    await click(renderer, "Ouvrir la review");
-    await click(renderer, "Nouvelle review");
+    expect(button(renderer, "Créer un débrief")).toBeUndefined();
+    await click(renderer, "Ouvrir le débrief");
+    await click(renderer, "Nouveau débrief");
     expect(settings.onOpenReview).toHaveBeenCalledTimes(1);
     expect(settings.onCreateReview).toHaveBeenCalledTimes(1);
   });
@@ -215,8 +215,8 @@ describe("imported games interactions", () => {
   it("offers a return to all games for an empty category", async () => {
     const settings = listProps({ matches: [], scopeName: "Tournoi" });
     const renderer = await render(<ImportedGames {...settings} />);
-    expect(text(renderer.root.findByProps({ className: "ig-empty" }))).toContain("Aucune game dans cette sélection");
-    await click(renderer, "Voir toutes les games");
+    expect(text(renderer.root.findByProps({ className: "ig-empty" }))).toContain("Aucune partie dans cette sélection");
+    await click(renderer, "Voir toutes les parties");
     expect(settings.onResetScope).toHaveBeenCalledTimes(1);
   });
 });
@@ -255,7 +255,7 @@ describe("imported games in Statistics", () => {
     expect(visible(renderer.root.findByProps({ type: "search" }))).toBe(false);
     expect(rows(renderer).filter(visible)).toHaveLength(0);
     expect(apiFetch).toHaveBeenCalledTimes(1);
-    await click(renderer, "Retour aux games");
+    await click(renderer, "Retour aux parties");
     expect(renderer.root.findAllByProps({ id: "selected-game-stats" })).toHaveLength(0);
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("Club 03");
     expect(select(renderer, "Résultat").props.value).toBe("Victoire");
@@ -271,7 +271,7 @@ describe("imported games in Statistics", () => {
     expect(rows(renderer)).toHaveLength(0);
     expect(select(renderer, "Catégorie").props.value).toBe("empty");
     expect(visible(select(renderer, "Catégorie"))).toBe(true);
-    expect(text(renderer.root.findByProps({ className: "ig-empty" }))).toContain("Aucune game ne correspond");
+    expect(text(renderer.root.findByProps({ className: "ig-empty" }))).toContain("Aucune partie ne correspond");
     await act(async () => renderer.root.findByProps({ className: "ig-empty" }).findByType("button").props.onClick());
     expect(select(renderer, "Catégorie").props.value).toBe("");
     expect(rows(renderer)).toHaveLength(3);

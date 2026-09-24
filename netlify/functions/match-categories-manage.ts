@@ -3,6 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema, normalizeCategoryColor, seedDefaultMatchCategories } from './_lib/match-categories';
+import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 
 function cleanText(value, max = 120) {
   return String(value || '').trim().slice(0, max);
@@ -26,8 +27,9 @@ async function requireCategoryManager(teamId, userId) {
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
-    assertSessionSecret();
     assertMethod(request, 'POST');
+    assertMatchSourceMutationEnvironment(context);
+    assertSessionSecret();
     await ensureMatchCategoriesSchema();
     const user = await requireAuth(request, context);
     const body = await readJson(request);

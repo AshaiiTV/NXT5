@@ -1,0 +1,120 @@
+/* Shared controls. Page-specific composition belongs to the page stylesheet. */
+:where(.nxt5-surface) { padding: 1.25rem; }
+.nxt5-surface-emphasis { border-color: var(--nxt5-border-strong); }
+.nxt5-surface-accent { background: var(--nxt5-spectrum-gradient); opacity: .65; }
+.nxt5-surface > .relative { min-width: 0; }
+
+.nxt5-cyber-button {
+  position: relative;
+  border-radius: var(--nxt5-radius-button);
+  font-weight: 650;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.nxt5-cyber-button:disabled { cursor: not-allowed; opacity: .5; }
+.nxt5-button-primary {
+  background-image: var(--nxt5-primary-gradient);
+  border-color: transparent;
+  color: var(--nxt5-bg);
+  font-weight: 750;
+}
+.nxt5-button-primary:hover:not(:disabled) { border-color: #cffafe; }
+.nxt5-button-secondary {
+  background: rgba(148, 180, 221, .045);
+  border-color: var(--nxt5-border-strong);
+  color: var(--nxt5-text-secondary);
+}
+.nxt5-button-secondary:hover:not(:disabled) {
+  background: rgba(103, 232, 249, .075);
+  border-color: rgba(103, 232, 249, .4);
+  color: var(--nxt5-text);
+}
+.nxt5-button-danger {
+  background: rgba(244, 63, 94, .08);
+  border-color: rgba(253, 164, 175, .25);
+  color: #fecdd3;
+}
+.nxt5-button-danger:hover:not(:disabled) { background: rgba(244, 63, 94, .15); border-color: #fda4af; }
+
+.nxt5-field-label {
+  display: block;
+  margin-bottom: .5rem;
+  font-size: .875rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--nxt5-text-secondary);
+}
+.nxt5-field-control { min-width: 0; }
+.nxt5-field .nxt5-input-shell { min-height: 46px; font-weight: 400; }
+.nxt5-field-control:has(> svg) > :is(input, textarea) { padding-left: 2.625rem; }
+.nxt5-field-control:has(> button) > input { padding-right: 3.25rem; }
+.nxt5-field-control select { padding-right: 2.5rem; }
+.nxt5-field-control > button { border-radius: var(--nxt5-radius-control); }
+
+.nxt5-tab-nav {
+  padding: .25rem;
+  border: 1px solid var(--nxt5-border);
+  border-radius: .5rem;
+  background: rgba(3, 9, 20, .5);
+  scrollbar-width: thin;
+}
+.nxt5-tab {
+  color: var(--nxt5-muted);
+  border: 1px solid transparent;
+  border-radius: var(--nxt5-radius-button);
+  transition: background-color 160ms, color 160ms;
+}
+.nxt5-tab:hover { background: var(--nxt5-surface-soft); color: var(--nxt5-text); }
+.nxt5-tab[aria-selected="true"] {
+  border-color: rgba(167, 139, 250, .22);
+  background: var(--nxt5-spectrum-gradient) bottom / 100% 2px no-repeat, var(--nxt5-spectrum-soft);
+  color: #cffafe;
+}
+.nxt5-tab-description { color: var(--nxt5-muted); }
+.nxt5-tab-count { border-radius: .25rem; background: var(--nxt5-surface-soft); }
+
+.nxt5-toggle { border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); background: transparent; }
+.nxt5-toggle:hover { border-color: var(--nxt5-border-strong); background: var(--nxt5-surface-soft); }
+.nxt5-toggle[aria-checked="true"] { border-color: rgba(103, 232, 249, .24); background: rgba(103, 232, 249, .035); }
+.nxt5-toggle-track { position: relative; flex: 0 0 auto; width: 44px; height: 26px; border-radius: 999px; background: #344258; transition: background-color 160ms; }
+.nxt5-toggle-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #f8fafc; transition: transform 160ms; }
+.nxt5-toggle[aria-checked="true"] .nxt5-toggle-track { background: #0891b2; }
+.nxt5-toggle[aria-checked="true"] .nxt5-toggle-thumb { transform: translateX(18px); }
+
+.nxt5-page-header {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.25rem 2rem;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--nxt5-border);
+}
+.nxt5-page-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  width: min(12rem, 48%);
+  height: 2px;
+  background: var(--nxt5-spectrum-gradient);
+  opacity: .8;
+  pointer-events: none;
+}
+.nxt5-page-header > :first-child { flex: 1 1 20rem; }
+.nxt5-page-eyebrow { margin: 0 0 .5rem; font-size: .6875rem; font-weight: 700; line-height: 1.5; letter-spacing: .14em; text-transform: uppercase; color: var(--nxt5-accent); }
+.nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(1.625rem, 2.3vw, 2.125rem); line-height: 1.15; font-weight: 800; letter-spacing: -.035em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
+.nxt5-page-subtitle { margin: .625rem 0 0; max-width: 65ch; font-size: .9375rem; line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
+.nxt5-page-actions { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: .5rem; max-width: 100%; }
+
+@media (max-width: 640px) {
+  :where(.nxt5-surface) { padding: 1rem; }
+  .nxt5-page-header { padding-bottom: 1.125rem; margin-bottom: 1.25rem; gap: 1rem; }
+  .nxt5-page-actions { width: 100%; }
+  .nxt5-page-title { font-size: 1.625rem; }
+  .nxt5-tab-nav > div { display: flex; min-width: 100%; width: max-content; }
+  .nxt5-tab { flex: 1 0 auto; }
+  .nxt5-field .nxt5-input-shell { font-size: 16px; min-height: 48px; }
+}

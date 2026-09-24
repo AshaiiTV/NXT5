@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeftRight, Check, Ellipsis, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, Pencil, Settings, Trash2 } from "lucide-react";
 import { Surface, Badge, Button, SelectInput, TextInput } from "../../components/ui/Core.jsx";
 import { apiFetch, apiUploadJson } from "../../api/client.js";
@@ -11,49 +11,12 @@ import { championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGa
 import { roleLabel } from "./shell-shared.jsx";
 import "../../components/games/imported-games.css";
 import "./GameOperations.css";
+import { GameOperationDialog } from "../../components/games/GameOperationDialog.jsx";
+import { LinkButton } from "../public/PublicPages.jsx";
+import { openAppPath } from "../../app/routing.js";
 
-/** Native modal: the browser traps focus and makes the statistics behind it inert. */
-export function GameOperationDialog({ title, description, children, onClose, busy = false, returnFocusRef, compact = false }) {
-  const dialogRef = useRef(null);
-  const titleId = useId();
-  const descriptionId = useId();
-  const latest = useRef({ onClose, busy });
-  latest.current = { onClose, busy };
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    const returnTarget = returnFocusRef?.current;
-    const previousFocus = returnTarget?.querySelector?.("button, a[href], input, select, textarea, [tabindex]") || returnTarget || document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    const protectedUrl = window.location.href;
-    const protectedState = window.history.state;
-    // Browser back/forward must not unmount a draft or an in-flight import.
-    // App navigation after a successful import uses a synthetic popstate.
-    const protectDraft = (event) => {
-      if (!event.isTrusted) return;
-      event.stopImmediatePropagation();
-      window.history.replaceState(protectedState, "", protectedUrl);
-    };
-    window.addEventListener("popstate", protectDraft, true);
-    document.body.style.overflow = "hidden";
-    if (dialog && !dialog.open) dialog.showModal();
-    return () => {
-      if (dialog?.open) dialog.close();
-      window.removeEventListener("popstate", protectDraft, true);
-      document.body.style.overflow = previousOverflow;
-      if (previousFocus?.isConnected !== false) previousFocus?.focus?.();
-    };
-  }, []);
-  const close = () => { if (!latest.current.busy) latest.current.onClose(); };
-  return <dialog ref={dialogRef} className={cx("game-operation-dialog nxt5-data-dense", compact && "game-operation-dialog-compact")} aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined} aria-busy={busy || undefined} onCancel={(event) => { event.preventDefault(); close(); }} onClick={(event) => { if (event.target === event.currentTarget) close(); }}>
-    <div className="game-operation-dialog-inner">
-      <header className="game-operation-dialog-header">
-        <div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
-        <button type="button" className="game-operation-close" aria-label="Fermer la fenêtre" onClick={close} disabled={busy} autoFocus><X aria-hidden="true" className="h-5 w-5" /></button>
-      </header>
-      {children}
-    </div>
-  </dialog>;
-}
+export { GameOperationDialog };
+
 
 function canManageTeamCategories(data, selectedTeamId, currentMember, user) {
   const team = (data.teams || []).find((item) => item.id === selectedTeamId);
@@ -198,11 +161,11 @@ export function CategoryMultiSelect({ categories, selectedIds, onChange, label =
     onChange(ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
   };
   return <div>
-    <p className="mb-2 text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">{label}</p>
+    <p className="mb-2 text-[13px] font-semibold text-slate-300">{label}</p>
     <div className="flex flex-wrap gap-2">
       {(categories || []).map((category) => {
         const active = ids.includes(String(category.id));
-        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
+        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 py-2 text-[13px] font-semibold transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
       })}
       {!categories?.length && <Badge tone="slate">Aucune catégorie</Badge>}
     </div>
@@ -217,13 +180,13 @@ export function JsonUploadProgress({ progress }) {
   return <div className="rounded-2xl border border-cyan-300/18 bg-cyan-400/[0.07] p-3">
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="truncate text-xs font-black uppercase tracking-[0.16em] text-cyan-100">{progress.label || phaseLabel}</p>
+        <p className="break-words text-xs font-semibold text-cyan-100">{progress.label || phaseLabel}</p>
         <p className="mt-1 text-xs font-semibold text-slate-300">{phaseLabel} · {uploaded}</p>
       </div>
       <span className="shrink-0 text-sm font-black text-white">{percent}%</span>
     </div>
     <div className="mt-3 h-2 overflow-hidden rounded-full bg-black/35">
-      <div className="h-full rounded-full bg-gradient-to-r from-cyan-200 via-sky-400 to-fuchsia-300 shadow-[0_0_18px_rgba(34,211,238,.35)] transition-[width] duration-150 ease-out" style={{ width: `${percent}%` }} />
+      <div className="h-full rounded-full bg-cyan-300 transition-[width] duration-150 ease-out" style={{ width: `${percent}%` }} />
     </div>
   </div>;
 }
@@ -241,10 +204,10 @@ export function ImportRoleHeader({ role, toneName = "cyan", player = null, fallb
         <RoleIcon role={role} className="h-5 w-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-400">Poste</span>
-        <span className="block truncate text-sm font-black text-white">{roleLabel(role)}</span>
+        <span className="block break-words text-xs font-semibold text-slate-400">Poste</span>
+        <span className="block break-words text-sm font-black text-white">{roleLabel(role)}</span>
       </span>
-      <span className={cx("min-w-0 max-w-[46%] shrink rounded-lg border px-2 py-1 text-right text-[0.62rem] font-black uppercase tracking-[0.08em]", chipTone)}>
+      <span className={cx("min-w-0 max-w-[46%] shrink rounded-lg border px-2 py-1 text-right text-xs font-semibold", chipTone)}>
         <span className="block truncate">{player?.name || fallbackLabel}</span>
       </span>
     </div>
@@ -345,7 +308,7 @@ export function ImportHistoryEditor({ match, categories, roster, editing, editFo
   </form>;
 }
 
-export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange }) {
+export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, currentMember, user }) {
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -358,6 +321,11 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const [uploadProgress, setUploadProgress] = useState(null);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const gameplayRoster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
+  const importTeam = (data.teams || []).find((team) => team.id === selectedTeamId);
+  const canImport = Boolean(user?.id && (importTeam?.owner_id === user.id || (
+    currentMember?.team_id === selectedTeamId && currentMember?.user_id === user.id && canStaffManage(currentMember?.role)
+  )));
+  const hasImportPlayers = new Set(gameplayRoster.filter((player) => player.id).map((player) => String(player.id))).size >= 5;
   const progressTimer = useRef(null);
   useEffect(() => { onBusyChange?.(importing || fileImporting); }, [importing, fileImporting, onBusyChange]);
   useEffect(() => () => { window.clearTimeout(progressTimer.current); }, []);
@@ -370,10 +338,19 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     progressTimer.current = window.setTimeout(() => setUploadProgress(null), 1200);
   }
   function updateLaneAssignment(role, value) {
-    setLaneAssignments((current) => ({ ...current, [role]: value }));
+    setLaneAssignments((current) => swapLaneAssignment(current, role, value));
   }
-  function updateEnemyLaneAssignment(role, value) {
-    setEnemyLaneAssignments((current) => ({ ...current, [role]: value }));
+  function swapLaneAssignment(current, role, value) {
+    const previousRole = value && COMP_ROLES.find((item) => item !== role && current[item] === value);
+    return { ...current, ...(previousRole ? { [previousRole]: current[role] || "" } : {}), [role]: value };
+  }
+  function updateEnemyParticipantRole(participant, role) {
+    const value = previewAssignmentValue(participant);
+    setEnemyLaneAssignments((current) => {
+      if (role) return swapLaneAssignment(current, role, value);
+      const previousRole = COMP_ROLES.find((item) => current[item] === value);
+      return previousRole ? { ...current, [previousRole]: "" } : current;
+    });
   }
   function updatePlayerAssignment(role, value) {
     setPlayerAssignments((current) => ({ ...current, [role]: value }));
@@ -405,7 +382,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     return previewRiotRole(participant) || previewFallbackRole(participant, index);
   }
   function previewAssignmentValue(participant) {
-    return participant?.riotId || participant?.summonerName || participant?.champion || "";
+    return participant?.participantId ? `participant:${participant.participantId}` : "";
   }
   function preportIdentityKeys(participant) {
     const riotId = String(participant?.riotId || "").trim();
@@ -495,6 +472,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }, {});
   }
   function selectImportSide(side) {
+    if (side === allyTeamSide) return;
     const enemySide = side === "BLUE" ? "RED" : "BLUE";
     setAllyTeamSide(side);
     setLaneAssignments(laneAssignmentsForSide(side));
@@ -512,7 +490,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   }
   async function confirmImport(event) {
     event?.preventDefault();
-    if (importing || !importReady) return;
+    if (importing || !importReady || !canImport || !hasImportPlayers) return;
     window.clearTimeout(progressTimer.current);
     const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [] };
     setImporting(true);
@@ -521,7 +499,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
       const result = await apiUploadJson("matches-import-file", payload, updateUploadProgress);
       resetImportDraft();
       await refreshAll();
-      pushToast({ type: "green", title: "Game importée", text: "Side, profils et lanes ont été appliqués à cette game." });
+      pushToast({ type: "green", title: "Partie importée", text: "Le côté, les joueurs et les postes ont été enregistrés. Le bilan de la partie est prêt à consulter." });
       for (const warning of result?.warnings || []) pushToast({ type: "yellow", title: "Analyse à compléter", text: warning.message });
       clearUploadProgressSoon();
       onImported?.(result);
@@ -533,7 +511,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }
   }
   async function importLocalFile(file) {
-    if (!file || importing || fileImporting || !selectedTeamId) return;
+    if (!file || importing || fileImporting || !selectedTeamId || !canImport || !hasImportPlayers) return;
     window.clearTimeout(progressTimer.current);
     setFileImporting(true);
     setUploadProgress({ active: true, label: file.name || "Prévisualisation JSON", phase: "prepare", percent: 0, loaded: 0, total: file.size || 0 });
@@ -548,7 +526,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
         label: payload?.label || payload?.metadata?.label || payload?.opponent || payload?.metadata?.opponent || "",
         categoryIds: []
       });
-      pushToast({ type: "green", title: "JSON chargé", text: "Choisis ton side, les champions et les profils avant de confirmer." });
+      pushToast({ type: "green", title: "Fichier chargé", text: "Choisis ton équipe, puis vérifie les champions et les joueurs avant de confirmer." });
       clearUploadProgressSoon();
     } catch (err) {
       if (err instanceof SyntaxError) pushToast({ type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Importer." });
@@ -559,19 +537,36 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }
   }
 
-  const laneAssignmentsReady = COMP_ROLES.every((role) => String(laneAssignments[role] || "").trim() && String(playerAssignments[role] || "").trim());
-  const enemyAssignmentsReady = COMP_ROLES.every((role) => String(enemyLaneAssignments[role] || "").trim());
-  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
   const previewTeams = importPreview?.teams || [];
   const allyPreviewTeam = previewTeams.find((team) => team.side === allyTeamSide);
-  const enemyPreviewTeam = previewTeams.find((team) => team.side && team.side !== allyTeamSide);
+  const enemyPreviewTeam = allyTeamSide ? previewTeams.find((team) => team.side && team.side !== allyTeamSide) : null;
+  const assignmentsReady = (team, assignments) => {
+    const values = COMP_ROLES.map((role) => assignments[role]);
+    return new Set(values).size === COMP_ROLES.length && values.every((value) => value && team?.participants.some((participant) => previewAssignmentValue(participant) === value));
+  };
+  const playerAssignmentsReady = new Set(COMP_ROLES.map((role) => playerAssignments[role])).size === COMP_ROLES.length
+    && COMP_ROLES.every((role) => gameplayRoster.some((player) => player.id === playerAssignments[role]));
+  const laneAssignmentsReady = assignmentsReady(allyPreviewTeam, laneAssignments) && playerAssignmentsReady;
+  const enemyAssignmentsReady = assignmentsReady(enemyPreviewTeam, enemyLaneAssignments);
+  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
+  const importBlockReason = !allyTeamSide ? "Choisis le côté de ton équipe pour continuer."
+    : !playerAssignmentsReady ? "Associe les cinq postes à cinq profils joueurs différents de ton équipe."
+    : !laneAssignmentsReady ? "Choisis un champion différent pour chacun des cinq postes de notre équipe."
+    : !enemyAssignmentsReady ? "Attribue un poste à chaque champion adverse pour confirmer l’import."
+    : !importDetails.label.trim() ? "Donne un nom à la partie pour la retrouver plus facilement."
+    : "";
   const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
   const importFlowSteps = [
-    [Upload, "JSON", "Charge le fichier de la game.", Boolean(importPreview)],
-    [Shield, "Side", "Choisis ton équipe dans la game.", Boolean(allyTeamSide)],
-    [Users, "Roster", "Valide lanes et profils NXT5.", laneAssignmentsReady && enemyAssignmentsReady],
-    [Check, "Résumé", "Nom, catégorie et import final.", importReady],
+    [Upload, "Fichier", "Charge le fichier de la partie.", Boolean(importPreview)],
+    [Shield, "Équipe", "Choisis le côté de ton équipe.", Boolean(allyTeamSide)],
+    [Users, "Joueurs", "Vérifie les postes et les profils.", laneAssignmentsReady && enemyAssignmentsReady],
+    [Check, "Confirmation", "Nomme la partie et enregistre.", importReady],
   ];
+  if (!selectedTeamId || !canImport || !hasImportPlayers) return <Surface>
+    <h3 className="text-lg font-bold text-white">{!selectedTeamId ? "Choisis ton équipe" : !canImport ? "L’import est réservé au staff" : "Ajoute les joueurs avant la partie"}</h3>
+    <p className="mt-2 text-sm leading-6 text-slate-300">{!selectedTeamId ? "Crée ou rejoins une équipe pour y retrouver tes parties." : !canImport ? "Demande au capitaine ou au staff d’importer la partie. Tu pourras ensuite consulter son bilan et participer au débrief." : "L’import associe les cinq joueurs de la partie à cinq profils différents. Ajoute les profils manquants dans ton équipe."}</p>
+    <div className="mt-4"><LinkButton href={!selectedTeamId ? "/equipes" : canImport ? "/gestion-equipe?section=roster" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? "Ouvrir mon équipe" : canImport ? "Ajouter les joueurs" : "Retour aux parties"}</LinkButton></div>
+  </Surface>;
   return <div className="nxt5-data-dense nxt5-import-page game-import-flow grid min-w-0 gap-5">
         <ImporterDownloadPanel fileImporting={fileImporting || importing} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
           {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
@@ -579,83 +574,87 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
 
         {importPreview && <Surface className="min-w-0 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Assignation de la game</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Sélectionne le side de ton équipe, puis valide les lanes et profils avant de confirmer l’import.</p></div>
+            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Vérifie les équipes et les joueurs</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Repère tes champions pour choisir ton équipe. Vérifie ensuite les postes et les profils associés.</p></div>
           </div>
-          <div className="mt-4 grid gap-2 md:grid-cols-4">
-            {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("min-w-0 rounded-2xl p-3", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
-              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="text-xs font-black uppercase tracking-[0.14em]">{index + 1}. {title}</span></span>{done && <Check className="h-4 w-4 shrink-0" />}</div>
-              <p className="mt-1 truncate text-[0.68rem] font-semibold text-slate-400">{text}</p>
+          <div className="game-import-steps">
+            {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("game-import-step", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
+              <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="text-xs font-semibold">{index + 1}. {title}</span></span>{done && <Check className="h-4 w-4 shrink-0" />}</div>
+              <p className="mt-1 break-words text-xs font-semibold text-slate-400">{text}</p>
             </div>)}
           </div>
-              <div className="mt-4 space-y-4">
-                <div className="grid gap-3 lg:grid-cols-[minmax(240px,.9fr)_minmax(260px,1.1fr)]">
-                  <TextInput label="Nom de la game" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Game 1 vs BK, Finale LB..." required icon={FileText} />
-                  <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} />
-                </div>
+              <fieldset disabled={importing || fileImporting} className="mt-4 min-w-0 space-y-4">
+                <legend className="sr-only">Vérification avant import</legend>
                 <div className="grid gap-3 lg:grid-cols-2">
-                  {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} className={cx("rounded-2xl border p-4 text-left transition-colors", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 shadow-[0_0_24px_rgba(34,211,238,.10)]" : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
-                    <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Blue Side" : "Red Side"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div>
-                    <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="truncate text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
+                  {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} className={cx("game-import-side border p-4 text-left transition-colors", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 " : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
+                    <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Côté bleu" : "Côté rouge"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div>
+                    <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="break-words text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
                   </button>)}
                 </div>
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <div className="rounded-[1.35rem] border border-cyan-300/14 bg-cyan-400/[0.055] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide || "Side ?"}</Badge></div>
+                {allyTeamSide && <div className="grid gap-4 xl:grid-cols-2">
+                  <div className="game-import-team">
+                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide === "BLUE" ? "Côté bleu" : "Côté rouge"}</Badge></div>
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       {COMP_ROLES.map((role) => {
                         const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
                         const pickedChampion = selectedPreviewParticipant(allyPreviewTeam, laneAssignments[role]);
-                        return <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
+                        return <div key={role} className={cx("game-import-assignment", laneAssignments[role] && playerAssignments[role] ? "border-cyan-200/22 bg-cyan-400/[0.06]" : "border-white/10 bg-black/25")}>
                           <ImportRoleHeader role={role} player={assignedPlayer} />
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Swords className="h-4 w-4" /></span>}
-                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
+                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="break-words text-xs font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Joueur du fichier"}</p></div>
                           </div>
-                          <select aria-label={`Champion allié · ${roleLabel(role)}`} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
+                          <label className="game-import-field"><span>Champion joué</span><select aria-label={`Champion allié · ${roleLabel(role)}`} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
                             <option value="">Champion joué</option>
-                            {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
-                          </select>
-                          <select aria-label={`Profil NXT5 · ${roleLabel(role)}`} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="mt-2 w-full rounded-xl border border-cyan-300/14 bg-cyan-400/[0.07] px-3 py-2 text-xs font-black text-white outline-none">
+                            {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={previewAssignmentValue(participant)}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
+                          </select></label>
+                          <label className="game-import-field"><span>Profil lié</span><select aria-label={`Profil NXT5 · ${roleLabel(role)}`} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
                             <option value="">Profil NXT5 lié</option>
                             {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}{player.riot_id ? ` · ${player.riot_id}` : ""}</option>)}
-                          </select>
+                          </select></label>
                         </div>;
                       })}
                     </div>
                   </div>
-                  <div className="rounded-[1.35rem] border border-rose-300/14 bg-rose-500/[0.055] p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side || "Side ?"}</Badge></div>
+                  <div className="game-import-team">
+                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side === "BLUE" ? "Côté bleu" : "Côté rouge"}</Badge></div>
+                    <p className="mb-3 text-sm leading-6 text-slate-300">{enemyPreviewTeam ? "Choisis le poste de chaque champion adverse. Si le poste est déjà pris, les deux champions échangent leur poste." : "Choisis d’abord le côté de notre équipe pour attribuer les postes adverses."}</p>
+                    {enemyPreviewTeam && !enemyAssignmentsReady && <p role="status" className="mb-3 text-sm text-rose-100">Attribue un poste à chaque champion adverse pour confirmer l’import.</p>}
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                      {COMP_ROLES.map((role) => {
-                        const pickedChampion = selectedPreviewParticipant(enemyPreviewTeam, enemyLaneAssignments[role]);
+                      {(enemyPreviewTeam?.participants || []).map((participant) => {
+                        const role = COMP_ROLES.find((item) => enemyLaneAssignments[item] === previewAssignmentValue(participant)) || "";
+                        const champion = championDisplayName(participant.champion);
                         return (
-                        <div key={role} className={cx("min-w-0 rounded-2xl border p-3 transition", enemyLaneAssignments[role] ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
-                          <ImportRoleHeader role={role} toneName="red" fallbackLabel="Adverse" />
+                        <div key={participant.participantId} className={cx("game-import-assignment", role ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
-                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Shield className="h-4 w-4" /></span>}
-                            <div className="min-w-0"><p className="truncate text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion adverse"}</p><p className="truncate text-[0.62rem] font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Sélection JSON"}</p></div>
+                            <ChampionPortrait champion={participant.champion} alt={champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{champion}</p><p className="break-words text-xs font-semibold text-slate-300">{participant.riotId || participant.summonerName || "Adversaire"}</p></div>
                           </div>
-                          <select aria-label={`Champion adverse · ${roleLabel(role)}`} value={enemyLaneAssignments[role] || ""} onChange={(event) => updateEnemyLaneAssignment(role, event.target.value)} disabled={!enemyPreviewTeam} className="w-full rounded-xl border border-white/10 bg-black/[0.28] px-3 py-2 text-xs font-black text-white outline-none">
-                            <option value="">Champion adverse</option>
-                            {(enemyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={participant.riotId || participant.summonerName || participant.champion}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
-                          </select>
+                          <SelectInput label={`Poste · ${champion}`} aria-label={`Poste · ${champion}`} value={role} onChange={(nextRole) => updateEnemyParticipantRole(participant, nextRole)} disabled={importing || fileImporting}>
+                            <option value="">À attribuer</option>
+                            {COMP_ROLES.map((item) => <option key={item} value={item}>{roleLabel(item)}</option>)}
+                          </SelectInput>
                         </div>
                       );})}
                     </div>
                   </div>
-                </div>
+                </div>}
+                {allyTeamSide && <div className="game-import-confirmation-fields grid gap-4 lg:grid-cols-2">
+                  <TextInput label="Nom de la partie" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Entraînement contre Otters · Partie 1" required icon={FileText} />
+                  <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} label="Catégories (facultatif)" />
+                </div>}
                  {importReady && <div className="rounded-2xl border border-emerald-200/16 bg-emerald-400/[0.055] p-4">
                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                      <div className="min-w-0">
-                       <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-emerald-100">Résumé avant import</p>
-                       <p className="mt-1 truncate text-lg font-black text-white">{importDetails.label}</p>
-                       <p className="mt-1 text-sm font-semibold text-slate-300">{allyTeamSide} side · {COMP_ROLES.map((role) => gameplayRoster.find((player) => player.id === playerAssignments[role])?.name || role).join(" / ")}</p>
+                       <p className="text-xs font-semibold text-emerald-100">Résumé avant import</p>
+                       <p className="mt-1 break-words text-lg font-black text-white">{importDetails.label}</p>
+                       <p className="mt-1 text-sm font-semibold text-slate-300">{allyTeamSide === "BLUE" ? "Côté bleu" : "Côté rouge"} · {COMP_ROLES.map((role) => gameplayRoster.find((player) => player.id === playerAssignments[role])?.name || role).join(" / ")}</p>
                      </div>
                      <Badge tone="green">Prêt</Badge>
                    </div>
                  </div>}
-                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()} disabled={importing}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady}>Confirmer l’import</Button></div>
-              </div>
+                 <p id="game-import-status" role="status" className="game-import-status">{importBlockReason || "Tout est prêt. Confirme pour enregistrer la partie et ouvrir son bilan."}</p>
+                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()} disabled={importing}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady} aria-describedby="game-import-status">{importing ? "Enregistrement…" : "Confirmer l’import"}</Button></div>
+              </fieldset>
         </Surface>}
 
   </div>;

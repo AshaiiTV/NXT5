@@ -13,10 +13,11 @@ import { useAdminNavigationGuard } from "../../components/admin/AdminNavigationC
 import "./pricing.css";
 
 const FAQ = [
-  ["Comment se passeront les 14 jours de Découverte ?", "Au lancement, ton équipe pourra tester tous les outils du Pass Équipe pendant 14 jours, sans carte bancaire. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
-  ["Et après les 14 jours ?", "Après les 14 jours d’accès complet, le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5. Il est proposé à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera volontaire : aucun paiement automatique à la fin de l’essai."],
+  ["Comment se passeront les 14 jours de Découverte ?", "Au lancement, ton équipe pourra tester les outils NXT5 pendant 14 jours, sans carte bancaire, à l’exception du bot Discord réservé au Pass Équipe. L’essai ne passera pas automatiquement au payant. Cette demande prépare ton accès ; elle ne démarre pas l’essai aujourd’hui."],
+  ["Le bot Discord sera-t-il inclus dans Découverte ?", "Non. Dans les offres prévues au lancement, le bot Discord et la publication des parties seront réservés au Pass Équipe payant. Ils ne seront pas inclus dans les 14 jours de Découverte. Cette présentation prépare le lancement : le paiement n’est pas ouvert et tes accès actuels restent inchangés."],
+  ["Et après les 14 jours ?", "Après les 14 jours de Découverte, le Pass Équipe sera nécessaire pour continuer à utiliser les outils NXT5. Il est proposé à 9,90 € TTC par mois pour toute l’équipe, résiliable à tout moment pour la période suivante. La souscription sera volontaire : aucun paiement automatique à la fin de l’essai."],
   ["Est-ce que je dois payer aujourd’hui ?", "Non. Ces offres sont en cours de validation avec les équipes. La demande d’accès nous permet de comprendre ton besoin et de te recontacter. Elle ne crée ni commande ni abonnement, et aucune carte bancaire n’est demandée."],
-  ["Est-ce que chaque joueur devra payer ?", "Non. Découverte et Pass Équipe prévoient une équipe jusqu’à 15 membres, roster et staff compris. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
+  ["Est-ce que chaque joueur devra payer ?", "Non. Découverte et Pass Équipe prévoient une équipe jusqu’à 15 membres, joueurs et encadrement compris. Le capitaine, le manager ou la structure pourra payer pour l’équipe ; ses membres n’auront pas chacun un abonnement à acheter."],
   ["Ces offres changent-elles déjà mes accès ?", "Non. L’essai et le tarif présentés ici préparent le lancement. Tes accès actuels et tes données restent inchangés. Toute évolution sera précisée avant l’ouverture des offres."],
   ["Que deviennent mes données à la fin de l’essai ou du Pass ?", "Après les 14 jours de Découverte, un Pass Équipe sera nécessaire pour continuer à utiliser les outils. Les réglages du compte et l’exercice de tes droits sur tes données resteront accessibles. La durée de conservation sera précisée avant le lancement ; aujourd’hui, tes accès et tes données restent inchangés."],
   ["Où trouver les conditions de vente et les factures ?", "Le paiement n’est pas encore ouvert. Les conditions de vente, les règles de remboursement et les informations de facturation seront disponibles avant toute souscription."],
@@ -122,7 +123,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
         {embedded ? <PageHeader
           eyebrow="Ventes et accès"
           title="Offres et tarifs"
-          subtitle="Prévisualise les offres envisagées, la FAQ et le formulaire de demande d’accès."
+          subtitle="Consulte les offres prévues et les réponses aux questions fréquentes."
         ><Badge tone="purple">Prévisualisation</Badge></PageHeader> : <AdminTabNav activeId="pricing" navigate={navigate} disabled={saving} dirty={dirty} />}
         <aside className="border-l-2 border-violet-300/40 py-2 pl-4 text-sm leading-6 text-slate-300" aria-label="Accès administrateur">
           <p className="font-bold text-violet-100">Aperçu réservé à l’administrateur</p>
@@ -131,17 +132,17 @@ export default function PricingPage({ navigate, user, embedded = false }) {
         <section className="pricing-intro" aria-labelledby="pricing-title">
           <div>
             <Badge tone="cyan">Tarifs · offres à l’étude</Badge>
-            <IntroHeading id="pricing-title" className={embedded ? "mt-4 max-w-3xl text-2xl font-black leading-tight tracking-tight sm:text-3xl" : "mt-5 max-w-3xl text-4xl font-black leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl"}>
+            <IntroHeading id="pricing-title" className="pricing-title">
               Tout le suivi de ton équipe.<br /><span className="nxt5-metal-text">Au même endroit.</span>
             </IntroHeading>
-            <p className="mt-5 max-w-2xl text-base font-medium leading-7 text-slate-300">
-              Games, reviews, champion pools et planning : un espace partagé pour ton roster et ton staff. Choisis l’offre qui correspondrait à ton équipe et aide-nous à préparer son lancement.
+            <p className="pricing-intro-description">
+              Parties, débriefs, champions et planning : un espace partagé pour les joueurs et leur encadrement. Compare les offres prévues, puis indique celle qui t’intéresse.
             </p>
           </div>
           <aside className="pricing-launch-note" aria-label="Avant le lancement">
             <Users aria-hidden="true" className="h-6 w-6 text-cyan-200" />
-            <p className="mt-4 text-lg font-black">Une offre pour l’équipe entière</p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">14 jours pour essayer ensemble, puis un seul abonnement pour le roster et le staff. Le tarif de lancement reste à valider avec les premières équipes.</p>
+            <p className="mt-3 text-lg font-semibold">Une offre pour l’équipe entière</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">14 jours pour essayer ensemble, puis un seul abonnement pour les joueurs et l’encadrement. Le tarif de lancement reste à valider avec les premières équipes.</p>
             <p className="mt-4 border-t border-cyan-100/15 pt-4 text-sm font-bold leading-6 text-cyan-100">Aucun paiement aujourd’hui.<br />Tes accès actuels restent inchangés.</p>
           </aside>
         </section>
@@ -153,9 +154,9 @@ export default function PricingPage({ navigate, user, embedded = false }) {
                 <article aria-labelledby={`plan-${plan.code}`} className="pricing-plan-body">
                   <div>
                     <p className="pricing-plan-eyebrow">{plan.code === "free" ? "14 jours pour essayer" : "Tarif de lancement"}</p>
-                    <SectionHeading id={`plan-${plan.code}`} className="mt-2 text-2xl font-black">{plan.name}</SectionHeading>
+                    <SectionHeading id={`plan-${plan.code}`} className="pricing-plan-title">{plan.name}</SectionHeading>
                     <p className="pricing-plan-description mt-3 text-sm leading-6 text-slate-300">{plan.description}</p>
-                    <p className="mt-5 text-5xl font-black tracking-tight tabular-nums">{plan.price}</p>
+                    <p className="pricing-price">{plan.price}</p>
                     <p className="mt-2 text-sm font-bold text-slate-300">{plan.period}</p>
                     <p className="pricing-plan-terms mt-4 text-sm font-semibold leading-6 text-cyan-100">{plan.terms}</p>
                   </div>
@@ -167,7 +168,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
               </Surface>
             ))}
           </div>
-          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Les mêmes outils pour découvrir NXT5 et continuer avec ton équipe, dans le cadre d’un usage normal. Offres préparées pour le lancement : aucun essai ni abonnement n’est activé aujourd’hui.</p>
+          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Au lancement, le bot Discord sera réservé au Pass Équipe payant et ne sera pas inclus dans Découverte. Offres en préparation : aucun essai, paiement ni abonnement n’est activé aujourd’hui. Tes accès actuels restent inchangés.</p>
         </section>
 
         {user?.is_platform_admin === true && <details className="pricing-faq-item mt-8" data-pass-preview>
@@ -185,7 +186,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
         <div className="pricing-details">
           <section aria-labelledby="pricing-faq-title">
             <Badge tone="purple">Avant de te lancer</Badge>
-            <SectionHeading id="pricing-faq-title" className="mt-4 text-3xl font-black tracking-tight">Les réponses utiles</SectionHeading>
+            <SectionHeading id="pricing-faq-title" className="pricing-section-title">Les réponses utiles</SectionHeading>
             <div className="mt-5">
               {FAQ.map(([question, answer]) => <details className="pricing-faq-item" key={question}><summary>{question}</summary><p className="pb-5 text-sm leading-7 text-slate-300">{answer}</p></details>)}
             </div>
@@ -194,7 +195,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
           <section id="demande-acces" ref={formSectionRef} aria-labelledby="access-request-title" className="pricing-request">
             <Surface>
               <Badge tone="cyan">Préparer ton accès</Badge>
-              <SectionHeading id="access-request-title" className="mt-4 text-3xl font-black tracking-tight">Parlons de ton équipe</SectionHeading>
+              <SectionHeading id="access-request-title" className="pricing-section-title">Parlons de ton équipe</SectionHeading>
               <p className="mt-3 text-sm leading-6 text-slate-300">Dis-nous ce qui t’intéresse. Ta demande nous aide à valider l’offre et à préparer un échange avec toi, sans engagement d’achat.</p>
               {success ? (
                 <div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
@@ -208,6 +209,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
                   <p id="access-request-help" className="mb-5 text-xs leading-5 text-slate-300">Les champs marqués d’un * sont obligatoires.</p>
                   <fieldset disabled={saving} className="min-w-0 space-y-5">
                     <legend className="sr-only">Ta demande d’accès NXT5</legend>
+                    <h4 className="pricing-form-heading">Ton équipe et ton contact</h4>
                     <div className="pricing-form-row">
                       <TextInput label="Ton nom ou pseudo *" name="contactName" autoComplete="name" minLength={2} maxLength={80} value={form.contactName} onChange={(value) => patch("contactName", value)} placeholder="Ton nom" required />
                       <TextInput label="E-mail de contact *" name="email" autoComplete="email" maxLength={160} value={form.email} onChange={(value) => patch("email", value)} placeholder="toi@exemple.fr" type="email" required />
@@ -220,6 +222,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
                       </SelectInput>
                     </div>
                     <div>
+                      <h4 className="pricing-form-heading">L’offre et ton besoin</h4>
                       <SelectInput label="L’offre qui t’intéresse *" name="planCode" required value={form.planCode} aria-describedby="pricing-plan-detail" onChange={(value) => patch("planCode", value)}>
                         {PROPOSED_PLAN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                       </SelectInput>
@@ -231,7 +234,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
                     <SelectInput label="Ton intérêt pour cette offre *" name="purchaseIntent" required value={form.purchaseIntent} onChange={(value) => patch("purchaseIntent", value)}>
                       <option value="" disabled>Choisis une réponse</option><option value="yes">{form.planCode === "free" ? "Oui, je souhaite essayer" : "Oui, au tarif indiqué"}</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
                     </SelectInput>
-                    <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder="Votre rythme de jeu, le lancement d’un split, un besoin du staff…" rows={3} />
+                    <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder="Ton rythme d’entraînement, une saison à préparer, un besoin de l’équipe…" rows={3} />
                     <div className="pricing-honeypot" aria-hidden="true"><label>Site web<input name="website" type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => patch("website", event.target.value)} /></label></div>
                     <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-300">
                       <input type="checkbox" required checked={form.consent} onChange={(event) => patch("consent", event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-cyan-300" />

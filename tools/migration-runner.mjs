@@ -13,6 +13,16 @@ export async function loadMigrations() {
     ['administration-purchases-20260914-v1', '../database/migrations/20260914_purchases.sql'],
     ['audience-20260914-v1', '../database/migrations/20260914_audience.sql'],
     ['player-matchups-20260915-v1', '../database/migrations/20260915_player_matchups.sql'],
+    ['discord-publications-20260915-v1', '../database/migrations/20260915_discord_publications.sql'],
+    ['discord-connection-tests-20260921-v1', '../database/migrations/20260921_discord_connection_tests.sql'],
+    ['discord-shared-servers-20260921-v1', '../database/migrations/20260921_discord_shared_servers.sql'],
+    ['discord-bot-identity-20260922-v1', '../database/migrations/20260922_discord_bot_identity.sql'],
+    ['discord-bot-workflows-20260922-v1', '../database/migrations/20260922_discord_bot_workflows.sql'],
+    ['discord-bot-role-access-20260923-v1', '../database/migrations/20260923_discord_bot_role_access.sql'],
+    ['discord-command-channel-20260924-v1', '../database/migrations/20260924_discord_command_channel.sql'],
+    ['social-auth-20260923-v1', '../database/migrations/20260923_social_auth.sql'],
+    ['discord-community-announcements-20260924-v1', '../database/migrations/20260924_discord_community_announcements.sql'],
+    ['discord-group-exports-20260924-v1', '../database/migrations/20260924_discord_group_exports.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

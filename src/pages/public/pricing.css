@@ -1,8 +1,9 @@
+.nxt5-pricing { container: pricing / inline-size; }
 .nxt5-pricing .pricing-intro {
   display: grid;
   gap: 2rem;
   align-items: end;
-  padding: 2.5rem 0 1rem;
+  padding: 2rem 0 1rem;
 }
 
 .nxt5-pricing .pricing-launch-note {
@@ -37,8 +38,8 @@
 
 .nxt5-pricing .pricing-plan-eyebrow {
   color: #a5f3fc;
-  font-size: .6875rem;
-  font-weight: 800;
+  font-size: .75rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .1em;
 }
@@ -64,9 +65,9 @@
 
 .nxt5-pricing .pricing-details {
   display: grid;
-  gap: 3rem;
+  gap: 2rem;
   align-items: start;
-  margin-top: 4rem;
+  margin-top: 3rem;
 }
 
 .nxt5-pricing .pricing-request {
@@ -81,7 +82,7 @@
 .nxt5-pricing .pricing-faq-item summary {
   padding: 1.125rem 0;
   font-size: .9375rem;
-  font-weight: 750;
+  font-weight: 600;
   line-height: 1.5;
   cursor: pointer;
 }
@@ -155,4 +156,27 @@
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+.nxt5-pricing .pricing-title { margin-top: 1rem; max-width: 28ch; font-size: clamp(1.75rem, 2.8vw, 2.75rem); line-height: 1.12; font-weight: 700; letter-spacing: -.03em; }
+.nxt5-pricing .pricing-intro-description { max-width: 68ch; margin-top: 1.25rem; color: var(--nxt5-text-secondary); font-size: 1rem; line-height: 1.75; }
+.nxt5-pricing .pricing-plan-title { font-size: 1.5rem; font-weight: 650; margin-top: .5rem; }
+.nxt5-pricing .pricing-price { font-size: clamp(2.5rem, 4vw, 3rem); font-weight: 650; letter-spacing: -.04em; line-height: 1.15; font-variant-numeric: tabular-nums; margin-top: 1.5rem; }
+.nxt5-pricing .pricing-section-title { font-size: 1.5rem; font-weight: 650; letter-spacing: -.02em; margin-top: 1rem; line-height: 1.25; }
+.nxt5-pricing .pricing-form-heading { font-size: .875rem; font-weight: 600; padding-bottom: .75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--nxt5-border); }
+.nxt5-pricing .pricing-faq-item summary { min-height: 44px; }
+.nxt5-pricing .pricing-faq-item[open] > summary { color: #cffafe; }
+.nxt5-pricing .pricing-success { border-radius: var(--nxt5-radius-panel); }
+@container pricing (max-width: 1100px) {
+  .nxt5-pricing .pricing-details { grid-template-columns: minmax(0, 1fr); }
+  .nxt5-pricing .pricing-request { max-width: 52rem; width: 100%; }
+  .nxt5-pricing .pricing-intro { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .nxt5-pricing .pricing-launch-note { max-width: 68ch; }
+}
+@container pricing (max-width: 700px) {
+  .nxt5-pricing .pricing-plans { grid-template-columns: minmax(0, 1fr); }
+  .nxt5-pricing .pricing-form-row { grid-template-columns: minmax(0, 1fr); }
+  .nxt5-pricing .pricing-plan { padding: 1rem; }
+  .nxt5-pricing .pricing-plan-description, .nxt5-pricing .pricing-plan-terms { min-height: 0; }
+  .nxt5-pricing .pricing-title { font-size: 1.875rem; }
 }

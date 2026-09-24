@@ -71,7 +71,7 @@ function submit(renderer) {
 }
 
 describe("commercial validation pricing page", () => {
-  it("presents a full 14-day trial and the launch monthly price without checkout or card fields", () => {
+  it("presents Discovery and the paid Discord offer without checkout or card fields", () => {
     const { renderer } = render();
     expect(PROPOSED_PLANS.map((plan) => [plan.code, plan.price, plan.period])).toEqual([
       ["free", "0 €", "pendant 14 jours"],
@@ -81,12 +81,14 @@ describe("commercial validation pricing page", () => {
     expect(cards).toHaveLength(2);
     const trial = content(renderer.root.findByProps({ "aria-labelledby": "plan-free" }));
     expect(trial).toContain("Découverte");
-    expect(trial).toMatch(/accès complet/i);
+    expect(trial).toContain("14 jours pour découvrir les outils NXT5");
+    expect(trial).not.toContain("Bot Discord");
     expect(trial).toMatch(/sans carte bancaire/i);
     expect(trial).toContain("jusqu’à 15 membres");
     const monthly = content(renderer.root.findByProps({ "aria-labelledby": "plan-team_monthly" }));
     expect(monthly).toContain("Pass Équipe");
     expect(monthly).toContain("résiliable à tout moment");
+    expect(monthly).toContain("Bot Discord · publication des parties");
     expect(renderer.root.findAllByProps({ href: "#demande-acces" })).toHaveLength(0);
     expect(renderer.root.findByProps({ label: "L’offre qui t’intéresse *" }).findAllByType("option").map((option) => [option.props.value, content(option)])).toEqual([
       ["free", "Découverte — 0 € pendant 14 jours"],
@@ -120,7 +122,7 @@ describe("commercial validation pricing page", () => {
     expect(content(preview.findByType(PassFeaturePreview))).toContain("Tous les outils");
 
     edit(renderer, "Outil à prévisualiser", "champion_pool");
-    expect(content(renderer.root.findByType(PassFeaturePreview))).toContain("faire évoluer les champion pools de ton équipe");
+    expect(content(renderer.root.findByType(PassFeaturePreview))).toContain("préparer les champions de ton équipe");
     expect(getPassFeatureAccess("champion_pool")).toMatchObject({ allowed: true, requiresPass: false });
     selectPlan(renderer, "Découverte");
     edit(renderer, "Ton intérêt pour cette offre *", "yes");

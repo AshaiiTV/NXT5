@@ -1,0 +1,117 @@
+import type { Config, Context } from '@netlify/functions';
+import { withDiscordRuntime } from './_lib/discord-runtime';
+import { randomBytes, createHash } from 'node:crypto';
+import { sql } from './_lib/db';
+import { json, readJson } from './_lib/http';
+import { assertSubjectRateLimit } from './_lib/rate-limit';
+import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord } from './_lib/discord-access';
+import { isDiscordEnabled, isDiscordId, publicDiscordStatus } from './_lib/discord-config';
+import { getDiscordGuild } from './_lib/discord-client';
+
+async function handler(request: Request, context: Context) {
+  try {
+    assertDiscordMethod(request, ['GET', 'POST']);
+    const body = request.method === 'POST' ? await readJson(request, 12_000) : {};
+    const access = await requireDiscordTeam(request, context, body.teamId || new URL(request.url).searchParams.get('teamId'), request.method === 'POST' ? 'manage' : 'staff');
+    const { teamId, user } = access;
+    if (request.method === 'GET') {
+      const [rows, categories] = await Promise.all([
+        sql("select * from discord_connections where team_id=$1", [teamId]),
+        sql("select id,name from match_categories where team_id=$1 order by name", [teamId]),
+      ]);
+      const connection = rows[0];
+      let live: Awaited<ReturnType<typeof getDiscordGuild>> | null = null;
+      let connectionError: string | null = null;
+      let connectionErrorCode: string | null = null;
+      let checkedAt: string | null = null;
+      if (connection?.guild_id && connection.status !== 'disconnected' && publicDiscordStatus().configured) {
+        checkedAt = new Date().toISOString();
+        try { live = await getDiscordGuild(connection.guild_id); } catch (error: any) {
+          connectionError = error.name === 'DiscordApiError' ? error.message : 'La connexion Discord ne peut pas être vérifiée pour le moment.';
+          connectionErrorCode = error.name === 'DiscordApiError' ? error.code : 'DISCORD_UNAVAILABLE';
+        }
+      }
+      return json({ ...publicDiscordStatus(), canManage: access.canManage, canPublish: access.canPublish, categories,
+        connection: connection ? { id: connection.team_id, guildId: connection.guild_id, guildName: live?.guild.name || connection.guild_id,
+          status: connection.status, paused: connection.status === 'paused', configVersion: Number(connection.config_version),
+          commandChannelId: connection.command_channel_id || null, enabledAt: connection.enabled_at } : null,
+        channels: live?.channels || [], roles: live?.roles || [], connectionError,
+        health: { checkedAt, verified: Boolean(live), errorCode: connectionErrorCode } });
+    }
+    await assertSubjectRateLimit('discord-connection', user.id, { limit: 8, windowSeconds: 60 });
+    if (body.action === 'command-channel') {
+      if (!isDiscordId(body.channelId)) throw discordError('Choisis un salon de commandes valide.', 400, 'DISCORD_COMMAND_CHANNEL_INVALID');
+      const [connection] = await sql('select * from discord_connections where team_id=$1', [teamId]);
+      if (!connection?.guild_id || connection.status === 'disconnected') throw discordError('Relie d’abord ton serveur Discord.', 409);
+      const changed = () => discordError('La connexion a changé. Actualise Discord avant de choisir le salon.', 409, 'DISCORD_CONFIG_CHANGED');
+      if (body.expectedGuildId !== connection.guild_id || !Number.isSafeInteger(body.expectedConfigVersion)
+        || body.expectedConfigVersion !== Number(connection.config_version)) throw changed();
+      const live = await getDiscordGuild(connection.guild_id);
+      if (!live.channels.some((channel) => channel.id === body.channelId && channel.canSend)) {
+        throw discordError('Le bot doit pouvoir voir ce salon et y envoyer des messages.', 409, 'DISCORD_COMMAND_CHANNEL_UNAVAILABLE');
+      }
+      try {
+        await sql.transaction([
+          sql('select team_id from discord_connections where team_id=$1 for update', [teamId]),
+          sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end", [teamId, connection.guild_id, connection.config_version]),
+          // Command routing must not increment publication config_version: that
+          // version also guards queued game and reminder deliveries.
+          sql("update discord_connections set command_channel_id=$2,updated_at=now() where team_id=$1 and guild_id=$3 and status<>'disconnected' returning team_id", [teamId, body.channelId, connection.guild_id]),
+        ]);
+      } catch (error: any) {
+        if (error?.code === '23505') throw discordError('Ce salon est déjà réservé aux commandes d’une autre équipe.', 409, 'DISCORD_COMMAND_CHANNEL_TAKEN');
+        if (error?.code === '22012') throw changed();
+        throw error;
+      }
+      await auditDiscord(user.id, teamId, 'discord.command_channel_updated', { channelId: body.channelId });
+      return json({ ok: true });
+    }
+    if (body.action === 'create-link') {
+      const status = publicDiscordStatus();
+      if (!status.configured) throw discordError('L’application Discord doit être configurée avant la liaison.', 503, 'DISCORD_NOT_CONFIGURED');
+      const code = randomBytes(8).toString('hex').toUpperCase();
+      const hash = createHash('sha256').update(code).digest('hex');
+      const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
+      await sql.transaction([
+        sql("insert into discord_connections(team_id,status,created_by) values($1,'pending',$2) on conflict(team_id) do nothing", [teamId, user.id]),
+        sql("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
+        sql("insert into discord_link_codes(code_hash,team_id,created_by,expires_at) values($1,$2,$3,$4)", [hash, teamId, user.id, expiresAt]),
+      ]);
+      await auditDiscord(user.id, teamId, 'discord.link_requested');
+      return json({ code: code.match(/.{4}/g)!.join('-'), expiresAt, installUrl: status.installUrl });
+    }
+    if (!['pause', 'resume', 'disconnect'].includes(body.action)) throw discordError('Action inconnue.');
+    const rows = await sql("select * from discord_connections where team_id=$1", [teamId]);
+    const connection = rows[0];
+    if (!connection) throw discordError('Aucune connexion Discord pour cette équipe.', 404);
+    if (body.action === 'resume') {
+      if (!isDiscordEnabled()) throw discordError('Les envois Discord sont suspendus sur cet environnement.', 409, 'DISCORD_PUBLISHING_DISABLED');
+      const changed = () => discordError('La configuration Discord a changé. Actualise le dashboard puis confirme les destinations actuelles.', 409, 'DISCORD_CONFIG_CHANGED');
+      if (!isDiscordId(body.expectedGuildId) || !Number.isSafeInteger(body.expectedConfigVersion) || body.expectedConfigVersion < 1
+        || connection.guild_id !== body.expectedGuildId || Number(connection.config_version) !== body.expectedConfigVersion) throw changed();
+      if (!connection.guild_id || connection.status === 'disconnected') throw discordError('Relie d’abord le serveur Discord.', 409);
+      const live = await getDiscordGuild(connection.guild_id);
+      const routes = await sql("select * from discord_routes where team_id=$1 and enabled", [teamId]);
+      if (!routes.length || routes.some((route) => route.guild_id !== connection.guild_id || !live.channels.some((channel) => channel.id === route.channel_id && channel.canSend))) {
+        throw discordError('Configure au moins un salon accessible au bot avant l’activation.', 409);
+      }
+      if (!isDiscordEnabled()) throw discordError('Les envois Discord sont suspendus sur cet environnement.', 409, 'DISCORD_PUBLISHING_DISABLED');
+      // Route edits/relinks also change this row's version, so an edit committed
+      // during the live Discord check cannot activate an unseen destination.
+      const resumed = await sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1 and guild_id=$2 and config_version=$3 and status in ('active','paused') returning team_id", [teamId, body.expectedGuildId, body.expectedConfigVersion]);
+      if (!resumed.length) throw changed();
+    } else if (body.action === 'pause') {
+      await sql("update discord_connections set status='paused',updated_at=now() where team_id=$1", [teamId]);
+    } else {
+      await sql.transaction([
+        sql("update discord_connections set status='disconnected',command_channel_id=null,config_version=config_version+1,updated_at=now() where team_id=$1", [teamId]),
+        sql("update publication_jobs set status='cancelled',last_error_code='DISCORD_DISCONNECTED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [teamId]),
+        sql("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
+      ]);
+    }
+    await auditDiscord(user.id, teamId, 'discord.' + body.action);
+    return json({ ok: true });
+  } catch (error) { return discordResponseError(error); }
+}
+export default withDiscordRuntime(handler);
+export const config: Config = { method: ['GET', 'POST'] };

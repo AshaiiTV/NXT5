@@ -34,6 +34,8 @@ describe('controlled database migrations', () => {
     await db.query('select attempts, rate_key, updated_at from rate_limits');
     await db.query('select team_id, player_id from player_coaching_notes');
     await db.query('select user_id, plan_code, starts_at, ends_at, revoked_at, note, revision from account_subscriptions');
+    await db.query('select guild_id, channel_id, config_version from discord_community_settings');
+    await db.query('select reference, application_id, bot_id, content_hash, status, message_id from discord_community_announcements');
     await db.query(`insert into access_requests (contact_name, email, team_name, team_key, role, plan_code, payer, purchase_intent, consent_version)
       values ('Camille', 'fresh@example.test', 'Structure', 'structure', 'manager', 'structure', 'association', 'maybe', 'test')`);
     expect((await db.query('select plan_code from access_requests')).rows).toEqual([{ plan_code: 'structure' }]);
@@ -315,5 +317,67 @@ describe('controlled database migrations', () => {
     const original = { key: 'one', checksum: 'a', sql: 'create table immutable_probe (id integer);' };
     await applyMigrations(client, [original]);
     await expect(applyMigrations(client, [{ ...original, checksum: 'b' }])).rejects.toThrow('different checksum');
+  });
+
+  it('permits a shared Discord server while preserving existing connections, per-team uniqueness and replay safety', async () => {
+    const { db, client, migrations } = await fixture();
+    const key = 'discord-shared-servers-20260921-v1';
+    const throughSharedServers = migrations.slice(0, migrations.findIndex(migration => migration.key === key) + 1);
+    await applyMigrations(client, throughSharedServers.slice(0, -1));
+    const owner = '00000000-0000-4000-8000-000000000001';
+    const first = '00000000-0000-4000-8000-000000000002', second = '00000000-0000-4000-8000-000000000003';
+    const guild = '100000000000000001';
+    await db.query("insert into users(id,account_name,name,password_hash) values($1,'discord-owner','Owner','unused')", [owner]);
+    await db.query("insert into teams(id,owner_id,name,tag) values($1,$3,'Team A','AAA'),($2,$3,'Team B','BBB')", [first, second, owner]);
+    await db.query("insert into discord_connections(team_id,guild_id,status,enabled_at,config_version) values($1,$2,'active',now(),7)", [first, guild]);
+    const before = (await db.query('select * from discord_connections')).rows;
+    await expect(db.query("insert into discord_connections(team_id,guild_id,status) values($1,$2,'paused')", [second, guild])).rejects.toMatchObject({ code: '23505' });
+    expect(await applyMigrations(client, throughSharedServers)).toEqual([key]);
+    expect((await db.query('select * from discord_connections')).rows).toEqual(before);
+    await db.query("insert into discord_connections(team_id,guild_id,status) values($1,$2,'paused')", [second, guild]);
+    expect((await db.query('select team_id from discord_connections where guild_id=$1 order by team_id', [guild])).rows).toEqual([{ team_id: first }, { team_id: second }]);
+    await expect(db.query("insert into discord_connections(team_id,guild_id) values($1,'100000000000000009')", [first])).rejects.toMatchObject({ code: '23505' });
+    const connections = (await db.query('select * from discord_connections order by team_id')).rows;
+    expect(await applyMigrations(client, throughSharedServers)).toEqual([]);
+    expect((await db.query('select * from discord_connections order by team_id')).rows).toEqual(connections);
+    const index = (await db.query("select indexdef from pg_indexes where indexname='discord_connections_by_guild'")).rows as { indexdef: string }[];
+    expect(index[0].indexdef).toContain('(guild_id, team_id)');
+    expect(index[0].indexdef).not.toContain('UNIQUE');
+    expect((await db.query("select to_regclass('discord_connections_active_guild') as previous_index")).rows).toEqual([{ previous_index: null }]);
+  });
+
+  it('adds team-scoped role access and dedicated command channels without changing existing connection values', async () => {
+    const { db, client, migrations } = await fixture();
+    const key = 'discord-bot-role-access-20260923-v1';
+    const beforeRoleAccess = migrations.slice(0, migrations.findIndex(migration => migration.key === key));
+    await applyMigrations(client, beforeRoleAccess);
+    const owner = '00000000-0000-4000-8000-000000000001';
+    const first = '00000000-0000-4000-8000-000000000002';
+    const second = '00000000-0000-4000-8000-000000000003';
+    const guild = '100000000000000001';
+    await db.query("insert into users(id,account_name,name,password_hash) values($1,'role-owner','Owner','unused')", [owner]);
+    await db.query("insert into teams(id,owner_id,name,tag) values($1,$3,'Team A','AAA'),($2,$3,'Team B','BBB')", [first, second, owner]);
+    await db.query("insert into discord_connections(team_id,guild_id,status) values($1,$3,'active'),($2,$3,'active')", [first, second, guild]);
+    const connections = (await db.query('select * from discord_connections order by team_id')).rows;
+
+    expect(await applyMigrations(client, migrations)).toEqual(migrations.slice(beforeRoleAccess.length).map(migration => migration.key));
+    expect((await db.query('select * from discord_connections order by team_id')).rows)
+      .toEqual(connections.map(connection => ({ ...connection, command_channel_id: null })));
+    expect((await db.query('select * from discord_bot_role_access')).rows).toEqual([]);
+    await db.query('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])',
+      [first, guild, ['200000000000000001']]);
+    expect((await db.query('select team_id,role_ids from discord_bot_role_access')).rows)
+      .toEqual([{ team_id: first, role_ids: ['200000000000000001'] }]);
+    await expect(db.query('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])',
+      [second, guild, []])).rejects.toMatchObject({ code: '23514' });
+    const commandChannel = '200000000000000010';
+    await db.query('update discord_connections set command_channel_id=$2 where team_id=$1', [first, commandChannel]);
+    await expect(db.query('update discord_connections set command_channel_id=$2 where team_id=$1', [second, commandChannel]))
+      .rejects.toMatchObject({ code: '23505' });
+    await expect(db.query("update discord_connections set command_channel_id='invalid' where team_id=$1", [second]))
+      .rejects.toMatchObject({ code: '23514' });
+    await db.query("update discord_connections set status='disconnected' where team_id=$1", [first]);
+    await db.query('update discord_connections set command_channel_id=$2 where team_id=$1', [second, commandChannel]);
+    expect(await applyMigrations(client, migrations)).toEqual([]);
   });
 });

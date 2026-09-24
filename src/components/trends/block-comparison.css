@@ -14,14 +14,14 @@
 .block-comparison-heading h3 {
   margin: 0;
   font-size: 1.35rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.3;
 }
 
 .block-comparison-heading > p,
 .block-comparison-description {
   margin: .5rem 0 0;
-  color: #dbe8f8;
+  color: var(--nxt5-text-secondary);
   font-size: .875rem;
   line-height: 1.6;
 }
@@ -56,12 +56,12 @@
 
 .block-comparison-sample strong {
   flex-shrink: 0;
-  color: #f8fafc;
+  color: var(--nxt5-text);
   font-variant-numeric: tabular-nums;
 }
 
 .block-comparison-sample span {
-  color: #dbe8f8;
+  color: var(--nxt5-text-secondary);
 }
 
 .block-comparison .block-comparison-swap {
@@ -74,13 +74,13 @@
   display: grid;
   gap: .5rem;
   padding-top: 0;
-  color: #dbe8f8;
+  color: var(--nxt5-text-secondary);
   font-size: .8125rem;
   line-height: 1.6;
 }
 
 .block-comparison-context strong {
-  color: #f8fafc;
+  color: var(--nxt5-text);
 }
 
 .block-comparison-notice {
@@ -105,9 +105,9 @@
 
 .block-comparison-section h4 {
   margin: 0;
-  color: #f8fafc;
+  color: var(--nxt5-text);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.5;
 }
 
@@ -126,8 +126,8 @@
 .block-comparison-columns {
   grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, .6667fr));
   padding-bottom: .65rem;
-  color: #dbe8f8;
-  font-size: .75rem;
+  color: var(--nxt5-text-secondary);
+  font-size: .8125rem;
   font-weight: 700;
   text-align: right;
 }
@@ -159,14 +159,14 @@
 .block-comparison-metric h5 {
   margin: 0;
   font-size: .875rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.5;
 }
 
 .block-comparison-metric p {
   margin-top: .25rem;
-  color: #dbe8f8;
-  font-size: .75rem;
+  color: var(--nxt5-text-secondary);
+  font-size: .8125rem;
   line-height: 1.6;
 }
 
@@ -198,7 +198,7 @@
 .block-comparison-values dd {
   margin: 0;
   font-size: .9375rem;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
@@ -211,7 +211,7 @@
 .block-comparison-values small {
   display: block;
   margin-top: .2rem;
-  font-size: .75rem;
+  font-size: .8125rem;
   font-weight: 500;
   line-height: 1.5;
 }
@@ -226,12 +226,12 @@
 
 .block-comparison-footnote {
   border-top: 1px solid var(--nxt5-border);
-  color: #dbe8f8;
-  font-size: .75rem;
+  color: var(--nxt5-text-secondary);
+  font-size: .8125rem;
   line-height: 1.65;
 }
 
-@container block-comparison (min-width: 1080px) {
+@container block-comparison (min-width: 980px) {
   .block-comparison-secondary {
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
@@ -265,8 +265,8 @@
     overflow: visible;
     clip: auto;
     white-space: normal;
-    color: #dbe8f8;
-    font-size: .75rem;
+    color: var(--nxt5-text-secondary);
+    font-size: .8125rem;
     font-weight: 500;
   }
 
@@ -287,8 +287,8 @@
   .block-comparison-context,
   .block-comparison-section,
   .block-comparison-footnote {
-    padding-left: .75rem;
-    padding-right: .75rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 
   .block-comparison-selection {
@@ -299,4 +299,13 @@
   .block-comparison-selector select {
     font-size: 1rem;
   }
+}
+
+.block-comparison-selector { padding: 16px; border-radius: 10px; background: var(--nxt5-surface-soft); }
+.block-comparison-context { padding-bottom: 24px; }
+.block-comparison-heading h3 { font-size: 22px; }
+.block-comparison-values dd { font-weight: 700; }
+@container block-comparison (max-width: 560px) {
+  .block-comparison-selector { padding: 12px; }
+  .block-comparison .block-comparison-swap { width: 100%; }
 }

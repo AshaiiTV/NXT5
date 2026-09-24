@@ -21,7 +21,7 @@ export function PassFeaturePreview({ feature = "workspace", onSubscribe }) {
           <LockKeyhole aria-hidden="true" className="h-6 w-6 text-cyan-200" />
           <Badge tone="purple">{details.label} · Pass Équipe</Badge>
           <h2 id={titleId} className="text-2xl font-black leading-tight tracking-tight">Continue avec ton équipe</h2>
-          <p className="text-sm leading-6 text-slate-300">Après les {DISCOVERY_TRIAL_DAYS} jours d’accès complet de Découverte, prends le Pass Équipe pour {details.benefit}.</p>
+          <p className="text-sm leading-6 text-slate-300">Après les {DISCOVERY_TRIAL_DAYS} jours de Découverte, prends le Pass Équipe pour {details.benefit}.</p>
           <p className="text-sm font-bold text-cyan-100">9,90 € TTC / mois / équipe</p>
           {onSubscribe ? <Button type="button" icon={ArrowRight} onClick={onSubscribe}>Prendre le Pass Équipe</Button> : <a href="/tarifs" className="nxt5-cyber-button nxt5-control nxt5-button-primary pass-feature-preview-link">Prendre le Pass Équipe<ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></a>}
         </div>

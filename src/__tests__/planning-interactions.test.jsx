@@ -47,7 +47,7 @@ function mountPlanning() {
   });
   const buttons = () => renderer.root.findAllByType("button");
   const cell = () => buttons().find((node) => node.props["aria-label"]?.startsWith("Lun 10:00"));
-  const eventMode = () => buttons().find((node) => node.props.children?.includes?.("Modifier les événements"));
+  const eventMode = () => buttons().find((node) => node.props.children?.includes?.("Ajouter une séance"));
   const trigger = { getBoundingClientRect: () => ({ left: 80, bottom: 700 }), focus: vi.fn() };
   return { save, cell, eventMode, trigger, focus, event: (x = 0, y = 0) => ({ preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: x, clientY: y, currentTarget: trigger }) };
 }
@@ -57,12 +57,12 @@ describe("planning session controls", () => {
     const app = mountPlanning();
     act(() => app.eventMode().props.onClick());
     act(() => app.cell().props.onClick(app.event(340, 780)));
-    const menu = renderer.root.findByProps({ "aria-label": "Type de session" });
+    const menu = renderer.root.findByProps({ "aria-label": "Type de séance" });
     expect(menu.props.style).toEqual({ left: 124, top: 492 });
     expect(app.focus).toHaveBeenCalledOnce();
-    const scrim = menu.findAllByType("button").find((node) => node.findAllByType("span").some((span) => span.children.includes("Scrim")));
+    const scrim = menu.findAllByType("button").find((node) => node.findAllByType("span").some((span) => span.children.includes("Entraînement")));
     act(() => scrim.props.onClick());
-    expect(app.cell().props["aria-label"]).toContain("Scrim");
+    expect(app.cell().props["aria-label"]).toContain("Entraînement");
     expect(app.cell().props["aria-label"]).toContain("Indisponible");
     expect(app.trigger.focus).toHaveBeenCalledOnce();
     await act(async () => { await vi.advanceTimersByTimeAsync(650); });
@@ -74,9 +74,9 @@ describe("planning session controls", () => {
     const app = mountPlanning();
     act(() => app.eventMode().props.onClick());
     act(() => app.cell().props.onClick(app.event()));
-    expect(renderer.root.findByProps({ "aria-label": "Type de session" }).props.style).toEqual({ left: 80, top: 492 });
+    expect(renderer.root.findByProps({ "aria-label": "Type de séance" }).props.style).toEqual({ left: 80, top: 492 });
     act(() => listeners.get("keydown")({ key: "Escape" }));
-    expect(renderer.root.findAllByProps({ "aria-label": "Type de session" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ "aria-label": "Type de séance" })).toHaveLength(0);
     expect(app.trigger.focus).toHaveBeenCalledOnce();
     expect(app.save).not.toHaveBeenCalled();
   });
@@ -86,7 +86,7 @@ describe("planning session controls", () => {
     act(() => app.cell().props.onClick(app.event()));
     expect(app.cell().props["aria-pressed"]).toBe(true);
     act(() => app.cell().props.onContextMenu(app.event(120, 300)));
-    expect(renderer.root.findByProps({ "aria-label": "Type de session" })).toBeTruthy();
+    expect(renderer.root.findByProps({ "aria-label": "Type de séance" })).toBeTruthy();
     expect(app.cell().props["aria-pressed"]).toBe(true);
   });
 });

@@ -26,6 +26,7 @@ import { apiFetch } from "./api/client.js";
 import { Badge, Button, SelectInput, Surface, TextInput } from "./components/ui/Core.jsx";
 import { RoleIcon } from "./components/brand/BrandAssets.jsx";
 import "./components/trends/block-comparison.css";
+import "./pages/workspace/profile-goals.css";
 import { sortTrendMatches, trendMatchTimestamp } from "./utils/trends.js";
 
 const ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
@@ -147,7 +148,7 @@ export function TeamDataHealthPanel({ team, players = [], matches = [] }) {
     <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex w-full items-center gap-4 p-4 text-left sm:p-5">
       <span className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-xl border", issues.length ? "border-amber-300/25 bg-amber-300/10 text-amber-100" : "border-emerald-300/25 bg-emerald-300/10 text-emerald-100")}><ShieldCheck className="h-5 w-5" /></span>
       <span className="min-w-0 flex-1"><span className="block text-sm font-black text-white">Santé des données</span><span className="mt-1 block text-xs font-semibold text-slate-400">{issues.length ? `${issues.length} point${issues.length > 1 ? "s" : ""} à vérifier avant de tirer des conclusions.` : "Roster, profils et imports sont cohérents."}</span></span>
-      <span className="text-right"><span className={cx("block text-2xl font-black", score === 100 ? "text-emerald-200" : "text-amber-100")}>{score}%</span><span className="block text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-500">fiabilité</span></span>
+      <span className="text-right"><span className={cx("block text-2xl font-black", score === 100 ? "text-emerald-200" : "text-amber-100")}>{score}%</span><span className="block text-[13px] font-semibold text-slate-500">fiabilité</span></span>
       <ChevronRight className={cx("h-5 w-5 shrink-0 text-slate-400 transition", open && "rotate-90")} />
     </button>
     {open && <div className="border-t border-white/10 px-4 py-2 sm:px-5">
@@ -252,7 +253,7 @@ function BlockComparisonRows({ rows }) {
 export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const [leftKey, setLeftKey] = useState("previous");
   const [rightKey, setRightKey] = useState("recent");
-  const options = [{ value: "previous", label: "5 games précédentes" }, { value: "recent", label: "5 dernières games" }, { value: "all", label: "Toutes les games" }, ...categories.map((category) => ({ value: `category:${category.id}`, label: category.name }))];
+  const options = [{ value: "previous", label: "5 parties précédentes" }, { value: "recent", label: "5 dernières parties" }, { value: "all", label: "Toutes les parties" }, ...categories.map((category) => ({ value: `category:${category.id}`, label: category.name }))];
   const referenceKey = options.some((option) => option.value === leftKey) ? leftKey : "previous";
   const observedKey = options.some((option) => option.value === rightKey) ? rightKey : "recent";
   const leftMatches = blockMatches(matches, categories, referenceKey);
@@ -260,14 +261,14 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const left = blockSnapshot(leftMatches);
   const right = blockSnapshot(rightMatches);
   const overlap = blockOverlapCount(leftMatches, rightMatches);
-  const gameCount = (count) => `${count} game${count > 1 ? "s" : ""}`;
+  const gameCount = (count) => `${count} partie${count > 1 ? "s" : ""}`;
   const sideCount = (games, side) => gameCount(games.filter((match) => String(match.side || "").toLowerCase().includes(side)).length);
   const metrics = [
-    { label: "Taux de victoire", detail: "Victoires / games du bloc", before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
-    { label: "Écart d’or moyen", detail: "Notre équipe − adversaire · or / game", before: left.gold, after: right.gold, deltaSuffix: " or" },
-    { label: "Écart de dégâts moyen", detail: "Notre équipe − adversaire · dégâts / game", before: left.damage, after: right.damage, deltaSuffix: " dég." },
-    { label: "Écart de vision moyen", detail: "Notre équipe − adversaire · score / game", before: left.vision, after: right.vision, deltaSuffix: " pts" },
-    { label: "Morts de l’équipe", detail: "Moyenne / game · moins est favorable", before: left.deaths, after: right.deaths, inverse: true, digits: 1 },
+    { label: "Taux de victoire", detail: "Victoires / parties du bloc", before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
+    { label: "Écart d’or moyen", detail: "Notre équipe − adversaire · or / partie", before: left.gold, after: right.gold, deltaSuffix: " or" },
+    { label: "Écart de dégâts moyen", detail: "Notre équipe − adversaire · dégâts / partie", before: left.damage, after: right.damage, deltaSuffix: " dég." },
+    { label: "Écart de vision moyen", detail: "Notre équipe − adversaire · score / partie", before: left.vision, after: right.vision, deltaSuffix: " pts" },
+    { label: "Morts de l’équipe", detail: "Moyenne / partie · moins est favorable", before: left.deaths, after: right.deaths, inverse: true, digits: 1 },
   ];
   const roleMetrics = right.roles.map((role) => {
     const previous = left.roles.find((item) => item.role === role.role);
@@ -279,29 +280,29 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   ];
   return <Panel className="block-comparison">
     <div className="block-comparison-heading">
-      <h3>Comparer deux blocs de games</h3>
-      <p>Mesure les écarts entre deux périodes ou deux catégories de games. Les moyennes et les variations se lisent ici côte à côte.</p>
+      <h3>Ce qui change entre deux sélections</h3>
+      <p>Choisis une référence à gauche, puis les parties à observer à droite. Les résultats montrent ce qui a changé entre les deux sélections.</p>
     </div>
     <div className="block-comparison-selection">
       {[{ label: "Bloc de référence", key: referenceKey, setKey: setLeftKey, games: leftMatches, snapshot: left }, { label: "Bloc observé", key: observedKey, setKey: setRightKey, games: rightMatches, snapshot: right }].map(({ label, key, setKey, games, snapshot }) => <div key={label} className="block-comparison-selector">
         <SelectInput label={label} value={key} onChange={setKey}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SelectInput>
-        <p className="block-comparison-sample"><strong>{gameCount(snapshot.games)}</strong><span>{games.length ? blockDateRange(games) : "Aucune game dans ce bloc"}</span></p>
+        <p className="block-comparison-sample"><strong>{gameCount(snapshot.games)}</strong><span>{games.length ? blockDateRange(games) : "Aucune partie dans ce bloc"}</span></p>
       </div>)}
       <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => { setLeftKey(observedKey); setRightKey(referenceKey); }} className="block-comparison-swap">Inverser les blocs</Button>
     </div>
     <div className="block-comparison-context" aria-live="polite">
-      {(!left.games || !right.games) ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>Sélectionne deux blocs non vides pour calculer les écarts.{(referenceKey === "previous" && !left.games) || (observedKey === "previous" && !right.games) ? " Le bloc précédent apparaît à partir de la 6e game." : ""}</span></p> : overlap > 0 ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{overlap} game{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</span></p> : <p>Aucune game commune aux deux blocs.</p>}
-      <p><strong>Évolution = bloc observé − référence.</strong> Les taux évoluent en points de pourcentage. Les games sont classées par date de jeu.</p>
+      {(!left.games || !right.games) ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>Sélectionne deux blocs non vides pour calculer les écarts.{(referenceKey === "previous" && !left.games) || (observedKey === "previous" && !right.games) ? " Le bloc précédent apparaît à partir de la 6e partie." : ""}</span></p> : overlap > 0 ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{overlap} partie{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</span></p> : <p>Aucune partie commune aux deux blocs.</p>}
+      <p><strong>Évolution = bloc observé − référence.</strong> Les taux évoluent en points de pourcentage. Les parties sont classées par date de jeu.</p>
     </div>
     <div className="block-comparison-section">
       <h4>Résultats de l’équipe</h4>
-      <p className="block-comparison-description">Les écarts d’or, de dégâts et de vision mesurent l’avance sur l’adversaire en fin de game.</p>
+      <p className="block-comparison-description">Les écarts d’or, de dégâts et de vision mesurent l’avance sur l’adversaire en fin de partie.</p>
       <BlockComparisonRows rows={metrics} />
     </div>
     <div className="block-comparison-secondary">
       <section className="block-comparison-section block-comparison-roles">
         <h4>Participation aux kills par rôle</h4>
-        <p className="block-comparison-description">Moyenne du bloc, en %. Le nombre de games précise l’échantillon de chaque rôle.</p>
+        <p className="block-comparison-description">Part des éliminations de l’équipe auxquelles le joueur participe (KP), en moyenne. Le nombre de parties précise l’échantillon de chaque rôle.</p>
         <BlockComparisonRows rows={roleMetrics} />
       </section>
       <section className="block-comparison-section block-comparison-sides">
@@ -310,7 +311,7 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
         <BlockComparisonRows rows={sideMetrics} />
       </section>
     </div>
-    <p className="block-comparison-footnote">— : donnée indisponible. « Favorable » indique le sens de la variation ; tiens compte du nombre de games et des adversaires avant de conclure.</p>
+    <p className="block-comparison-footnote">— : donnée indisponible. « Favorable » indique le sens de la variation ; tiens compte du nombre de parties et des adversaires avant de conclure.</p>
   </Panel>;
 }
 
@@ -345,7 +346,7 @@ export function ReviewQueuePanel({ matches = [], reports = [], selectedTeamId, r
     <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"><div><Label tone={showDone ? "green" : queue.length ? "amber" : "green"}>{showDone ? "Historique" : "File de review"}</Label><h3 className="mt-3 text-2xl font-black text-white">{showDone ? `${doneMatches.length} review${doneMatches.length > 1 ? "s" : ""} terminée${doneMatches.length > 1 ? "s" : ""}` : queue.length ? `${queue.length} game${queue.length > 1 ? "s" : ""} à traiter` : "File à jour"}</h3><p className="mt-1 text-sm font-semibold text-slate-400">{showDone ? "Une erreur de classement reste réversible." : "Ouvre la source, prends une décision, puis marque-la terminée."}</p></div><ActionButton variant="ghost" icon={showDone ? ArrowRight : ClipboardCheck} onClick={() => setShowDone((value) => !value)}>{showDone ? "Retour à la file" : `${doneMatches.length} terminée${doneMatches.length > 1 ? "s" : ""}`}</ActionButton></div>
     {visibleMatches.length ? <div className="divide-y divide-white/[0.07]">{visibleMatches.slice(0, 8).map((match) => {
       const linkedReport = reports.find((report) => [report.match_id, ...(Array.isArray(report.match_ids) ? report.match_ids : [])].some((id) => String(id || "") === String(match.id)));
-      return <div key={match.id} className="grid gap-3 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"><button type="button" onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)} className="min-w-0 text-left"><span className="flex flex-wrap items-center gap-2"><span className="break-words text-sm font-black text-white">{matchName(match)}</span><Label tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Label>{linkedReport && <span className="text-[0.62rem] font-black uppercase tracking-[0.1em] text-cyan-100">Review créée</span>}</span><span className="mt-1 block text-xs font-semibold text-slate-400">{showDone ? `Terminée ${formatDate(match.reviewed_at || match.created_at)}` : `${reviewReason(match)} · ${formatDate(match.created_at)}`}</span></button><div className="flex flex-wrap gap-2"><ActionButton variant="ghost" icon={Eye} onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)}>Source</ActionButton><ActionButton variant="ghost" icon={linkedReport ? ArrowRight : FileText} onClick={() => linkedReport ? onOpenReview?.(linkedReport) : onStartReview(match)}>{linkedReport ? "Ouvrir la review" : "Créer la review"}</ActionButton><ActionButton variant="ghost" icon={busyId === match.id ? RefreshCw : showDone ? RefreshCw : Check} disabled={Boolean(busyId)} onClick={() => setStatus(match, showDone ? "todo" : "done")}>{showDone ? "Rouvrir" : "Terminé"}</ActionButton></div></div>;
+      return <div key={match.id} className="grid gap-3 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"><button type="button" onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)} className="min-w-0 text-left"><span className="flex flex-wrap items-center gap-2"><span className="break-words text-sm font-black text-white">{matchName(match)}</span><Label tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Label>{linkedReport && <span className="text-[13px] font-semibold text-cyan-100">Review créée</span>}</span><span className="mt-1 block text-xs font-semibold text-slate-400">{showDone ? `Terminée ${formatDate(match.reviewed_at || match.created_at)}` : `${reviewReason(match)} · ${formatDate(match.created_at)}`}</span></button><div className="flex flex-wrap gap-2"><ActionButton variant="ghost" icon={Eye} onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)}>Source</ActionButton><ActionButton variant="ghost" icon={linkedReport ? ArrowRight : FileText} onClick={() => linkedReport ? onOpenReview?.(linkedReport) : onStartReview(match)}>{linkedReport ? "Ouvrir la review" : "Créer la review"}</ActionButton><ActionButton variant="ghost" icon={busyId === match.id ? RefreshCw : showDone ? RefreshCw : Check} disabled={Boolean(busyId)} onClick={() => setStatus(match, showDone ? "todo" : "done")}>{showDone ? "Rouvrir" : "Terminé"}</ActionButton></div></div>;
     })}</div> : <div className="flex items-center gap-3 p-5 text-sm font-semibold text-emerald-100"><ClipboardCheck className="h-5 w-5" /> {showDone ? "Aucune review terminée." : "Toutes les games importées ont été traitées."}</div>}
   </Panel>;
 }
@@ -379,6 +380,7 @@ function evaluateGoal(goal, rows) {
 }
 
 export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId, canManage, refreshAll, pushToast }) {
+  const metricLabels = { deaths: "Morts par partie", kp: "Participation aux éliminations (KP)", kda: "Ratio KDA", vision: "Score de vision par partie", cs10: "Sbires et monstres à 10 minutes (CS)" };
   const activeGoals = goals.filter((goal) => goal.player_id === player?.id && goal.status !== "archived");
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -394,7 +396,7 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
       const metric = METRICS[form.metric];
       const title = form.title.trim() || `${form.operator === "lte" ? "Limiter" : "Atteindre"} ${metric.label.toLowerCase()}`;
       await apiFetch("player-goals-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, playerId: player.id, ...form, title }) });
-      await refreshAll(); setCreating(false); pushToast?.({ type: "green", title: "Objectif lancé", text: `Suivi sur les ${form.sampleSize} prochaines games.` });
+      await refreshAll(); setCreating(false); pushToast?.({ type: "green", title: "Objectif lancé", text: `Suivi sur les ${form.sampleSize} prochaines parties.` });
     } catch (error) { pushToast?.({ type: "red", title: "Création impossible", text: error.message }); }
     finally { setSaving(false); }
   }
@@ -404,20 +406,31 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
     catch (error) { pushToast?.({ type: "red", title: "Archivage impossible", text: error.message }); }
     finally { setSaving(false); }
   }
-  return <Panel className="mb-5">
-    <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"><div><Label tone={activeGoals.length ? "cyan" : "amber"}>Suivi joueur</Label><h3 className="mt-3 text-xl font-black text-white">Objectifs mesurés sur les prochaines games</h3><p className="mt-1 text-sm font-semibold text-slate-400">Le progrès se valide directement avec les imports, pas avec une impression.</p></div>{canManage && <ActionButton variant={creating ? "ghost" : "primary"} icon={creating ? X : Plus} onClick={() => setCreating((value) => !value)}>{creating ? "Fermer" : "Nouvel objectif"}</ActionButton>}</div>
-    {creating && <form onSubmit={create} className="grid gap-3 border-b border-white/10 p-4 sm:p-5 lg:grid-cols-[minmax(10rem,1fr)_minmax(12rem,1.4fr)_7rem_7rem_auto] lg:items-end">
-      <SelectInput label="Métrique" value={form.metric} onChange={setMetric}>{Object.entries(METRICS).map(([id, item]) => <option key={id} value={id}>{item.label}</option>)}</SelectInput>
-      <TextInput label="Nom" value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder="Ex. Réduire les morts gratuites" />
-      <label className="block"><span className="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-300">Cible</span><input type="number" step="0.1" value={form.targetValue} onChange={(event) => setForm({ ...form, targetValue: Number(event.target.value) })} className="nxt5-input-shell nxt5-control w-full rounded-xl border border-cyan-100/14 bg-[#030712]/70 px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" /></label>
-      <SelectInput label="Réussites" value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}><option value="1">1 / 3</option><option value="2">2 / 3</option><option value="3">3 / 3</option></SelectInput>
-      <ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? "Lancement…" : "Lancer"}</ActionButton>
+  return <Panel className="profile-goal-panel">
+    <header className="profile-goal-heading">
+      <div><p className="profile-goal-eyebrow">Suivi joueur</p><h3>Objectifs mesurés sur les prochaines parties</h3><p>Les parties importées permettent de suivre chaque cible. Seules les parties importées après le début de l’objectif sont comptées.</p></div>
+      {canManage && <ActionButton variant={creating ? "ghost" : "primary"} icon={creating ? X : Plus} onClick={() => setCreating((value) => !value)}>{creating ? "Fermer" : "Nouvel objectif"}</ActionButton>}
+    </header>
+    {creating && <form onSubmit={create} className="profile-goal-form">
+      <SelectInput label="Mesure à suivre" value={form.metric} onChange={setMetric}>{Object.entries(METRICS).map(([id, item]) => <option key={id} value={id}>{metricLabels[id] || item.label}</option>)}</SelectInput>
+      <TextInput label="Nom" value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder="Ex. Mieux préparer les objectifs" />
+      <TextInput label={form.operator === "lte" ? "Maximum par partie" : "Minimum par partie"} type="number" step="0.1" value={form.targetValue} onChange={(value) => setForm({ ...form, targetValue: Number(value) })} />
+      <SelectInput label="Parties où atteindre la cible" value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}><option value="1">1 / 3</option><option value="2">2 / 3</option><option value="3">3 / 3</option></SelectInput>
+      <div className="profile-goal-form-action"><p>La cible sera évaluée sur les {form.sampleSize} prochaines parties.</p><ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? "Lancement…" : "Lancer"}</ActionButton></div>
     </form>}
-    {activeGoals.length ? <div className="divide-y divide-white/[0.07]">{activeGoals.map((goal) => {
+    {activeGoals.length ? <div className="profile-goal-list">{activeGoals.map((goal) => {
       const result = evaluateGoal(goal, rows);
       const metric = METRICS[goal.metric] || METRICS.deaths;
-      return <div key={goal.id} className="grid gap-4 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,.7fr)_auto] xl:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Label tone={result.complete ? "green" : result.impossible ? "red" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : "En cours"}</Label><span className="text-xs font-black text-slate-400">{result.successes}/{result.required} réussites</span></div><h4 className="mt-2 break-words text-lg font-black text-white">{goal.title}</h4><p className="mt-1 text-xs font-semibold text-slate-400">{metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} games</p></div><div><div className="flex gap-2">{Array.from({ length: Number(goal.sample_size || 3) }, (_, index) => { const value = result.values[index]; const success = value !== undefined && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value)); return <span key={index} className={cx("grid h-10 min-w-10 flex-1 place-items-center rounded-lg border text-xs font-black", value === undefined ? "border-white/10 bg-white/[0.025] text-slate-600" : success ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-100" : "border-rose-300/25 bg-rose-300/10 text-rose-100")}>{value === undefined ? "–" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</span>; })}</div><p className="mt-2 text-[0.58rem] font-black uppercase tracking-[0.1em] text-slate-500">Games depuis le {formatDate(goal.starts_at || goal.created_at)}</p></div>{canManage && <IconButton icon={Trash2} label="Archiver l'objectif" danger disabled={saving} onClick={() => archive(goal)} />}</div>;
-    })}</div> : <div className="flex items-center gap-3 p-5 text-sm font-semibold text-slate-400"><CircleDot className="h-5 w-5 text-cyan-100" /> Aucun objectif actif pour ce profil.</div>}
+      return <article key={goal.id} className="profile-goal-row">
+        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : "En cours"}</Label><span>{result.successes}/{result.required} réussites</span></div><h4>{goal.title}</h4><p>{metricLabels[goal.metric] || metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} parties</p></div>
+        <div className="profile-goal-progress"><div className="profile-goal-samples">{Array.from({ length: Number(goal.sample_size || 3) }, (_, index) => {
+          const value = result.values[index];
+          const success = value !== undefined && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value));
+          return <div key={index} className={cx("profile-goal-sample", value === undefined ? "is-pending" : success ? "is-success" : "is-missed")}><span>Partie {index + 1}</span><strong>{value === undefined ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? "À jouer" : success ? "Cible atteinte" : "Hors cible"}</small></div>;
+        })}</div><p>Parties depuis le {formatDate(goal.starts_at || goal.created_at)}</p></div>
+        {canManage && <IconButton icon={Trash2} label="Archiver l'objectif" danger disabled={saving} onClick={() => archive(goal)} />}
+      </article>;
+    })}</div> : <div className="profile-goal-empty"><CircleDot aria-hidden="true" /><div><h4>Aucun objectif actif pour ce profil.</h4><p>{canManage ? "Crée une cible mesurable pour suivre les prochaines parties du joueur." : "Les objectifs définis par les responsables de l’équipe apparaîtront ici."}</p></div></div>}
   </Panel>;
 }
 
@@ -429,7 +442,7 @@ export function HomeActionSummary({ matches = [], alerts = [] }) {
     { label: "Priorité du bloc", value: alerts[0]?.title || "Choisir un axe", detail: alerts[0]?.action || "Une seule priorité avant le prochain bloc.", icon: Target, path: "/tendances" },
     { label: "Review à ouvrir", value: review ? matchName(review) : "File à jour", detail: review ? reviewReason(review) : "Aucune game en attente.", icon: FileText, path: review ? `/games?match=${encodeURIComponent(review.id)}` : "/rapports" },
   ];
-  return <div className="mt-4 divide-y divide-white/10 border-y border-white/10">{items.map((item) => <button key={item.label} type="button" onClick={() => openRoute(item.path)} className="group relative grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-3 py-4 pr-11 text-left transition hover:bg-cyan-300/[0.06]"><span className="grid h-9 w-9 place-items-center text-cyan-100"><item.icon className="h-4 w-4" /></span><span className="min-w-0"><span className="block text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-500">{item.label}</span><span className="mt-1 block break-words text-sm font-black leading-5 text-white">{item.value}</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">{item.detail}</span></span><ArrowRight className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition group-hover:text-cyan-100" /></button>)}</div>;
+  return <div className="mt-4 divide-y divide-white/10 border-y border-white/10">{items.map((item) => <button key={item.label} type="button" onClick={() => openRoute(item.path)} className="group relative grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-3 py-4 pr-11 text-left transition hover:bg-cyan-300/[0.06]"><span className="grid h-9 w-9 place-items-center text-cyan-100"><item.icon className="h-4 w-4" /></span><span className="min-w-0"><span className="block text-[13px] font-semibold text-slate-500">{item.label}</span><span className="mt-1 block break-words text-sm font-black leading-5 text-white">{item.value}</span><span className="mt-1 block text-xs font-semibold leading-5 text-slate-400">{item.detail}</span></span><ArrowRight className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 transition group-hover:text-cyan-100" /></button>)}</div>;
 }
 
 export const workflowTestables = { blockMatches, blockSnapshot, blockOverlapCount, blockDateRange, blockDelta, evaluateGoal, hasTimeline, reviewReason };

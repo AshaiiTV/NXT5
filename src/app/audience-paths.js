@@ -1,10 +1,10 @@
 /** Explicit, shared allowlist: no identifiers, arbitrary routes, query or tokens. */
 const PATHS = new Set([
-  '/', '/connexion', '/creer-un-compte', '/inscription', '/tarifs',
+  '/', '/fonctionnalites', '/connexion', '/creer-un-compte', '/inscription', '/tarifs',
   '/mentions-legales', '/confidentialite', '/cookies', '/conditions', '/reglement', '/contact', '/reseaux',
   '/equipes', '/integration', '/statistiques', '/tendances', '/planning', '/draft', '/draft/pool',
   '/draft/compositions', '/champion-pool', '/compositions-types', '/rapports', '/guide',
-  '/parametres', '/gestion-equipe', '/mon-profil', '/mon-profil/champions', '/mon-profil/pool',
+  '/parametres', '/gestion-equipe', '/bot-discord', '/mon-profil', '/mon-profil/champions', '/mon-profil/pool',
   '/mon-profil/historique', '/mon-profil/coaching', '/profil', '/profil/champions', '/profil/pool',
   '/profil/historique', '/profil/coaching',
 ]);

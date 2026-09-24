@@ -1,3 +1,4 @@
+import { loadBotWorkflows } from './_lib/discord-bot-bootstrap';
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
@@ -116,7 +117,7 @@ export default async function handler(request: Request, context: Context): Promi
         pagination: { ...pageOptions, total: 0, hasMore: false, nextOffset: null },
         totals: { games: 0, wins: 0, losses: 0 }, teams: [], players: [], teamMembers: [], matches: [],
         championPool: [], compositions: [], improvements: [], reports: [], matchArchives: [], matchCategories: [],
-        inviteCodes: [], availability: [], profileCoachingNotes: [], playerGoals: [] });
+        inviteCodes: [], availability: [], profileCoachingNotes: [], playerGoals: [], botEvents: [], botGoals: [] });
     }
     const selectedTeamId = String(selectedTeam.id);
     const teamIds = [selectedTeamId];
@@ -136,7 +137,11 @@ export default async function handler(request: Request, context: Context): Promi
           from composition_types left join users on users.id = composition_types.created_by
           where composition_types.team_id = ${selectedTeamId} order by composition_types.created_at desc limit 50`,
       sql`select reports.*, users.name as author_name from reports left join users on users.id = reports.created_by
-          where reports.team_id = ${selectedTeamId} order by reports.created_at desc`,
+          where reports.team_id = ${selectedTeamId}
+            and (coalesce(to_jsonb(reports)->>'discord_status','published') <> 'draft'
+              or exists(select 1 from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=${user.id}
+                where t.id=reports.team_id and (t.owner_id=${user.id} or tm.role in ('owner','captain','coach','assistant','analyst','manager','board'))))
+          order by reports.created_at desc`,
       loadMatchArchives(teamIds),
       sql`select * from match_categories where team_id = ${selectedTeamId} order by is_default desc, name asc`,
       loadInviteCodes(teamIds, user.id), loadAvailability(teamIds), loadProfileCoachingNotes(teamIds),
@@ -146,7 +151,8 @@ export default async function handler(request: Request, context: Context): Promi
       sql`select result, impact_score, duration, side, vision_score from matches where team_id = ${selectedTeamId}
           order by created_at desc, id desc limit 10`
     ]);
-    return json({ dashboard: buildDashboard(recentMatches, improvements), selectedTeamId, ...page,
+    const botWorkflows = await loadBotWorkflows(selectedTeamId, user.id);
+    return json({ dashboard: buildDashboard(recentMatches, improvements), selectedTeamId, ...page, ...botWorkflows,
       teams: teams.map(safeTeam), players, teamMembers, championPool, compositions, improvements, reports,
       matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals });
   } catch (err) {

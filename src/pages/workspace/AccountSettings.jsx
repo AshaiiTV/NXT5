@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Check, Gauge, Loader2, Lock, Mail, Settings, Shield, ShieldCheck, UserPlus } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Loader2, Lock, Mail, Settings, Shield, ShieldCheck, UserPlus } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { configurePerformanceMode, currentPerformanceMode, setStoredPerformanceMode } from "../../app/performance.js";
 import { Badge, Button, PageHeader, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { cx, preciseErrorText } from "../../app/helpers.js";
+import "./account-settings.css";
 import AccountSubscription from "../../components/account/AccountSubscription.jsx";
+import { SocialAccounts } from "../../components/account/SocialAccounts.jsx";
 
 function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [emailPassword, setEmailPassword] = useState("");
+  const [hasPassword, setHasPassword] = useState(null);
+  const [securityUnavailable, setSecurityUnavailable] = useState(false);
+  const [passwordLinkSent, setPasswordLinkSent] = useState(false);
   const emailChanging = profileForm.email.trim().toLowerCase() !== String(user?.email || "").trim().toLowerCase();
   const [passwordForm, setPasswordForm] = useState({ currentPassword: "", nextPassword: "", confirmPassword: "" });
   const [notificationForm, setNotificationForm] = useState({ notif_match: user?.notif_match !== false, notif_report: user?.notif_report !== false, notif_inactivity: user?.notif_inactivity !== false });
@@ -17,6 +22,12 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [resendingVerify, setResendingVerify] = useState(false);
   const [visualMode, setVisualMode] = useState(currentPerformanceMode);
+
+  useEffect(() => {
+    setHasPassword(null);
+    setSecurityUnavailable(false);
+    setPasswordLinkSent(false);
+  }, [user?.id]);
 
   useEffect(() => {
     setProfileForm({ name: user?.name || user?.account_name || "", email: user?.email || "" });
@@ -28,6 +39,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
 
   async function saveProfile(event) {
     event.preventDefault();
+    if (emailChanging && hasPassword !== true) return;
     setSavingProfile(true);
     try {
       const result = await apiFetch("auth-update-profile", { method: "POST", body: JSON.stringify({ ...profileForm, ...(emailChanging ? { currentPassword: emailPassword } : {}) }) });
@@ -54,6 +66,20 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
       pushToast?.({ type: "green", title: "Mot de passe changé", text: "Ton compte NXT5 est à jour." });
     } catch (err) {
       pushToast?.({ type: "red", title: "Changement impossible", text: err.message });
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  async function requestFirstPassword() {
+    if (savingPassword) return;
+    setSavingPassword(true);
+    try {
+      await apiFetch("auth-request-password-reset", { method: "POST", body: JSON.stringify({ email: user.email }) });
+      setPasswordLinkSent(true);
+      pushToast?.({ type: "green", title: "Lien demandé", text: "Consulte ta boîte e-mail pour définir ton mot de passe NXT5." });
+    } catch (err) {
+      pushToast?.({ type: "red", title: "Envoi impossible", text: err.message });
     } finally {
       setSavingPassword(false);
     }
@@ -99,67 +125,74 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     });
   }
 
-  return <div className="nxt5-data-dense min-w-0">
-    <PageHeader eyebrow="Compte" title="Paramètres" subtitle="Modifie ton pseudo, ton e-mail de récupération et ton mot de passe NXT5." />
-    <AccountSubscription key={user?.id} />
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+  return <div className="nxt5-account-settings nxt5-data-dense min-w-0">
+    <PageHeader eyebrow="Ton compte" title="Paramètres" subtitle="Gère tes informations, tes moyens de connexion et les e-mails que tu reçois." />
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
       <Surface className="p-5">
-        <div className="flex items-start justify-between gap-3"><div><Badge tone="cyan">Identité</Badge><h3 className="mt-3 text-2xl font-black text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
-        {user?.email && (user?.email_verified ? <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-emerald-100"><Check className="h-4 w-4" />Email vérifié</div> : <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Ton email n'est pas vérifié.</p><p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications sont désactivées jusqu'à validation de ton adresse.</p></div><Button type="button" variant="ghost" icon={resendingVerify ? Loader2 : Mail} onClick={resendVerificationEmail} disabled={resendingVerify}>{resendingVerify ? "Envoi..." : "Renvoyer l'email de vérification"}</Button></div></div>)}
+        <div className="flex items-start justify-between gap-3"><div><Badge tone="cyan">Identité</Badge><h3 className="mt-3 text-xl font-semibold text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
+        {user?.email && (user?.email_verified ? <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100"><Check className="h-4 w-4" />E-mail vérifié</div> : <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Ton e-mail n’est pas vérifié.</p><p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications sont désactivées jusqu'à validation de ton adresse.</p></div><Button type="button" variant="ghost" icon={resendingVerify ? Loader2 : Mail} onClick={resendVerificationEmail} disabled={resendingVerify}>{resendingVerify ? "Envoi..." : "Renvoyer l'email de vérification"}</Button></div></div>)}
         <form onSubmit={saveProfile} className="mt-5 space-y-4">
           <TextInput label="Pseudo" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Ton pseudo NXT5" required icon={UserPlus} />
-          <TextInput label="E-mail" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
+          <TextInput label="E-mail" value={profileForm.email} onChange={(email) => setProfileForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} disabled={hasPassword !== true} />
+          {hasPassword === false && <p className="text-xs leading-5 text-slate-300">Crée un mot de passe NXT5 dans la section Sécurité avant de modifier ton e-mail.</p>}
           {emailChanging && <TextInput label="Mot de passe actuel pour modifier l’e-mail" value={emailPassword} onChange={setEmailPassword} type="password" required icon={Lock} />}
-          <Button type="submit" icon={savingProfile ? Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim() || (emailChanging && !emailPassword)}>{savingProfile ? "Enregistrement..." : "Enregistrer le compte"}</Button>
+          <Button type="submit" icon={savingProfile ? Loader2 : Check} disabled={savingProfile || !profileForm.name.trim() || !profileForm.email.trim() || (emailChanging && (!emailPassword || hasPassword !== true))}>{savingProfile ? "Enregistrement..." : "Enregistrer le compte"}</Button>
         </form>
       </Surface>
 
       <Surface className="p-5">
-        <div className="flex items-start justify-between gap-3"><div><Badge tone="purple">Sécurité</Badge><h3 className="mt-3 text-2xl font-black text-white">Mot de passe</h3><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis un mot de passe différent de l’actuel, avec au moins 8 caractères.</p></div><Shield className="h-5 w-5 shrink-0 text-violet-200" /></div>
-        <form onSubmit={savePassword} className="mt-5 space-y-4">
+        <div className="flex items-start justify-between gap-3"><div><Badge tone="purple">Sécurité</Badge><h3 className="mt-3 text-xl font-semibold text-white">Mot de passe</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">{hasPassword === false ? "Ajoute un mot de passe pour te connecter aussi avec ton e-mail et gérer les informations sensibles de ton compte." : "Le mot de passe utilisé pour te connecter avec ton e-mail NXT5."}</p></div><Shield className="h-5 w-5 shrink-0 text-violet-200" /></div>
+        {hasPassword === null ? <p className="mt-5 text-sm text-slate-300" role="status">{securityUnavailable ? "Options de sécurité indisponibles. Réessaie depuis la section Connexions associées ci-dessous." : "Chargement des options de sécurité…"}</p> : hasPassword === false ? <div className="mt-5 space-y-4">
+          <p className="text-sm leading-6 text-slate-300">Le lien reçu par e-mail permet de définir ton mot de passe. Tu devras ensuite te reconnecter et associer à nouveau tes comptes externes.</p>
+          {passwordLinkSent && <p className="text-sm leading-6 text-cyan-100" role="status">La demande a été envoyée. Consulte ta boîte e-mail, y compris les indésirables.</p>}
+          <Button type="button" onClick={requestFirstPassword} disabled={savingPassword || !user?.email} icon={savingPassword ? Loader2 : Mail}>{savingPassword ? "Envoi…" : passwordLinkSent ? "Renvoyer le lien" : "Recevoir un lien pour créer mon mot de passe"}</Button>
+        </div> : <details className="nxt5-account-disclosure mt-5">
+          <summary><span>Changer mon mot de passe</span><ChevronDown aria-hidden="true" size={18} /></summary>
+          <form onSubmit={savePassword} className="mt-4 space-y-4">
+          <p className="text-sm leading-6 text-slate-300">Choisis un mot de passe différent de l’actuel, avec au moins 8 caractères.</p>
           <TextInput label="Mot de passe actuel" value={passwordForm.currentPassword} onChange={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))} placeholder="••••••••" type="password" required icon={Lock} />
           <TextInput label="Nouveau mot de passe" value={passwordForm.nextPassword} onChange={(nextPassword) => setPasswordForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} />
-          <TextInput label="Confirmer" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
+          <TextInput label="Confirmer le nouveau mot de passe" value={passwordForm.confirmPassword} onChange={(confirmPassword) => setPasswordForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
           <Button type="submit" icon={savingPassword ? Loader2 : ShieldCheck} disabled={savingPassword || !passwordForm.currentPassword || !passwordForm.nextPassword || !passwordForm.confirmPassword}>{savingPassword ? "Mise à jour..." : "Changer le mot de passe"}</Button>
-        </form>
+          </form>
+        </details>}
       </Surface>
 
+      <SocialAccounts key={user?.id} onStatus={(status) => { setHasPassword(status.hasPassword); setSecurityUnavailable(Boolean(status.error)); }} />
+
       <Surface className="p-5 xl:col-span-2">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <Badge tone="cyan">Options</Badge>
-            <h3 className="mt-3 text-2xl font-black text-white">Mode visuel</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis le rendu de cet appareil selon la fluidité du navigateur.</p>
-          </div>
-          <Gauge className="h-5 w-5 shrink-0 text-cyan-100" />
-        </div>
-        <div className="mt-5 grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-1 sm:grid-cols-2">
+        <details className="nxt5-account-disclosure">
+          <summary><span><span className="nxt5-account-disclosure-title">Affichage sur cet appareil</span><span className="nxt5-account-disclosure-hint">{visualMode === "low" ? "Mode performance activé" : "Rendu complet activé"}</span></span><ChevronDown aria-hidden="true" size={18} /></summary>
+          <p className="mt-3 text-sm leading-6 text-slate-300">Si le site manque de fluidité, réduis les effets visuels. Ce choix s’applique uniquement à cet appareil.</p>
+        <div className="nxt5-account-visual-options">
           {[
-            ["full", "Rendu complet", "Effets de marque activés"],
+            ["full", "Rendu complet", "Tous les effets visuels"],
             ["low", "Mode performance", "Effets réduits pour plus de fluidité"],
           ].map(([id, label, detail]) => {
             const active = visualMode === id;
-            return <button key={id} type="button" onClick={() => updateVisualMode(id)} aria-pressed={active} className={cx("rounded-xl border px-4 py-3 text-left transition", active ? "border-cyan-200/40 bg-cyan-400/10 text-white" : "border-transparent text-slate-300 hover:bg-white/[0.055] hover:text-white")}><span className="block text-sm font-black">{label}</span><span className={cx("mt-1 block text-xs font-bold", active ? "text-cyan-100" : "text-slate-400")}>{detail}</span></button>;
+            return <button key={id} type="button" onClick={() => updateVisualMode(id)} aria-pressed={active} className={cx("nxt5-account-visual-option border px-4 py-3 text-left transition", active ? "border-cyan-200/40 bg-cyan-400/10 text-white" : "border-transparent text-slate-300 hover:bg-white/[0.055] hover:text-white")}><span className="block text-sm font-black">{label}</span><span className={cx("mt-1 block text-xs font-normal", active ? "text-cyan-100" : "text-slate-400")}>{detail}</span></button>;
           })}
         </div>
+        </details>
       </Surface>
 
       <Surface className="p-5 xl:col-span-2">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <Badge tone="purple">Notifications</Badge>
-            <h3 className="mt-3 text-2xl font-black text-white">E-mails NXT5</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Choisis les alertes envoyées sur ton adresse vérifiée.</p>
+            <h3 className="mt-3 text-xl font-semibold text-white">E-mails NXT5</h3>
+            <p className="mt-2 text-sm font-normal leading-6 text-slate-300">Choisis les alertes envoyées sur ton adresse vérifiée.</p>
           </div>
           {savingNotifications && <Badge tone="cyan">Enregistrement...</Badge>}
         </div>
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <PremiumToggle checked={notificationForm.notif_match} onChange={(checked) => updateNotifications({ ...notificationForm, notif_match: checked })} title="Recevoir un email à chaque import de match" text="Pratique pour suivre les nouvelles games ajoutées à ta team." />
-          <PremiumToggle checked={notificationForm.notif_report} onChange={(checked) => updateNotifications({ ...notificationForm, notif_report: checked })} title="Recevoir un e-mail à chaque review générée" text="Tu es prévenu dès qu’une nouvelle review d’équipe est disponible." />
+        <div className="nxt5-account-notifications">
+          <PremiumToggle checked={notificationForm.notif_match} onChange={(checked) => updateNotifications({ ...notificationForm, notif_match: checked })} title="Nouvelle partie importée" text="Un e-mail lorsqu’une partie est ajoutée à ton équipe." />
+          <PremiumToggle checked={notificationForm.notif_report} onChange={(checked) => updateNotifications({ ...notificationForm, notif_report: checked })} title="Nouveau débrief disponible" text="Un e-mail lorsqu’un débrief d’équipe est généré." />
           <PremiumToggle checked={notificationForm.notif_inactivity} onChange={(checked) => updateNotifications({ ...notificationForm, notif_inactivity: checked })} title="Recevoir le rappel après 3 mois" text="Un seul e-mail par période d'inactivité, sans donnée d'équipe ou de jeu." />
         </div>
       </Surface>
     </div>
+    <AccountSubscription key={user?.id} />
   </div>;
 }
 

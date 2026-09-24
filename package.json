@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
-    "build": "vite build",
+    "build": "vite build && node tools/prerender.mjs",
+    "build:preview": "node tools/build-preview.mjs",
     "test": "vitest run",
     "preview": "vite preview",
     "optimize:assets": "node tools/optimize-assets.mjs",
@@ -13,13 +14,19 @@
     "local-import-export": "node tools/nxt5-importer.mjs",
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm test && npm run build",
-    "db:migrate": "node tools/migrate.mjs"
+    "db:migrate": "node tools/migrate.mjs",
+    "discord:commands": "node tools/register-discord-commands.mjs",
+    "discord:check-bundle": "node tools/verify-discord-bundle.mjs"
   },
   "dependencies": {
+    "@fontsource/inter": "5.3.0",
+    "@napi-rs/canvas": "1.0.9",
     "@neondatabase/serverless": "^0.10.4",
+    "@netlify/blobs": "9.1.2",
     "@netlify/functions": "^2.8.2",
     "argon2": "^0.44.0",
     "bcryptjs": "^3.0.3",
+    "jose": "6.2.3",
     "openai": "^7.8.0"
   },
   "devDependencies": {
@@ -39,6 +46,9 @@
     "typescript": "^6.0.3",
     "vite": "7.3.6",
     "vitest": "4.1.11"
+  },
+  "overrides": {
+    "qs": "6.16.0"
   },
   "engines": {
     "node": ">=24.15.0 <25"

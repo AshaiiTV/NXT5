@@ -1,3 +1,4 @@
+import "./assistant-panel.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowRight, BookOpen, Loader2, MessageCircleQuestion, RefreshCw, Send, Trash2, WifiOff, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
@@ -5,14 +6,14 @@ import { isSafeInternalPath } from "../../app/routing.js";
 import { cx } from "../../app/helpers.js";
 
 const ROUTE_SUGGESTIONS = [
-  { matches: ["/equipes", "/gestion-equipe"], prompts: ["Comment ajouter un joueur ?", "Comment organiser la Main Team et les Subs ?", "Où modifier les accès de l'équipe ?"] },
-  { matches: ["/games", "/integration", "/statistiques"], prompts: ["Comment lire les statistiques de cette game ?", "Comment importer une game ?", "Comment analyser un groupe de games ?"] },
-  { matches: ["/rapports"], prompts: ["Comment créer une review ?", "Comment lier plusieurs games à une review ?", "Où retrouver mes anciennes reviews ?"] },
-  { matches: ["/tendances"], prompts: ["Comment filtrer les tendances ?", "Comment interpréter les indicateurs d'équipe ?", "Comment ouvrir une game source ?"] },
-  { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une session d'équipe ?"] },
-  { matches: ["/draft/pool"], prompts: ["Comment modifier le pool d'un joueur ?", "Comment classer un champion par tier ?", "À quoi servent les statuts des picks ?"] },
-  { matches: ["/draft/compositions"], prompts: ["Comment créer une composition ?", "Comment utiliser les tiers du Champion Pool ?", "Comment préparer nos drafts ?"] },
-  { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment choisir le profil observé ?", "Comment lire l'historique d'un joueur ?", "Où retrouver ses champions et matchups ?"] },
+  { matches: ["/equipes", "/gestion-equipe"], prompts: ["Comment ajouter un joueur ?", "Comment organiser les titulaires et les remplaçants ?", "Où modifier les accès de l'équipe ?"] },
+  { matches: ["/games", "/integration", "/statistiques"], prompts: ["Comment lire le bilan de cette partie ?", "Comment importer une partie ?", "Comment analyser un groupe de parties ?"] },
+  { matches: ["/rapports"], prompts: ["Comment préparer un débrief ?", "Comment réunir plusieurs parties dans un débrief ?", "Où retrouver mes anciens débriefs ?"] },
+  { matches: ["/tendances"], prompts: ["Comment choisir les parties à analyser ?", "Comment interpréter les indicateurs d'équipe ?", "Comment retrouver la partie derrière un indicateur ?"] },
+  { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une séance d'équipe ?"] },
+  { matches: ["/draft/pool"], prompts: ["Comment modifier les champions d'un joueur ?", "Comment indiquer le niveau de maîtrise d’un champion ?", "Comment distinguer un champion maîtrisé d’un champion en entraînement ?"] },
+  { matches: ["/draft/compositions"], prompts: ["Comment créer une composition ?", "Comment utiliser les niveaux de maîtrise des champions ?", "Comment préparer nos choix de champions ?"] },
+  { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment consulter le profil d’un joueur ?", "Comment lire l'historique d'un joueur ?", "Où comparer ses champions aux champions adverses ?"] },
 ];
 
 const DEFAULT_SUGGESTIONS = [
@@ -221,19 +222,19 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   return (
     <div className="pointer-events-none fixed inset-0 z-[90] isolate">
       <button type="button" aria-label="Fermer l'assistant" onClick={onClose} className="pointer-events-auto absolute inset-0 cursor-default bg-black/65 backdrop-blur-[3px] sm:hidden" />
-      <aside role="dialog" aria-modal="false" aria-labelledby="nxt5-assistant-title" className="nxt5-enter-fast nxt5-panel nxt5-premium-panel pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[#030611]/98 text-white shadow-[0_28px_90px_rgba(0,0,0,.82),0_0_42px_rgba(34,211,238,.12)] ring-1 ring-white/10 sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
+      <aside role="dialog" aria-modal="false" aria-labelledby="nxt5-assistant-title" className="nxt5-assistant-panel nxt5-enter-fast pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[#030611]/98 text-white shadow-2xl sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
         <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-cyan-100/12 bg-[#060a18] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
               <h2 id="nxt5-assistant-title" className="truncate text-lg font-black text-white">Assistant NXT5</h2>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">Disponible sur toutes les pages</p>
+              <p className="mt-0.5 text-xs font-semibold text-slate-400">Une aide pour comprendre la page et trouver ta prochaine action</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <button type="button" onClick={() => openGuide()} aria-label="Ouvrir le guide NXT5" title="Guide NXT5" className="inline-flex h-10 items-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-400/[0.07] px-3 text-xs font-black text-cyan-50 transition hover:border-cyan-200/40 hover:bg-cyan-300/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><BookOpen className="h-4 w-4" /><span className="hidden min-[390px]:inline">Guide</span></button>
-            <button type="button" onClick={clearHistory} disabled={!messages.length && !error && !loading} aria-label="Effacer la conversation" title="Effacer la conversation" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button>
-            <button type="button" onClick={onClose} aria-label="Fermer l'assistant" title="Fermer" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><X className="h-5 w-5" /></button>
+            <button type="button" onClick={() => openGuide()} aria-label="Ouvrir le guide NXT5" title="Guide NXT5" className="inline-flex h-11 items-center gap-2 rounded-xl border border-cyan-200/18 bg-cyan-400/[0.07] px-3 text-xs font-black text-cyan-50 transition hover:border-cyan-200/40 hover:bg-cyan-300/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><BookOpen className="h-4 w-4" /><span className="hidden min-[390px]:inline">Guide</span></button>
+            <button type="button" onClick={clearHistory} disabled={!messages.length && !error && !loading} aria-label="Effacer la conversation" title="Effacer la conversation" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button>
+            <button type="button" onClick={onClose} aria-label="Fermer l'assistant" title="Fermer" className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><X className="h-5 w-5" /></button>
           </div>
         </header>
 
@@ -242,7 +243,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
             <div className="flex min-h-full flex-col justify-center py-6">
               <MessageCircleQuestion className="h-8 w-8 text-cyan-100" />
               <h3 className="mt-4 text-xl font-black text-white">Que veux-tu faire sur cette page ?</h3>
-              <p className="mt-2 max-w-sm text-sm font-semibold leading-6 text-slate-400">Pose une question sur l'utilisation de NXT5 ou choisis un point de départ.</p>
+              <p className="mt-2 max-w-sm text-sm font-normal leading-6 text-slate-400">Pose une question sur l'utilisation de NXT5 ou choisis un point de départ.</p>
               <div className="mt-6 border-y border-white/10">
                 {routeSuggestions.map((suggestion) => (
                   <button key={suggestion} type="button" onClick={() => requestAnswer(suggestion)} className="group flex w-full items-center justify-between gap-3 border-b border-white/10 px-1 py-3.5 text-left text-sm font-bold leading-5 text-slate-200 transition last:border-b-0 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-200/70">
@@ -256,17 +257,17 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
           {!!messages.length && <div className="space-y-5">
             {messages.map((message, index) => (
               <article key={message.id} className={cx("min-w-0", message.role === "user" && "ml-auto max-w-[88%]")}>
-                <p className="mb-1.5 text-[0.62rem] font-black uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "Toi" : "Assistant"}</p>
-                <div className={cx("whitespace-pre-wrap break-words text-sm font-semibold leading-6", message.role === "user" ? "rounded-2xl rounded-tr-md border border-cyan-200/20 bg-cyan-400/10 px-4 py-3 text-cyan-50" : "border-l-2 border-cyan-300/55 pl-4 text-slate-200")}>{message.content}</div>
+                <p className="mb-1.5 text-xs font-black uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? "Toi" : "Assistant"}</p>
+                <div className={cx("whitespace-pre-wrap break-words text-sm font-normal leading-6", message.role === "user" ? "rounded-2xl rounded-tr-md border border-cyan-200/20 bg-cyan-400/10 px-4 py-3 text-cyan-50" : "border-l-2 border-cyan-300/55 pl-4 text-slate-200")}>{message.content}</div>
                 {!!message.actions?.length && <div className="mt-3 flex flex-wrap gap-2 pl-4">
-                  {message.actions.map((action) => <button key={`${message.id}-${action.path}`} type="button" onClick={() => openInternalPath(action.path)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-cyan-200/22 bg-cyan-400/10 px-3 py-2 text-left text-xs font-black text-cyan-50 transition hover:border-cyan-200/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{action.label}</span><ArrowRight className="h-3.5 w-3.5 shrink-0" /></button>)}
+                  {message.actions.map((action) => <button key={`${message.id}-${action.path}`} type="button" onClick={() => openInternalPath(action.path)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-200/22 bg-cyan-400/10 px-3 min-h-11 py-2 text-left text-xs font-black text-cyan-50 transition hover:border-cyan-200/45 hover:bg-cyan-300/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{action.label}</span><ArrowRight className="h-3.5 w-3.5 shrink-0" /></button>)}
                 </div>}
-                {message.role === "assistant" && (!!message.sources?.length || message.fallback) && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-4 text-[0.65rem] font-bold text-slate-500">
+                {message.role === "assistant" && (!!message.sources?.length || message.fallback) && <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-4 text-xs font-bold text-slate-500">
                   {message.fallback && <span className="inline-flex items-center gap-1.5 text-amber-100/70"><WifiOff className="h-3 w-3" />Guide local</span>}
                   {!!message.sources?.length && <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5"><BookOpen className="h-3 w-3 shrink-0" />{message.sources.map((source, sourceIndex) => <React.Fragment key={`${message.id}-${source.id || source.title}`}>{sourceIndex > 0 && <span aria-hidden="true">·</span>}<button type="button" onClick={() => openGuide(source.id)} className="underline decoration-slate-600 underline-offset-2 transition hover:text-cyan-100 hover:decoration-cyan-200">{source.title}</button></React.Fragment>)}</span>}
                 </div>}
                 {message.role === "assistant" && index === messages.length - 1 && !!message.suggestions?.length && <div className="mt-4 border-t border-white/[0.08] pl-4 pt-2">
-                  {message.suggestions.map((suggestion) => <button key={`${message.id}-${suggestion}`} type="button" onClick={() => requestAnswer(suggestion)} className="group flex w-full items-center justify-between gap-3 py-2 text-left text-xs font-bold leading-5 text-slate-400 transition hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{suggestion}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 transition group-hover:translate-x-0.5" /></button>)}
+                  {message.suggestions.map((suggestion) => <button key={`${message.id}-${suggestion}`} type="button" onClick={() => requestAnswer(suggestion)} className="group flex w-full items-center justify-between gap-3 min-h-11 py-2 text-left text-xs font-bold leading-5 text-slate-400 transition hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{suggestion}</span><ArrowRight className="h-3.5 w-3.5 shrink-0 transition group-hover:translate-x-0.5" /></button>)}
                 </div>}
               </article>
             ))}
@@ -284,7 +285,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
         <form onSubmit={submit} className="shrink-0 border-t border-cyan-100/12 bg-[#030612] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-4">
           <div className="flex items-end gap-2 rounded-2xl border border-cyan-100/16 bg-[#070c1b] p-2 transition-within focus-within:border-cyan-200/45 focus-within:ring-4 focus-within:ring-cyan-300/10">
             <textarea ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(event); } }} rows={2} maxLength={800} disabled={loading} aria-label="Question pour l'assistant NXT5" placeholder="Pose une question sur NXT5" className="max-h-36 min-h-[3rem] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-semibold leading-5 text-white outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-60" />
-            <button type="submit" disabled={loading || !draft.trim()} aria-label="Envoyer la question" title="Envoyer" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-50 shadow-[0_0_20px_rgba(34,211,238,.10)] transition hover:border-cyan-100/55 hover:bg-cyan-300/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 disabled:cursor-not-allowed disabled:opacity-35">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
+            <button type="submit" disabled={loading || !draft.trim()} aria-label="Envoyer la question" title="Envoyer" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-50  transition hover:border-cyan-100/55 hover:bg-cyan-300/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 disabled:cursor-not-allowed disabled:opacity-35">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
           </div>
         </form>
       </aside>

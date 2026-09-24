@@ -1,19 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
-import { cx, tone, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
+import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
 import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta, ROSTER_STATUS_OPTIONS } from "../../utils/roster.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
-import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, sortPlayersByRole, teamMatchRows, buildStaffAlerts, normalizeProfileRole, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
+import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Teams.css";
+import { LinkButton } from "../public/PublicPages.jsx";
 
-const HomeActionSummary = lazyNamed(loadNextPhase, "HomeActionSummary");
 const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
 
 const PROFILE_ROLES = [...COMP_ROLES, "SUB", ...STAFF_ROLES];
+
+function emptyPlayerForm(roster = []) {
+  const occupiedRoles = new Set(rosterPlayersByStatus(roster, "MAIN").map((player) => String(player.role || "").toUpperCase()));
+  const role = COMP_ROLES.find((candidate) => !occupiedRoles.has(candidate)) || "TOP";
+  return { name: "", riotId: "", opggUrl: "", role, rosterStatus: "AUTO" };
+}
 
 function rosterRoleIndex(role) {
   const normalized = String(role || "").toUpperCase();
@@ -95,7 +101,7 @@ function opggUrlFromRiotId(riotId, region) {
 
 function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false }) {
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
-  const [playerForm, setPlayerForm] = useState({ name: "", riotId: "", opggUrl: "", role: "TOP", rosterStatus: "AUTO" });
+  const [playerForm, setPlayerForm] = useState(() => emptyPlayerForm());
   const [joinCode, setJoinCode] = useState("");
   const [saving, setSaving] = useState(false);
   const [syncingPlayerId, setSyncingPlayerId] = useState("");
@@ -114,7 +120,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const inviteCodes = selectedTeam ?(data.inviteCodes || []).filter((code) => code.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
   const hasTeams = data.teams.length > 0;
-  const canManageTeam = canStaffManage(currentMember?.role);
+  const canManageTeam = Boolean(user?.id && selectedTeam?.owner_id === user.id) || canStaffManage(currentMember?.role);
   const canDeleteTeam = ["owner", "captain"].includes(String(currentMember?.role || "").toLowerCase());
   const riotCooldownSeconds = Math.max(0, Math.ceil((riotCooldownUntil - nowTick) / 1000));
 
@@ -136,6 +142,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   useEffect(() => {
     if (!selectedTeam) return;
+    setPlayerForm(emptyPlayerForm(roster));
     setTeamEdit({
       name: selectedTeam.name || "",
       tag: selectedTeam.tag || "",
@@ -199,13 +206,13 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   async function createPlayer(event) {
     event.preventDefault();
-    if (!selectedTeam) return;
+    if (!selectedTeam || !canManageTeam || saving) return;
     setSaving(true);
     try {
       await apiFetch("players-create", { method: "POST", body: JSON.stringify({ ...playerForm, rosterStatus: playerForm.rosterStatus === "AUTO" ? "" : playerForm.rosterStatus, teamId: selectedTeam.id }) });
-      setPlayerForm({ name: "", riotId: "", opggUrl: "", role: "TOP", rosterStatus: "AUTO" });
+      setPlayerForm(emptyPlayerForm([...roster, playerForm]));
       await refreshAll();
-      pushToast({ type: "green", title: isStaffRole(playerForm.role) ? "Staff ajouté" : "Joueur ajouté", text: "Roster mis à jour." });
+      pushToast({ type: "green", title: isStaffRole(playerForm.role) ? "Staff ajouté" : "Joueur ajouté", text: "Effectif mis à jour." });
     } catch (err) {
       pushToast({ type: "red", title: "Ajout impossible", text: err.message });
     } finally {
@@ -433,112 +440,105 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     }
   }
 
-  if (managementOnly) return <div className="nxt5-data-dense">
-    <PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Permissions, liaisons de comptes, création de profils et santé des données de l’équipe." />
+  if (managementOnly) return <div className="nxt5-data-dense nxt5-teams-page nxt5-team-management-page">
+    <PageHeader eyebrow="Gestion" title="Gestion de l’équipe" subtitle="Ajoute tes joueurs, puis organise les invitations et les accès de l’équipe.">
+      <LinkButton href="/equipes" navigate={openAppPath} variant="ghost" icon={ArrowLeft}>Retour à l’équipe</LinkButton>
+    </PageHeader>
     {selectedTeam ? <div className="space-y-5">
+      <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch} />
+      <Surface className="p-4 sm:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0"><h3 className="text-lg font-black text-white">Bot Discord</h3><p className="mt-1 text-sm leading-6 text-slate-300">Invitation, connexion du serveur, salons et historique des publications de ton équipe.</p></div>
+          <LinkButton href="/bot-discord" navigate={openAppPath} icon={ArrowRight} className="min-h-11 shrink-0">Configurer le bot Discord</LinkButton>
+        </div>
+      </Surface>
       <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} />
-      <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} />
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ?"Ton équipe" : "Créer ou rejoindre une team"} subtitle={hasTeams && !setupOnly ?"Roster, champions joués et statistiques de profils de l’équipe active." : "Première décision simple : tu crées une nouvelle structure, ou tu rejoins celle de ton staff avec un code."}>{hasTeams && !setupOnly && <Button type="button" variant="ghost" icon={teamSetupOpen ? X : UserPlus} onClick={() => { if (teamSetupOpen) { setTeamSetupOpen(false); openAppPath("/equipes"); } else setTeamSetupOpen(true); }}>{teamSetupOpen ? "Fermer les formulaires" : "Créer ou rejoindre une équipe"}</Button>}</PageHeader>
+  return <div className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && !setupOnly && <>
+      {canManageTeam && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
+      {teamSetupOpen && <Button type="button" variant="ghost" icon={X} onClick={() => { setTeamSetupOpen(false); openAppPath("/equipes"); }}>Fermer les formulaires</Button>}
+    </>}</PageHeader>
     {!hasTeams && <Surface className="mb-5 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <Badge tone="cyan">Démarrage</Badge>
           <h3 className="mt-2 text-xl font-black text-white">Le plus simple pour commencer</h3>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Si tu es capitaine ou coach, crée la team. Si quelqu'un t'a envoyé un code, rejoins directement. Le roster et les imports viennent après.</p>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Si tu organises l’équipe, crée son espace. Si tu as reçu un code, utilise le formulaire Rejoindre. Tu pourras ensuite ajouter les joueurs et les parties.</p>
         </div>
       </div>
-      <div className="mt-3 grid gap-2 md:grid-cols-3">
-        {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter le roster", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une game", "NXT5 commence alors à expliquer l'équipe."]].map(([number, title, text]) => <div key={title} className="rounded-xl border border-white/10 bg-white/[0.035] p-3"><p className="text-xs font-black text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
+      <div className="team-start-steps">
+        {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter les joueurs", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une partie", "Retrouve son résultat, ses statistiques et les points à discuter."]].map(([number, title, text]) => <div key={title} className="team-start-step"><p className="text-sm font-semibold text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
       </div>
     </Surface>}
-    <div className={cx("grid gap-5", (!hasTeams || teamSetupOpen) && !setupOnly && "xl:grid-cols-2")}>
-      {(!hasTeams || teamSetupOpen || setupOnly) && <div className="space-y-5">
-        <Surface glow>
-          <h3 className="text-xl font-black text-white">Créer une team</h3>
-          <p className="mt-1 text-sm text-slate-300">Pour lancer une nouvelle structure, créer son roster et importer ses games.</p>
+    <div className={cx("teams-workspace-layout", hasTeams && teamSetupOpen && !setupOnly && "has-roster-setup")}>
+      {(!hasTeams || teamSetupOpen || setupOnly) && <div className="team-setup-forms">
+        <Surface>
+          <h3 className="text-xl font-black text-white">Créer une équipe</h3>
+          <p className="mt-1 text-sm text-slate-300">Pour organiser les joueurs et retrouver les parties de ton équipe.</p>
           <form onSubmit={createTeam} className="mt-5 space-y-4">
-            <TextInput label="Nom de team" value={teamForm.name} onChange={(name) => setTeamForm({ ...teamForm, name })} placeholder="Nom de l'équipe" required icon={Trophy} />
+            <TextInput label="Nom de l’équipe" value={teamForm.name} onChange={(name) => setTeamForm({ ...teamForm, name })} placeholder="Nom de l'équipe" required icon={Trophy} />
             <TextInput label="Tag" value={teamForm.tag} onChange={(tag) => setTeamForm({ ...teamForm, tag })} placeholder="TAG" required icon={Shield} />
             <SelectInput label="Région" value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })}><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option><option>BR</option><option>LAN</option><option>LAS</option><option>JP</option><option>OCE</option><option>TR</option></SelectInput>
-            <TextAreaInput label="Multi OP.GG ou Riot IDs" value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} placeholder={"Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW"} icon={Clipboard} />
+            <TextAreaInput label="Joueurs à ajouter (facultatif)" value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} placeholder={"Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW"} icon={Clipboard} />
             {multiPlayers.length > 0 && <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{multiPlayers.length} joueur{multiPlayers.length > 1 ?"s" : ""} détecté{multiPlayers.length > 1 ?"s" : ""}</p><div className="mt-2 flex flex-wrap gap-2">{multiPlayers.map((player, index) => <Badge key={player.riotId} tone={index < 5 ?"cyan" : "slate"}>{ROSTER_ROLE_ORDER[index] || "SUB"} · {player.riotId}</Badge>)}</div></div>}
-            <Button type="submit" disabled={saving} icon={saving ?Loader2 : Plus} className="w-full">Créer la team</Button>
+            <Button type="submit" disabled={saving} icon={saving ?Loader2 : Plus} className="w-full">Créer l’équipe</Button>
           </form>
         </Surface>
 
-        <Surface glow>
-          <h3 className="text-xl font-black text-white">Rejoindre une team</h3>
+        <Surface>
+          <h3 className="text-xl font-black text-white">Rejoindre une équipe</h3>
           <p className="mt-1 text-sm text-slate-300">Demande au coach, manager ou capitaine un code temporaire. Il expire après 1h.</p>
           <form onSubmit={joinTeam} className="mt-5 space-y-4">
             <TextInput label="Code d’invitation" value={joinCode} onChange={setJoinCode} placeholder="NXT5-ABC123" required icon={UserPlus} />
-            <Button type="submit" disabled={saving || !joinCode.trim()} icon={saving ?Loader2 : ArrowRight} className="w-full">Rejoindre la team</Button>
+            <Button type="submit" disabled={saving || !joinCode.trim()} icon={saving ?Loader2 : ArrowRight} className="w-full">Rejoindre l’équipe</Button>
           </form>
         </Surface>
 
       </div>}
 
       {selectedTeam && !setupOnly && <div className="space-y-5">
-        <TeamCoachDashboard team={selectedTeam} players={data.players || []} matches={data.matches || []} championPool={data.championPool || data.champion_pool || []} />
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div><h3 className="text-2xl font-black text-white">{selectedTeam.name}</h3><p className="mt-1 text-sm text-slate-300">Roster lisible, champions joués et statistiques de profils.</p></div>
-            <div className="flex flex-wrap justify-end gap-2"><Button type="button" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")} disabled={!mainTeamRoster.length}>Copier Main Team · {mainTeamRoster.length}</Button><Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")} disabled={!substituteRoster.length}>Copier Subs · {substituteRoster.length}</Button><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
+            <div className="flex items-center gap-3"><h3 className="text-xl font-black text-white">Joueurs et encadrement</h3><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
+            {roster.length > 0 && <div className="nxt5-roster-actions flex flex-wrap justify-end gap-2">
+              {mainTeamRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")}>Copier OP.GG titulaires · {mainTeamRoster.length}</Button>}
+              {substituteRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")}>Copier OP.GG remplaçants · {substituteRoster.length}</Button>}
+              {canManageTeam && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
+            </div>}
           </div>
 
-          <>
-            <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} />
-          </>
+          <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} canManage={canManageTeam} />
         </Surface>
       </div>}
     </div>
   </div>;
 }
 
-function TeamCoachDashboard({ team, players = [], matches = [], championPool = [] }) {
-  const teamMatches = matches.filter((match) => match.team_id === team?.id);
-  const teamPlayers = sortPlayersByRole(players.filter((player) => player.team_id === team?.id && isGameplayRole(player.role)));
-  const wins = teamMatches.filter((match) => match.result === "Victoire").length;
-  const winrate = Math.round((wins / Math.max(1, teamMatches.length)) * 100);
-  const alerts = buildStaffAlerts(teamMatches, teamPlayers);
-  const rows = teamMatchRows(teamMatches, "ALLY");
-  const poolByRole = ROSTER_ROLE_ORDER.map((role) => {
-    const manual = championPool.filter((row) => row.team_id === team?.id && normalizeProfileRole(row.role) === role);
-    const imported = rows.filter((row) => row.role === role);
-    const picks = Array.from([...manual.map((row) => row.champion), ...imported.map((row) => row.champion)].reduce((map, champion) => map.set(champion, (map.get(champion) || 0) + 1), new Map()).entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    return { role, picks };
-  });
-  return <Surface className="mb-5 overflow-hidden p-0">
-    <div className="grid gap-0 2xl:grid-cols-[minmax(0,1.1fr)_minmax(20rem,.9fr)]">
-      <div className="min-w-0 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold"><p className="uppercase tracking-[0.16em] text-cyan-100">Résumé équipe</p><p className="text-slate-300">{teamMatches.length} games</p></div>
-        <h3 className="mt-3 break-words text-2xl font-black text-white">Décisions staff de la semaine</h3>
-        <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Priorité de l’équipe, joueur à revoir, pick à garder et game associée.</p>
-        <HomeActionSummary matches={teamMatches} alerts={alerts} />
-      </div>
-      <aside className="border-t border-white/10 p-4 sm:p-5 2xl:border-l 2xl:border-t-0">
-        <div className="flex items-center justify-between gap-3"><div><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bloc actif</p><p className="mt-1 text-2xl font-black text-white">{teamMatches.length ? `${winrate}% WR` : "--"}</p></div><Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/tendances")}>Tendances</Button></div>
-        <div className="mt-4 grid gap-2">
-          {alerts.length ? alerts.slice(0, 3).map((alert) => <div key={alert.title} className="border-t border-white/10 py-3 first:border-0">
-            <div className="flex items-center gap-2"><span className={cx("grid h-7 w-7 place-items-center rounded-lg", tone(alert.toneName))}><alert.icon className="h-3.5 w-3.5" /></span><p className="text-sm font-black text-white">{alert.title}</p></div>
-            <p className="mt-1 text-xs font-semibold leading-5 text-slate-300">{alert.text}</p>
-          </div>) : <p className="py-3 text-sm font-semibold text-slate-300">Importe quelques games pour générer les alertes staff.</p>}
-        </div>
-      </aside>
-    </div>
-    <div className="border-t border-white/10 p-4">
-      <div className="grid gap-2 lg:grid-cols-5">{poolByRole.map((entry) => <div key={entry.role} className="min-w-0 px-2 py-3">
-        <div className="flex items-center gap-2"><RoleIcon role={entry.role} className="h-4 w-4 text-cyan-100" /><p className="text-xs font-black uppercase tracking-[0.12em] text-white">{roleLabel(entry.role)}</p></div>
-        <p className="mt-2 break-words text-sm font-semibold text-slate-300">{entry.picks.length ? entry.picks.map(([champion]) => championDisplayName(champion)).join(" · ") : "Pool à remplir"}</p>
-      </div>)}</div>
-    </div>
-  </Surface>;
-}
-
-function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer }) {
+function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer, routeSearch = "" }) {
   const [nowTick, setNowTick] = useState(Date.now());
+  const profileSectionRef = useRef(null);
+  const profileEditRef = useRef(null);
+  const editTriggerRef = useRef(null);
+  const editingPlayerId = editingPlayer?.id || "";
+  const rosterRequested = new URLSearchParams(routeSearch).get("section") === "roster";
+  useEffect(() => {
+    if (!rosterRequested || !canManage) return;
+    const section = profileSectionRef.current;
+    section?.scrollIntoView({ behavior: "auto", block: "start" });
+    section?.querySelector("input:not(:disabled)")?.focus({ preventScroll: true });
+  }, [rosterRequested, routeSearch, team.id, canManage]);
+  useEffect(() => {
+    if (!editingPlayerId || !canManage) return;
+    profileEditRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
+    profileEditRef.current?.querySelector("input:not(:disabled)")?.focus({ preventScroll: true });
+  }, [editingPlayerId, canManage]);
+  useEffect(() => {
+    if (editingPlayerId || saving) return;
+    if (editTriggerRef.current?.isConnected) editTriggerRef.current.focus();
+    editTriggerRef.current = null;
+  }, [editingPlayerId, saving]);
   useEffect(() => {
     const timer = window.setInterval(() => setNowTick(Date.now()), 1000);
     return () => window.clearInterval(timer);
@@ -547,7 +547,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
   const memberByUser = new Map(members.map((member) => [member.user_id, member]));
   const unlinkedMemberRows = members.filter((member) => !linkedPlayerByUser.has(member.user_id));
   const linkedCount = roster.filter((player) => player.user_id).length;
-  const gameplayCount = roster.filter((player) => isGameplayRole(player.role)).length;
+  const gameplayCount = new Set(roster.filter((player) => player.id && isGameplayRole(player.role)).map((player) => String(player.id))).size;
   const staffCount = roster.filter((player) => isStaffRole(player.role)).length;
   const activeCodes = inviteCodes.filter((code) => new Date(code.expires_at).getTime() > nowTick);
   const roleValue = (role) => TEAM_ACCESS_ROLES.some(([id]) => id === String(role || "").toLowerCase()) ? String(role || "").toLowerCase() : "player";
@@ -560,23 +560,47 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
     const linked = linkedPlayerByUser.get(member.user_id);
     return Boolean(linked && linked.id !== player.id);
   };
-  return <Surface glow className="mb-6 p-5 md:p-6">
+  return <Surface className="team-management-panel">
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
         <Badge tone="cyan">Gestion</Badge>
-        <h3 className="mt-3 truncate text-3xl font-black tracking-tight text-white md:text-4xl">{team.name}</h3>
+        <h3 className="team-management-name">{team.name}</h3>
         <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Identité, invitations, profils liés et permissions. Tout est regroupé ici pour aller vite.</p>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[360px]">
-        <div className="rounded-2xl border border-emerald-300/15 bg-emerald-400/10 p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-emerald-100/80">Liés</p><p className="mt-1 text-2xl font-black text-white">{linkedCount}/{roster.length}</p></div>
-        <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-cyan-100/80">Joueurs</p><p className="mt-1 text-2xl font-black text-white">{gameplayCount}</p></div>
-        <div className="rounded-2xl border border-fuchsia-300/15 bg-fuchsia-400/10 p-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-fuchsia-100/80">Staff</p><p className="mt-1 text-2xl font-black text-white">{staffCount}</p></div>
-      </div>
+      <dl className="team-management-summary">
+        <div><dt>Profils liés</dt><dd>{linkedCount}<span> / {roster.length}</span></dd></div>
+        <div><dt>Joueurs</dt><dd>{gameplayCount}</dd></div>
+        <div><dt>Staff</dt><dd>{staffCount}</dd></div>
+      </dl>
     </div>
 
-    <div className="mt-6 grid gap-4 xl:grid-cols-[minmax(260px,.7fr)_minmax(0,1.3fr)]">
-      <form onSubmit={onSaveTeam} className="rounded-3xl border border-white/10 bg-black/22 p-4">
-        <div className="flex items-center gap-4">
+    <section ref={profileSectionRef} id="team-roster-setup" aria-labelledby="team-roster-setup-title" className="team-management-section team-roster-setup">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div><h4 id="team-roster-setup-title" className="text-xl font-black text-white">Ajouter un joueur ou un membre du staff</h4><p className="mt-1 text-sm text-slate-300">Le profil représente une personne dans l’équipe. Son compte NXT5, utilisé pour se connecter, pourra être associé plus tard.</p></div>
+        <Badge tone="purple">Effectif</Badge>
+      </div>
+      {canManage ? <form onSubmit={onCreatePlayer} className="team-profile-form" aria-labelledby="team-roster-setup-title">
+        <TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur ou staff" required />
+        <TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder={isStaffRole(playerForm.role) ? "Optionnel pour staff" : "Pseudo#TAG"} required={!isStaffRole(playerForm.role)} disabled={isStaffRole(playerForm.role)} />
+        <TextInput label="OP.GG (facultatif)" value={playerForm.opggUrl} onChange={(opggUrl) => setPlayerForm({ ...playerForm, opggUrl })} placeholder={isStaffRole(playerForm.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(playerForm.role)} />
+        <SelectInput label="Poste ou fonction" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role, riotId: isStaffRole(role) ? "" : playerForm.riotId, opggUrl: isStaffRole(role) ? "" : playerForm.opggUrl, rosterStatus: isStaffRole(role) ? "INACTIVE" : role === "SUB" ? "SUB" : playerForm.rosterStatus === "INACTIVE" ? "AUTO" : playerForm.rosterStatus })}>{PROFILE_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
+        <SelectInput label="Effectif" value={playerForm.rosterStatus} onChange={(rosterStatus) => setPlayerForm({ ...playerForm, rosterStatus })} disabled={isStaffRole(playerForm.role) || playerForm.role === "SUB"}><option value="AUTO">Automatique</option>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectInput>
+        <div className="flex items-end"><Button type="submit" disabled={saving || !canManage} icon={saving ? Loader2 : UserPlus} className="w-full">{isStaffRole(playerForm.role) ? "Ajouter au staff" : "Ajouter le joueur"}</Button></div>
+      </form> : <p className="mt-4 text-sm leading-6 text-slate-300">Seul le staff peut ajouter des profils. Demande à ton capitaine, coach ou manager d’ajouter les joueurs.</p>}
+      {canManage && <div className="team-import-next" aria-label="Après les joueurs">
+        <div><h5>Ensuite, ajoute une partie</h5><p>{gameplayCount >= 5 ? "Les profils joueurs sont prêts. Tu pourras vérifier qui a joué avant d’enregistrer la partie." : `${gameplayCount} profil${gameplayCount > 1 ? "s" : ""} joueur${gameplayCount > 1 ? "s" : ""} sur 5 nécessaires. Les membres du staff ne comptent pas parmi ces cinq joueurs.`}</p></div>
+        {gameplayCount >= 5 && <LinkButton href="/games?import=1" navigate={openAppPath} variant="ghost" icon={Upload}>Importer une partie</LinkButton>}
+      </div>}
+      {canManage && editingPlayer && <form ref={profileEditRef} onSubmit={onUpdatePlayer} className="team-profile-edit" style={{ scrollMarginTop: "6rem" }}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><Badge tone="orange">Modification</Badge><h4 className="mt-3 text-xl font-black text-white">Modifier {editingPlayer.name}</h4><p className="mt-1 text-sm font-semibold text-cyan-100/80">Corrige le nom, le Riot ID ou l’OP.GG du profil.</p></div><Button type="button" variant="ghost" icon={X} onClick={onClosePlayerEdit}>Fermer</Button></div>
+        <div className="team-profile-edit-fields"><TextInput label="Nom" value={playerEditForm.name} onChange={(name) => setPlayerEditForm({ ...playerEditForm, name })} placeholder="Nom visible" required /><TextInput label="Riot ID" value={playerEditForm.riotId} onChange={(riotId) => setPlayerEditForm({ ...playerEditForm, riotId })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "Pseudo#TAG"} required={!isStaffRole(editingPlayer.role)} disabled={isStaffRole(editingPlayer.role)} /><TextInput label="OP.GG" value={playerEditForm.opggUrl} onChange={(opggUrl) => setPlayerEditForm({ ...playerEditForm, opggUrl })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(editingPlayer.role)} /><SelectInput label="Effectif" value={playerEditForm.rosterStatus} onChange={(rosterStatus) => setPlayerEditForm({ ...playerEditForm, rosterStatus })} disabled={isStaffRole(editingPlayer.role) || editingPlayer.role === "SUB"}>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectInput></div>
+        <div className="mt-4 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClosePlayerEdit}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button></div>
+      </form>}
+    </section>
+
+    <div className="team-management-basics">
+      <form onSubmit={onSaveTeam} className="team-identity-form">
+        <div className="team-identity-fields">
           <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/25 bg-black/30">
             {edit.avatarDataUrl ? <img src={edit.avatarDataUrl} alt={team.name} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(edit.avatarZoom || 1) + ")", objectPosition: Number(edit.avatarX ?? 50) + "% " + Number(edit.avatarY ?? 50) + "%" }} /> : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-9 w-9 text-slate-400" /></div>}
           </div>
@@ -585,13 +609,13 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             <TextInput label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} />
           </div>
         </div>
-        <details className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-          <summary className="cursor-pointer text-xs font-black uppercase tracking-[0.16em] text-cyan-100">Image de team</summary>
-          <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm font-black text-cyan-100 transition hover:bg-white/[0.07]"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="hidden" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canManage || saving} /></label>
+        <details className="team-image-options">
+          <summary className="team-disclosure-label">Image de l’équipe</summary>
+          <label className="team-image-upload"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="sr-only" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canManage || saving} /></label>
           <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
-            <label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">Horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
-            <label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">Vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
           </div>
         </details>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -601,7 +625,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         {!canManage && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}
       </form>
 
-      <div className="rounded-3xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
+      <div className="team-invitations">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h4 className="text-xl font-black text-white">Invitations temporaires</h4>
@@ -609,58 +633,38 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
           </div>
           <Button type="button" variant="ghost" icon={saving ? Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canManage}>Créer un code</Button>
         </div>
-        <div className="mt-4 grid gap-2 md:grid-cols-2">
+        <div className="team-invitation-list">
           {activeCodes.length ? activeCodes.map((code) => {
             const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000));
-            return <div key={code.id} className="rounded-2xl border border-white/10 bg-black/25 p-3">
+            return <div key={code.id} className="team-invitation-code">
               <div className="flex items-center justify-between gap-3"><p className="font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>
-              <p className="mt-1 truncate text-xs font-semibold text-slate-300">Créé par {code.created_by_name || "staff"}</p>
+              <p className="mt-1 break-words text-[13px] text-slate-300">Créé par {code.created_by_name || "staff"}</p>
             </div>;
-          }) : <p className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300 md:col-span-2">Aucun code actif.</p>}
+          }) : <p className="team-empty-row">Aucun code actif.</p>}
         </div>
       </div>
     </div>
 
-    <div className="mt-6 rounded-3xl border border-cyan-300/14 bg-cyan-400/[0.045] p-4">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div><h4 className="text-xl font-black text-white">Créer un profil</h4><p className="mt-1 text-sm font-semibold text-slate-300">Ajoute un joueur ou un membre staff, puis lie-le à un compte NXT5 si besoin.</p></div>
-        <Badge tone="purple">Gestion roster</Badge>
-      </div>
-      <form onSubmit={onCreatePlayer} className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-6">
-        <TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur ou staff" required />
-        <TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder={isStaffRole(playerForm.role) ? "Optionnel pour staff" : "Pseudo#TAG"} required={!isStaffRole(playerForm.role)} disabled={isStaffRole(playerForm.role)} />
-        <TextInput label="OP.GG" value={playerForm.opggUrl} onChange={(opggUrl) => setPlayerForm({ ...playerForm, opggUrl })} placeholder={isStaffRole(playerForm.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(playerForm.role)} />
-        <SelectInput label="Catégorie" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role, riotId: isStaffRole(role) ? "" : playerForm.riotId, opggUrl: isStaffRole(role) ? "" : playerForm.opggUrl, rosterStatus: isStaffRole(role) ? "INACTIVE" : role === "SUB" ? "SUB" : playerForm.rosterStatus === "INACTIVE" ? "AUTO" : playerForm.rosterStatus })}>{PROFILE_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
-        <SelectInput label="Effectif" value={playerForm.rosterStatus} onChange={(rosterStatus) => setPlayerForm({ ...playerForm, rosterStatus })} disabled={isStaffRole(playerForm.role) || playerForm.role === "SUB"}><option value="AUTO">Automatique</option>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectInput>
-        <div className="flex items-end"><Button type="submit" disabled={saving || !canManage} icon={saving ? Loader2 : UserPlus} className="w-full">Ajouter</Button></div>
-      </form>
-      {editingPlayer && <form onSubmit={onUpdatePlayer} className="mt-5 rounded-[1.35rem] border border-cyan-300/20 bg-cyan-400/10 p-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><Badge tone="orange">Modification</Badge><h4 className="mt-3 text-xl font-black text-white">Modifier {editingPlayer.name}</h4><p className="mt-1 text-sm font-semibold text-cyan-100/80">Corrige le nom, le Riot ID ou l’OP.GG du profil.</p></div><Button type="button" variant="ghost" icon={X} onClick={onClosePlayerEdit}>Fermer</Button></div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><TextInput label="Nom" value={playerEditForm.name} onChange={(name) => setPlayerEditForm({ ...playerEditForm, name })} placeholder="Nom visible" required /><TextInput label="Riot ID" value={playerEditForm.riotId} onChange={(riotId) => setPlayerEditForm({ ...playerEditForm, riotId })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "Pseudo#TAG"} required={!isStaffRole(editingPlayer.role)} disabled={isStaffRole(editingPlayer.role)} /><TextInput label="OP.GG" value={playerEditForm.opggUrl} onChange={(opggUrl) => setPlayerEditForm({ ...playerEditForm, opggUrl })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(editingPlayer.role)} /><SelectInput label="Effectif" value={playerEditForm.rosterStatus} onChange={(rosterStatus) => setPlayerEditForm({ ...playerEditForm, rosterStatus })} disabled={isStaffRole(editingPlayer.role) || editingPlayer.role === "SUB"}>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectInput></div>
-        <div className="mt-4 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClosePlayerEdit}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button></div>
-      </form>}
-    </div>
-
-    <div className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+    <div className="team-management-section">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div><h4 className="text-xl font-black text-white">Profils & accès</h4><p className="mt-1 text-sm font-semibold text-slate-300">Lie un compte, choisis son accès, et retire un profil depuis la même ligne.</p></div>
         <Badge tone="purple">{roster.length} profil{roster.length > 1 ? "s" : ""}</Badge>
       </div>
-      <div className="nxt5-management-profiles mt-4 space-y-2">
+      <div className="nxt5-management-profiles mt-4">
         {roster.map((player) => {
           const linkedMember = player.user_id ? memberByUser.get(player.user_id) : null;
           const staff = isStaffRole(player.role);
-          return <div key={player.id} className={cx("nxt5-management-profile rounded-2xl border p-3", player.user_id ? "border-emerald-300/18 bg-emerald-400/[0.045]" : "border-cyan-300/14 bg-black/22")}>
+          return <div key={player.id} className="nxt5-management-profile">
             <div className="min-w-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge>{!staff && <label><span className="sr-only">Effectif de {player.name}</span><select value={playerRosterStatus(player)} onChange={(event) => onRosterStatusChange?.(player, event.target.value)} disabled={saving || !canManage || player.role === "SUB"} title="Groupe d’effectif" className="rounded-full border border-cyan-200/20 bg-[#081322] px-2.5 py-1 text-[0.66rem] font-black uppercase text-cyan-50 outline-none transition hover:border-cyan-200/40 disabled:cursor-not-allowed disabled:opacity-45">{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}</div>
-              <p className="mt-2 truncate text-lg font-black text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
-              <p className="truncate text-xs font-semibold text-slate-300">{player.riot_id || (staff ? "Staff" : "Riot ID manquant")}</p>
+              <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge>{!staff && <label><span className="sr-only">Effectif de {player.name}</span><select value={playerRosterStatus(player)} onChange={(event) => onRosterStatusChange?.(player, event.target.value)} disabled={saving || !canManage || player.role === "SUB"} title="Groupe d’effectif" className="nxt5-input-shell nxt5-control team-roster-select">{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}</div>
+              <p className="mt-2 break-words text-lg font-semibold text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
+              <p className="break-words text-[13px] text-slate-300">{player.riot_id || (staff ? "Staff" : "Riot ID manquant")}</p>
             </div>
-            <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
-            <label className="block min-w-0"><span className="mb-1 block text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="w-full rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+            <label className="block min-w-0"><span className="nxt5-field-label">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="nxt5-input-shell nxt5-control team-access-select"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
+            <label className="block min-w-0"><span className="nxt5-field-label">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <div className="nxt5-management-actions">
               {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} className="px-3" onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}><span>Renvoyer</span></Button>}
-              <Button type="button" variant="ghost" icon={Pencil} className="px-3" onClick={() => onEditPlayer(player)} disabled={saving || !canManage}><span>Modifier</span></Button>
+              <Button type="button" variant="ghost" icon={Pencil} className="px-3" onClick={(event) => { editTriggerRef.current = event.currentTarget; onEditPlayer(player); }} disabled={saving || !canManage}><span>Modifier</span></Button>
               <Button type="button" variant="danger" icon={Trash2} className="px-3" onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}><span>Supprimer</span></Button>
             </div>
           </div>;
@@ -668,12 +672,12 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
       </div>
     </div>
 
-    {unlinkedMemberRows.length > 0 && <div className="mt-5 rounded-3xl border border-fuchsia-300/14 bg-fuchsia-400/[0.045] p-4">
+    {unlinkedMemberRows.length > 0 && <div className="team-management-section">
       <h4 className="text-xl font-black text-white">Comptes sans profil</h4>
       <div className="mt-4 grid gap-2 lg:grid-cols-2">
-        {unlinkedMemberRows.map((member) => <div key={member.id} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 p-3 md:flex-row md:items-center md:justify-between">
+        {unlinkedMemberRows.map((member) => <div key={member.id} className="team-unlinked-account">
           <div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone="slate">Non-lié</Badge><Badge tone={profileStatusTone(member)}>{profileStatusLabel(member)}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{member.name || member.account_name || "Compte invité"}</p></div>
-          <div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"} className="rounded-xl border border-white/10 bg-black/[0.22] px-3 py-2 text-sm font-black text-white outline-none">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || "ce compte non lié")} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"}>Renvoyer</Button></div>
+          <div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"} aria-label={`Accès de ${member.name || member.account_name || "ce compte"}`} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || "ce compte non lié")} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"}>Renvoyer</Button></div>
         </div>)}
       </div>
     </div>}
@@ -681,7 +685,10 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
 }
 
 function ChampionCircle({ champion, index }) {
-  return <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-400/10 px-3 py-2"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-cyan-200/30 bg-black/35"><ChampionPortrait champion={champion.champion} alt={champion.champion} /></div><div className="min-w-0"><p className="truncate text-sm font-black text-white">{championDisplayName(champion.champion)}</p><p className="text-xs font-black text-cyan-100/75">#{index + 1} · {champion.games || 0} game{champion.games > 1 ? "s" : ""}</p></div></div>;
+  return <div className="nxt5-roster-champion">
+    <div className="nxt5-roster-portrait"><ChampionPortrait champion={champion.champion} alt={champion.champion} /></div>
+    <div className="min-w-0"><p className="text-sm font-semibold text-white">{championDisplayName(champion.champion)}</p><p className="text-xs text-slate-400">{champion.games || 0} game{champion.games > 1 ? "s" : ""}</p></div>
+  </div>;
 }
 
 function playerImportedChampionStats(player, matches = []) {
@@ -706,7 +713,13 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
   const openProfile = (player) => {
     if (!isStaffRole(player.role)) openAppPath(`/mon-profil?player=${encodeURIComponent(player.id)}`);
   };
-  if (!roster.length) return <div className="mt-6"><EmptyState icon={UserPlus} title="Aucun profil" text="Ajoute tes joueurs et ton staff pour préparer les reviews." /></div>;
+  if (!roster.length) return <div className="team-roster-empty">
+    <UserPlus aria-hidden="true" className="h-7 w-7 shrink-0 text-cyan-200" />
+    <div className="min-w-0"><h4 className="text-lg font-semibold text-white">{canManage ? "Ajoute ton premier joueur" : "Le roster est en préparation"}</h4>
+      <p className="mt-2 text-sm leading-6 text-slate-300">{canManage ? "Renseigne son nom, son Riot ID et son poste. Tu pourras ensuite ajouter les autres joueurs et ton staff." : "Un capitaine, coach ou manager doit ajouter les profils de l’équipe. Demande à ton staff d’ajouter les joueurs."}</p>
+    </div>
+    {canManage && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
+  </div>;
   const sortRosterSection = (items) => [...items].sort((a, b) => rosterRoleIndex(a.role) - rosterRoleIndex(b.role) || String(a.name || "").localeCompare(String(b.name || "")));
   const gameplayRoster = roster.filter((item) => !isStaffRole(item.role));
   const mainRoster = sortRosterSection(gameplayRoster.filter((item) => playerRosterStatus(item) === "MAIN"));
@@ -716,7 +729,7 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
   const showActions = Boolean(onCopyOpgg || onSyncPlayer || onEditPlayer || onDeletePlayer);
   const renderSection = (items, title, subtitle, Icon, emptyText) => (
     <div className="min-w-0 overflow-hidden border-t border-white/10">
-      <div className="flex flex-col gap-3 border-b border-white/10 py-4 md:flex-row md:items-center md:justify-between">
+      <div className="nxt5-roster-section-header flex flex-col gap-3 border-b border-white/10 py-4 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></div>
           <div className="min-w-0">
@@ -731,27 +744,27 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
           const staff = isStaffRole(item.role);
           const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
           const isLinkedToMe = String(item.user_id || "") === String(currentUserId || "");
-          return <div key={item.id} className="px-1 py-4 transition hover:bg-white/[0.025]"><button type="button" onClick={() => openProfile(item)} disabled={staff} className="flex w-full items-start justify-between gap-3 text-left disabled:cursor-default"><div className="flex min-w-0 items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-4 w-4" /> : <Users className="h-4 w-4 text-violet-200" />}</div><div className="min-w-0"><div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={item.role} staff={staff} className="max-w-[7rem]" />{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div><p className="mt-2 break-words text-lg font-black text-white">{item.name}</p><p className="mt-1 break-words text-sm font-semibold text-slate-300">{staff ? "Non utilisé dans OP.GG" : item.riot_id || "Sans Riot ID"}</p></div></div>{!staff && <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-cyan-100" />}</button><div className="mt-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</div>{showActions && <div className="mt-4 grid grid-cols-4 gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div>}</div>;
+          return <div key={item.id} className="px-1 py-4 transition hover:bg-white/[0.025]"><button type="button" onClick={() => openProfile(item)} disabled={staff} className="flex w-full items-start justify-between gap-3 text-left disabled:cursor-default"><div className="flex min-w-0 items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-4 w-4" /> : <Users className="h-4 w-4 text-violet-200" />}</div><div className="min-w-0"><div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={item.role} staff={staff} className="max-w-[7rem]" />{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div><p className="mt-2 break-words text-lg font-black text-white">{item.name}</p><p className="mt-1 break-words text-sm font-semibold text-slate-300">{staff ? "Non utilisé dans OP.GG" : item.riot_id || "Sans Riot ID"}</p></div></div>{!staff && <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-cyan-100" />}</button><div className="mt-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</div>{showActions && <div className="mt-4 grid grid-cols-4 gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 items-center justify-center rounded-[2px] border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 items-center justify-center rounded-[2px] border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 items-center justify-center rounded-[2px] border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 items-center justify-center rounded-[2px] border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div>}</div>;
         })}
       </div><div className="nxt5-responsive-scroll hidden overflow-x-auto md:block">
         <table className={cx("w-full text-left text-sm", showActions ? "min-w-[1040px]" : "min-w-[860px]")}>
-          <thead className="sticky top-0 bg-white/[0.055] text-[0.68rem] uppercase tracking-[0.18em] text-slate-300"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Champions les plus joués</th>{showActions && <th className="px-4 py-3 text-right">Actions</th>}</tr></thead>
+          <thead className="sticky top-0 bg-white/[0.055] text-[13px] font-semibold text-slate-300"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Champions les plus joués</th>{showActions && <th className="px-4 py-3 text-right">Actions</th>}</tr></thead>
           <tbody className="divide-y divide-white/10">{items.map((item) => {
     const staff = isStaffRole(item.role);
     const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
     const isLinkedToMe = String(item.user_id || "") === String(currentUserId || "");
-    return <tr key={item.id} onClick={() => openProfile(item)} className={cx("bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]", staff ? "cursor-default" : "cursor-pointer")}><td className="px-4 py-4"><div className="flex min-w-0 items-center gap-2">{!staff && <ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" />}<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-5 w-5" /> : <Users className="h-4 w-4 text-violet-200" />}</div><RoleTag role={item.role} staff={staff} className="max-w-[7.5rem]" /></div></td><td className="px-4 py-4"><div className="flex min-w-0 flex-wrap items-center gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); openProfile(item); }} disabled={staff} className="min-h-11 min-w-0 break-words text-left font-black text-white underline-offset-4 hover:underline disabled:cursor-default disabled:no-underline">{item.name}</button>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div></td><td className="px-4 py-4 font-semibold text-slate-300">{staff ? "Non utilisé" : item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</td>{showActions && <td className="px-4 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div></td>}</tr>;
+    return <tr key={item.id} onClick={() => openProfile(item)} className={cx("bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]", staff ? "cursor-default" : "cursor-pointer")}><td className="px-4 py-4"><div className="flex min-w-0 items-center gap-2">{!staff && <ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" />}<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-5 w-5" /> : <Users className="h-4 w-4 text-violet-200" />}</div><RoleTag role={item.role} staff={staff} className="max-w-[7.5rem]" /></div></td><td className="px-4 py-4"><div className="flex min-w-0 flex-wrap items-center gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); openProfile(item); }} disabled={staff} className="min-h-11 min-w-0 break-words text-left font-black text-white underline-offset-4 hover:underline disabled:cursor-default disabled:no-underline">{item.name}</button>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div></td><td className="px-4 py-4 font-semibold text-slate-300">{staff ? "Non utilisé" : item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</td>{showActions && <td className="px-4 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div></td>}</tr>;
           })}</tbody>
         </table>
       </div></> : <p className="py-4 text-sm font-semibold leading-6 text-slate-300">{emptyText}</p>}
     </div>
   );
-  return <div className="mt-6 grid gap-5">
-    {renderSection(mainRoster, "Main Team", "Les titulaires utilisés par défaut pour le Multi OP.GG, les drafts et les imports.", Users, "Aucun titulaire défini. Passe un profil en Main Team depuis Gestion.")}
-    {renderSection(subRoster, "Subs", "Les remplaçants disponibles, avec leur propre Multi OP.GG.", UserPlus, "Aucun remplaçant défini. Passe un profil en Sub depuis Gestion.")}
-    {inactiveRoster.length > 0 && renderSection(inactiveRoster, "Hors roster", "Profils conservés sans être inclus dans les lineups OP.GG.", EyeOff, "")}
-    {renderSection(staffRoster, "Coaching staff", "Coachs, managers et staff : accès gestion sans présence dans le draft ni OP.GG.", ShieldCheck, "Aucun membre staff ajouté pour le moment.")}
+  return <div className="nxt5-roster mt-6 grid gap-5">
+    {renderSection(mainRoster, "Titulaires", "Les joueurs de la composition principale.", Users, "Aucun titulaire défini. Choisis Titulaire dans le champ Effectif depuis Gestion de l’équipe.")}
+    {renderSection(subRoster, "Remplaçants", "Les joueurs disponibles pour remplacer un titulaire.", UserPlus, "Aucun remplaçant défini. Choisis Remplaçant dans le champ Effectif depuis Gestion de l’équipe.")}
+    {inactiveRoster.length > 0 && renderSection(inactiveRoster, "Hors effectif actif", "Profils conservés en dehors des groupes de joueurs actifs.", EyeOff, "")}
+    {renderSection(staffRoster, "Encadrement", "Coachs, managers et autres membres du staff.", ShieldCheck, "Aucun membre staff ajouté pour le moment.")}
   </div>;
 }
 
-export { Teams, parseMultiOpgg, decodeLoose, opggUrlFromRiotId, TeamCoachDashboard, HomeActionSummary, TeamManagementPanel, PROFILE_ROLES, RoleTag, PremiumRosterTable, rosterRoleIndex, ImportedChampionBadges, ChampionCircle, playerImportedChampionStats };
+export { Teams, parseMultiOpgg, decodeLoose, opggUrlFromRiotId, TeamManagementPanel, PROFILE_ROLES, RoleTag, PremiumRosterTable, rosterRoleIndex, ImportedChampionBadges, ChampionCircle, playerImportedChampionStats };

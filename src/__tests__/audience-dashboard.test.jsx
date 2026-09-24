@@ -92,7 +92,7 @@ describe("audience dashboard", () => {
   it("searches and sorts pages without requesting a new audience report", async () => {
     apiFetch.mockResolvedValueOnce(result());
     const renderer = await render();
-    const search = renderer.root.findByProps({ type: "search" });
+    const search = renderer.root.findAllByType("input").find((node) => node.props.type === "search");
     act(() => search.props.onChange({ target: { value: "TARIFS" } }));
     const table = renderer.root.findByProps({ className: "audience-table audience-pages-table" });
     expect(table.findAllByType("tbody")[0].findAllByType("tr")).toHaveLength(1);

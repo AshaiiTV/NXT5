@@ -95,26 +95,26 @@ describe("trend evolution interactions", () => {
   it("keeps the chosen game across metric and period changes, opening the exact source", () => {
     const games = [game(3), game(2), game(1)];
     const app = mount(games);
-    act(() => app.select("Game à examiner").props.onChange({ target: { value: "game:game-2:0" } }));
+    act(() => app.select("Partie à examiner").props.onChange({ target: { value: "game:game-2:0" } }));
     act(() => app.select("Mesure à suivre").props.onChange({ target: { value: "deaths" } }));
-    expect(app.select("Game à examiner").props.value).toBe("game:game-2:0");
+    expect(app.select("Partie à examiner").props.value).toBe("game:game-2:0");
     app.update([games[1], games[0]]);
-    expect(app.select("Game à examiner").props.value).toBe("game:game-2:0");
-    act(() => app.button("Ouvrir cette game").props.onClick());
+    expect(app.select("Partie à examiner").props.value).toBe("game:game-2:0");
+    act(() => app.button("Ouvrir cette partie").props.onClick());
     expect(app.onOpenMatch).toHaveBeenCalledWith(games[1]);
     app.update([games[0]]);
-    expect(app.select("Game à examiner").props.value).toBe("game:game-3:0");
+    expect(app.select("Partie à examiner").props.value).toBe("game:game-3:0");
   });
 
   it("allows chronological keyboard controls and unknown-date selection without extra chart tab stops", () => {
     const unknown = game(4, { id: "unknown", game_date: null });
     const app = mount([unknown, game(2), game(1)]);
-    act(() => app.button("Game suivante").props.onClick());
-    expect(app.select("Game à examiner").props.value).toBe("game:unknown:0");
-    expect(app.button("Game suivante").props.disabled).toBe(true);
-    act(() => app.button("Game précédente").props.onClick());
-    act(() => app.button("Game précédente").props.onClick());
-    expect(app.button("Game précédente").props.disabled).toBe(true);
+    act(() => app.button("Partie suivante").props.onClick());
+    expect(app.select("Partie à examiner").props.value).toBe("game:unknown:0");
+    expect(app.button("Partie suivante").props.disabled).toBe(true);
+    act(() => app.button("Partie précédente").props.onClick());
+    act(() => app.button("Partie précédente").props.onClick());
+    expect(app.button("Partie précédente").props.disabled).toBe(true);
     expect(renderer.root.findAll((node) => node.props.tabIndex >= 0)).toHaveLength(0);
   });
 
@@ -129,12 +129,12 @@ describe("trend evolution interactions", () => {
     expect(text(renderer.toJSON())).toContain("Aucune valeur disponible pour cette mesure");
     expect(text(renderer.toJSON())).toContain("Donnée indisponible");
     app.update([]);
-    expect(text(renderer.toJSON())).toContain("Aucune game dans cette sélection");
+    expect(text(renderer.toJSON())).toContain("Aucune partie dans cette sélection");
   });
 
   it("keeps a long series usable with a collapsed paginated source list", () => {
     const app = mount(Array.from({ length: 301 }, (_, index) => game(index + 1)));
-    expect(app.select("Game à examiner").findAllByType("option")).toHaveLength(301);
+    expect(app.select("Partie à examiner").findAllByType("option")).toHaveLength(301);
     expect(renderer.root.findAllByType("button")).toHaveLength(3);
     const details = renderer.root.findByType("details");
     act(() => details.props.onToggle({ currentTarget: { open: true } }));

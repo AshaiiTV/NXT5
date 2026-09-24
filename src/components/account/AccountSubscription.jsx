@@ -4,6 +4,7 @@ import { apiFetch } from "../../api/client.js";
 import { getSubscriptionPresentation, notifySubscriptionUpdated, subscriptionPeriodLabel, SUBSCRIPTION_UPDATED_EVENT } from "../../app/subscriptions.js";
 import { DISCOVERY_TRIAL_DAYS } from "../../app/pass-access.js";
 import { Badge, Button, Surface } from "../ui/Core.jsx";
+import "./account-subscription.css";
 
 export default function AccountSubscription({ compact = false }) {
   const [subscription, setSubscription] = useState(null);
@@ -48,20 +49,20 @@ export default function AccountSubscription({ compact = false }) {
 
   if (compact) {
     if (loading) return <span role="status"><Badge tone="slate">Abonnement…</Badge></span>;
-    if (error || !presentation) return <button type="button" className="min-h-11 rounded-xl" onClick={() => setRefresh((value) => value + 1)} title="Réessayer de charger ton abonnement" aria-label="Abonnement indisponible. Réessayer"><Badge tone="slate">Indisponible</Badge></button>;
+    if (error || !presentation) return <button type="button" className="min-h-11 rounded-[2px]" onClick={() => setRefresh((value) => value + 1)} title="Réessayer de charger ton abonnement" aria-label="Abonnement indisponible. Réessayer"><Badge tone="slate">Indisponible</Badge></button>;
     const statusSuffix = subscription.status === "active" || subscription.status === "none" ? "" : ` · ${presentation.statusLabel}`;
     return <span aria-label={`Abonnement : ${presentation.label}${subscription.status === "none" ? "" : ` · ${presentation.statusLabel}`}`}><Badge tone={presentation.tone}>{presentation.label}{statusSuffix}</Badge></span>;
   }
 
-  return <Surface className="mb-5"><section aria-labelledby="account-subscription-title">
+  return <Surface className="mb-5 account-subscription"><section aria-labelledby="account-subscription-title">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h3 id="account-subscription-title" className="text-xl font-black">Mon abonnement</h3><p className="mt-2 text-sm leading-6 text-slate-300">La formule attribuée à ton profil par l’administration.</p></div>
+      <div><h3 id="account-subscription-title" className="text-lg font-semibold">Mon abonnement</h3><p className="mt-2 text-sm leading-6 text-slate-300">La formule et les dates associées à ton compte par l’administration.</p></div>
       <Button type="button" variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? "Vérification…" : "Actualiser l’abonnement"}</Button>
     </div>
     {loading && !subscription && <p className="mt-4 text-sm text-slate-300" role="status">Chargement de ton abonnement…</p>}
-    {error && <p className="mt-4 text-sm text-rose-200" role="alert">{error}</p>}
-    {subscription && <div className="mt-4 border-t border-white/10 pt-4">
-      <div className="flex flex-wrap items-center gap-3"><p className="text-2xl font-black">{presentation.label}</p><Badge tone={presentation.tone}>{presentation.statusLabel}</Badge></div>
+    {error && <p className="account-subscription-error" role="alert">{error}</p>}
+    {subscription && <div className="account-subscription-detail">
+      <div className="flex flex-wrap items-center gap-3"><p className="account-subscription-plan">{presentation.label}</p><Badge tone={presentation.tone}>{presentation.statusLabel}</Badge></div>
       {hasAttribution ? <>
         {isDiscovery && <p className="mt-3 text-sm leading-6 text-slate-300">Découverte comprend {DISCOVERY_TRIAL_DAYS} jours d’accès à tous les outils. Après cet essai, le Pass Équipe sera nécessaire pour continuer à les utiliser lorsque les abonnements seront lancés.</p>}
         <dl className="mt-4 text-sm leading-6">
@@ -73,7 +74,7 @@ export default function AccountSubscription({ compact = false }) {
           {subscription.status === "revoked" && <p className="mt-3 text-sm text-slate-300">L’attribution de cet essai a été retirée.</p>}
         </> : subscription.status !== "active" && <p className="mt-3 text-sm text-slate-300">{subscription.status === "scheduled" ? "Ce Pass prendra effet à la date de début indiquée." : "Ce Pass n’est plus actif."}</p>}
       </> : <p className="mt-3 text-sm text-slate-300">Aucun abonnement n’est attribué à ton profil.</p>}
-      <p className="mt-3 text-sm leading-6 text-cyan-100">Les abonnements ne sont pas encore lancés : tous les outils restent accessibles, quel que soit le statut indiqué ici.</p>
+      <p className="account-subscription-launch">Les abonnements ne sont pas encore lancés : tous les outils restent accessibles, quel que soit le statut indiqué ici.</p>
       <p className="mt-3 text-sm leading-6 text-slate-400">Une attribution manuelle ne déclenche aucun paiement ni reconduction automatique. Pour une modification, contacte l’administration.</p>
     </div>}
   </section></Surface>;

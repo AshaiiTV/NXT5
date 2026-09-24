@@ -117,7 +117,7 @@ export function buildTrendsPngData(matches = []) {
   return { ...results(matches), gold, deaths, kills, sides, roles, champions: [...champions.values()].map((entry) => ({ champion: entry.champion, ...results(entry.matches) })).sort((a, b) => b.games - a.games || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), "fr")) };
 }
 
-export async function exportTrendsPng({ matches = [], teamName = "Notre équipe", categoryName = "Toutes les games", periodLabel = "Historique complet", filename }) {
+export async function renderTrendsPng({ matches = [], teamName = "Notre équipe", categoryName = "Toutes les games", periodLabel = "Historique complet" }) {
   await document.fonts?.ready;
   const report = buildTrendsPngData(matches);
   const champions = report.champions.slice(0, 6);
@@ -202,7 +202,12 @@ export async function exportTrendsPng({ matches = [], teamName = "Notre équipe"
   if (!champions.length) label("Aucun champion renseigné", margin, championY + 160, contentWidth);
   label("— : donnée indisponible · Les comptes sous les moyennes indiquent les games mesurées dans la sélection.", margin, H - 97, contentWidth);
   pngFooter(ctx, { width: W, height: H, label: "Tendances d’équipe" });
-  await pngDownload(canvas, filename || "nxt5-tendances.png");
+  return canvas;
+}
+
+export async function exportTrendsPng(options) {
+  const canvas = await renderTrendsPng(options);
+  await pngDownload(canvas, options.filename || "nxt5-tendances.png");
   return canvas;
 }
 
@@ -306,14 +311,14 @@ function TrendsPage({ data, selectedTeamId }) {
     };
   }), [matches]);
   const detailHeader = detailSection && <>
-    <nav aria-label="Retour aux tendances" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour à Draft</a></nav>
-    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Tendances · Draft" title={detailSection.title} subtitle={detailSection.description} /></div>
+    <nav aria-label="Retour aux analyses" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour aux choix des champions</a></nav>
+    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Analyses · Choix des champions" title={detailSection.title} subtitle={detailSection.description} /></div>
   </>;
 
   if (!matches.length) return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc." />}
-    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
-    <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune game dans cette sélection" : "Vos tendances commencent ici"} text={baseMatches.length ? "Choisis un autre contexte pour retrouver les analyses de l’équipe." : "Importe tes premières games pour suivre les résultats et faire émerger les répétitions."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les games" : "Importer des games"}</Button></div></Surface>
+    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles." />}
+    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
+    <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune partie dans cette sélection" : "Vos analyses commencent ici"} text={baseMatches.length ? "Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe." : "Importe tes premières parties pour suivre les résultats et repérer les points à travailler."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les parties" : "Importer une partie"}</Button></div></Surface>
   </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
@@ -985,19 +990,19 @@ function TrendsPage({ data, selectedTeamId }) {
     { label: "Premier objectif", value: game.firstObjective || "—", toneName: game.firstObjective && game.firstObjective !== "—" ? "cyan" : "slate" },
   ];
   const sourceGameRead = (game) => {
-    if (game.result === "Victoire" && game.goldDiff >= 0) return "Victoire avec un avantage d’or en fin de game.";
-    if (game.result === "Victoire" && game.goldDiff < 0) return "Victoire malgré un retard d’or en fin de game : revoir les fights décisifs.";
+    if (game.result === "Victoire" && game.goldDiff >= 0) return "Victoire avec un avantage d’or en fin de partie.";
+    if (game.result === "Victoire" && game.goldDiff < 0) return "Victoire malgré un retard d’or en fin de partie : revoir les combats décisifs.";
     if (game.result === "Défaite" && game.deaths > game.enemyDeaths) return "Plus de morts en défaite : vérifier leur contexte avant de conclure.";
-    if (game.visionDiff < 0) return "Information défavorable : setup objectif ou facecheck à revoir.";
-    return "Game utile pour comparer exécution, tempo objectif et rôle moteur.";
+    if (game.visionDiff < 0) return "Score de vision inférieur : revoir la préparation des objectifs et les entrées dans les zones sans vision.";
+    return "Partie utile pour comparer les décisions, le moment des objectifs et la contribution des rôles.";
   };
   const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
   const trendPanelOptions = [
-    ["coach", "Synthèse", Gauge, "Préparer la review"],
-    ["evolution", "Évolution", Activity, "Suivre game après game"],
-    ["comparison", "Comparer", RefreshCw, "Confronter deux sélections"],
-    ["draft", "Draft", Crown, "Champions et compositions"],
+    ["coach", "Synthèse", Gauge, "Préparer le débrief"],
+    ["evolution", "Évolution", Activity, "Suivre partie après partie"],
+    ["comparison", "Comparer", RefreshCw, "Voir ce qui a changé"],
+    ["draft", "Champions", Crown, "Choix et compositions"],
     ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
   ];
   const showObjectives = () => {
@@ -1006,19 +1011,19 @@ function TrendsPage({ data, selectedTeamId }) {
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Tendances d’équipe" subtitle="Lis le bilan, repère les évolutions et prépare le prochain bloc.">
+    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.">
       <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? "Export en cours…" : "Exporter la synthèse"}</Button>
     </PageHeader>}
     {exportState === "error" && <p role="alert" className="trends-export-status">L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».</p>}
     {exportState === "done" && <p role="status" className="trends-export-status">La synthèse PNG a été téléchargée.</p>}
     <div className="trends-filters">
       <div className="trends-filter-controls">
-        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les games</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
-      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} game{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
+      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} partie{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
     </div>
-    {matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Petit échantillon : les patterns restent à confirmer. Ces observations portent sur {matches.length} game{matches.length > 1 ? "s" : ""}.</span></p>}
+    {matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Peu de parties : les répétitions restent à confirmer. Ces observations portent sur {matches.length} partie{matches.length > 1 ? "s" : ""}.</span></p>}
     {detailSection ? <DraftTrendDetails key={draftDetail} sectionId={draftDetail} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} /> : <>
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={label} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
@@ -1031,7 +1036,7 @@ function TrendsPage({ data, selectedTeamId }) {
       </>}
     </div>)}
     </>}
-    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des games : une valeur par game dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les games sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
+    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
     {profileContractsOpen && <TrendContractsDialog objectives={profileAiObjectives} onClose={() => setProfileContractsOpen(false)} onOpenSources={openTrendSources} />}
     {trendSourceModal && <TrendSourcesDialog source={trendSourceModal} onClose={() => setTrendSourceModal(null)} onOpenGame={openSourceGame} signals={sourceGameSignals} read={sourceGameRead} />}
   </div>;

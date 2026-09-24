@@ -1,3 +1,4 @@
+import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -20,6 +21,9 @@ vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({ default: ({ phase
 vi.mock("../hooks/useTeamData.js", () => ({ useTeamData: vi.fn(() => { throw new Error("An administrator page must not bootstrap a team."); }) }));
 vi.mock("../pages/admin/AdminDashboard.jsx", () => ({ default: ({ view, teamFilter, onNavigate }) => <section data-admin-view={view} data-team-filter={teamFilter}>{view === "overview" && <button onClick={() => onNavigate("/admin/equipes?filtre=never")}>Voir les équipes sans import</button>}</section> }));
 vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data-admin-view="audience" /> }));
+vi.mock("../pages/admin/BotAnalyticsPage.jsx", () => ({ default: () => <section data-admin-view="bot" /> }));
+vi.mock("../pages/admin/BotPublicationsPage.jsx", () => ({ default: () => <section data-admin-view="bot-publications" /> }));
+vi.mock("../pages/admin/ExportsPage.jsx", () => ({ default: () => <section data-admin-view="exports" /> }));
 vi.mock("../pages/admin/AccessRequestsPage.jsx", () => ({ default: ({ embedded }) => <section data-admin-view="requests" data-embedded={embedded} /> }));
 vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: function SubscriptionsForm({ embedded, initialUserId, navigate }) {
   const [dirty, setDirty] = React.useState(false);
@@ -41,11 +45,14 @@ const routes = [
   ["/admin/equipes", "teams"],
   ["/admin/usage", "usage"],
   ["/admin/frequentation", "audience"],
+  ["/admin/bot-discord/publications", "bot-publications"],
+  ["/admin/bot-discord", "bot"],
   ["/admin/achats", "purchases"],
   ["/admin/demandes-acces", "requests"],
   ["/admin/abonnements", "subscriptions"],
   ["/admin/tarifs", "pricing"],
   ["/admin/preparer-vente", "launch"],
+  ["/admin/exports", "exports"],
   ["/admin/rappels", "reminders"],
   ["/admin/integrations", "integrations"],
 ];
@@ -82,9 +89,10 @@ async function open(path, account = admin, pending = false) {
     localStorage: { getItem: vi.fn() },
     sessionStorage: { getItem: vi.fn() },
   });
-  vi.stubGlobal("document", { title: "" });
+  vi.stubGlobal("document", createSeoDocument());
   apiFetch.mockImplementation(endpoint => {
     if (endpoint === "auth-me") return pending ? new Promise(() => {}) : Promise.resolve({ user: account });
+    if (endpoint === "auth-social-status") return Promise.resolve({ providers: [], linked: [], hasPassword: true });
     if (endpoint === "admin-purchases?view=overview") return Promise.resolve({ totals: { orders: 0, paid: 0, paidCents: 0, pending: 0, averageCents: 0, frequency30d: 0, paid30d: 0, cancelled: 0, refunded: 0 }, monthly: [], generatedAt: "2026-09-14T12:00:00Z" });
     if (endpoint === "admin-purchases?page=1&pageSize=10") return Promise.resolve({ purchases: [], pagination: { page: 1, pageSize: 10, total: 0, totalPages: 1 } });
     return Promise.reject(new Error(`Unexpected request: ${endpoint}`));
@@ -136,7 +144,8 @@ const guardedDepartures = [
 
 describe("administration route contract", () => {
   it("recognizes each route and groups every destination exactly once", () => {
-    expect(ADMIN_GROUPS.map(group => group.label)).toEqual(["Pilotage", "Ventes et accès", "Configuration"]);
+    expect(ADMIN_GROUPS.map(group => group.label)).toEqual(["Pilotage", "Bot", "Ventes et accès", "Configuration"]);
+    expect(ADMIN_GROUPS.find(group => group.label === "Bot").pages.map(page => [page.id, page.label])).toEqual([["bot-publications", "Publications"], ["bot", "Statistiques"]]);
     expect(ADMIN_PAGES.map(page => [page.path, page.id])).toEqual(routes);
     for (const [path, id] of routes) {
       expect(adminPageFromRoute({ path: `${path}/` })?.id).toBe(id);
@@ -185,19 +194,19 @@ describe("administration route contract", () => {
     selectedView(id);
   });
 
-  it("updates menu, title and content through links and browser back/forward", async () => {
+  it("keeps publications and statistics as separate Bot pages through links and browser back/forward", async () => {
     await open("/admin");
-    const event = await follow("/admin/achats");
+    const event = await follow("/admin/bot-discord/publications");
     expect(event.preventDefault).toHaveBeenCalledOnce();
-    selectedView("purchases");
-    await follow("/admin/frequentation");
-    selectedView("audience");
+    selectedView("bot-publications");
+    await follow("/admin/bot-discord");
+    selectedView("bot");
     await act(async () => window.history.back());
-    selectedView("purchases");
+    selectedView("bot-publications");
     await act(async () => window.history.back());
     selectedView("overview");
     await act(async () => window.history.forward());
-    selectedView("purchases");
+    selectedView("bot-publications");
     expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "auth-me")).toHaveLength(1);
   });
 
@@ -207,8 +216,8 @@ describe("administration route contract", () => {
     selectedView("teams");
     expect(renderer.root.findByProps({ "data-admin-view": "teams" }).props["data-team-filter"]).toBe("never");
     expect(window.location.search).toBe("?filtre=never");
-    await act(async () => renderer.root.findByType("select").props.onChange({ target: { value: "/admin/rappels" } }));
-    selectedView("reminders");
+    await act(async () => renderer.root.findByType("select").props.onChange({ target: { value: "/admin/bot-discord/publications" } }));
+    selectedView("bot-publications");
     await act(async () => window.history.back());
     selectedView("teams");
     expect(renderer.root.findByProps({ "data-admin-view": "teams" }).props["data-team-filter"]).toBe("never");
@@ -301,7 +310,8 @@ describe("administration editor navigation", () => {
     await clickButton("Déconnexion");
     apiFetch.mockResolvedValueOnce({ ok: true });
     await clickButton("Quitter sans enregistrer");
-    expect(apiFetch).toHaveBeenLastCalledWith("auth-logout", { method: "POST" });
+    expect(apiFetch).toHaveBeenCalledWith("auth-logout", { method: "POST" });
+    expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "auth-logout")).toHaveLength(1);
     expect(window.location.pathname).toBe("/connexion");
   });
 });

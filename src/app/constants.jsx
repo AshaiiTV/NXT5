@@ -2,6 +2,7 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  Bot,
   CalendarDays,
   FileText,
   Settings,
@@ -18,27 +19,28 @@ export const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac
 export const NXT5_IMPORTER_MAC_INTEL_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac&arch=x64`;
 
 export const NAV = [
-  { id: "teams", label: "Équipe", hint: "Roster et accès", icon: Users, shortcut: "T", path: "/equipes" },
-  { id: "matches", label: "Games", hint: "Historique et statistiques", icon: Swords, shortcut: "G", path: "/games" },
-  { id: "trends", label: "Tendances", hint: "Comprendre l'équipe", icon: Activity, shortcut: "N", path: "/tendances" },
-  { id: "planning", label: "Planning", hint: "Dispos et sessions", icon: CalendarDays, shortcut: "L", path: "/planning" },
-  { id: "draft", label: "Draft", hint: "Pools et compositions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
-  { id: "reports", label: "Review", hint: "Décisions staff", icon: FileText, shortcut: "R", path: "/rapports" },
-  { id: "profile", label: "Profil", hint: "Ton espace joueur", icon: Activity, shortcut: "P", path: "/mon-profil" },
-  { id: "guide", label: "Guide", hint: "Mode d’emploi", icon: BookOpen, shortcut: "A", path: "/guide", hidden: true },
+  { id: "teams", label: "Équipe", hint: "Retrouver tes joueurs", icon: Users, shortcut: "T", path: "/equipes" },
+  { id: "matches", label: "Parties", hint: "Importer et revoir une partie", icon: Swords, shortcut: "G", path: "/games" },
+  { id: "bot-discord", label: "Bot Discord", hint: "Connexion et publications", icon: Bot, path: "/bot-discord" },
+  { id: "trends", label: "Analyses", hint: "Suivre plusieurs parties", icon: Activity, shortcut: "N", path: "/tendances" },
+  { id: "planning", label: "Planning", hint: "Organiser les séances", icon: CalendarDays, shortcut: "L", path: "/planning" },
+  { id: "draft", label: "Draft", hint: "Choisir les champions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
+  { id: "reports", label: "Débriefs", hint: "Noter les points à travailler", icon: FileText, shortcut: "R", path: "/rapports" },
+  { id: "profile", label: "Mon profil", hint: "Suivre ta progression", icon: Activity, shortcut: "P", path: "/mon-profil" },
+  { id: "guide", label: "Guide d’utilisation", hint: "Les étapes et les mots utiles", icon: BookOpen, shortcut: "A", path: "/guide", hidden: true },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "audience", label: "Fréquentation", hint: "Audience et conversions", icon: BarChart3, path: "/admin/frequentation", hidden: true },
   { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
   { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
-  { id: "account-subscriptions", label: "Profils et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
+  { id: "account-subscriptions", label: "Comptes et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
 ];
 
 export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
-export const MORE_NAV_IDS = ["reports", "trends", "draft"];
+export const MORE_NAV_IDS = ["reports", "trends", "draft", "bot-discord"];
 
 export const DRAFT_VIEW_ROUTES = [
-  { id: "pool", label: "Champion Pool", path: "pool" },
+  { id: "pool", label: "Champions des joueurs", path: "pool" },
   { id: "compositions", label: "Compositions", path: "compositions" },
 ];
 
@@ -56,7 +58,7 @@ export const AUTH_ROUTES = {
   "/inscription": "register",
 };
 
-export const PUBLIC_ROUTES = ["/", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact", "/reseaux"];
+export const PUBLIC_ROUTES = ["/", "/fonctionnalites", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact", "/reseaux", "/soutenir"];
 export const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 export const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
 export const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";

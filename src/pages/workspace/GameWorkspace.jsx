@@ -1,3 +1,4 @@
+import { buildGamePublicationSnapshot } from "../../../shared/publications/game-publication.js";
 import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumeric, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
@@ -15,16 +16,38 @@ import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { createPortal } from "react-dom";
-import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, ChampionBackdrop, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
+import DiscordGameShare from "../../components/discord/DiscordGameShare.jsx";
+import DiscordGroupShare from "../../components/discord/DiscordGroupShare.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 
 const ReviewQueuePanel = lazyNamed(loadNextPhase, "ReviewQueuePanel");
 
-async function exportStatsPng({ title, subtitle, matches, filename, teamName = "Notre équipe", group = false }) {
+async function renderStatsPng({ title, subtitle, matches, team, categories = [], teamName = "Notre équipe", group = false }) {
+  const singleMatch = !group && Array.isArray(matches) && matches.filter(Boolean).length === 1 ? matches.filter(Boolean)[0] : null;
+  if (singleMatch) {
+    const { renderGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
+    const canvas = await renderGamePublicationPng(buildGamePublicationSnapshot({ team: team || { name: teamName }, match: singleMatch, categories }), {
+      async loadAssets(snapshot) {
+        const champions = new Map();
+        const items = new Map();
+        const load = async (sources) => {
+          for (const url of sources.slice(0, 2)) { const image = await pngLoadImage(url); if (image) return image; }
+          return null;
+        };
+        const championNames = [...new Set(snapshot.participants.map((row) => row.champion).filter(Boolean))];
+        const itemIds = [...new Set(snapshot.participants.flatMap((row) => [...row.items, row.trinket]).filter((id) => id > 0))];
+        await Promise.all([
+          ...championNames.map(async (name) => champions.set(name, await load(championPortraitSources(name, name)))),
+          ...itemIds.map(async (id) => items.set(id, await load(itemIconSources(id)))),
+        ]);
+        return { champions, items };
+      },
+    });
+    return [canvas];
+  }
   const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];
   if (!scoped.length) throw new Error("Aucune game à exporter.");
-  const firstMatch = scoped[0];
-  const singleGame = !group && scoped.length === 1;
   const games = scoped.length;
   const number = pngNumeric;
   const rawFor = (row) => {
@@ -69,36 +92,6 @@ async function exportStatsPng({ title, subtitle, matches, filename, teamName = "
   };
   const sideLabel = (match, teamKey = "ALLY") => side(match, teamKey) === "blue" ? "Côté bleu" : side(match, teamKey) === "red" ? "Côté rouge" : "Côté inconnu";
   const sideColor = (match, teamKey = "ALLY") => side(match, teamKey) === "red" ? PNG_THEME.red : side(match, teamKey) === "blue" ? PNG_THEME.cyan : PNG_THEME.muted;
-  const opponentName = firstMatch.opponent || "Adversaires";
-  const nameForTeam = (teamKey) => teamKey === "ALLY" ? teamName : opponentName;
-  const roleOrder = ["TOP", "JGL", "MID", "ADC", "SUP"];
-  const sortPlayers = (items) => [...items].sort((a, b) => {
-    const order = (row) => { const index = roleOrder.indexOf(normalizeProfileRole(row.role)); return index < 0 ? 99 : index; };
-    return order(a) - order(b);
-  });
-  const rowName = (row) => row?.summoner_name || row?.riot_id || row?.player_name || "Joueur inconnu";
-  const cs = (row) => {
-    for (const source of sourcesFor(row)) {
-      const direct = number(source.cs ?? source.creep_score ?? source.total_cs);
-      if (direct !== null) return direct;
-      const lane = number(source.totalMinionsKilled);
-      const jungle = number(source.neutralMinionsKilled);
-      if (lane !== null && jungle !== null) return lane + jungle;
-    }
-    return null;
-  };
-  const participation = (row, match) => {
-    const direct = row.kill_participation ?? row.kp;
-    if (direct !== null && direct !== undefined && String(direct).trim() !== "") {
-      const parsed = number(String(direct).replace("%", "").replace(",", "."));
-      if (parsed !== null) return String(direct).includes("%") || parsed > 1 ? parsed : parsed * 100;
-    }
-    const kills = stat(row, "kills");
-    const assists = stat(row, "assists");
-    const teamKills = total(match, row.team_key, "kills");
-    return kills !== null && assists !== null && teamKills !== null && teamKills > 0 ? (kills + assists) / teamKills * 100 : null;
-  };
-  const finalBuild = (row) => [...itemSlots(row).filter(Boolean), ...(trinketItemId(row) ? [trinketItemId(row)] : [])];
   const championCounts = (teamKey) => Array.from(scoped.flatMap((match) => rowsFor(match, teamKey)).reduce((map, row) => {
     if (row.champion) map.set(row.champion, (map.get(row.champion) || 0) + 1);
     return map;
@@ -111,13 +104,7 @@ async function exportStatsPng({ title, subtitle, matches, filename, teamName = "
     if (urls.length) imageGroups.set(JSON.stringify(urls), urls);
   };
   addImageGroup("/assets/nxt5-wordmark.png");
-  if (singleGame) {
-    (firstMatch.participants || []).forEach((row) => {
-      addImageGroup(championPortraitSources(row, row.champion));
-      summonerSpellIds(row).filter(Boolean).forEach((spell) => addImageGroup(summonerSpellIconSources(spell)));
-      finalBuild(row).forEach((item) => addImageGroup(itemIconSources(item)));
-    });
-  } else championLists.flat().forEach(([champion]) => addImageGroup(championPortraitSources(champion, champion)));
+  championLists.flat().forEach(([champion]) => addImageGroup(championPortraitSources(champion, champion)));
   await Promise.all([...imageGroups.values()].map(async (urls) => {
     for (const url of urls) {
       const image = imageCache.has(url) ? imageCache.get(url) : await pngLoadImage(url);
@@ -138,174 +125,108 @@ async function exportStatsPng({ title, subtitle, matches, filename, teamName = "
     const image = (Array.isArray(sources) ? sources : [sources]).map((url) => imageCache.get(url)).find(Boolean);
     if (image) pngImageCover(ctx, image, x, y, size, size, radius);
   };
-  const header = () => pngHeader(ctx, { width: W, margin: M, title: title || (singleGame ? matchDisplayName(firstMatch) : "Groupe de games"), eyebrow: singleGame ? "Game" : "Groupe de games", subtitle: [teamName, pngDateRange(scoped), subtitle].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(" · "), logo: imageCache.get("/assets/nxt5-wordmark.png") });
+  const header = () => pngHeader(ctx, { width: W, margin: M, title: title || "Groupe de games", eyebrow: "Groupe de games", subtitle: [teamName, pngDateRange(scoped), subtitle].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(" · "), logo: imageCache.get("/assets/nxt5-wordmark.png") });
   const pages = [];
-  if (singleGame) {
-    const teamKeys = side(firstMatch, "ALLY") === "red" ? ["ENEMY", "ALLY"] : ["ALLY", "ENEMY"];
-    const teams = teamKeys.map((teamKey) => ({ teamKey, rows: sortPlayers(rowsFor(firstMatch, teamKey)).map((row) => {
-      const name = wrap(rowName(row), 332, 22, 700);
-      const champion = wrap(`${row.role || "Rôle inconnu"} · ${row.champion ? championDisplayName(row.champion) : "Champion inconnu"}`, 332, 20);
-      return { row, name, champion, height: Math.max(116, name.length * 27 + champion.length * 25 + 50) };
-    }) }));
-    const bodyHeight = teams.reduce((sum, team) => sum + 110 + Math.max(80, team.rows.reduce((height, row) => height + row.height, 0)) + 24, 0);
-    const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, 600 + bodyHeight + 96);
+  const measures = [["Kills", "kills", 1], ["Morts", "deaths", 1], ["Assists", "assists", 1], ["Or", "gold", 0], ["Dégâts champions", "damage", 0], ["Score de vision", "vision", 1]].map(([label, key, digits]) => {
+    const pairs = paired(key);
+    return { label, digits, count: pairs.length, ally: pngMean(pairs.map((pair) => pair.ally)), enemy: pngMean(pairs.map((pair) => pair.enemy)), diff: pngMean(pairs.map((pair) => pair.ally - pair.enemy)) };
+  });
+  const durationValues = scoped.map(durationSeconds).filter((value) => value !== null);
+  const gameRows = scoped.map((match) => ({ match, names: wrap(matchDisplayName(match, "Game"), 464, 22, 700) })).map((row) => ({ ...row, height: Math.max(82, row.names.length * 27 + 38) }));
+  const championRows = Array.from({ length: Math.max(...championLists.map((list) => list.length)) }, (_, index) => ({ entries: championLists.map((list) => list[index]), height: 64 }));
+  // Every game and champion is exported. The rendered pages are joined into one PNG.
+  const plan = [{ parts: [], end: 844, first: true }];
+  for (const section of [{ key: "games", rows: gameRows }, { key: "champions", rows: championRows }]) {
+    const remaining = [...section.rows];
+    if (!remaining.length) continue;
+    while (remaining.length) {
+      let page = plan[plan.length - 1];
+      if (page.end + 108 + remaining[0].height > 1896) {
+        page = { parts: [], end: 216, first: false };
+        plan.push(page);
+      }
+      const part = { key: section.key, y: page.end, rows: [] };
+      let end = part.y + 108;
+      while (remaining.length && end + remaining[0].height <= 1896) {
+        const row = remaining.shift();
+        part.rows.push(row);
+        end += row.height;
+      }
+      if (!part.rows.length) throw new Error("Le nom d’une game est trop long pour tenir sur une page PNG.");
+      page.parts.push(part);
+      page.end = end + 24;
+    }
+  }
+  plan.forEach((page, pageIndex) => {
+    const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, Math.max(960, page.end + 96));
     ctx = canvasCtx;
     pngBackground(ctx, W, canvas.height);
     header();
-    const allyKills = total(firstMatch, "ALLY", "kills");
-    const enemyKills = total(firstMatch, "ENEMY", "kills");
-    const goldPairs = paired("gold");
-    const goldDiff = goldPairs.length ? goldPairs[0].ally - goldPairs[0].enemy : null;
-    pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
-      { label: "Résultat", value: resultLabel(firstMatch), accent: firstMatch.result === "Victoire" ? "green" : firstMatch.result === "Défaite" ? "red" : undefined, detail: sideLabel(firstMatch) },
-      { label: "Durée", value: duration(durationSeconds(firstMatch)), detail: firstMatch.patch ? `Patch ${firstMatch.patch}` : "Patch —" },
-      { label: "Kills équipe / adversaires", value: `${pngNumber(allyKills)} / ${pngNumber(enemyKills)}`, detail: "Kills" },
-      { label: "Écart d’or", value: signed(goldDiff), detail: "Équipe − adversaires · or", accent: goldDiff === null || goldDiff === 0 ? undefined : goldDiff > 0 ? "green" : "red" },
-    ] });
-    pngPanel(ctx, M, 364, CW, 208);
-    const objectiveFields = [["Dragons", ["dragon"]], ["Grubs", ["horde", "voidgrub", "voidGrubs", "grub", "grubs"]], ["Hérauts", ["riftHerald", "riftHeralds", "herald"]], ["Nashors", ["baron", "baronNashor"]], ["Tours", ["tower", "towers"]]];
-    teams.forEach(({ teamKey }, teamIndex) => {
-      const x = M + 24 + teamIndex * CW / 2;
-      const width = CW / 2 - 48;
-      text(nameForTeam(teamKey), x, 401, width - 180, 24, PNG_THEME.text, 700);
-      text(sideLabel(firstMatch, teamKey), x + width, 400, 170, 20, sideColor(firstMatch, teamKey), 600, "right");
-      const teamId = side(firstMatch, teamKey) === "blue" ? 100 : side(firstMatch, teamKey) === "red" ? 200 : null;
-      const objectives = firstMatch.raw?.info?.teams?.find((team) => Number(team.teamId) === teamId)?.objectives;
-      objectiveFields.forEach(([label, keys], index) => {
-        const entry = Object.entries(objectives || {}).find(([key]) => keys.some((candidate) => candidate.toLowerCase() === key.toLowerCase()));
-        const xCell = x + index * width / 5;
-        text(pngNumber(number(entry?.[1]?.kills)), xCell, 458, width / 5 - 10, 36, PNG_THEME.text, 700);
-        text(label, xCell, 490, width / 5 - 10, 20, PNG_THEME.muted);
+    if (page.first) {
+      pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
+        { label: "Games", value: pngNumber(games), detail: `${wins} V · ${losses} D${games > knownResults ? ` · ${games - knownResults} inconnus` : ""}` },
+        { label: "Taux de victoire", value: pngPercent(knownResults ? wins / knownResults * 100 : null), detail: `${knownResults}/${games} résultats connus` },
+        { label: "Durée moyenne", value: duration(pngMean(durationValues)), detail: `${durationValues.length}/${games} games · min:s` },
+        { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
+      ] });
+      pngPanel(ctx, M, 364, CW, 456);
+      text("Moyennes par game", M + 24, 406, 620, 28, PNG_THEME.text, 700);
+      text("Écart = équipe − adversaires", W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
+      [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
+      measures.forEach((measure, index) => {
+        const y = 480 + index * 46;
+        pngLine(ctx, M + 24, y - 10, W - M - 24, y - 10);
+        text(measure.label, M + 24, y + 21, 330, 22);
+        text(pngNumber(measure.ally, measure.digits), M + 400, y + 21, 308, 28, PNG_THEME.text, 700);
+        text(pngNumber(measure.enemy, measure.digits), M + 746, y + 21, 220, 28, PNG_THEME.text, 700);
+        text(signed(measure.diff, measure.digits), M + 1030, y + 21, 190, 28, PNG_THEME.text, 700);
+        text(`${measure.count}/${games}`, M + 1280, y + 21, 174, 22, PNG_THEME.muted);
       });
-    });
-    pngLine(ctx, W / 2, 390, W / 2, 530);
-    text("Objectifs détruits · — = donnée indisponible", M + 24, 549, CW - 48, 20, PNG_THEME.muted);
-    let y = 600;
-    teams.forEach(({ teamKey, rows }) => {
-      const height = 110 + Math.max(80, rows.reduce((sum, row) => sum + row.height, 0));
-      pngPanel(ctx, M, y, CW, height);
-      text(nameForTeam(teamKey), M + 24, y + 40, CW - 260, 28, PNG_THEME.text, 700);
-      text(sideLabel(firstMatch, teamKey), W - M - 24, y + 40, 200, 22, sideColor(firstMatch, teamKey), 700, "right");
-      const columns = [["Joueur / champion", M + 24, 408], ["K / D / A", M + 474, 172], ["CS", M + 672, 90], ["Participation", M + 790, 148], ["Or", M + 974, 134], ["Dégâts champions", M + 1140, 180], ["Vision", M + 1370, 98]];
-      columns.forEach(([label, x, width]) => text(label, x, y + 84, width, 20, PNG_THEME.muted));
-      pngLine(ctx, M + 24, y + 100, W - M - 24, y + 100);
-      let rowY = y + 110;
-      if (!rows.length) text("Joueurs indisponibles", M + 24, rowY + 44, CW - 48, 24, PNG_THEME.muted);
-      rows.forEach(({ row, name, champion, height: rowHeight }, index) => {
-        if (index) pngLine(ctx, M + 24, rowY, W - M - 24, rowY);
-        drawImage(championPortraitSources(row, row.champion), M + 24, rowY + 18, 64);
-        lines(name, M + 108, rowY + 30, 332, 22, PNG_THEME.text, 700);
-        lines(champion, M + 108, rowY + 30 + name.length * 27, 332, 20, sideColor(firstMatch, teamKey));
-        text(["kills", "deaths", "assists"].map((key) => pngNumber(stat(row, key))).join(" / "), M + 474, rowY + 44, 172, 28, PNG_THEME.text, 700);
-        text(pngNumber(cs(row)), M + 672, rowY + 44, 90, 28, PNG_THEME.text, 700);
-        text(pngPercent(participation(row, firstMatch)), M + 790, rowY + 44, 148, 28, PNG_THEME.text, 700);
-        text(pngNumber(stat(row, "gold")), M + 974, rowY + 44, 134, 28, PNG_THEME.text, 700);
-        text(pngNumber(stat(row, "damage")), M + 1140, rowY + 44, 180, 28, PNG_THEME.text, 700);
-        text(pngNumber(stat(row, "vision")), M + 1370, rowY + 44, 98, 28, PNG_THEME.text, 700);
-        summonerSpellIds(row).filter(Boolean).forEach((spell, spellIndex) => drawImage(summonerSpellIconSources(spell), M + 474 + spellIndex * 38, rowY + 62, 32));
-        finalBuild(row).forEach((item, itemIndex) => drawImage(itemIconSources(item), M + 790 + itemIndex * 40, rowY + 62, 32));
-        rowY += rowHeight;
-      });
-      y += height + 24;
-    });
-    pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: "K / D / A : kills / morts / assists · Participation : kills de l’équipe" });
-    pages.push(canvas);
-  } else {
-    const measures = [["Kills", "kills", 1], ["Morts", "deaths", 1], ["Assists", "assists", 1], ["Or", "gold", 0], ["Dégâts champions", "damage", 0], ["Score de vision", "vision", 1]].map(([label, key, digits]) => {
-      const pairs = paired(key);
-      return { label, digits, count: pairs.length, ally: pngMean(pairs.map((pair) => pair.ally)), enemy: pngMean(pairs.map((pair) => pair.enemy)), diff: pngMean(pairs.map((pair) => pair.ally - pair.enemy)) };
-    });
-    const durationValues = scoped.map(durationSeconds).filter((value) => value !== null);
-    const gameRows = scoped.map((match) => ({ match, names: wrap(matchDisplayName(match, "Game"), 464, 22, 700) })).map((row) => ({ ...row, height: Math.max(82, row.names.length * 27 + 38) }));
-    const championRows = Array.from({ length: Math.max(...championLists.map((list) => list.length)) }, (_, index) => ({ entries: championLists.map((list) => list[index]), height: 64 }));
-    // Every game and champion is exported. Long selections continue on numbered PNGs.
-    const plan = [{ parts: [], end: 844, first: true }];
-    for (const section of [{ key: "games", rows: gameRows }, { key: "champions", rows: championRows }]) {
-      const remaining = [...section.rows];
-      if (!remaining.length) continue;
-      while (remaining.length) {
-        let page = plan[plan.length - 1];
-        if (page.end + 108 + remaining[0].height > 1896) {
-          page = { parts: [], end: 216, first: false };
-          plan.push(page);
-        }
-        const part = { key: section.key, y: page.end, rows: [] };
-        let end = part.y + 108;
-        while (remaining.length && end + remaining[0].height <= 1896) {
-          const row = remaining.shift();
-          part.rows.push(row);
-          end += row.height;
-        }
-        if (!part.rows.length) throw new Error("Le nom d’une game est trop long pour tenir sur une page PNG.");
-        page.parts.push(part);
-        page.end = end + 24;
-      }
+      text("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible", M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
     }
-    plan.forEach((page, pageIndex) => {
-      const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, Math.max(960, page.end + 96));
-      ctx = canvasCtx;
-      pngBackground(ctx, W, canvas.height);
-      header();
-      if (page.first) {
-        pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
-          { label: "Games", value: pngNumber(games), detail: `${wins} V · ${losses} D${games > knownResults ? ` · ${games - knownResults} inconnus` : ""}` },
-          { label: "Taux de victoire", value: pngPercent(knownResults ? wins / knownResults * 100 : null), detail: `${knownResults}/${games} résultats connus` },
-          { label: "Durée moyenne", value: duration(pngMean(durationValues)), detail: `${durationValues.length}/${games} games · min:s` },
-          { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
-        ] });
-        pngPanel(ctx, M, 364, CW, 456);
-        text("Moyennes par game", M + 24, 406, 620, 28, PNG_THEME.text, 700);
-        text("Écart = équipe − adversaires", W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
-        [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
-        measures.forEach((measure, index) => {
-          const y = 480 + index * 46;
-          pngLine(ctx, M + 24, y - 10, W - M - 24, y - 10);
-          text(measure.label, M + 24, y + 21, 330, 22);
-          text(pngNumber(measure.ally, measure.digits), M + 400, y + 21, 308, 28, PNG_THEME.text, 700);
-          text(pngNumber(measure.enemy, measure.digits), M + 746, y + 21, 220, 28, PNG_THEME.text, 700);
-          text(signed(measure.diff, measure.digits), M + 1030, y + 21, 190, 28, PNG_THEME.text, 700);
-          text(`${measure.count}/${games}`, M + 1280, y + 21, 174, 22, PNG_THEME.muted);
-        });
-        text("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible", M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
+    page.parts.forEach((part) => {
+      const height = 108 + part.rows.reduce((sum, row) => sum + row.height, 0);
+      pngPanel(ctx, M, part.y, CW, height);
+      text(part.key === "games" ? `Games · ${games}` : "Champions joués · nombre de picks", M + 24, part.y + 40, CW - 48, 28, PNG_THEME.text, 700);
+      if (part.key === "games") {
+        [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
+      } else {
+        text(teamName, M + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
+        text("Adversaires", W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
       }
-      page.parts.forEach((part) => {
-        const height = 108 + part.rows.reduce((sum, row) => sum + row.height, 0);
-        pngPanel(ctx, M, part.y, CW, height);
-        text(part.key === "games" ? `Games · ${games}` : "Champions joués · nombre de picks", M + 24, part.y + 40, CW - 48, 28, PNG_THEME.text, 700);
+      let y = part.y + 108;
+      part.rows.forEach((row) => {
+        pngLine(ctx, M + 24, y, W - M - 24, y);
         if (part.key === "games") {
-          [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
-        } else {
-          text(teamName, M + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
-          text("Adversaires", W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
-        }
-        let y = part.y + 108;
-        part.rows.forEach((row) => {
-          pngLine(ctx, M + 24, y, W - M - 24, y);
-          if (part.key === "games") {
-            const { match, names } = row;
-            lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
-            text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
-            text(resultLabel(match), M + 522, y + 43, 174, 24, resultColor(match), 700);
-            text(pngDateRange([match]) === "Date indisponible" ? "—" : pngDateRange([match]), M + 734, y + 43, 190, 20, PNG_THEME.muted);
-            text(duration(durationSeconds(match)), M + 964, y + 43, 130, 24);
-            text(sideLabel(match).replace("Côté ", ""), M + 1132, y + 43, 160, 22, sideColor(match), 700);
-            text(match.patch || "—", M + 1334, y + 43, 122, 22, PNG_THEME.muted);
-          } else row.entries.forEach((entry, teamIndex) => {
-            if (!entry) return;
-            const [champion, count] = entry;
-            const x = M + 24 + teamIndex * CW / 2;
-            drawImage(championPortraitSources(champion, champion), x, y + 10, 44);
-            text(championDisplayName(champion), x + 62, y + 40, CW / 2 - 218, 24, PNG_THEME.text, 600);
-            text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, PNG_THEME.text, 700, "right");
-          });
-          y += row.height;
+          const { match, names } = row;
+          lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
+          text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
+          text(resultLabel(match), M + 522, y + 43, 174, 24, resultColor(match), 700);
+          text(pngDateRange([match]) === "Date indisponible" ? "—" : pngDateRange([match]), M + 734, y + 43, 190, 20, PNG_THEME.muted);
+          text(duration(durationSeconds(match)), M + 964, y + 43, 130, 24);
+          text(sideLabel(match).replace("Côté ", ""), M + 1132, y + 43, 160, 22, sideColor(match), 700);
+          text(match.patch || "—", M + 1334, y + 43, 122, 22, PNG_THEME.muted);
+        } else row.entries.forEach((entry, teamIndex) => {
+          if (!entry) return;
+          const [champion, count] = entry;
+          const x = M + 24 + teamIndex * CW / 2;
+          drawImage(championPortraitSources(champion, champion), x, y + 10, 44);
+          text(championDisplayName(champion), x + 62, y + 40, CW / 2 - 218, 24, PNG_THEME.text, 600);
+          text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, PNG_THEME.text, 700, "right");
         });
+        y += row.height;
       });
-      pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: `Groupe de games · ${pageIndex + 1}/${plan.length}` });
-      pages.push(canvas);
     });
-  }
-  await pngDownloadPages(pages, filename || "nxt5-stats-export.png");
+    pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: `Groupe de games · ${pageIndex + 1}/${plan.length}` });
+    pages.push(canvas);
+  });
+  return pages;
+}
+
+async function exportStatsPng(options) {
+  const pages = await renderStatsPng(options);
+  const singleMatch = !options.group && Array.isArray(options.matches) && options.matches.filter(Boolean).length === 1;
+  await pngDownloadPages(pages, options.filename || (singleMatch ? "nxt5-game.png" : "nxt5-stats-export.png"));
 }
 
 function metricSideMarkerMeta(marker) {
@@ -322,14 +243,14 @@ function metricSideMarkerMeta(marker) {
 function MetricSideMarker({ marker }) {
   const meta = metricSideMarkerMeta(marker);
   if (!meta) return null;
-  return <span className={cx("inline-flex shrink-0 items-center rounded-lg border px-1.5 py-0.5 text-[0.56rem] font-black uppercase leading-none tracking-[0.08em]", tone(meta.tone))}>{meta.text}</span>;
+  return <span className={cx("inline-flex shrink-0 items-center rounded-lg border px-1.5 py-0.5 text-xs font-black uppercase leading-none tracking-[0.08em]", tone(meta.tone))}>{meta.text}</span>;
 }
 
 function MetricCard({ icon: Icon, label, value, hint, tone: t = "purple", delay = 0, compact = false, sideMarker = "" }) {
   return (
     <Surface delay={delay} className={cx("overflow-hidden", compact ? "min-h-0 p-3" : "min-h-[104px] p-3 sm:p-4")}>
       <div className={cx("flex items-start justify-between", compact ? "gap-3" : "gap-4")}>
-        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className={cx("min-w-0 font-black uppercase tracking-[0.12em] text-slate-300", compact ? "text-[0.62rem]" : "text-[0.68rem]")}>{label}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("line-clamp-2 font-semibold text-slate-300", compact ? "mt-1 text-[0.7rem] leading-4" : "mt-1 text-xs leading-5")}>{hint ?? "En attente de données"}</p></div>
+        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className="min-w-0 text-[13px] font-semibold text-slate-300">{label}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("font-semibold text-slate-300", compact ? "mt-1 text-xs leading-5" : "mt-1 text-xs leading-5")}>{hint ?? "En attente de données"}</p></div>
         <div className={cx("shrink-0 rounded-xl border", compact ? "p-2" : "p-2.5", tone(t))}><Icon className={cx(compact ? "h-4 w-4" : "h-5 w-5")} /></div>
       </div>
     </Surface>
@@ -537,7 +458,7 @@ function ObjectiveFallbackIcon({ type, fallback = "O", className = "" }) {
     "dragon-elder": ["#f0abfc", "#7c3aed", "E"],
   }[type] || ["#dffaff", "#0891b2", fallback];
   const [start, end, text] = config;
-  return <span className={cx("inline-flex items-center justify-center rounded-full border border-white/20 text-[0.58rem] font-black text-white shadow-[0_0_16px_rgba(255,255,255,.16)]", className)} style={{ background: `radial-gradient(circle at 35% 25%, ${start}, ${end} 70%)` }}>{text}</span>;
+  return <span className={cx("inline-flex items-center justify-center rounded-full border border-white/20 text-xs font-black text-white ", className)} style={{ background: `radial-gradient(circle at 35% 25%, ${start}, ${end} 70%)` }}>{text}</span>;
 }
 
 function objectiveSummaryHasData(data) {
@@ -557,24 +478,24 @@ function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) 
   return <section className={cx("min-w-0 px-3 py-3 sm:px-4", isRed ? "bg-rose-500/[0.035]" : "border-b border-white/[0.08] bg-cyan-400/[0.035] xl:border-b-0 xl:border-r")}>
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
-        <span className={cx("h-2 w-2 shrink-0 rounded-full shadow-[0_0_12px_currentColor]", isRed ? "bg-rose-300 text-rose-300" : "bg-cyan-200 text-cyan-200")} />
-        <h4 className="truncate text-[0.68rem] font-black uppercase tracking-[0.12em] text-white">{title}</h4>
+        <span className={cx("h-2 w-2 shrink-0 rounded-full ", isRed ? "bg-rose-300 text-rose-300" : "bg-cyan-200 text-cyan-200")} />
+        <h4 className="break-words text-xs font-semibold text-white">{title}</h4>
       </div>
-      <p className="shrink-0 text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400"><span className="text-white">{data.dragonCount}</span> drake{data.dragonCount > 1 ? "s" : ""}</p>
+      <p className="shrink-0 text-xs font-semibold text-slate-400"><span className="text-white">{data.dragonCount}</span> drake{data.dragonCount > 1 ? "s" : ""}</p>
     </div>
-    <dl className="mt-3 grid grid-cols-5 border-y border-white/[0.07] py-3">
+    <dl className="games-objective-counts">
       {stats.map(([label, value, icon, t], index) => <div key={label} className={cx("min-w-0 px-1 text-center sm:px-2", index > 0 && "border-l border-white/[0.07]")}>
         <dt className="flex min-w-0 flex-col items-center justify-center gap-1.5">
           <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-9 w-9" /></span>
-          <span className="hidden max-w-full truncate text-[0.52rem] font-black uppercase tracking-[0.08em] text-slate-400 sm:block">{label}</span>
+          <span className="text-xs font-semibold text-slate-300">{label}</span>
         </dt>
         <dd className="mt-1 text-lg font-black tabular-nums text-white">{value}</dd>
       </div>)}
     </dl>
     {data.dragons.length > 0 && <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
-      <p className="shrink-0 text-[0.54rem] font-black uppercase tracking-[0.14em] text-slate-400">Dragons</p>
+      <p className="shrink-0 text-xs font-semibold text-slate-400">Dragons</p>
       <div className="flex min-w-0 flex-wrap gap-1.5">
-        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[0.62rem] font-black text-white", tone(objectiveEventTone(event)))}>
+        {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-black text-white", tone(objectiveEventTone(event)))}>
           <ObjectivePictogram type={objectiveDragonIconType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
           {objectiveDragonElement(event)}
           <span className="text-white/65">{event.time}</span>
@@ -591,36 +512,36 @@ function ObjectiveHud({ match, compact = false }) {
   const blueData = objectiveTeamSummary(match, blueTeamKey);
   const redData = objectiveTeamSummary(match, redTeamKey);
   if (!events.length && !objectiveSummaryHasData(blueData) && !objectiveSummaryHasData(redData)) return null;
-  return <div className={cx("rounded-[1.25rem] bg-gradient-to-br from-cyan-400/[0.035] via-black/12 to-fuchsia-400/[0.03] p-3 ring-1 ring-cyan-200/[0.06]", compact ? "mb-3" : "mt-4")}>
+  return <div className={cx("games-objectives", compact ? "mb-3" : "mt-4")}>
     <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 px-1">
       <div className="flex min-w-0 items-center gap-2">
         <Trophy className="h-4 w-4 shrink-0 text-cyan-200" />
-        <h3 className="text-xs font-black uppercase tracking-[0.14em] text-white">Objectifs</h3>
+        <h3 className="text-xs font-semibold text-white">Objectifs</h3>
       </div>
-      {events.length > 0 && <p className="text-[0.6rem] font-black uppercase tracking-[0.12em] text-slate-400"><span className="text-white">{events.length}</span> prises enregistrées</p>}
+      {events.length > 0 && <p className="text-xs font-semibold text-slate-400"><span className="text-white">{events.length}</span> prises enregistrées</p>}
     </div>
     <div className="grid overflow-hidden rounded-2xl border border-white/[0.08] bg-black/10 xl:grid-cols-2">
       <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Côté bleu" data={blueData} />
       <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Côté rouge" data={redData} />
     </div>
     {events.length ? <>
-      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1">
+      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1" role="region" aria-label="Prises d’objectifs dans le temps" tabIndex={0}>
         <ol className="flex w-max min-w-full items-stretch px-2 py-1">
           {events.map((event, index) => {
             const isRed = event.side === "RED";
             return <li key={`${event.timestamp}-${index}`} className="flex shrink-0 items-center">
-              <div className={cx("relative flex min-h-[4rem] w-[8rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[8.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : "border-cyan-200/12 bg-cyan-400/[0.045]")}>
+              <div className={cx("relative flex min-h-[4rem] w-[10.5rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[10.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : "border-cyan-200/12 bg-cyan-400/[0.045]")}>
                 <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full", isRed ? "bg-rose-300/70" : "bg-cyan-200/70")} />
                 <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(objectiveEventTone(event)))}>
                   <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-center gap-1">
-                    <time className="shrink-0 text-[0.58rem] font-black tabular-nums text-white">{event.time}</time>
+                    <time className="shrink-0 text-xs font-black tabular-nums text-white">{event.time}</time>
                     <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-rose-300" : "bg-cyan-200")} />
-                    <span className={cx("whitespace-nowrap text-[0.48rem] font-black uppercase", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Rouge" : "Bleu"}</span>
+                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Rouge" : "Bleu"}</span>
                   </span>
-                  <span className="mt-0.5 line-clamp-2 block text-[0.68rem] font-black leading-4 text-white">{event.label}</span>
+                  <span className="mt-0.5 block text-xs font-black leading-4 text-white">{event.label}</span>
                 </span>
               </div>
               {index < events.length - 1 && <span className="flex w-3 shrink-0 items-center" aria-hidden="true"><span className="h-px flex-1 bg-white/12" /><span className="h-1 w-1 rounded-full bg-white/25" /></span>}
@@ -686,11 +607,11 @@ function teamGoldAtMinute(match, teamKey, minute) {
 
 function timelineStatus(match) {
   const frames = storedTimelineFrames(match);
-  if (frames.length) return { label: "Timeline fiable", toneName: "green", detail: `${frames.length} frames Riot` };
+  if (frames.length) return { label: "Chronologie disponible", toneName: "green", detail: `${frames.length} relevés Riot` };
   const events = compactTimelineEvents(match);
   const summaryAvailable = Boolean(match?.raw?.nxt5?.timelineSummary?.available);
-  if (events.length || summaryAvailable) return { label: "Timeline résumée", toneName: "cyan", detail: events.length ? `${events.length} événements indexés` : "Repères CS et vision disponibles" };
-  return { label: "Timeline absente", toneName: "yellow", detail: "Lecture limitée aux stats finales" };
+  if (events.length || summaryAvailable) return { label: "Chronologie résumée", toneName: "cyan", detail: events.length ? `${events.length} événements indexés` : "Repères CS et vision disponibles" };
+  return { label: "Chronologie indisponible", toneName: "yellow", detail: "Seules les statistiques finales sont disponibles" };
 }
 
 function deathContext(match) {
@@ -734,8 +655,8 @@ function roleDiffRows(match) {
   });
 }
 
-function timelineTeamLabel(teamKey) {
-  if (teamKey === "ALLY") return "NXT5";
+function timelineTeamLabel(teamKey, teamName = "Notre équipe") {
+  if (teamKey === "ALLY") return String(teamName || "Notre équipe").trim() || "Notre équipe";
   if (teamKey === "ENEMY") return "Adversaire";
   return "Contesté";
 }
@@ -786,7 +707,7 @@ function killScoreAtTimestamp(kills, timestamp) {
   }, { ally: 0, enemy: 0 });
 }
 
-function fightWindows(match) {
+function fightWindows(match, teamName) {
   const kills = championKillEvents(match);
   const groups = [];
   let current = [];
@@ -813,7 +734,7 @@ function fightWindows(match) {
       time,
       teamKey,
       toneName: timelineTeamTone(teamKey),
-      title: teamKey === "NEUTRAL" ? "Fight échangé" : `${timelineTeamLabel(teamKey)} gagne le fight`,
+      title: teamKey === "NEUTRAL" ? "Fight échangé" : `${timelineTeamLabel(teamKey, teamName)} gagne le fight`,
       context: `${allyKills}-${enemyKills} kills sur la fenêtre`,
       detail: victims.length ? `Morts: ${victims.join(" · ")}` : `Fight #${index + 1}`,
       allyKills,
@@ -831,7 +752,7 @@ function importantBuildingEvents(match) {
   }).slice(0, 6);
 }
 
-function timelineMilestones(match) {
+function timelineMilestones(match, teamName) {
   const objectives = objectiveContext(match).map((event) => ({
     ...event,
     kind: "objective",
@@ -839,7 +760,7 @@ function timelineMilestones(match) {
     detail: event.context,
     toneName: timelineTeamTone(event.teamKey),
   }));
-  const fights = fightWindows(match).filter((event) => event.killCount >= 3 || Math.abs(event.allyKills - event.enemyKills) >= 2);
+  const fights = fightWindows(match, teamName).filter((event) => event.killCount >= 3 || Math.abs(event.allyKills - event.enemyKills) >= 2);
   const towers = importantBuildingEvents(match).map((event) => ({
     ...event,
     kind: "tower",
@@ -851,12 +772,12 @@ function timelineMilestones(match) {
   return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0)).slice(0, 18);
 }
 
-function MatchTimelineReview({ match }) {
+function MatchTimelineReview({ match, teamName }) {
   const status = timelineStatus(match);
   const objectives = objectiveContext(match);
   const kills = championKillEvents(match);
   const fights = fightWindows(match);
-  const events = timelineMilestones(match);
+  const events = timelineMilestones(match, teamName);
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const finalGoldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
@@ -875,26 +796,26 @@ function MatchTimelineReview({ match }) {
     { id: "late", label: "Late", range: "24+", toneName: "yellow" },
   ].map((phase) => ({ ...phase, events: events.filter((event) => timelinePhaseMeta(event.timestamp).id === phase.id) }));
   const highlight = events.find((event) => event.teamKey === "ENEMY" && ["objective", "fight"].includes(event.kind)) || events.find((event) => event.teamKey === "ALLY" && ["objective", "fight"].includes(event.kind)) || events[0];
-  return <div className="mt-4 overflow-hidden rounded-[1.35rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.055] via-black/24 to-fuchsia-400/[0.045]">
-    <div className="border-b border-white/10 bg-black/18 p-4">
+  return <div className="games-timeline-content">
+    <div className="games-timeline-heading">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2"><Badge tone="cyan">Déroulé coach</Badge><Badge tone={status.toneName}>{status.label}</Badge><Badge tone="purple">{kills.length} kills</Badge><Badge tone="slate">{events.length} moments</Badge></div>
           <h4 className="mt-3 text-2xl font-black text-white">Lecture chronologique</h4>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey)} · ${highlight.title}` : "Aucun moment clé détecté dans la timeline importée."}</p>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : "Aucun moment clé détecté dans la timeline importée."}</p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-3 xl:w-[34rem]">
           {goldMarks.map((item) => <TimelineGoldCheckpoint key={item.minute} minute={item.minute} diff={item.diff} />)}
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <TimelineReadoutCard icon={Gauge} label="Économie finale" value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? "Avantage NXT5" : "Avantage adverse"} toneName={diffTone(finalGoldDiff)} />
-        <TimelineReadoutCard icon={Target} label="Objectifs neutres" value={`${allyObjectives}-${enemyObjectives}`} detail="NXT5 - Adversaire" toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
+        <TimelineReadoutCard icon={Gauge} label="Économie finale" value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? `Avantage ${timelineTeamLabel("ALLY", teamName)}` : "Avantage adverse"} toneName={diffTone(finalGoldDiff)} />
+        <TimelineReadoutCard icon={Target} label="Objectifs neutres" value={`${allyObjectives}-${enemyObjectives}`} detail={`${timelineTeamLabel("ALLY", teamName)} · Adversaire`} toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
         <TimelineReadoutCard icon={Swords} label="Fights détectés" value={`${allyFights}-${enemyFights}`} detail="Fenêtres multi-kills" toneName={allyFights >= enemyFights ? "green" : "red"} />
       </div>
     </div>
     {events.length ? <div className="grid gap-3 p-4 xl:grid-cols-3">
-      {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} />)}
+      {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />)}
     </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun déroulé exploitable dans ce JSON pour les moments clés.</p>}
   </div>;
 }
@@ -902,20 +823,20 @@ function MatchTimelineReview({ match }) {
 function TimelineGoldCheckpoint({ minute, diff }) {
   const missing = diff === null;
   return <div className={cx("rounded-2xl border px-3 py-2", missing ? tone("slate") : tone(diffTone(diff)))}>
-    <p className="text-[0.58rem] font-black uppercase tracking-[0.16em] opacity-80">{minute} min</p>
+    <p className="text-xs font-semibold opacity-80">{minute} min</p>
     <p className="mt-1 text-lg font-black leading-none text-white">{missing ? "N/A" : formatSignedShort(diff)}</p>
-    <p className="mt-1 truncate text-[0.62rem] font-semibold opacity-75">écart or</p>
+    <p className="mt-1 break-words text-xs font-semibold opacity-75">écart or</p>
   </div>;
 }
 
 function TimelineReadoutCard({ icon: Icon, label, value, detail, toneName }) {
-  return <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+  return <div className="games-stat-block">
     <div className="flex items-center justify-between gap-3">
-      <p className="truncate text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p>
+      <p className="break-words text-xs font-semibold text-slate-300">{label}</p>
       <div className={cx("rounded-xl border p-2", tone(toneName))}><Icon className="h-4 w-4" /></div>
     </div>
-    <p className="mt-2 truncate text-2xl font-black text-white">{value}</p>
-    <p className="truncate text-xs font-semibold text-slate-300">{detail}</p>
+    <p className="mt-2 break-words text-2xl font-black text-white">{value}</p>
+    <p className="break-words text-xs font-semibold text-slate-300">{detail}</p>
   </div>;
 }
 
@@ -925,7 +846,7 @@ function TimelineEventGlyph({ event }) {
   return <Shield className="h-4 w-4" />;
 }
 
-function TimelineEventCard({ event, index, kills, match }) {
+function TimelineEventCard({ event, index, kills, match, teamName }) {
   const toneName = event.toneName || timelineTeamTone(event.teamKey);
   const score = killScoreAtTimestamp(kills, event.timestamp);
   const gold = timelineGoldDiff(match, event.timestamp);
@@ -934,47 +855,47 @@ function TimelineEventCard({ event, index, kills, match }) {
   const frame = neutral ? "border-amber-200/18 bg-amber-300/[0.055]" : enemy ? "border-rose-300/18 bg-rose-500/[0.055]" : "border-cyan-300/18 bg-cyan-400/[0.055]";
   const rail = neutral ? "bg-amber-200" : enemy ? "bg-rose-200" : "bg-cyan-200";
   const kindLabel = event.kind === "objective" ? "Objectif" : event.kind === "fight" ? "Fight" : "Structure";
-  return <article className={cx("relative overflow-hidden rounded-2xl border p-3", frame)}>
-    <div className={cx("absolute inset-y-3 left-0 w-1 rounded-r-full shadow-[0_0_14px_currentColor]", rail)} />
+  return <article className={cx("games-timeline-event", frame)}>
+    <div className={cx("absolute inset-y-3 left-0 w-1 rounded-r-full ", rail)} />
     <div className="flex items-start gap-3 pl-1">
       <div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><TimelineEventGlyph event={event} /></div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge tone={toneName}>{event.time}</Badge>
           <Badge tone="slate">#{index + 1}</Badge>
-          <Badge tone={toneName}>{timelineTeamLabel(event.teamKey)}</Badge>
+          <Badge tone={toneName}>{timelineTeamLabel(event.teamKey, teamName)}</Badge>
         </div>
-        <p className="mt-2 truncate text-sm font-black text-white">{event.title}</p>
-        <p className="mt-1 line-clamp-2 text-xs font-semibold leading-5 text-slate-300">{event.context || event.detail || kindLabel}</p>
-        {event.detail && event.detail !== event.context && <p className="mt-1 line-clamp-1 text-[0.66rem] font-semibold text-slate-400">{event.detail}</p>}
+        <p className="mt-2 break-words text-sm font-black text-white">{event.title}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-300">{event.context || event.detail || kindLabel}</p>
+        {event.detail && event.detail !== event.context && <p className="mt-1 text-xs leading-5 text-slate-400">{event.detail}</p>}
         <div className="mt-3 grid grid-cols-3 gap-1.5">
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-400">Kills</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-400">Gold</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "N/A" : formatSignedShort(gold)}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-[0.52rem] font-black uppercase tracking-[0.1em] text-slate-400">Type</span><span className="truncate text-xs font-black text-white">{kindLabel}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Kills</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Gold</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "N/A" : formatSignedShort(gold)}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Type</span><span className="break-words text-xs font-black text-white">{kindLabel}</span></span>
         </div>
       </div>
     </div>
   </article>;
 }
 
-function TimelinePhaseColumn({ phase, kills, match }) {
-  return <section className="min-w-0 rounded-2xl border border-white/10 bg-black/18 p-3">
+function TimelinePhaseColumn({ phase, kills, match, teamName }) {
+  return <section className="games-timeline-phase">
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="truncate text-sm font-black text-white">{phase.label}</p>
-        <p className="mt-0.5 text-[0.62rem] font-black uppercase tracking-[0.16em] text-slate-400">{phase.range} min</p>
+        <p className="break-words text-sm font-black text-white">{phase.label}</p>
+        <p className="mt-0.5 text-xs font-semibold text-slate-400">{phase.range} min</p>
       </div>
       <Badge tone={phase.toneName}>{phase.events.length}</Badge>
     </div>
     <div className="space-y-2">
-      {phase.events.length ? phase.events.map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
+      {phase.events.length ? phase.events.map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
     </div>
   </section>;
 }
 
 function RoleDiffPanel({ match }) {
   const rows = roleDiffRows(match);
-  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]"><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{roleLabel(item.role)}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 truncate text-xs font-semibold text-slate-300">CS10 {item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`} · Dégâts {(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">Écart morts {item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></div>;
+  return <section className="games-analysis-section"><h4 className="games-section-heading">Écarts par rôle</h4><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{roleLabel(item.role)}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 break-words text-xs font-semibold text-slate-300">CS10 {item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`} · Dégâts {(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 break-words text-xs font-semibold text-slate-400">Écart morts {item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></section>;
 }
 
 function DeathContextPanel({ match }) {
@@ -986,7 +907,7 @@ function DeathContextPanel({ match }) {
     [Flame, "Shutdowns donnés", data.shutdowns.length, "Bounty timeline", data.shutdowns.length ? "red" : "slate"],
     [Target, "Focus deaths", topRepeated?.deaths || 0, topRepeated ? `${topRepeated.name} · ${championDisplayName(topRepeated.champion)}` : "Aucun profil exposé", topRepeated?.deaths >= 5 ? "red" : "cyan"],
   ];
-  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]"><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, t]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><div className={cx("rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || "Joueur"} meurt avant objectif</div>)}</div>}</div>;
+  return <section className="games-analysis-section"><h4 className="games-section-heading">Contexte des morts</h4><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, t]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-300">{label}</p><div className={cx("rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || "Joueur"} meurt avant objectif</div>)}</div>}</section>;
 }
 
 function DraftImpactPanel({ match }) {
@@ -1004,7 +925,7 @@ function DraftImpactPanel({ match }) {
     !tags.some(([tag]) => ["frontline", "tank"].includes(tag)) && "Première ligne peu visible dans la draft.",
     !tags.some(([tag]) => ["engage", "pick"].includes(tag)) && "Initiation ou catch à confirmer.",
   ].filter(Boolean);
-  return <div className="mt-4 rounded-[1.35rem] border border-fuchsia-300/14 bg-fuchsia-400/[0.045] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Lecture draft</Badge><h4 className="mt-3 text-xl font-black text-white">{tagLabel(identity.primary)}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{identity.text}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">Magique {apRatio}%</Badge><Badge tone="yellow">Physique {adRatio}%</Badge><Badge tone="slate">Brut {Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Tags insuffisants</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
+  return <div className="games-analysis-section"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Lecture draft</Badge><h4 className="mt-3 text-xl font-black text-white">{tagLabel(identity.primary)}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{identity.text}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">Magique {apRatio}%</Badge><Badge tone="yellow">Physique {adRatio}%</Badge><Badge tone="slate">Brut {Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Tags insuffisants</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
 }
 
 function GameSummaryPanel({ match }) {
@@ -1018,10 +939,10 @@ function GameSummaryPanel({ match }) {
   const firstObjectiveIssue = objectives.find((event) => event.teamKey === "ENEMY" && event.alliedDeathBefore);
   const lines = [
     firstObjectiveIssue ? `Moment à revoir: ${firstObjectiveIssue.time}, ${firstObjectiveIssue.label} adverse après une mort alliée.` : `Économie finale: ${formatGoldDiff(goldDiff)} or, ${goldDiff >= 0 ? "avantage exploitable" : "retard à expliquer"}.`,
-    damageLeader ? `Plus gros impact dégâts sur cette game: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
-    weakRole ? `Écart de game à revoir: ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Écart de game: confirmer les rôles importés.",
+    damageLeader ? `Plus gros impact dégâts sur cette partie: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
+    weakRole ? `Écart à revoir : ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Rôles à confirmer dans les données importées.",
   ];
-  return <div className="mt-4 rounded-[1.35rem] border border-emerald-300/14 bg-emerald-400/[0.05] p-4"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Résumé game</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="rounded-2xl border border-white/10 bg-black/22 p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-emerald-100">Point {index + 1}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
+  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Repères à examiner</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-[13px] font-semibold text-emerald-100">{["Moment clé", "Dégâts", "Écart par rôle"][index]}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
 }
 
 function GameMetricSignals({ match }) {
@@ -1035,7 +956,7 @@ function GameMetricSignals({ match }) {
   const deaths = sumRows(ally, "deaths");
   const enemyDeaths = sumRows(enemy, "deaths");
 	  const cards = [
-	    [Crown, "Meilleure game", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda}` : "Aucune donnée", "cyan"],
+	    [Crown, "Meilleure game", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda ?? `${strongest.kills ?? "—"}/${strongest.deaths ?? "—"}/${strongest.assists ?? "—"}`}` : "Aucune donnée", "cyan"],
 	    [AlertTriangle, "Morts", exposed, exposed ? `${exposed.deaths || 0} morts · ${championDisplayName(exposed.champion)}` : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
 	    [Flame, "Dégâts", damageLead, damageLead ? formatPoints(damageLead.damage) + " dégâts" : "Aucune donnée", "purple"],
 	    [Eye, "Vision", visionLead, visionLead ? `${visionLead.vision || 0} vision` : "Aucune donnée", "green"],
@@ -1044,14 +965,13 @@ function GameMetricSignals({ match }) {
 	    [Gauge, "Écart CS", (csDiff >= 0 ? "+" : "") + formatPoints(csDiff), "Alliés vs adversaires", diffTone(csDiff)],
 	    [Swords, "Morts équipe", `${deaths} / ${enemyDeaths}`, "Alliés vs adversaires", deaths <= enemyDeaths ? "green" : "red"],
 	  ];
-	  return <div className="mt-4 rounded-[1.25rem] bg-black/12 p-2 ring-1 ring-white/[0.045]">
-	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-1 truncate text-sm font-black text-white">{value}</p><p className="truncate text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-	  </div>;
+	  return <section className="games-analysis-section"><h4 className="games-section-heading">Signaux individuels</h4>
+	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-1 break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-1 break-words text-sm font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	  </section>;
 	}
 
 function VersusPlayerMini({ row, side, opponent, align = "left" }) {
-  const ahead = row && opponent ? statValue(row, "gold") >= statValue(opponent, "gold") : false;
   const kda = row ? `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}` : "-/-/-";
   const kp = row ? Math.round(parsePercent(row.kill_participation || row.kp)) : 0;
   const spells = row ? summonerSpellIds(row) : [];
@@ -1060,23 +980,21 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
     ...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })),
     ...(trinket ? [{ id: trinket, type: "trinket" }] : []),
   ] : [];
-  return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]", ahead && "shadow-[0_0_24px_rgba(34,211,238,.10)]")}>
-    {row && <ChampionBackdrop champion={row.champion} focus="face" />}
-    <div className="absolute inset-0 bg-gradient-to-r from-[#050711]/94 via-[#050711]/78 to-[#050711]/48" />
+  return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]")}>
     <div className={cx("relative z-10 flex min-w-0 items-center gap-2.5", align === "right" && "flex-row-reverse text-right")}>
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35 md:h-14 md:w-14">
         {row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} /> : <Crown className="m-3 h-6 w-6 text-slate-300" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
-        <p className="truncate text-xs font-semibold text-slate-200">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
+        <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
+        <p className="break-words text-xs font-semibold text-slate-200">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
         <div className={cx("mt-2 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
-          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-white">{kda}</span>
-          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200">{kp}% KP</span>
-          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-[0.62rem] font-black text-emerald-50">{creepScore(row)} CS</span>
-          <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-[0.62rem] font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} dégâts</span>
-          <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-[0.62rem] font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)} or</span>
-          <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-[0.62rem] font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
+          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-white">{kda}</span>
+          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200">{kp}% KP</span>
+          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-xs font-black text-emerald-50">{creepScore(row)} CS</span>
+          <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} dégâts</span>
+          <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-xs font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)} or</span>
+          <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-xs font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
         </div>
         {(spells.length > 0 || items.length > 0) && <div className={cx("mt-2 flex flex-wrap gap-1", align === "right" && "justify-end")}>
           {spells.map((spell, index) => <HudIcon key={`${row.id || row.riot_id}-instant-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-6 w-6 rounded-lg" />)}
@@ -1134,8 +1052,8 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       <div className={cx("flex min-w-0 items-center gap-3", align === "right" && "justify-end text-right")}>
         <ChampionPortrait row={row} champion={row?.champion} alt={row?.champion || role} className="h-12 w-12 rounded-xl object-cover" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
-          <p className="truncate text-xs font-semibold text-slate-300">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
+          <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
+          <p className="break-words text-xs font-semibold text-slate-300">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
         </div>
       </div>
       <div className={cx("mt-3 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
@@ -1144,29 +1062,26 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       </div>
     </div>;
   };
-  return <div className="nxt5-enter-fast rounded-[1.35rem] border border-white/10 bg-black/28 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.06)]">
+  return <div className="nxt5-enter-fast games-lane-comparison">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2"><Badge tone="cyan">{roleLabel(role)}</Badge><h5 className="text-base font-black text-white">Comparatif direct de la game</h5></div>
       <Badge tone="slate">Clique la ligne pour refermer</Badge>
     </div>
     <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,.58fr)_minmax(0,1fr)_minmax(0,.58fr)]">
       {renderLoadout(blueRow, "blue", blueTeamKey)}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-        <div className="grid grid-cols-[minmax(86px,.7fr)_minmax(0,1fr)_minmax(72px,.55fr)_minmax(0,1fr)] gap-2 text-xs">
-          <p className="font-black uppercase tracking-[0.14em] text-slate-400">Stat</p>
-          <p className="font-black uppercase tracking-[0.14em] text-cyan-100">Côté bleu</p>
-          <p className="text-center font-black uppercase tracking-[0.14em] text-slate-400">Écart</p>
-          <p className="text-right font-black uppercase tracking-[0.14em] text-rose-100">Côté rouge</p>
-          {metricRows.map(([label, left, right, diff]) => {
+      <div className="games-lane-table-scroll" role="region" aria-label={`Statistiques comparées ${roleLabel(role)}`} tabIndex={0}>
+        <table className="games-lane-table">
+          <caption className="sr-only">Statistiques {roleLabel(role)} : côté bleu, écart et côté rouge</caption>
+          <thead><tr><th scope="col">Stat</th><th scope="col">Côté bleu</th><th scope="col">Écart</th><th scope="col">Côté rouge</th></tr></thead>
+          <tbody>{metricRows.map(([label, left, right, diff]) => {
             const cleanDiff = Number.isFinite(Number(diff)) ? Number(diff) : null;
-            return <React.Fragment key={label}>
-              <p className="rounded-lg bg-black/18 px-2 py-1.5 font-black text-slate-300">{label}</p>
-              <p className="truncate rounded-lg bg-cyan-400/[0.06] px-2 py-1.5 font-black text-white">{left}</p>
-              <p className={cx("rounded-lg px-2 py-1.5 text-center font-black", cleanDiff === null ? "bg-black/18 text-slate-400" : cleanDiff >= 0 ? "bg-cyan-400/10 text-cyan-100" : "bg-rose-500/10 text-rose-100")}>{formatSideDiff(cleanDiff)}</p>
-              <p className="truncate rounded-lg bg-rose-500/[0.06] px-2 py-1.5 text-right font-black text-white">{right}</p>
-            </React.Fragment>;
-          })}
-        </div>
+            return <tr key={label}>
+              <th scope="row">{label}</th><td>{left}</td>
+              <td className={cleanDiff === null ? "text-slate-400" : cleanDiff >= 0 ? "text-cyan-100" : "text-rose-100"}>{formatSideDiff(cleanDiff)}</td>
+              <td>{right}</td>
+            </tr>;
+          })}</tbody>
+        </table>
       </div>
       {renderLoadout(redRow, "red", redTeamKey, "right")}
     </div>
@@ -1174,7 +1089,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       const diff = Number(left || 0) - Number(right || 0);
       const blueWins = direction === "lower" ? diff < 0 : diff > 0;
       const leader = !diff ? "Égal" : blueWins ? "Côté bleu" : "Côté rouge";
-      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-300">{label}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
+      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
     })}</div>
   </div>;
 }
@@ -1186,7 +1101,7 @@ function SideColumnHeader({ side, align = "left" }) {
     <span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border bg-black/25", isBlue ? "border-cyan-200/30" : "border-rose-200/30")}>
       <Icon className="h-4 w-4" />
     </span>
-    <span className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-white">{isBlue ? "Côté bleu" : "Côté rouge"}</span>
+    <span className="text-xs font-semibold text-white">{isBlue ? "Côté bleu" : "Côté rouge"}</span>
   </div>;
 }
 
@@ -1200,12 +1115,12 @@ function MatchVersusOverview({ match, teamName }) {
   const redRows = allyIsBlue ? enemy : ally;
   const blueKey = allyIsBlue ? "ALLY" : "ENEMY";
   const redKey = allyIsBlue ? "ENEMY" : "ALLY";
-  return <div className="mt-5 rounded-[1.5rem] border border-cyan-300/14 bg-gradient-to-br from-cyan-400/[0.07] via-black/25 to-rose-500/[0.055] p-3 sm:p-4">
+  return <div className="games-analysis-section games-versus">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Résumé de la game</h4></div>
+      <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Joueurs et objectifs</h4></div>
     </div>
     <ObjectiveHud match={match} compact />
-    <div className="nxt5-responsive-scroll">
+    <div className="nxt5-responsive-scroll" role="region" aria-label="Comparaison des cinq rôles, défilement horizontal" tabIndex={0}>
       <div className="nxt5-versus-scroll-frame min-w-[860px] lg:min-w-0">
         <div className="nxt5-versus-row-grid mb-2 grid min-w-0 items-center gap-2">
           <SideColumnHeader side="blue" />
@@ -1216,30 +1131,28 @@ function MatchVersusOverview({ match, teamName }) {
           {COMP_ROLES.map((role) => {
             const blueRow = byRole(blueRows, role);
             const redRow = byRole(redRows, role);
-            const allyRow = byRole(ally, role);
-            const enemyRow = byRole(enemy, role);
             const blueGold = blueRow ? statValue(blueRow, "gold") : 0;
             const redGold = redRow ? statValue(redRow, "gold") : 0;
             const diff = (blueKey === "ALLY" ? blueGold - redGold : redGold - blueGold);
             const winningEdge = blueGold === redGold ? "·" : blueGold > redGold ? "<" : ">";
             const open = openRole === role;
             return <div key={role} className={cx("rounded-[1.35rem] transition", open && "bg-cyan-400/[0.045] p-1 ring-1 ring-cyan-200/18")}>
-              <button type="button" aria-expanded={open} onClick={() => setOpenRole(open ? "" : role)} className="nxt5-versus-row-grid grid w-full min-w-0 items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
+              <button type="button" aria-expanded={open} aria-label={`${open ? "Fermer" : "Comparer"} les statistiques ${roleLabel(role)}`} onClick={() => setOpenRole(open ? "" : role)} className="nxt5-versus-row-grid grid w-full min-w-0 items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
                 <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
-                <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 shadow-[0_0_22px_rgba(34,211,238,.12)]" : "border-white/10 bg-black/35")}>
+                <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 " : "border-white/10 bg-black/35")}>
                   <RoleIcon role={role} className="h-5 w-5" />
-                  <span className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.08em] text-white">{role}</span>
-                  <span className={cx("nxt5-versus-gold-diff mt-1 rounded-lg px-2 py-1 text-[0.62rem] font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatCompactGoldDiff(diff)}</span>
+                  <span className="mt-1 text-xs font-semibold text-white">{role}</span>
+                  <span className={cx("nxt5-versus-gold-diff mt-1 rounded-lg px-2 py-1 text-xs font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatCompactGoldDiff(diff)}</span>
                   <ChevronDown className={cx("mt-1 h-3.5 w-3.5 text-cyan-100 transition", open && "rotate-180")} />
                 </div>
                 <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />
               </button>
-              <React.Fragment>{open && <div className="mt-2"><LaneComparisonPanel match={match} role={role} allyRow={allyRow} enemyRow={enemyRow} teamName={teamName} /></div>}</React.Fragment>
             </div>;
           })}
         </div>
       </div>
     </div>
+    {openRole && <LaneComparisonPanel match={match} role={openRole} allyRow={byRole(ally, openRole)} enemyRow={byRole(enemy, openRole)} teamName={teamName} />}
   </div>;
 }
 
@@ -1284,193 +1197,75 @@ function playerSideTimings(match, role) {
 }
 
 function matchPlayerCoachReads(match) {
-  const allies = teamRows(match, "ALLY");
-  const kills = championKillEvents(match);
-  const objectives = objectiveEvents(match);
-  const roleDiffs = roleDiffRows(match);
-  return allies.map((row) => {
-    const participantId = rowParticipantId(row);
-    const deaths = kills.filter((event) => event.victimTeam === "ALLY" && event.victimId === participantId);
-    const catches = deaths.filter((death) => {
-      const traded = kills.some((event) => event.killerTeam === "ALLY" && Math.abs(event.timestamp - death.timestamp) <= 15000);
-      const beforeObjective = objectives.some((event) => event.timestamp > death.timestamp && event.timestamp - death.timestamp <= 90000);
-      return !traded || beforeObjective || (death.assistingParticipantIds || []).length <= 1;
-    });
-    const positiveEvents = kills.filter((event) => {
-      if (event.killerTeam !== "ALLY") return false;
-      const involved = event.killerId === participantId || (event.assistingParticipantIds || []).map(Number).includes(participantId);
-      if (!involved) return false;
-      const alliedDeathsNearby = kills.filter((item) => item.victimTeam === "ALLY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
-      const enemyDeathsNearby = kills.filter((item) => item.victimTeam === "ENEMY" && Math.abs(item.timestamp - event.timestamp) <= 15000).length;
-      return enemyDeathsNearby > alliedDeathsNearby;
-    });
-    const diff = roleDiffs.find((item) => item.ally === row || normalizeProfileRole(item.role) === normalizeProfileRole(row.role));
-    const side = playerSideTimings(match, row.role);
-    const catchText = catches.length
-      ? `${catches.length} catch${catches.length > 1 ? "s" : ""} détecté${catches.length > 1 ? "s" : ""} : ${catches.slice(0, 3).map((event) => event.time).join(" · ")}${catches.length > 3 ? "…" : ""}. Revoir information disponible, position des alliés et objectif suivant.`
-      : deaths.length
-        ? `Aucun catch net détecté : ${deaths.length} mort${deaths.length > 1 ? "s" : ""}, mais échangée${deaths.length > 1 ? "s" : ""} ou hors fenêtre critique.`
-        : Number(row.deaths) === 0
-          ? "Aucune mort : vérifier que cette discipline n'a pas sacrifié une fenêtre d'impact utile."
-          : "Timings des morts indisponibles : vérifier les catches dans la VOD.";
-    const goodText = positiveEvents.length
-      ? `${positiveEvents.length} bonne${positiveEvents.length > 1 ? "s" : ""} fenêtre${positiveEvents.length > 1 ? "s" : ""} d'impact, dès ${positiveEvents[0].time} : participation à une séquence gagnée sans rendre autant de kills.`
-      : !kills.length
-        ? "Événements de combat indisponibles : vérifier les séquences positives dans la VOD."
-        : "Aucune séquence positive nette détectée dans la timeline : chercher si le joueur arrive trop tard, trop tôt ou sans ressources.";
-    const laneText = diff
-      ? `Lane : CS10 ${Number.isFinite(diff.cs10Diff) ? `${diff.cs10Diff >= 0 ? "+" : ""}${diff.cs10Diff}` : "N/A"} · or final ${formatGoldDiff(diff.goldDiff)} · ${diff.goldDiff >= 0 ? "levier à convertir" : "coût à stabiliser"}.`
-      : "Lane : données comparatives insuffisantes.";
-    return { name: playerReviewName(row), role: normalizeProfileRole(row.role) || row.role || "ROLE", catchText, goodText, laneText, ...side };
-  });
+  return buildGamePublicationSnapshot({ match }).coach.playerReads;
 }
 
 function matchCoachSnapshot(match) {
-  const ally = teamRows(match, "ALLY");
-  const enemy = teamRows(match, "ENEMY");
-  const allyKills = sumRows(ally, "kills");
-  const allyDeaths = sumRows(ally, "deaths");
-  const allyAssists = sumRows(ally, "assists");
-  const enemyKills = sumRows(enemy, "kills");
-  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
-  const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
-  const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  const allyObjectives = objectiveTeamSummary(match, "ALLY");
-  const enemyObjectives = objectiveTeamSummary(match, "ENEMY");
-  const objectiveDiff = teamObjectiveScore(allyObjectives) - teamObjectiveScore(enemyObjectives);
-  const fights = fightWindows(match);
-  const allyFights = fights.filter((fight) => fight.teamKey === "ALLY").length;
-  const enemyFights = fights.filter((fight) => fight.teamKey === "ENEMY").length;
-  const roleRows = roleDiffRows(match);
-  const reviewRole = roleRows.slice().sort((a, b) => {
-    const score = (row) => (Number(row.goldDiff || 0) / 450) + (Number(row.damageDiff || 0) / 1400) + (Number(row.cs10Diff || 0) * 1.4) - (Number(row.deathsDiff || 0) * 4);
-    return score(a) - score(b);
-  })[0];
-  const carryRole = roleRows.slice().sort((a, b) => (Number(b.goldDiff || 0) + Number(b.damageDiff || 0) / 3) - (Number(a.goldDiff || 0) + Number(a.damageDiff || 0) / 3))[0];
-  const isWin = match.result === "Victoire";
-  const mainSignal = (() => {
-    if (Math.abs(goldDiff) >= 2500) return { label: "Économie", value: formatGoldDiff(goldDiff), toneName: goldDiff >= 0 ? "green" : "red" };
-    if (Math.abs(damageDiff) >= 7000) return { label: "Fights", value: `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, toneName: damageDiff >= 0 ? "green" : "red" };
-    if (Math.abs(visionDiff) >= 18) return { label: "Vision", value: `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, toneName: visionDiff >= 0 ? "cyan" : "red" };
-    return { label: "Objectifs", value: `${objectiveDiff >= 0 ? "+" : ""}${objectiveDiff}`, toneName: objectiveDiff >= 0 ? "cyan" : "red" };
-  })();
-  const title = isWin
-    ? `Victoire portée par ${mainSignal.label.toLowerCase()}`
-    : `${mainSignal.label} à corriger en priorité`;
-  const summary = isWin
-    ? `La game se gagne avec ${mainSignal.value}. Le replay doit confirmer comment cet avantage a été créé puis converti.`
-    : `La game se perd avec ${mainSignal.value}. La review doit isoler le moment où le plan décroche.`;
-  const roleLabelText = reviewRole ? roleLabel(reviewRole.role) : "Rôle non isolé";
-  const roleText = reviewRole
-    ? `${roleLabelText} vs ${championDisplayName(reviewRole.enemy?.champion)} · CS10 ${Number.isFinite(reviewRole.cs10Diff) ? (reviewRole.cs10Diff >= 0 ? "+" : "") + reviewRole.cs10Diff : "N/A"} · or ${formatGoldDiff(reviewRole.goldDiff)}`
-    : "Pas assez de données par rôle.";
-  const keep = isWin
-    ? (carryRole ? `${roleLabel(carryRole.role)} a donné le meilleur levier de la game.` : "Le plan global a converti.")
-    : (goldDiff > 0 || damageDiff > 0 ? "Il y a un avantage exploitable à conserver." : "Garder uniquement les phases propres identifiées en timeline.");
-  const correct = reviewRole
-    ? `${roleLabelText} est la première lane à revoir.`
-    : "Revoir le premier objectif et les morts avant setup.";
-  const action = isWin
-    ? "Identifier le setup reproductible pour la prochaine game."
-    : "Choisir un seul correctif avant le prochain bloc.";
-  const roleName = reviewRole ? roleLabel(reviewRole.role) : "l'équipe";
-  const isEconomyIssue = goldDiff < -2500;
-  const isFightIssue = damageDiff < -7000 || enemyFights > allyFights;
-  const isVisionIssue = visionDiff < -18;
-  const isObjectiveIssue = objectiveDiff < 0;
-  const verdict = isWin
-    ? `Cette victoire compte seulement si l'équipe sait reproduire le setup qui a créé ${mainSignal.value} en ${mainSignal.label.toLowerCase()}.`
-    : `${roleName} est le premier point de rupture visible, mais la review doit remonter à la décision collective qui l'a exposé.`;
-  const standard = isVisionIssue
-    ? "Aucun objectif joué sans zone préparée, information jungle et chemin de sortie annoncé."
-    : isObjectiveIssue
-      ? "Chaque objectif est appelé 60 secondes avant avec priorité de lane, reset et responsabilité de setup."
-      : isEconomyIssue
-        ? "Une lane sous pression ne donne pas une deuxième ressource : wave, camp ou plaque sont cédés consciemment, jamais par défaut."
-        : isFightIssue
-          ? "Le fight ne démarre qu'avec la cible, les cooldowns clés et la condition de sortie compris par les cinq joueurs."
-          : "Le plan de jeu doit être formulé avant la draft puis confirmé par un call simple à chaque transition.";
-  const vodCheckpoints = [
-    `Premier moment où l'écart d'or change de sens : qui avait l'information, quel call a été fait, quelle option sûre existait ?`,
-    isObjectiveIssue ? "60 secondes avant le premier objectif perdu : waves, resets, vision et position du jungler." : "Premier objectif contesté : avantage réel, ressources disponibles et condition de renoncement.",
-    reviewRole ? `Première séquence où ${roleName} perd le contrôle : état de wave, couverture, communication et coût collectif.` : "Première mort évitable : information disponible, décision prise et conséquence sur la carte.",
-  ];
-  const executionPlan = [
-    `Avant la game : annoncer la win condition et le risque numéro 1 en une phrase.`,
-    isVisionIssue || isObjectiveIssue ? "En game : lancer le setup objectif à T-60, confirmer les priorités à T-40 et décider go/no-go à T-20." : "En game : verbaliser la prochaine ressource jouée avant chaque transition de map.",
-    `Après la game : vérifier ce standard sur 3 séquences, sans juger uniquement le résultat final.`,
-  ];
-  const validation = isWin
-    ? "Validé si le même setup crée un avantage exploitable sur 2 des 3 prochaines games."
-    : `Validé si ${roleName} ne subit plus le même point de rupture sur 3 games consécutives et si le call collectif arrive avant l'action.`;
-  const coachQuestions = [
-    "Qu'est-ce que tu savais au moment de décider — pas après coup ?",
-    "Quel call simple aurait permis aux cinq joueurs de prendre la même décision ?",
-    "Quel comportement précis remplace l'erreur dès la prochaine game ?",
-  ];
-  const playerReads = matchPlayerCoachReads(match);
-  return {
-    title,
-    summary,
-    mainSignal,
-    roleText,
-    keep,
-    correct,
-    action,
-    verdict,
-    standard,
-    vodCheckpoints,
-    executionPlan,
-    validation,
-    coachQuestions,
-    playerReads,
-    metrics: [
-      ["KDA", `${allyKills}/${allyDeaths}/${allyAssists}`, `${enemyKills} kills adverses`, "cyan"],
-      ["Or", formatGoldDiff(goldDiff), "écart final", goldDiff >= 0 ? "green" : "red"],
-      ["Dégâts", `${damageDiff >= 0 ? "+" : ""}${formatPoints(damageDiff)}`, "alliés vs adversaires", damageDiff >= 0 ? "green" : "red"],
-      ["Vision", `${visionDiff >= 0 ? "+" : ""}${formatPoints(visionDiff)}`, "score vision", visionDiff >= 0 ? "cyan" : "red"],
-      ["Objectifs", `${teamObjectiveScore(allyObjectives)}-${teamObjectiveScore(enemyObjectives)}`, "tous objectifs", objectiveDiff >= 0 ? "cyan" : "red"],
-      ["Fights", `${allyFights}-${enemyFights}`, "fenêtres détectées", allyFights >= enemyFights ? "green" : "red"],
-    ],
-  };
+  return buildGamePublicationSnapshot({ match }).coach;
 }
 
-function MatchCoachBrief({ match }) {
+function plainCoachText(value) {
+  return String(value || "")
+    .replace(/\bVOD\b/g, "vidéo de la partie")
+    .replace(/\bun setup\b/gi, "une préparation")
+    .replace(/\ble setup\b/gi, "la préparation")
+    .replace(/\bsetup\b/gi, "préparation")
+    .replace(/\bgames\b/gi, "parties")
+    .replace(/\bgame\b/gi, "partie")
+    .replace(/\breview\b/gi, "débrief")
+    .replace(/\bla débrief\b/g, "le débrief")
+    .replace(/\bune débrief\b/g, "un débrief")
+    .replace(/\bde or\b/g, "d’or")
+    .replace(/Écart final : (.+?) en or final entre/g, "Écart d’or final : $1 entre");
+}
+
+function MatchCoachBrief({ match, onReview, hasReview = false }) {
   const snapshot = matchCoachSnapshot(match);
   const matchId = match?.id || "";
-  return <section className="mt-5 overflow-hidden rounded-[1.5rem] border border-cyan-200/18 bg-[linear-gradient(135deg,rgba(34,211,238,.095),rgba(5,8,20,.92)_48%,rgba(168,85,247,.09))] p-4">
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,.55fr)] xl:items-start">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2"><Badge tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.label}</Badge><Badge tone="cyan">Review prête</Badge></div>
-        <h4 className="mt-3 break-words text-2xl font-black text-white">{snapshot.title}</h4>
-        <p className="mt-2 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{snapshot.summary}</p>
-        <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          {[["À garder", snapshot.keep, "green"], ["À corriger", snapshot.correct, "red"], ["Prochaine action", snapshot.action, "cyan"]].map(([label, value, toneName]) => <div key={label} className="min-w-0 rounded-2xl bg-black/24 p-3">
-            <p className={cx("text-[0.6rem] font-black uppercase tracking-[0.16em]", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{label}</p>
-            <p className="mt-1.5 text-sm font-black leading-5 text-white">{value}</p>
-          </div>)}
-        </div>
-      </div>
-      <div className="grid min-w-0 gap-2">
-        <div className="rounded-2xl bg-black/24 p-3">
-          <p className="text-[0.6rem] font-black uppercase tracking-[0.16em] text-slate-400">Lane à review</p>
-          <p className="mt-1.5 text-sm font-black leading-5 text-white">{snapshot.roleText}</p>
-        </div>
-        <Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`)} disabled={!matchId}>Créer la review</Button>
-        <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}`)} disabled={!matchId}>Ouvrir Review</Button>
-      </div>
+  return <section className="games-analysis-section games-coach-brief" aria-label="L’essentiel de la partie">
+    <div className="games-brief-heading">
+      <h4 className="games-section-heading">L’essentiel de la partie</h4>
+      <Badge tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.label}</Badge>
     </div>
-    <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-      {snapshot.metrics.map(([label, value, detail, toneName]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.035] p-3">
-        <p className="truncate text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">{label}</p>
-        <p className={cx("mt-1 truncate text-lg font-black", toneName === "green" ? "text-emerald-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
-        <p className="mt-0.5 truncate text-[0.62rem] font-semibold text-slate-400">{detail}</p>
+    <p className="games-brief-verdict">{plainCoachText(snapshot.title)}</p>
+    <p className="games-brief-summary">{plainCoachText(snapshot.summary)}</p>
+    <dl className="games-brief-points">
+      {[["À garder", snapshot.keep, "keep"], ["À vérifier", snapshot.correct, "check"], ["Prochaine action", snapshot.action, "next"]].map(([label, value, toneName]) => <div key={label} className={`games-brief-point games-brief-point-${toneName}`}>
+        <dt>{label}</dt><dd>{plainCoachText(value)}</dd>
+      </div>)}
+    </dl>
+    <div className="games-brief-followup">
+      <div><p>Le débrief d’équipe (review) rassemble tes notes et les décisions pour la prochaine session.</p></div>
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? "Ouvrir le débrief" : "Préparer le débrief"}</Button>
+      <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports")}>Tous les débriefs</Button>
+    </div>
+  </section>;
+}
+
+function CoachSupportingMetrics({ match }) {
+  const snapshot = matchCoachSnapshot(match);
+  return <section className="games-analysis-section">
+    <h4 className="games-section-heading">Repères de l’analyse</h4>
+    <p className="games-brief-summary"><strong>Poste à revoir :</strong> {snapshot.roleText.replace(/\bCS10\b/g, "Écart de sbires à 10 min")}</p>
+    <div className="nxt5-kpi-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      {snapshot.metrics.map(([label, value, detail, toneName]) => <div key={label} className="games-stat-block">
+        <p className="break-words text-xs font-semibold text-slate-400">{label}</p>
+        <p className={cx("mt-1 break-words text-lg font-black", toneName === "green" ? "text-emerald-100" : "text-rose-100")}>{value}</p>
+        <p className="mt-0.5 break-words text-xs font-semibold text-slate-400">{detail}</p>
       </div>)}
     </div>
   </section>;
 }
 
-function MatchDataPanel({ match, teamName, statsFirst = false }) {
+function GameAnalysisDisclosure({ title, description, children }) {
+  const [open, setOpen] = useState(false);
+  return <details className="games-analysis-disclosure" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary><span><strong>{title}</strong><span>{description}</span></span><ChevronDown aria-hidden="true" /></summary>
+    {open && <div className="games-analysis-disclosure-content">{children}</div>}
+  </details>;
+}
+
+function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -1481,8 +1276,42 @@ function MatchDataPanel({ match, teamName, statsFirst = false }) {
   const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
   const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="KDA équipe" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} kills adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Alliés vs adversaires" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Économie globale" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score vision équipe" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
-  return <Surface glow className="nxt5-match-panel mt-5"><div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.patch || "Patch ?"}</Badge><Badge tone="blue">{match.side || "Côté ?"}</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><h3 tabIndex={-1} className="mt-3 break-words text-2xl font-black text-white">{matchDisplayName(match)}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{match.game_id} · {match.duration || "--:--"}</p></div>{!statsFirst && <div className="flex flex-wrap gap-2"><Button type="button" icon={Plus} onClick={() => openAppPath(`/rapports?match=${encodeURIComponent(match.id || "")}&compose=1`)} disabled={!match.id}>Créer review</Button></div>}</div>{statsFirst && metrics}{!statsFirst && <MatchCoachBrief match={match} />}<MatchVersusOverview match={match} teamName={teamName} />{!statsFirst && metrics}{statsFirst && <MatchCoachBrief match={match} />}<GameSummaryPanel match={match} /><MatchTimelineReview match={match} /><GameMetricSignals match={match} /><RoleDiffPanel match={match} /><DeathContextPanel match={match} /><DraftImpactPanel match={match} /></Surface>;
+  const side = matchTeamSideKey(match, "ALLY");
+  const status = timelineStatus(match);
+  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="Éliminations / morts / assistances" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} éliminations adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Notre équipe moins l’adversaire" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Or de notre équipe moins l’adversaire" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score de vision : notre équipe moins l’adversaire" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
+  return <Surface className="nxt5-match-panel mt-5">
+    <div className="games-match-context">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Résultat non renseigné"}</Badge>
+        <span>{match.duration ? `Durée : ${match.duration}` : "Durée non renseignée"}</span>
+        <span>{side === "blue" ? "Notre équipe : côté bleu" : side === "red" ? "Notre équipe : côté rouge" : "Côté non renseigné"}</span>
+      </div>
+      <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>
+      {(match.game_id || match.patch) && <p>{[match.game_id && `Identifiant : ${match.game_id}`, match.patch && `Version du jeu : ${match.patch}`].filter(Boolean).join(" · ")}</p>}
+    </div>
+    <MatchCoachBrief match={match} onReview={onReview} hasReview={hasReview} />
+    <section className="games-explore" aria-label="Explorer la partie">
+      <h4 className="games-section-heading">Explorer la partie</h4>
+      <p>Ouvre le détail utile à ta question.</p>
+      <div key={match.id}>
+        <GameAnalysisDisclosure title="Statistiques et comparaison 5 contre 5" description="Or, dégâts, vision, joueurs, équipements et objectifs.">
+          {metrics}
+          <MatchVersusOverview match={match} teamName={teamName} />
+          <CoachSupportingMetrics match={match} />
+        </GameAnalysisDisclosure>
+        <GameAnalysisDisclosure title="Points à approfondir" description="Contributions par rôle, contexte des morts et composition de champions (draft).">
+          <GameSummaryPanel match={match} />
+          <GameMetricSignals match={match} />
+          <RoleDiffPanel match={match} />
+          <DeathContextPanel match={match} />
+          <DraftImpactPanel match={match} />
+        </GameAnalysisDisclosure>
+        <GameAnalysisDisclosure title="Chronologie de la partie" description={`${status.label} · ${status.detail}`}>
+          <MatchTimelineReview match={match} teamName={teamName} />
+        </GameAnalysisDisclosure>
+      </div>
+    </section>
+  </Surface>;
 }
 
 function archiveMatchIds(archive) {
@@ -1513,13 +1342,13 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, sho
       </div>
     </div>
     <div className="nxt5-kpi-grid mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
-    {showGames && <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 shadow-[0_0_0_1px_rgba(103,232,249,.28),0_0_30px_rgba(34,211,238,.18)]" : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.65)] transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>}
+    {showGames && <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 " : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200  transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>}
   </Surface>;
 }
 
 const GAME_WORKSPACE_TABS = [
-  { id: "games", label: "Games", icon: Swords, path: "/games" },
-  { id: "review", label: "Review", icon: FileText, path: "/rapports" },
+  { id: "games", label: "Parties", icon: Swords, path: "/games" },
+  { id: "review", label: "Débriefs", icon: FileText, path: "/rapports" },
 ];
 
 function GameWorkspace(props) {
@@ -1532,7 +1361,14 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
-  const selectedTeamName = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId))?.name || "Notre équipe";
+  const selectedTeam = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId));
+  const selectedTeamName = selectedTeam?.name || "Notre équipe";
+  const teamMember = currentMember?.team_id === selectedTeamId && currentMember?.user_id === user?.id ? currentMember : null;
+  const canManageTeam = Boolean(selectedTeam && user?.id && (selectedTeam.owner_id === user.id || canStaffManage(teamMember?.role)));
+  const canPublishDiscord = canManageTeam;
+  const canImport = canManageTeam;
+  const importPlayerIds = new Set((data.players || []).filter((player) => String(player.team_id) === String(selectedTeamId) && player.id && [...COMP_ROLES, "SUB"].includes(String(player.role || "").toUpperCase())).map((player) => String(player.id)));
+  const importReady = importPlayerIds.size >= 5;
   const query = new URLSearchParams(route?.search ?? window.location.search);
   const urlMatchId = query.get("match") || "";
   const urlArchiveId = query.get("archive") || "";
@@ -1540,7 +1376,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : "games";
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
-  const [importOpen, setImportOpen] = useState(urlImportOpen);
+  const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
   const [importBusy, setImportBusy] = useState(false);
   const [workspaceView, setWorkspaceView] = useState(urlView);
   const [exportingStats, setExportingStats] = useState(false);
@@ -1555,11 +1391,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   useEffect(() => {
     setSelectedMatchId(urlMatchId);
     setSelectedArchiveId(urlArchiveId);
-    setImportOpen(urlImportOpen);
+    setImportOpen(urlImportOpen && !urlMatchId && !urlArchiveId);
     setWorkspaceView(urlView);
   }, [urlMatchId, urlArchiveId, urlImportOpen, urlView]);
 
   function updateLocation(changes) {
+    if ("match" in changes || "archive" in changes) changes = { ...changes, import: "" };
     const next = new URLSearchParams(window.location.search);
     Object.entries(changes).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
     if ("match" in changes) setSelectedMatchId(changes.match || "");
@@ -1609,6 +1446,13 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     setWorkspaceView("games");
     updateLocation({ import: "", view: "", archive: "", match: id ? String(id) : "" });
   }
+  function renderImportAction(variant = "primary") {
+    if (selectedMatchId || selectedArchiveId) return null;
+    if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>Choisir une équipe</Button><p>Crée ou rejoins une équipe pour y retrouver tes parties.</p></div>;
+    if (!canImport) return <p className="games-import-help">Le capitaine ou le staff peut importer les parties de ton équipe.</p>;
+    if (!importReady) return <div className="games-import-action"><Button type="button" variant={variant} icon={Plus} onClick={() => openAppPath("/gestion-equipe?section=roster")}>Ajouter les joueurs</Button><p>Ajoute au moins 5 profils joueurs distincts pour importer une partie.</p></div>;
+    return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une partie</Button>;
+  }
   const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : [...current.matchIds, matchId] }));
   const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
   const editArchive = (archive) => {
@@ -1627,7 +1471,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
         await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
       }
-      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe de games est prêt dans Games." });
+      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe est prêt dans Parties." });
       resetArchiveForm();
       setArchiveWorkspaceTab("select");
       await refreshAll?.();
@@ -1670,6 +1514,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         teamName: selectedTeamName,
         group,
         matches: exportMatches,
+        team: { id: selectedTeamId, name: selectedTeamName },
+        categories: matchCategories,
         filename: group ? "nxt5-groupe-stats.png" : "nxt5-game-" + (exportMatches[0].game_id || "export") + ".png",
       });
     } catch (error) {
@@ -1680,58 +1526,58 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
-    <PageHeader eyebrow={selectedTeamName} title="Games" subtitle={selectedMatchId ? "Les statistiques de ta game, du résultat au détail par rôle." : "Retrouve tes games et ouvre leurs statistiques."}>
-      <span ref={importTriggerRef}><Button type="button" variant={selectedMatchId ? "ghost" : "primary"} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une game</Button></span>
+    <PageHeader eyebrow={selectedTeamName} title="Parties" subtitle={selectedMatchId ? "Comprends le résultat, choisis une piste de travail, puis explore les détails." : "Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session."}>
+      {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
-    {importOpen && <GameOperationDialog title="Importer une game" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
+    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
       <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} />
     </GameOperationDialog>}
 
-    {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label="Statistiques de la game">
+    {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label="Analyse de la partie">
       <div className="games-detail-toolbar">
-        <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? "Retour au groupe" : "Retour aux games"}</Button>
+        <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? "Retour au groupe" : "Retour aux parties"}</Button>
         {selectedMatch && <div className="games-detail-actions">
           <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? "Export…" : "Exporter PNG"}</Button>
-          <Button type="button" variant="ghost" icon={FileText} onClick={openReview}>{selectedReport ? "Ouvrir la review" : "Créer une review"}</Button>
+          {!loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canPublishDiscord} />}
           <GameActions key={selectedMatchId} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError)} match={selectedMatch} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onDeleted={() => updateLocation({ match: "", ...(selectedArchive && scopedMatches.length <= 1 ? { archive: "" } : {}) })} onUpdated={retryMatchDetail} />
         </div>}
       </div>
-      {!selectedMatch && <div className="games-detail-title"><h3>Statistiques de la game</h3></div>}
+      {!selectedMatch && <div className="games-detail-title"><h3>Analyse de la partie</h3></div>}
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement des statistiques détaillées…</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && " Les statistiques déjà chargées restent disponibles."}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button></Surface>}
-      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} statsFirst />}
-      {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Game introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} />}
+      {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Partie introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
     </div>}
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav label="Bibliothèque de games" items={[{ id: "games", label: "Games", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
+        <TabNav label="Bibliothèque de parties" items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
         {baseMatches.length > 0 && <p className="games-team-record"><span>Équipe</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)} % de victoires</span></p>}
       </div>
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
-        <div className="games-group-heading"><div><h3>Groupes de games</h3><p>Analyse ensemble les games d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
+        <div className="games-group-heading"><div><h3>Groupes de parties</h3><p>Compare les parties d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
         {archiveWorkspaceTab === "select" ? <div className="games-group-list">
           {archives.map((archive) => {
             const groupMatches = baseMatches.filter((match) => archiveMatchIds(archive).includes(match.id));
             const groupWins = groupMatches.filter((match) => match.result === "Victoire").length;
             return <div key={archive.id} className="games-group-row">
-              <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || `${groupMatches.length} games`}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
+              <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || `${groupMatches.length} parties`}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
               <div className="games-group-tools"><button type="button" className="ig-icon-button" aria-label={`Modifier le groupe ${archive.name}`} onClick={() => editArchive(archive)} disabled={savingArchive}><Pencil aria-hidden="true" /></button><button type="button" className="ig-icon-button" aria-label={`Supprimer le groupe ${archive.name}`} onClick={() => deleteArchive(archive)} disabled={savingArchive}><Trash2 aria-hidden="true" /></button></div>
             </div>;
           })}
-          {!archives.length && <EmptyState icon={FileText} title="Aucun groupe" text="Rassemble les games d’un scrim ou d’une compétition pour lire leurs résultats ensemble." />}
+          {!archives.length && <EmptyState icon={FileText} title="Aucun groupe" text="Rassemble les parties d’un entraînement ou d’une compétition pour lire leurs résultats ensemble." />}
         </div> : <form onSubmit={saveArchive} className="games-group-form">
           <fieldset disabled={savingArchive}>
             <div className="games-group-fields"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK — 08/09" required /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Session, objectif du bloc…" /></div>
-            <div className="games-group-heading"><p>{archiveForm.matchIds.length} game(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }))} disabled={!matches.length}>Tout sélectionner</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
+            <div className="games-group-heading"><p>{archiveForm.matchIds.length} partie(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }))} disabled={!matches.length}>Tout sélectionner</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
             <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {match.result || "Résultat inconnu"}</span></span></label>)}</div>
-            {!matches.length && <p>Importe une première game pour créer un groupe.</p>}
+            {!matches.length && <p>Importe une première partie pour créer un groupe.</p>}
             <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>Annuler</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? "Enregistrement…" : archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div>
           </fieldset>
         </form>}
       </Surface>}
       {selectedArchive && <>
-        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir la review</Button>}</div></div>
+        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir le débrief</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
@@ -1740,11 +1586,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         <ImportedGames
           matches={scopedMatches} categories={matchCategories} selectedMatchId={selectedMatchId} selectedMatch={selectedMatch}
           onSelectMatch={selectMatch} showSelection={false} showCategoryFilter allowImportSort
-          title={selectedArchive ? "Games du groupe" : "Toutes les games"}
-          description="Recherche une game et ouvre directement ses statistiques."
+          title={selectedArchive ? "Parties du groupe" : "Toutes les parties"}
+          description="Recherche une partie pour lire son résumé, puis ses statistiques."
           scopeName={selectedArchive?.name || ""}
           headerActions={<GameCategoryManager data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
-          emptyAction={<Button type="button" icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une game</Button>}
+          emptyAction={renderImportAction()}
         />
       </div>
     </div>
@@ -1832,7 +1678,7 @@ function renderReportContent(content, rows) {
     if (trimmed === REPORT_REWRITE_MARKER || trimmed === "[NXT5_REPORT_V2]") return null;
     if (!trimmed) return <div key={index} className="h-2" />;
     if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|LECTURE PAR JOUEUR|NOTES STAFF(?: CONSERVÉES)?|REPÈRES)$/i.test(trimmed)) {
-      return <h4 key={index} className={cx("mt-4 rounded-xl border px-3 py-2 text-[0.67rem] font-black uppercase tracking-[0.18em]", sectionTone(trimmed))}>{trimmed.replace(/^#{1,3}\s+/, "")}</h4>;
+      return <h4 key={index} className={cx("games-report-heading", sectionTone(trimmed))}>{trimmed.replace(/^#{1,3}\s+/, "")}</h4>;
     }
     if (/^[-•]\s+/.test(trimmed)) return <p key={index} className="relative min-h-[1.5rem] break-words whitespace-pre-wrap pl-5 text-slate-100 before:absolute before:left-1 before:top-[0.65rem] before:h-1.5 before:w-1.5 before:rounded-full before:bg-cyan-300">{trimmed.replace(/^[-•]\s+/, "")}</p>;
     return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap">{line}</p>;
@@ -1840,13 +1686,13 @@ function renderReportContent(content, rows) {
 }
 
 function ReviewAnalysisStatus({ details }) {
-  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">Préparation automatique de l’analyse des games liées…</p>;
+  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">Préparation automatique de l’analyse des parties liées…</p>;
   if (details.error) return <div role="alert" className="mb-3 space-y-2 text-sm text-amber-100"><p>{details.error} Le contenu enregistré et les notes restent disponibles.</p><Button type="button" variant="ghost" onClick={details.retry}>Réessayer</Button></div>;
   return null;
 }
 
 function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
-  return <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-black/[0.26] p-3 text-[0.82rem] leading-6 text-slate-100 shadow-inner shadow-black/35 sm:p-4 sm:text-sm sm:leading-7">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}</div>;
+  return <div className="games-report-preview">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}</div>;
 }
 
 // V2 was fully editable: preserve its text, including corrections in the coaching block.
@@ -1904,7 +1750,7 @@ function buildGameReviewContent(match) {
     `Résultat: ${match.result || "Analyse"} · ${match.side || "Side ?"} · ${match.duration || "--:--"}`,
     `Données: ${timelineStatus(match).label} · ${timelineStatus(match).detail}`,
     "",
-    "CAUSE RACINE",
+    "PISTES DE REVIEW",
     `- ${snapshot.title}`,
     `- ${snapshot.summary}`,
     `- Lane à review: ${snapshot.roleText}`,
@@ -1960,7 +1806,7 @@ function buildArchiveReportContent(name, matches) {
     "",
     `Groupe: ${name || "Groupe"}`,
     "",
-    "CAUSE RACINE",
+    "PISTES DE REVIEW",
     ...reportRawSummaryLines(linked),
     "",
     "CHECKPOINTS VOD",
@@ -2061,7 +1907,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const formRows = reportRows(matches, form.matchIds);
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
   const selectedMatchForReport = selected ? matches.find((match) => reportMatchIds(selected).includes(match.id) && (!urlMatchId || match.id === urlMatchId)) || matches.find((match) => reportMatchIds(selected).includes(match.id)) : null;
-  const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Review");
+  const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief");
   const reviewMatches = form.matchIds.length ? matches.filter((match) => form.matchIds.includes(match.id)) : [];
   const selectedMatchIds = selected ? reportMatchIds(selected) : [];
   const selectedStatsMatchId = selectedMatchForReport?.id || selectedMatchIds[0] || "";
@@ -2077,7 +1923,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     const author = String(report.author_name || "").toLowerCase();
     return title.includes(searchNeedle) || author.includes(searchNeedle) || String(report.content || "").toLowerCase().includes(searchNeedle);
   });
-  const selectionLabel = reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% WR` : "Aucune game sélectionnée";
+  const selectionLabel = reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Aucune partie sélectionnée";
 
   function startBlankReview() {
     resetReportForm();
@@ -2117,7 +1963,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   useEffect(() => {
     if (!urlComposeReview || !urlMatchId || !requestedMatch) return;
     setSelectedArchiveId("");
-    setForm({ id: null, title: matchDisplayName(requestedMatch, "Review"), content: "", matchIds: [requestedMatch.id] });
+    setForm({ id: null, title: matchDisplayName(requestedMatch, "Débrief"), content: "", matchIds: [requestedMatch.id] });
     setComposerOpen(true);
     setLexiconOpen(false);
     window.history.replaceState({}, "", `/rapports?match=${encodeURIComponent(urlMatchId)}`);
@@ -2168,14 +2014,14 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     if (saving || !formCanSave) return;
     setSaving(true);
     try {
-      const title = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Review");
+      const title = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief");
       await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: formContent, matchIds: form.matchIds }) });
       resetReportForm();
       setComposerOpen(false);
       setLexiconOpen(false);
       setWorkspaceView("library");
       await refreshAll();
-      pushToast({ type: "green", title: form.id ? "Review mise à jour" : "Review créée", text: "Le contenu de review est enregistré." });
+      pushToast({ type: "green", title: form.id ? "Débrief mis à jour" : "Débrief créé", text: "Le débrief est enregistré." });
     } catch (err) {
       pushToast({ type: "red", title: "Enregistrement impossible", text: err.message });
     } finally {
@@ -2185,12 +2031,12 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
   async function deleteReport(report) {
     const canDelete = canCaptainDelete || report.created_by === user?.id;
-    if (!canDelete || !window.confirm("Supprimer cette review ?")) return;
+    if (!canDelete || !window.confirm("Supprimer ce débrief ?")) return;
     setSaving(true);
     try {
       await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, reportId: report.id }) });
       await refreshAll();
-      pushToast({ type: "green", title: "Review supprimée", text: "La review a été retirée." });
+      pushToast({ type: "green", title: "Débrief supprimé", text: "Le débrief a été retiré." });
     } catch (err) {
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
     } finally {
@@ -2202,78 +2048,79 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const noteTemplates = [
     ["Verdict", "## VERDICT COACH\n- Le fait décisif : \n- La décision attendue : "],
     ["Cause racine", "## CAUSE RACINE\n- Symptôme observé : \n- Décision qui crée le problème : \n- Information manquante : "],
-    ["VOD", "## CHECKPOINTS VOD\n- Timestamp : contexte → décision → conséquence\n- Timestamp : contexte → décision → conséquence"],
+    ["Vidéo", "## CHECKPOINTS VOD\n- Timestamp : contexte → décision → conséquence\n- Timestamp : contexte → décision → conséquence"],
     ["Joueur", "## LECTURE PAR JOUEUR\n### RÔLE · Joueur\n- Catch : timestamp + information disponible\n- Exécution juste : timestamp + décision à reproduire\n- WEAKSIDE : fenêtre + comportement attendu\n- STRONGSIDE : fenêtre + ressource à convertir"],
     ["Plan", "## PLAN D'EXÉCUTION\n- 1. Avant la game : \n- 2. En game : \n- 3. Après la game : "],
     ["Validation", "## VALIDATION\n- Réussi si : \n- Échec si : \n- Mesuré sur : 3 games"],
     ["Draft", "## Draft\n- Pick à sécuriser :\n- Ban prioritaire :\n- Réponse adverse : "],
   ];
   return (
-    <div className="nxt5-data-dense min-w-0 overflow-hidden">
+    <div className="nxt5-data-dense nxt5-reviews-page min-w-0">
       <PageHeader
-        eyebrow="Reviews"
-        title="Review"
-        subtitle="L’analyse des games liées est préparée automatiquement. Ajoute tes notes et les décisions du staff."
+        eyebrow="Débrief d’équipe (review)"
+        title="Débriefs"
+        subtitle="Relis les parties, ajoute tes observations et décide avec l’équipe ce que vous travaillerez ensuite."
       >
-        <Button icon={Plus} onClick={startBlankReview}>Créer une review</Button>
-        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/games")}>Voir les stats</Button>
+        <Button icon={Plus} onClick={startBlankReview}>Préparer un débrief</Button>
+        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/games")}>Voir les parties</Button>
       </PageHeader>
 
-      {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la game pour préparer la review…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
-      <TabNav className="mb-5" label="Sections Review" items={[
+      {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la partie pour préparer le débrief…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
+      <TabNav className="mb-5" label="Rubriques des débriefs" items={[
         { id: "library", label: "Bibliothèque", meta: reports.length, icon: FileText },
         { id: "queue", label: "À traiter", meta: pendingReviewCount, icon: Check },
       ]} activeId={workspaceView} onChange={setWorkspaceView} columns="sm:grid-cols-2" />
 
       {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
-        <aside className="min-w-0 overflow-hidden rounded-2xl border border-cyan-200/18 bg-[#070b17]/88 shadow-[0_18px_54px_rgba(0,0,0,.32)] backdrop-blur-2xl 2xl:sticky 2xl:top-4 2xl:self-start">
+        <aside className="games-review-library 2xl:sticky 2xl:top-4 2xl:self-start">
           <div className="border-b border-white/10 px-4 py-4 sm:px-5">
             <div className="flex min-w-0 items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-100"><FileText className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <h3 className="text-xl font-black text-white">Bibliothèque</h3>
-                  <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length} review{reports.length > 1 ? "s" : ""}</span>
+                  <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length} débrief{reports.length > 1 ? "s" : ""}</span>
                 </div>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne une review pour l’ouvrir.</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne un débrief pour l’ouvrir.</p>
               </div>
             </div>
 
             <div className="mt-4 space-y-2">
-              <label className="flex h-11 items-center gap-2 border-b border-white/12 px-1 transition focus-within:border-cyan-200/55">
-                <span className="sr-only">Chercher une review</span>
+              <label className="games-review-search">
+                <span className="sr-only">Chercher un débrief</span>
                 <Search className="h-4 w-4 shrink-0 text-cyan-100/70" />
-                <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher par game ou auteur" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
+                <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher par partie ou auteur" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
               </label>
               <label className="relative block">
-                <span className="sr-only">Filtrer par contexte</span>
-                <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="h-10 w-full appearance-none border-0 bg-transparent px-1 pr-8 text-sm font-bold text-slate-200 outline-none transition hover:text-white focus:text-white">
-                  <option value="">Toutes les reviews</option>
-                  {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} games</option>)}
+                <span className="games-field-label">Contexte</span>
+                <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="games-review-select">
+                  <option value="">Tous les débriefs</option>
+                  {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} parties</option>)}
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </label>
             </div>
 
-            {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-[0.68rem] font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span> résultat{filteredReports.length > 1 ? "s" : ""} sur {reports.length}</p>}
+            {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-xs font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span> résultat{filteredReports.length > 1 ? "s" : ""} sur {reports.length}</p>}
           </div>
 
           <div className="nxt5-review-list max-h-[min(66vh,44rem)] overflow-y-auto overscroll-contain">
             {filteredReports.length ? filteredReports.map((report) => {
               const active = selected?.id === report.id;
               const ids = reportMatchIds(report);
-              return <button key={report.id} type="button" aria-current={active ? "true" : undefined} onClick={() => selectReport(report)} className={cx("group/report relative grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.075] px-4 py-3.5 text-left transition last:border-b-0 sm:px-5", active ? "bg-gradient-to-r from-cyan-400/14 via-cyan-300/[0.055] to-transparent" : "hover:bg-white/[0.045]")}>
-                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 shadow-[0_0_14px_rgba(103,232,249,.9)]" : "bg-transparent group-hover/report:bg-cyan-200/35")} />
+              return <button key={report.id} type="button" aria-current={active ? "true" : undefined} onClick={() => selectReport(report)} className={cx("group/report relative grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.075] px-4 py-3.5 text-left transition last:border-b-0 sm:px-5", active ? "bg-cyan-400/[0.08]" : "hover:bg-white/[0.045]")}>
+                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 " : "bg-transparent group-hover/report:bg-cyan-200/35")} />
                 <span className="min-w-0">
                   <span className={cx("block break-words text-sm font-black leading-5 transition", active ? "text-cyan-50" : "text-white group-hover/report:text-cyan-50")}>{reportDisplayName(report, matches)}</span>
-                  <span className="mt-1.5 block truncate text-[0.7rem] font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
+                  {report.discord_status === "draft" && <span className="mt-1 block text-xs font-semibold text-amber-200">Brouillon · staff uniquement</span>}
+                  <span className="mt-1.5 block truncate text-xs font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-1">
-                  <span className={cx("whitespace-nowrap text-[0.65rem] font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} game{ids.length > 1 ? "s" : ""}</span>
+                  <span className={cx("whitespace-nowrap text-xs font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} partie{ids.length > 1 ? "s" : ""}</span>
                   <ChevronRight className={cx("h-4 w-4 transition", active ? "translate-x-0.5 text-cyan-100" : "text-slate-600 group-hover/report:translate-x-0.5 group-hover/report:text-cyan-100")} />
                 </span>
               </button>;
-            }) : <div className="p-4"><EmptyState icon={FileText} title="Aucune review" text="Modifie la recherche ou crée une nouvelle review." /></div>}
+            }) : <div className="p-4"><EmptyState icon={FileText} title="Aucun débrief" text="Modifie la recherche ou prépare un premier débrief." /></div>}
           </div>
         </aside>
 
@@ -2281,40 +2128,41 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
           {selected ? <>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <Badge tone="purple">Review active</Badge>
+                <Badge tone={selected.discord_status === "draft" ? "amber" : "purple"}>{selected.discord_status === "draft" ? "Brouillon · staff uniquement" : "Débrief enregistré"}</Badge>
+                {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">Pour le partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.</p>}
                 <h3 className="mt-3 break-words text-3xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
-                <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatchIds.length} game{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatchIds.length} partie{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-                <Button variant="ghost" icon={ArrowRight} onClick={() => selectedStatsMatchId && openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)} disabled={!selectedStatsMatchId}>Stats</Button>
+                <Button variant="ghost" icon={ArrowRight} onClick={() => selectedStatsMatchId && openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)} disabled={!selectedStatsMatchId}>Voir la partie</Button>
                 <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
                 {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
                 {canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}
               </div>
             </div>
             <div className="mt-5 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Games</p><p className="mt-1 text-lg font-black text-white">{selectedMatchIds.length}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">Record</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins}W - ${selectedMatches.length - selectedWins}L` : "--"}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-[0.58rem] font-black uppercase tracking-[0.14em] text-slate-400">WR</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Parties</p><p className="mt-1 text-lg font-black text-white">{selectedMatchIds.length}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Résultats</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins} V · ${selectedMatches.length - selectedWins} D` : "--"}</p></div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Taux de victoire</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
             </div>
-            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} games liées chargées. Les games restantes sont chargées automatiquement pour compléter l’analyse.</p>}
+            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} parties liées chargées. Les parties restantes sont chargées automatiquement pour compléter l’analyse.</p>}
             <div className="mt-5">
               <ReviewAnalysisStatus details={reviewDetails} />
               <ReportPreview content={selectedContent} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
             </div>
-          </> : <EmptyState icon={FileText} title="Aucune review sélectionnée" text="Choisis une review dans la bibliothèque ou crée-en une nouvelle." />}
+          </> : <EmptyState icon={FileText} title="Aucun débrief sélectionné" text="Choisis un débrief dans la bibliothèque ou prépare-en un nouveau." />}
         </Surface>
       </div>}
 
       {composerOpen && createPortal(
         <div className="nxt5-fade-in fixed inset-0 z-[300] isolate flex items-end justify-center bg-[#020511]/94 backdrop-blur-xl sm:items-center sm:p-3 lg:p-5">
-          <section role="dialog" aria-modal="true" aria-labelledby="review-composer-title" className="nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814] shadow-[0_30px_120px_rgba(0,0,0,.82),0_0_54px_rgba(34,211,238,.16)] sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
-            <div className="pointer-events-none absolute inset-x-8 top-0 z-20 h-px bg-gradient-to-r from-transparent via-cyan-100/75 to-fuchsia-100/55" />
+          <section role="dialog" aria-modal="true" aria-labelledby="review-composer-title" className="games-review-composer nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814]  sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
+            <div className="hidden" />
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier la review" : "Nouvelle review"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Créer une review"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">L’analyse se complète avec les games liées. Ajoute les notes et les décisions du staff.</p></div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer"}</Button></div>
+                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier le débrief" : "Nouveau débrief"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Préparer le débrief"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Choisis les parties à revoir, puis note ce que l’équipe garde, corrige et travaille ensuite.</p></div>
+                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer le débrief"}</Button></div>
                 </div>
               </div>
 
@@ -2323,15 +2171,15 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
 
                 <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
               <div className="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
-                <div className="flex items-start justify-between gap-3"><div><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Games liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-black uppercase tracking-[0.12em] transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-[0.58rem] font-black uppercase tracking-[0.12em] text-slate-400">{ids.length} game{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-300">Parties liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-xs font-semibold text-slate-400">{ids.length} partie{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
                 <div className="mt-3 grid grid-cols-2 gap-2"><Button type="button" variant="ghost" icon={Check} onClick={selectAllScopedMatches} disabled={!scopedMatches.length}>Tout lier</Button><Button type="button" variant="ghost" icon={X} onClick={() => setForm((current) => ({ ...current, matchIds: [] }))} disabled={!form.matchIds.length}>Vider</Button></div>
-                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Game"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Side ?"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune game" text="Importe une game ou retire le filtre actif." />}</div>
+                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} aria-pressed={checked} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Partie"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Côté inconnu"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune partie" text="Importe une partie ou retire le filtre actif." />}</div>
               </div>
 
               <div className="min-w-0 space-y-4">
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre de secours" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex: Review scrim bloc 2" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-slate-400">Bilan sélection</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins}W - ${reviewMatches.length - reviewWins}L` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)}% winrate` : "Sélectionne des games"}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Notes staff</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-xl border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-black uppercase tracking-[0.1em] text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine game\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="min-h-[22rem] w-full resize-y rounded-2xl xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-[0.66rem] font-black uppercase tracking-[0.22em] text-slate-300">Preview live</p><Badge tone="slate">Live</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Une review peut lier au maximum 20 games. Retire des games pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre (si aucune partie n’est liée)" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex. : Débrief de l’entraînement" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">Parties sélectionnées</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Sélectionne des parties"}</p></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-xs font-semibold text-slate-300">Observations et décisions de l’équipe</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">Aperçu du débrief</p><Badge tone="slate">Mis à jour en direct</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
                 </div>
               </div>
@@ -2344,4 +2192,4 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   );
 }
 
-export { exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
+export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };

@@ -18,3 +18,17 @@ export function assertSchemaReady(): Promise<void> {
   });
   return ready;
 }
+
+export const REQUIRED_SOCIAL_SCHEMA_VERSION = 'social-auth-20260923-v1';
+let socialReady: Promise<void> | undefined;
+export function assertSocialSchemaReady(): Promise<void> {
+  if (socialReady) return socialReady;
+  socialReady = (async () => {
+    const rows = await sql`select migration_key from app_schema_migrations where migration_key = ${REQUIRED_SOCIAL_SCHEMA_VERSION}`;
+    if (!rows.length) throw new Error('Missing social schema');
+  })().catch(() => {
+    socialReady = undefined;
+    throw Object.assign(new Error('Connexion temporairement indisponible.'), { status: 503, code: 'SCHEMA_MIGRATION_REQUIRED' });
+  });
+  return socialReady;
+}

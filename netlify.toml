@@ -1,16 +1,19 @@
 [build]
-  command = "npm run verify"
+  command = "npm run verify && npm audit --audit-level=moderate"
   publish = "dist"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "24"
+  VITE_NXT5_SUPPORT_URL = "https://ko-fi.com/nxt5org"
 
 [context.production]
-  command = "npm run verify && npm run db:migrate"
+  command = "npm run verify && npm audit --audit-level=moderate && npm run db:migrate"
 
 [functions]
   node_bundler = "esbuild"
+  external_node_modules = ["@napi-rs/canvas"]
+  included_files = ["public/assets/nxt5-wordmark.png", "node_modules/@fontsource/inter/files/inter-latin-{400,500,600,700}-normal.woff2"]
 
 [[headers]]
   for = "/*"
@@ -23,24 +26,22 @@
     Cross-Origin-Opener-Policy = "same-origin"
     Cross-Origin-Resource-Policy = "same-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://*.api.riotgames.com https://ddragon.leagueoflegends.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+    # React sets dynamic style properties directly; injected style attributes and
+    # inline <style> blocks are unnecessary in the production bundle.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'none'; img-src 'self' data: blob: https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://raw.githubusercontent.com; font-src 'self' data:; connect-src 'self' https://*.api.riotgames.com https://ddragon.leagueoflegends.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
 
+# These rules cover static CDN files only. Function handlers set their own
+# response headers (see netlify/functions/_lib/http.ts).
 [[headers]]
-  for = "/.netlify/functions/*"
+  for = "/.well-known/security.txt"
   [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    X-Permitted-Cross-Domain-Policies = "none"
-    Referrer-Policy = "no-referrer"
-    Cross-Origin-Resource-Policy = "same-origin"
-    Cache-Control = "no-store"
+    Content-Type = "text/plain; charset=utf-8"
+    Cache-Control = "public, max-age=3600, must-revalidate"
 
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# tools/prerender.mjs generates dist/_redirects: public HTML, private SPA
+# routes and a real 404. Keep the CSP above strict; JSON-LD is inert data.

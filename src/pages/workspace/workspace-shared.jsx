@@ -305,7 +305,7 @@ async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushTo
       canvases.push(await renderChampionTierListPng({ player, rows, rowsByTier, category, matches, pageIndex }));
     }
     await pngDownloadPages(canvases, `nxt5-pool-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`);
-    pushToast?.({ type: "cyan", title: "Pool exporté", text: `${entries.length} champions · ${pageCount} page${pageCount > 1 ? "s" : ""}.` });
+    pushToast?.({ type: "cyan", title: "Pool exporté", text: `${entries.length} champions · une image PNG.` });
   } catch (err) {
     pushToast?.({ type: "red", title: "Export impossible", text: err?.message || "Le navigateur n'a pas pu générer le PNG." });
     return false;
@@ -804,7 +804,7 @@ function championPoolStatus(row) {
 }
 
 function championPoolStatusLabel(status) {
-  return status === "lock" ? "Pick de confiance" : status === "danger" ? "Pick en développement training" : status === "pocket" ? "Pick situationnel" : "Pick en validation";
+  return status === "lock" ? "Champion de confiance" : status === "danger" ? "Champion en entraînement" : status === "pocket" ? "Champion situationnel" : "Champion en validation";
 }
 
 function championPoolStatusTone(status) {
@@ -812,10 +812,10 @@ function championPoolStatusTone(status) {
 }
 
 const CHAMPION_TIERS = [
-  { id: "lock", title: "Pick de confiance", hint: "Pick fiable, prêt pour scrim ou match.", tone: "green" },
-  { id: "pocket", title: "Pick situationnel", hint: "Bon pick à sortir dans un contexte précis.", tone: "yellow" },
-  { id: "work", title: "Pick en validation", hint: "Bonne perf en scrim, à valider avant de le prioriser.", tone: "cyan" },
-  { id: "danger", title: "Pick en développement training", hint: "Besoin d’au moins 15 games de training avant validation.", tone: "red" },
+  { id: "lock", title: "Champion de confiance", hint: "Champion maîtrisé, prêt pour un entraînement ou un match.", tone: "green" },
+  { id: "pocket", title: "Champion situationnel", hint: "Champion adapté à une situation précise.", tone: "yellow" },
+  { id: "work", title: "Champion en validation", hint: "À confirmer en entraînement avant de le choisir en priorité.", tone: "cyan" },
+  { id: "danger", title: "Champion en entraînement", hint: "Au moins 15 parties d’entraînement avant validation.", tone: "red" },
 ];
 
 function championTierFrame(tier, active = false) {
@@ -891,4 +891,4 @@ function championMatchesLane(champion, lane) {
 
 export { renderChampionTierListPng, championPoolPngPages, ROSTER_ROLE_ORDER, COMP_ROLES, canStaffManage, STAFF_ACCESS_ROLE_IDS, TEAM_ACCESS_ROLES, isGameplayRole, isStaffRole, STAFF_ROLES, lazyNamed, loadNextPhase, championDisplayName, championAssetId, CHAMPION_ASSET_ALIASES, championKey, sortPlayersByRole, ROLE_ORDER, teamMatchRows, normalizeProfileRole, buildStaffAlerts, playerDisplayFromRow, parsePercent, formatCountdown, ChampionPortrait, championPortraitSources, DDRAGON_FALLBACK_VERSIONS, playerIntegratedRows, normalizeProfileKey, matchCategoryTone, matchImportDateLabel, championMatchesLane, ALL_CHAMPION_LANE_POOLS, CHAMPION_LANE_POOLS, ADDITIONAL_CHAMPION_LANE_POOLS, formatPoints, formatGoldDiff, objectiveTeamId, teamRows, sumRows, statValue, storedTimelineFrames, compactTimelineEvents, diffTone, matchTimelineFrames, participantTeamMap, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, compositionIdentity, championStyleTags, ALL_CHAMPION_STYLE_TAGS, CHAMPION_STYLE_TAGS, ADDITIONAL_CHAMPION_STYLE_TAGS, championStyleTone, tagLabel, objectiveTeamSummary, objectiveTeamAnyValue, objectiveTeamValue, ChampionBackdrop, championSplashUrl, championSplashFocus, itemIconSources, summonerSpellIconSources, SUMMONER_SPELLS, itemSlots, participantNumber, itemIndexFromKey, participantSources, participantStoredRaw, safeJsonParse, participantRaw, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, CategoryFilter, championPoolRowsByTier, championPoolStatus, CHAMPION_TIERS, exportChampionTierListPng, safeExportFilename, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championTierFrame, championPoolStatusLabel, championPoolStatusTone };
 
-export const POOL_TIER_LABELS = { lock: "Confiance", pocket: "Situationnel", work: "En validation", danger: "En training" };
+export const POOL_TIER_LABELS = { lock: "Confiance", pocket: "Situationnel", work: "En validation", danger: "En entraînement" };

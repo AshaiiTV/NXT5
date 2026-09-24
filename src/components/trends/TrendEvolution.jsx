@@ -4,6 +4,7 @@ import { buildTrendSeries, TREND_SERIES_METRICS } from "../../utils/trends.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { cx } from "../../app/helpers.js";
 import { Badge, Button, SelectInput, Surface } from "../ui/Core.jsx";
+import { analysisCopy } from "./analysis-copy.js";
 import "./trend-evolution.css";
 
 const number = (value) => Number.isFinite(value) ? value.toLocaleString("fr-FR", { maximumFractionDigits: 1 }) : "—";
@@ -16,7 +17,7 @@ export function TrendPeriodFilter({ value, onChange }) {
   return <div className="trend-period" role="group" aria-label="Période d’analyse">
     <span className="trend-period-label">Période d’analyse</span>
     <div className="trend-period-options">
-      {[["all", "Toutes les games"], ["5", "5 dernières games"], ["10", "10 dernières games"], ["20", "20 dernières games"]].map(([id, label]) =>
+      {[["all", "Toutes les parties"], ["5", "5 dernières parties"], ["10", "10 dernières parties"], ["20", "20 dernières parties"]].map(([id, label]) =>
         <button type="button" key={id} aria-pressed={value === id} onClick={() => onChange(id)} className="trend-period-option">{label}</button>
       )}
     </div>
@@ -26,8 +27,8 @@ export function TrendPeriodFilter({ value, onChange }) {
 function SeriesChart({ series, selectedKey, onSelect }) {
   const { metric, dated, segments, availableCount } = series;
   if (!dated.length || !availableCount) return <div className="trend-series-empty">
-    <h4>{!dated.length ? "Aucune game datée à tracer" : "Aucune valeur disponible pour cette mesure"}</h4>
-    <p>{!dated.length ? "Les games sans date restent accessibles dans le sélecteur et le relevé ci-dessous." : "Choisis une autre mesure ou ouvre les games pour consulter leurs données."}</p>
+    <h4>{!dated.length ? "Aucune partie datée à tracer" : "Aucune valeur disponible pour cette mesure"}</h4>
+    <p>{!dated.length ? "Les parties sans date restent accessibles dans le sélecteur et le relevé ci-dessous." : "Choisis une autre mesure ou ouvre les parties pour consulter leurs données."}</p>
   </div>;
   const maximum = Math.max(...dated.map(({ value }) => value === null ? 0 : Math.abs(value)), metric.signed ? 1 : 4);
   const magnitude = 10 ** Math.floor(Math.log10(maximum));
@@ -41,11 +42,11 @@ function SeriesChart({ series, selectedKey, onSelect }) {
   const selectedIndex = dated.findIndex(({ key }) => key === selectedKey);
   const axisNumber = (value) => `${metric.signed && value > 0 ? "+" : ""}${Math.abs(value) >= 1000 ? `${number(value / 1000)} k` : number(value)}`;
   return <figure className="trend-series-figure">
-    <div className="trend-series-plot-heading"><span>{metric.unit}</span><span>{availableCount} valeur{availableCount > 1 ? "s" : ""} sur {dated.length} game{dated.length > 1 ? "s" : ""} datée{dated.length > 1 ? "s" : ""}</span></div>
+    <div className="trend-series-plot-heading"><span>{metric.unit}</span><span>{availableCount} valeur{availableCount > 1 ? "s" : ""} sur {dated.length} partie{dated.length > 1 ? "s" : ""} datée{dated.length > 1 ? "s" : ""}</span></div>
     <div className="trend-series-chart">
       <div className="trend-series-y-axis" aria-hidden="true">{ticks.map((tick, index) => <span key={index} style={{ top: `${y(tick)}px` }}>{axisNumber(tick)}</span>)}</div>
       <div className="trend-series-plot">
-        <svg viewBox="0 0 1000 232" preserveAspectRatio="none" role="img" aria-label={`${metric.label} par game, dans l’ordre chronologique. ${availableCount} valeurs disponibles sur ${dated.length} games datées. Choisis une game ci-dessous pour sa valeur exacte.`} onClick={(event) => {
+        <svg viewBox="0 0 1000 232" preserveAspectRatio="none" role="img" aria-label={`${metric.label} par partie, dans l’ordre chronologique. ${availableCount} valeurs disponibles sur ${dated.length} parties datées. Choisis une partie ci-dessous pour sa valeur exacte.`} onClick={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
           const index = Math.max(0, Math.min(dated.length - 1, Math.round((event.clientX - rect.left) / rect.width * (dated.length - 1))));
           onSelect(dated[index].key);
@@ -54,11 +55,11 @@ function SeriesChart({ series, selectedKey, onSelect }) {
           {segments.filter((segment) => segment.length > 1).map((segment) => <polyline key={segment[0].key} points={segment.map((point) => `${x(indices.get(point.key))},${y(point.value)}`).join(" ")} className="trend-series-line" vectorEffect="non-scaling-stroke" />)}
           {selectedIndex >= 0 && <line x1={x(selectedIndex)} x2={x(selectedIndex)} y1="4" y2="226" className="trend-series-selection-line" vectorEffect="non-scaling-stroke" />}
         </svg>
-        <div className="trend-series-dots" aria-hidden="true">{dated.map((point, index) => <span key={point.key} title={`Game ${index + 1} · ${date(point, true)} · ${valueLabel(point, metric)}`} className={cx("trend-series-dot", point.value === null && "is-missing", selectedKey === point.key && "is-selected")} style={{ left: `${x(index) / 10}%`, top: `${point.value === null ? 224 : y(point.value)}px` }} />)}</div>
-        <div className="trend-series-x-axis" aria-hidden="true">{dateIndices.map((index) => <span key={index} style={{ left: `${x(index) / 10}%` }}><strong>Game {index + 1}</strong>{date(dated[index], true)}</span>)}</div>
+        <div className="trend-series-dots" aria-hidden="true">{dated.map((point, index) => <span key={point.key} title={`Partie ${index + 1} · ${date(point, true)} · ${valueLabel(point, metric)}`} className={cx("trend-series-dot", point.value === null && "is-missing", selectedKey === point.key && "is-selected")} style={{ left: `${x(index) / 10}%`, top: `${point.value === null ? 224 : y(point.value)}px` }} />)}</div>
+        <div className="trend-series-x-axis" aria-hidden="true">{dateIndices.map((index) => <span key={index} style={{ left: `${x(index) / 10}%` }}><strong>Partie {index + 1}</strong>{date(dated[index], true)}</span>)}</div>
       </div>
     </div>
-    <figcaption>{availableCount === 1 ? "Un seul point disponible : il ne suffit pas à dessiner une évolution. " : ""}Une position par game, de la plus ancienne à la plus récente. Clique sur la courbe ou utilise le sélecteur ci-dessous.{availableCount < dated.length && <span className="trend-series-missing-note"> × Donnée absente : la courbe s’interrompt.</span>}</figcaption>
+    <figcaption>{availableCount === 1 ? "Un seul point disponible : il ne suffit pas à dessiner une évolution. " : ""}Une position par partie, de la plus ancienne à la plus récente. Clique sur la courbe ou utilise le sélecteur ci-dessous.{availableCount < dated.length && <span className="trend-series-missing-note"> × Donnée absente : la courbe s’interrompt.</span>}</figcaption>
   </figure>;
 }
 
@@ -82,38 +83,39 @@ export function TrendEvolution({ matches = [], onOpenMatch }) {
       <div className="trend-evolution-heading">
         <div>
           <p className="trend-evolution-eyebrow">Trajectoire de l’équipe</p>
-          <h3 id={headingId}>Une mesure, game après game</h3>
-          <p className="trend-evolution-description">Repère les pics, les creux et les ruptures dans toute la sélection, puis ouvre la game concernée.</p>
+          <h3 id={headingId}>Une mesure, partie après partie</h3>
+          <p className="trend-evolution-description">Repère les pics, les creux et les ruptures dans toute la sélection, puis ouvre la partie concernée.</p>
         </div>
         <div className="trend-series-metric-control"><SelectInput label="Mesure à suivre" value={metricKey} onChange={setMetricKey} aria-label="Mesure à suivre">{TREND_SERIES_METRICS.map(({ key, label }) => <option key={key} value={key}>{label}</option>)}</SelectInput></div>
       </div>
-      <p className="trend-series-definition">{metric.description}</p>
+      <p className="trend-series-definition">{analysisCopy(metric.description)}</p>
       {points.length ? <>
         <SeriesChart series={series} selectedKey={selected?.key} onSelect={selectPoint} />
-        {undated.length > 0 && <p className="trend-series-date-note">{undated.length} game{undated.length > 1 ? "s" : ""} sans date : consultable{undated.length > 1 ? "s" : ""} ci-dessous, hors de la courbe.</p>}
-        <div className="trend-series-navigation">
-          <SelectInput label="Game à examiner" value={selected.key} onChange={selectPoint} aria-label="Game à examiner">
-            {dated.length > 0 && <optgroup label="Games dans l’ordre chronologique">{dated.map((point, index) => <option key={point.key} value={point.key}>{index + 1}. {date(point, true)} · {matchDisplayName(point.match)}</option>)}</optgroup>}
+        {undated.length > 0 && <p className="trend-series-date-note">{undated.length} partie{undated.length > 1 ? "s" : ""} sans date : consultable{undated.length > 1 ? "s" : ""} ci-dessous, hors de la courbe.</p>}
+        <div className="trend-series-inspector"><div className="trend-series-navigation">
+          <SelectInput label="Partie à examiner" value={selected.key} onChange={selectPoint} aria-label="Partie à examiner">
+            {dated.length > 0 && <optgroup label="Parties dans l’ordre chronologique">{dated.map((point, index) => <option key={point.key} value={point.key}>{index + 1}. {date(point, true)} · {matchDisplayName(point.match)}</option>)}</optgroup>}
             {undated.length > 0 && <optgroup label="Date inconnue · hors courbe">{undated.map((point) => <option key={point.key} value={point.key}>{matchDisplayName(point.match)} · Date inconnue</option>)}</optgroup>}
           </SelectInput>
           <div className="trend-series-step-controls">
-            <Button variant="ghost" type="button" icon={ArrowLeft} onClick={() => selectPoint(points[selectedIndex - 1].key)} disabled={selectedIndex === 0} aria-label="Game précédente">Précédente</Button>
-            <Button variant="ghost" type="button" onClick={() => selectPoint(points[selectedIndex + 1].key)} disabled={selectedIndex === points.length - 1} aria-label="Game suivante">Suivante <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></Button>
+            <Button variant="ghost" type="button" icon={ArrowLeft} onClick={() => selectPoint(points[selectedIndex - 1].key)} disabled={selectedIndex === 0} aria-label="Partie précédente">Précédente</Button>
+            <Button variant="ghost" type="button" onClick={() => selectPoint(points[selectedIndex + 1].key)} disabled={selectedIndex === points.length - 1} aria-label="Partie suivante">Suivante <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></Button>
           </div>
         </div>
         <div className="trend-series-selected">
           <div className="trend-series-selected-content" aria-live="polite" aria-atomic="true">
-            <div className="trend-series-selected-context"><span>{selected.timestamp === null ? "Hors courbe" : `Game ${selectedIndex + 1} sur ${dated.length}`}</span><Badge tone={selected.result === 100 ? "green" : selected.result === 0 ? "red" : "slate"}>{resultLabel(selected)}</Badge></div>
+            <div className="trend-series-selected-context"><span>{selected.timestamp === null ? "Hors courbe" : `Partie ${selectedIndex + 1} sur ${dated.length}`}</span><Badge tone={selected.result === 100 ? "green" : selected.result === 0 ? "red" : "slate"}>{resultLabel(selected)}</Badge></div>
             <h4>{matchDisplayName(selected.match)}</h4>
             <p>{date(selected, true)}</p>
             <dl><dt>{metric.label}</dt><dd>{valueLabel(selected, metric)}</dd></dl>
           </div>
-          <Button variant="ghost" type="button" onClick={() => onOpenMatch?.(selected.match)}>Ouvrir cette game <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></Button>
+          <Button variant="ghost" type="button" onClick={() => onOpenMatch?.(selected.match)}>Ouvrir cette partie <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></Button>
+        </div>
         </div>
         <details className="trend-series-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
-          <summary>Relevé des {points.length} game{points.length > 1 ? "s" : ""}</summary>
+          <summary>Relevé des {points.length} partie{points.length > 1 ? "s" : ""}</summary>
           {detailsOpen && <div className="trend-series-records">
-            <p>Valeurs exactes de « {metric.label} ». Les games sans date figurent à la fin.</p>
+            <p>Valeurs exactes de « {metric.label} ». Les parties sans date figurent à la fin.</p>
             <ol start={currentPage * pageSize + 1}>{currentRows.map((point, rowIndex) => <li key={point.key}>
               <div className="trend-series-record-identity"><strong>{currentPage * pageSize + rowIndex + 1}. {matchDisplayName(point.match)}</strong><span>{date(point, true)} · {resultLabel(point)}</span></div>
               <span className="trend-series-record-value">{valueLabel(point, metric)}</span>
@@ -123,7 +125,7 @@ export function TrendEvolution({ matches = [], onOpenMatch }) {
           </div>}
         </details>
         <p className="trend-evolution-note">Les dates de partie sont utilisées en priorité, puis la date d’import si nécessaire. Chaque mesure exige les données des cinq joueurs concernés ; une absence de données ne vaut jamais zéro.</p>
-      </> : <div className="trend-series-empty"><h4>Aucune game dans cette sélection</h4><p>Élargis les filtres ou importe des games pour suivre leur évolution.</p></div>}
+      </> : <div className="trend-series-empty"><h4>Aucune partie dans cette sélection</h4><p>Élargis les filtres ou importe des parties pour suivre leur évolution.</p></div>}
     </section>
   </Surface>;
 }
