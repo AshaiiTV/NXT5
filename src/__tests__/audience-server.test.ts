@@ -293,6 +293,7 @@ describe('administrator audience reports', () => {
 
   it('shares strict path and campaign sanitizers with the client', () => {
     expect(canonicalAudiencePath('/mon-profil/champions?user=secret#private')).toBe('/mon-profil/champions');
+    expect(canonicalAudiencePath('/fonctionnalites?utm_source=search#coaching')).toBe('/fonctionnalites');
     expect(canonicalAudiencePath('/admin/audience')).toBeNull(); expect(canonicalAudiencePath('/verify-email?token=private')).toBeNull();
     expect(canonicalAudiencePath('//evil.example/')).toBeNull(); expect(sanitizeCampaignValue('Alice@example.com')).toBe('');
     expect(sanitizeCampaignValue('campaign-123456789')).toBe(''); expect(sanitizeCampaignValue('Discord_September')).toBe('discord_september');

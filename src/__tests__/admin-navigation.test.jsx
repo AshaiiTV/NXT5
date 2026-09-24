@@ -1,3 +1,4 @@
+import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -88,7 +89,7 @@ async function open(path, account = admin, pending = false) {
     localStorage: { getItem: vi.fn() },
     sessionStorage: { getItem: vi.fn() },
   });
-  vi.stubGlobal("document", { title: "" });
+  vi.stubGlobal("document", createSeoDocument());
   apiFetch.mockImplementation(endpoint => {
     if (endpoint === "auth-me") return pending ? new Promise(() => {}) : Promise.resolve({ user: account });
     if (endpoint === "auth-social-status") return Promise.resolve({ providers: [], linked: [], hasPassword: true });

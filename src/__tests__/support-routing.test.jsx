@@ -1,3 +1,4 @@
+import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -29,7 +30,7 @@ async function open(path = "/soutenir") {
     scrollTo: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(),
     localStorage: { getItem: vi.fn() },
   });
-  vi.stubGlobal("document", { title: "" });
+  vi.stubGlobal("document", createSeoDocument());
   await act(async () => {
     renderer = TestRenderer.create(<AppLoadingProvider><Suspense fallback={<p>Chargement</p>}><NXT5 /></Suspense></AppLoadingProvider>);
   });
@@ -42,7 +43,7 @@ function expectPublicSupport(userId = "anonymous") {
   expect(useTeamData).not.toHaveBeenCalled();
   expect(window.history.replaceState).not.toHaveBeenCalled();
   expect(window.history.pushState).not.toHaveBeenCalled();
-  expect(document.title).toBe("Soutenir NXT5");
+  expect(document.title).toBe("Soutenir le développement de NXT5");
 }
 
 describe("public support route", () => {

@@ -1,6 +1,10 @@
 # NXT5 — Netlify + Neon
 
-Outil de suivi LoL pour équipes et coachs.
+Espace de travail des équipes et coachs League of Legends : analyse des parties, débriefs, préparation des champions et organisation des entraînements.
+
+## Présentation publique et référencement
+
+L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[audit SEO du 24 septembre 2026](docs/audit-seo-2026-09-24.md) documente l’état initial et le plan de suivi de l’acquisition. Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
 
 ## Sécurité
 

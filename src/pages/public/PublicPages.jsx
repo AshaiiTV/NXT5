@@ -342,21 +342,21 @@ export function HomeScreen({ navigate }) {
     <div className="nxt5-entry-page nxt5-home-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate} simple>
-        <a href="#features" className="nxt5-entry-header-link">Fonctionnalités</a>
+        <PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-header-link">Fonctionnalités</PublicTextLink>
         {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-entry-header-link">Soutenir NXT5</PublicTextLink>}
         <LinkButton href="/connexion" navigate={navigate} variant="ghost">Se connecter</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main">
         <section className="nxt5-entry-hero" aria-labelledby="home-title">
           <div className="nxt5-entry-hero-copy">
-            <p className="nxt5-entry-eyebrow">Pour les équipes League of Legends</p>
+            <p className="nxt5-entry-eyebrow">League of Legends · Équipes et coachs</p>
             <h1 id="home-title">Comprends tes parties.<br /><span>Prépare la suite.</span></h1>
-            <p className="nxt5-entry-lead">Ajoute tes joueurs, importe une partie et retrouve les points à discuter en équipe. Prépare ta prochaine séance au même endroit.</p>
+            <p className="nxt5-entry-lead">NXT5 est l’espace de travail des équipes et coachs League of Legends : analyse les parties, prépare les débriefs et organise les entraînements au même endroit.</p>
             <div className="nxt5-entry-actions">
               <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>Créer mon espace</LinkButton>
               <a href="#workflow" className="nxt5-entry-text-link">Comment ça marche<ChevronDown aria-hidden="true" size={16} /></a>
             </div>
-            <p className="nxt5-entry-hero-note">Un parcours guidé, dès ta première équipe.</p>
+            <p className="nxt5-entry-hero-note">Pour les joueurs, les coachs et les managers, dès la première équipe.</p>
           </div>
           <MarketingPreview />
         </section>
@@ -365,7 +365,7 @@ export function HomeScreen({ navigate }) {
           <div className="nxt5-entry-section-heading">
             <p className="nxt5-entry-eyebrow">Un espace de travail commun</p>
             <h2 id="features-title">Tes joueurs, tes parties,<br />tes prochains entraînements.</h2>
-            <p>Retrouve ce qu’il te faut pour organiser l’équipe et comprendre ses parties.</p>
+            <p>Des statistiques de partie aux décisions de coaching, garde un fil commun entre les joueurs et l’encadrement.</p>
           </div>
           <div className="nxt5-entry-feature-list">
             {[
@@ -374,6 +374,7 @@ export function HomeScreen({ navigate }) {
               [Target, "Prépare la prochaine séance", "Note les points à travailler dans un débrief. Prépare les choix de champions avec ton équipe dans Draft."],
             ].map(([Icon, title, text], index) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /><span>0{index + 1}</span></div><h3>{title}</h3><p>{text}</p></article>)}
           </div>
+          <div className="nxt5-entry-actions"><PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-text-link">Découvrir les outils d’analyse et de coaching<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
         </section>
 
         <section id="workflow" className="nxt5-entry-workflow" aria-labelledby="workflow-title">

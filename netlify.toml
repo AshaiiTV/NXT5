@@ -43,7 +43,5 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# tools/prerender.mjs generates dist/_redirects: public HTML, private SPA
+# routes and a real 404. Keep the CSP above strict; JSON-LD is inert data.

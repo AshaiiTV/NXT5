@@ -1,3 +1,4 @@
+import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -52,7 +53,7 @@ async function open(path, { noTeam = false, admin = false, snapshot = {}, storag
     location, history: { replaceState: vi.fn(), pushState: vi.fn() }, scrollTo: vi.fn(),
     addEventListener: vi.fn(), removeEventListener: vi.fn(), localStorage: storage || { getItem: vi.fn(), setItem: vi.fn() },
   });
-  vi.stubGlobal("document", { title: "" });
+  vi.stubGlobal("document", createSeoDocument());
   apiFetch.mockResolvedValue({ user: { id: userId, email: "user@example.test", email_verified: true, is_platform_admin: admin, subscription: { status: "active" } } });
   const selectedTeamId = noTeam ? null : snapshot.selectedTeamId || "team";
   useTeamData.mockReturnValue({

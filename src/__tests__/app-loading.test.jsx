@@ -1,3 +1,4 @@
+import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense, lazy, useEffect, useRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -60,7 +61,7 @@ beforeEach(() => {
   const setUrl = (_state, _title, path) => { browser.location = new URL(path, browser.location); };
   browser.history = { pushState: vi.fn(setUrl), replaceState: vi.fn(setUrl) };
   vi.stubGlobal("window", browser);
-  vi.stubGlobal("document", { title: "" });
+  vi.stubGlobal("document", createSeoDocument());
 });
 
 afterEach(() => {
