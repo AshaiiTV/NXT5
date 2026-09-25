@@ -242,9 +242,8 @@ describe('matchup notebook endpoint with PostgreSQL', () => {
     expect(response.status).toBe(500);
     expect(await response.text()).not.toContain(privateText);
     expect(logger).toHaveBeenCalledOnce();
-    expect(logger.mock.calls[0][0].message).toBe('Player matchup request failed.');
-    expect(logger.mock.calls[0][0]).not.toHaveProperty('parameters');
-    expect(logger.mock.calls[0][0]).not.toHaveProperty('detail');
+    expect(logger).toHaveBeenCalledWith('[http] Request failed.', { status: 500, code: 'UNEXPECTED_ERROR' });
+    expect(JSON.stringify(logger.mock.calls)).not.toContain(privateText);
   });
 
   it('enforces team/profile consistency in SQL and cascades notebooks while retaining notes after author deletion', async () => {

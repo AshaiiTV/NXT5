@@ -152,7 +152,10 @@ export function useMatchupStatRows(teamId, rows, version = "") {
         for (const match of payload.matches) {
           if (batch.includes(match.id) && String(match.team_id) === String(teamId)) details.set(match.id, slimMatch(match));
         }
-        if (batch.some((id) => !details.has(id))) throw new Error("Certaines games ne sont plus disponibles. Actualise le profil.");
+        if (batch.some((id) => !details.has(id))) {
+          setState({ key, details: new Map(details), loading: false, error: "Certaines games ne sont plus disponibles. Actualise le profil." });
+          return;
+        }
         setState({ key, details: new Map(details), loading: start + 5 < ids.length, error: "" });
       }
     })().catch((error) => { if (current) setState((previous) => ({ ...previous, loading: false, error: error.message })); });

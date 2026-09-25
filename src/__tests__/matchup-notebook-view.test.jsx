@@ -65,9 +65,9 @@ describe("matchup notebook view", () => {
     const rows = app.root.findAllByProps({ className: "matchup-row" });
     expect(rows).toHaveLength(1);
     expect(text(rows[0])).toContain("100 %");
-    expect(text(rows[0])).toContain("1 résultats connus");
+    expect(text(rows[0])).toContain("1 résultat connu");
     expect(text(rows[0])).toContain("Essai en cours");
-    expect(app.words).toContain("1 game sans adversaire de même poste");
+    expect(app.words).toContain("1 partie sans adversaire de même poste");
     await app.open();
     expect(app.words).toContain("Orianna face à Syndra");
     expect(app.root.findByProps({ "data-games": true }).children).toEqual(["one,two"]);
@@ -164,10 +164,10 @@ describe("matchup notebook view", () => {
     const milestones = app.root.findByProps({ className: "matchup-milestones" });
     const metrics = milestones.findAllByType("dd");
     expect(metrics).toHaveLength(9);
-    expect(metrics.every((metric) => text(metric) === "—0/2 games renseignées")).toBe(true);
+    expect(metrics.every((metric) => text(metric) === "—0/2 parties renseignées")).toBe(true);
     await act(async () => app.root.findAllByType(SelectInput).find((field) => field.props.label === "Patch des statistiques").props.onChange("26.18"));
     expect(app.root.findByProps({ "data-games": true }).children).toEqual(["one"]);
-    expect(app.words).toContain("0/1 games renseignées");
+    expect(app.words).toContain("0/1 parties renseignées");
   });
 });
 

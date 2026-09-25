@@ -266,6 +266,15 @@ describe("matchup lane detail loading", () => {
     expect(notebookStats(app.state.rows).milestones[0].gold).toEqual({ value: 200, count: 1 });
   });
 
+  it("preserves the available details when another game in the same batch is missing", async () => {
+    const requests = pendingRequests();
+    const app = mountHook(statsHook, { rows: [row("available"), row("deleted")] });
+    await resolve(requests[0], { matches: [detail("available", { timeline: { info: { frames: [frame()] } } })] });
+    expect(app.state).toMatchObject({ loaded: 1, total: 2, loading: false });
+    expect(app.state.error).toContain("Certaines games ne sont plus disponibles");
+    expect(notebookStats(app.state.rows).milestones[0].gold).toEqual({ value: 200, count: 1 });
+  });
+
   it("retains the earliest observation in the window even when source frames are unordered", async () => {
     const requests = pendingRequests();
     const app = mountHook(statsHook, { rows: [row("unordered")] });

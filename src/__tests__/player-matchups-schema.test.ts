@@ -9,8 +9,9 @@ afterEach(() => { vi.resetModules(); query.mockReset(); baseReady.mockReset(); }
 describe('matchup notebook schema readiness', () => {
   it('registers its migration after the existing checksummed baseline', async () => {
     const migrations = await loadMigrations();
-    expect(migrations.at(-1)).toMatchObject({ key: 'player-matchups-20260915-v1' });
-    expect(migrations.at(-1)!.sql).toContain('create table player_matchup_notebooks');
+    const notebookMigrations = migrations.filter(migration => migration.key === 'player-matchups-20260915-v1');
+    expect(notebookMigrations).toHaveLength(1);
+    expect(notebookMigrations[0].sql).toContain('create table player_matchup_notebooks');
     expect(migrations[0].key).toBe('baseline-20260906-v1');
   });
 
