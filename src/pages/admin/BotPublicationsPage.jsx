@@ -4,7 +4,7 @@ import CommunityAnnouncementsPanel from "./CommunityAnnouncementsPanel.jsx";
 
 export default function BotPublicationsPage() {
   return <div className="bot-publications space-y-4">
-    <PageHeader eyebrow="Bot" title="Publications du bot" subtitle="Rédige et publie les annonces NXT5 sur le serveur communautaire Discord." />
+    <PageHeader eyebrow="Bot" title="Publications du bot" subtitle="Choisis les serveurs et les salons, puis prépare ton annonce Discord." />
     <CommunityAnnouncementsPanel />
   </div>;
 }
