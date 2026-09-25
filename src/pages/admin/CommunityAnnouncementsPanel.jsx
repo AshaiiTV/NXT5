@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Check, ExternalLink, Eye, Loader2, Megaphone, Plus, RefreshCw, Send } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { ANNOUNCEMENT_API_VERSION, ANNOUNCEMENT_API_VERSION_HEADER } from "../../../shared/discord-announcements-contract.js";
 import { useAdminNavigationGuard } from "../../components/admin/AdminNavigationContext.jsx";
 import { Badge, Button, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import "./community-announcements.css";
 
 const ENDPOINT = "admin-discord-announcements";
+const announcementFetch = options => apiFetch(ENDPOINT, {
+  ...options,
+  headers: { "Content-Type": "application/json", [ANNOUNCEMENT_API_VERSION_HEADER]: ANNOUNCEMENT_API_VERSION },
+});
 const MAX_CONTENT = 4096;
 const MAX_SERVERS = 10;
 const STATUS_LABELS = { sent: ["Envoyée", "green"], uncertain: ["À vérifier", "yellow"], sending: ["Envoi en cours", "cyan"], queued: ["En attente", "slate"], failed: ["Échec", "red"] };
@@ -90,7 +95,7 @@ export default function CommunityAnnouncementsPanel() {
     request.current = controller;
     setLoading(true); setLoadError("");
     try {
-      const next = await apiFetch(ENDPOINT, { signal: controller.signal });
+      const next = await announcementFetch({ signal: controller.signal });
       if (!validData(next)) throw new Error("Les informations des annonces sont incomplètes. Actualise les serveurs pour réessayer.");
       if (!mounted.current || controller.signal.aborted) return;
       const previous = savedDestinations.current;
@@ -152,7 +157,7 @@ export default function CommunityAnnouncementsPanel() {
     mutation.current = true; setBusy("configure"); setError(""); setNotice(""); setPreview(null);
     const selected = destinations;
     try {
-      await apiFetch(ENDPOINT, { method: "POST", body: JSON.stringify({ action: "configure", destinations: selected, ...(result ? { reference: result.reference } : {}) }) });
+      await announcementFetch({ method: "POST", body: JSON.stringify({ action: "configure", destinations: selected, ...(result ? { reference: result.reference } : {}) }) });
       if (!mounted.current) return;
       savedDestinations.current = selected;
       setData(current => current ? { ...current, destinations: selected } : current);
@@ -170,7 +175,7 @@ export default function CommunityAnnouncementsPanel() {
     const currentRevision = revision.current;
     setBusy("preview"); setError(""); setNotice(""); setPreview(null);
     try {
-      const next = await apiFetch(ENDPOINT, { method: "POST", body: JSON.stringify({ action: "preview", reference, content, destinations }) });
+      const next = await announcementFetch({ method: "POST", body: JSON.stringify({ action: "preview", reference, content, destinations }) });
       if (!next?.previewToken || next.content !== content || next.reference !== reference || !Array.isArray(next.destinations)
         || destinationKey(next.destinations) !== destinationKey(destinations)) throw new Error("L’aperçu est incomplet ou les destinations ont changé. Actualise les serveurs, puis prépare un nouvel aperçu.");
       if (mounted.current && currentRevision === revision.current) setPreview(next);
@@ -186,7 +191,7 @@ export default function CommunityAnnouncementsPanel() {
     mutation.current = true; attempt.current = snapshot;
     setBusy("publish"); setError(""); setNotice("");
     try {
-      const next = await apiFetch(ENDPOINT, { method: "POST", body: JSON.stringify({ action: "publish", reference: snapshot.reference, content: snapshot.content,
+      const next = await announcementFetch({ method: "POST", body: JSON.stringify({ action: "publish", reference: snapshot.reference, content: snapshot.content,
         destinations: snapshot.destinations.map(({ guildId, channelId }) => ({ guildId, channelId })), previewToken: snapshot.previewToken }) });
       const confirmed = checkedResult(next, snapshot);
       if (!mounted.current) return;
@@ -206,7 +211,7 @@ export default function CommunityAnnouncementsPanel() {
     if (mutation.current || loading || !targetReference) return;
     mutation.current = true; setBusy("recover"); setCheckingReference(`${targetReference}:${guildId || "all"}`); setError(""); setNotice("");
     try {
-      const next = await apiFetch(ENDPOINT, { method: "POST", body: JSON.stringify({ action: "recover", reference: targetReference, ...(guildId ? { guildId } : {}) }) });
+      const next = await announcementFetch({ method: "POST", body: JSON.stringify({ action: "recover", reference: targetReference, ...(guildId ? { guildId } : {}) }) });
       if (!Array.isArray(next?.results) || !next.results.length || next.results.some(item => !STATUS_LABELS[item.status])) throw new Error("Le résultat de l’envoi n’a pas pu être confirmé.");
       if (!mounted.current) return;
       if (attempt.current?.reference === targetReference) {
@@ -233,7 +238,7 @@ export default function CommunityAnnouncementsPanel() {
     const currentRevision = revision.current;
     mutation.current = true; setBusy("restore"); setError(""); setNotice("");
     try {
-      const next = await apiFetch(ENDPOINT, { method: "POST", body: JSON.stringify({ action: "restore", reference: targetReference }) });
+      const next = await announcementFetch({ method: "POST", body: JSON.stringify({ action: "restore", reference: targetReference }) });
       if (next?.reference !== targetReference || typeof next.content !== "string" || !Array.isArray(next.destinations) || !next.destinations.length) throw new Error("Impossible de retrouver le texte et les destinations de cette annonce.");
       const snapshot = { ...next, destinations: next.destinations.map(item => {
         const guild = data.guilds.find(value => value.id === item.guildId);

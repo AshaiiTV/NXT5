@@ -4,6 +4,7 @@ import { assertDiscordMethod, discordError, discordResponseError } from './_lib/
 import { getDiscordDeployContext, withDiscordRuntime } from './_lib/discord-runtime';
 import { json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
+import { ANNOUNCEMENT_API_VERSION, ANNOUNCEMENT_API_VERSION_HEADER } from '../../shared/discord-announcements-contract.js';
 import { assertCommunityReady, communityOverview, configureCommunityChannel, previewCommunityAnnouncement, publishCommunityAnnouncement, recoverCommunityAnnouncement, restoreCommunityAnnouncement } from './_lib/discord-community-announcements';
 
 async function handler(request: Request, context: Context) {
@@ -12,6 +13,9 @@ async function handler(request: Request, context: Context) {
     const user = await requirePlatformAdmin(request, context);
     if (getDiscordDeployContext() !== 'production' || context?.deploy?.context !== 'production') {
       throw discordError('Les annonces communautaires sont disponibles uniquement sur le déploiement de production.', 409, 'DISCORD_COMMUNITY_PRODUCTION_REQUIRED');
+    }
+    if (request.headers.get(ANNOUNCEMENT_API_VERSION_HEADER) !== ANNOUNCEMENT_API_VERSION) {
+      throw discordError('Cette page utilise une ancienne version de NXT5. Recharge la page pour accéder au choix des serveurs. Si tu as un brouillon, copie-le avant de recharger.', 409, 'DISCORD_ANNOUNCEMENT_CLIENT_OUTDATED');
     }
     await assertCommunityReady();
     if (request.method === 'GET') return json(await communityOverview());
