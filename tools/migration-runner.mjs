@@ -12,6 +12,7 @@ export async function loadMigrations() {
     ['account-subscriptions-catalog-20260909-v1', '../database/migrations/20260909_account_subscriptions_catalog.sql'],
     ['administration-purchases-20260914-v1', '../database/migrations/20260914_purchases.sql'],
     ['audience-20260914-v1', '../database/migrations/20260914_audience.sql'],
+    ['player-matchups-20260915-v1', '../database/migrations/20260915_player_matchups.sql'],
     ['discord-publications-20260915-v1', '../database/migrations/20260915_discord_publications.sql'],
     ['discord-connection-tests-20260921-v1', '../database/migrations/20260921_discord_connection_tests.sql'],
     ['discord-shared-servers-20260921-v1', '../database/migrations/20260921_discord_shared_servers.sql'],

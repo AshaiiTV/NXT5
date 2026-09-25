@@ -16,6 +16,16 @@ Une game peut ensuite être renommée ou corrigée depuis son historique. Les pa
 
 CS10 et CS20 indiquent le farm du joueur. DIFF10 et DIFF20 comparent ce farm à l'adversaire du même rôle. Cette lecture doit être rapprochée de l'or, des morts et des objectifs.
 
+## Préparer un matchup dans le profil
+
+Dans **Mon profil > Champions**, ouvrir un champion puis l'onglet **Matchups**. Les parties importées alimentent automatiquement les duels pour lesquels un adversaire au même poste est identifié sans ambiguïté. La recherche accepte un champion adverse ou un poste ; chaque ligne indique les parties, les résultats connus, l'écart de CS à 10 minutes disponible et l'état du carnet.
+
+Ouvrir un duel pour consulter son plan de départ, ses points de vigilance, ce qu'il faut conserver et les essais du joueur. Un essai réunit une approche à tester, un état, les observations, la conclusion du joueur et du staff et des parties sources. Le carnet est lisible par l'équipe ; le joueur lié au profil, le staff et le propriétaire peuvent le modifier. Il faut choisir **Enregistrer le carnet** pour partager les modifications.
+
+Le plan et les essais sont propres à l'équipe, au joueur, aux deux champions et au poste. Ils sont communs aux catégories et aux patches. Les statistiques suivent la catégorie du profil et le filtre **Patch des statistiques** : écarts de CS, d'or et d'XP à 10, 15 et 20 minutes, avec un nombre de parties renseignées pour chaque mesure. Le taux de victoire porte sur la partie entière. Une valeur absente reste indisponible ; les changements de voie demandent une vérification en débrief. Les relevés à 10, 15 et 20 minutes s’ouvrent à la demande. Les détails des parties donnent accès aux runes, à l'ordre des compétences et aux achats disponibles.
+
+Les brouillons restent en mémoire pendant la navigation dans l'application, sans constituer une sauvegarde durable après fermeture ou rechargement. Un conflit avec une modification faite ailleurs conserve la saisie : copier le brouillon avant de recharger le carnet enregistré. Le parcours et les limites sont détaillés dans [Carnets de matchups](../carnets-matchups.md).
+
 ## Créer une review
 
 Une review peut partir d'une game ou d'un groupe. L'analyse complète est préparée automatiquement à l'ouverture et dans l'aperçu de création : verdict, cause à vérifier, checkpoints VOD, lecture par joueur, weakside/strongside, plan d'exécution et validation. Les groupes donnent aussi le détail de chaque game. Le bouton « Re-coacher l'historique » n'est plus nécessaire.
