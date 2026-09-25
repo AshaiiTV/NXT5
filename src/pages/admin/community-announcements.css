@@ -48,3 +48,25 @@
   .community-announcements :where(input, textarea, select) { font-size: 16px; }
   .community-announcement-history li { flex-direction: column; gap: 8px; }
 }
+.community-announcement-servers { min-width: 0; margin-top: 24px; }
+.community-announcement-servers legend { color: var(--nxt5-text); font-size: 1rem; font-weight: 650; }
+.community-announcement-guild { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 12px 24px; padding: 16px 0; border-bottom: 1px solid var(--nxt5-border); }
+.community-announcement-guild > .community-announcement-help { grid-column: 1 / -1; margin: 0; }
+.community-announcement-guild-choice { display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; color: var(--nxt5-text); font-size: .875rem; line-height: 1.65; }
+.community-announcement-guild-choice input { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--nxt5-accent); }
+.community-announcement-guild-choice span { min-width: 0; overflow-wrap: anywhere; }
+.community-announcement-guild-choice small { display: block; font-size: .8125rem; color: var(--nxt5-muted); }
+.community-announcement-guild-choice:has(input:disabled) { cursor: default; }
+.community-announcement-guild-choice:has(input:disabled:not(:checked)) { color: var(--nxt5-muted); }
+.community-announcement-targets { margin-top: 16px; padding: 0; list-style: none; font-size: .875rem; line-height: 1.8; overflow-wrap: anywhere; }
+.community-announcement-receipts { list-style: none; padding: 0; margin-top: 12px; }
+.community-announcement-receipts li { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--nxt5-border); }
+.community-announcement-receipts li > div { min-width: 0; overflow-wrap: anywhere; }
+.community-announcement-receipts li > .nxt5-badge { flex-shrink: 0; }
+@container bot-publications (max-width: 700px) {
+  .community-announcement-guild { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+}
+@media (max-width: 640px) {
+  .community-announcement-guild { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .community-announcement-receipts li { flex-direction: column; gap: 8px; }
+}
