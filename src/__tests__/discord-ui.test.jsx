@@ -11,8 +11,9 @@ const cleanup = [];
 const connection = { configured: true, enabled: true, connection: { id: "link", guildId: "123", guildName: "Team Discord", paused: false, status: "active", configVersion: 3, enabledAt: "2026-09-21T12:00:00Z" }, health: { verified: true }, channels: [{ id: "channel-1", name: "games", canSend: true }, { id: "channel-denied", name: "staff", canSend: false }, { id: "channel-2", name: "second", canSend: true }], roles: [{ id: "role-1", name: "Joueurs" }], categories: [{ id: "scrim", name: "Scrims" }] };
 const route = { id: "route-1", channelId: "channel-1", categoryIds: [], includeHints: false, mentionRoleId: null, enabled: true };
 const preview = { message: { content: "NXT5 — Équipe / Adversaire", embeds: [{ title: "Victoire", fields: [{ name: "Durée", value: "21 min" }] }] }, imageDataUrl: "data:image/png;base64,aGVsbG8=", snapshotRevision: 0 };
+const publishedReceipt = { id: "job-1", status: "succeeded", matchId: "game", channelId: "channel-1", routeId: "route-1", configVersion: 3, revision: 0, messageUrl: "https://discord.com/channels/123/456/789" };
 
-beforeEach(() => { apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-preview") ? preview : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : path === "admin-discord" ? { configured: true, enabled: false, connectionsCount: 2, queuedCount: 4, failedCount: 1, unknownCount: 1 } : { deliveries: [] }); });
+beforeEach(() => { apiFetch.mockImplementation(async (path) => path.startsWith("team-discord-connection") ? connection : path.startsWith("team-discord-routes") ? { routes: [route], configVersion: 3, guildId: "123" } : path.startsWith("team-discord-preview") ? preview : path === "team-discord-publish" ? { ok: true, jobs: [publishedReceipt] } : path.startsWith("team-discord-test") ? { ...preview, latestTest: null } : path === "admin-discord" ? { configured: true, enabled: false, connectionsCount: 2, queuedCount: 4, failedCount: 1, unknownCount: 1 } : { deliveries: [] }); });
 afterEach(() => { cleanup.splice(0).forEach((fn) => fn()); vi.resetAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 async function mount(element) { let renderer; await act(async () => { renderer = TestRenderer.create(element, { createNodeMock: () => ({ focus: vi.fn(), showModal: vi.fn(), close: vi.fn() }) }); }); cleanup.push(() => act(() => renderer.unmount())); return renderer; }
 function text(node) { return typeof node === "string" ? node : (node.children || []).map(text).join(""); }
@@ -276,7 +277,8 @@ describe("Discord game publication", () => {
     expect(button(renderer, "Exporter sur Discord").props["aria-haspopup"]).toBe("dialog");
     await click(renderer, "Exporter sur Discord");
     expect(renderer.root.findByType("dialog").props["aria-modal"]).toBe("true");
-    expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-deliveries"))).toBe(true);
+    expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-deliveries"))).toBe(false);
+    expect(text(renderer.root)).not.toContain("Historique des publications");
     expect(apiFetch.mock.calls.some(([path]) => path.startsWith("team-discord-preview"))).toBe(false);
     expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(false);
     expect(renderer.root.findByType("select").props.value).toBe("route-1");
@@ -284,9 +286,61 @@ describe("Discord game publication", () => {
     await click(renderer, "Préparer l’aperçu");
     expect(renderer.root.findByType("img").props.src).toBe(preview.imageDataUrl);
     await click(renderer, "Publier dans #games");
-    expect(posts()).toEqual([["team-discord-publish", { teamId: "team", matchId: "game", routeId: "route-1", snapshotRevision: 0 }]]);
-    expect(text(renderer.root)).toContain("Publication ajoutée à la file d’envoi");
-    expect(button(renderer, "Publier dans #games")).toBeUndefined();
+    expect(posts()).toEqual([["team-discord-publish", { teamId: "team", matchId: "game", routeId: "route-1", snapshotRevision: 0, requestId: expect.any(String) }]]);
+    expect(text(renderer.root)).toContain("Publié sur Discord.");
+    expect(renderer.root.findAllByType("a").some((link) => link.props.href === publishedReceipt.messageUrl)).toBe(true);
+    expect(text(renderer.root)).not.toContain("file d’envoi");
+  });
+
+  it("prevents closing from aborting the initial publication request", async () => {
+    let finish;
+    const serveMetadata = apiFetch.getMockImplementation();
+    apiFetch.mockImplementation((path, options) => path === "team-discord-publish"
+      ? new Promise((resolve) => { finish = resolve; }) : serveMetadata(path, options));
+    const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
+    await click(renderer, "Exporter sur Discord");
+    await click(renderer, "Préparer l’aperçu");
+    await click(renderer, "Publier dans #games");
+    const request = apiFetch.mock.calls.find(([path]) => path === "team-discord-publish");
+    expect(renderer.root.findByProps({ "aria-label": "Fermer la fenêtre" }).props.disabled).toBe(true);
+    await act(async () => {
+      const target = {};
+      renderer.root.findByType("dialog").props.onCancel({ target, currentTarget: target, preventDefault() {} });
+    });
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    expect(request[1].signal.aborted).toBe(false);
+    expect(posts()).toHaveLength(1);
+    await act(async () => finish({ jobs: [publishedReceipt] }));
+    expect(renderer.root.findByProps({ "aria-label": "Fermer la fenêtre" }).props.disabled).toBe(false);
+    expect(text(renderer.root)).toContain("Publié sur Discord.");
+  });
+
+  it.each(["button", "escape"])("allows closing with %s while checking the publication and cancels polling", async (closeWith) => {
+    const serveMetadata = apiFetch.getMockImplementation();
+    apiFetch.mockImplementation(async (path, options) => {
+      if (path === "team-discord-publish") return { jobs: [{ ...publishedReceipt, status: "queued" }] };
+      if (path.startsWith("team-discord-deliveries")) return { deliveries: [{ ...publishedReceipt, status: "sending" }] };
+      return serveMetadata(path, options);
+    });
+    const renderer = await mount(<DiscordGameShare teamId="team" matchId="game" canPublish />);
+    await click(renderer, "Exporter sur Discord");
+    await click(renderer, "Préparer l’aperçu");
+    await click(renderer, "Publier dans #games");
+    expect(button(renderer, "Envoi en cours…").props.disabled).toBe(true);
+    const poll = apiFetch.mock.calls.find(([path]) => path.startsWith("team-discord-deliveries"));
+    expect(poll).toBeDefined();
+    const closeButton = renderer.root.findByProps({ "aria-label": "Fermer la fenêtre" });
+    expect(closeButton.props.disabled).toBe(false);
+    await act(async () => {
+      if (closeWith === "button") closeButton.props.onClick();
+      else {
+        const target = {};
+        renderer.root.findByType("dialog").props.onCancel({ target, currentTarget: target, preventDefault() {} });
+      }
+    });
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    expect(poll[1].signal.aborted).toBe(true);
+    expect(posts()).toHaveLength(1);
   });
 
   it("keeps preview available but prevents publication while team is paused", async () => {
@@ -316,7 +370,7 @@ describe("Discord game publication", () => {
     await click(renderer, "Préparer l’aperçu");
     expect(apiFetch.mock.calls.some(([path]) => path === "team-discord-preview?teamId=team&matchId=game&routeId=route-2")).toBe(true);
     await click(renderer, "Publier dans #second");
-    expect(posts()).toEqual([["team-discord-publish", { teamId: "team", matchId: "game", routeId: "route-2", snapshotRevision: 0 }]]);
+    expect(posts()).toEqual([["team-discord-publish", { teamId: "team", matchId: "game", routeId: "route-2", snapshotRevision: 0, requestId: expect.any(String) }]]);
   });
 
   it("preselects only the destination the bot can use and respects an explicitly cleared choice", async () => {
@@ -337,7 +391,7 @@ describe("Discord game publication", () => {
     expect(renderer.root.findAllByType("img")).toHaveLength(0);
     expect(text(renderer.root)).toContain("Visuel indisponible pour cet aperçu");
     await click(renderer, "Publier dans #games");
-    expect(posts()[0]).toEqual(["team-discord-publish", { teamId: "team", matchId: "game", routeId: "route-1", snapshotRevision: 0 }]);
+    expect(posts()[0]).toEqual(["team-discord-publish", { teamId: "team", matchId: "game", routeId: "route-1", snapshotRevision: 0, requestId: expect.any(String) }]);
   });
 
   it.each([{ matchId: "new" }, { matchId: "old", matchRevision: "updated" }])("cancels old previews when game or its revision changes: %o", async (nextMatch) => {
@@ -358,7 +412,7 @@ describe("Discord game publication", () => {
   it("keeps the open dialog, selected destination and success notice during refresh and retry", async () => {
     let failure = false, refreshing = false, resolveConnection;
     apiFetch.mockImplementation(async (path, options) => {
-      if (options?.method === "POST") { failure = true; return { ok: true }; }
+      if (options?.method === "POST") { failure = true; return { ok: true, jobs: [publishedReceipt] }; }
       if (path.startsWith("team-discord-connection")) {
         if (failure) throw new Error("Connexion temporairement indisponible");
         return refreshing ? new Promise((resolve) => { resolveConnection = resolve; }) : connection;
@@ -371,7 +425,8 @@ describe("Discord game publication", () => {
     await click(renderer, "Préparer l’aperçu");
     await click(renderer, "Publier dans #games");
     expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
-    expect(text(renderer.root)).toContain("Publication ajoutée à la file d’envoi");
+    expect(text(renderer.root)).toContain("Publié sur Discord.");
+    await click(renderer, "Actualiser les salons");
     expect(text(renderer.root)).toContain("Connexion temporairement indisponible");
     failure = false; refreshing = true;
     await click(renderer, "Réessayer");
@@ -380,7 +435,7 @@ describe("Discord game publication", () => {
     expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(true);
     await act(async () => resolveConnection(connection));
     expect(button(renderer, "Préparer l’aperçu").props.disabled).toBe(false);
-    expect(text(renderer.root)).toContain("Publication ajoutée à la file d’envoi");
+    expect(text(renderer.root)).toContain("Publié sur Discord.");
     expect(posts()).toHaveLength(1);
   });
 

@@ -415,6 +415,27 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     expect((await processNext()).outcome).toBe('succeeded');
     expect(await rows('select attempt,status from discord_deliveries order by attempt')).toEqual([{attempt:1,status:'blocked'},{attempt:2,status:'succeeded'}]);
   });
+  it('makes an explicit share immediately claimable and scopes targeted claims to its team and job',async () => {
+    await database.pg.exec('update discord_routes set automatic=false');
+    await importGame();
+    const [job]=await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    expect(await claimPublicationJob({teamId:userId,jobId:job.id})).toBeNull();
+    expect(await claimPublicationJob({teamId,jobId:userId})).toBeNull();
+    const claimed=await claimPublicationJob({teamId,jobId:job.id});
+    expect(claimed).toMatchObject({id:job.id,status:'preparing',attempts:1});
+    expect(await claimPublicationJob({teamId,jobId:job.id})).toBeNull();
+    expect(await processPublicationJob(claimed!)).toBe('succeeded');
+  });
+  it('clears stale failure details when a blocked same-revision job is explicitly requeued',async () => {
+    await importGame();transport.send.mockRejectedValueOnce({status:401,code:'DISCORD_UNAUTHORIZED'});
+    const {job}=await processNext();
+    expect((await rows('select last_error_code from publication_jobs'))[0].last_error_code).toBe('DISCORD_UNAUTHORIZED');
+    const [requeued]=await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    expect(requeued).toMatchObject({id:job.id,status:'queued',last_error:null,last_error_code:null,attempts:1,retry_base_attempts:1});
+    const claimed=await claimPublicationJob({teamId,jobId:job.id});
+    expect(claimed).toMatchObject({id:job.id,attempts:2});
+    expect(await processPublicationJob(claimed!)).toBe('succeeded');
+  });
   it('rolls back both publication and job when the second half of a manual retry fails',async () => {
     await importGame();transport.send.mockRejectedValueOnce({status:403,code:'DISCORD_FORBIDDEN'});
     const {job}=await processNext();
