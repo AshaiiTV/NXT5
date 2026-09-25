@@ -12,6 +12,8 @@ Le groupe Bot contient Publications puis Statistiques, dans la sidebar et le sé
 
 ## API et installation
 
+Les appels de la page annoncent la version du contrat via `X-NXT5-Announcements-Version: 2`. Un onglet resté ouvert sur l’ancienne interface reçoit une erreur explicite demandant de recharger la page, avant toute lecture Discord ou opération de publication. Aucun rechargement automatique n’est imposé : le brouillon reste disponible pour être copié. Les contrôles d’accès administrateur et de contexte de production précèdent cette vérification.
+
 L’endpoint `admin-discord-announcements` exige un administrateur de plateforme authentifié et le contexte de production, avant tout appel Discord. Aucun jeton n’est envoyé au navigateur. Le coupe-circuit `DISCORD_PUBLISHING_ENABLED` reste appliqué. Les identités du bot et de l’application sont comparées avant chaque opération ; les salons sont vérifiés côté serveur.
 
 La migration `discord-community-announcements-20260924-v1` crée les réglages et reçus. La migration suivante, `discord-community-destinations-20260925-v1`, ajoute la sélection JSON versionnée, les lots immuables et l’unicité d’un reçu par référence et serveur. Elle convertit les réglages et reçus historiques, conserve les anciennes colonnes de configuration rendues facultatives et autorise l’état `queued`. Elle est enregistrée dans `tools/migration-runner.mjs`. Appliquer les migrations lors du déploiement avant d’utiliser cette nouvelle version ; l’endpoint renvoie une erreur de maintenance si elles manquent.

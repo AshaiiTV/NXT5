@@ -27,10 +27,12 @@ const pair = [...single, { guildId: secondGuild, channelId: secondChannel }];
 const messages: any[] = [];
 let joinedGuilds: { id: string; name: string }[] = [];
 const rows = async (query: string, params: any[] = []) => (await state.pg.query(query, params)).rows as any[];
-function request(body?: any, origin = 'https://nxt5.test') {
+function request(body?: any, origin = 'https://nxt5.test', version: string | null = '2') {
+  const headers = new Headers(version === null ? {} : { 'X-NXT5-Announcements-Version': version });
+  if (body) { headers.set('Content-Type', 'application/json'); headers.set('Origin', origin); }
   return new Request('https://nxt5.test/.netlify/functions/admin-discord-announcements', body ? {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin }, body: JSON.stringify(body),
-  } : {});
+    method: 'POST', headers, body: JSON.stringify(body),
+  } : { headers });
 }
 async function call(body?: any, ctx = context) {
   const response = await endpoint(request(body), ctx);
@@ -92,6 +94,22 @@ beforeEach(async () => {
 });
 
 describe('multi-server announcements: real SQL, simulated Discord only', () => {
+  it.each([
+    ['GET', null], ['POST', null], ['GET', '1'], ['POST', '1'], ['GET', '3'], ['POST', '3'],
+  ])('rejects an incompatible %s client version (%s) before database or Discord access', async (method, version) => {
+    const query = vi.spyOn(state.pg, 'query');
+    const response = await endpoint(request(method === 'POST' ? { action: 'publish', content, reference } : undefined, 'https://nxt5.test', version), context);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      code: 'DISCORD_ANNOUNCEMENT_CLIENT_OUTDATED',
+      error: 'Cette page utilise une ancienne version de NXT5. Recharge la page pour accéder au choix des serveurs. Si tu as un brouillon, copie-le avant de recharger.',
+    });
+    expect(state.admin).toHaveBeenCalledOnce();
+    expect(query).not.toHaveBeenCalled();
+    expect(state.request).not.toHaveBeenCalled(); expect(state.guild).not.toHaveBeenCalled();
+    expect(state.rate).not.toHaveBeenCalled();
+  });
+
   it('requires platform administration and trusted mutations before reading Discord', async () => {
     state.admin.mockRejectedValue(Object.assign(new Error('Accès refusé'), { status: 403, code: 'PLATFORM_ADMIN_FORBIDDEN' }));
     expect((await call()).status).toBe(403);

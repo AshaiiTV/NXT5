@@ -55,7 +55,15 @@ beforeEach(() => {
     return options.method === "POST" ? post(JSON.parse(options.body)) : currentState;
   });
 });
-afterEach(() => { renderers.splice(0).forEach(renderer => act(() => renderer.unmount())); vi.resetAllMocks(); });
+afterEach(() => {
+  for (const [path, options] of apiFetch.mock.calls) {
+    if (path !== ENDPOINT) continue;
+    const headers = new Headers(options?.headers);
+    expect(headers.get("X-NXT5-Announcements-Version")).toBe("2");
+    if (options?.method === "POST") expect(headers.get("Content-Type")).toBe("application/json");
+  }
+  renderers.splice(0).forEach(renderer => act(() => renderer.unmount())); vi.resetAllMocks();
+});
 
 async function render(element = <CommunityAnnouncementsPanel />) {
   let renderer;
@@ -387,6 +395,30 @@ describe("community Discord announcements", () => {
     await click(renderer, "Actualiser les serveurs");
     expect(editor(renderer)).toBeDefined();
     expect(post).not.toHaveBeenCalled();
+  });
+
+  it.each(["refresh", "preview", "publish"])("preserves the draft when %s rejects an outdated page version", async action => {
+    const renderer = await render();
+    const draft = "Mon annonce à conserver avant de recharger la page";
+    await fill(renderer, draft);
+    const originalReference = reference(renderer).props.value;
+    if (action === "publish") await preview(renderer);
+    const message = "Cette page utilise une ancienne version de NXT5. Recharge la page pour accéder au choix des serveurs. Si tu as un brouillon, copie-le avant de recharger.";
+    const callsBeforeRejection = apiFetch.mock.calls.length;
+    apiFetch.mockRejectedValueOnce(Object.assign(new Error(message), { status: 409, code: "DISCORD_ANNOUNCEMENT_CLIENT_OUTDATED" }));
+    if (action === "refresh") await click(renderer, "Actualiser les serveurs");
+    else if (action === "preview") await preview(renderer);
+    else await click(renderer, "Publier sur Discord");
+    expect(text(renderer)).toContain(message);
+    expect(editor(renderer).props.value).toBe(draft);
+    expect(editor(renderer).props.disabled).toBe(false);
+    expect(reference(renderer).props.value).toBe(originalReference);
+    expect(destination(renderer).props.value).toBe(firstChannel);
+    expect(checkbox(renderer, "Communauté NXT5").props.checked).toBe(true);
+    expect(apiFetch).toHaveBeenCalledTimes(callsBeforeRejection + 1);
+    expect(button(renderer, "Publier sur Discord")).toBeUndefined();
+    expect(button(renderer, "Vérifier le résultat")).toBeUndefined();
+    expect(actions("recover")).toHaveLength(0);
   });
 
   it("caps history at twenty receipts and exposes only valid Discord message and invitation links", async () => {
