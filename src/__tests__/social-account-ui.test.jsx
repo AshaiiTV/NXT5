@@ -37,6 +37,43 @@ afterEach(() => {
 });
 
 describe("social account entry and completion", () => {
+  it("keeps a password registration neutral, unauthenticated and preserves the invitation for login", async () => {
+    window.location.search = "?invite=team-token&next=%2Frapports";
+    const navigate = vi.fn();
+    const onAuth = vi.fn();
+    const pushToast = vi.fn();
+    const renderer = await render(<AuthPage mode="register" navigate={navigate} onAuth={onAuth} pushToast={pushToast} />);
+    edit(renderer, "E-mail", "player@example.fr");
+    edit(renderer, "Pseudo", "Joueur");
+    edit(renderer, "Mot de passe", "valid-password");
+    act(() => renderer.root.findByProps({ type: "checkbox" }).props.onChange({ target: { checked: true } }));
+    apiFetch.mockResolvedValueOnce({ ok: true, message: "Si cette adresse peut être utilisée, tu recevras un e-mail de vérification." });
+    await act(async () => { await submit(renderer); });
+    expect(onAuth).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(pushToast).not.toHaveBeenCalled();
+    expect(content(renderer.root)).toContain("Demande reçue");
+    expect(content(renderer.root)).toContain("Si tu as déjà un compte");
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    const login = renderer.root.findAllByType("a").find((node) => content(node).trim() === "Se connecter");
+    const destination = new URL(login.props.href, "https://nxt5.org");
+    expect(destination.searchParams.get("invite")).toBe("team-token");
+    expect(destination.searchParams.get("next")).toBe("/rapports");
+    expect(focus).toHaveBeenCalled();
+  });
+
+  it("keeps registration fields available after a rejected request", async () => {
+    const renderer = await render(<AuthPage mode="register" navigate={vi.fn()} onAuth={vi.fn()} pushToast={vi.fn()} />);
+    edit(renderer, "E-mail", "player@example.fr");
+    edit(renderer, "Pseudo", "Joueur");
+    edit(renderer, "Mot de passe", "valid-password");
+    apiFetch.mockRejectedValueOnce(new Error("Réessaie plus tard."));
+    await act(async () => { await submit(renderer); });
+    expect(renderer.root.findByProps({ label: "E-mail" }).props.value).toBe("player@example.fr");
+    expect(content(renderer.root)).toContain("Réessaie plus tard.");
+    expect(content(renderer.root)).not.toContain("Demande reçue");
+  });
+
   it("only offers configured providers and carries the invitation and safe destination through OAuth", async () => {
     window.location.search = "?invite=team-token&next=%2Frapports";
     apiFetch.mockResolvedValueOnce({ providers: providers.map((provider) => ({ ...provider, enabled: provider.id === "google" })) });

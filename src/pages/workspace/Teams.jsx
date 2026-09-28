@@ -225,14 +225,25 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     setSaving(true);
     try {
       const result = await apiFetch("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id }) });
-      await navigator.clipboard.writeText(result.code);
+      await navigator.clipboard.writeText(`${window.location.origin}/equipes?invite=${encodeURIComponent(result.code)}`);
       await refreshAll();
-      pushToast({ type: "green", title: "Code d’invitation copié", text: `${result.code} est valable 1h maximum.` });
+      pushToast({ type: "green", title: "Lien d’invitation copié", text: "Valable 1h maximum. Les anciens liens ont été révoqués." });
     } catch (err) {
       pushToast({ type: "red", title: "Code impossible", text: err.message });
     } finally {
       setSaving(false);
     }
+  }
+
+  async function revokeInvites() {
+    if (!selectedTeam) return;
+    setSaving(true);
+    try {
+      await apiFetch("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, action: "revoke" }) });
+      await refreshAll();
+      pushToast({ type: "green", title: "Invitations révoquées", text: "Les anciens liens ne permettent plus de rejoindre l’équipe." });
+    } catch (err) { pushToast({ type: "red", title: "Révocation impossible", text: err.message }); }
+    finally { setSaving(false); }
   }
 
   async function copyMultiOpggLink(players, label) {
@@ -445,7 +456,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       <LinkButton href="/equipes" navigate={openAppPath} variant="ghost" icon={ArrowLeft}>Retour à l’équipe</LinkButton>
     </PageHeader>
     {selectedTeam ? <div className="space-y-5">
-      <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch} />
+      <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} onRevokeInvites={revokeInvites} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch} />
       <Surface className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0"><h3 className="text-lg font-black text-white">Bot Discord</h3><p className="mt-1 text-sm leading-6 text-slate-300">Invitation, connexion du serveur, salons et historique des publications de ton équipe.</p></div>
@@ -516,7 +527,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   </div>;
 }
 
-function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer, routeSearch = "" }) {
+function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, onRevokeInvites, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer, routeSearch = "" }) {
   const [nowTick, setNowTick] = useState(Date.now());
   const profileSectionRef = useRef(null);
   const profileEditRef = useRef(null);
@@ -629,18 +640,19 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h4 className="text-xl font-black text-white">Invitations temporaires</h4>
-            <p className="mt-1 text-sm font-semibold text-slate-300">Un code, valable 1h, à donner au joueur ou au staff.</p>
+            <p className="mt-1 text-sm font-semibold text-slate-300">Un lien valable 1h, à transmettre au joueur ou au staff. Créer un nouveau lien révoque les précédents.</p>
           </div>
-          <Button type="button" variant="ghost" icon={saving ? Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canManage}>Créer un code</Button>
+          <Button type="button" variant="ghost" icon={saving ? Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canManage}>Créer et copier un lien</Button>
         </div>
         <div className="team-invitation-list">
           {activeCodes.length ? activeCodes.map((code) => {
             const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000));
             return <div key={code.id} className="team-invitation-code">
-              <div className="flex items-center justify-between gap-3"><p className="font-mono text-lg font-black tracking-[0.08em] text-white">{code.code}</p><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>
+              <div className="flex items-center justify-between gap-3"><p className="min-w-0 break-all font-mono text-sm font-bold text-white">{code.code}</p><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>
               <p className="mt-1 break-words text-[13px] text-slate-300">Créé par {code.created_by_name || "staff"}</p>
             </div>;
-          }) : <p className="team-empty-row">Aucun code actif.</p>}
+          }) : <p className="team-empty-row">Aucune invitation active.</p>}
+          {activeCodes.length > 0 && canManage && <Button type="button" variant="danger" onClick={onRevokeInvites} disabled={saving}>Révoquer les invitations</Button>}
         </div>
       </div>
     </div>

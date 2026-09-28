@@ -36,7 +36,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
   return { sql: neon('postgresql://test:test@local-test.invalid/nxt5') };
 });
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {} }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
 
 import login from '../../netlify/functions/auth-login';
 import resetPassword from '../../netlify/functions/auth-reset-password';

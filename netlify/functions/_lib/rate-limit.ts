@@ -95,7 +95,7 @@ async function assertLimit(rateKey: string, ip: string, endpoint: string, option
     }
   } catch (err: any) {
     if (err?.status === 429) throw err;
-    console.error('Rate limit unavailable; blocking the protected endpoint.', err);
+    console.error('Rate limit unavailable; blocking the protected endpoint.', { code: 'RATE_LIMIT_UNAVAILABLE' });
     throw Object.assign(new Error('Protection anti-abus temporairement indisponible.'), {
       status: 503,
       code: 'RATE_LIMIT_UNAVAILABLE',

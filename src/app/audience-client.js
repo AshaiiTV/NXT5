@@ -4,7 +4,7 @@ import { canonicalAudiencePath, sanitizeCampaignValue } from "./audience-paths.j
 export const AUDIENCE_CONSENT_VERSION = "2026-09-14";
 export const AUDIENCE_SETTINGS_EVENT = "nxt5:cookie-settings";
 const OPT_OUT = "nxt5_audience_optout";
-const GOALS = new Set(["signup", "login", "access_request", "pricing_view"]);
+const GOALS = new Set(["signup", "login", "access_request", "pricing_view", "first_import", "first_review"]);
 
 // No network, browser identifiers or storage are accessed at module evaluation.
 export function createAudienceClient({ request = apiFetch, win = globalThis.window, doc = globalThis.document, now = Date.now, uuid = () => globalThis.crypto.randomUUID() } = {}) {

@@ -39,8 +39,8 @@ export async function getTeamMemberEmails(teamId, db, preference = 'notif_match'
         `;
 
     return rows.map((row) => String(row.email || '').trim()).filter(isValidEmail);
-  } catch (err) {
-    console.error('[notifications] Unable to load team member emails.', err);
+  } catch {
+    console.error('[notifications] Unable to load team member emails.', { code: 'RECIPIENTS_UNAVAILABLE' });
     return [];
   }
 }

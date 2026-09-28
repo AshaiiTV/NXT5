@@ -37,6 +37,12 @@ describe("audience page exploration", () => {
 });
 
 describe("audience CSV export", () => {
+  it("exports activation objectives using their public labels and aggregate counts", () => {
+    const csv = audienceCsv({ goals: [{ name: "first_import", events: 4, sessions: 3, conversionRate: 30 }, { name: "first_review", events: 2, sessions: 2, conversionRate: 20 }] });
+    expect(csv).toContain('"Objectifs";"Première partie importée";"Événements";"4"');
+    expect(csv).toContain('"Objectifs";"Premier débrief enregistré par l’équipe";"Sessions concernées";"2"');
+  });
+
   it.each(["=HYPERLINK(\"https://bad.test\")", "+cmd", "-formula", "@SUM(A1)", " \t=SUM(1,1)", "\nformula", "\rtext"]) ("neutralizes spreadsheet formula cell %j", (value) => {
     expect(audienceCsvCell(value)).toBe(`"'${value.replace(/"/g, '""')}"`);
   });

@@ -36,6 +36,11 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
 }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: ({ data }) => <main data-page="teams" data-games={data.matches.length} /> }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => null }));
+vi.mock("../pages/public/DemoPage.jsx", () => ({ DemoPage: () => <main data-page="demo" /> }));
+vi.mock("../pages/public/PublicGuides.jsx", () => ({
+  PUBLIC_GUIDES: { "/guides/importer-premier-scrim": {}, "/guides/preparer-debrief": {} },
+  PublicGuidePage: () => <main data-page="public-guide" />,
+}));
 
 const cleanups = [];
 const user = { id: "user", email: "staff@nxt5.test", email_verified: true };
@@ -125,7 +130,7 @@ describe("one continuous application loading screen", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it.each(["/", "/connexion", "/confidentialite", "/mot-de-passe-oublie", "/page-inconnue"])("shows %s without the staff loader while its module and session resolve", async (path) => {
+  it.each(["/", "/connexion", "/confidentialite", "/mot-de-passe-oublie", "/page-inconnue", "/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief", "/guides/nonexistent"])("shows %s without the staff loader while its module and session resolve", async (path) => {
     const app = mount(path);
     expect(app.loaders).toHaveLength(0);
     await app.loadModule();
@@ -135,6 +140,15 @@ describe("one continuous application loading screen", () => {
     expect(app.loaders).toHaveLength(0);
     expect(app.requests).toHaveLength(1);
     expect(visual.mounts).toBe(0);
+  });
+
+  it.each(["/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief"])("keeps %s independent of authenticated team data", async (path) => {
+    const app = mount(path);
+    await app.loadModule();
+    await app.resolve(0, { user });
+    expect(app.loaders).toHaveLength(0);
+    expect(app.requests).toHaveLength(1);
+    expect(["demo", "public-guide"]).toContain(app.pages[0].props["data-page"]);
   });
 
   it("releases the loader when a private session is missing or fails", async () => {

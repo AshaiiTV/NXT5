@@ -74,6 +74,25 @@ afterEach(() => {
 });
 
 describe("consent-gated audience collection", () => {
+  it.each(["first_import", "first_review"])("requires active consent for the %s activation event and does not replay earlier actions", async (name) => {
+    const h = setup();
+    await h.open("/games?team=private-team&match=private-match");
+    expect(await h.client.trackEvent(name)).toBe(false);
+    expect(h.events()).toEqual([]);
+    expect(h.uuid).not.toHaveBeenCalled();
+    expect(await h.client.choose(true)).toBe(true);
+    await settle();
+    expect(h.events().map((entry) => entry.type)).toEqual(["pageview"]);
+    await h.client.trackEvent(name);
+    await settle();
+    expect(h.events().at(-1)).toMatchObject({ type: "event", path: "/games", name });
+    await h.client.choose(false);
+    const before = h.events().length;
+    expect(await h.client.trackEvent(name)).toBe(false);
+    await settle();
+    expect(h.events()).toHaveLength(before);
+  });
+
   it("creates no identifiers or audience requests until acceptance is confirmed", async () => {
     const h = setup();
     expect(h.request).not.toHaveBeenCalled();
@@ -185,6 +204,29 @@ describe("consent-gated audience collection", () => {
 });
 
 describe("audience event privacy and accounting", () => {
+  it("records /games and activation names without leaking team, account, player or match identifiers", async () => {
+    const h = setup({ initialConsent: consent() });
+    h.win.location.href = "https://nxt5.org/games?team=secret-team&user=secret-account&player=secret-player&match=secret-match#private";
+    await h.open("/games/?team=secret-team&user=secret-account&player=secret-player&match=secret-match#private");
+    for (const name of ["first_import", "first_review"]) await h.client.trackEvent(name);
+    await settle();
+    expect(h.events()[0]).toMatchObject({ type: "pageview", path: "/games" });
+    const goals = h.events().filter((entry) => entry.type === "event");
+    expect(goals.map((entry) => entry.name)).toEqual(["first_import", "first_review"]);
+    for (const goal of goals) expect(Object.keys(goal).sort()).toEqual(["eventId", "name", "pageId", "path", "type"]);
+    expect(JSON.stringify(h.events())).not.toMatch(/secret-|private|teamId|userId|playerId|matchId/);
+  });
+
+  it.each(["/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief"])("measures the public discovery path %s only after consent", async (path) => {
+    const h = setup();
+    await h.open(`${path}?invite=secret`);
+    expect(h.events()).toEqual([]);
+    await h.client.choose(true);
+    await settle();
+    expect(h.events()[0]).toMatchObject({ type: "pageview", path });
+    expect(JSON.stringify(h.events())).not.toContain("secret");
+  });
+
   it("sends only an allowlisted path and campaign labels, never query strings or referrer paths", async () => {
     const h = setup({ initialConsent: consent() });
     h.win.location.href = "https://nxt5.org/equipes?token=secret&utm_source=Newsletter&utm_medium=email&utm_campaign=user%40example.com#private";

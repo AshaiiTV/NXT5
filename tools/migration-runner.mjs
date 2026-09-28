@@ -23,6 +23,8 @@ export async function loadMigrations() {
     ['social-auth-20260923-v1', '../database/migrations/20260923_social_auth.sql'],
     ['discord-community-announcements-20260924-v1', '../database/migrations/20260924_discord_community_announcements.sql'],
     ['discord-community-destinations-20260925-v1', '../database/migrations/20260925_discord_community_destinations.sql'],
+    ['audience-activation-20260928-v1', '../database/migrations/20260928_audience_activation.sql'],
+    ['team-activation-milestones-20260928-v1', '../database/migrations/20260928_team_activation_milestones.sql'],
     ['discord-group-exports-20260924-v1', '../database/migrations/20260924_discord_group_exports.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {

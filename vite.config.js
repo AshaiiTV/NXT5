@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
   }],
   // Each PostgreSQL suite starts its own WASM engine. Bound concurrency so the
   // full verification stays reliable alongside native image rendering on CI.
-  test: { include: ["src/**/*.test.{js,jsx,ts,tsx}"], maxWorkers: 4 },
+  test: { include: ["src/**/*.test.{js,jsx,ts,tsx}"], maxWorkers: 2 },
   build: {
     rollupOptions: {
       output: {

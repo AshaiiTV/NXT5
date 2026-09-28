@@ -832,10 +832,12 @@ function DraftWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
   const view = draftViewFromPath(route?.path);
   const icons = { pool: Crown, compositions: Sparkles };
   return <div>
-    <TabNav className="mb-5" label="Espace Draft" items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-2" />
+    <TabNav idPrefix="draft" panelId="draft-panel" className="mb-5" label="Espace Draft" items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-2" />
+    <div id="draft-panel" role="tabpanel" aria-labelledby={`draft-tab-${view}`} tabIndex={0}>
     {view === "compositions"
       ? <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />
       : <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+    </div>
   </div>;
 }
 

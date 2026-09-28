@@ -59,12 +59,13 @@ import { fetchRiotMatch } from '../../netlify/functions/_lib/riot';
 import importFile from '../../netlify/functions/matches-import-file';
 import manageCategories from '../../netlify/functions/match-categories-manage';
 import manageMatches from '../../netlify/functions/matches-manage';
+import importRoster from '../../netlify/functions/players-import-roster';
 
 vi.mock('../../netlify/functions/_lib/auth', () => ({
   assertSessionSecret: () => {},
   requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' })
 }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {} }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
 vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => [], ensureUserNotificationColumns: async () => {} }));
 vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({ fetchRiotMatch: vi.fn(() => { throw new Error('Unexpected Riot request in local file import'); }) }));
@@ -123,6 +124,7 @@ beforeAll(async () => {
     .replaceAll('gen_random_bytes(5)', "decode('0000000000', 'hex')");
   await database.pg.exec(schema);
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
   await database.pg.exec(`create table if not exists app_schema_migrations (
     migration_key text primary key, applied_at timestamptz not null default now(), checksum text
   ); insert into app_schema_migrations(migration_key) values ('audit-runtime-20260906-v1')`);
@@ -759,5 +761,134 @@ describe('team scoped and paginated match loading', () => {
     expect(inaccessible.status).toBe(403);
     const invalid = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=100000`), {} as any);
     expect(invalid.status).toBe(400);
+  });
+});
+
+
+describe('confirmed roster import endpoint', () => {
+  const profiles = roles.map((role, index) => ({ name: `Imported player ${index}`, riotId: `Imported${index}#EUW`, role }));
+  const submit = (nextProfiles: unknown = profiles, nextTeamId = teamId) => importRoster(new Request('https://nxt5.test/players-import-roster', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ teamId: nextTeamId, profiles: nextProfiles })
+  }), {} as any);
+  const players = async () => (await database.pg.query('select * from players where team_id=$1 order by role', [teamId])).rows;
+
+  it('creates five main profiles on an empty roster and retries without duplicates', async () => {
+    await database.pg.query('delete from players where team_id=$1', [teamId]);
+    const response = await submit();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ createdCount: 5, players: expect.any(Array) });
+    const saved = await players();
+    expect(saved).toHaveLength(5);
+    expect(saved.every((player: any) => player.roster_status === 'MAIN')).toBe(true);
+    expect(new Set(saved.map((player: any) => player.role))).toEqual(new Set(roles));
+    const retry = await submit();
+    expect((await retry.json()).createdCount).toBe(0);
+    expect(await players()).toEqual(saved);
+  });
+
+  it('reuses existing Riot IDs case-insensitively without overwriting names or roles', async () => {
+    const before = await players();
+    const response = await submit(roster.map((player, index) => ({ name: `Do not overwrite ${index}`, riotId: `  ${player.riot_id.toLowerCase()}  `, role: roles[(index + 1) % 5] })));
+    expect(response.status).toBe(200);
+    expect((await response.json()).createdCount).toBe(0);
+    expect(await players()).toEqual(before);
+  });
+
+  it('creates substitutes behind existing mains and leaves existing roles intact', async () => {
+    const response = await submit();
+    expect(response.status).toBe(200);
+    expect((await response.json()).createdCount).toBe(5);
+    const saved = await players();
+    expect(saved.filter((player: any) => player.roster_status === 'MAIN')).toHaveLength(5);
+    expect(saved.filter((player: any) => player.roster_status === 'SUB')).toHaveLength(5);
+    for (const player of roster) expect(saved.find((row: any) => row.id === player.id)).toMatchObject({ role: player.role, roster_status: 'MAIN' });
+  });
+
+  it('does not reuse an identically named Riot account from another team', async () => {
+    const response = await submit(roster.map(player => ({ name: player.name, riotId: player.riot_id, role: player.role })), otherTeamId);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.createdCount).toBe(5);
+    expect(body.players.every((player: any) => player.team_id === otherTeamId && !roster.some(original => original.id === player.id))).toBe(true);
+    expect(await players()).toHaveLength(5);
+  });
+
+  it('serializes simultaneous confirmation requests without duplicate profiles', async () => {
+    await database.pg.query('delete from players where team_id=$1', [teamId]);
+    const responses = await Promise.all([submit(), submit()]);
+    expect(responses.map(response => response.status)).toEqual([200, 200]);
+    const bodies = await Promise.all(responses.map(response => response.json()));
+    expect(bodies.map(body => body.createdCount).sort()).toEqual([0, 5]);
+    expect(await players()).toHaveLength(5);
+    expect(database.statements.some(query => /from teams[\s\S]*for update/.test(query))).toBe(true);
+  });
+
+  it.each(['nonmember', 'player', 'viewer', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board'])('enforces staff authorization for %s', async role => {
+    const otherUserId = '00000000-0000-4000-8000-000000000099';
+    await database.pg.query("insert into users(id,account_name,name,password_hash) values ($1,'roster-owner','Owner','unused')", [otherUserId]);
+    await database.pg.query('update teams set owner_id=$1 where id=$2', [otherUserId, teamId]);
+    if (role !== 'nonmember') await database.pg.query('insert into team_members(team_id,user_id,role) values($1,$2,$3)', [teamId, userId, role]);
+    const allowed = !['nonmember', 'player', 'viewer'].includes(role);
+    const response = await submit();
+    expect(response.status).toBe(allowed ? 200 : 403);
+    expect(await players()).toHaveLength(allowed ? 10 : 5);
+    expect((await database.pg.query("select * from audit_logs where action='players.import_roster'")).rows).toHaveLength(allowed ? 1 : 0);
+  });
+
+  it.each([
+    [], [...profiles, { name: 'Extra', riotId: 'Extra#EUW', role: 'TOP' }],
+    [profiles[0], { ...profiles[1], riotId: profiles[0].riotId.toLowerCase() }],
+    [profiles[0], { ...profiles[1], role: profiles[0].role }],
+    [{ ...profiles[0], riotId: 'Missing tagline' }],
+    [{ ...profiles[0], name: 'Control\u0000character' }],
+    [{ ...profiles[0], role: 'COACH' }]
+  ].map(selection => ({ selection })))('rejects malformed or duplicate profile selections before writing', async ({ selection }) => {
+    const before = await players();
+    const response = await submit(selection);
+    expect(response.status).toBe(400);
+    expect(await players()).toEqual(before);
+    expect((await database.pg.query("select * from audit_logs where action='players.import_roster'")).rows).toHaveLength(0);
+  });
+
+  it('bounds the request body independently of Content-Length', async () => {
+    const response = await importRoster(new Request('https://nxt5.test/players-import-roster', {
+      method: 'POST', body: JSON.stringify({ teamId, profiles, padding: 'x'.repeat(8192) })
+    }), {} as any);
+    expect(response.status).toBe(413);
+    expect(await players()).toHaveLength(5);
+  });
+
+  it('rolls back every profile and the audit if one profile violates a constraint', async () => {
+    await database.pg.exec("alter table players add constraint reject_roster_name check(name <> 'Imported player 3')");
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect((await submit()).status).toBe(500);
+      expect(await players()).toHaveLength(5);
+      expect((await database.pg.query("select * from audit_logs where action='players.import_roster'")).rows).toHaveLength(0);
+    } finally {
+      log.mockRestore();
+      await database.pg.exec('alter table players drop constraint reject_roster_name');
+    }
+  });
+});
+
+describe('durable first import activation', () => {
+  it('returns true once, false on reimport, and never resets after deleting imported matches', async () => {
+    const first = await persistAnalyzedMatch(importArgs());
+    expect(first.firstImport).toBe(true);
+    expect((await persistAnalyzedMatch(importArgs(2))).firstImport).toBe(false);
+    const milestone = (await database.pg.query('select first_import_at from teams where id=$1', [teamId])).rows[0].first_import_at;
+    expect(milestone).not.toBeNull();
+    await database.pg.query('delete from matches where team_id=$1', [teamId]);
+    const importedAgain = await persistAnalyzedMatch(importArgs(3));
+    expect(importedAgain.firstImport).toBe(false);
+    expect((await database.pg.query('select first_import_at from teams where id=$1', [teamId])).rows[0].first_import_at).toEqual(milestone);
+  });
+
+  it('rolls back the activation marker when the initial import fails', async () => {
+    await database.pg.exec('alter table match_participants add constraint reject_test_stat check(kills <> 666)');
+    await expect(persistAnalyzedMatch(importArgs(666))).rejects.toMatchObject({ code: '23514' });
+    expect((await database.pg.query('select first_import_at from teams where id=$1', [teamId])).rows[0].first_import_at).toBeNull();
+    expect((await persistAnalyzedMatch(importArgs())).firstImport).toBe(true);
   });
 });

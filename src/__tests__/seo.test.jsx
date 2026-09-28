@@ -112,6 +112,10 @@ describe("public SEO and real component rendering", () => {
     expect(rules).toContain("/* /404.html 404\n");
     expect(rules).not.toContain("/* /index.html 200");
     expect(rules).not.toContain("/.netlify/functions/");
+    expect(rules).toContain("/guides/importer-premier-scrim.html /guides/importer-premier-scrim 301!");
+    expect(rules).not.toContain("/guides/* /app-shell.html");
+    expect(isKnownPath("/guides/nonexistent")).toBe(false);
+    expect(getMetadata("/guides/nonexistent").robots).toBe("noindex, follow");
     expect(robotsTxt({ noindex: false })).toContain(`Sitemap: ${SITE_ORIGIN}/sitemap.xml`);
   });
 

@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const database = vi.hoisted(() => ({
-  sql: vi.fn(),
+  sql: Object.assign(vi.fn(), { transaction: async (queries: any[]) => Promise.all(queries) }),
   report: { id: 'review', team_id: 'team', created_by: 'user', title: 'Review', content: 'Notes initiales' } as Record<string, unknown>
 }));
 
 vi.mock('../../netlify/functions/_lib/db', () => ({ sql: database.sql }));
-vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret: vi.fn(), requireAuth: async () => ({ id: 'user' }) }));
+vi.mock('../../netlify/functions/_lib/auth', async original => ({ ...await original<any>(), assertSessionSecret: vi.fn(), requireAuth: async () => ({ id: 'user' }) }));
 vi.mock('../../netlify/functions/_lib/schema', () => ({ ensureReportsSchema: vi.fn(), ensureAuditLogsSchema: vi.fn() }));
 vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => [] }));
 vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: vi.fn() }));
@@ -19,6 +19,7 @@ beforeEach(() => {
   database.sql.mockReset();
   database.sql.mockImplementation(async (parts: TemplateStringsArray, ...values: unknown[]) => {
     const query = parts.join('?').replace(/\s+/g, ' ').trim();
+    if (query.startsWith('update teams set first_review_at')) return [{ id: 'team' }];
     if (query.includes('from teams')) return [{ owner_id: 'user', role: 'captain' }];
     if (query.startsWith('select id from matches')) return (values[1] as string[]).map((id) => ({ id }));
     if (query.startsWith('select * from reports')) return [{ ...database.report }];

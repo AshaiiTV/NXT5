@@ -65,7 +65,7 @@
   transition: background-color 160ms, color 160ms;
 }
 .nxt5-tab:hover { background: var(--nxt5-surface-soft); color: var(--nxt5-text); }
-.nxt5-tab[aria-selected="true"] {
+.nxt5-tab:is([aria-selected="true"], [aria-current="page"]) {
   border-color: rgba(167, 139, 250, .22);
   background: var(--nxt5-spectrum-gradient) bottom / 100% 2px no-repeat, var(--nxt5-spectrum-soft);
   color: #cffafe;

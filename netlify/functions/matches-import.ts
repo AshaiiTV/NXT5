@@ -126,6 +126,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     return json({
       warnings: savedMatch.warnings || [],
+      firstImport: savedMatch.firstImport,
       match: {
         id: savedMatch.id,
         game_id: savedMatch.game_id,

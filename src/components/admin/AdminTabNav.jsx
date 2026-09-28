@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BarChart3, ClipboardList, Tags, Users } from "lucide-react";
-import { Button, TabNav } from "../ui/Core.jsx";
+import { Button } from "../ui/Core.jsx";
 
 const TABS = [
   { id: "admin", label: "Administration", icon: BarChart3, path: "/admin" },
@@ -10,7 +10,7 @@ const TABS = [
 ];
 
 function revealTab(tab) {
-  const list = tab?.closest?.('[role="tablist"]');
+  const list = tab?.closest?.('nav');
   if (!list) return;
   const bounds = list.getBoundingClientRect(), target = tab.getBoundingClientRect();
   if (target.left < bounds.left) list.scrollLeft -= bounds.left - target.left + 8;
@@ -24,7 +24,7 @@ export default function AdminTabNav({ activeId, navigate, disabled = false, dirt
 
   useEffect(() => {
     setPendingId("");
-    revealTab(rootRef.current?.querySelector('[aria-selected="true"]'));
+    revealTab(rootRef.current?.querySelector('[aria-current="page"]'));
   }, [activeId]);
   useEffect(() => { if (pendingId) confirmationRef.current?.focus(); }, [pendingId]);
   useEffect(() => { if (!dirty) setPendingId(""); }, [dirty]);
@@ -37,26 +37,21 @@ export default function AdminTabNav({ activeId, navigate, disabled = false, dirt
 
   function stay() {
     setPendingId("");
-    rootRef.current?.querySelector('[aria-selected="true"]')?.focus({ preventScroll: true });
+    rootRef.current?.querySelector('[aria-current="page"]')?.focus({ preventScroll: true });
   }
 
-  function moveFocus(event) {
-    if (disabled || event.target.getAttribute?.("role") !== "tab") return;
-    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
-    if (!keys.includes(event.key)) return;
-    const tabs = Array.from(rootRef.current.querySelectorAll('[role="tab"]'));
-    const current = tabs.indexOf(event.target);
-    const index = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
-    event.preventDefault();
-    tabs[index]?.focus({ preventScroll: true });
-    revealTab(tabs[index]);
-  }
-
-  return <div ref={rootRef} className="mb-5 min-w-0" onKeyDown={moveFocus}>
-    <fieldset disabled={disabled} className={`min-w-0 border-0 p-0 ${disabled ? "opacity-60" : ""}`}>
-      <legend className="sr-only">Sections de l’administration</legend>
-      <TabNav label="Sections de l’administration" items={TABS} activeId={activeId} onChange={select} columns="!min-w-max" />
-    </fieldset>
+  return <div ref={rootRef} className="mb-5 min-w-0">
+    <nav aria-label="Sections de l’administration" className={`nxt5-tab-nav overflow-x-auto ${disabled ? "opacity-60" : ""}`}>
+      <div className="grid min-w-max grid-flow-col auto-cols-fr gap-1">{TABS.map((tab) => {
+        const Icon = tab.icon;
+        return <a key={tab.id} href={tab.path} aria-current={activeId === tab.id ? "page" : undefined} aria-disabled={disabled || undefined} className="nxt5-tab flex min-h-12 items-center justify-center gap-2 px-3 py-2.5 text-sm font-semibold" onClick={(event) => {
+          if (disabled) { event.preventDefault(); return; }
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          select(tab.id);
+        }}><Icon aria-hidden="true" className="h-4 w-4" />{tab.label}</a>;
+      })}</div>
+    </nav>
     {pendingId && <div ref={confirmationRef} tabIndex={-1} role="alert" className="mt-3 border-l-2 border-amber-200/40 pl-4 text-sm leading-6 text-slate-300">
       <p className="font-bold text-white">Modifications non enregistrées</p>
       <p>Quitter cet onglet abandonnera tes modifications.</p>

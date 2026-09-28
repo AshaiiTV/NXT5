@@ -39,7 +39,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 vi.mock('../../netlify/functions/_lib/auth', async original => ({ ...await original<any>(), assertSessionSecret: () => {} }));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
 vi.mock('../../netlify/functions/_lib/email', () => ({ isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails, sendEmailVerificationEmail: state.verification }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: state.rate, assertSubjectRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate }));
 
 import resetPassword from '../../netlify/functions/auth-reset-password';
 import requestPasswordReset from '../../netlify/functions/auth-request-password-reset';
@@ -105,7 +105,7 @@ describe('social account recovery proves mailbox ownership and removes other acc
     const context = { cookies: { set: vi.fn() } } as any;
     let recoveredId: string | undefined;
     state.beforeQuery = async query => {
-      if (!/insert into sessions/i.test(query)) return;
+      if (!/insert into audit_logs/i.test(query)) return;
       state.beforeQuery = null;
       recoveredId = (await rows('select id from users where email=$1', [registrationEmail]))[0].id;
       await rows("insert into password_reset_tokens(user_id,token_hash,expires_at,email) values($1,$2,now()+interval '1 hour',$3)", [recoveredId, sha256(registrationToken), registrationEmail]);
@@ -113,7 +113,7 @@ describe('social account recovery proves mailbox ownership and removes other acc
     };
     const response = await register(post('auth-register', { email: registrationEmail, displayName: 'New victim', password: 'Attacker initial password', acceptLegal: true, legalVersion: '2026-09-23' }), context);
     expect(recoveredId).toBeTruthy();
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(202);
     expect(context.cookies.set).not.toHaveBeenCalled();
     expect(await rows('select * from sessions where user_id=$1 and revoked_at is null', [recoveredId])).toHaveLength(0);
     expect(await verifyPassword(nextPassword, (await rows('select password_hash from users where id=$1', [recoveredId]))[0].password_hash)).toBe(true);

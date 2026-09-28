@@ -14,6 +14,21 @@ export const PUBLIC_METADATA = {
     description: "Découvre les outils NXT5 pour les joueurs, coachs et staffs League of Legends : statistiques, chronologie, débriefs, champion pools, draft et planning.",
     label: "Fonctionnalités",
   },
+  "/demo": {
+    title: "Démonstration de l’analyse d’équipe League of Legends — NXT5",
+    description: "Explore NXT5 sans compte : trois parties fictives, leurs statistiques, une analyse interactive et un exemple de débrief pour préparer ton équipe League of Legends.",
+    label: "Démonstration",
+  },
+  "/guides/importer-premier-scrim": {
+    title: "Importer son premier scrim League of Legends — Guide NXT5",
+    description: "Prépare ton premier import NXT5 : équipe, application Windows ou Mac, fichier JSON et vérification des joueurs, pour retrouver le bilan de ton scrim League of Legends.",
+    label: "Premier import",
+  },
+  "/guides/preparer-debrief": {
+    title: "Préparer un débrief d’équipe League of Legends — Guide NXT5",
+    description: "Prépare une review utile avec NXT5 : choisis une partie, vérifie un fait avec les joueurs et transforme les observations en une action pour le prochain entraînement.",
+    label: "Premier débrief",
+  },
   "/contact": {
     title: "Contacter l’équipe NXT5 — Aide et retours",
     description: "Contacte l’équipe NXT5 pour une question sur la plateforme, une aide technique, un retour produit ou une demande liée à ton compte et tes données.",

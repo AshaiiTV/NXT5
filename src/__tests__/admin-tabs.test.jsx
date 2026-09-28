@@ -14,10 +14,10 @@ function render(props = {}, options) {
   renderers.push(renderer);
   return { renderer, navigate, settings };
 }
-const tabs = (renderer) => renderer.root.findAllByProps({ role: "tab" });
+const tabs = (renderer) => renderer.root.findByProps({ "aria-label": "Sections de l’administration" }).findAllByType("a");
 const content = (node) => typeof node === "string" ? node : (node.children || []).map(content).join("");
 const button = (renderer, label) => renderer.root.findAllByType("button").find((item) => content(item) === label);
-function choose(renderer, index) { act(() => tabs(renderer)[index].props.onClick()); }
+function choose(renderer, index, modifiers = {}) { const event = { button: 0, preventDefault: vi.fn(), ...modifiers }; act(() => tabs(renderer)[index].props.onClick(event)); return event; }
 function click(renderer, label) {
   const target = button(renderer, label);
   expect(target, `Button ${label}`).toBeTruthy();
@@ -34,16 +34,11 @@ function keyboardFixture(props = {}) {
   const activeIndex = ["admin", "account-subscriptions", "access-requests", "pricing"].indexOf(props.activeId || "admin");
   const rootNode = { querySelector: () => tabNodes[activeIndex], querySelectorAll: () => tabNodes };
   const confirmationNode = { focus: vi.fn() };
-  const result = render(props, { createNodeMock: (element) => element.props.onKeyDown ? rootNode : element.props.role === "alert" ? confirmationNode : null });
-  const key = (value, index = 0, isTab = true) => {
-    const event = { key: value, target: isTab ? tabNodes[index] : { getAttribute: () => null }, preventDefault: vi.fn() };
-    act(() => result.renderer.root.findAll((node) => typeof node.props.onKeyDown === "function")[0].props.onKeyDown(event));
-    return event;
-  };
-  return { ...result, key, tabNodes, list, confirmationNode };
+  const result = render(props, { createNodeMock: (element) => element.props.className === "mb-5 min-w-0" ? rootNode : element.props.role === "alert" ? confirmationNode : null });
+  return { ...result, tabNodes, list, confirmationNode };
 }
 
-describe("administrator tab navigation", () => {
+describe("administrator route links", () => {
   it.each([
     ["pricing", 0, "/admin"],
     ["admin", 1, "/admin/abonnements"],
@@ -52,14 +47,14 @@ describe("administrator tab navigation", () => {
   ])("navigates from %s through tab %i to %s", (activeId, index, path) => {
     const { renderer, navigate } = render({ activeId });
     expect(tabs(renderer)).toHaveLength(4);
-    expect(tabs(renderer).filter((tab) => tab.props["aria-selected"])).toHaveLength(1);
+    expect(tabs(renderer).filter((tab) => tab.props["aria-current"])).toHaveLength(1);
     choose(renderer, index);
     expect(navigate).toHaveBeenCalledExactlyOnceWith(path);
   });
 
   it.each([["admin", 0], ["account-subscriptions", 1], ["access-requests", 2], ["pricing", 3]])("keeps the active %s route and its query intact", (activeId, index) => {
     const { renderer, navigate } = render({ activeId, dirty: true });
-    expect(tabs(renderer)[index].props["aria-selected"]).toBe(true);
+    expect(tabs(renderer)[index].props["aria-current"]).toBe("page");
     choose(renderer, index);
     expect(navigate).not.toHaveBeenCalled();
     expect(content(renderer.root)).not.toContain("Modifications non enregistrées");
@@ -67,7 +62,7 @@ describe("administrator tab navigation", () => {
 
   it("blocks tab changes during a mutation even when a callback is invoked", () => {
     const { renderer, navigate } = render({ disabled: true, dirty: true });
-    expect(renderer.root.findByType("fieldset").props.disabled).toBe(true);
+    expect(tabs(renderer).every(link => link.props["aria-disabled"] === true)).toBe(true);
     choose(renderer, 3);
     expect(navigate).not.toHaveBeenCalled();
     expect(content(renderer.root)).not.toContain("Modifications non enregistrées");
@@ -103,7 +98,7 @@ describe("administrator tab navigation", () => {
     choose(renderer, 3);
     act(() => renderer.update(<AdminTabNav {...settings} activeId="access-requests" />));
     expect(content(renderer.root)).not.toContain("Modifications non enregistrées");
-    expect(tabs(renderer)[2].props["aria-selected"]).toBe(true);
+    expect(tabs(renderer)[2].props["aria-current"]).toBe("page");
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -119,35 +114,28 @@ describe("administrator tab navigation", () => {
     expect(navigate).toHaveBeenCalledExactlyOnceWith("/admin/demandes-acces");
   });
 
-  it.each([
-    ["ArrowRight", 1, 2], ["ArrowLeft", 1, 0], ["ArrowRight", 3, 0], ["ArrowLeft", 0, 3], ["Home", 2, 0], ["End", 1, 3],
-  ])("moves focus with %s from tab %i to %i without activating it", (value, from, to) => {
-    const { renderer, navigate, key, tabNodes } = keyboardFixture({ activeId: "account-subscriptions" });
-    const event = key(value, from);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(tabNodes[to].focus).toHaveBeenCalledWith({ preventScroll: true });
-    expect(tabNodes.filter((node) => node.focus.mock.calls.length)).toHaveLength(1);
-    expect(tabs(renderer)[1].props["aria-selected"]).toBe(true);
-    expect(navigate).not.toHaveBeenCalled();
-  });
-
-  it("reveals an offscreen tab while retaining native Enter activation", () => {
-    const { renderer, navigate, key, list } = keyboardFixture();
-    key("End");
+  it("uses real links with native keyboard behavior and reveals the current route", () => {
+    const { renderer, navigate, list } = keyboardFixture({ activeId: "pricing" });
+    expect(tabs(renderer).map(link => link.props.href)).toEqual(["/admin", "/admin/abonnements", "/admin/demandes-acces", "/tarifs"]);
+    expect(renderer.root.findAllByProps({ role: "tablist" })).toHaveLength(0);
+    expect(renderer.root.findAll(node => typeof node.props.onKeyDown === "function")).toHaveLength(0);
+    expect(tabs(renderer).every(link => link.props.tabIndex === undefined)).toBe(true);
     expect(list.scrollLeft).toBeGreaterThan(0);
-    const enter = key("Enter", 3);
-    expect(enter.preventDefault).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
-    choose(renderer, 3);
-    expect(navigate).toHaveBeenCalledExactlyOnceWith("/tarifs");
   });
 
-  it("ignores navigation keys outside tabs and while disabled", () => {
-    const { renderer, settings, key, tabNodes, navigate } = keyboardFixture();
-    expect(key("ArrowRight", 0, false).preventDefault).not.toHaveBeenCalled();
-    act(() => renderer.update(<AdminTabNav {...settings} disabled />));
-    expect(key("ArrowRight").preventDefault).not.toHaveBeenCalled();
-    expect(tabNodes.every((node) => node.focus.mock.calls.length === 0)).toBe(true);
+  it.each([{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }])("preserves native modified link activation %j without discarding the current form", modifiers => {
+    const { renderer, navigate } = render({ dirty: true });
+    const event = choose(renderer, 3, modifiers);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    expect(content(renderer.root)).not.toContain("Modifications non enregistrées");
+  });
+
+  it("blocks modified activation while saving", () => {
+    const { renderer, navigate } = render({ disabled: true });
+    const event = choose(renderer, 3, { ctrlKey: true });
+    expect(event.preventDefault).toHaveBeenCalledOnce();
     expect(navigate).not.toHaveBeenCalled();
   });
 
