@@ -1,9 +1,11 @@
 import { DISCORD_INVITE_URL } from "./constants.jsx";
 
+const YOUTUBE_CHANNEL_URL = "https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA";
+
 const NETWORKS = [
   { id: "discord", label: "Discord", hosts: ["discord.gg", "discord.com"], description: "Retrouve la communauté, partage tes retours et échange avec le staff." },
   { id: "instagram", label: "Instagram", hosts: ["instagram.com", "www.instagram.com"], description: "Les temps forts et les coulisses de NXT5." },
-  { id: "youtube", label: "YouTube", hosts: ["youtube.com", "www.youtube.com"], description: "Les vidéos et les guides pour progresser ensemble." },
+  { id: "youtube", label: "YouTube", hosts: ["youtube.com", "www.youtube.com"], description: "La chaîne officielle @NXT5-ORG. Les prochains guides vidéo y seront publiés." },
   { id: "twitch", label: "Twitch", hosts: ["twitch.tv", "www.twitch.tv"], description: "Retrouve NXT5 en direct." },
   { id: "tiktok", label: "TikTok", hosts: ["tiktok.com", "www.tiktok.com"], description: "Les moments NXT5 en format court." },
   { id: "x", label: "X", hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com"], description: "Les nouvelles de NXT5 au fil des mises à jour." },
@@ -11,7 +13,7 @@ const NETWORKS = [
 
 export function getSocialLinks(env = import.meta.env || {}) {
   return NETWORKS.flatMap(({ hosts, ...network }) => {
-    const value = env[`VITE_SOCIAL_${network.id.toUpperCase()}_URL`] || (network.id === "discord" ? DISCORD_INVITE_URL : "");
+    const value = env[`VITE_SOCIAL_${network.id.toUpperCase()}_URL`] || (network.id === "discord" ? DISCORD_INVITE_URL : network.id === "youtube" ? YOUTUBE_CHANNEL_URL : "");
     if (!value) return [];
     try {
       const url = new URL(value);
