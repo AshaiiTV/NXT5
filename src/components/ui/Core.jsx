@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useId, useRef, useState } from "react";
 import { AlertTriangle, BarChart3, Check, ChevronDown, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { cx, tone } from "../../app/helpers.js";
 import "./core.css";
@@ -42,14 +42,26 @@ export function Button({ children, icon: Icon, variant = "primary", className = 
   );
 }
 
-export function TabNav({ items, activeId, onChange, label = "Sous-navigation", className = "", columns = "" }) {
+export function TabNav({ items, activeId, onChange, label = "Sous-navigation", className = "", columns = "", idPrefix, panelId }) {
+  const generatedId = useId();
+  const prefix = idPrefix || generatedId;
+  const buttons = useRef([]);
+  const move = (event, index) => {
+    const next = event.key === "ArrowRight" ? (index + 1) % items.length
+      : event.key === "ArrowLeft" ? (index + items.length - 1) % items.length
+      : event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : undefined;
+    if (next === undefined) return;
+    event.preventDefault();
+    onChange(items[next].id);
+    buttons.current[next]?.focus();
+  };
   return (
     <div role="tablist" aria-label={label} className={cx("nxt5-tab-nav overflow-x-auto", className)}>
       <div className={cx("grid min-w-max grid-flow-col auto-cols-fr gap-1 sm:min-w-0", columns)}>
-        {items.map((item) => {
+        {items.map((item, index) => {
           const Icon = item.icon;
           const active = activeId === item.id;
-          return <button key={item.id} type="button" role="tab" aria-selected={active} onClick={() => onChange(item.id)} className="nxt5-tab group relative flex min-h-12 min-w-max items-center justify-center gap-2 px-3 py-2.5 text-left sm:min-w-0">
+          return <button key={item.id} ref={(node) => { buttons.current[index] = node; }} id={`${prefix}-tab-${item.id}`} type="button" role="tab" aria-controls={item.panelId || panelId || `${prefix}-panel-${item.id}`} aria-selected={active} tabIndex={active ? 0 : -1} onKeyDown={(event) => move(event, index)} onClick={() => onChange(item.id)} className="nxt5-tab group relative flex min-h-12 min-w-max items-center justify-center gap-2 px-3 py-2.5 text-left sm:min-w-0">
             {Icon && <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />}
             <span className="min-w-0"><span className="block whitespace-nowrap text-sm font-semibold">{item.label}</span>{item.description && <span className="nxt5-tab-description mt-0.5 block break-words text-xs font-normal">{item.description}</span>}</span>
             {item.meta !== undefined && <span className="nxt5-tab-count ml-auto shrink-0 px-2 py-0.5 text-xs tabular-nums">{item.meta}</span>}

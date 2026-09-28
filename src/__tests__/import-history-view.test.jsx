@@ -130,6 +130,7 @@ describe("discreet game options", () => {
     await filter(renderer, "Poste · Jinx", "SUP");
     optionsTrigger.focus.mockClear();
     const cancelEvent = { preventDefault: vi.fn() };
+    window.confirm.mockReturnValueOnce(true);
     await act(async () => renderer.root.findByType("dialog").props.onCancel(cancelEvent));
     expect(cancelEvent.preventDefault).toHaveBeenCalledOnce();
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
@@ -147,12 +148,14 @@ describe("discreet game options", () => {
     const native = { isTrusted: true, stopImmediatePropagation: vi.fn() };
     protectDraft(native);
     expect(native.stopImmediatePropagation).toHaveBeenCalledOnce();
-    expect(window.history.replaceState).toHaveBeenCalledWith({ from: "games" }, "", "https://nxt5.test/integration");
+    expect(window.history.pushState).toHaveBeenCalledWith({ from: "games" }, "", "https://nxt5.test/integration");
+    expect(window.history.replaceState).not.toHaveBeenCalled();
     expect(input(renderer, "Nom de la game").props.value).toBe("Brouillon à conserver");
     const app = { isTrusted: false, stopImmediatePropagation: vi.fn() };
     protectDraft(app);
     expect(app.stopImmediatePropagation).not.toHaveBeenCalled();
-    expect(window.history.replaceState).toHaveBeenCalledOnce();
+    expect(window.history.pushState).toHaveBeenCalledOnce();
+    window.confirm.mockReturnValueOnce(true);
     await click(renderer, "Annuler");
     expect(window.removeEventListener).toHaveBeenCalledWith("popstate", protectDraft, true);
   });

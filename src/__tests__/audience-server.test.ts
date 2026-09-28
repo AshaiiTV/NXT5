@@ -10,7 +10,7 @@ import consent from '../../netlify/functions/audience-consent';
 import collect from '../../netlify/functions/audience-events';
 import dashboard from '../../netlify/functions/admin-audience';
 import cleanup, { config } from '../../netlify/functions/audience-cleanup';
-import { AUDIENCE_SCHEMA_VERSION, COOKIE, CONSENT_SECONDS } from '../../netlify/functions/_lib/audience';
+import { AUDIENCE_SCHEMA_VERSION, COOKIE, CONSENT_SECONDS, GOALS } from '../../netlify/functions/_lib/audience';
 import { audiencePeriod, loadAudienceReport } from '../../netlify/functions/_lib/audience-report';
 import { canonicalAudiencePath, sanitizeCampaignValue } from '../app/audience-paths.js';
 
@@ -151,6 +151,48 @@ describe('first-party consent and event security', () => {
 });
 
 describe('audience collection correctness', () => {
+  it.each(['first_import', 'first_review'])('persists %s only with server consent and rejects every added business identifier', async (name) => {
+    const client = browser();
+    const view = event({ path: '/games?team=private-team&user=private-account&player=private-player&match=private-match' });
+    const goal = { ...view, type: 'event', eventId: uid(), name };
+    expect((await collect(request('audience-events', goal), client.context)).status).toBe(403);
+    expect(await rows('audience_events')).toEqual([]);
+    await accept(client);
+    expect((await collect(request('audience-events', view), client.context)).status).toBe(200);
+    for (const key of ['teamId', 'userId', 'accountId', 'playerId', 'matchId']) {
+      expect((await collect(request('audience-events', { ...goal, [key]: 'private-id' }), client.context)).status).toBe(400);
+    }
+    expect((await collect(request('audience-events', goal), client.context)).status).toBe(200);
+    await collect(request('audience-events', { ...goal, eventId: uid() }), client.context);
+    expect((await rows('audience_pages'))[0].path).toBe('/games');
+    expect((await rows('audience_events')).filter((entry) => entry.kind === 'event')).toHaveLength(1);
+    const persisted = JSON.stringify([await rows('audience_sessions'), await rows('audience_pages'), await rows('audience_events')]);
+    expect(persisted).not.toMatch(/private-|team_id|user_id|account_id|player_id|match_id/);
+    await consent(request('audience-consent', { analytics: false }), client.context);
+    expect((await collect(request('audience-events', { ...goal, eventId: uid() }), client.context)).status).toBe(403);
+  });
+
+  it('reports activation objectives separately from historical acquisition conversions after applying the expanded event constraint', async () => {
+    const client = browser(); await accept(client);
+    const view = event({ path: '/games' });
+    await collect(request('audience-events', view), client.context);
+    for (const name of ['first_import', 'first_review']) {
+      expect((await collect(request('audience-events', { ...view, type: 'event', eventId: uid(), name }), client.context)).status).toBe(200);
+    }
+    const report = await loadAudienceReport({ days: 7, device: 'all', source: 'all' });
+    expect(report.pages).toContainEqual(expect.objectContaining({ path: '/games', views: 1 }));
+    expect(report.goals.map((goal: any) => goal.name)).toEqual(GOALS);
+    for (const name of ['first_import', 'first_review']) expect(report.goals.find((goal: any) => goal.name === name)).toMatchObject({ events: 1, sessions: 1, conversionRate: 100 });
+    expect(report.totals).toMatchObject({ sessions: 1, conversions: 0, conversionRate: 0 });
+    expect(report.timeseries.reduce((sum: number, day: any) => sum + day.conversions, 0)).toBe(0);
+    const migrations = await db.query("select migration_key from app_schema_migrations where migration_key='audience-activation-20260928-v1'");
+    expect(migrations.rows).toHaveLength(1);
+    await expect(db.query("update audience_events set name='unsupported_event' where kind='event'")).rejects.toMatchObject({ code: '23514' });
+    const serialized = JSON.stringify(report);
+    expect(serialized).not.toContain(client.jar.get(COOKIE.visitor));
+    expect(serialized).not.toContain((await rows('audience_sessions'))[0].id);
+  });
+
   it('deduplicates views, goals and heartbeats; cumulative engagement never adds a retry twice', async () => {
     const client = browser(); await accept(client); const view = event();
     expect((await collect(request('audience-events',view),client.context)).status).toBe(200);
@@ -240,7 +282,7 @@ describe('administrator audience reports', () => {
     expect(response.status).toBe(200); expect(response.headers.get('cache-control')).toBe('no-store');
     const report = await response.json();
     expect(Object.values(report.totals)).toEqual(Array(11).fill(0));
-    expect(report.timeseries).toHaveLength(7); expect(report.goals).toHaveLength(4);
+    expect(report.timeseries).toHaveLength(7); expect(report.goals.map((goal: any) => goal.name)).toEqual(GOALS);
     expect(report.realtime).toEqual({ visitors:0,sessions:0,windowMinutes:5,pages:[] });
     expect(audiencePeriod(7,new Date('2026-09-14T23:45:00Z'))).toMatchObject({ period:{ from:'2026-09-08',to:'2026-09-14',days:7,timezone:'UTC' },comparison:{ from:'2026-09-01',to:'2026-09-07' } });
   });
@@ -292,6 +334,11 @@ describe('administrator audience reports', () => {
   });
 
   it('shares strict path and campaign sanitizers with the client', () => {
+    expect(canonicalAudiencePath('/games?team=secret&match=private')).toBe('/games');
+    expect(canonicalAudiencePath('/demo?user=secret')).toBe('/demo');
+    expect(canonicalAudiencePath('/guides/importer-premier-scrim#download')).toBe('/guides/importer-premier-scrim');
+    expect(canonicalAudiencePath('/guides/preparer-debrief?user=secret')).toBe('/guides/preparer-debrief');
+    expect(canonicalAudiencePath('/guides/nonexistent')).toBeNull();
     expect(canonicalAudiencePath('/mon-profil/champions?user=secret#private')).toBe('/mon-profil/champions');
     expect(canonicalAudiencePath('/fonctionnalites?utm_source=search#coaching')).toBe('/fonctionnalites');
     expect(canonicalAudiencePath('/admin/audience')).toBeNull(); expect(canonicalAudiencePath('/verify-email?token=private')).toBeNull();

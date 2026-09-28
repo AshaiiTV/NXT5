@@ -67,10 +67,10 @@ export async function sendNotification({ to, subject, html }) {
     });
 
     if (!response.ok) {
-      const detail = await response.text().catch(() => '');
-      console.error(`[mailer] Notification email failed.${detail ? ` ${detail}` : ''}`);
+      await response.body?.cancel().catch(() => {});
+      console.error('[mailer] Notification email failed.', { status: response.status });
     }
-  } catch (err) {
-    console.error('[mailer] Notification email failed.', err);
+  } catch {
+    console.error('[mailer] Notification email failed.', { code: 'EMAIL_DELIVERY_FAILED' });
   }
 }

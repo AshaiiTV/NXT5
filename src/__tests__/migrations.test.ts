@@ -20,7 +20,9 @@ async function fixture() {
   return { db, client, migrations };
 }
 
-describe('controlled database migrations', () => {
+// These integration cases replay the growing migration history in PostgreSQL WASM.
+// Keep their assertions strict while allowing normal contention with other SQL suites.
+describe('controlled database migrations', { timeout: 30_000 }, () => {
   // The first fixture also compiles/starts PostgreSQL WASM. Concurrent SQL suites
   // can take more than the default 5 seconds on a cold runtime.
   it('prepares a fresh database and checks the lock before applying DDL', async () => {
@@ -274,7 +276,7 @@ describe('controlled database migrations', () => {
     expect(await applyMigrations(client, migrations)).toEqual([]);
     expect(await db.query('select * from users')).toEqual(before);
     expect((await db.query('select name from match_categories')).rows).toEqual([{ name: 'Match officiel' }]);
-  });
+  }, 30_000);
 
   it('rolls back DDL and ledger entries when any migration fails', async () => {
     const { db, client } = await fixture();

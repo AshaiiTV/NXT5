@@ -2,6 +2,7 @@ import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
+import { Button } from "../components/ui/Core.jsx";
 import { Teams, TeamManagementPanel } from "../pages/workspace/Teams.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -153,5 +154,52 @@ describe("first roster setup", () => {
     expect(scrollEditIntoView).toHaveBeenCalledTimes(2);
     expect(trigger.focus).toHaveBeenCalledTimes(isConnected ? 2 : 0);
     expect(renderer.root.findAllByProps({ className: "team-profile-edit" })).toHaveLength(0);
+  });
+});
+
+describe("temporary team invitations", () => {
+  const action = (renderer, label) => renderer.root.findAllByType(Button).find(node => node.props.children === label);
+  it("copies the fresh server code and refreshes invitations after rotation", async () => {
+    const settings = { ...props(), managementOnly: true };
+    const copy = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
+    apiFetch.mockResolvedValueOnce({ code: "NXT5-NEW-INVITE" });
+    const { renderer } = await render(settings);
+    await act(async () => action(renderer, "Créer et copier un lien").props.onClick());
+    expect(apiFetch).toHaveBeenCalledWith("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: team.id }) });
+    expect(copy).toHaveBeenCalledWith("https://nxt5.test/equipes?invite=NXT5-NEW-INVITE");
+    expect(settings.refreshAll).toHaveBeenCalledOnce();
+    expect(settings.pushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Lien d’invitation copié", text: expect.stringContaining("révoqués") }));
+  });
+
+  it("revokes active invitations and refreshes their list without copying a code", async () => {
+    const settings = { ...props(), managementOnly: true };
+    settings.data.inviteCodes = [{ id: "invitation", team_id: team.id, code: "NXT5-OLD", expires_at: new Date(Date.now() + 60_000).toISOString() }];
+    apiFetch.mockResolvedValueOnce({ revoked: true });
+    const { renderer } = await render(settings);
+    await act(async () => action(renderer, "Révoquer les invitations").props.onClick());
+    expect(apiFetch).toHaveBeenCalledWith("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: team.id, action: "revoke" }) });
+    expect(settings.refreshAll).toHaveBeenCalledOnce();
+    expect(settings.pushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Invitations révoquées" }));
+  });
+
+  it("hides expired entries and does not offer revoke to a player", async () => {
+    const settings = { ...props(), managementOnly: true, currentMember: { role: "player" }, user: { id: "player" } };
+    settings.data.inviteCodes = [{ id: "expired", team_id: team.id, code: "NXT5-EXPIRED", expires_at: new Date(Date.now() - 60_000).toISOString() }];
+    const { renderer } = await render(settings);
+    expect(content(renderer)).not.toContain("NXT5-EXPIRED");
+    expect(action(renderer, "Révoquer les invitations")).toBeUndefined();
+    expect(action(renderer, "Créer et copier un lien").props.disabled).toBe(true);
+  });
+
+  it("reports revoke failure and lets the staff retry", async () => {
+    const settings = { ...props(), managementOnly: true };
+    settings.data.inviteCodes = [{ id: "active", team_id: team.id, code: "NXT5-ACTIVE", expires_at: new Date(Date.now() + 60_000).toISOString() }];
+    apiFetch.mockRejectedValueOnce(new Error("Service indisponible"));
+    const { renderer } = await render(settings);
+    await act(async () => action(renderer, "Révoquer les invitations").props.onClick());
+    expect(settings.refreshAll).not.toHaveBeenCalled();
+    expect(settings.pushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Révocation impossible" }));
+    expect(action(renderer, "Révoquer les invitations").props.disabled).toBe(false);
   });
 });

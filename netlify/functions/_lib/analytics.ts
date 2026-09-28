@@ -470,11 +470,13 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   await ensureMatchArchiveSchema();
 
   let savedMatch;
+  let firstImport = false;
   try {
     const results = await sql.transaction(tx => [
       // Same ordering is used by category deletion; imports of one team cannot
       // interleave their delete/insert sequences, including first-time imports.
       tx`select id from teams where id = ${team.id} for update`,
+      tx`update teams set first_import_at = now() where id = ${team.id} and first_import_at is null returning true as first_import`,
       // HTTP transactions are non-interactive. The guard deliberately raises
       // 22012 if a reference disappeared, aborting the whole batch before writes.
       tx`select 1 / case when count(*) = ${validCategoryIds.length} then 1 else 0 end as categories_valid
@@ -542,6 +544,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       tx`select * from matches where team_id = ${team.id} and game_id = ${gameId}`
     ]);
     savedMatch = results[results.length - 1][0];
+    firstImport = results[1]?.[0]?.first_import === true;
   } catch (error: any) {
     if (error?.code === '22012' || error?.code === '23503') {
       throw Object.assign(new Error('Les profils ou catégories ont changé pendant l’import. Recharge l’équipe puis réessaie.'), {
@@ -569,5 +572,5 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report})
     `);
 
-  return { ...savedMatch, warnings };
+  return { ...savedMatch, warnings, firstImport };
 }

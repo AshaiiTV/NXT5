@@ -1,10 +1,11 @@
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { assertSessionSecret, requireAuth, sha256 } from './_lib/auth';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
 import { sendNotification } from './_mailer.js';
 import { ensureAuditLogsSchema, ensureReportsSchema } from './_lib/schema';
+import { assertSubjectRateLimit } from './_lib/rate-limit';
 
 const MAX_REPORT_CONTENT_LENGTH = 256000;
 const MAX_REPORT_MATCHES = 20;
@@ -18,24 +19,44 @@ function escapeHtml(value) {
   return String(value || '').replace(/[&<>"']/g, (char) => entities[char] || char);
 }
 
-async function notifyReportCreate({ request, teamId, reportTitle }) {
-  const emails = await getTeamMemberEmails(teamId, sql, 'notif_report');
-  if (!emails.length) return;
-  const siteUrl = String(process.env.PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '');
-  const safeTitle = escapeHtml(reportTitle);
-  const html = `
-    <p>Une nouvelle review a ete generee pour votre equipe.</p>
-    <p><strong>Review :</strong> ${safeTitle}</p>
-    <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
-    <p><a href="${escapeHtml(`${siteUrl}/rapports`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir la review sur NXT5</a></p>
-    <hr style="border:0;border-top:1px solid rgba(148,163,184,.18);margin:22px 0">
-    <p style="font-size:12px;color:#888">Pour ne plus recevoir ces emails, rendez-vous dans vos préférences NXT5.</p>
-  `;
-  await Promise.all(emails.map((email) => sendNotification({
-    to: email,
-    subject: `[NXT5] Nouvelle review disponible — ${reportTitle}`,
-    html
-  })));
+async function recordReviewAudit(userId: string, teamId: string, reportId: string, action: string, title: string, matchIds: string[]): Promise<boolean> {
+  // An atomic conditional update serializes concurrent first saves. Keeping
+  // the milestone on the team avoids depending on retained personal audit logs.
+  const results = await sql.transaction([
+    sql`update teams set first_review_at = now() where id = ${teamId} and first_review_at is null returning id`,
+    sql`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+      values (${userId}, ${action}, 'reports', ${reportId}, ${JSON.stringify({ teamId, title, matchIds })}::jsonb)`
+  ]);
+  return results[0].length === 1;
+}
+
+async function notifyReportCreate({ request, teamId, userId, reportTitle, fingerprint }) {
+  try {
+    const emails = await getTeamMemberEmails(teamId, sql, 'notif_report');
+    if (!emails.length) return;
+    // Shared, atomic claims also cover concurrent requests and other instances.
+    // Saving a review must always succeed independently of notification delivery.
+    await assertSubjectRateLimit('report-notification-duplicate', `${teamId}:${fingerprint}`, { limit: 1, windowSeconds: 300 });
+    await assertSubjectRateLimit('report-notification-account', userId, { limit: 5, windowSeconds: 300 });
+    await assertSubjectRateLimit('report-notification-team', teamId, { limit: 10, windowSeconds: 300 });
+    const siteUrl = String(process.env.PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '');
+    const safeTitle = escapeHtml(reportTitle);
+    const html = `
+      <p>Une nouvelle review a ete generee pour votre equipe.</p>
+      <p><strong>Review :</strong> ${safeTitle}</p>
+      <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+      <p><a href="${escapeHtml(`${siteUrl}/rapports`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir la review sur NXT5</a></p>
+      <hr style="border:0;border-top:1px solid rgba(148,163,184,.18);margin:22px 0">
+      <p style="font-size:12px;color:#888">Pour ne plus recevoir ces emails, rendez-vous dans vos préférences NXT5.</p>
+    `;
+    await Promise.all(emails.map((email) => sendNotification({
+      to: email,
+      subject: `[NXT5] Nouvelle review disponible — ${reportTitle}`,
+      html
+    })));
+  } catch (failure: any) {
+    if (failure?.status !== 429) console.error('[report-notification] Delivery skipped.', { code: 'NOTIFICATION_UNAVAILABLE' });
+  }
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -125,11 +146,8 @@ export default async function handler(request: Request, context: Context): Promi
           and team_id = ${teamId}
         returning *
       `;
-      await sql`
-        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'reports.update', 'reports', ${reportId}, ${JSON.stringify({ teamId, title, matchIds: validMatchIds })}::jsonb)
-      `;
-      return json({ report: rows[0] });
+      const firstReview = await recordReviewAudit(user.id, teamId, reportId, 'reports.update', title, validMatchIds);
+      return json({ report: rows[0], firstReview });
     }
 
     const rows = await sql`
@@ -138,16 +156,14 @@ export default async function handler(request: Request, context: Context): Promi
       returning *
     `;
 
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'reports.create', 'reports', ${rows[0].id}, ${JSON.stringify({ teamId, title, matchIds: validMatchIds })}::jsonb)
-    `;
+    const firstReview = await recordReviewAudit(user.id, teamId, rows[0].id, 'reports.create', title, validMatchIds);
 
-    const notificationTask = notifyReportCreate({ request, teamId, reportTitle: rows[0].title });
+    const notificationTask = notifyReportCreate({ request, teamId, userId: user.id, reportTitle: rows[0].title,
+      fingerprint: sha256(JSON.stringify([title, content, [...validMatchIds].sort()])) });
     if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
     else await notificationTask;
 
-    return json({ report: rows[0] });
+    return json({ report: rows[0], firstReview });
   } catch (err) {
     return handleError(err);
   }

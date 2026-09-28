@@ -1,0 +1,15 @@
+.nxt5-public-guide .nxt5-entry-eyebrow { display: flex; align-items: center; gap: .5rem; }
+.public-guide-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; gap: clamp(2rem, 5vw, 4rem); padding-bottom: 3rem; }
+.public-guide-prerequisite { padding: 1.25rem 0 1.25rem 1.25rem; border-left: 2px solid var(--nxt5-accent-2); }
+.public-guide-prerequisite h2 { font-size: 1.125rem; font-weight: 650; }
+.public-guide-prerequisite p, .public-guide-steps p, .public-guide-example > p { margin-top: .75rem; color: var(--nxt5-text-secondary); font-size: 1rem; line-height: 1.85; }
+.public-guide-steps { padding: 0; list-style: none; margin-top: 2rem; }
+.public-guide-steps > li { display: flex; gap: 1rem; padding-block: 1.75rem; border-top: 1px solid var(--nxt5-border); }
+.public-guide-steps > li > span { color: var(--nxt5-accent-2); font-size: .875rem; padding-top: .3rem; }
+.public-guide-steps h2 { font-size: 1.35rem; font-weight: 650; line-height: 1.5; }
+.public-guide-example > a { margin-top: 1rem; }
+.public-guide-example > p { font-size: .875rem; }
+.public-guide-next { display: flex; align-items: center; gap: .8rem; padding-block: 1rem 2rem; color: var(--nxt5-accent); }
+.public-guide-next > svg { flex-shrink: 0; }
+.public-guide-next a { display: inline-flex; align-items: center; gap: .8rem; min-height: 44px; font-size: 1rem; }
+@media (max-width: 900px) { .public-guide-layout { grid-template-columns: minmax(0, 1fr); } }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeftRight, Check, Ellipsis, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, Pencil, Settings, Trash2 } from "lucide-react";
 import { Surface, Badge, Button, SelectInput, TextInput } from "../../components/ui/Core.jsx";
+import { trackAudienceEvent } from "../../app/audience-client.js";
 import { apiFetch, apiUploadJson } from "../../api/client.js";
 import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
@@ -30,19 +31,26 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   const [roleForm, setRoleForm] = useState({});
   const [sideForm, setSideForm] = useState({ allyTeamSide: "", playerAssignments: {} });
   const triggerRef = useRef(null);
+  const editorBaseline = useRef({});
+  const dirty = ["update", "roles", "side"].includes(mode) && JSON.stringify(mode === "update" ? editForm : mode === "roles" ? roleForm : sideForm) !== editorBaseline.current[mode];
+  const cancelEdit = () => { if (!dirty || window.confirm("Fermer cette fenêtre et abandonner les modifications non enregistrées ?")) close(); };
   const allowed = Boolean(match?.id && match.team_id === selectedTeamId && user?.id && (canManageTeamCategories(data, selectedTeamId, currentMember, user) || String(match.created_by || "") === String(user.id)));
   const categories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const roster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
   useEffect(() => { setMode(""); setEditForm({ label: "", categoryIds: [] }); setRoleForm({}); setSideForm({ allyTeamSide: "", playerAssignments: {} }); }, [match?.id, selectedTeamId]);
   const close = () => { if (!saving) setMode(""); };
   const openEditor = (nextMode) => {
-    setEditForm({ label: matchImportTitle(match), categoryIds: matchCategoryIds(match) });
-    setRoleForm(Object.fromEntries((match.participants || []).map((row) => [row.id, { role: row.role || "", playerId: row.player_id || "" }])));
-    setSideForm({ allyTeamSide: importedGameSide(match).toUpperCase(), playerAssignments: Object.fromEntries(COMP_ROLES.map((role) => {
+    const nextEdit = { label: matchImportTitle(match), categoryIds: matchCategoryIds(match) };
+    const nextRoles = Object.fromEntries((match.participants || []).map((row) => [row.id, { role: row.role || "", playerId: row.player_id || "" }]));
+    const nextSide = { allyTeamSide: importedGameSide(match).toUpperCase(), playerAssignments: Object.fromEntries(COMP_ROLES.map((role) => {
       const allies = (match.participants || []).filter((row) => row.team_key === "ALLY" && row.role === role);
       const playerId = allies.length === 1 ? allies[0].player_id : "";
       return [role, roster.some((player) => String(player.id) === String(playerId)) ? playerId : ""];
-    })) });
+    })) };
+    editorBaseline.current = { update: JSON.stringify(nextEdit), roles: JSON.stringify(nextRoles), side: JSON.stringify(nextSide) };
+    setEditForm(nextEdit);
+    setRoleForm(nextRoles);
+    setSideForm(nextSide);
     setMode(nextMode);
   };
   async function save(action) {
@@ -72,15 +80,15 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   const title = mode === "update" ? "Modifier les informations" : mode === "roles" ? "Corriger les rôles et profils" : mode === "side" ? "Changer le côté de notre équipe" : mode === "delete" ? "Supprimer cette game ?" : "Options de la game";
   return <>
     <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || saving} aria-label="Options de la game" title="Options de la game" aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
-    {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={saving} returnFocusRef={triggerRef} compact={mode !== "roles" && mode !== "side"}>
+    {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={saving} dirty={dirty} returnFocusRef={triggerRef} compact={mode !== "roles" && mode !== "side"}>
       {mode === "menu" && <div className="game-operation-menu">
         <Button type="button" variant="ghost" icon={Pencil} onClick={() => openEditor("update")}>Modifier les informations</Button>
         <Button type="button" variant="ghost" icon={Settings} disabled={!match.participants?.length} onClick={() => openEditor("roles")}>Corriger les rôles et profils</Button>
         <Button type="button" variant="ghost" icon={ArrowLeftRight} disabled={!match.participants?.length} onClick={() => openEditor("side")}>Changer le côté de notre équipe</Button>
         <Button type="button" variant="danger" icon={Trash2} onClick={() => setMode("delete")}>Supprimer</Button>
       </div>}
-      {(mode === "update" || mode === "roles") && <ImportHistoryEditor match={match} categories={categories} roster={roster} editing={mode === "update"} editForm={editForm} roleForm={roleForm} saving={saving} showHeading={false} onCancel={close} onSave={() => save(mode)} onChange={setEditForm} onRoleChange={(id, role) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], role } }))} onPlayerChange={(id, playerId) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], playerId } }))} />}
-      {mode === "side" && <GameSideEditor match={match} roster={roster} form={sideForm} onChange={setSideForm} saving={saving} onCancel={close} onSave={() => save("side")} />}
+      {(mode === "update" || mode === "roles") && <ImportHistoryEditor match={match} categories={categories} roster={roster} editing={mode === "update"} editForm={editForm} roleForm={roleForm} saving={saving} showHeading={false} onCancel={cancelEdit} onSave={() => save(mode)} onChange={setEditForm} onRoleChange={(id, role) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], role } }))} onPlayerChange={(id, playerId) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], playerId } }))} />}
+      {mode === "side" && <GameSideEditor match={match} roster={roster} form={sideForm} onChange={setSideForm} saving={saving} onCancel={cancelEdit} onSave={() => save("side")} />}
       {mode === "delete" && <div>
         <p className="text-sm leading-6 text-slate-300">Cette game sera retirée. Ses statistiques, les reviews automatiques et les groupes liés seront mis à jour.</p>
         <div className="mt-6 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={close} disabled={saving}>Annuler</Button><Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={() => save("delete")} disabled={saving}>{saving ? "Suppression…" : "Supprimer la game"}</Button></div>
@@ -308,7 +316,7 @@ export function ImportHistoryEditor({ match, categories, roster, editing, editFo
   </form>;
 }
 
-export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, currentMember, user }) {
+export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, onDirtyChange, currentMember, user }) {
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -317,19 +325,29 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const [importPreview, setImportPreview] = useState(null);
   const [previewPayload, setPreviewPayload] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [createdRoster, setCreatedRoster] = useState([]);
+  const [profileDraft, setProfileDraft] = useState({});
+  const [creatingProfiles, setCreatingProfiles] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(null);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
-  const gameplayRoster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
+  const gameplayRoster = [...new Map([...(data.players || []), ...createdRoster].filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)).map(player => [player.id, player])).values()];
   const importTeam = (data.teams || []).find((team) => team.id === selectedTeamId);
   const canImport = Boolean(user?.id && (importTeam?.owner_id === user.id || (
     currentMember?.team_id === selectedTeamId && currentMember?.user_id === user.id && canStaffManage(currentMember?.role)
   )));
-  const hasImportPlayers = new Set(gameplayRoster.filter((player) => player.id).map((player) => String(player.id))).size >= 5;
   const progressTimer = useRef(null);
-  useEffect(() => { onBusyChange?.(importing || fileImporting); }, [importing, fileImporting, onBusyChange]);
+  useEffect(() => { onBusyChange?.(importing || fileImporting || creatingProfiles); }, [importing, fileImporting, creatingProfiles, onBusyChange]);
+  useEffect(() => { onDirtyChange?.(Boolean(previewPayload)); }, [previewPayload, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+  useEffect(() => {
+    if (!previewPayload) return undefined;
+    const protectImport = (event) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", protectImport);
+    return () => window.removeEventListener("beforeunload", protectImport);
+  }, [previewPayload]);
   useEffect(() => () => { window.clearTimeout(progressTimer.current); }, []);
-  useEffect(() => { resetImportDraft(); setUploadProgress(null); }, [selectedTeamId]);
+  useEffect(() => { resetImportDraft(); setCreatedRoster([]); setUploadProgress(null); }, [selectedTeamId]);
   function updateUploadProgress(next) {
     setUploadProgress((current) => ({ ...(current || {}), ...(next || {}), active: true }));
   }
@@ -478,6 +496,12 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     setLaneAssignments(laneAssignmentsForSide(side));
     setEnemyLaneAssignments(laneAssignmentsForSide(enemySide));
     setPlayerAssignments(playerAssignmentsForSide(side));
+    const byRole = roleParticipantMapForSide(side);
+    setProfileDraft(Object.fromEntries(COMP_ROLES.map(role => {
+      const participant = byRole.get(role)?.participant;
+      return [role, { name: participant?.summonerName || participant?.riotId?.split("#")[0] || "", riotId: participant?.riotId?.includes("#") ? participant.riotId : "" }];
+    })));
+
   }
   function resetImportDraft() {
     setImportPreview(null);
@@ -488,15 +512,28 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   }
+  async function createProposedProfiles() {
+    if (creatingProfiles || !canImport || !profilesReady) return;
+    setCreatingProfiles(true);
+    try {
+      const result = await apiFetch("players-import-roster", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, profiles: missingProfileRoles.map(role => ({ role, ...profileDraft[role] })) }) });
+      setCreatedRoster(result.players || []);
+      setPlayerAssignments(current => ({ ...current, ...Object.fromEntries(missingProfileRoles.map(role => [role, (result.players || []).find(player => String(player.riot_id || "").trim().toLowerCase() === String(profileDraft[role]?.riotId || "").trim().toLowerCase())?.id || ""])) }));
+      pushToast({ type: "green", title: "Profils prêts", text: "Vérifie les associations, puis confirme l’import de la partie." });
+      await refreshAll();
+    } catch (error) { pushToast(errorToast(error, "Création des profils impossible")); }
+    finally { setCreatingProfiles(false); }
+  }
   async function confirmImport(event) {
     event?.preventDefault();
-    if (importing || !importReady || !canImport || !hasImportPlayers) return;
+    if (importing || creatingProfiles || !importReady || !canImport) return;
     window.clearTimeout(progressTimer.current);
     const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [] };
     setImporting(true);
     setUploadProgress({ active: true, label: "Import final", phase: "upload", percent: 0, loaded: 0, total: 0 });
     try {
       const result = await apiUploadJson("matches-import-file", payload, updateUploadProgress);
+      if (result.firstImport) void trackAudienceEvent("first_import");
       resetImportDraft();
       await refreshAll();
       pushToast({ type: "green", title: "Partie importée", text: "Le côté, les joueurs et les postes ont été enregistrés. Le bilan de la partie est prêt à consulter." });
@@ -511,7 +548,8 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }
   }
   async function importLocalFile(file) {
-    if (!file || importing || fileImporting || !selectedTeamId || !canImport || !hasImportPlayers) return;
+    if (!file || importing || fileImporting || creatingProfiles || !selectedTeamId || !canImport) return;
+    if (file.size > 5 * 1024 * 1024) { pushToast({ type: "red", title: "Fichier trop volumineux", text: "Choisis un fichier JSON de 5 Mo maximum." }); return; }
     window.clearTimeout(progressTimer.current);
     setFileImporting(true);
     setUploadProgress({ active: true, label: file.name || "Prévisualisation JSON", phase: "prepare", percent: 0, loaded: 0, total: file.size || 0 });
@@ -546,6 +584,8 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   };
   const playerAssignmentsReady = new Set(COMP_ROLES.map((role) => playerAssignments[role])).size === COMP_ROLES.length
     && COMP_ROLES.every((role) => gameplayRoster.some((player) => player.id === playerAssignments[role]));
+  const missingProfileRoles = allyTeamSide ? COMP_ROLES.filter(role => !gameplayRoster.some(player => player.id === playerAssignments[role])) : [];
+  const profilesReady = missingProfileRoles.length > 0 && missingProfileRoles.every(role => profileDraft[role]?.name?.trim() && /^[^#\r\n]{1,100}#[^#\s]{1,16}$/.test(profileDraft[role]?.riotId?.trim() || "")) && new Set(missingProfileRoles.map(role => profileDraft[role]?.riotId?.trim().toLowerCase())).size === missingProfileRoles.length;
   const laneAssignmentsReady = assignmentsReady(allyPreviewTeam, laneAssignments) && playerAssignmentsReady;
   const enemyAssignmentsReady = assignmentsReady(enemyPreviewTeam, enemyLaneAssignments);
   const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim());
@@ -562,13 +602,13 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     [Users, "Joueurs", "Vérifie les postes et les profils.", laneAssignmentsReady && enemyAssignmentsReady],
     [Check, "Confirmation", "Nomme la partie et enregistre.", importReady],
   ];
-  if (!selectedTeamId || !canImport || !hasImportPlayers) return <Surface>
-    <h3 className="text-lg font-bold text-white">{!selectedTeamId ? "Choisis ton équipe" : !canImport ? "L’import est réservé au staff" : "Ajoute les joueurs avant la partie"}</h3>
-    <p className="mt-2 text-sm leading-6 text-slate-300">{!selectedTeamId ? "Crée ou rejoins une équipe pour y retrouver tes parties." : !canImport ? "Demande au capitaine ou au staff d’importer la partie. Tu pourras ensuite consulter son bilan et participer au débrief." : "L’import associe les cinq joueurs de la partie à cinq profils différents. Ajoute les profils manquants dans ton équipe."}</p>
-    <div className="mt-4"><LinkButton href={!selectedTeamId ? "/equipes" : canImport ? "/gestion-equipe?section=roster" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? "Ouvrir mon équipe" : canImport ? "Ajouter les joueurs" : "Retour aux parties"}</LinkButton></div>
+  if (!selectedTeamId || !canImport) return <Surface>
+    <h3 className="text-lg font-bold text-white">{!selectedTeamId ? "Choisis ton équipe" : "L’import est réservé au staff"}</h3>
+    <p className="mt-2 text-sm leading-6 text-slate-300">{!selectedTeamId ? "Crée ou rejoins une équipe pour y retrouver tes parties." : "Demande au capitaine ou au staff d’importer la partie. Tu pourras ensuite consulter son bilan et participer au débrief."}</p>
+    <div className="mt-4"><LinkButton href={!selectedTeamId ? "/equipes" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? "Ouvrir mon équipe" : "Retour aux parties"}</LinkButton></div>
   </Surface>;
   return <div className="nxt5-data-dense nxt5-import-page game-import-flow grid min-w-0 gap-5">
-        <ImporterDownloadPanel fileImporting={fileImporting || importing} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
+        <ImporterDownloadPanel fileImporting={fileImporting || importing || creatingProfiles} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
           {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
         </ImporterDownloadPanel>
 
@@ -582,7 +622,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
               <p className="mt-1 break-words text-xs font-semibold text-slate-400">{text}</p>
             </div>)}
           </div>
-              <fieldset disabled={importing || fileImporting} className="mt-4 min-w-0 space-y-4">
+              <fieldset disabled={importing || fileImporting || creatingProfiles} className="mt-4 min-w-0 space-y-4">
                 <legend className="sr-only">Vérification avant import</legend>
                 <div className="grid gap-3 lg:grid-cols-2">
                   {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} className={cx("game-import-side border p-4 text-left transition-colors", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 " : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
@@ -590,6 +630,13 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                     <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="break-words text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
                   </button>)}
                 </div>
+                {missingProfileRoles.length > 0 && <section className="game-import-roster-setup" aria-labelledby="import-profiles-title">
+                  <h4 id="import-profiles-title" className="text-lg font-bold">Créer les profils manquants depuis le fichier</h4>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">Vérifie les noms et les Riot IDs proposés. Tu peux aussi choisir un profil existant dans les associations ci-dessous. La création est distincte de l’import : ces profils resteront dans l’équipe si tu fermes ensuite cette fenêtre.</p>
+                  <div className="mt-3 grid gap-3">{missingProfileRoles.map(role => <div key={role} className="grid gap-3 sm:grid-cols-2"><TextInput label={`Nom · ${roleLabel(role)}`} value={profileDraft[role]?.name || ""} onChange={name => setProfileDraft(current => ({...current,[role]:{...current[role],name}}))} maxLength={80} /><TextInput label={`Riot ID · ${roleLabel(role)}`} value={profileDraft[role]?.riotId || ""} placeholder="Pseudo#TAG" onChange={riotId => setProfileDraft(current => ({...current,[role]:{...current[role],riotId}}))} maxLength={128} /></div>)}</div>
+                  {!profilesReady && <p className="mt-3 text-sm text-slate-300">Renseigne un nom et un Riot ID distinct au format Pseudo#TAG pour chaque profil proposé.</p>}
+                  <Button className="mt-3" type="button" icon={creatingProfiles ? Loader2 : Users} disabled={!profilesReady || creatingProfiles} onClick={createProposedProfiles}>{creatingProfiles ? "Création…" : "Créer les profils proposés"}</Button>
+                </section>}
                 {allyTeamSide && <div className="grid gap-4 xl:grid-cols-2">
                   <div className="game-import-team">
                     <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide === "BLUE" ? "Côté bleu" : "Côté rouge"}</Badge></div>

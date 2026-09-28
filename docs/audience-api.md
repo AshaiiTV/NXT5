@@ -129,3 +129,8 @@ Tous les compteurs et taux sont des nombres. Les tableaux restent vides sans don
 ## Vérification
 
 `src/__tests__/audience-server.test.ts` exécute les endpoints et la migration dans PGlite : choix absent, reçus falsifiés/expirés, retrait avant une requête en attente, arrêt local hors ligne, limites, données interdites, déduplication, session expirée, bot/admin, filtres et conversions, minuit UTC, périodes vides, rétention. Le flux complet du dépôt reste `npm run verify`.
+
+
+### Activation des équipes — 28 septembre 2026
+
+`/games`, `/demo` et les deux guides publics font partie des chemins autorisés. `first_import` signale la première partie enregistrée dans une équipe ; `first_review` signale le premier débrief enregistré ou modifié par un membre, en excluant la génération automatique à l’import. Ces événements sont envoyés uniquement après réussite serveur et accord de mesure d’audience. Aucun identifiant d’équipe, compte, joueur ou partie n’est envoyé. Les événements apparaissent dans Objectifs ; le taux historique « conversion » conserve sa définition inscription/demande d’accès. Les comptes de sessions par objectif ne constituent pas un entonnoir nominatif et ne mesurent pas les utilisateurs ayant refusé la collecte. La migration additive `audience-activation-20260928-v1` étend la contrainte des noms d’événements ; elle doit précéder la publication.

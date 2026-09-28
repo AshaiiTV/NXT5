@@ -1,9 +1,10 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiUploadJson } from "../api/client.js";
+import { apiFetch, apiUploadJson } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
+import { TextInput } from "../components/ui/Core.jsx";
 import { ImporterDownloadPanel } from "../pages/workspace/ImporterDownloadPanel.jsx";
 import { championDisplayName } from "../pages/workspace/workspace-shared.jsx";
 import { roleLabel } from "../pages/workspace/shell-shared.jsx";
@@ -104,16 +105,20 @@ describe("enemy role assignment while importing a game", () => {
     expect(apiUploadJson).not.toHaveBeenCalled();
   });
 
-  it("leads an owner with insufficient distinct players directly to their setup", async () => {
+  it("lets an owner preview a file before creating missing players", async () => {
     const { renderer } = await mount({ data: { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: [
       ...roles.slice(0, 4).map((role) => ({ id: role, team_id: "team", role })),
       { id: "TOP", team_id: "team", role: "TOP" },
       { id: "coach", team_id: "team", role: "COACH" },
       { id: "foreign", team_id: "other-team", role: "SUP" },
     ] } });
-    expect(renderer.root.findAllByType(ImporterDownloadPanel)).toHaveLength(0);
-    expect(renderer.root.findByType("a").props.href).toBe("/gestion-equipe?section=roster");
+    expect(renderer.root.findAllByType(ImporterDownloadPanel)).toHaveLength(1);
     expect(apiUploadJson).not.toHaveBeenCalled();
+    expect(apiFetch).not.toHaveBeenCalled();
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    expect(text(renderer.root)).toContain("Créer les profils manquants depuis le fichier");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
   });
 
   it("waits for our side before showing editable enemy roles", async () => {
@@ -234,5 +239,59 @@ describe("enemy role assignment while importing a game", () => {
     expect(enemySelects(renderer)).toHaveLength(0);
     expect(button(renderer, "Confirmer l’import")).toBeUndefined();
     expect(renderer.root.findByType(ImporterDownloadPanel).props.hasPreview).toBe(false);
+  });
+});
+
+
+describe("explicit roster creation from an import preview", () => {
+  const uniquePreview = () => ({ teams: preview().teams.map(team => ({ ...team, participants: team.participants.map((player, index) => ({ ...player, riotId: `${team.side} Joueur ${index}#EUW`, summonerName: `${team.side} Joueur ${index}` })) })) });
+  const emptyTeam = { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: [] };
+  const field = (renderer, label) => renderer.root.findAllByType(TextInput).find(node => node.props.label === label);
+
+  it("does not create profiles on preview/side selection, then links five confirmed identities and imports", async () => {
+    const { renderer, props } = await mount({ data: emptyTeam });
+    await load(renderer, { label: "Première partie", info: { gameId: "new-team" } }, uniquePreview());
+    expect(apiUploadJson.mock.calls[0][1].previewOnly).toBe(true);
+    expect(apiFetch).not.toHaveBeenCalled();
+    await chooseSide(renderer, "BLUE");
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(button(renderer, "Créer les profils proposés").props.disabled).toBe(false);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    const created = roles.map((role, index) => ({ id: `created-${index}`, role, team_id: "team", name: `BLUE Joueur ${index}`, riot_id: `BLUE Joueur ${index}#EUW` }));
+    apiFetch.mockResolvedValueOnce({ players: created, createdCount: 5 });
+    await click(renderer, "Créer les profils proposés");
+    const [endpoint, options] = apiFetch.mock.calls[0];
+    expect(endpoint).toBe("players-import-roster");
+    expect(JSON.parse(options.body)).toEqual({ teamId: "team", profiles: roles.map((role, index) => ({ role, name: `BLUE Joueur ${index}`, riotId: `BLUE Joueur ${index}#EUW` })) });
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+    expect(props.refreshAll).toHaveBeenCalledOnce();
+    expect(roles.map(role => select(renderer, `Profil NXT5 · ${roleLabel(role)}`).props.value)).toEqual(created.map(player => player.id));
+    expect(button(renderer, "Créer les profils proposés")).toBeUndefined();
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson.mock.calls[1][1].playerAssignments).toEqual(Object.fromEntries(roles.map((role, index) => [role, `created-${index}`])));
+    expect(props.onImported).toHaveBeenCalledWith({ match: { id: "saved" } });
+  });
+
+  it("rejects duplicate or incomplete identities locally and retains corrected fields after a server failure", async () => {
+    const { renderer } = await mount({ data: emptyTeam });
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    expect(button(renderer, "Créer les profils proposés").props.disabled).toBe(true);
+    for (const [index, role] of roles.entries()) {
+      await act(async () => field(renderer, `Riot ID · ${roleLabel(role)}`).props.onChange(`Unique ${index}#EUW`));
+    }
+    expect(button(renderer, "Créer les profils proposés").props.disabled).toBe(false);
+    await act(async () => field(renderer, "Riot ID · Top").props.onChange("Sans tag"));
+    expect(button(renderer, "Créer les profils proposés").props.disabled).toBe(true);
+    expect(apiFetch).not.toHaveBeenCalled();
+    await act(async () => field(renderer, "Riot ID · Top").props.onChange("Unique 0#EUW"));
+    apiFetch.mockRejectedValueOnce(new Error("Réessaie"));
+    await click(renderer, "Créer les profils proposés");
+    expect(field(renderer, "Riot ID · Top").props.value).toBe("Unique 0#EUW");
+    expect(button(renderer, "Créer les profils proposés").props.disabled).toBe(false);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
   });
 });

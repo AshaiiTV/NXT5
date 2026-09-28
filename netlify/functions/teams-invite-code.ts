@@ -4,13 +4,14 @@ import crypto from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 
 function cleanText(value, max = 80) {
   return String(value || '').trim().slice(0, max);
 }
 
 function makeInviteCode() {
-  return `NXT5-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+  return `NXT5-${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
 }
 
 async function ensureInviteExpiryColumn() {
@@ -22,8 +23,12 @@ export default async function handler(request: Request, context: Context): Promi
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
-    const body = await readJson(request);
+    await assertRateLimit(request, 'team-invite-manage', { limit: 20, windowSeconds: 60 });
+    await assertSubjectRateLimit('team-invite-manage', user.id, { limit: 10, windowSeconds: 60 });
+    const body = await readJson(request, 4096);
     const teamId = cleanText(body.teamId);
+    const action = body.action || 'create';
+    if (!['create', 'revoke'].includes(action)) throw Object.assign(new Error('Action invalide.'), { status: 400 });
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
     await ensureInviteExpiryColumn();
@@ -38,37 +43,23 @@ export default async function handler(request: Request, context: Context): Promi
     `;
     if (!allowed[0]) throw Object.assign(new Error('Tu ne peux pas générer de code pour cette team.'), { status: 403 });
 
-    await sql`delete from team_invite_codes where expires_at <= now()`;
-
-    let invite: any = null;
-    for (let i = 0; i < 6; i += 1) {
-      const code = makeInviteCode();
-      try {
-        const rows = await sql`
-          insert into team_invite_codes (team_id, created_by, code, expires_at)
-          values (${teamId}, ${user.id}, ${code}, now() + interval '1 hour')
-          returning *
-        `;
-        invite = rows[0];
-        break;
-      } catch (err) {
-        if (!String(err.message || '').includes('invite')) throw err;
-      }
-    }
-    if (!invite) throw Object.assign(new Error('Impossible de générer un code unique.'), { status: 500 });
-
-    await sql`
-      update teams
-      set invite_code = ${invite.code},
-          invite_expires_at = ${invite.expires_at},
-          updated_at = now()
-      where id = ${teamId}
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'team.invite_code', 'team', ${teamId}, ${JSON.stringify({ code: invite.code, expiresAt: invite.expires_at })}::jsonb)
-    `;
+    const code = action === 'create' ? makeInviteCode() : null;
+    // Serialize rotation/revocation for this team. The authorization is checked
+    // again under the lock; every statement sees the preceding committed state.
+    const result = await sql.transaction([
+      sql(`select 1 / case when exists (
+        select 1 from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=$2
+        where t.id=$1 and (t.owner_id=$2 or tm.role in ('captain','manager')) for update of t
+      ) then 1 else 0 end`, [teamId, user.id]),
+      sql('delete from team_invite_codes where team_id=$1', [teamId]),
+      sql(`insert into team_invite_codes (team_id, created_by, code, expires_at)
+        select $1, $2, $3, now() + interval '1 hour' where $3::text is not null returning *`, [teamId, user.id, code]),
+      sql(`update teams set invite_code=$2, invite_expires_at=case when $2::text is null then null else now()+interval '1 hour' end,
+        updated_at=now() where id=$1`, [teamId, code]),
+      sql(`insert into audit_logs(user_id, action, entity_type, entity_id, metadata)
+        values($1,$2,'team',$3,$4::jsonb)`, [user.id, action === 'create' ? 'team.invite_code' : 'team.invite_revoked', teamId, JSON.stringify({ rotated: action === 'create' })])
+    ]);
+    const invite = result[2][0];
 
     const activeCodes = await sql`
       select team_invite_codes.*, users.name as created_by_name
@@ -79,7 +70,7 @@ export default async function handler(request: Request, context: Context): Promi
       order by team_invite_codes.expires_at asc
     `;
 
-    return json({ code: invite.code, expiresAt: invite.expires_at, inviteCodes: activeCodes });
+    return json({ code: invite?.code || null, expiresAt: invite?.expires_at || null, inviteCodes: activeCodes, revoked: action === 'revoke' });
   } catch (err) {
     return handleError(err);
   }

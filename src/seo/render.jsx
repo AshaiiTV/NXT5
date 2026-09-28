@@ -2,6 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage } from "../pages/public/PublicPages.jsx";
 import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
+import { DemoPage } from "../pages/public/DemoPage.jsx";
+import { PublicGuidePage, PUBLIC_GUIDES } from "../pages/public/PublicGuides.jsx";
 import SocialPage from "../pages/public/SocialPage.jsx";
 import { SupportPage } from "../pages/public/SupportPage.jsx";
 import { AUTH_PATHS, NAV, PUBLIC_ROUTES } from "../app/constants.jsx";
@@ -24,6 +26,8 @@ export function render(path) {
   let page;
   if (path === "/") page = <HomeScreen />;
   else if (path === "/fonctionnalites") page = <FeaturesPage />;
+  else if (path === "/demo") page = <DemoPage />;
+  else if (PUBLIC_GUIDES[path]) page = <PublicGuidePage path={path} />;
   else if (path === "/reseaux") page = <SocialPage />;
   else if (path === "/soutenir") page = <SupportPage />;
   else if (LEGAL_PAGES[path]) page = <LegalPage route={{ path, search: "" }} />;

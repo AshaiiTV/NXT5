@@ -56,3 +56,15 @@
 @media (max-width: 640px) {
   .nxt5-planning-page textarea { font-size: 16px; }
 }
+
+.nxt5-planning-daily { display: none; }
+.nxt5-planning-daily-slots { display: grid; gap: .5rem; }
+.nxt5-planning-daily-slot { display: grid; grid-template-columns: 3rem minmax(0,1fr); align-items: center; gap: .5rem; width: 100%; min-height: 64px; padding: .75rem; border: 1px solid var(--nxt5-border); border-radius: 2px; color: var(--nxt5-text-secondary); font-size: 14px; text-align: left; }
+.nxt5-planning-daily-slot .nxt5-planning-cell-icons { grid-column: 2; justify-content: flex-start; }
+.nxt5-planning-daily-slot[aria-pressed="true"] { border-color: var(--nxt5-accent); }
+.nxt5-planning-daily-slot:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .nxt5-planning-weekly { display: none; }
+  .nxt5-planning-daily { display: grid; gap: .75rem; margin-top: 1rem; }
+  .nxt5-planning-daily select { width: 100%; min-height: 48px; font-size: 16px; }
+}

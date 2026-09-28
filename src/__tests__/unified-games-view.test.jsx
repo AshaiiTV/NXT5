@@ -106,16 +106,15 @@ async function browserBack(path) {
 }
 
 describe("unified Games workspace", () => {
-  it("takes an owner to the missing players before offering an import", async () => {
+  it("opens import for an owner before the roster is complete", async () => {
     const props = settings();
     props.data.players = props.data.players.slice(0, 4);
     props.data.players.push({ ...props.data.players[0] }, { id: "foreign", team_id: "other", role: "SUP" }, { id: "coach", team_id: "team", role: "COACH" });
     const renderer = await mount("/games", props);
-    expect(button(renderer, "Importer une partie")).toBeUndefined();
-    expect(text(renderer.root)).toContain("Ajoute au moins 5 profils joueurs distincts");
-    await click(renderer, "Ajouter les joueurs");
-    expect(window.location.pathname).toBe("/gestion-equipe");
-    expect(window.location.search).toBe("?section=roster");
+    expect(button(renderer, "Importer une partie")).toBeTruthy();
+    await click(renderer, "Importer une partie");
+    expect(window.location.search).toBe("?import=1");
+    expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
   });
 
   it.each([
@@ -128,6 +127,7 @@ describe("unified Games workspace", () => {
     expect(button(renderer, "Ajouter les joueurs")).toBeUndefined();
     expect(text(renderer.root)).toContain("Le capitaine ou le staff peut importer les parties de ton équipe.");
   });
+
 
   it("opens an existing linked debrief from the first reading without expanding statistics", async () => {
     const props = settings();

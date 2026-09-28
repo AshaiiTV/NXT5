@@ -10,6 +10,7 @@ import { usePlanningDraft } from "../../hooks/usePlanningDraft.js";
 import { COMP_ROLES, sortPlayersByRole, canStaffManage, isGameplayRole, isStaffRole, normalizeProfileRole } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Planning.css";
+import { PlanningAvailabilityGrid } from "../../components/games/PlanningAvailabilityGrid.jsx";
 import { DiscordPlanningEvents } from "../../components/discord/DiscordWorkflows.jsx";
 
 const SESSION_LABELS = {
@@ -408,38 +409,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
             </div>
             {canEditSelected && !editingEvents && <details className="nxt5-planning-help"><summary>Remplir plusieurs créneaux à la fois</summary><p>Ces raccourcis remplacent tes disponibilités de la semaine affichée.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("evenings")}>Soirées · 20 h à 23 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("scrim")}>Entraînement · 19 h à 22 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("weekend")}>Week-end · 20 h à 23 h</Button><Button type="button" variant="danger" onClick={() => applyAvailabilityPreset("clear")}>Vider mes disponibilités</Button></div></details>}
             <details className="nxt5-planning-help"><summary>Lire le planning et les présences de l’équipe</summary><p>Une icône claire signale une disponibilité ; une icône sombre, aucune disponibilité renseignée. Le livre représente l’encadrement, avec une disponibilité partagée.</p><p>Un clic sur un jour remplit ou vide cette journée. Un clic sur une heure fait la même chose pour toute la semaine. Un clic droit sur un créneau ouvre aussi les types de séance.</p><div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{SESSION_LABELS[item.id]?.label || item.label}</span>)}</div><div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">Présences maximum : {bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} créneaux avec {Math.min(5, gameplayPlayers.length)} joueurs</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} créneaux avec encadrement</Badge>}</div></details>
-            <div className="nxt5-planning-scroll -mx-4 mt-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0" role="region" aria-label="Planning hebdomadaire, défilement horizontal" tabIndex={0}>
-              <div className="nxt5-planning-frame">
-                <div className="nxt5-keep-grid nxt5-planning-grid grid overflow-hidden rounded-lg border border-cyan-200/22 bg-cyan-300/18  [contain:layout_paint]">
-                  <div className="nxt5-planning-corner" />
-                  {weekDays.map(([day, label, date], dayIndex) => {
-                    const dayActive = (draftSlots[day] || []).length;
-                    return <button key={day} type="button" disabled={!canEditSelected} onClick={() => setDaySlots(day, dayActive ? [] : PLANNING_TIMES)} title={dayActive ? "Vider la journée" : "Remplir la journée"} className={cx("nxt5-planning-day-header px-1.5 py-1 text-center text-xs font-semibold transition", dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", dayActive ? "nxt5-planning-day-active text-cyan-50" : "text-slate-300 hover:text-white", !canEditSelected && "cursor-not-allowed opacity-70")} ><span className="block">{label}</span><span className="block text-xs text-slate-300">{formatPlanningDate(date)}</span></button>;
-                  })}
-                  {planningGridRows.map(({ time, cells }) => (
-                    <React.Fragment key={time}>
-                      <button type="button" disabled={!canEditSelected} onClick={() => setTimeForWeek(time)} title="Basculer cette heure sur toute la semaine" className="nxt5-planning-time flex items-center justify-center bg-[#08111f] px-1.5 py-0.5 text-xs font-black text-white transition hover:bg-[#101b2d] disabled:cursor-not-allowed disabled:opacity-70">{time}</button>
-                      {cells.map((cell) => {
-                        const day = cell.day;
-                        return <button key={cell.key} type="button" disabled={!canEditSelected && !canEditEvents} onClick={(event) => editingEvents || !canEditSelected ? openPlanningEventMenu(event, day, time) : toggleSlot(day, time)} aria-label={`${weekDays[cell.dayIndex]?.[1]} ${time} · ${cell.title}${canEditSelected ? (cell.activeSlot ? " · Disponible" : " · Indisponible") : ""}`} aria-pressed={editingEvents || !canEditSelected ? undefined : cell.activeSlot} onContextMenu={(event) => openPlanningEventMenu(event, day, time)} title={cell.title} className={cx("nxt5-planning-cell relative min-h-[2.55rem] overflow-hidden px-1 py-1 text-left transition", cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base", frameTone(cell.slotEvent), !cell.slotEvent && "hover:bg-cyan-300/[0.055]", !canEditSelected && "cursor-context-menu opacity-90", !canEditSelected && !canEditEvents && "cursor-not-allowed opacity-70")} >
-                          {cell.slotEvent && <span className="nxt5-planning-event-label">{cell.slotEventLabel}</span>}
-                          <div className="flex h-full flex-col items-center justify-center gap-1">
-                            <div className="nxt5-planning-cell-icons flex items-center justify-center gap-1">
-                              {cell.roles.map(({ role, player, lit, selectedRoleHere }) => {
-                                return <span key={role} title={player ? `${roleLabel(role)} · ${player.name}` : `${roleLabel(role)} · non lié`} className={cx("inline-flex items-center justify-center transition", lit ? "nxt5-planning-role-lit" : "nxt5-planning-role-dim", selectedRoleHere && "nxt5-planning-role-selected")}>
-                                  <RoleIcon role={role} lightweight className="h-4 w-4 shrink-0" />
-                                </span>;
-                              })}
-                              {cell.staffUnit && <span title={cell.staffUnit.title} className={cx("nxt5-planning-staff-unit relative inline-flex items-center justify-center rounded-md border transition", cell.staffUnit.lit ? "border-fuchsia-200/55 bg-fuchsia-400/20 text-fuchsia-50 " : "border-white/5 bg-black/12 text-slate-700 opacity-35 grayscale", cell.staffUnit.selectedStaffHere && "border-white/70 bg-white/20 text-white opacity-100 grayscale-0 ")}><BookOpen className="h-4 w-4 shrink-0" />{cell.staffUnit.lit && <span className="absolute right-0 top-0 h-1.5 w-1.5 rotate-45 rounded-[1px] bg-cyan-200 " />}</span>}
-                            </div>
-                          </div>
-                        </button>;
-                      })}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <PlanningAvailabilityGrid rows={planningGridRows} weekDays={weekDays} canEditSelected={canEditSelected} canEditEvents={canEditEvents} editingEvents={editingEvents} draftSlots={draftSlots} onDay={setDaySlots} onTime={setTimeForWeek} onToggle={toggleSlot} onEvent={openPlanningEventMenu} frameTone={frameTone} />
             <div className="mt-5">
               <label htmlFor="planning-note" className="nxt5-field-label">Précisions sur tes disponibilités</label>
               <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} rows={2} placeholder="Ex. : disponible après 20 h, retard possible le jeudi…" className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />

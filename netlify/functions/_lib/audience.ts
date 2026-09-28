@@ -10,7 +10,7 @@ export const AUDIENCE_SCHEMA_VERSION = 'audience-20260914-v1';
 export const RETENTION_DAYS = 180;
 export const CONSENT_SECONDS = RETENTION_DAYS * 86400;
 export const COOKIE = { receipt: 'nxt5_audience_consent', visitor: 'nxt5_audience_visitor', session: 'nxt5_audience_session', optout: 'nxt5_audience_optout' };
-export const GOALS = ['signup', 'login', 'access_request', 'pricing_view'];
+export const GOALS = ['signup', 'login', 'access_request', 'pricing_view', 'first_import', 'first_review'];
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 

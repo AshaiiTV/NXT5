@@ -5,6 +5,7 @@ import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js"
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { trackAudienceEvent } from "../../app/audience-client.js";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
 import "./games-workspace.css";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
@@ -15,7 +16,8 @@ import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { useReviewMatchDetails } from "../../hooks/useReviewMatchDetails.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
-import { createPortal } from "react-dom";
+import { ModalDialog } from "../../components/ui/ModalDialog.jsx";
+import { emptyReviewDraft, reviewDraftChanged, reviewDrafts } from "../../utils/review-drafts.js";
 import { championPortraitSources, championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, normalizeProfileRole, parsePercent, formatPoints, formatGoldDiff, teamRows, sumRows, objectiveTeamId, storedTimelineFrames, compactTimelineEvents, diffTone, formatCountdown, participantTeamMap, matchTimelineFrames, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, statValue, compositionIdentity, championStyleTone, tagLabel, objectiveTeamSummary, itemIconSources, summonerSpellIconSources, itemSlots, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, lazyNamed, loadNextPhase } from "./workspace-shared.jsx";
 import DiscordGameShare from "../../components/discord/DiscordGameShare.jsx";
 import DiscordGroupShare from "../../components/discord/DiscordGroupShare.jsx";
@@ -1367,8 +1369,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const canManageTeam = Boolean(selectedTeam && user?.id && (selectedTeam.owner_id === user.id || canStaffManage(teamMember?.role)));
   const canPublishDiscord = canManageTeam;
   const canImport = canManageTeam;
-  const importPlayerIds = new Set((data.players || []).filter((player) => String(player.team_id) === String(selectedTeamId) && player.id && [...COMP_ROLES, "SUB"].includes(String(player.role || "").toUpperCase())).map((player) => String(player.id)));
-  const importReady = importPlayerIds.size >= 5;
   const query = new URLSearchParams(route?.search ?? window.location.search);
   const urlMatchId = query.get("match") || "";
   const urlArchiveId = query.get("archive") || "";
@@ -1378,6 +1378,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
   const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
   const [importBusy, setImportBusy] = useState(false);
+  const [importDirty, setImportDirty] = useState(false);
   const [workspaceView, setWorkspaceView] = useState(urlView);
   const [exportingStats, setExportingStats] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
@@ -1450,7 +1451,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     if (selectedMatchId || selectedArchiveId) return null;
     if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>Choisir une équipe</Button><p>Crée ou rejoins une équipe pour y retrouver tes parties.</p></div>;
     if (!canImport) return <p className="games-import-help">Le capitaine ou le staff peut importer les parties de ton équipe.</p>;
-    if (!importReady) return <div className="games-import-action"><Button type="button" variant={variant} icon={Plus} onClick={() => openAppPath("/gestion-equipe?section=roster")}>Ajouter les joueurs</Button><p>Ajoute au moins 5 profils joueurs distincts pour importer une partie.</p></div>;
     return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une partie</Button>;
   }
   const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : [...current.matchIds, matchId] }));
@@ -1529,8 +1529,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     <PageHeader eyebrow={selectedTeamName} title="Parties" subtitle={selectedMatchId ? "Comprends le résultat, choisis une piste de travail, puis explore les détails." : "Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session."}>
       {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
-    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={() => updateLocation({ import: "" })} busy={importBusy} returnFocusRef={importTriggerRef}>
-      <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} />
+    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
+      <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} />
     </GameOperationDialog>}
 
     {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label="Analyse de la partie">
@@ -1551,9 +1551,10 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav label="Bibliothèque de parties" items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
+        <TabNav idPrefix="games-library" panelId="games-library-panel" label="Bibliothèque de parties" items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
         {baseMatches.length > 0 && <p className="games-team-record"><span>Équipe</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)} % de victoires</span></p>}
       </div>
+      <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
         <div className="games-group-heading"><div><h3>Groupes de parties</h3><p>Compare les parties d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
         {archiveWorkspaceTab === "select" ? <div className="games-group-list">
@@ -1592,6 +1593,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
           headerActions={<GameCategoryManager data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
           emptyAction={renderImportAction()}
         />
+      </div>
       </div>
     </div>
   </div>;
@@ -1848,7 +1850,11 @@ function buildRetroactiveCoachContent(report, matches, staffNotes = stripGenerat
   return `${coachingBlock}\n\n${REPORT_REWRITE_MARKER}\nNotes staff\n${staffNotes}`;
 }
 
-function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
+function Reports(props) {
+  return <ScopedReports key={`${props.user?.id || ""}:${props.selectedTeamId || ""}`} {...props} />;
+}
+
+function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const reports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
@@ -1858,7 +1864,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const urlComposeReview = urlParams.get("compose") === "1";
   const { detail: requestedMatch, loading: loadingReviewMatch, error: reviewMatchError, retry: retryReviewMatch } = useMatchDetails(selectedTeamId, urlMatchId, data.bootstrapRevision || "");
   const canCaptainDelete = canStaffManage(currentMember?.role);
-  const [form, setForm] = useState({ id: null, title: "", content: "", matchIds: [] });
+  const [form, setForm] = useState(() => reviewDrafts.read(user?.id, selectedTeamId));
+  const [formBaseline, setFormBaseline] = useState(() => reviewDrafts.readBaseline(user?.id, selectedTeamId));
   const [selectedArchiveId, setSelectedArchiveId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState(urlReportId || null);
   const [lexiconOpen, setLexiconOpen] = useState(false);
@@ -1869,24 +1876,15 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!composerOpen) return undefined;
-    const previousOverflow = document.body.style.overflow;
-    const previousDocumentOverflow = document.documentElement.style.overflow;
-    const closeOnEscape = (event) => {
-      if (event.key !== "Escape") return;
-      setComposerOpen(false);
-      setLexiconOpen(false);
-      setForm({ id: null, title: "", content: "", matchIds: [] });
-    };
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.documentElement.style.overflow = previousDocumentOverflow;
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [composerOpen]);
+    reviewDrafts.write(user?.id, selectedTeamId, form, formBaseline);
+  }, [form, formBaseline, user?.id, selectedTeamId]);
+  const draftAvailable = reviewDraftChanged(form, formBaseline);
+  function replaceDraft(next, baseline = emptyReviewDraft()) {
+    if (draftAvailable && !window.confirm("Remplacer le brouillon de cette équipe ? Les notes non enregistrées du brouillon actuel seront supprimées.")) return false;
+    setForm(next);
+    setFormBaseline(baseline);
+    return true;
+  }
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedReports = selectedArchive ? reports.filter((report) => reportMatchIds(report).some((id) => archiveMatchIds(selectedArchive).includes(id))) : reports;
   const selected = scopedReports.find((report) => report.id === selectedReportId) || scopedReports[0] || null;
@@ -1926,7 +1924,6 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   const selectionLabel = reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Aucune partie sélectionnée";
 
   function startBlankReview() {
-    resetReportForm();
     setComposerOpen(true);
     setLexiconOpen(false);
   }
@@ -1963,7 +1960,7 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   useEffect(() => {
     if (!urlComposeReview || !urlMatchId || !requestedMatch) return;
     setSelectedArchiveId("");
-    setForm({ id: null, title: matchDisplayName(requestedMatch, "Débrief"), content: "", matchIds: [requestedMatch.id] });
+    replaceDraft({ id: null, title: matchDisplayName(requestedMatch, "Débrief"), content: "", matchIds: [requestedMatch.id] });
     setComposerOpen(true);
     setLexiconOpen(false);
     window.history.replaceState({}, "", `/rapports?match=${encodeURIComponent(urlMatchId)}`);
@@ -1988,25 +1985,35 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
   }
 
   function editReport(report) {
-    setForm({ id: report.id, title: reportDisplayName(report, matches), content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) });
+    const original = { id: report.id, title: reportDisplayName(report, matches), content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) };
+    if (!replaceDraft(original, original)) return;
     setComposerOpen(true);
     setLexiconOpen(false);
   }
 
   function duplicateReport(report) {
-    setForm({ id: null, title: `${reportDisplayName(report, matches)} copie`, content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) });
+    if (!replaceDraft({ id: null, title: `${reportDisplayName(report, matches)} copie`, content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) })) return;
     setComposerOpen(true);
     setLexiconOpen(false);
   }
 
   function resetReportForm() {
-    setForm({ id: null, title: "", content: "", matchIds: [] });
+    setForm(emptyReviewDraft());
+    setFormBaseline(emptyReviewDraft());
   }
 
   function closeComposer() {
+    if (saving) return;
+    if (!draftAvailable) resetReportForm();
     setComposerOpen(false);
     setLexiconOpen(false);
+  }
+
+  function discardDraft() {
+    if (saving || !window.confirm("Supprimer ce brouillon et ses notes non enregistrées ?")) return;
     resetReportForm();
+    setComposerOpen(false);
+    setLexiconOpen(false);
   }
 
   async function saveReport(event) {
@@ -2015,7 +2022,8 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
     setSaving(true);
     try {
       const title = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief");
-      await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: formContent, matchIds: form.matchIds }) });
+      const result = await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: formContent, matchIds: form.matchIds }) });
+      if (result?.firstReview) void trackAudienceEvent("first_review");
       resetReportForm();
       setComposerOpen(false);
       setLexiconOpen(false);
@@ -2061,16 +2069,17 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         title="Débriefs"
         subtitle="Relis les parties, ajoute tes observations et décide avec l’équipe ce que vous travaillerez ensuite."
       >
-        <Button icon={Plus} onClick={startBlankReview}>Préparer un débrief</Button>
+        <Button icon={Plus} onClick={startBlankReview}>{draftAvailable ? "Reprendre le brouillon" : "Préparer un débrief"}</Button>
         <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/games")}>Voir les parties</Button>
       </PageHeader>
 
       {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la partie pour préparer le débrief…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
-      <TabNav className="mb-5" label="Rubriques des débriefs" items={[
+      <TabNav idPrefix="reports" panelId="reports-panel" className="mb-5" label="Rubriques des débriefs" items={[
         { id: "library", label: "Bibliothèque", meta: reports.length, icon: FileText },
         { id: "queue", label: "À traiter", meta: pendingReviewCount, icon: Check },
       ]} activeId={workspaceView} onChange={setWorkspaceView} columns="sm:grid-cols-2" />
 
+      <div id="reports-panel" role="tabpanel" aria-labelledby={`reports-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
         <aside className="games-review-library 2xl:sticky 2xl:top-4 2xl:self-start">
           <div className="border-b border-white/10 px-4 py-4 sm:px-5">
@@ -2154,19 +2163,22 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
         </Surface>
       </div>}
 
-      {composerOpen && createPortal(
-        <div className="nxt5-fade-in fixed inset-0 z-[300] isolate flex items-end justify-center bg-[#020511]/94 backdrop-blur-xl sm:items-center sm:p-3 lg:p-5">
-          <section role="dialog" aria-modal="true" aria-labelledby="review-composer-title" className="games-review-composer nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814]  sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
+      </div>
+      {draftAvailable && !composerOpen && <p role="status" className="mt-4 text-sm text-slate-300">Un brouillon est conservé pour cette équipe pendant cette session. Reprends-le avant de fermer ou recharger l’onglet.</p>}
+      {composerOpen && <ModalDialog onClose={closeComposer} busy={saving} handleHistory aria-labelledby="review-composer-title" className="games-review-composer nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814]  sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
             <div className="hidden" />
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
+              <fieldset disabled={saving} className="flex min-h-0 flex-1 flex-col border-0 p-0">
+              <legend className="sr-only">Contenu du débrief</legend>
               <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier le débrief" : "Nouveau débrief"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Préparer le débrief"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Choisis les parties à revoir, puis note ce que l’équipe garde, corrige et travaille ensuite.</p></div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer}>Fermer</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer le débrief"}</Button></div>
+                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer} disabled={saving} autoFocus>{draftAvailable ? "Fermer et garder le brouillon" : "Fermer"}</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer le débrief"}</Button></div>
                 </div>
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-5 sm:pb-5">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-slate-300">Tes modifications sont conservées pendant cette session, même si tu changes de rubrique. Enregistre-les avant de fermer ou recharger l’onglet.</p>{draftAvailable && <Button type="button" variant="ghost" disabled={saving} onClick={discardDraft}>Supprimer le brouillon</Button>}</div>
                 {lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-3"><div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/22 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-300">{text}</p></button>)}</div></div>}
 
                 <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
@@ -2183,11 +2195,9 @@ function Reports({ data, selectedTeamId, refreshAll, pushToast, currentMember, u
               </div>
                 </div>
               </div>
+              </fieldset>
             </form>
-          </section>
-        </div>,
-        document.body
-      )}
+          </ModalDialog>}
     </div>
   );
 }

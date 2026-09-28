@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button } from "../components/ui/Core.jsx";
+import { reviewDrafts } from "../utils/review-drafts.js";
 import { Reports, ReportPreview, buildRetroactiveCoachContent, buildGameReviewContent, stripGeneratedReportContent, REPORT_REWRITE_MARKER, matchPlayerCoachReads } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -18,10 +19,11 @@ const game = (id) => ({
   ],
 });
 beforeEach(() => {
-  vi.stubGlobal("window", { location: new URL("https://nxt5.test/rapports"), history: { replaceState: vi.fn((_state, _unused, url) => { window.location = new URL(url, "https://nxt5.test"); }) } });
+  reviewDrafts.clear();
+  vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn(), confirm: vi.fn(() => true), location: new URL("https://nxt5.test/rapports"), history: { replaceState: vi.fn((_state, _unused, url) => { window.location = new URL(url, "https://nxt5.test"); }) } });
   vi.stubGlobal("document", { body: { style: {} }, documentElement: { style: {} }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
 });
-afterEach(() => { cleanups.splice(0).forEach((fn) => fn()); vi.resetAllMocks(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanups.splice(0).forEach((fn) => fn()); reviewDrafts.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
 async function mount({ reports = [], matches = [] } = {}) {
   const props = { data: { reports, matches }, selectedTeamId: "team", currentMember: { role: "player" }, user: { id: "user" }, refreshAll: vi.fn(), pushToast: vi.fn() };
   let renderer;

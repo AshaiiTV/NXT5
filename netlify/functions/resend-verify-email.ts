@@ -7,7 +7,7 @@ import { sendEmailVerificationEmail } from './_lib/email';
 import { assertVerificationEmailRateLimit } from './_lib/rate-limit';
 
 function verificationErrorResponse(err: any, stage: string): Response {
-  console.error('Email verification resend failed', { stage, err });
+  console.error('Email verification resend failed', { stage, code: 'EMAIL_VERIFY_FAILED' });
   const status = err?.status || 500;
   const code = err?.code || 'EMAIL_VERIFY_FAILED';
   const message = status >= 500

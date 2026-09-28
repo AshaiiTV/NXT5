@@ -150,6 +150,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     return json({
       warnings: savedMatch.warnings || [],
+      firstImport: savedMatch.firstImport === true,
       match: {
         id: savedMatch.id,
         game_id: savedMatch.game_id,

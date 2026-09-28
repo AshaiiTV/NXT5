@@ -1,13 +1,17 @@
-import React, { startTransition, useCallback, useEffect, useState, Suspense, useMemo, lazy } from "react";
+import React, { startTransition, useCallback, useEffect, useState, Suspense, useMemo, useRef, lazy } from "react";
 import { apiFetch, API_BASE } from "./api/client.js";
 import { NAV } from "./app/constants.jsx";
 import { adminPageFromRoute } from "./app/admin-navigation.js";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
 import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import CookieConsent from "./components/privacy/CookieConsent.jsx";
+import { ModalDialog } from "./components/ui/ModalDialog.jsx";
+import { reviewDrafts } from "./utils/review-drafts.js";
 import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks, SiteHeader } from "./pages/public/PublicPages.jsx";
 import { FeaturesPage } from "./pages/public/FeaturesPage.jsx";
+import { PublicGuidePage, PUBLIC_GUIDES } from "./pages/public/PublicGuides.jsx";
+import { DemoPage } from "./pages/public/DemoPage.jsx";
 import SocialPage from "./pages/public/SocialPage.jsx";
 import { SupportPage } from "./pages/public/SupportPage.jsx";
 import { applyDocumentMetadata } from "./seo/metadata.js";
@@ -61,7 +65,7 @@ function VerifiedPage({ navigate }) {
   return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
 }
 
-function MissingEmailModal({ user, onUserUpdate, pushToast }) {
+export function MissingEmailModal({ user, onUserUpdate, pushToast }) {
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -84,23 +88,21 @@ function MissingEmailModal({ user, onUserUpdate, pushToast }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/72 px-4 text-white backdrop-blur-xl">
-      <div className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-cyan-300/25 p-6">
+    <ModalDialog dismissable={false} busy={saving} aria-labelledby="missing-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-cyan-300/25 p-6">
         <Badge tone="orange">Action requise</Badge>
-        <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Ajoute ton e-mail de récupération</h2>
+        <h2 id="missing-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">Ajoute ton e-mail de récupération</h2>
         <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Les anciens comptes n’avaient pas d’e-mail. Ajoute le tien maintenant pour recevoir les liens de mot de passe oublié.</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
-          <TextInput label="E-mail de récupération" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} />
+          <TextInput label="E-mail de récupération" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoFocus autoComplete="email" />
           <TextInput label="Mot de passe actuel" value={currentPassword} onChange={setCurrentPassword} type="password" required icon={Lock} />
-          {error && <div className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
+          {error && <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
           <Button type="submit" disabled={saving || !email.trim() || !currentPassword} icon={saving ?Loader2 : Mail} className="w-full py-4">{saving ?"Enregistrement..." : "Enregistrer l’e-mail"}</Button>
         </form>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
 
-function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
+export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
   const [sending, setSending] = useState(false);
   const [checking, setChecking] = useState(false);
   const [sent, setSent] = useState(false);
@@ -140,27 +142,25 @@ function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/78 px-4 text-white backdrop-blur-2xl">
-      <div className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
+    <ModalDialog dismissable={false} busy={sending || checking} aria-labelledby="verify-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
         <Badge tone="orange">Vérification obligatoire</Badge>
-        <h2 className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton profil</h2>
+        <h2 id="verify-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton e-mail</h2>
         <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Ton compte utilise l'adresse <span className="font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
         <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
           <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Profil non vérifié</p>
           <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications restent bloquées tant que l'e-mail n'est pas confirmé.</p>
         </div>
-        {sent && <div className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.</div>}
-        {error && <div className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{error}</div>}
+        {sent && <div role="status" className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.</div>}
+        {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{error}</div>}
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <Button type="button" icon={sending ? Loader2 : Mail} onClick={resend} disabled={sending || checking} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
+          <Button type="button" autoFocus icon={sending ? Loader2 : Mail} onClick={resend} disabled={sending || checking} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
           <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={sending || checking} className="w-full py-4">{checking ? "Vérification..." : "J'ai vérifié mon email"}</Button>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   );
 }
 
-function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
+export function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -181,9 +181,8 @@ function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
   }
 
   if (!user?.inactivity_notice) return null;
-  return <div className="nxt5-fade-in fixed inset-0 z-[210] flex items-end justify-center bg-[#020511]/82 p-3 text-white backdrop-blur-xl sm:items-center sm:p-5">
-    <section role="dialog" aria-modal="true" aria-labelledby="inactivity-return-title" className="nxt5-account-dialog nxt5-enter relative w-full max-w-2xl border border-cyan-200/26 p-5 sm:p-7">
-      <button type="button" onClick={() => acknowledge()} disabled={saving} aria-label="Fermer le message" className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
+  return <ModalDialog onClose={() => acknowledge()} busy={saving} aria-labelledby="inactivity-return-title" className="nxt5-account-dialog nxt5-enter relative w-full max-w-2xl border border-cyan-200/26 p-5 sm:p-7">
+      <button type="button" onClick={() => acknowledge()} disabled={saving} autoFocus aria-label="Fermer le message" className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
       <div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-200/28 bg-gradient-to-br from-cyan-400/18 to-fuchsia-400/14 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,.15)]"><Sparkles className="h-7 w-7" /></div>
       <Badge tone="cyan" className="mt-5">Bon retour</Badge>
       <h2 id="inactivity-return-title" className="mt-3 pr-12 text-2xl font-bold tracking-tight text-white">Content de te revoir sur NXT5</h2>
@@ -197,8 +196,7 @@ function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
         <Button type="button" variant="ghost" onClick={() => acknowledge()} disabled={saving} className="sm:min-w-36">Rester ici</Button>
         <Button type="button" icon={saving ? Loader2 : ArrowRight} onClick={() => acknowledge("/equipes")} disabled={saving} className="sm:min-w-48">{saving ? "Ouverture..." : "Voir mes équipes"}</Button>
       </div>
-    </section>
-  </div>;
+  </ModalDialog>;
 }
 
 function assistantEntityForRoute(route, data, selectedTeamId) {
@@ -234,6 +232,13 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const [active, setActiveState] = useState(initialPage);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const previousPage = useRef(active);
+  useEffect(() => {
+    if (previousPage.current !== active && !document.querySelector?.("dialog[open]")) {
+      document.getElementById?.("workspace-content")?.focus({ preventScroll: true });
+    }
+    previousPage.current = active;
+  }, [active]);
   const [planningStore] = useState(() => createPlanningStore({
     save: async (body) => {
       const result = await apiFetch("player-availability-manage", { method: "POST", body: JSON.stringify(body) });
@@ -419,7 +424,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
   const adminPage = adminPageFromRoute(route);
 
-  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !["/fonctionnalites", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
+  const rendersWorkspace = user && !unknownRoute && !forbiddenAdminRoute && !adminPage && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !["/fonctionnalites", "/demo", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersWorkspace ? undefined : null);
 
   // Public pages render during the session check. The shared screen remains
@@ -428,6 +433,8 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
+  if (route.path === "/demo") return <DemoPage navigate={navigate} user={user} />;
+  if (PUBLIC_GUIDES[route.path]) return <PublicGuidePage path={route.path} navigate={navigate} user={user} />;
   if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label="Chargement de l’administration"><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
   if (route.path === "/reseaux") return <SocialPage navigate={navigate} user={user} />;
   if (route.path === "/soutenir") return <SupportPage navigate={navigate} user={user} />;
@@ -465,11 +472,13 @@ export default function NXT5() {
     setUser(nextUser);
   }, []);
   const handleLogout = useCallback(async () => {
+    if (reviewDrafts.hasDrafts() && !window.confirm("Te déconnecter supprimera les brouillons de débrief non enregistrés de cette session. Continuer ?")) return;
     try { await apiFetch("auth-logout", { method: "POST" }); }
     catch {
       pushToast({ type: "red", title: "Déconnexion impossible", text: "La session n’a pas pu être fermée. Réessaie." });
       return;
     }
+    reviewDrafts.clear();
     setUser(null);
     navigate("/connexion", { replace: true });
     pushToast({ type: "cyan", title: "Déconnecté", text: "Tu es bien déconnecté." });
