@@ -100,3 +100,11 @@ it("C3 displays the weekly activity limitation returned by the API", async () =>
   const renderer = await render(<AdminDashboard />);
   expect(renderer.root.findAllByType("p").some(p => p.children.join("") === weeklyActivityNote)).toBe(true);
 });
+
+it('T3-04 distinguishes OAuth and social email confirmation lifetimes in both policies', () => {
+  for (const route of ['/cookies','/confidentialite']) {
+    const text = JSON.stringify(LEGAL_PAGES[route]);
+    expect(text).toContain('5 min pour les étapes de connexion, 15 min pour la confirmation par e-mail d’une inscription');
+    expect(text).not.toMatch(/cinq minutes (au maximum|maximum)|expirent après cinq minutes/);
+  }
+});

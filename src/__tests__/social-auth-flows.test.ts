@@ -495,9 +495,41 @@ describe('unlink authentication and transaction effects', () => {
 it('enforces the durable ticket quota even when the source IP and chosen address change',async()=>{
   enabled();const target=await prepareSignup();state.realTicketRate=true;
   for(let i=0;i<6;i++){
+    // Isolate the ticket ceiling; separate T3-01 tests exercise the stricter identity budget.
+    await rows("delete from rate_limits where endpoint='email-verification-social-identity'");
     const response=await completeHandler(post('complete',{displayName:'Player',email:`chosen${i}@example.test`,acceptLegal:true,legalVersion:LEGAL_VERSION},{'x-nf-client-connection-ip':`192.0.2.${i+1}`}),target.context);
     expect(response.status).toBe(i<5?202:429);
   }
   expect(state.email).toHaveBeenCalledTimes(5);
   expect(await rows('select * from users')).toHaveLength(0);
+});
+
+it.each([false, true])('T3-01 shares recipient quota across social identities and existing account=%s', async exists => {
+  enabled();
+  if (exists) await seedUser(userId, 'recipient@example.test');
+  state.realTicketRate = true;
+  const first = await prepareSignup();
+  expect((await complete(first, { email: ' Recipient@Example.test ' })).status).toBe(202);
+  const reservation = await rows('select * from social_signup_emails');
+  identity.subject = 'second-social-identity';
+  const second = await prepareSignup();
+  const blocked = await complete(second, { email: 'recipient@example.test' });
+  expect(blocked.status).toBe(429);
+  expect(await blocked.json()).toMatchObject({ code: 'EMAIL_VERIFY_RATE_LIMIT' });
+  expect(state.email).toHaveBeenCalledTimes(1);
+  expect(await rows('select * from social_signup_emails')).toEqual(reservation);
+  const { assertVerificationEmailRateLimit } = await vi.importActual<any>('../../netlify/functions/_lib/rate-limit');
+  await expect(assertVerificationEmailRateLimit(userId, 'recipient@example.test')).rejects.toMatchObject({ code: 'EMAIL_VERIFY_RATE_LIMIT' });
+  await rows("update rate_limits set window_start=now()-interval '301 seconds'");
+  expect((await complete(second, { email: 'recipient@example.test' })).status).toBe(202);
+});
+
+it('T3-01 does not reset the social identity budget with a new ticket or recipient', async () => {
+  enabled(); state.realTicketRate = true;
+  const first = await prepareSignup();
+  expect((await complete(first, { email: 'first@example.test' })).status).toBe(202);
+  const second = await prepareSignup();
+  expect((await complete(second, { email: 'second@example.test' })).status).toBe(429);
+  expect(state.email).toHaveBeenCalledTimes(1);
+  expect(await rows('select * from social_signup_emails')).toHaveLength(1);
 });

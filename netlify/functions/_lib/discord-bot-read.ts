@@ -369,7 +369,7 @@ async function pools(ctx: BotContext, command: string, options: Row) {
     const purpose = String(requestedGoal?.title || objective);
     const comfort = /confort|fiable|confiance|match/.test(purpose.toLowerCase());
     const ordered = [...rows].sort((a, b) => {
-      const score = (p: Row) => (comfort ? ['comfort', 'main', 'ready', 'confort'].includes(p.status) : ['work', 'working', 'developing'].includes(p.status)) ? 1 : 0;
+      const score = (p: Row) => comfort ? ({ lock: 2, pocket: 1 } as Row)[p.status] || 0 : ({ danger: 2, work: 1 } as Row)[p.status] || 0;
       return score(b) - score(a) || (comfort ? Number(b.games) - Number(a.games) : Number(a.games) - Number(b.games)) || String(a.champion).localeCompare(String(b.champion));
     });
     return message(ctx, 'Pistes de travail du pool', `Objectif : ${text(purpose, 250)}.\nRègle déterministe : ${comfort ? 'champions déclarés de confiance, puis pratique enregistrée décroissante' : 'champions déclarés en travail, puis pratique enregistrée croissante'}. Aucune recommandation de méta ou analyse adverse. À valider par le staff.`,

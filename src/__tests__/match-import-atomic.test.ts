@@ -1170,3 +1170,77 @@ describe('canonical champion names on import', () => {
 it.each(['FiddleSticks', 'Fiddlesticks', 'FIDDLESTICKS', 'fiddlesticks'])('R-I4 canonicalizes %s', name => {
   expect(canonicalChampion(name)).toBe('Fiddlesticks');
 });
+
+describe('T3-G1 — roster mutations commit with promotions and audit', () => {
+  const call = (handler: any, body: any) => handler(new Request('https://nxt5.example/test', {
+    method: 'POST', body: JSON.stringify({ teamId, ...body })
+  }), {} as any);
+  it.each(['create', 'update'])('rolls back %s, demotion and pool edits if the audit fails', async mode => {
+    const { default: create } = await import('../../netlify/functions/players-create');
+    const { default: update } = await import('../../netlify/functions/players-update');
+    const before = (await database.pg.query('select * from players order by id')).rows;
+    await database.pg.exec("alter table audit_logs add constraint reject_roster_audit check (action not in ('player.create','player.update'))");
+    try {
+      const response = await call(mode === 'create' ? create : update, {
+        playerId: roster[0].id, name: 'New main', riotId: 'NewMain#EUW', role: 'TOP', rosterStatus: 'MAIN'
+      });
+      expect(response.status).toBe(500);
+      expect((await database.pg.query('select * from players order by id')).rows).toEqual(before);
+    } finally { await database.pg.exec('alter table audit_logs drop constraint reject_roster_audit'); }
+    expect(database.statements.findIndex(q => /teams.*for update/.test(q))).toBeLessThan(database.statements.findIndex(q => /update players|insert into players/.test(q)));
+  });
+  it('computes automatic status under the lock, then atomically promotes a new main', async () => {
+    const { default: create } = await import('../../netlify/functions/players-create');
+    const sub = await call(create, { name: 'Automatic', riotId: 'Auto#EUW', role: 'TOP' });
+    expect(sub.status).toBe(200);
+    expect((await sub.json()).player.roster_status).toBe('SUB');
+    const main = await call(create, { name: 'Explicit', riotId: 'Main#EUW', role: 'TOP', rosterStatus: 'MAIN' });
+    expect(main.status).toBe(200);
+    expect((await database.pg.query("select name from players where team_id=$1 and role='TOP' and roster_status='MAIN'", [teamId])).rows).toEqual([{ name: 'Explicit' }]);
+    expect((await database.pg.query("select * from audit_logs where action='player.create'")).rows).toHaveLength(2);
+  });
+});
+
+it.each(['Wukong', 'FiddleSticks'])('T3-02 imports %s and changes side without touching source aliases', async alias => {
+  const args = importArgs();
+  args.match.info.participants[0].championName = alias;
+  args.laneAssignments.TOP = alias;
+  args.match.info.teams.forEach((team: any) => { team.objectives = { dragon: { kills: 1 }, baron: { kills: 0 }, tower: { kills: 3 } }; });
+  const match = await persistAnalyzedMatch(args);
+  const response = await manageMatches(new Request('https://nxt5.example/test', { method: 'POST', body: JSON.stringify({
+    action: 'side', teamId, matchId: match.id, allyTeamSide: 'RED', playerAssignments: args.playerAssignments
+  }) }), {} as any);
+  expect(response.status).toBe(200);
+  const stored = await storedMatch();
+  expect(stored.matches[0].side).toBe('Red Side');
+  expect(stored.matches[0].raw.info.participants[0].championName).toBe(alias);
+  expect(stored.participants.find((p: any) => p.raw.participantId === 1).champion).toBe(canonicalChampion(alias));
+});
+
+it('T3-03 persists rule 2 summaries at import without manufacturing a late CS milestone', async () => {
+  const args = importArgs();
+  args.match.timeline = { info: { frames: [{ timestamp: 660000, participantFrames: { '1': { minionsKilled: 70, jungleMinionsKilled: 10 } } }] } };
+  await persistAnalyzedMatch(args);
+  const stored = await storedMatch();
+  expect(stored.matches[0].raw.nxt5.timelineSummary).toMatchObject({ csRule: 2, csMilestones: { '1': { cs10: null } } });
+});
+
+it('T3-G1 serialises two requested main creations and returns an explicit main-role conflict', async () => {
+  const { default: create } = await import('../../netlify/functions/players-create');
+  const call = (name: string) => create(new Request('https://nxt5.example/test', { method: 'POST', body: JSON.stringify({ teamId, name, riotId: `${name}#EUW`, role: 'MID', rosterStatus: 'MAIN' }) }), {} as any);
+  const responses = await Promise.all([call('First'), call('Second')]);
+  expect(responses.map(r => r.status)).toEqual([200, 200]);
+  expect((await database.pg.query("select * from players where team_id=$1 and role='MID' and roster_status='MAIN'", [teamId])).rows).toHaveLength(1);
+  expect((await database.pg.query("select * from players where name in ('First','Second')")).rows).toHaveLength(2);
+  await database.pg.exec(`create function reject_main_for_test() returns trigger language plpgsql as $$ begin
+    raise unique_violation using constraint = 'idx_players_one_main_per_role'; end $$;
+    create trigger reject_main_for_test before insert on players for each row execute function reject_main_for_test()`);
+  try {
+    const response = await call('Rejected');
+    expect(response.status).toBe(409);
+    expect((await response.json()).error).toContain('titulaire');
+    expect((await database.pg.query("select * from players where name='Rejected'")).rows).toHaveLength(0);
+  } finally {
+    await database.pg.exec('drop trigger reject_main_for_test on players; drop function reject_main_for_test()');
+  }
+});

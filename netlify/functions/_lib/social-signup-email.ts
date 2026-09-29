@@ -3,9 +3,20 @@ import { sha256 } from './auth';
 import { sql } from './db';
 import { sendSocialSignupEmail } from './email';
 import { json } from './http';
+import { assertSubjectRateLimit } from './rate-limit';
 import { randomSocialValue, socialCookie, socialError, socialOrigin, SOCIAL_BROWSER_COOKIE, SOCIAL_TICKET_COOKIE } from './social-auth';
 
-export async function requestSocialSignupEmail(context: Context, email: string, displayName: string, legalVersion: string) {
+export async function requestSocialSignupEmail(context: Context, email: string, displayName: string, legalVersion: string, identity: { provider: string; subject: string }) {
+  try {
+    await assertSubjectRateLimit('email-verification-social-identity', `${identity.provider}:${identity.subject}`, { limit: 1, windowSeconds: 300 });
+    await assertSubjectRateLimit('email-verification-recipient', email, { limit: 1, windowSeconds: 300 });
+  } catch (err: any) {
+    if (err?.status === 429) {
+      err.code = 'EMAIL_VERIFY_RATE_LIMIT';
+      err.message = 'Attends quelques minutes avant de demander un nouvel e-mail de vérification.';
+    }
+    throw err;
+  }
   const token = randomSocialValue();
   const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
   // Both branches reserve the same data and retain the same cookies. Only the

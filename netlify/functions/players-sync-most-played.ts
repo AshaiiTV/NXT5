@@ -29,14 +29,20 @@ function currentSeasonStartTimestamp() {
 async function mapLimited(items, limit, mapper) {
   const output: any[] = [];
   let index = 0;
+  let failure;
   async function worker() {
-    while (index < items.length) {
+    while (!failure && index < items.length) {
       const currentIndex = index;
       index += 1;
-      output[currentIndex] = await mapper(items[currentIndex], currentIndex);
+      try {
+        output[currentIndex] = await mapper(items[currentIndex], currentIndex);
+      } catch (err) {
+        if (!failure || err.code === 'RIOT_RATE_LIMIT') failure = err;
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  if (failure) throw failure;
   return output;
 }
 
@@ -84,14 +90,15 @@ async function fetchCurrentSeasonSoloqMostPlayed(puuid, platform, championData) 
     try {
       const match = await fetchRiotMatchById(matchId, platform);
       const participant = match?.info?.participants?.find((row) => row.puuid === puuid);
-      if (!participant?.championId) return;
+      if (!participant?.championId) throw new Error('Participant absent de la partie Riot.');
       const key = Number(participant.championId);
       const current = stats.get(key) || { championId: key, championName: participant.championName, games: 0, wins: 0 };
       current.games += 1;
       if (participant.win) current.wins += 1;
       stats.set(key, current);
-    } catch {
-      // Keep the season signal honest: a failed match fetch is ignored, never replaced by mastery.
+    } catch (err) {
+      if (err.code === 'RIOT_RATE_LIMIT') throw err;
+      throw Object.assign(new Error('Synchronisation incomplète'), { code: 'RIOT_SYNC_INCOMPLETE' });
     }
   });
 
@@ -166,13 +173,14 @@ export default async function handler(request: Request, context: Context): Promi
 
         results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, source: 'ranked_solo_history' });
       } catch (err) {
+        const message = err.code === 'RIOT_RATE_LIMIT' ? err.message : 'Synchronisation incomplète';
         await sql`
           update players
-          set status = ${err.message || 'Analyse Riot impossible'},
+          set status = ${message},
               updated_at = now()
           where id = ${player.id}
         `;
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: false, error: err.message || 'Analyse impossible', code: err.code || null, retryAfter: err.retryAfter || null });
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: false, error: message, code: err.code || null, retryAfter: err.retryAfter || null });
         if (err.code === 'RIOT_RATE_LIMIT') break;
       }
     }

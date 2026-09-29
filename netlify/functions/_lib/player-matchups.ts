@@ -1,3 +1,4 @@
+import { canonicalChampion as sharedChampion } from '../../../shared/champions.js';
 import { sql } from './db';
 import { assertSchemaReady } from './migrations';
 
@@ -46,7 +47,7 @@ function uuid(value: unknown): string {
 }
 
 export function canonicalChampion(value: unknown): string {
-  return String(value ?? '').trim().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  return sharedChampion(value).toLowerCase();
 }
 
 function champion(value: unknown): string {

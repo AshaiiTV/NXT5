@@ -224,3 +224,37 @@ describe("Tour 2 — statistiques", () => {
     if (r.root.findAllByType("img").length) expect(img().props.src).toMatch(/^\/\.netlify\/functions\/asset-proxy\?url=/);
   });
 });
+
+it.each([
+  [660000, { minionsKilled: 70, jungleMinionsKilled: 10 }, null],
+  [600000, { minionsKilled: 70 }, null],
+  [600000, { minionsKilled: 70, jungleMinionsKilled: Infinity }, null],
+  [605001, { minionsKilled: 70, jungleMinionsKilled: 10 }, null],
+  [605000, { minionsKilled: 70, jungleMinionsKilled: 10 }, 80],
+  [600000, { minionsKilled: 0, jungleMinionsKilled: 0 }, 0],
+])('T3-03 keeps server, detail, goal and PNG CS10 consistent (%s)', async (timestamp, participantFrame, expected) => {
+  const { buildNxt5TimelineSummary } = await import('../../netlify/functions/_lib/analytics');
+  const { csAtMinute } = await import('../utils/match-timeline.js');
+  const raw = { info: { gameDuration: 1800, participants: [{ participantId: 1, championName: 'Ahri' }] }, timeline: { info: { frames: [{ timestamp, participantFrames: { '1': participantFrame } }] } } };
+  const summary = buildNxt5TimelineSummary(raw);
+  expect(summary.csRule).toBe(2);
+  expect(summary.csMilestones['1'].cs10).toBe(expected);
+  const participant = { team_key: 'ALLY', role: 'TOP', raw: { participantId: 1 } };
+  for (const source of [raw, { info: raw.info, nxt5: { timelineSummary: summary } }]) {
+    const match = { id: 'cs', participants: [participant], raw: source };
+    const row = { ...participant, match };
+    expect(csAtMinute(row, 10)).toBe(expected);
+    expect(goalMetricValue(row, 'cs10')).toBe(expected);
+    expect(buildTrendsPngData([match]).roles.find(role => role.role === 'TOP').cs10).toEqual({ value: expected, count: expected === null ? 0 : 1 });
+  }
+});
+
+it('N3-01 shares canonical notebook keys between browser and server', async () => {
+  const { championKey } = await import('../utils/matchup-notebook.js');
+  const { canonicalChampion, validateMatchupRequest } = await import('../../netlify/functions/_lib/player-matchups');
+  for (const [alias, expected] of [['Wukong','monkeyking'],['MonkeyKing','monkeyking'],['FiddleSticks','fiddlesticks'],["Kai’Sa",'kaisa']]) {
+    expect(championKey(alias)).toBe(expected);
+    expect(canonicalChampion(alias)).toBe(expected);
+    expect(validateMatchupRequest({ action: 'list', teamId: '00000000-0000-4000-8000-000000000001', playerId: '00000000-0000-4000-8000-000000000002', champion: alias }).champion).toBe(expected);
+  }
+});

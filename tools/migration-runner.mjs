@@ -31,10 +31,13 @@ export async function loadMigrations() {
     ['social-email-signup-20260929-v1', '../database/migrations/20260929_social_email_signup.sql'],
     ['report-source-20260929-v1', '../database/migrations/20260929_report_source.sql'],
     ['report-source-v3-20260929-v1', '../database/migrations/20260929_report_source_v3.sql'],
+    ['canonical-champions-20260929-v1', '../database/migrations/20260929_canonical_champions.mjs'],
+    ['timeline-cs-rule-20260929-v2', '../database/migrations/20260929_timeline_cs_rule.mjs'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
-    const sql = await readFile(new URL(file, import.meta.url), 'utf8');
-    return { key, sql, checksum: createHash('sha256').update(sql).digest('hex') };
+    const source = await readFile(new URL(file, import.meta.url), 'utf8');
+    const script = file.endsWith('.mjs') ? await import(new URL(file, import.meta.url).href) : null;
+    return { key, sql: script ? script.sql : source, run: script?.run, checksum: createHash('sha256').update(source).digest('hex') };
   }));
 }
 
@@ -59,7 +62,8 @@ export async function applyMigrations(client, migrations) {
         if (result.rows[0].checksum !== migration.checksum) throw new Error(`Migration already applied with a different checksum: ${migration.key}`);
         continue;
       }
-      await client.query(migration.sql);
+      if (migration.sql) await client.query(migration.sql);
+      if (migration.run) await migration.run(client);
       await client.query('insert into app_schema_migrations (migration_key, checksum) values ($1, $2)', [migration.key, migration.checksum]);
       applied.push(migration.key);
     }

@@ -1,3 +1,4 @@
+import { canonicalChampion } from '../../../shared/champions.js';
 import { sql } from './db';
 import { championPoolRefreshQueries } from './analytics';
 import { assertImportPlayerAssignments } from './import-validation';
@@ -43,7 +44,7 @@ export function prepareMatchSideChange({ match, participants, archive, allyTeamS
     seenParticipantIds.add(participantId);
     const originals = originalParticipants.filter(original => Number(original.participantId) === participantId);
     const teamId = Number(raw.teamId ?? raw.participant?.teamId ?? originals[0]?.teamId);
-    if (![100, 200].includes(teamId) || originals.some(original => Number(original.teamId) !== teamId || original.championName !== participant.champion)) unavailable();
+    if (![100, 200].includes(teamId) || originals.some(original => Number(original.teamId) !== teamId || canonicalChampion(original.championName) !== canonicalChampion(participant.champion))) unavailable();
     if (participant.team_key !== (teamId === previousTeamId ? 'ALLY' : 'ENEMY')) unavailable();
     return { id: participant.id, team_key: teamId === allyTeamId ? 'ALLY' : 'ENEMY', role: participant.role, player_id: null as string | null };
   });

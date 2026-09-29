@@ -1,4 +1,4 @@
-import { MILESTONE_TOLERANCE_MS } from '../../shared/timeline-milestones.js';
+import { csFromTimelineFrames } from '../../shared/timeline-milestones.js';
 export function csAtMinute(row, minute) {
   const participantId = Number(row?.raw?.participantId || row?.participantId || 0);
   const match = row?.match;
@@ -12,8 +12,5 @@ export function csAtMinute(row, minute) {
     const value = match?.raw?.nxt5?.timelineSummary?.csMilestones?.[String(participantId)]?.[`cs${minute}`];
     return value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)) ? Number(value) : null;
   }
-  const frame = frames.find((item) => Number(item.timestamp || 0) >= target && Number(item.timestamp || 0) <= target + MILESTONE_TOLERANCE_MS);
-  const participant = frame?.participantFrames?.[String(participantId)];
-  return Number.isFinite(participant?.minionsKilled) && Number.isFinite(participant?.jungleMinionsKilled)
-    ? participant.minionsKilled + participant.jungleMinionsKilled : null;
+  return csFromTimelineFrames(frames, participantId, minute);
 }

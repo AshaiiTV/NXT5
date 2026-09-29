@@ -62,55 +62,39 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     const promotingToMain = rosterStatus === 'MAIN' && LANE_ROLES.has(playerRole);
-    const updateStatus: PlayerRosterStatus = promotingToMain ? 'SUB' : rosterStatus;
-
-    const updated = await sql`
-      update players
-      set name = ${name},
-          riot_id = ${riotId},
-          opgg_url = ${opggUrl},
-          roster_status = ${updateStatus},
-          updated_at = now()
-      where id = ${playerId}
-        and team_id = ${teamId}
-      returning *
-    `;
-    let player = updated[0];
-
-    if (promotingToMain) {
-      await sql`
-        update players
-        set roster_status = 'SUB', updated_at = now()
-        where team_id = ${teamId}
-          and role = ${playerRole}
-          and id <> ${playerId}
-          and roster_status = 'MAIN'
-      `;
-      const promoted = await sql`
-        update players
-        set roster_status = 'MAIN', updated_at = now()
-        where id = ${playerId}
-          and team_id = ${teamId}
-        returning *
-      `;
-      player = promoted[0];
-    }
-
-    await sql`
-      update champion_pool
-      set player_name = ${name}
-      where player_id = ${playerId}
-        and team_id = ${teamId}
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'player.update', 'player', ${playerId}, ${JSON.stringify({ teamId, riotId, role: player.role, rosterStatus })}::jsonb)
-    `;
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t
+         where t.id = ${teamId} and (t.owner_id = ${user.id} or exists (
+           select 1 from team_members where team_id = t.id and user_id = ${user.id}
+             and role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board')))`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from players
+         where id = ${playerId} and team_id = ${teamId} and role = ${existing[0].role}
+           and roster_status is not distinct from ${existing[0].roster_status}`,
+      ...(promotingToMain ? [tx`update players set roster_status = 'SUB', updated_at = now()
+         where team_id = ${teamId} and role = ${playerRole} and id <> ${playerId} and roster_status = 'MAIN'`] : []),
+      tx`update players set name = ${name}, riot_id = ${riotId}, opgg_url = ${opggUrl},
+           roster_status = ${rosterStatus}, updated_at = now()
+         where id = ${playerId} and team_id = ${teamId}`,
+      tx`update champion_pool set player_name = ${name} where player_id = ${playerId} and team_id = ${teamId}`,
+      tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+         values (${user.id}, 'player.update', 'player', ${playerId}, ${JSON.stringify({ teamId, riotId, role: playerRole, rosterStatus })}::jsonb)`,
+      tx`select * from players where id = ${playerId} and team_id = ${teamId}`
+    ]);
+    const player = results[results.length - 1][0];
 
     return json({ player });
   } catch (err) {
-    if (String(err.message || '').includes('duplicate key')) err.message = 'Ce Riot ID existe déjà dans cette team.';
+    if (err.constraint === 'idx_players_one_main_per_role') {
+      err.status = 409;
+      err.message = 'Un titulaire occupe déjà ce poste. Recharge l’équipe puis réessaie.';
+    } else if (err.code === '23505') {
+      err.status = 409;
+      err.message = 'Ce Riot ID existe déjà dans cette team.';
+    } else if (err.code === '22012') {
+      err.status = 409;
+      err.message = 'Le profil ou les accès ont changé. Recharge l’équipe puis réessaie.';
+    }
     return handleError(err);
   }
 }

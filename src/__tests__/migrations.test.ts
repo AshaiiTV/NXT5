@@ -394,10 +394,66 @@ describe('B2/B5 report source upgrade', { timeout: 30_000 }, () => {
     await db.query("insert into users(id,account_name,name,password_hash) values($1,'report-owner','Owner','unused')", [userId]);
     const team: any = (await db.query("insert into teams(owner_id,name,tag) values($1,'Audit','AUD') returning id", [userId])).rows[0];
     await db.query("insert into reports(team_id,title,content) values($1,'Review — Audit — EUW1_1','Notes humaines à conserver')", [team.id]);
-    expect(await applyMigrations(client, migrations)).toEqual(['report-source-20260929-v1', 'report-source-v3-20260929-v1']);
+    expect(await applyMigrations(client, migrations)).toEqual(['report-source-20260929-v1', 'report-source-v3-20260929-v1', 'canonical-champions-20260929-v1', 'timeline-cs-rule-20260929-v2']);
     expect((await db.query('select source,content from reports')).rows).toEqual([{ source: 'manual', content: 'Notes humaines à conserver' }]);
     expect(await applyMigrations(client, migrations)).toEqual([]);
     await expect(db.query("insert into reports(team_id,title,content,source) values($1,'Title','Text','invalid')", [team.id])).rejects.toMatchObject({ code: '23514' });
     expect((await db.query("select indexdef from pg_indexes where indexname='idx_reports_auto_match'")).rows).toHaveLength(1);
   });
 });
+
+it('N3-01 canonicalises historical champions and notebook keys without changing raw, with collision preservation and idempotence', async () => {
+  const { db, client, migrations } = await fixture();
+  const index = migrations.findIndex(m => m.key === 'canonical-champions-20260929-v1');
+  await applyMigrations(client, migrations.slice(0, index));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('canon','Canon','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'Canonical','CAN') returning id", [user])).rows[0].id;
+  const player = (await db.query("insert into players(team_id,name,role) values($1,'Player','MID') returning id", [team])).rows[0].id;
+  const raw = { info: { participants: [{ championName: 'Wukong' }] } };
+  const match = (await db.query("insert into matches(team_id,game_id,raw) values($1,'canon',$2::jsonb) returning id", [team, JSON.stringify(raw)])).rows[0].id;
+  await db.query("insert into match_participants(match_id,player_id,team_key,champion,raw) values($1,$2,'ALLY','Wukong',$3::jsonb),($1,null,'ENEMY','FiddleSticks',$3::jsonb)", [match, player, JSON.stringify(raw)]);
+  const pool = (await db.query(`insert into champion_pool(team_id,player_id,player_name,champion,source,status) values
+    ($1,$2,'Player','Wukong','manual','lock'),($1,$2,'Player','MonkeyKing','riot','work') returning id,champion`, [team, player])).rows;
+  await db.query("insert into composition_types(team_id,title,slots) values($1,'Keep slot',$2::jsonb)", [team, JSON.stringify({ MID: { poolId: pool.find(p => p.champion === 'MonkeyKing')!.id } })]);
+  for (const [champion, opponent, note] of [['wukong','fiddlesticks','First plan'],['monkeyking','fiddlesticks','Second plan']]) {
+    await db.query("insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,plan) values($1,$2,$3,$4,'MID',$5::jsonb)", [team, player, champion, opponent, JSON.stringify({ lanePlan: note, vigilance: '', toKeep: '' })]);
+  }
+  await applyMigrations(client, migrations);
+  expect((await db.query('select champion from match_participants order by team_key')).rows).toEqual([{ champion: 'MonkeyKing' }, { champion: 'Fiddlesticks' }]);
+  expect((await db.query('select raw from matches')).rows[0].raw).toEqual(raw);
+  expect((await db.query('select raw from match_participants')).rows.every(r => JSON.stringify(r.raw) === JSON.stringify(raw))).toBe(true);
+  expect((await db.query('select champion,source,status from champion_pool')).rows).toEqual([{ champion: 'MonkeyKing', source: 'manual', status: 'lock' }]);
+  expect((await db.query('select slots from composition_types')).rows[0].slots.MID.poolId).toBe(pool.find(p => p.champion === 'Wukong')!.id);
+  const notebooks = (await db.query('select * from player_matchup_notebooks')).rows;
+  expect(notebooks).toHaveLength(1);
+  expect(notebooks[0].champion).toBe('monkeyking');
+  expect(notebooks[0].plan.lanePlan).toContain('First plan');
+  expect(notebooks[0].plan.lanePlan).toContain('Second plan');
+  expect((await db.query('select * from player_matchup_canonical_backups')).rows).toHaveLength(2);
+  await client.query('begin');
+  await migrations[index].run!(client);
+  await client.query('commit');
+  expect((await db.query('select * from player_matchup_notebooks')).rows).toEqual(notebooks);
+  expect(await applyMigrations(client, migrations)).toEqual([]);
+  await db.query('delete from player_matchup_notebooks');
+  expect((await db.query('select * from player_matchup_canonical_backups')).rows).toHaveLength(0);
+}, 30_000);
+
+it('T3-03 backfills only summaries with retained frames and is idempotent', async () => {
+  const { db, client, migrations } = await fixture();
+  await applyMigrations(client, migrations.slice(0, -1));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('cs','CS','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'CS','CS') returning id", [user])).rows[0].id;
+  const base = { info: { gameDuration: 1800, participants: [{ participantId: 1, championName: 'Wukong' }] }, nxt5: { timelineSummary: { csMilestones: { '1': { cs10: 80 } }, wards: [{ x: 1 }] } } };
+  const framed = { ...base, timeline: { info: { frames: [{ timestamp: 660000, participantFrames: { '1': { minionsKilled: 70, jungleMinionsKilled: 10 } } }] } } };
+  await db.query("insert into matches(team_id,game_id,raw) values($1,'legacy',$2::jsonb),($1,'frames',$3::jsonb)", [team, JSON.stringify(base), JSON.stringify(framed)]);
+  await applyMigrations(client, migrations);
+  const rows = (await db.query('select game_id,raw from matches order by game_id')).rows;
+  expect(rows[0].raw.nxt5.timelineSummary).toMatchObject({ csRule: 2, csMilestones: { '1': { cs10: null, cs20: null } }, wards: [{ x: 1 }] });
+  expect(rows[0].raw.timeline).toEqual(framed.timeline);
+  expect(rows[1].raw).toEqual(base);
+  await client.query('begin');
+  await migrations.at(-1)!.run!(client);
+  await client.query('commit');
+  expect((await db.query('select game_id,raw from matches order by game_id')).rows).toEqual(rows);
+}, 30_000);

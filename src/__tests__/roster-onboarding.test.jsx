@@ -203,3 +203,38 @@ describe("temporary team invitations", () => {
     expect(action(renderer, "Révoquer les invitations").props.disabled).toBe(false);
   });
 });
+
+it('T3-G4 selects and refreshes the created team after a partial import, then retries only missing players', async () => {
+  const settings = { ...props(), data: { teams: [], players: [], matches: [] }, selectedTeamId: '', setupOnly: true };
+  const { renderer } = await render(settings);
+  field(renderer, 'Nom de l’équipe', 'Created team');
+  field(renderer, 'Tag', 'CT');
+  field(renderer, 'Joueurs à ajouter (facultatif)', 'First#EUW\nSecond#EUW\nThird#EUW');
+  apiFetch.mockResolvedValueOnce({ team }).mockResolvedValueOnce({ player: { id: 'one' } }).mockRejectedValueOnce(new Error('Player failed'));
+  const submit = () => renderer.root.findAllByType('form').find(form => form.findAllByType(Button).some(b => ['Créer l’équipe','Reprendre les joueurs manquants'].includes(b.props.children)));
+  await act(async () => submit().props.onSubmit({ preventDefault() {} }));
+  expect(settings.setSelectedTeamId).toHaveBeenCalledWith(team.id);
+  expect(settings.refreshAll).toHaveBeenCalledWith({ teamId: team.id });
+  expect(content(renderer)).toContain('Reprendre les joueurs manquants');
+  expect(content(renderer)).toContain('Second#EUW, Third#EUW');
+  apiFetch.mockResolvedValue({ player: { id: 'saved' } });
+  await act(async () => submit().props.onSubmit({ preventDefault() {} }));
+  expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === 'teams-create')).toHaveLength(1);
+  expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === 'players-create').map(([, options]) => JSON.parse(options.body).riotId)).toEqual(['First#EUW','Second#EUW','Second#EUW','Third#EUW']);
+  expect(settings.refreshAll).toHaveBeenCalledTimes(2);
+});
+
+it.each(['owner','captain','manager','coach','assistant','analyst','board','player'])('T3-G5 aligns management permissions for %s', async role => {
+  const settings = { ...props(), managementOnly: true, currentMember: { role }, user: { id: role === 'owner' ? 'captain' : 'someone-else' } };
+  settings.data.teamMembers = [{ id: 'm', team_id: team.id, user_id: 'member', name: 'Member', role: 'player' }];
+  const { renderer } = await render(settings);
+  const panel = renderer.root.findByType(TeamManagementPanel);
+  expect(panel.props.canEditIdentity).toBe(['owner','captain','manager'].includes(role));
+  expect(panel.props.canInvite).toBe(['owner','captain','manager'].includes(role));
+  expect(panel.props.canManageMembers).toBe(['owner','captain'].includes(role));
+  expect(panel.props.canManageRoster).toBe(role !== 'player');
+  expect(panel.props.canDeleteTeam).toBe(role === 'owner');
+  const invite = renderer.root.findAllByType(Button).find(b => b.props.children === 'Créer et copier un lien');
+  expect(invite.props.disabled).toBe(!panel.props.canInvite);
+  expect(renderer.root.findByProps({ 'aria-label': 'Accès de Member' }).props.disabled).toBe(!panel.props.canManageMembers);
+});

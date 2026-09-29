@@ -1,3 +1,4 @@
+import { csFromTimelineFrames } from '../../../shared/timeline-milestones.js';
 import { canonicalChampion } from '../../../shared/champions.js';
 import { assertSchemaReady } from './migrations';
 import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
@@ -99,12 +100,8 @@ export function buildNxt5TimelineSummary(match) {
   for (const participant of participants) {
     const participantId = Number(participant.participantId || 0);
     const csAt = (minute) => {
-      const target = Number(minute || 0) * 60 * 1000;
       if (duration < minute * 60) return null;
-      const frame = frames.find((item) => Number(item.timestamp || 0) >= target);
-      const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
-      if (!participantFrame) return null;
-      return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
+      return csFromTimelineFrames(frames, participantId, minute);
     };
     csMilestones[String(participantId)] = {
       participantId,
@@ -150,7 +147,7 @@ export function buildNxt5TimelineSummary(match) {
     })
     .filter(Boolean));
 
-  return { available: true, frameCount: frames.length, csMilestones, wards, wardCount: wards.length };
+  return { available: true, csRule: 2, frameCount: frames.length, csMilestones, wards, wardCount: wards.length };
 }
 
 function buildNxt5TimelineEvents(match) {

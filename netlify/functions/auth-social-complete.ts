@@ -41,7 +41,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!isValidEmail(email) || email.length > 160) throw socialError(400, 'SOCIAL_EMAIL', 'Adresse e-mail invalide.');
     if (body.acceptLegal !== true || body.legalVersion !== LEGAL_VERSION) throw socialError(400, 'LEGAL_ACCEPTANCE_REQUIRED', 'Accepte les CGU et le règlement en vigueur et reconnais avoir lu la politique de confidentialité.');
     const verified = pending.email_verified && normalizeEmail(pending.email) === email;
-    if (!verified) return await requestSocialSignupEmail(context, email, displayName, LEGAL_VERSION);
+    if (!verified) return await requestSocialSignupEmail(context, email, displayName, LEGAL_VERSION, pending);
     if ((await sql`select id from users where lower(email) = ${email} limit 1`).length) throw socialError(409, 'SOCIAL_EMAIL_EXISTS', 'Un compte utilise déjà cette adresse. Connecte-toi à ce compte puis associe cette méthode dans Paramètres.');
     const userId = crypto.randomUUID();
     const result = await sql`select complete_social_signup(
