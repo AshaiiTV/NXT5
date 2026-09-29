@@ -29,7 +29,7 @@ export function useTeamCreation({ setSelectedTeamId, refreshAll, pushToast }) {
         } catch (err) {
           // A lost response can leave this player already saved. Other conflicts
           // (main role occupied or permissions changed) still require attention.
-          if (err.status !== 409 || err.message !== "Ce Riot ID existe déjà dans cette team.") throw err;
+          if (err.status !== 409 || err.code !== "PLAYER_RIOT_ID_EXISTS") throw err;
         }
         current.next += 1;
         setPending({ ...current });

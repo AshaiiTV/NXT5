@@ -82,6 +82,7 @@ export default async function handler(request: Request, context: Context): Promi
       err.message = 'Un titulaire occupe déjà ce poste. Recharge l’équipe puis réessaie.';
     } else if (err.code === '23505') {
       err.status = 409;
+      err.code = 'PLAYER_RIOT_ID_EXISTS';
       err.message = 'Ce Riot ID existe déjà dans cette team.';
     } else if (err.code === '22012') {
       err.status = 409;

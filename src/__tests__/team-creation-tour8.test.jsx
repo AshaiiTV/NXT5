@@ -7,7 +7,7 @@ vi.mock('../api/client.js', () => ({ apiFetch: vi.fn() }));
 vi.mock('../app/routing.js', () => ({ openAppPath: vi.fn() }));
 const team = { id: 'created', name: 'Équipe' };
 const players = [{ name: 'First', riotId: 'First#EUW' }, { name: 'Second', riotId: 'Second#EUW' }];
-const duplicate = () => Object.assign(new Error('Ce Riot ID existe déjà dans cette team.'), { status: 409, code: '23505' });
+const duplicate = () => Object.assign(new Error('Ce Riot ID existe déjà dans cette team.'), { status: 409, code: 'PLAYER_RIOT_ID_EXISTS' });
 let renderer;
 afterEach(() => { act(() => renderer?.unmount()); vi.resetAllMocks(); });
 function mount() {
