@@ -115,7 +115,12 @@ export async function run(client) {
         .slice(0, MAX_PLAN_TEXT).replace(/[\uD800-\uDBFF]$/, '')]));
     const experiments = [];
     let matchIds = new Set();
-    for (const exp of new Map(entries.flatMap(row => row.experiments).reverse().map(exp => [exp.id, exp])).values()) {
+    // Entries are newest first: keep their order and the newest duplicate's data.
+    const byId = new Map();
+    for (const exp of entries.flatMap(row => row.experiments)) {
+      if (!byId.has(exp.id)) byId.set(exp.id, exp);
+    }
+    for (const exp of byId.values()) {
       const combined = new Set([...matchIds, ...exp.matchIds.map(id => id.toLowerCase())]);
       if (experiments.length >= MAX_EXPERIMENTS || exp.matchIds.length > MAX_EXPERIMENT_MATCHES || combined.size > MAX_NOTEBOOK_MATCHES) continue;
       experiments.push(exp);

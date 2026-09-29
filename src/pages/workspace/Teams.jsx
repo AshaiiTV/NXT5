@@ -108,6 +108,10 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const saving = localSaving || teamCreation.busy;
   const [syncingPlayerId, setSyncingPlayerId] = useState("");
   const [teamSetupOpen, setTeamSetupOpen] = useState(false);
+  const [dismissedCreationId, setDismissedCreationId] = useState(null);
+  const pageRef = useRef(null);
+  const setupRef = useRef(null);
+  const focusSetup = useRef(false);
   const [riotCooldownUntil, setRiotCooldownUntil] = useState(0);
   const [nowTick, setNowTick] = useState(Date.now());
   const [teamEdit, setTeamEdit] = useState({ name: "", tag: "", avatarDataUrl: "", avatarZoom: 1, avatarX: 50, avatarY: 50 });
@@ -122,6 +126,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const inviteCodes = selectedTeam ?(data.inviteCodes || []).filter((code) => code.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
   const hasTeams = data.teams.length > 0;
+  const showSetup = !hasTeams || teamSetupOpen || setupOnly || (pendingCreation && dismissedCreationId !== pendingCreation.team.id);
   const owner = Boolean(user?.id && selectedTeam?.owner_id === user.id);
   const accessRole = String(currentMember?.role || "").toLowerCase();
   const canManageRoster = owner || canStaffManage(accessRole);
@@ -168,6 +173,26 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       setTeamSetupOpen(false);
     }
   }, [teamCreation.completed]);
+
+  useEffect(() => {
+    if (showSetup && focusSetup.current) {
+      focusSetup.current = false;
+      setupRef.current?.querySelector('button[type="submit"]')?.focus();
+    }
+  }, [showSetup]);
+
+  function closeSetup() {
+    setTeamSetupOpen(false);
+    setDismissedCreationId(pendingCreation?.team.id || null);
+    openAppPath("/equipes");
+    pageRef.current?.focus({ preventScroll: true });
+  }
+
+  function abandonCreation() {
+    if (saving || !teamCreation.abandon()) return;
+    setTeamForm({ name: "", tag: "", region: "EUW", multiOpgg: "" });
+    closeSetup();
+  }
 
   function createTeam(event) {
     event.preventDefault();
@@ -464,9 +489,10 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && !setupOnly && <>
-      {canManageRoster && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
-      {teamSetupOpen && <Button type="button" variant="ghost" icon={X} onClick={() => { setTeamSetupOpen(false); openAppPath("/equipes"); }}>Fermer les formulaires</Button>}
+  return <div ref={pageRef} tabIndex={-1} aria-label="Équipe" className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && <>
+      {canManageRoster && !setupOnly && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
+      {showSetup && <Button type="button" variant="ghost" icon={X} disabled={saving} onClick={closeSetup}>Fermer les formulaires</Button>}
+      {pendingCreation && !showSetup && <Button type="button" variant="ghost" onClick={() => { focusSetup.current = true; setTeamSetupOpen(true); }}>Reprendre l’import de joueurs</Button>}
     </>}</PageHeader>
     {!hasTeams && <Surface className="mb-5 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -480,8 +506,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
         {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter les joueurs", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une partie", "Retrouve son résultat, ses statistiques et les points à discuter."]].map(([number, title, text]) => <div key={title} className="team-start-step"><p className="text-sm font-semibold text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
       </div>
     </Surface>}
-    <div className={cx("teams-workspace-layout", hasTeams && (teamSetupOpen || pendingCreation) && !setupOnly && "has-roster-setup")}>
-      {(!hasTeams || teamSetupOpen || pendingCreation || setupOnly) && <div className="team-setup-forms">
+    <div className={cx("teams-workspace-layout", hasTeams && showSetup && !setupOnly && "has-roster-setup")}>
+      {showSetup && <div ref={setupRef} className="team-setup-forms">
         <Surface>
           <h3 className="text-xl font-black text-white">Créer une équipe</h3>
           <p className="mt-1 text-sm text-slate-300">Pour organiser les joueurs et retrouver les parties de ton équipe.</p>
@@ -495,6 +521,10 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
             </>}
             {pendingCreation && <p role="status" className="break-words text-sm text-slate-300">L’équipe {pendingCreation.team.name} est créée. Joueurs restant à ajouter : {pendingCreation.players.slice(pendingCreation.next).map(player => player.riotId).join(", ")}.</p>}
             <Button type="submit" disabled={saving} icon={saving ? Loader2 : Plus} className="w-full">{pendingCreation ? "Reprendre les joueurs manquants" : "Créer l’équipe"}</Button>
+            {pendingCreation && <>
+              <p className="text-sm text-slate-300">L’abandon conserve l’équipe et les joueurs déjà ajoutés.</p>
+              <Button type="button" variant="ghost" disabled={saving} onClick={abandonCreation} className="w-full">Abandonner l’import restant</Button>
+            </>}
           </form>
         </Surface>
 

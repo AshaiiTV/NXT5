@@ -503,3 +503,53 @@ Avant correction, les huit nouveaux cas exécutés seuls donnent **5 échecs et 
 | Constat | Correction | Régression |
 |---|---|---|
 | T7-01 — une composition dont un pick a été supprimé ne pouvait plus être enregistrée (HTTP 400, aucune commande pour vider l’emplacement) | `composition-types-manage.ts` ne refuse plus les références absentes : un joueur ou un pick qui n’appartient pas (ou plus) à l’équipe vide simplement l’emplacement. Aucune référence étrangère n’est jamais stockée ; la validation de forme des emplacements (rôles, UUID, champs) reste stricte. | `audit-tour5-server.test.ts` : « T7-01 … stays editable » et références étrangères jamais stockées (création et modification). |
+
+## Tour 8 — contre-vérification et corrections
+
+Travail dans `fix8`, branche `claude/fix8-20260929`, depuis **`6452d38`**, identique à `claude/audit-croise-20260929` au début de l’intervention. Source Claude : `/Users/sachadegouzon/Documents/NXT5/.claude/runs/audit8-claude.md` ; aucun constat GPT signalé pour ce tour. Consignes locales, `/Users/sachadegouzon/Documents/Codex/AGENTS.md` et charte canonique consultées en lecture seule. Aucun commit, push, installation de dépendance, migration distante ni modification hors de ce checkout.
+
+### Contre-vérification et preuves
+
+Les références `fichier:ligne` de cette table désignent **la base `6452d38`, avant correction**. Les anciennes lignes de `useTeamCreation` citées par l’audit ne correspondent plus à ce fichier extrait en hook ; la vérification porte sur le code effectivement présent.
+
+| Constat | Verdict et preuve | Correction et régression |
+| --- | --- | --- |
+| **R8-01 — ordre et priorité des essais** | **Confirmé.** `database/migrations/20260929_canonical_champions.mjs:101` charge les carnets du plus récent au plus ancien. `:118` inverse toute la liste avant construction du `Map` : une mise à jour de valeur ne change pas sa position d’insertion. Un carnet alias seul est donc inversé ; les anciens essais uniques passent avant les récents lors des plafonds à `:120`. Nuance : un carnet seul déjà canonique est ignoré à `:106` et n’est pas affecté ; la valeur d’un doublon venait déjà du carnet récent, contrairement à son ordre. | [Migration](../database/migrations/20260929_canonical_champions.mjs) : parcourir dans l’ordre existant, insérer chaque ID uniquement à sa première occurrence, puis appliquer les plafonds. [Test R8-01](../src/__tests__/migrations.test.ts) sur PGlite : carnet alias seul `[A,B,C]`, fusion avec doublon modifié, plafond de 20 essais et plafond de 200 parties. Vérification de l’ordre exact, de la valeur récente, du validateur réel, de tous les originaux sauvegardés et de l’idempotence SQL/registre. |
+| **R8-02 — reprise sans sortie** | **Confirmé.** `src/hooks/useTeamCreation.js:27` échoue avant l’incrément à `:28` ; le `catch` à `:36` conserve l’opération sans action d’abandon dans l’objet à `:49`. `src/pages/workspace/Teams.jsx:484` force l’affichage tant que `pendingCreation` existe, indépendamment de la fermeture ; `:469` masque même « Fermer les formulaires » lorsque `teamSetupOpen` est faux. `netlify/functions/players-create.ts:80`, `:83` et `:86` distinguent trois motifs de 409, dont seul le Riot ID déjà présent à `:85` permet de considérer le joueur ajouté. | [Hook](../src/hooks/useTeamCreation.js) : le conflit 409 avec ce message précis avance vers le joueur suivant ; les autres conflits restent des erreurs. `abandon()` efface `operation` et `pending`, sans requête de suppression, et refuse d’agir pendant une opération. [Teams](../src/pages/workspace/Teams.jsx) : abandon explicite avec texte sur la conservation des données, fermeture effective sans perdre la reprise, action de réouverture, focus rendu à la page puis au bouton de reprise. [Tests du contrôleur](../src/__tests__/team-creation-tour8.test.jsx) : réponse perdue puis doublon, 403/409 persistants, abandon puis nouvelle création, verrou pendant création et actualisation. [Test du composant](../src/__tests__/roster-onboarding.test.jsx) : fermeture/réouverture, état conservé, focus, boutons désactivés pendant la requête, abandon sans suppression et formulaire suivant vide. |
+| **R8-03 — diagnostic serveur publié et enregistré** | **Confirmé.** `netlify/functions/players-sync-most-played.ts:189` accepte tout statut vrai, y compris 500/502 ; `:193` enregistre ce message et `:204` le renvoie. `_lib/riot.ts:109` transforme les refus de clé 401/403 Riot en 502 NXT5 avec message amont ; `_lib/http.ts:105` et `:111` réservent au contraire les messages 5xx à `publicMessage`. | [Synchronisation](../netlify/functions/players-sync-most-played.ts) : message original pour les statuts entiers 400–499 et `RIOT_RATE_LIMIT`, sinon `publicMessage` ou « Synchronisation incomplète ». La collecte `RIOT_SYNC_INCOMPLETE` reste générique. [Tests R8-03 et R6-02](../src/__tests__/audit-tour5-server.test.ts) : 502 « Forbidden », 500 de configuration, 502 avec message public ; contrôle du HTTP 200 du lot, du message en résultat et en base, des statistiques et du pool inchangés. L’attente du tour 6 qui exposait un 502 brut est corrigée ; les diagnostics 400/404, historique vide et rate-limit restent couverts. |
+| **R8-04 — mémoïsation invalidée** | **Confirmé, portée performance limitée.** `src/hooks/useTeamCreation.js:13` recrée la fonction et `:49` recrée l’objet à chaque rendu. Cet objet est une dépendance de la page mémoïsée dans `src/AppContent.jsx:361`. Cela invalide systématiquement ce cache, sans prouver à lui seul un ralentissement perceptible. | [Hook](../src/hooks/useTeamCreation.js) : `create` et `abandon` dans `useCallback`, objet public dans `useMemo`. [Test R8-04](../src/__tests__/team-creation-tour8.test.jsx) : identité conservée à propriétés stables, actualisation lors d’un changement d’état, prise en compte d’un nouveau callback sans fermeture obsolète. Aucun gain chiffré revendiqué. |
+
+### Rejets et adaptations motivés
+
+**Aucun des quatre constats n’est rejeté.** Les corrections sont circonscrites à leurs causes :
+
+- Un simple ajout de bouton « Fermer » serait insuffisant : le prédicat d’affichage doit cesser de forcer les formulaires ouverts. La fermeture masque la reprise sans l’effacer ; la réouverture reste accessible. Seul l’abandon la supprime. L’équipe et les profils déjà créés restent enregistrés.
+- Seul le 409 « Ce Riot ID existe déjà dans cette team. » est assimilé à un ajout déjà réalisé. Accepter tous les 409, ou seulement leur code SQL `23505`, masquerait notamment un conflit de titulaire. La comparaison suit le contrat de message actuel ; son évolution devra être coordonnée avec ce client.
+- Le « Forbidden » brut visé par R8-03 est un 403 **amont Riot**, converti en 502 par l’adaptateur. Les erreurs client NXT5 400–499 conservent leur diagnostic. Le tour 8 remplace explicitement la décision trop large du tour 6 concernant les messages 5xx.
+- La migration `20260929_canonical_champions.mjs` est corrigée en place conformément à l’autorisation explicite : elle n’est pas publiée sur `main`. Les sauvegardes intégrales, les plafonds, le traitement UTF-16 et le cycle de suppression ne changent pas. Aucune vérification du registre de production ni exécution distante.
+
+### Interface, focus et mobile
+
+Réutilisation de `Button`, `Surface` et `PageHeader`, sans nouvelle palette ni feuille CSS. L’abandon est secondaire (`ghost`) et occupe la largeur disponible comme la reprise. Les contrôles partagés gardent leur hauteur minimale de 44 px, leurs libellés multiligne et leurs angles de 2 px ; `Teams.css:119` empile les formulaires sous 800 px de conteneur, les actions d’en-tête restent flexibles et le focus cyan global est défini dans `src/index.css:290`. Aucun mouvement ajouté. Les tests exercent les vrais composants, le retour du focus et les états de chargement ; ce contrôle de structure et de styles ne certifie pas le rendu réel.
+
+**Limite de recette visuelle :** tentative via l’outil de contrôle du navigateur, mais le navigateur intégré est indisponible et l’accès à Opera GX est refusé (« Computer Use was not approved to use Opera GX »). Aucun contournement ni changement d’autorisation. Les captures et la vérification visuelle réelle à 360, 390, 768, 1024 et 1440 px restent à réaliser.
+
+### Fichiers modifiés
+
+- `database/migrations/20260929_canonical_champions.mjs`.
+- `netlify/functions/players-sync-most-played.ts`.
+- `src/hooks/useTeamCreation.js`, `src/pages/workspace/Teams.jsx`.
+- `src/__tests__/migrations.test.ts`, `src/__tests__/audit-tour5-server.test.ts`, `src/__tests__/roster-onboarding.test.jsx`.
+- `src/__tests__/team-creation-tour8.test.jsx` (nouveau).
+- `docs/audit-croise-2026-09-29.md` : ajout de cette section uniquement.
+
+### Validation et points de doute
+
+Les onze nouveaux cas du tour 8 ont été exécutés sur le code de la base, temporairement restauré puis remplacé par les corrections : **11 échecs sur 11**, couvrant les quatre constats. Sur le code corrigé, les quatre suites ciblées passent : **81 tests réussis**.
+
+**`VITEST_MAX_WORKERS=1 npm run verify` : réussi, code de sortie 0** — TypeScript, **143 suites / 2 551 tests réussis**, build Vite et pré-rendu des 13 pages SEO. Avertissement WebSocket environnemental `listen EPERM 0.0.0.0:24678`, sans empêcher le succès de la commande. `git diff --check` est propre ; les dix liens ajoutés sont valides et les sections précédentes restent intactes à l’octet près. Aucun test désactivé ni délai augmenté. Journaux locaux dans `.netlify/audit8/` (ignorés par Git).
+
+- La reprise est en mémoire de `MainApp` : elle survit au démontage de `Teams`, mais pas au rechargement ni à la déconnexion. Masquer les formulaires est un état local de la rubrique ; revenir après démontage peut réafficher la reprise. L’abandon, lui, efface bien l’opération dans `MainApp`.
+- Les tests SQL utilisent PGlite et, pour le serveur, le constructeur Neon réel ; Riot et le transport réseau sont simulés. Aucun test de production ou de contention entre connexions Neon.
+- La durée et la mémoire de migration sur un volume représentatif restent non mesurées. Les originaux complets sont sauvegardés ; leur restauration reste technique.
+- Pour contenir les écritures de caches dans ce checkout, le lien `node_modules` est temporairement remplacé par des liens vers les dépendances déjà présentes, sans installation ; le lien initial est restauré après validation.

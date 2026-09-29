@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../api/client.js";
 import { openAppPath } from "../app/routing.js";
 
@@ -10,7 +10,7 @@ export function useTeamCreation({ setSelectedTeamId, refreshAll, pushToast }) {
   const [busy, setBusy] = useState(false);
   const [completed, setCompleted] = useState(0);
 
-  async function create(form, players) {
+  const create = useCallback(async (form, players) => {
     if (locked.current) return;
     locked.current = true;
     setBusy(true);
@@ -24,7 +24,13 @@ export function useTeamCreation({ setSelectedTeamId, refreshAll, pushToast }) {
       }
       setSelectedTeamId(current.team.id);
       while (current.next < current.players.length) {
-        await apiFetch("players-create", { method: "POST", body: JSON.stringify(current.players[current.next]) });
+        try {
+          await apiFetch("players-create", { method: "POST", body: JSON.stringify(current.players[current.next]) });
+        } catch (err) {
+          // A lost response can leave this player already saved. Other conflicts
+          // (main role occupied or permissions changed) still require attention.
+          if (err.status !== 409 || err.message !== "Ce Riot ID existe déjà dans cette team.") throw err;
+        }
         current.next += 1;
         setPending({ ...current });
       }
@@ -45,6 +51,14 @@ export function useTeamCreation({ setSelectedTeamId, refreshAll, pushToast }) {
         setBusy(false);
       }
     }
-  }
-  return { pending, busy, completed, create };
+  }, [setSelectedTeamId, refreshAll, pushToast]);
+
+  const abandon = useCallback(() => {
+    if (locked.current) return false;
+    operation.current = null;
+    setPending(null);
+    return true;
+  }, []);
+
+  return useMemo(() => ({ pending, busy, completed, create, abandon }), [pending, busy, completed, create, abandon]);
 }

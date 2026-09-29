@@ -186,8 +186,9 @@ export default async function handler(request: Request, context: Context): Promi
         results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, source: 'ranked_solo_history' });
       } catch (err) {
         let code = err.code || null;
-        let message = code !== 'RIOT_SYNC_INCOMPLETE' && (err.status || code === 'RIOT_RATE_LIMIT')
-          ? err.message : 'Synchronisation incomplète';
+        const clientError = Number.isInteger(err.status) && err.status >= 400 && err.status < 500;
+        let message = code === 'RIOT_SYNC_INCOMPLETE' ? 'Synchronisation incomplète'
+          : ((clientError || code === 'RIOT_RATE_LIMIT') ? err.message : err.publicMessage) || 'Synchronisation incomplète';
         if (code !== '22012') {
           try {
             await persist(tx => [tx`update players set status = ${message}, updated_at = now()

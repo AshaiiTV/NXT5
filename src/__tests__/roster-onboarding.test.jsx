@@ -37,6 +37,8 @@ async function render(settings) {
   const focus = vi.fn();
   const scrollEditIntoView = vi.fn();
   const focusEdit = vi.fn();
+  const focusPage = vi.fn();
+  const focusResume = vi.fn();
   let renderer;
   const view = (next) => <Suspense fallback="Chargement"><CreationHost {...next} /></Suspense>;
   await act(async () => {
@@ -45,11 +47,15 @@ async function render(settings) {
         ? { scrollIntoView, querySelector: () => ({ focus }) }
         : element.props.className === "team-profile-edit"
           ? { scrollIntoView: scrollEditIntoView, querySelector: () => ({ focus: focusEdit }) }
-          : null,
+          : element.props.className === 'nxt5-teams-page'
+            ? { focus: focusPage }
+            : element.props.className === 'team-setup-forms'
+              ? { querySelector: () => ({ focus: focusResume }) }
+              : null,
     });
   });
   cleanups.push(() => act(() => renderer.unmount()));
-  return { renderer, scrollIntoView, focus, scrollEditIntoView, focusEdit, update: async (next) => act(async () => renderer.update(view(next))) };
+  return { renderer, scrollIntoView, focus, scrollEditIntoView, focusEdit, focusPage, focusResume, update: async (next) => act(async () => renderer.update(view(next))) };
 }
 const content = (renderer) => JSON.stringify(renderer.toJSON());
 const field = (renderer, label, value) => act(() => renderer.root.findByProps({ label }).props.onChange(value));
@@ -243,4 +249,43 @@ it.each(['owner','captain','manager','coach','assistant','analyst','board','play
   const invite = renderer.root.findAllByType(Button).find(b => b.props.children === 'Créer et copier un lien');
   expect(invite.props.disabled).toBe(!panel.props.canInvite);
   expect(renderer.root.findByProps({ 'aria-label': 'Accès de Member' }).props.disabled).toBe(!panel.props.canManageMembers);
+});
+
+
+it('R8-02 closes and reopens pending forms with focus, then abandons without deleting saved data', async () => {
+  const settings = { ...props(), routeSearch: '?create=1' };
+  const { renderer, update, focusPage, focusResume } = await render(settings);
+  field(renderer, 'Nom de l’équipe', 'Created');
+  field(renderer, 'Joueurs à ajouter (facultatif)', 'First#EUW\nSecond#EUW');
+  apiFetch.mockResolvedValueOnce({ team }).mockResolvedValueOnce({ player }).mockRejectedValueOnce(Object.assign(new Error('Refus'), { status: 403 }));
+  await act(async () => renderer.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }));
+  // Simulate the bootstrap/remount query clearing after the partial creation.
+  await update({ ...settings, routeSearch: '' });
+  const action = label => renderer.root.findAllByType(Button).find(b => b.props.children === label);
+  expect(content(renderer)).toContain('Second#EUW');
+  expect(action('Fermer les formulaires')).toBeTruthy();
+  act(() => action('Fermer les formulaires').props.onClick());
+  expect(content(renderer)).not.toContain('Reprendre les joueurs manquants');
+  expect(focusPage).toHaveBeenCalledWith({ preventScroll: true });
+  act(() => action('Reprendre l’import de joueurs').props.onClick());
+  expect(focusResume).toHaveBeenCalledOnce();
+  expect(content(renderer)).toContain('Second#EUW');
+  expect(content(renderer)).toContain('L’abandon conserve l’équipe et les joueurs déjà ajoutés.');
+  let reject;
+  apiFetch.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }));
+  let retry;
+  act(() => { retry = renderer.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }); });
+  expect(action('Abandonner l’import restant').props.disabled).toBe(true);
+  expect(action('Fermer les formulaires').props.disabled).toBe(true);
+  await act(async () => { reject(Object.assign(new Error('Refus'), { status: 403 })); await retry; });
+  const calls = apiFetch.mock.calls.length;
+  act(() => action('Abandonner l’import restant').props.onClick());
+  expect(content(renderer)).not.toContain('Reprendre l’import de joueurs');
+  expect(content(renderer)).not.toContain('Reprendre les joueurs manquants');
+  expect(content(renderer)).toContain('Joueurs et encadrement');
+  expect(focusPage).toHaveBeenCalledTimes(2);
+  expect(apiFetch).toHaveBeenCalledTimes(calls);
+  await update(settings);
+  expect(renderer.root.findByProps({ label: 'Nom de l’équipe' }).props.value).toBe('');
+  expect(action('Créer l’équipe')).toBeTruthy();
 });

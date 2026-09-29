@@ -153,7 +153,7 @@ it.each([
   else riot[stage].mockRejectedValueOnce(Object.assign(new Error(message), { status, code, retryAfter: code === 'RIOT_RATE_LIMIT' ? 90 : undefined }));
   const response = await call(sync, { playerId });
   expect(response.status).toBe(200);
-  const expectedMessage = stage === 'match' || (stage === 'account' && !status) ? 'Synchronisation incomplète' : message;
+  const expectedMessage = stage === 'match' || (status && status >= 500) || (stage === 'account' && !status) ? 'Synchronisation incomplète' : message;
   expect((await response.json()).results).toEqual([{
     playerId, riotId: 'Old#EUW', ok: false, error: expectedMessage,
     code: stage === 'match' ? 'RIOT_SYNC_INCOMPLETE' : code,
@@ -224,4 +224,23 @@ it('N5-02 changing Riot ID invalidates derived stats; a name-only update keeps t
   expect(await player()).toMatchObject({ most_played: [{ champion: 'Ahri' }], performance_score: '12', status: 'Synchronisé' });
   expect((await call(update, { ...body, riotId: 'New#EUW' })).status).toBe(200);
   expect(await player()).toMatchObject({ riot_id: 'New#EUW', most_played: [], performance_score: null, status: 'À synchroniser' });
+});
+
+
+it.each([
+  { status: 502, message: 'Forbidden', publicMessage: undefined },
+  { status: 500, message: 'RIOT_API_KEY manquante dans Netlify.', publicMessage: undefined },
+  { status: 502, message: 'Internal upstream details', publicMessage: 'Riot est temporairement indisponible.' },
+])('R8-03 exposes and persists only the safe diagnostic for $status / $message', async ({ status, message, publicMessage }) => {
+  const before = await player();
+  const beforePool = await pool();
+  riot.account.mockRejectedValueOnce(Object.assign(new Error(message), { status, publicMessage, code: 'RIOT_API_ERROR' }));
+  const response = await call(sync, { playerId });
+  const body = await response.json();
+  const safe = publicMessage || 'Synchronisation incomplète';
+  expect(response.status).toBe(200);
+  expect(body.results[0]).toMatchObject({ ok: false, error: safe, code: 'RIOT_API_ERROR' });
+  expect(JSON.stringify(body)).not.toContain(message);
+  expect(await player()).toMatchObject({ status: safe, most_played: before.most_played, performance_score: before.performance_score });
+  expect(await pool()).toEqual(beforePool);
 });
