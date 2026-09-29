@@ -553,3 +553,9 @@ Les onze nouveaux cas du tour 8 ont été exécutés sur le code de la base, tem
 - Les tests SQL utilisent PGlite et, pour le serveur, le constructeur Neon réel ; Riot et le transport réseau sont simulés. Aucun test de production ou de contention entre connexions Neon.
 - La durée et la mémoire de migration sur un volume représentatif restent non mesurées. Les originaux complets sont sauvegardés ; leur restauration reste technique.
 - Pour contenir les écritures de caches dans ce checkout, le lien `node_modules` est temporairement remplacé par des liens vers les dépendances déjà présentes, sans installation ; le lien initial est restauré après validation.
+
+## Tour 9 — clôture
+
+- GPT : « aucun constat » sur les corrections du tour 8.
+- Claude : un constat faible (R9-01) — après « Fermer les formulaires » ou « Abandonner l’import restant », le focus revenait sur un conteneur sans rôle nommé via `aria-label` (attribut interdit sur un rôle générique) et entouré d’un contour. Corrigé : le focus revient sur le titre de page (`.nxt5-page-title`, rendu focalisable à la demande) ; le conteneur perd `tabIndex`/`aria-label`. Test mis à jour dans `roster-onboarding.test.jsx`.
+- Reconnaissance du doublon de Riot ID pendant la reprise de création d’équipe : `players-create` renvoie le code `PLAYER_RIOT_ID_EXISTS` ; le client ne compare plus le texte du message.

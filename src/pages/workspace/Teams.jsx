@@ -185,7 +185,9 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     setTeamSetupOpen(false);
     setDismissedCreationId(pendingCreation?.team.id || null);
     openAppPath("/equipes");
-    pageRef.current?.focus({ preventScroll: true });
+    // Return focus to the page heading (a named, focusable landmark) rather than an unnamed container.
+    const heading = pageRef.current?.querySelector(".nxt5-page-title");
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
   }
 
   function abandonCreation() {
@@ -489,7 +491,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div ref={pageRef} tabIndex={-1} aria-label="Équipe" className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && <>
+  return <div ref={pageRef} className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && <>
       {canManageRoster && !setupOnly && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
       {showSetup && <Button type="button" variant="ghost" icon={X} disabled={saving} onClick={closeSetup}>Fermer les formulaires</Button>}
       {pendingCreation && !showSetup && <Button type="button" variant="ghost" onClick={() => { focusSetup.current = true; setTeamSetupOpen(true); }}>Reprendre l’import de joueurs</Button>}

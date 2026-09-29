@@ -48,7 +48,7 @@ async function render(settings) {
         : element.props.className === "team-profile-edit"
           ? { scrollIntoView: scrollEditIntoView, querySelector: () => ({ focus: focusEdit }) }
           : element.props.className === 'nxt5-teams-page'
-            ? { focus: focusPage }
+            ? { querySelector: (selector) => selector === '.nxt5-page-title' ? { focus: focusPage } : null }
             : element.props.className === 'team-setup-forms'
               ? { querySelector: () => ({ focus: focusResume }) }
               : null,
