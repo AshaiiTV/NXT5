@@ -2,3 +2,6 @@ allowBuilds:
   electron-winstaller: true
 minimumReleaseAgeExclude:
   - electron@44.2.0
+overrides:
+  # GHSA-3wwx-pv8p-q78v (electron-builder > node-gyp > undici); drop once node-gyp resolves >=6.28.1 itself.
+  undici@6: ^6.28.1
