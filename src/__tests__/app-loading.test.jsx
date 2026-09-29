@@ -61,7 +61,7 @@ beforeEach(() => {
   const browser = {
     location: new URL("https://nxt5.test/equipes"),
     addEventListener: vi.fn(), removeEventListener: vi.fn(), scrollTo: vi.fn(),
-    setTimeout, clearTimeout,
+    setTimeout, clearTimeout, confirm: vi.fn(() => false),
     localStorage: { getItem: vi.fn(), setItem: vi.fn() },
   };
   const setUrl = (_state, _title, path) => { browser.location = new URL(path, browser.location); };
@@ -271,4 +271,20 @@ it.each([true, false])("R-F3 flushes before auth-logout and stays signed in on s
     expect(window.location.pathname).toBe("/planning");
     expect(JSON.stringify(app.renderer.toJSON())).toContain("Déconnexion interrompue");
   }
+});
+
+it.each([401, 403, 500])('R4-V2 actually logs out after a planning error %s', async status => {
+  window.confirm.mockReturnValue(true);
+  const app = mount('/planning');
+  await app.loadModule(); await app.resolve(0, { user });
+  await app.resolve(1, { ...emptySnapshot, teams: [{ id: 'a', owner_id: 'user' }], selectedTeamId: 'a', players: [{ id: 'p', team_id: 'a', role: 'TOP', user_id: 'user' }] });
+  await act(async () => app.renderer.root.findByProps({ 'data-edit-planning': true }).props.onClick());
+  let logout;
+  await act(async () => { logout = app.renderer.root.findByProps({ 'data-logout': true }).props.onClick(); });
+  await act(async () => app.requests[2].reject(Object.assign(new Error('Planning failed'), { status })));
+  expect(app.requests[3].url).toBe('auth-logout');
+  expect(window.confirm).toHaveBeenCalledTimes(status === 500 ? 1 : 0);
+  await app.resolve(3, {}); await logout;
+  expect(window.location.pathname).toBe('/connexion');
+  expect(app.requests.filter(r => r.url === 'player-availability-manage')).toHaveLength(1);
 });

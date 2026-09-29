@@ -99,3 +99,21 @@ it('retries explicit send rejection but never retries a network-ambiguous send',
   expect(state.send).toHaveBeenCalledTimes(2);
   expect(await rows('select state from inactivity_reminder_pending')).toEqual([{state:'sending'}]);
 });
+
+it('R4-V1 blocks an uncertain send only for its inactivity period and reports it separately', async () => {
+  state.send.mockRejectedValueOnce(new Error('Provider timeout'));
+  await run();
+  let data = await (await dashboard(new Request('https://nxt5.org/admin-dashboard'), {} as any)).json();
+  expect(data.inactivityReminders).toMatchObject({ sending: 1, awaitingDelivery: 0 });
+  await rows("update users set inactivity_email_claimed_at=now()-interval '2 days'");
+  await run();
+  expect(state.send).toHaveBeenCalledTimes(1);
+  // A return after that reservation, followed by another 90 inactive days.
+  await rows("update users set last_active_at=now()-interval '91 days'");
+  data = await (await dashboard(new Request('https://nxt5.org/admin-dashboard'), {} as any)).json();
+  expect(data.inactivityReminders.awaitingDelivery).toBe(1);
+  await run(); await run();
+  expect(state.send).toHaveBeenCalledTimes(2);
+  expect(await rows('select * from inactivity_reminder_pending')).toHaveLength(0);
+  expect(await rows('select * from inactivity_reminder_deliveries')).toHaveLength(1);
+});

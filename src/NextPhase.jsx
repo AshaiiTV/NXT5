@@ -377,7 +377,12 @@ export function evaluateGoal(goal, rows) {
   const values = unique.map((row) => goalMetricValue(row, goal.metric));
   const successes = values.filter((value) => Number.isFinite(value) && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value))).length;
   const required = Number(goal.required_successes || 2);
-  return { rows: unique, values, successes, required, complete: successes >= required, impossible: values.filter(Number.isFinite).length >= Number(goal.sample_size || 3) && successes < required };
+  const pending = Number(goal.sample_size || 3) - values.length;
+  const missing = values.filter(value => !Number.isFinite(value)).length;
+  const complete = successes >= required;
+  const impossible = successes + pending + missing < required;
+  return { rows: unique, values, successes, required, pending, missing, complete, impossible,
+    inconclusive: pending === 0 && !complete && !impossible };
 }
 
 export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId, canManage, refreshAll, pushToast }) {
@@ -423,7 +428,7 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
       const result = evaluateGoal(goal, rows);
       const metric = METRICS[goal.metric] || METRICS.deaths;
       return <article key={goal.id} className="profile-goal-row">
-        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : "En cours"}</Label><span>{result.successes}/{result.required} réussites</span></div><h4>{goal.title}</h4><p>{metricLabels[goal.metric] || metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} parties</p></div>
+        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : result.inconclusive ? "slate" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : result.inconclusive ? "Non concluable (données manquantes)" : "En cours"}</Label><span>{result.successes}/{result.required} réussites</span></div><h4>{goal.title}</h4><p>{metricLabels[goal.metric] || metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} parties</p></div>
         <div className="profile-goal-progress"><div className="profile-goal-samples">{Array.from({ length: Number(goal.sample_size || 3) }, (_, index) => {
           const value = result.values[index];
           const success = Number.isFinite(value) && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value));

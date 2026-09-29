@@ -209,7 +209,10 @@ async function loadDashboard() {
             and email is not null
             and email <> ''
             and (inactivity_email_sent_at is null or inactivity_email_sent_at < last_active_at)
-        ) as awaiting_delivery
+            and not exists (select 1 from inactivity_reminder_pending p
+              where p.user_id=users.id and p.inactive_since_at >= users.last_active_at)
+        ) as awaiting_delivery,
+        (select count(*) from inactivity_reminder_pending where state='sending') as sending
       from inactivity_reminder_deliveries
     `
   ]);
@@ -276,6 +279,7 @@ async function loadDashboard() {
       recipients: count(inactivityReminderSummary.recipients),
       deliveries30d: count(inactivityReminderSummary.deliveries_30d),
       awaitingDelivery: count(inactivityReminderSummary.awaiting_delivery),
+      sending: count(inactivityReminderSummary.sending),
       recent: inactivityDeliveryRows.map((row: any) => ({
         id: row.id,
         userId: row.user_id,

@@ -225,8 +225,12 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     await audit(ctx,command,ctx.teamId,{kind,channel});return botMessage('Salon enregistré',`${kind} → <#${channel}>${kind==='games'?'\nDestination manuelle ; les filtres et l’activation automatique se règlent dans NXT5.':''}`);
   }
   if(command==='reglages fuseau'){
-    const timezone=validateTimezone(options.fuseau);
-    if(!(await sql('select name from pg_timezone_names where name=$1',[timezone])).length)throw discordError('Fuseau non pris en charge par le serveur.');
+    const canonical=validateTimezone(options.fuseau);
+    const entered=String(options.fuseau).trim();
+    const zones=await sql(`select name from pg_timezone_names where lower(name)=lower($1) or name=$2
+      order by (lower(name)=lower($1)) desc limit 1`,[entered,canonical]);
+    if(!zones.length)throw discordError('Fuseau non pris en charge par le serveur.');
+    const timezone=zones[0].name;
     if(!confirmed)return botConfirmation(ctx,command,options,`Définir ${timezone} pour l’équipe ? Les événements existants conservent leur instant ; les prochains horaires saisis utilisent ce fuseau.`);
     await saveSetting(ctx,'timezone',timezone);await audit(ctx,command,ctx.teamId,{timezone});
     const settings=await botSettings(ctx.teamId);return botMessage('Fuseau enregistré',`${timezone}. Les événements existants conservent leur instant.${settings.weekly_enabled?'\nProchain bilan : '+stamp(nextWeeklyRun(timezone,settings.weekly_day,settings.weekly_hour)):''}`);

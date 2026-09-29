@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll,beforeEach,afterAll,afterEach,describe,it,expect,vi } from 'vitest';
-const database=vi.hoisted(()=>({pg:null as any,failQuery:null as any}));
+const database=vi.hoisted(()=>({pg:null as any,failQuery:null as any,timezoneCatalog:false}));
 const transport=vi.hoisted(()=>({send:vi.fn(),find:vi.fn(),guild:vi.fn(),connectionTest:vi.fn(),enabled:true}));
 vi.mock('../../netlify/functions/_lib/db',async () => {
   const {neon,neonConfig} = await import('@neondatabase/serverless');
@@ -9,7 +9,7 @@ vi.mock('../../netlify/functions/_lib/db',async () => {
     const body = JSON.parse(options.body);
     async function execute(connection:any,statement:any) {
       if (database.failQuery && statement.query.includes(database.failQuery)) {database.failQuery=null;throw new Error('Simulated database acknowledgement failure');}
-      const result = await connection.query(statement.query,statement.params);
+      const result = await connection.query(database.timezoneCatalog ? statement.query.replaceAll('pg_timezone_names', 'test_timezone_names') : statement.query,statement.params);
       return {fields:result.fields,rows:result.rows.map((row:any) => result.fields.map((field:any) => {
         const value=row[field.name];
         if (value===null || value===undefined) return null;
@@ -326,5 +326,29 @@ it.each(['-0530','+02:00','EST','Invalid/Zone'])('resets existing unsafe timezon
 it('canonicalizes existing named timezone aliases instead of resetting their region',async()=>{
   await rows("update discord_bot_settings set timezone='asia/kolkata' where team_id=$1",[team]);
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_server_timezones.sql',import.meta.url),'utf8'));
-  expect((await rows('select timezone from discord_bot_settings where team_id=$1',[team]))[0].timezone).toBe('Asia/Calcutta');
+  expect((await rows('select timezone from discord_bot_settings where team_id=$1',[team]))[0].timezone).toBe('Asia/Kolkata');
+});
+
+
+it.each([
+  ['Asia/Kolkata', 'Asia/Calcutta'], ['Europe/Kyiv', 'Europe/Kiev'],
+])('R4-V3 accepts entered %s first, with canonical fallback %s on older tzdata', async (modern, legacy) => {
+  await database.pg.exec('create temporary table test_timezone_names(name text)');
+  const migration = readFileSync(new URL('../../database/migrations/20260929_server_timezones.sql', import.meta.url), 'utf8').replaceAll('pg_timezone_names', 'test_timezone_names');
+  database.timezoneCatalog = true;
+  try {
+    for (const available of [[modern], [legacy], [modern, legacy]]) {
+      await rows('truncate test_timezone_names');
+      for (const zone of available) await rows('insert into test_timezone_names values($1)', [zone]);
+      const expected = available[0];
+      await executeDiscordAction(ctx, 'reglages fuseau', { fuseau: '  '+modern.toLowerCase()+'  ' }, true);
+      expect((await rows('select timezone from discord_bot_settings where team_id=$1', [team]))[0].timezone).toBe(expected);
+      await rows('update discord_bot_settings set timezone=$2 where team_id=$1', [team, modern.toLowerCase()]);
+      await database.pg.exec(migration);
+      expect((await rows('select timezone from discord_bot_settings where team_id=$1', [team]))[0].timezone).toBe(expected);
+    }
+  } finally {
+    database.timezoneCatalog = false;
+    await database.pg.exec('drop table test_timezone_names');
+  }
 });

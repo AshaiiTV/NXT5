@@ -282,3 +282,15 @@ it('confirms the emailed token only on explicit action, preserves errors and rem
   expect(JSON.parse(apiFetch.mock.calls[2][1].body)).toEqual({emailToken:'a'.repeat(43)});
   expect(onComplete).toHaveBeenCalledWith({id:'new'},'/equipes?invite=token');
 });
+
+it.each(['SOCIAL_EXPIRED', 'SERVER_ERROR'])('R4-V4 explains the original browser only for an expired email signup (%s)', async code => {
+  window.location.hash = '#email_token=secret-token';
+  window.history = { replaceState: vi.fn() };
+  apiFetch.mockRejectedValueOnce(Object.assign(new Error(code === 'SOCIAL_EXPIRED' ? 'Cette inscription a expiré.' : 'Serveur indisponible'), { code }));
+  const renderer = await render(<SocialSignup loginHref='/connexion' onComplete={vi.fn()} />);
+  const message = content(renderer.root);
+  expect(message).toContain(code === 'SOCIAL_EXPIRED' ? 'navigateur où tu as commencé l’inscription (valable 15 min)' : 'Serveur indisponible');
+  expect(message).not.toContain('secret-token');
+  expect(renderer.root.findAllByType('form')).toHaveLength(0);
+  expect(window.history.replaceState).toHaveBeenCalled();
+});

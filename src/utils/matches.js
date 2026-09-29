@@ -1,5 +1,13 @@
 export function assetProxyUrl(url) {
-  return url ? `/.netlify/functions/asset-proxy?url=${encodeURIComponent(url)}` : "";
+  if (!url) return "";
+  if (typeof url !== "string") return "";
+  if (url.startsWith("/") && !url.startsWith("//") && !url.includes("\\")) return url;
+  try {
+    const target = new URL(url);
+    if (target.protocol !== "https:" || target.username || target.password ||
+        !["ddragon.leagueoflegends.com", "raw.communitydragon.org", "raw.githubusercontent.com"].includes(target.hostname)) return "";
+    return `/.netlify/functions/asset-proxy?url=${encodeURIComponent(url)}`;
+  } catch { return ""; }
 }
 
 export function cleanOpponentName(value) {

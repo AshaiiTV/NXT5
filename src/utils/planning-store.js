@@ -43,6 +43,7 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
     let savedRevision = 0;
     let timer = null;
     let inFlight = null;
+    let lastError = null;
     const listeners = new Set();
     const emit = () => { updateGuard(); if (active) listeners.forEach((listener) => listener()); };
     const clearTimer = () => { clearTimeout(timer); timer = null; };
@@ -74,12 +75,14 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         if (!row || availabilityKey(row) !== key) throw new Error("La confirmation du planning est invalide. Réessaie.");
         if (!confirmed || rowTime(row) >= rowTime(confirmed)) confirmed = row;
         savedRevision = savingRevision;
+        lastError = null;
         // A response acknowledges its snapshot, never edits made while it ran.
         snapshot = revision === savingRevision
           ? { ...snapshotFromRow(confirmed, "saved"), saving: true }
           : { ...snapshot, status: "dirty" };
         if (active) onSaved?.(confirmed);
       }).catch((error) => {
+        lastError = error;
         snapshot = { ...snapshot, status: "error" };
         if (active) onError?.(error);
       }).finally(() => {
@@ -109,6 +112,14 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         emit();
       },
       confirmed: () => confirmed,
+      authorizationLost: () => [401, 403].includes(lastError?.status),
+      discard() {
+        clearTimer();
+        savedRevision = revision;
+        snapshot = snapshotFromRow(confirmed);
+        lastError = null;
+        emit();
+      },
       clearTimer,
       schedule,
     };
@@ -134,6 +145,14 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         await Promise.all(pending.map(entry => entry.flush()));
         if ([...entries.values()].some(entry => entry.getSnapshot().status === "error")) return false;
       } while ([...entries.values()].some(entry => entry.pending()));
+      return true;
+    },
+    async prepareLogout() {
+      if (await this.flush()) return true;
+      const unsaved = [...entries.values()].filter(entry => entry.pending());
+      if (unsaved.some(entry => !entry.authorizationLost()) &&
+          !window.confirm("Le planning n’a pas pu être enregistré. Te déconnecter et abandonner les modifications du planning ?")) return false;
+      unsaved.forEach(entry => entry.discard());
       return true;
     },
     resume() { active = true; updateGuard(); entries.forEach((entry) => entry.schedule()); },

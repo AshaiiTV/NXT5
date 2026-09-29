@@ -326,7 +326,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     try { window.localStorage.setItem(guideStorageKey, hidden ? "1" : "0"); } catch {}
   }
 
-  const logout = () => onLogout(() => planningStore.flush());
+  const logout = () => onLogout(() => planningStore.prepareLogout());
   useEffect(() => { startTransition(() => setActiveState(new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path))); }, [route.path, route.search]);
   useEffect(() => {
     if (route.path === "/champion-pool" || route.path === "/draft") navigate("/draft/pool", { replace: true });

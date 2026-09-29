@@ -283,3 +283,25 @@ it("R-F3 drains edits behind an active request before allowing logout, then retr
   expect(entry.pending()).toBe(false);
   store.pause();
 });
+
+it.each([401, 403, 429, 500, undefined])('R4-V2 permits logout after planning error %s without retrying discarded edits', async status => {
+  const confirm = vi.fn(() => false);
+  vi.stubGlobal('window', { confirm, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  const save = vi.fn().mockRejectedValue(Object.assign(new Error('Unavailable'), { status }));
+  const store = createPlanningStore({ save });
+  const entry = store.forContext(CURRENT);
+  entry.setNotes('Unsaved');
+  const authorizationLost = [401, 403].includes(status);
+  expect(await store.prepareLogout()).toBe(authorizationLost);
+  expect(confirm).toHaveBeenCalledTimes(authorizationLost ? 0 : 1);
+  if (!authorizationLost) {
+    expect(entry.getSnapshot().notes).toBe('Unsaved');
+    confirm.mockReturnValue(true);
+    expect(await store.prepareLogout()).toBe(true);
+  }
+  expect(entry.pending()).toBe(false);
+  const calls = save.mock.calls.length;
+  store.pause();
+  await Promise.resolve();
+  expect(save).toHaveBeenCalledTimes(calls);
+});

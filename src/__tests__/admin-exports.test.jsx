@@ -1,3 +1,4 @@
+import { getTopDialog } from "../components/ui/dialog-registry.js";
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -221,4 +222,13 @@ describe("administration export previews", () => {
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(revokeObjectURL).toHaveBeenCalledTimes(1);
   });
+});
+
+
+it('R4-V5 registers export previews for toast delivery and unregisters on close', async () => {
+  await mount();
+  await click('Voir le modèle', card('game'));
+  expect(getTopDialog()).toBe(dialogNodes.at(-1));
+  await click('Fermer l’aperçu');
+  expect(getTopDialog()).toBeNull();
 });

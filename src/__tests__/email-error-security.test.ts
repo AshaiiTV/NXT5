@@ -37,3 +37,18 @@ describe('notification provider error privacy', () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain('private-recipient');
   });
 });
+
+it('R4-V1 bounds Resend requests and keeps timeout failures ambiguous', async () => {
+  vi.stubEnv('RESEND_API_KEY', 'test');
+  vi.stubEnv('RESET_EMAIL_FROM', 'test@example.test');
+  const controller = new AbortController();
+  const timeout = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(controller.signal);
+  const failure = new DOMException('Timed out', 'TimeoutError');
+  vi.stubGlobal('fetch', vi.fn((_url, options) => new Promise((_resolve, reject) => {
+    options.signal.addEventListener('abort', () => reject(options.signal.reason));
+  })));
+  const send = sendPasswordResetEmail({ to: 'test@example.test', name: 'Test', resetUrl: 'https://nxt5.test/reset' });
+  controller.abort(failure);
+  await expect(send).rejects.toBe(failure);
+  expect(timeout).toHaveBeenCalledWith(8_000);
+});

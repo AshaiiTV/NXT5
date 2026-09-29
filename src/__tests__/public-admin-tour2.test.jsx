@@ -94,11 +94,11 @@ it("E10: history also rejects a non-array instead of crashing", async () => {
 });
 
 
-it("C3 displays the weekly activity limitation returned by the API", async () => {
+it("R4-V6 omits the weekly activity note when no weekly series is rendered", async () => {
   const weeklyActivityNote = "La série hebdomadaire des comptes actifs repose sur le dernier passage des sessions conservées. Leur réutilisation ou leur suppression modifie les semaines passées : ce n’est pas un historique complet des présences.";
   apiFetch.mockResolvedValue({ weeklyActivityNote });
   const renderer = await render(<AdminDashboard />);
-  expect(renderer.root.findAllByType("p").some(p => p.children.join("") === weeklyActivityNote)).toBe(true);
+  expect(renderer.root.findAllByType("p").some(p => p.children.join("") === weeklyActivityNote)).toBe(false);
 });
 
 it('T3-04 distinguishes OAuth and social email confirmation lifetimes in both policies', () => {
@@ -107,4 +107,29 @@ it('T3-04 distinguishes OAuth and social email confirmation lifetimes in both po
     expect(text).toContain('5 min pour les étapes de connexion, 15 min pour la confirmation par e-mail d’une inscription');
     expect(text).not.toMatch(/cinq minutes (au maximum|maximum)|expirent après cinq minutes/);
   }
+});
+
+it('R4-S3 dates revised legal sections without changing acceptance or audience consent versions', async () => {
+  const { LEGAL_VERSION, LEGAL_UPDATED_LABEL } = await import('../../shared/legal.js');
+  const { AUDIENCE_CONSENT_VERSION } = await import('../app/audience-client.js');
+  expect(LEGAL_VERSION).toBe('2026-09-23');
+  expect(AUDIENCE_CONSENT_VERSION).toBe('2026-09-14');
+  expect(LEGAL_UPDATED_LABEL).toBe('29 septembre 2026');
+  for (const [route, titles] of [
+    ['/confidentialite', ['Accès et destinataires', 'Demandes d’accès', 'Mesure de fréquentation', 'Connexions Google']],
+    ['/cookies', ['Ce que nous mesurons', 'Cookies temporaires']],
+  ]) for (const title of titles) {
+    expect(LEGAL_PAGES[route].sections.find(section => section[0].startsWith(title))[0]).toContain('mise à jour du 29 septembre 2026');
+  }
+  expect(JSON.stringify(LEGAL_PAGES['/confidentialite'])).toContain('conservées jusqu’à l’exécution de cette correction');
+});
+
+it('R4-V1 shows uncertain sends separately from eligible reminders in administration', async () => {
+  apiFetch.mockResolvedValue({ inactivityReminders: { sending: 7, awaitingDelivery: 2 } });
+  const renderer = await render(<AdminDashboard view='reminders' />);
+  const metrics = renderer.root.findAllByProps({ className: 'admin-metric' });
+  const uncertain = metrics.find(metric => metric.findByType('p').children.join('') === 'Envois à vérifier');
+  expect(uncertain.findByType('strong').children).toEqual(['7']);
+  expect(uncertain.findByType('span').children.join('')).toContain('sans confirmation enregistrée');
+  expect(metrics.find(metric => metric.findByType('p').children.join('') === 'Éligibles à l’envoi').findByType('strong').children).toEqual(['2']);
 });

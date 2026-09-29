@@ -21,6 +21,7 @@ async function sendResendEmail({ to, subject, text, html }) {
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
+    signal: AbortSignal.timeout(8_000),
     headers: {
       Authorization: `Bearer ${env('RESEND_API_KEY')}`,
       'Content-Type': 'application/json'

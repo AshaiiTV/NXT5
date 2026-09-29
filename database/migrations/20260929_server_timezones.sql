@@ -493,9 +493,10 @@ with supported(name,canonical) as (values
   ('Pacific/Yap','Pacific/Truk'),
   ('UTC','UTC')
 ), normalized as (
-  select s.team_id, coalesce((select canonical from supported z
+  select s.team_id, coalesce((select p.name from supported z
+    join pg_timezone_names p on lower(p.name)=lower(z.name) or p.name=z.canonical
     where lower(z.name)=lower(btrim(s.timezone))
-      and exists(select 1 from pg_timezone_names p where p.name=z.canonical)
+    order by (lower(p.name)=lower(z.name)) desc
     limit 1), 'Europe/Paris') as timezone
   from discord_bot_settings s
 )

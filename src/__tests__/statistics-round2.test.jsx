@@ -23,7 +23,7 @@ function game(events = [], overrides = {}) {
 const monster = (timestamp, extra = {}) => ({ type: "ELITE_MONSTER_KILL", monsterType: "DRAGON", killerId: 1, timestamp, ...extra });
 function goldFrame(timestamp, value = 1000) { return { timestamp, participantFrames: Object.fromEntries(Array.from({ length: 10 }, (_, i) => [String(i + 1), { totalGold: value }])) }; }
 function trends(matches, search = "") {
-  vi.stubGlobal("window", { location: new URL(`https://nxt5.test/tendances${search}`), addEventListener() {}, removeEventListener() {} });
+  vi.stubGlobal("window", { location: new URL(`https://nxt5.test/tendances${search}`), addEventListener() {}, removeEventListener() {}, dispatchEvent() {}, history: { replaceState: vi.fn(), pushState: vi.fn() } });
   return mount(<TrendsPage data={{ matches, teams: [{ id: "t" }], matchCategories: [{ id: "c", team_id: "t", name: "Entraînement" }] }} selectedTeamId="t" />);
 }
 const overview = (r) => r.root.findByType(TrendsOverview).props;
@@ -221,7 +221,7 @@ describe("Tour 2 — statistiques", () => {
     expect(img().props.src).toMatch(/^\/\.netlify\/functions\/asset-proxy\?url=/);
     expect(decodeURIComponent(img().props.src)).toContain("raw.communitydragon.org");
     act(() => img().props.onError());
-    if (r.root.findAllByType("img").length) expect(img().props.src).toMatch(/^\/\.netlify\/functions\/asset-proxy\?url=/);
+    expect(img().props.src).toBe("/assets/objectives/dragon.png");
   });
 });
 
@@ -257,4 +257,39 @@ it('N3-01 shares canonical notebook keys between browser and server', async () =
     expect(canonicalChampion(alias)).toBe(expected);
     expect(validateMatchupRequest({ action: 'list', teamId: '00000000-0000-4000-8000-000000000001', playerId: '00000000-0000-4000-8000-000000000002', champion: alias }).champion).toBe(expected);
   }
+});
+
+it('R4-S1 renders local objective assets directly, including remote fallback failures', () => {
+  const tower = mount(<ObjectivePictogram type='tower' />);
+  expect(tower.root.findByType('img').props.src).toBe('/assets/objectives/tower.png');
+  act(() => tower.root.findByType('img').props.onError());
+  expect(tower.root.findByType('img').props.src).toMatch(/^\/\.netlify\/functions\/asset-proxy\?url=https/);
+  const dragon = mount(<ObjectivePictogram type='dragon' />);
+  act(() => dragon.root.findByType('img').props.onError());
+  expect(dragon.root.findByType('img').props.src).toBe('/assets/objectives/dragon.png');
+});
+
+it.each([
+  [[8, null, 7], 'À ajuster', { impossible: true, inconclusive: false }],
+  [[3, null, 8], 'Non concluable (données manquantes)', { impossible: false, inconclusive: true }],
+  [[null, null, null], 'Non concluable (données manquantes)', { impossible: false, inconclusive: true }],
+  [[3, null, 2], 'Validé', { complete: true, inconclusive: false }],
+  [[3, null], 'En cours', { impossible: false, inconclusive: false }],
+])('R4-S2 evaluates missing observations %j as %s', (values, label, expected) => {
+  const goal = { id: 'goal', player_id: 'p', metric: 'deaths', operator: 'lte', target_value: 3, sample_size: 3, required_successes: 2 };
+  const rows = values.map((deaths, i) => ({ deaths, match: { id: String(i), created_at: '2026-09-29' } }));
+  expect(evaluateGoal(goal, rows)).toMatchObject(expected);
+  const r = mount(<PlayerGoalsPanel goals={[goal]} rows={rows} player={{ id: 'p' }} />);
+  expect(text(r.toJSON())).toContain(label);
+});
+
+it('R4-S4 keeps navigation in an empty filtered selection and opens comparison', async () => {
+  const r = trends([game()], '?contexte=missing');
+  expect(text(r.toJSON())).toContain('Aucune partie dans cette sélection');
+  const compare = r.root.findAllByProps({ role: 'tab' }).find(tab => text(tab).includes('Comparer'));
+  expect(compare).toBeDefined();
+  for (const tab of r.root.findAllByProps({ role: 'tab' })) expect(r.root.findByProps({ id: tab.props['aria-controls'] }).props.role).toBe('tabpanel');
+  expect(r.root.findByProps({ 'aria-label': 'Rubrique' }).props.value).toBe('coach');
+  await act(async () => { compare.props.onClick(); await import('../NextPhase.jsx'); });
+  expect(r.root.findByType(BlockComparisonPanel).props.matches).toHaveLength(1);
 });

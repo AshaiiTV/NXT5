@@ -132,7 +132,9 @@ export function SocialSignup({ onComplete, loginHref }) {
       if (!PROVIDERS.some((provider) => provider.id === result?.provider)) throw new Error("Cette inscription a expiré. Recommence avec le service de ton choix.");
       setPending(result);
       setForm({ email: result.email || "", displayName: result.name || "" });
-    }).catch((err) => { if (active) setError(err.message || "Cette inscription a expiré. Recommence la connexion."); })
+    }).catch((err) => { if (active) setError(emailToken && err.code === "SOCIAL_EXPIRED"
+      ? "Ouvre ce lien dans le navigateur où tu as commencé l’inscription (valable 15 min). Si le lien a expiré, recommence la connexion."
+      : err.message || "Cette inscription a expiré. Recommence la connexion."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);

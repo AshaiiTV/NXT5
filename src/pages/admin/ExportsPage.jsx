@@ -1,3 +1,4 @@
+import { registerDialog } from "../../components/ui/dialog-registry.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Download, Eye, FileImage, FileSpreadsheet, Loader2, RefreshCw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Badge, Button, PageHeader, SelectInput, Surface } from "../../components/ui/Core.jsx";
@@ -61,9 +62,11 @@ function ExportPreviewDialog({ selection, onClose }) {
   useEffect(() => {
     const element = dialog.current;
     element.showModal();
+    const unregister = registerDialog(element);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      unregister();
       element.close();
       document.body.style.overflow = previousOverflow;
       if (selection.opener?.isConnected) selection.opener.focus();

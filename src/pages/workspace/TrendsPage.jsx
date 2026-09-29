@@ -307,10 +307,20 @@ function TrendsPage({ data, selectedTeamId }) {
     <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Analyses · Choix des champions" title={detailSection.title} subtitle={detailSection.description} /></div>
   </>;
 
+  const trendPanelOptions = [
+    ["coach", "Synthèse", Gauge, "Préparer le débrief"],
+    ["evolution", "Évolution", Activity, "Suivre partie après partie"],
+    ["comparison", "Comparer", RefreshCw, "Voir ce qui a changé"],
+    ["draft", "Champions", Crown, "Choix et compositions"],
+    ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
+  ];
+
   if (!matches.length && (trendPanel !== "comparison" || !baseMatches.length)) return <div className="nxt5-data-dense nxt5-trends-page">
     {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles." />}
+    {baseMatches.length > 0 && <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />}
     {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
-    <Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune partie dans cette sélection" : "Vos analyses commencent ici"} text={baseMatches.length ? "Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe." : "Importe tes premières parties pour suivre les résultats et repérer les points à travailler."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les parties" : "Importer une partie"}</Button></div></Surface>
+    <div id={`trend-panel-${trendPanel}`} role={baseMatches.length ? "tabpanel" : undefined} aria-labelledby={baseMatches.length ? `trend-tab-${trendPanel}` : undefined} tabIndex={baseMatches.length ? 0 : undefined}><Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune partie dans cette sélection" : "Vos analyses commencent ici"} text={baseMatches.length ? "Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe." : "Importe tes premières parties pour suivre les résultats et repérer les points à travailler."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les parties" : "Importer une partie"}</Button></div></Surface></div>
+    {baseMatches.length > 0 && trendPanelOptions.filter(([id]) => id !== trendPanel).map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden />)}
   </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
@@ -972,13 +982,6 @@ function TrendsPage({ data, selectedTeamId }) {
   };
   const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
-  const trendPanelOptions = [
-    ["coach", "Synthèse", Gauge, "Préparer le débrief"],
-    ["evolution", "Évolution", Activity, "Suivre partie après partie"],
-    ["comparison", "Comparer", RefreshCw, "Voir ce qui a changé"],
-    ["draft", "Champions", Crown, "Choix et compositions"],
-    ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
-  ];
   const showObjectives = () => {
     focusObjectives.current = true;
     setTrendPanel("ai-objectives");
