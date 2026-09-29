@@ -201,3 +201,45 @@ describe("planning autosave across React navigation", () => {
     expect(app.draft.status).toBe("saved");
   });
 });
+
+describe("B4 leaving the planning store", () => {
+  it("flushes queued changes at unmount and drains edits behind an active request without callbacks", async () => {
+    const listeners = new Map();
+    vi.stubGlobal("window", { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: (name) => listeners.delete(name) });
+    const requests = [];
+    const onSaved = vi.fn(), onError = vi.fn(), subscriber = vi.fn();
+    const store = createPlanningStore({ save: (body) => new Promise(resolve => requests.push({ body, resolve })), onSaved, onError });
+    const entry = store.forContext(CURRENT);
+    entry.subscribe(subscriber);
+    entry.setNotes("A");
+    const event = { preventDefault: vi.fn() };
+    listeners.get("beforeunload")(event);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    void entry.flush();
+    await Promise.resolve();
+    entry.setNotes("B");
+    subscriber.mockClear();
+    store.pause();
+    requests[0].resolve(serverRow(requests[0].body));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests).toHaveLength(2);
+    expect(requests[1].body.notes).toBe("B");
+    expect(listeners.has("beforeunload")).toBe(true);
+    requests[1].resolve(serverRow(requests[1].body, 2));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(listeners.has("beforeunload")).toBe(false);
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(subscriber).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+  it("sends a debounce that has not yet fired on pause", async () => {
+    const save = vi.fn(async body => serverRow(body));
+    const store = createPlanningStore({ save });
+    store.forContext(CURRENT).setNotes("Brouillon");
+    store.pause();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(save).toHaveBeenCalledOnce();
+    expect(save.mock.calls[0][0].notes).toBe("Brouillon");
+  });
+});

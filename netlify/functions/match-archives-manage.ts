@@ -24,7 +24,9 @@ export default async function handler(request: Request, context: Context): Promi
     const archiveId = cleanText(body.archiveId, 80);
     const name = cleanText(body.name, 140);
     const description = cleanText(body.description, 1000);
-    const matchIds = Array.isArray(body.matchIds) ? body.matchIds.map((id) => cleanText(id, 80)).filter(Boolean).slice(0, 80) : [];
+    const matchIds = Array.isArray(body.matchIds) ? body.matchIds.map((id) => cleanText(id, 80)).filter(Boolean) : [];
+
+    if (matchIds.length > 80) throw Object.assign(new Error('Un groupe peut contenir au maximum 80 parties. Réduis la sélection.'), { status: 400 });
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
 

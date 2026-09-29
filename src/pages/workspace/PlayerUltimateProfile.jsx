@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DiscordProgressionGoals } from "../../components/discord/DiscordWorkflows.jsx";
 import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, Eye, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
@@ -327,9 +327,17 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || linkedPlayer || players[0];
   const coachingNote = (data.profileCoachingNotes || []).find((note) => note.team_id === selectedTeamId && note.player_id === selectedPlayer?.id);
   const canEditCoaching = (data.teams || []).some((team) => team.id === selectedTeamId && team.owner_id === user?.id) || canStaffManage(currentMember?.role);
+  const coachingSync = useRef({ key: "", content: "" });
+  const coachingSent = useRef(null);
+  const coachingKey = `${selectedTeamId}|${selectedPlayer?.id || ""}`;
   useEffect(() => {
-    setCoachingContent(coachingNote?.content || "");
-  }, [selectedPlayerId, coachingNote?.content]);
+    const previous = coachingSync.current;
+    const content = coachingNote?.content || "";
+    const sent = coachingSent.current;
+    setCoachingContent((draft) => previous.key !== coachingKey || draft === (sent?.key === coachingKey ? sent.content : previous.content) ? content : draft);
+    coachingSync.current = { key: coachingKey, content };
+    coachingSent.current = null;
+  }, [coachingKey, coachingNote?.content]);
   const filteredMatches = selectedCategoryId ? matches.filter((match) => matchHasCategory(match, selectedCategoryId)) : matches;
   const activeProfileCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const rows = selectedPlayer ? playerIntegratedRows(selectedPlayer, filteredMatches) : [];
@@ -404,6 +412,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
 
   async function saveCoachingNote() {
     if (!selectedPlayer || !selectedTeamId || !canEditCoaching) return;
+    coachingSent.current = { key: coachingKey, content: coachingContent };
     setSavingCoaching(true);
     try {
       await apiFetch("player-coaching-notes-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, playerId: selectedPlayer.id, content: coachingContent }) });

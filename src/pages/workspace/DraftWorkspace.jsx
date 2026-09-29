@@ -285,6 +285,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     try {
       const result = await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ teamId: activeTeamId, playerId: selectedPlayer.id, champion: championName, status, poolId: existing && ["manual", "riot_manual"].includes(String(existing.source || "")) ? existing.id : null, notes: "" }) });
       if (result?.pick) setLocalPool((current) => current.map((row) => row.id === optimistic.id ? result.pick : row));
+      await refreshAll?.();
     } catch (err) {
       setLocalPool((current) => existing
         ? current.map((row) => row.id === existing.id ? existing : row)
@@ -307,6 +308,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     setSaving(true);
     try {
       await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ action: "delete", teamId: activeTeamId, poolId: row.id }) });
+      await refreshAll?.();
     } catch (err) {
       setLocalPool(previousPool);
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
