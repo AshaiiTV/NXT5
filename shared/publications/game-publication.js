@@ -1,3 +1,4 @@
+import { MILESTONE_TOLERANCE_MS } from '../timeline-milestones.js';
 /** Browser/server publication model. Never loads secrets, React, remote assets or staff notes. */
 import { pngNumeric } from '../../src/utils/png-report.js';
 export const PUBLICATION_ANALYSIS_VERSION = 'nxt5-game-2';
@@ -92,17 +93,19 @@ function timelineData(raw, participants) {
     return { time: group[0].time, ally, enemy, winner: ally === enemy ? null : ally > enemy ? 'ALLY' : 'ENEMY' };
   });
   // A compact empty array is also saved by imports that never had a timeline.
-  const hasEvents = Boolean(frames.length || compact.length);
+  const missingKills = kills.length === 0 && (participants.some((row) => row.kills > 0 || row.deaths > 0)
+    || list(raw.info?.teams).some((team) => publicationNumber(team.objectives?.champion?.kills) > 0));
+  const hasEvents = Boolean(frames.length || compact.length) && !missingKills;
   const mapped = kills.every((kill) => kill.victimTeam && (kill.killerTeam || kill.killerId === 0));
   const hasMilestones = Boolean(raw.nxt5?.timelineSummary?.available);
   const status = frames.length ? 'detailed' : compact.length ? 'events' : hasMilestones ? 'milestones' : 'missing';
   const labels = { detailed: 'Timeline détaillée disponible', events: 'Timeline résumée disponible', milestones: 'Repères de timeline disponibles', missing: 'Timeline absente' };
-  return { frames, events, kills, fights, hasEvents, mapped, coverage: { status, label: labels[status], detail: frames.length ? `${frames.length} frame${frames.length > 1 ? 's' : ''} enregistrée${frames.length > 1 ? 's' : ''}` : compact.length ? `${compact.length} événements indexés` : hasMilestones ? 'CS et vision selon les repères enregistrés ; combats indisponibles' : 'Statistiques finales uniquement', combatEventsAvailable: hasEvents && mapped } };
+  return { frames, events, kills, fights, hasEvents, mapped, coverage: { status, label: labels[status], detail: missingKills ? 'Événements de combat absents malgré les éliminations finales ; combats indisponibles' : frames.length ? `${frames.length} frame${frames.length > 1 ? 's' : ''} enregistrée${frames.length > 1 ? 's' : ''}` : compact.length ? `${compact.length} événements indexés` : hasMilestones ? 'CS et vision selon les repères enregistrés ; combats indisponibles' : 'Statistiques finales uniquement', combatEventsAvailable: hasEvents && mapped } };
 }
 function cs10For(row, raw, frames, durationSeconds) {
   if (!row.participantId || (finite(durationSeconds) && durationSeconds < 600)) return null;
   if (frames.length) {
-    const frame = frames.find((item) => Number(item.timestamp) >= 600000 && Number(item.timestamp) <= 660000);
+    const frame = frames.find((item) => Number(item.timestamp) >= 600000 && Number(item.timestamp) <= 600000 + MILESTONE_TOLERANCE_MS);
     const source = frame?.participantFrames?.[String(row.participantId)];
     const lane = publicationNumber(source?.minionsKilled);
     const jungle = publicationNumber(source?.jungleMinionsKilled);

@@ -1,3 +1,9 @@
+# À publier — corrections de l’audit du 29 septembre 2026
+
+- Les conversions locales utilisent les identifiants techniques Riot des champions (par exemple `MonkeyKing` et `LeeSin`). Si le catalogue nécessaire est indisponible, l’export échoue avec une invitation à réessayer connecté, sans enregistrer de faux nom.
+- Les CS à 10 et 20 minutes restent indisponibles si une composante manque ou n’est pas un nombre fini ; les zéros explicitement mesurés sont conservés.
+- Une partie doit avoir exactement une équipe gagnante pour être exportée.
+
 # NXT5 Importer 0.3.3
 
 - La fenêtre d’enregistrement réutilise le dossier du dernier export réussi, y compris après fermeture et réouverture de l’application.

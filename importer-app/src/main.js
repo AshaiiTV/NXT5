@@ -249,8 +249,10 @@ function csAtMinuteFromTimeline(timeline, participantId, minute, gameDuration) {
     frame?.participantFrames?.[participantId];
   if (!participantFrame || Number(frame.timestamp) - target > 5000) return null;
   return (
-    Number(participantFrame.minionsKilled || 0) +
-    Number(participantFrame.jungleMinionsKilled || 0)
+    Number.isFinite(participantFrame.minionsKilled) &&
+    Number.isFinite(participantFrame.jungleMinionsKilled)
+      ? participantFrame.minionsKilled + participantFrame.jungleMinionsKilled
+      : null
   );
 }
 

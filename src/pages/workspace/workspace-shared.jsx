@@ -1,3 +1,4 @@
+import { canonicalChampion as championAssetId, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, Shield, Swords, Target, Upload, Flame, Gauge, ShieldCheck } from "lucide-react";
@@ -43,41 +44,10 @@ const ALL_CHAMPION_STYLE_TAGS = {
   ...ADDITIONAL_CHAMPION_STYLE_TAGS,
 };
 
-const CHAMPION_ASSET_ALIASES = {
-  aurelionsol: "AurelionSol",
-  belveth: "Belveth",
-  chogath: "Chogath",
-  drmundo: "DrMundo",
-  jarvaniv: "JarvanIV",
-  kaisa: "Kaisa",
-  khazix: "Khazix",
-  kogmaw: "KogMaw",
-  ksante: "KSante",
-  leblanc: "Leblanc",
-  leesin: "LeeSin",
-  masteryi: "MasterYi",
-  missfortune: "MissFortune",
-  monkeyking: "MonkeyKing",
-  nunuwillump: "Nunu",
-  reksai: "RekSai",
-  renataglasc: "Renata",
-  tahmkench: "TahmKench",
-  twistedfate: "TwistedFate",
-  velkoz: "Velkoz",
-  viego: "Viego",
-  wukong: "MonkeyKing",
-  xinzhao: "XinZhao",
-};
-
 function championKey(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function championAssetId(value) {
-  const raw = String(value || "").trim();
-  const key = championKey(raw);
-  return CHAMPION_ASSET_ALIASES[key] || raw.replace(/[^A-Za-z0-9]/g, "");
-}
 
 function championDisplayName(value) {
   const raw = String(value || "").trim();
