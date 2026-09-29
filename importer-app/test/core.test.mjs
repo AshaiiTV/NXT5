@@ -228,6 +228,30 @@ test("a complete game ID also falls back to the validated local client", async (
   assert.equal(result.warnings.length, 2);
 });
 
+test("only local-client warnings are relayed with the exported result", async () => {
+  const local = harness({
+    fetchRemote: async () => {
+      throw new Error("Riot indisponible");
+    },
+    fetchLocal: async () => ({
+      match: matchFixture(),
+      source: "nxt5-lcu-importer",
+      warnings: ["Un champion n’a pas pu être identifié.", { html: "<b>" }],
+    }),
+  });
+  const result = await local.run();
+  assert.ok(result.warnings.includes("Un champion n’a pas pu être identifié."));
+  assert.ok(result.warnings.every((warning) => typeof warning === "string"));
+  const remote = harness({
+    fetchRemote: async () => ({
+      match: matchFixture(),
+      timeline: timelineFixture(),
+      warnings: ["Message du serveur"],
+    }),
+  });
+  assert.deepEqual((await remote.run()).warnings, []);
+});
+
 test("foreign server payload never reaches the save dialog", async () => {
   let dialogs = 0;
   const h = harness({

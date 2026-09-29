@@ -13,9 +13,8 @@ const helpers = source.slice(
 );
 const { lcuWinValue, localPosition, lcuToRiotMatch, csAtMinuteFromTimeline } =
   new Function(
-    "catalog",
     `${helpers}; return { lcuWinValue, localPosition, lcuToRiotMatch, csAtMinuteFromTimeline };`,
-  )({ name: async (id) => `Champion ${id}` });
+  )();
 
 test("LCU result strings do not turn losses into wins", () => {
   for (const win of [false, "Fail", "false", 0, "0", undefined])
@@ -40,8 +39,8 @@ test("LCU position mapping distinguishes bot carry and support and respects expl
   );
 });
 
-test("LCU conversion preserves numeric item/spell stats, ISO dates and derives team kills", async () => {
-  const match = await lcuToRiotMatch(
+test("LCU conversion preserves numeric item/spell stats, ISO dates and derives team kills", () => {
+  const match = lcuToRiotMatch(
     {
       gameId: 7861632138,
       gameCreationDate: "2026-09-06T12:00:00Z",
@@ -79,6 +78,29 @@ test("LCU conversion preserves numeric item/spell stats, ISO dates and derives t
   assert.equal(match.info.participants[0].win, false);
   assert.equal(match.info.participants[0].teamPosition, "UTILITY");
   assert.equal(match.info.participants[0].championName, "Champion 1");
+});
+
+test("LCU conversion uses Riot's internal champion names so site stats stay grouped", () => {
+  const game = {
+    gameId: 7861632138,
+    gameDuration: 1800,
+    participants: [
+      { participantId: 1, teamId: 100, championId: 62, stats: {} },
+      { participantId: 2, teamId: 100, championId: 36, stats: {} },
+      { participantId: 3, teamId: 100, championId: 999, stats: {} },
+    ],
+    teams: [],
+  };
+  const champions = new Map([
+    ["62", "MonkeyKing"],
+    ["36", "DrMundo"],
+  ]);
+  const names = lcuToRiotMatch(
+    game,
+    "EUW1_7861632138",
+    champions,
+  ).info.participants.map((participant) => participant.championName);
+  assert.deepEqual(names, ["MonkeyKing", "DrMundo", "Champion 999"]);
 });
 
 test("CS milestones require the observed minute and never borrow an eleven-minute frame", () => {

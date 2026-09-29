@@ -163,6 +163,12 @@ async function bootFixture() {
       reply({}, 401); return;
     }
     if (request.url === '/riotclient/region-locale') { reply({ region: 'EUW', locale: 'fr_FR' }); return; }
+    if (request.url === '/lol-game-data/assets/v1/champion-summary.json') {
+      // Champion 10 stays unknown to exercise the offline placeholder and its warning.
+      const aliases = ['Annie', 'Olaf', 'Galio', 'TwistedFate', 'XinZhao', 'Urgot', 'Leblanc', 'Vladimir', 'FiddleSticks'];
+      reply([{ id: -1, name: 'None', alias: 'None' }, ...aliases.map((alias, index) => ({ id: index + 1, name: alias, alias }))]);
+      return;
+    }
     if (request.url.includes('timeline')) { reply(timeline); return; }
     if (['remote-error', 'malformed', 'wrong-match'].includes(state.mode)) { reply({}, 404); return; }
     if (/\/lol-match-history\/v1\/games?\/\d+$/.test(request.url)) {
@@ -353,15 +359,19 @@ async function runSmoke() {
       await mode('success'); await page.locator('#submit').click();
       await expect(page.locator('#resultPanel')).toBeVisible();
     });
-    await test('LCU fallback preserves losses, roles, dates and objectives offline', async () => {
+    await test('LCU fallback preserves losses, roles, dates, objectives and Riot champion IDs offline', async () => {
       await mode('local-success'); await clickExport();
       await expect(page.locator('#resultPanel')).toBeVisible();
+      await expect(page.locator('#resultWarning')).toContainText('Un champion n’a pas pu être identifié');
       const saved = await readExport('local-success');
       assert.equal(saved.importerSource, 'nxt5-lcu-importer');
       assert.equal(saved.match.info.participants[9].win, false);
       assert.equal(saved.match.info.participants[4].teamPosition, 'UTILITY');
       assert.equal(saved.match.info.participants[2].teamPosition, 'MIDDLE');
-      assert.equal(saved.match.info.participants[0].championName, 'Champion 1');
+      assert.deepEqual(
+        [0, 3, 6, 8, 9].map((index) => saved.match.info.participants[index].championName),
+        ['Annie', 'TwistedFate', 'Leblanc', 'FiddleSticks', 'Champion 10']
+      );
       assert.equal(saved.match.info.gameCreation, Date.parse('2026-09-05T16:00:00.000Z'));
       assert.equal(saved.match.info.teams[0].objectives.champion.kills, 10);
       assert.equal(saved.match.info.teams[1].objectives.champion.kills, 35);

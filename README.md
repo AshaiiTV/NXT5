@@ -117,14 +117,14 @@ NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot.
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.3** pour Windows, Mac Intel et Mac Apple Silicon.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.4** pour Windows, Mac Intel et Mac Apple Silicon.
 
 1. Lancez le `.exe` Windows ou ouvrez `NXT5 Importer.app` après extraction du zip Mac adapté à votre processeur.
 2. Collez le numéro de game ou un ID complet comme `EUW1_7861632138`. Vérifiez la région.
 3. Cliquez sur **Exporter la game**, suivez la progression et choisissez l’emplacement du fichier.
 4. Dans NXT5, ouvrez **Intégration → Importer un fichier NXT5 local** pour ajouter le JSON à votre équipe.
 
-L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvrez le client et son historique. Si le jeu est installé ailleurs, choisissez son dossier dans **Paramètres**. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
+L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvrez le client et son historique. Sous Windows, une installation sur un autre disque est retrouvée grâce aux informations du Riot Client ; sinon, choisissez le dossier du jeu dans **Paramètres**. Les champions reçoivent le même nom que dans les parties récupérées auprès de Riot, y compris hors ligne grâce au catalogue du client. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
 
 Les 30 derniers exports sont accessibles dans **Exports récents** : recherche, affichage dans Finder/Explorateur et réexport. Le récapitulatif précise la présence de la timeline ; son absence n’empêche pas l’export du match. Les fichiers sont enregistrés atomiquement et restent sur cet appareil jusqu’à leur import manuel dans NXT5. L’application nécessite un match de deux équipes de cinq joueurs, conformément au format du site.
 
@@ -144,7 +144,7 @@ pnpm start
 
 La fenêtre d’enregistrement reprend le dossier du dernier export réussi, même après réouverture de l’application. Si ce dossier n’existe plus, elle revient dans Téléchargements.
 
-Voir [les changements 0.3.3](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
+Voir [les changements 0.3.4](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
 
 ## Important
 

@@ -17,6 +17,7 @@ import {
   fetchJson,
   readLeagueLockfile,
   lcuRequest,
+  lcuChampionNames,
   createChampionCatalog,
 } from "./network.js";
 
@@ -109,7 +110,7 @@ function lcuWinValue(team) {
   return ["win", "true", "1"].includes(String(team?.win || "").toLowerCase());
 }
 
-async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
+function lcuToRiotMatch(lcuGame, fallbackGameId, champions = new Map()) {
   const statNumber = (stats, ...keys) => {
     for (const key of keys) {
       const value = Number(stats?.[key] ?? 0);
@@ -117,8 +118,8 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
     }
     return 0;
   };
-  const participants = await Promise.all(
-    (lcuGame.participants || []).map(async (participant, index) => {
+  const participants = (lcuGame.participants || []).map(
+    (participant, index) => {
       const identity = (lcuGame.participantIdentities || []).find(
         (item) => item.participantId === participant.participantId,
       );
@@ -126,8 +127,9 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
       const stats = participant.stats || {};
       const timeline = participant.timeline || {};
       const championName =
+        champions.get(String(participant.championId)) ||
         participant.championName ||
-        (await catalog.name(participant.championId, signal));
+        `Champion ${participant.championId || "?"}`;
       const riotName =
         player.gameName ||
         player.summonerName ||
@@ -181,7 +183,7 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
           statNumber(stats, "summoner2Id", "spell2Id"),
         win: lcuWinValue(stats),
       };
-    }),
+    },
   );
 
   return {
@@ -379,7 +381,17 @@ async function localMatch(gameId, signal, progress) {
   }
   if (!game)
     throw lastError || new Error("Partie introuvable dans le client LoL.");
-  const match = await lcuToRiotMatch(game, gameId, signal);
+  const champions = await championNames(
+    game.participants.map((participant) => participant.championId),
+    lockfile,
+    signal,
+  );
+  const unknownChampions = game.participants.filter(
+    (participant) =>
+      !champions.has(String(participant.championId)) &&
+      !participant.championName,
+  ).length;
+  const match = lcuToRiotMatch(game, gameId, champions);
   progress?.("Récupération de la timeline depuis le client LoL…");
   let timeline = null;
   for (const endpoint of [
@@ -398,7 +410,30 @@ async function localMatch(gameId, signal, progress) {
       throwIfAborted(signal);
     }
   }
-  return { match, timeline, source: "nxt5-lcu-importer" };
+  // Placeholder names would be stored by the site, so the user must know to re-export.
+  const warnings = unknownChampions
+    ? [
+        unknownChampions > 1
+          ? `${unknownChampions} champions n’ont pas pu être identifiés : ils apparaîtront sous leur numéro. Réexportez la game une fois connecté à Internet.`
+          : "Un champion n’a pas pu être identifié : il apparaîtra sous son numéro. Réexportez la game une fois connecté à Internet.",
+      ]
+    : [];
+  return { match, timeline, source: "nxt5-lcu-importer", warnings };
+}
+
+async function championNames(championIds, lockfile, signal) {
+  let names = new Map();
+  try {
+    names = await lcuChampionNames(lockfile, { signal });
+  } catch {
+    throwIfAborted(signal);
+  }
+  for (const id of new Set(championIds.map(String))) {
+    if (names.has(id)) continue;
+    const name = await catalog.name(id, signal);
+    if (name) names.set(id, name);
+  }
+  return names;
 }
 
 const importer = createImportService({

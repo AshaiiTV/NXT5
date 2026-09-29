@@ -75,10 +75,55 @@ export async function fetchJson(
   }
 }
 
-export function lockfileCandidates(customPath = "") {
+async function readSmallText(filePath, maxBytes = 65536) {
+  if ((await fs.stat(filePath)).size > maxBytes)
+    throw new Error("File too large");
+  return fs.readFile(filePath, "utf8");
+}
+
+// The Riot Client records where each game is installed, including other drives (D:\, E:\…).
+export async function riotInstallDirectories(
+  programData = process.platform === "win32"
+    ? process.env.ProgramData || "C:\\ProgramData"
+    : "",
+) {
+  if (!programData) return [];
+  const riot = path.join(programData, "Riot Games");
+  const directories = [];
+  try {
+    const installs = JSON.parse(
+      await readSmallText(path.join(riot, "RiotClientInstalls.json")),
+    );
+    directories.push(...Object.keys(installs?.associated_client || {}));
+  } catch {
+    /* optional Riot Client metadata */
+  }
+  try {
+    const settings = await readSmallText(
+      path.join(
+        riot,
+        "Metadata",
+        "league_of_legends.live",
+        "league_of_legends.live.product_settings.yaml",
+      ),
+    );
+    const install = settings.match(
+      /^\s*product_install_full_path:\s*["']?(.+?)["']?\s*$/m,
+    );
+    if (install) directories.unshift(install[1]);
+  } catch {
+    /* optional Riot Client metadata */
+  }
+  return directories
+    .filter((directory) => directory && directory.length < 1024)
+    .slice(0, 10);
+}
+
+export function lockfileCandidates(customPath = "", installDirectories = []) {
   const choices = [
     customPath,
     process.env.LEAGUE_LOCKFILE,
+    ...installDirectories,
     "/Applications/League of Legends.app/Contents/LoL/lockfile",
     path.join(
       os.homedir(),
@@ -125,8 +170,14 @@ export function parseLockfile(content) {
   return { port, password: fields[3], protocol: fields[4] };
 }
 
-export async function readLeagueLockfile(customPath = "") {
-  for (const candidate of lockfileCandidates(customPath)) {
+export async function readLeagueLockfile(
+  customPath = "",
+  installDirectories = riotInstallDirectories,
+) {
+  for (const candidate of lockfileCandidates(
+    customPath,
+    await installDirectories(),
+  )) {
     try {
       const stat = await fs.stat(candidate);
       if (!stat.isFile() || stat.size > 4096) continue;
@@ -245,6 +296,27 @@ export function lcuRequest(
   });
 }
 
+// Riot's internal champion names ("MonkeyKing", "DrMundo"), as in match-v5 championName.
+const isChampionAlias = (value) =>
+  typeof value === "string" && /^[A-Za-z0-9_]{1,40}$/.test(value);
+
+// The client's own catalog works offline and always matches the installed patch.
+export async function lcuChampionNames(
+  lockfile,
+  { signal, request = lcuRequest } = {},
+) {
+  const payload = await request(
+    lockfile,
+    "/lol-game-data/assets/v1/champion-summary.json",
+    { signal, timeoutMs: 5000, maxBytes: 2000000 },
+  );
+  const names = new Map();
+  for (const champion of Array.isArray(payload) ? payload : [])
+    if (Number(champion?.id) > 0 && isChampionAlias(champion.alias))
+      names.set(String(champion.id), champion.alias);
+  return names;
+}
+
 export function createChampionCatalog(getJson = fetchJson) {
   const names = new Map();
   let pending = null;
@@ -266,9 +338,10 @@ export function createChampionCatalog(getJson = fetchJson) {
         );
         if (!catalog.response.ok)
           throw new Error("Catalogue champions indisponible.");
+        // Display names ("Wukong", "Dr. Mundo") would split the site's stats from Riot imports.
         for (const champion of Object.values(catalog.payload?.data || {}))
-          if (champion?.key && champion?.name)
-            names.set(String(champion.key), String(champion.name));
+          if (champion?.key && isChampionAlias(champion.id))
+            names.set(String(champion.key), champion.id);
       })()
         .catch(() => {
           if (!signal?.aborted) retryAt = Date.now() + 60000;
@@ -283,7 +356,7 @@ export function createChampionCatalog(getJson = fetchJson) {
   return {
     async name(id, signal) {
       await load(signal);
-      return names.get(String(id)) || `Champion ${id || "?"}`;
+      return names.get(String(id)) || "";
     },
   };
 }
