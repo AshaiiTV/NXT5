@@ -107,7 +107,7 @@ Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.3
 3. Clique sur **Exporter la game**, suis la progression et choisis l’emplacement du fichier.
 4. Dans NXT5, ouvre **Parties → Importer une partie** et charge le JSON pour l’ajouter à ton équipe.
 
-L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvre le client et son historique. Si le jeu est installé ailleurs, choisis son dossier dans **Paramètres**. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
+L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvrez le client et son historique. Si le jeu est installé ailleurs, choisissez son dossier dans **Paramètres**. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
 
 Les 30 derniers exports sont accessibles dans **Exports récents** : recherche, affichage dans Finder/Explorateur et réexport. Le récapitulatif précise la présence de la timeline ; son absence n’empêche pas l’export du match. Les fichiers sont enregistrés atomiquement et restent sur cet appareil jusqu’à leur import manuel dans NXT5. L’application nécessite un match de deux équipes de cinq joueurs, conformément au format du site.
 
