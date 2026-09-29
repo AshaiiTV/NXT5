@@ -497,3 +497,9 @@ Avant correction, les huit nouveaux cas exécutés seuls donnent **5 échecs et 
 - Les sauvegardes conservent les textes entiers, mais leur restauration reste technique. Le volume mémoire et la durée de migration sur une base représentative ne sont pas mesurés ici.
 - Aucune modification visuelle. La limite UTF-16 de l’éditeur est conservée ; passer tout le produit à une limite en points de code demanderait une évolution distincte des validations et des champs.
 - Pour respecter l’interdiction d’écriture hors du checkout, le lien `node_modules` est temporairement remplacé par des liens vers les dépendances préexistantes, avec caches locaux ; son lien initial est restauré après la vérification.
+
+## Tour 7 — correction par Claude
+
+| Constat | Correction | Régression |
+|---|---|---|
+| T7-01 — une composition dont un pick a été supprimé ne pouvait plus être enregistrée (HTTP 400, aucune commande pour vider l’emplacement) | `composition-types-manage.ts` ne refuse plus les références absentes : un joueur ou un pick qui n’appartient pas (ou plus) à l’équipe vide simplement l’emplacement. Aucune référence étrangère n’est jamais stockée ; la validation de forme des emplacements (rôles, UUID, champs) reste stricte. | `audit-tour5-server.test.ts` : « T7-01 … stays editable » et références étrangères jamais stockées (création et modification). |

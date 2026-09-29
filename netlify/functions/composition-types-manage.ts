@@ -81,13 +81,17 @@ export default async function handler(request: Request, context: Context): Promi
     const slots = normalizeSlots(body.slots);
     const playerIds = [...new Set(Object.values(slots).map(slot => slot.playerId).filter(Boolean))];
     const poolIds = [...new Set(Object.values(slots).map(slot => slot.poolId).filter(Boolean))];
-    if (playerIds.length) {
-      const players = await sql`select id from players where team_id = ${teamId} and id = any(${playerIds}::uuid[])`;
-      if (players.length !== playerIds.length) invalidSlots();
-    }
-    if (poolIds.length) {
-      const pool = await sql`select id from champion_pool where team_id = ${teamId} and id = any(${poolIds}::uuid[])`;
-      if (pool.length !== poolIds.length) invalidSlots();
+    // References outside this team are never stored. A pick or profile deleted since the
+    // composition was saved simply empties its slot instead of blocking every later edit.
+    const teamPlayerIds = new Set(playerIds.length
+      ? (await sql`select id from players where team_id = ${teamId} and id = any(${playerIds}::uuid[])`).map(row => String(row.id).toLowerCase())
+      : []);
+    const teamPoolIds = new Set(poolIds.length
+      ? (await sql`select id from champion_pool where team_id = ${teamId} and id = any(${poolIds}::uuid[])`).map(row => String(row.id).toLowerCase())
+      : []);
+    for (const slot of Object.values(slots)) {
+      if (slot.playerId && !teamPlayerIds.has(slot.playerId)) slot.playerId = '';
+      if (slot.poolId && !teamPoolIds.has(slot.poolId)) slot.poolId = '';
     }
 
 

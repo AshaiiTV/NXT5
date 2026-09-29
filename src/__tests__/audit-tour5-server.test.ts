@@ -188,7 +188,7 @@ it.each([[], null, { TOP: 3 }, { TOP: [] }, { TOP: { poolId: 'invalid' } }, { TO
   expect((await call(compositions, { title: 'Invalid', slots })).status).toBe(400);
   expect((await database.pg.query('select * from composition_types')).rows).toHaveLength(0);
 });
-it('T5-05 normalizes null slots and rejects foreign player/pool on create and update', async () => {
+it('T5-05 normalizes null slots and never stores foreign or deleted player/pool references', async () => {
   actor.id = captain;
   await database.pg.query("update team_members set role='player' where team_id=$1 and user_id=$2", [teamId, captain]);
   const response = await call(compositions, { title: 'Valid', slots: { TOP: null, MID: { playerId, poolId } } });
@@ -198,10 +198,24 @@ it('T5-05 normalizes null slots and rejects foreign player/pool on create and up
   const foreignPlayer = uuid(7), foreignPool = uuid(8);
   await database.pg.query("insert into players(id,team_id,name,role) values($1,$2,'Other','TOP')", [foreignPlayer, foreignTeam]);
   await database.pg.query("insert into champion_pool(id,team_id,player_id,player_name,champion) values($1,$2,$3,'Other','Ornn')", [foreignPool, foreignTeam, foreignPlayer]);
-  for (const action of ['create', 'update']) for (const slot of [{ playerId: foreignPlayer }, { poolId: foreignPool }]) {
-    expect((await call(compositions, { action, compositionId: composition.id, title: 'Invalid', slots: { TOP: slot } })).status).toBe(400);
+  for (const slot of [{ playerId: foreignPlayer }, { poolId: foreignPool }]) {
+    const updated = await call(compositions, { action: 'update', compositionId: composition.id, title: 'Valid', slots: { TOP: slot } });
+    expect(updated.status).toBe(200);
+    expect((await updated.json()).composition.slots).toEqual({ TOP: { playerId: '', poolId: '' } });
   }
-  expect((await database.pg.query('select title from composition_types')).rows).toEqual([{ title: 'Valid' }]);
+  const created = await call(compositions, { title: 'Foreign', slots: { TOP: { playerId: foreignPlayer, poolId: foreignPool } } });
+  expect((await created.json()).composition.slots).toEqual({ TOP: { playerId: '', poolId: '' } });
+  const stored = JSON.stringify((await database.pg.query('select slots from composition_types')).rows);
+  expect(stored).not.toContain(foreignPlayer);
+  expect(stored).not.toContain(foreignPool);
+});
+it('T7-01 a composition whose pick was deleted stays editable and the stale pick is cleared', async () => {
+  const response = await call(compositions, { title: 'Before', slots: { MID: { playerId, poolId } } });
+  const { composition } = await response.json();
+  await database.pg.query('delete from champion_pool where id=$1', [poolId]);
+  const updated = await call(compositions, { action: 'update', compositionId: composition.id, title: 'After', slots: { MID: { playerId, poolId } } });
+  expect(updated.status).toBe(200);
+  expect((await updated.json()).composition).toMatchObject({ title: 'After', slots: { MID: { playerId, poolId: '' } } });
 });
 
 it('N5-02 changing Riot ID invalidates derived stats; a name-only update keeps them', async () => {
