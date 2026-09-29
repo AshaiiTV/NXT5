@@ -1,3 +1,4 @@
+import { logFailure } from './safe-log';
 import crypto from 'node:crypto';
 import type { Context } from '@netlify/functions';
 import { sql } from './db';
@@ -126,7 +127,7 @@ export function validateAudienceEvent(body: any, request: Request) {
 
 export function audienceFailure(err: any) {
   // Do not log raw SQL query parameters (cookies/identifiers) on database errors.
-  console.error('[audience] Request failed.', { code: err?.code || 'AUDIENCE_FAILED', status: err?.status || 500 });
+  logFailure('[audience] Request failed.', err, { code: 'AUDIENCE_FAILED', status: 500 });
   return new Response(JSON.stringify({ error: err?.status < 500 ? err.message : err.publicMessage || 'Fréquentation temporairement indisponible.', code: err?.code || 'AUDIENCE_FAILED' }), {
     status: err?.status || 500,
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Vary': 'Cookie, Origin', 'X-Content-Type-Options': 'nosniff', ...(err.retryAfter ? { 'Retry-After': String(err.retryAfter) } : {}) }

@@ -1,3 +1,4 @@
+import { logFailure } from './_lib/safe-log';
 import type { Context } from '@netlify/functions';
 import OpenAI from 'openai';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
@@ -174,10 +175,7 @@ export default async function handler(request: Request, context: Context): Promi
         fallback: false
       });
     } catch (gatewayError: any) {
-      console.warn('assistant-chat: AI Gateway unavailable, serving local help.', {
-        name: gatewayError?.name || 'Error',
-        status: gatewayError?.status || null
-      });
+      logFailure('assistant-chat: AI Gateway unavailable, serving local help.', gatewayError, {}, 'warn');
       return json(fallback);
     }
   } catch (err) {

@@ -1,3 +1,4 @@
+import { logFailure } from './_lib/safe-log';
 import type { Config } from '@netlify/functions';
 import { sql } from './_lib/db';
 import { json } from './_lib/http';
@@ -15,8 +16,8 @@ export default async function handler(_request: Request): Promise<Response> {
     `;
     return json({ ok: true, deleted: Number(rows[0]?.deleted || 0) });
   } catch (err: any) {
-    // Log only the failure code, never a prospect's details.
-    console.error('[access-requests-cleanup] Cleanup failed.', { code: err?.code || 'CLEANUP_FAILED' });
+    // Log only bounded metadata, never a prospect's details.
+    logFailure('[access-requests-cleanup] Cleanup failed.', err, { code: 'CLEANUP_FAILED' });
     return json({ error: 'Nettoyage temporairement indisponible.' }, 503);
   }
 }
