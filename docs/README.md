@@ -69,6 +69,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 | 2026-09-24 | [Contrôle des accents colorés](subtle-gradients-2026-09-24.md) |
 | 2026-09-24 | [Vérification du parcours de prise en main](verification-clarte-parcours-2026-09-24.md) |
 | 2026-09-28 | [Corrections de l’audit](audit-corrections-2026-09-28.md) |
+| 2026-09-29 | [Plafond journalier de l’assistant IA](assistant-plafond-2026-09-29.md) |
 | 2026-09-29 | [Cohérence des textes publics](coherence-textes-2026-09-29.md) |
 | 2026-09-29 | [Nettoyage du dépôt](nettoyage-depot-2026-09-29.md) |
 
