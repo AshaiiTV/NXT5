@@ -1,3 +1,5 @@
+import { championGroupKey } from "../../shared/champions.js";
+
 const GAME_ID_PATTERN = /^EUW1_\d{10,}$/;
 const RIOT_ID_PATTERN = /^[^#\s][^#]{1,30}#[A-Za-z0-9]{2,5}$/;
 
@@ -32,7 +34,7 @@ export function buildChampionPool(rows = []) {
     const champion = String(row?.champion || "").trim();
     if (!champion) continue;
     const playerId = String(row?.player_id || row?.playerId || row?.player_name || row?.playerName || "team");
-    const key = `${playerId}:${champion.toLowerCase()}`;
+    const key = `${playerId}:${championGroupKey(champion)}`;
     const current = pool.get(key) || {
       player_id: row?.player_id || row?.playerId || null,
       player_name: row?.player_name || row?.playerName || "",

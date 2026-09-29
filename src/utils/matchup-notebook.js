@@ -1,6 +1,8 @@
+import { championGroupKey } from "../../shared/champions.js";
+
 /** Stable database key; the original champion spelling remains available for display. */
 export function championKey(value) {
-  return String(value ?? "").trim().replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  return championGroupKey(value);
 }
 
 const ROLE_ALIASES = {

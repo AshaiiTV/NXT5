@@ -1,6 +1,7 @@
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
+import { canonicalChampionName } from '../../shared/champions.js';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 
@@ -20,38 +21,8 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 }
 
-function championKey(value) {
-  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
 function canonicalChampion(value) {
-  const raw = cleanText(value, 80);
-  const aliases = {
-    aurelionsol: 'AurelionSol',
-    belveth: 'Belveth',
-    chogath: 'Chogath',
-    drmundo: 'DrMundo',
-    jarvaniv: 'JarvanIV',
-    kaisa: 'Kaisa',
-    khazix: 'Khazix',
-    kogmaw: 'KogMaw',
-    ksante: 'KSante',
-    leblanc: 'Leblanc',
-    leesin: 'LeeSin',
-    masteryi: 'MasterYi',
-    missfortune: 'MissFortune',
-    monkeyking: 'MonkeyKing',
-    nunuwillump: 'Nunu',
-    reksai: 'RekSai',
-    renataglasc: 'Renata',
-    tahmkench: 'TahmKench',
-    twistedfate: 'TwistedFate',
-    velkoz: 'Velkoz',
-    viego: 'Viego',
-    wukong: 'MonkeyKing',
-    xinzhao: 'XinZhao',
-  };
-  return aliases[championKey(raw)] || raw.replace(/[^A-Za-z0-9]/g, '');
+  return canonicalChampionName(cleanText(value, 80));
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

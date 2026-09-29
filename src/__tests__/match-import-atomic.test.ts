@@ -435,6 +435,21 @@ describe('team side correction against PostgreSQL', () => {
     ]);
   });
 
+  it('matches display champion names from older Importer files with their stored Riot names', async () => {
+    const args = importArgs();
+    args.match.info.teams = [
+      { teamId: 100, win: true, objectives: { dragon: { kills: 4 }, baron: { kills: 2 }, tower: { kills: 9 } } },
+      { teamId: 200, win: false, objectives: { dragon: { kills: 1 }, baron: { kills: 0 }, tower: { kills: 3 } } }
+    ];
+    args.match.info.participants[0].championName = 'Dr. Mundo';
+    args.laneAssignments[roles[0]] = 'Dr. Mundo';
+    const match = await persistAnalyzedMatch(args);
+    const stored = (await storedMatch()).participants.find((row: any) => row.raw.participantId === 1);
+    expect(stored.champion).toBe('DrMundo');
+    expect(stored.raw.championName).toBe('Dr. Mundo');
+    expect((await correctSide(match.id)).status).toBe(200);
+  });
+
   it('can restore Blue Side and treats the already selected side as an idempotent no-op', async () => {
     const match = await seedSideMatch();
     const before = await storedMatch();
@@ -634,6 +649,21 @@ describe('stable and atomic champion pool refresh', () => {
     expect(saved.warnings).toEqual([]);
     const pool = await database.pg.query('select player_name, games, wins from champion_pool where player_id=$1 and champion=$2', [roster[0].id, 'Champion0']);
     expect(pool.rows).toEqual([{ player_name: 'Player0', games: 2, wins: 2 }]);
+  });
+
+  it('groups a game read from the LoL client and a Riot game under the Riot champion name', async () => {
+    const client = importArgs(2);
+    client.match.info.participants[0].championName = 'Dr. Mundo';
+    client.laneAssignments[roles[0]] = 'Dr. Mundo';
+    await persistAnalyzedMatch(client);
+    const riot = importArgs(4);
+    riot.gameId = 'EUW1_987654321';
+    riot.match.metadata.matchId = riot.gameId;
+    riot.match.info.participants[0].championName = 'DrMundo';
+    riot.laneAssignments[roles[0]] = 'DrMundo';
+    await persistAnalyzedMatch(riot);
+    const pool = await database.pg.query('select champion, games, wins from champion_pool where player_id=$1', [roster[0].id]);
+    expect(pool.rows).toEqual([{ champion: 'DrMundo', games: 2, wins: 2 }]);
   });
 
   it('preserves manual and riot_manual entries while replacing automatic statistics', async () => {

@@ -1,6 +1,7 @@
 import { assertSchemaReady } from './migrations';
 import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 import { sql } from './db';
+import { canonicalChampionName } from '../../../shared/champions.js';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
 
@@ -254,7 +255,8 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
         team_key: p.teamId === allyTeamId ? 'ALLY' : 'ENEMY',
         summoner_name: p.summonerName || p.riotIdGameName || 'Unknown',
         riot_id: rid,
-        champion: p.championName,
+        // Older NXT5 Importer files carry display names ("Wukong"); store Riot's name so stats group together.
+        champion: canonicalChampionName(p.championName),
         role,
         kills,
         deaths,

@@ -1,5 +1,6 @@
 import { sql } from './db';
 import { assertSchemaReady } from './migrations';
+import { championGroupKey } from '../../../shared/champions.js';
 
 export const PLAYER_MATCHUPS_SCHEMA_VERSION = 'player-matchups-20260915-v1';
 let ready: Promise<void> | undefined;
@@ -46,7 +47,7 @@ function uuid(value: unknown): string {
 }
 
 export function canonicalChampion(value: unknown): string {
-  return String(value ?? '').trim().replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+  return championGroupKey(value);
 }
 
 function champion(value: unknown): string {
