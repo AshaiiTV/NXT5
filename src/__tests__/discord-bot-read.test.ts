@@ -289,3 +289,11 @@ describe('Discord reads · planning and preparation', () => {
     await expect(read('draft preparer', { evenement: id(81) }, staff)).rejects.toMatchObject({ status: 404 });
   });
 });
+
+it('reads web midnight as the following civil day, including Sunday into Monday', async () => {
+  const slots={_events:{'THU|00:00':{label:'Thursday midnight'},'SUN|00:00':{label:'Sunday midnight'}}};
+  await rows("insert into player_availability(team_id,player_id,week_start,slots) values($1,$2,'2026-09-21',$3::jsonb)",[team,ownPlayer,JSON.stringify(slots)]);
+  const payload=await read('planning',{periode:'semaine'});
+  expect(field(payload,'Thursday midnight')).toContain(`<t:${Date.parse('2026-09-24T22:00:00Z')/1000}:f>`);
+  expect(field(payload,'Sunday midnight')).toContain(`<t:${Date.parse('2026-09-27T22:00:00Z')/1000}:f>`);
+});

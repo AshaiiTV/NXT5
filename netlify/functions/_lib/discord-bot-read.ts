@@ -427,6 +427,7 @@ async function planning(ctx: BotContext, options: Row) {
     ), legacy as (
       select distinct a.team_id,e.value->>'label' as title,coalesce(e.value->>'type','custom') as event_type,
       (a.week_start + (case split_part(e.key,'|',1) when 'MON' then 0 when 'TUE' then 1 when 'WED' then 2 when 'THU' then 3 when 'FRI' then 4 when 'SAT' then 5 when 'SUN' then 6 end)
+        + case when split_part(e.key,'|',2)='00:00' then 1 else 0 end
         + split_part(e.key,'|',2)::time) at time zone $2 as starts_at
       from player_availability a cross join lateral jsonb_each(case
         when jsonb_typeof(a.slots->'_events')='object' then a.slots->'_events'

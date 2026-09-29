@@ -26,6 +26,9 @@ export async function loadMigrations() {
     ['audience-activation-20260928-v1', '../database/migrations/20260928_audience_activation.sql'],
     ['team-activation-milestones-20260928-v1', '../database/migrations/20260928_team_activation_milestones.sql'],
     ['discord-group-exports-20260924-v1', '../database/migrations/20260924_discord_group_exports.sql'],
+    ['server-timezones-20260929-v1', '../database/migrations/20260929_server_timezones.sql'],
+    ['server-reminders-20260929-v1', '../database/migrations/20260929_server_reminders.sql'],
+    ['social-email-signup-20260929-v1', '../database/migrations/20260929_social_email_signup.sql'],
     ['report-source-20260929-v1', '../database/migrations/20260929_report_source.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {

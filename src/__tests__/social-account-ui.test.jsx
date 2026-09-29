@@ -251,3 +251,34 @@ describe("social account settings", () => {
     expect(content(renderer.root)).toContain("associe à nouveau tes comptes externes dans Paramètres");
   });
 });
+
+it('shows check-your-mail for Riot without authenticating or retaining a signup form', async () => {
+  const onComplete=vi.fn();
+  apiFetch.mockResolvedValueOnce({provider:'riot',email:null,name:'RiotPlayer',emailVerified:false});
+  const renderer=await render(<SocialSignup onComplete={onComplete} loginHref="/connexion" />);
+  edit(renderer,'E-mail de récupération','player@example.test');
+  act(()=>renderer.root.findByProps({type:'checkbox'}).props.onChange({target:{checked:true}}));
+  apiFetch.mockResolvedValueOnce({ok:true,emailVerificationRequired:true});
+  await act(async()=>{await submit(renderer);});
+  expect(onComplete).not.toHaveBeenCalled();
+  expect(renderer.root.findAllByType('form')).toHaveLength(0);
+  expect(content(renderer.root)).toContain('Vérifie ta boîte e-mail');
+  expect(renderer.root.findByProps({role:'status'})).toBeTruthy();
+});
+it('confirms the emailed token only on explicit action, preserves errors and removes it from the URL', async () => {
+  window.location.hash='#email_token='+'a'.repeat(43);
+  window.history={replaceState:vi.fn()};
+  const onComplete=vi.fn();
+  apiFetch.mockResolvedValueOnce({provider:'riot',email:null,name:'RiotPlayer'});
+  const renderer=await render(<SocialSignup onComplete={onComplete} loginHref="/connexion" />);
+  expect(window.history.replaceState).toHaveBeenCalled();
+  expect(apiFetch).toHaveBeenCalledTimes(1);
+  apiFetch.mockRejectedValueOnce(new Error('Lien expiré'));
+  await act(async()=>{await submit(renderer);});
+  expect(content(renderer.root)).toContain('Lien expiré');
+  expect(onComplete).not.toHaveBeenCalled();
+  apiFetch.mockResolvedValueOnce({user:{id:'new'},destination:'/equipes?invite=token'});
+  await act(async()=>{await submit(renderer);});
+  expect(JSON.parse(apiFetch.mock.calls[2][1].body)).toEqual({emailToken:'a'.repeat(43)});
+  expect(onComplete).toHaveBeenCalledWith({id:'new'},'/equipes?invite=token');
+});

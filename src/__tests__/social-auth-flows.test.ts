@@ -4,8 +4,8 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
-  pg: null as any, beforeQuery: null as null | ((query: string) => Promise<void>),
-  authorize: vi.fn(), exchange: vi.fn(), email: vi.fn(async (_message: any) => {}), rate: vi.fn(async () => {}),
+  realTicketRate: false, pg: null as any, beforeQuery: null as null | ((query: string) => Promise<void>),
+  authorize: vi.fn(), exchange: vi.fn(), email: vi.fn(async (_message: any) => {}), rate: vi.fn(async (..._args: any[]) => {}),
 }));
 vi.mock('../../netlify/functions/_lib/db', async () => {
   const { neon, neonConfig } = await import('@neondatabase/serverless');
@@ -39,10 +39,15 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 vi.mock('../../netlify/functions/_lib/social-auth-protocol', async original => ({
   ...await original<any>(), createSocialAuthorizationUrl: state.authorize, exchangeSocialAuthorizationCode: state.exchange,
 }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.email }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({
-  assertRateLimit: state.rate, assertSubjectRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate,
-}));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.email, sendSocialSignupEmail: state.email }));
+vi.mock('../../netlify/functions/_lib/rate-limit', async original => {
+  const actual=await original<any>();
+  return { assertRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate,
+    assertSubjectRateLimit: async (...args:any[]) => {
+      await state.rate(...args);
+      if(state.realTicketRate) await actual.assertSubjectRateLimit(...args);
+    } };
+});
 
 import statusHandler from '../../netlify/functions/auth-social-status';
 import startHandler from '../../netlify/functions/auth-social-start';
@@ -125,13 +130,15 @@ beforeAll(async () => {
   await state.pg.exec(schema);
   await state.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
   await state.pg.exec(readFileSync(new URL('../../database/migrations/20260923_social_auth.sql', import.meta.url), 'utf8'));
+  await state.pg.exec(readFileSync(new URL('../../database/migrations/20260929_social_email_signup.sql', import.meta.url), 'utf8'));
   await state.pg.exec(`create table app_schema_migrations(migration_key text primary key);
     insert into app_schema_migrations values('audit-runtime-20260906-v1'), ('social-auth-20260923-v1');`);
   passwordHash = await hashPassword(password);
 }, 30_000);
 beforeEach(async () => {
   state.beforeQuery = null;
-  await state.pg.exec('truncate users, social_auth_flows, social_auth_tickets cascade');
+  state.realTicketRate=false;
+  await state.pg.exec('truncate users, social_auth_flows, social_auth_tickets, rate_limits cascade');
   for (const name of Object.keys(process.env)) if (/^(GOOGLE_AUTH_|APPLE_AUTH_|DISCORD_AUTH_|SOCIAL_AUTH_|RIOT_RSO_)/.test(name)) vi.stubEnv(name, undefined);
   vi.stubEnv('SESSION_SECRET', 's'.repeat(64));
   vi.stubEnv('SOCIAL_AUTH_SITE_ORIGIN', origin);
@@ -288,7 +295,7 @@ describe('signup completion and ownership', () => {
   it('allows only one competing redemption of the same signup ticket', async () => {
     enabled();
     const first = await prepareSignup(); const second = copyBrowser(first);
-    const responses = await Promise.all([complete(first, { email: 'first@example.test' }), complete(second, { email: 'second@example.test' })]);
+    const responses = await Promise.all([complete(first), complete(second)]);
     expect(responses.map(result => result.status).sort()).toEqual([200, 400]);
     expect(await rows('select * from users')).toHaveLength(1);
     expect(await rows('select * from social_identities')).toHaveLength(1);
@@ -309,7 +316,10 @@ describe('signup completion and ownership', () => {
 
   it('rolls back account creation when a competing signup already claimed the provider identity', async () => {
     enabled();
-    const first = await prepareSignup(); const second = await prepareSignup();
+    identity.email = 'first@example.test';
+    const first = await prepareSignup();
+    identity.email = 'second@example.test';
+    const second = await prepareSignup();
     expect((await complete(first, { email: 'first@example.test' })).status).toBe(200);
     const response = await complete(second, { email: 'second@example.test' });
     expect(response.status).toBe(409);
@@ -319,30 +329,96 @@ describe('signup completion and ownership', () => {
     expect(await rows('select * from social_auth_tickets')).toHaveLength(1);
   });
 
-  it.each(['unverified-provider-email', 'different-chosen-email'])('does not inherit verification for %s', async kind => {
-    enabled();
+  it.each(['unverified-provider-email', 'different-chosen-email', 'riot-no-email'])('verifies the mailbox before creating a %s account', async kind => {
+    if (kind === 'riot-no-email') {
+      identity.provider = 'riot'; identity.email = null; identity.emailVerified = false;
+      vi.stubEnv('RIOT_RSO_REDIRECT_URI', origin + '/.netlify/functions/auth-social-callback');
+      vi.stubEnv('RIOT_RSO_ENABLED', 'true'); vi.stubEnv('RIOT_RSO_APPROVAL_CONFIRMED', 'true'); vi.stubEnv('RIOT_RSO_CLIENT_AUTH_METHOD', 'client_secret_basic');
+      vi.stubEnv('RIOT_RSO_CLIENT_ID', 'riot-client'); vi.stubEnv('RIOT_RSO_CLIENT_SECRET', 'riot-secret');
+    }
+    enabled(identity.provider);
     if (kind === 'unverified-provider-email') identity.emailVerified = false;
-    const chosenEmail = kind === 'different-chosen-email' ? 'different@example.test' : identity.email!;
+    const chosenEmail = 'chosen@example.test';
     const target = await prepareSignup();
-    expect((await complete(target, { email: chosenEmail })).status).toBe(200);
-    const [account] = await rows('select * from users');
-    expect(account.email_verified).toBe(false);
-    expect(account.email_verify_token).toMatch(/^[0-9a-f]{64}$/);
-    expect(state.email).toHaveBeenCalledExactlyOnceWith({ to: chosenEmail, token: expect.any(String) });
-    expect(sha256(state.email.mock.calls[0][0].token)).toBe(account.email_verify_token);
+    expect((await complete(target, { email: chosenEmail })).status).toBe(202);
+    expect(await rows('select * from users')).toHaveLength(0);
+    expect(await rows('select * from social_identities')).toHaveLength(0);
+    expect(await rows('select * from sessions')).toHaveLength(0);
+    const token = new URL(state.email.mock.calls[0][0].signupUrl).hash.split('=')[1];
+    const [mail] = await rows('select * from social_signup_emails');
+    expect(mail.token_hash).toBe(sha256(token));
+    expect(new Date(mail.expires_at).getTime() - Date.now()).toBeLessThanOrEqual(900000);
+    expect((await complete(target, { emailToken: mail.token_hash })).status).toBe(400);
+    const replay = copyBrowser(target);
+    const response = await complete(target, { emailToken: token });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ user: { email: chosenEmail, email_verified: true }, destination: '/equipes?create=1' });
+    expect(await rows('select * from social_identities')).toMatchObject([{ provider: identity.provider, subject: identity.subject }]);
+    expect(await rows('select * from sessions')).toHaveLength(1);
+    expect(await rows('select * from social_signup_emails')).toHaveLength(0);
+    expect((await complete(replay, { emailToken: token })).status).toBe(400);
   });
 
-  it('keeps a committed unverified account usable if sending the verification email fails', async () => {
-    enabled(); identity.emailVerified = false;
-    state.email.mockRejectedValueOnce(new Error('Email provider unavailable'));
+  it.each([false, true])('returns identical status, body and cookies for free/taken different addresses (delivery fails: %s)', async deliveryFails => {
+    enabled(); await seedUser();
     const target = await prepareSignup();
-    const response = await complete(target);
-    expect(response.status).toBe(200);
-    expect((await response.json()).verificationEmailSent).toBe(false);
-    expect(await rows('select * from users')).toHaveLength(1);
-    expect(await rows('select * from sessions')).toHaveLength(1);
-    expect(target.jar.has(COOKIE_NAME)).toBe(true);
+    target.set.mockClear();
+    if (deliveryFails) state.email.mockRejectedValueOnce(new Error('Mail unavailable'));
+    const free = await complete(target, { email: 'free@example.test' });
+    const cookies = [...target.set.mock.calls];
+    target.set.mockClear();
+    if (deliveryFails) state.email.mockRejectedValueOnce(new Error('Mail unavailable'));
+    const taken = await complete(target, { email });
+    expect(free.status).toBe(202); expect(taken.status).toBe(202);
+    expect(await free.json()).toEqual(await taken.json());
+    expect([...free.headers]).toEqual([...taken.headers]);
+    expect(target.set.mock.calls).toEqual(cookies);
+    expect(state.email.mock.calls[0][0].signupUrl).toContain('#email_token=');
+    expect(state.email.mock.calls[1][0]).toEqual({ to: email, signupUrl: null });
+    expect(await rows('select id from users')).toEqual([{ id: userId }]);
+    expect(await rows('select * from social_identities')).toHaveLength(0);
+    expect(await rows('select * from sessions')).toHaveLength(0);
+    expect(state.rate).toHaveBeenCalledWith('auth-social-complete-ticket', sha256(target.jar.get(SOCIAL_TICKET_COOKIE)!), { limit: 5, windowSeconds: 900 });
   });
+
+  it('rejects expired links, a different browser and a superseded email link', async () => {
+    enabled(); const target = await prepareSignup();
+    await complete(target, { email: 'first@example.test' });
+    const first = new URL(state.email.mock.calls[0][0].signupUrl).hash.split('=')[1];
+    await complete(target, { email: 'second@example.test' });
+    const second = new URL(state.email.mock.calls[1][0].signupUrl).hash.split('=')[1];
+    expect((await complete(target, { emailToken: first })).status).toBe(400);
+    const stranger = copyBrowser(target); stranger.jar.set(SOCIAL_BROWSER_COOKIE, 'x'.repeat(43));
+    expect((await complete(stranger, { emailToken: second })).status).toBe(400);
+    await rows("update social_signup_emails set expires_at=now()-interval '1 second'");
+    expect((await complete(target, { emailToken: second })).status).toBe(400);
+    expect(await rows('select * from users')).toHaveLength(0);
+  });
+
+  it.each(['email', 'identity'])('never merges a concurrently claimed %s and consumes the confirmation', async collision => {
+    enabled(); const target = await prepareSignup();
+    await complete(target, { email: 'chosen@example.test' });
+    const token = new URL(state.email.mock.calls[0][0].signupUrl).hash.split('=')[1];
+    await seedUser(userId, collision === 'email' ? 'chosen@example.test' : email);
+    if (collision === 'identity') await seedIdentity();
+    const before = await rows('select * from users');
+    expect((await complete(target, { emailToken: token })).status).toBe(400);
+    expect(await rows('select * from users')).toEqual(before);
+    expect(await rows('select * from sessions')).toHaveLength(0);
+    expect(await rows('select * from social_signup_emails')).toHaveLength(0);
+  });
+
+  it('allows one competing redemption of an emailed signup link', async () => {
+    enabled(); const target = await prepareSignup();
+    await complete(target, { email: 'chosen@example.test' });
+    const token = new URL(state.email.mock.calls[0][0].signupUrl).hash.split('=')[1];
+    const responses = await Promise.all([complete(target, { emailToken: token }), complete(copyBrowser(target), { emailToken: token })]);
+    expect(responses.map(r => r.status).sort()).toEqual([200, 400]);
+    expect(await rows('select * from users')).toHaveLength(1);
+    expect(await rows('select * from social_identities')).toHaveLength(1);
+    expect(await rows('select * from sessions')).toHaveLength(1);
+  });
+
 });
 
 describe('existing identities and guarded login sessions', () => {
@@ -414,4 +490,14 @@ describe('unlink authentication and transaction effects', () => {
     expect(await rows('select * from team_members order by user_id')).toEqual(membershipSnapshot);
     expect((await finishHandler(get('finish'), callbackTarget.context)).headers.get('location')).toBe('/connexion?social=expired');
   });
+});
+
+it('enforces the durable ticket quota even when the source IP and chosen address change',async()=>{
+  enabled();const target=await prepareSignup();state.realTicketRate=true;
+  for(let i=0;i<6;i++){
+    const response=await completeHandler(post('complete',{displayName:'Player',email:`chosen${i}@example.test`,acceptLegal:true,legalVersion:LEGAL_VERSION},{'x-nf-client-connection-ip':`192.0.2.${i+1}`}),target.context);
+    expect(response.status).toBe(i<5?202:429);
+  }
+  expect(state.email).toHaveBeenCalledTimes(5);
+  expect(await rows('select * from users')).toHaveLength(0);
 });

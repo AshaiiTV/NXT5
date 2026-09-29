@@ -158,7 +158,7 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     for(let offset=0;offset<duration;offset++){
       const hour=(startHour+offset)%24;
       if(hour>0&&hour<10)throw discordError('Le planning existant accepte uniquement 10:00 à 00:00. Ce créneau inclut une heure non prise en charge.');
-      const day=new Date(date+'T12:00:00Z');day.setUTCDate(day.getUTCDate()+Math.floor((startHour+offset)/24));
+      const day=new Date(date+'T12:00:00Z');day.setUTCDate(day.getUTCDate()+Math.floor((startHour+offset)/24)-(hour===0?1:0));
       const key=days[day.getUTCDay()],monday=new Date(day);monday.setUTCDate(monday.getUTCDate()-(monday.getUTCDay()+6)%7);
       const week=monday.toISOString().slice(0,10),slots=slotsByWeek.get(week)||{};
       slots[key]=[...(slots[key]||[]),String(hour).padStart(2,'0')+':00'];slotsByWeek.set(week,slots);
@@ -225,7 +225,9 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     await audit(ctx,command,ctx.teamId,{kind,channel});return botMessage('Salon enregistré',`${kind} → <#${channel}>${kind==='games'?'\nDestination manuelle ; les filtres et l’activation automatique se règlent dans NXT5.':''}`);
   }
   if(command==='reglages fuseau'){
-    const timezone=validateTimezone(options.fuseau);if(!confirmed)return botConfirmation(ctx,command,options,`Définir ${timezone} pour l’équipe ? Les événements existants conservent leur instant ; les prochains horaires saisis utilisent ce fuseau.`);
+    const timezone=validateTimezone(options.fuseau);
+    if(!(await sql('select name from pg_timezone_names where name=$1',[timezone])).length)throw discordError('Fuseau non pris en charge par le serveur.');
+    if(!confirmed)return botConfirmation(ctx,command,options,`Définir ${timezone} pour l’équipe ? Les événements existants conservent leur instant ; les prochains horaires saisis utilisent ce fuseau.`);
     await saveSetting(ctx,'timezone',timezone);await audit(ctx,command,ctx.teamId,{timezone});
     const settings=await botSettings(ctx.teamId);return botMessage('Fuseau enregistré',`${timezone}. Les événements existants conservent leur instant.${settings.weekly_enabled?'\nProchain bilan : '+stamp(nextWeeklyRun(timezone,settings.weekly_day,settings.weekly_hour)):''}`);
   }

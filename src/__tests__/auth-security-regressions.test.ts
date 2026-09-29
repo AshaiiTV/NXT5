@@ -158,6 +158,12 @@ describe('authentication request size limits', () => {
 });
 
 describe('email verification belongs to the current address', () => {
+  it('rejects the stored hash as a bearer token but accepts the original token once', async () => {
+    expect((await verify(sha256(originalToken))).headers.get('location')).toContain('error=invalid');
+    expect((await user()).email_verified).toBe(false);
+    expect((await verify()).headers.get('location')).toContain('success=true');
+    expect((await verify()).headers.get('location')).toContain('error=invalid');
+  });
   it('consumes a current unexpired token exactly once', async () => {
     const responses = await Promise.all([verify(), verify()]);
     const locations = responses.map(response => response.headers.get('location'));
