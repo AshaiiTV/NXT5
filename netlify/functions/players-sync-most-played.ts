@@ -166,7 +166,7 @@ export default async function handler(request: Request, context: Context): Promi
 
         const account = await fetchAccountByRiotId(player.riot_id, platform);
         const mostPlayed = await fetchCurrentSeasonSoloqMostPlayed(account.puuid, platform, championData);
-        if (!mostPlayed.length) throw new Error('Aucun match SoloQ trouvé sur la saison courante.');
+        if (!mostPlayed.length) throw Object.assign(new Error('Aucun match SoloQ trouvé sur la saison courante.'), { status: 404 });
 
         const totalPoints = mostPlayed.reduce((sum, item) => sum + Number(item.points || 0), 0);
         await persist(tx => [tx`
@@ -186,7 +186,8 @@ export default async function handler(request: Request, context: Context): Promi
         results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, source: 'ranked_solo_history' });
       } catch (err) {
         let code = err.code || null;
-        let message = code === 'RIOT_RATE_LIMIT' ? err.message : 'Synchronisation incomplète';
+        let message = code !== 'RIOT_SYNC_INCOMPLETE' && (err.status || code === 'RIOT_RATE_LIMIT')
+          ? err.message : 'Synchronisation incomplète';
         if (code !== '22012') {
           try {
             await persist(tx => [tx`update players set status = ${message}, updated_at = now()

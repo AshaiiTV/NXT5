@@ -459,6 +459,38 @@ it('T3-03 backfills only summaries with retained frames and is idempotent', asyn
 }, 30_000);
 
 
+it('R6-01 migrates emoji boundaries into valid JSONB and editable plans with complete backups', async () => {
+  const { validateMatchupRequest } = await import('../../netlify/functions/_lib/player-matchups');
+  const { db, client, migrations } = await fixture();
+  const index = migrations.findIndex(m => m.key === 'canonical-champions-20260929-v1');
+  await applyMigrations(client, migrations.slice(0, index));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('emoji','Emoji','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'Emoji','EMO') returning id", [user])).rows[0].id;
+  const player = (await db.query("insert into players(team_id,name,role) values($1,'Player','MID') returning id", [team])).rows[0].id;
+  // PostgreSQL accepts these legacy plans; its length() counts Unicode code points.
+  const original = { lanePlan: 'a'.repeat(3999) + '😀', vigilance: 'a'.repeat(3998) + '😀', toKeep: '😀'.repeat(2001) };
+  const older = { lanePlan: 'Older lane', vigilance: 'Older vigilance', toKeep: 'Older keep' };
+  for (const [champion, plan, date] of [['wukong', original, '2026-09-29'], ['monkeyking', older, '2026-09-28']]) {
+    await db.query("insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,plan,updated_at) values($1,$2,$3,'ahri','MID',$4::jsonb,$5)",
+      [team, player, champion, JSON.stringify(plan), date]);
+  }
+  await applyMigrations(client, migrations);
+  const notebooks = (await db.query('select * from player_matchup_notebooks')).rows;
+  expect(notebooks).toHaveLength(1);
+  const notebook = notebooks[0];
+  expect(notebook.plan).toEqual({ lanePlan: 'a'.repeat(3999), vigilance: 'a'.repeat(3998) + '😀', toKeep: '😀'.repeat(2000) });
+  expect(() => validateMatchupRequest({ action: 'save', teamId: team, playerId: player,
+    champion: notebook.champion, opponentChampion: notebook.opponent_champion, role: notebook.role,
+    expectedRevision: notebook.revision, plan: notebook.plan, experiments: notebook.experiments })).not.toThrow();
+  const backups = (await db.query('select original from player_matchup_canonical_backups order by original->>\'champion\'')).rows;
+  expect(backups.map(b => b.original.plan)).toEqual([older, original]);
+  await client.query('begin');
+  await migrations[index].run!(client);
+  await client.query('commit');
+  expect((await db.query('select * from player_matchup_notebooks')).rows).toEqual(notebooks);
+  expect(await applyMigrations(client, migrations)).toEqual([]);
+}, 30_000);
+
 it('T5-02 keeps merged notebooks saveable at 200 distinct matches and backs up all 400 references', async () => {
   const { validateMatchupRequest } = await import('../../netlify/functions/_lib/player-matchups');
   const { db, client, migrations } = await fixture();

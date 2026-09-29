@@ -53,12 +53,12 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 
 
 const actor = vi.hoisted(() => ({ id: '00000000-0000-4000-8000-000000000001' }));
-const riot = vi.hoisted(() => ({ account: vi.fn(), match: vi.fn() }));
+const riot = vi.hoisted(() => ({ account: vi.fn(), match: vi.fn(), ids: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret() {}, requireAuth: async () => actor }));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({
   fetchAccountByRiotId: riot.account, fetchRiotMatchById: riot.match,
-  fetchMatchIdsByPuuid: async () => ['EUW1_1'], getChampionDataMap: async () => new Map(), platformFromRegion: () => 'euw1',
+  fetchMatchIdsByPuuid: riot.ids, getChampionDataMap: async () => new Map(), platformFromRegion: () => 'euw1',
 }));
 import sync from '../../netlify/functions/players-sync-most-played';
 import update from '../../netlify/functions/players-update';
@@ -89,6 +89,7 @@ beforeEach(async () => {
   await database.pg.query("insert into players(id,team_id,name,riot_id,role,most_played,performance_score,status) values($1,$2,'Old','Old#EUW','MID','[{\"champion\":\"Ahri\"}]',12,'Synchronisé')", [playerId, teamId]);
   await database.pg.query("insert into champion_pool(id,team_id,player_id,player_name,champion,source) values($1,$2,$3,'Old','Ahri','match_history')", [poolId, teamId, playerId]);
   riot.account.mockReset().mockResolvedValue({ puuid: 'old-puuid' });
+  riot.ids.mockReset().mockResolvedValue(['EUW1_1']);
   riot.match.mockReset().mockResolvedValue({ info: { participants: [{ puuid: 'old-puuid', championId: 103, championName: 'Ahri', win: true }] } });
   database.statements = [];
 });
@@ -135,6 +136,31 @@ it('T5-03 saves current results and cleans the pool atomically', async () => {
   expect((await (await call(sync, { playerId })).json()).results[0].ok).toBe(true);
   expect((await player()).performance_score).toBe('1');
   expect(await pool()).toHaveLength(0);
+});
+
+it.each([
+  { stage: 'account', status: 400, message: 'Riot ID invalide : Old#EUW', code: null },
+  { stage: 'account', status: 404, message: 'Compte Riot introuvable : Old#EUW', code: null },
+  { stage: 'ids', status: 502, message: 'Erreur Riot API 503.', code: 'RIOT_API_ERROR' },
+  { stage: 'empty', status: undefined, message: 'Aucun match SoloQ trouvé sur la saison courante.', code: null },
+  { stage: 'account', status: 429, message: 'Rate limit Riot atteint. Réessaie plus tard.', code: 'RIOT_RATE_LIMIT' },
+  { stage: 'account', status: undefined, message: 'Internal connection details', code: null },
+  { stage: 'match', status: 502, message: 'Erreur Riot API 503.', code: 'RIOT_API_ERROR' },
+])('R6-02 reports the correct diagnostic for $stage / $status / $code and preserves stored stats', async ({ stage, status, message, code }) => {
+  const before = await player();
+  const beforePool = await pool();
+  if (stage === 'empty') riot.ids.mockResolvedValueOnce([]);
+  else riot[stage].mockRejectedValueOnce(Object.assign(new Error(message), { status, code, retryAfter: code === 'RIOT_RATE_LIMIT' ? 90 : undefined }));
+  const response = await call(sync, { playerId });
+  expect(response.status).toBe(200);
+  const expectedMessage = stage === 'match' || (stage === 'account' && !status) ? 'Synchronisation incomplète' : message;
+  expect((await response.json()).results).toEqual([{
+    playerId, riotId: 'Old#EUW', ok: false, error: expectedMessage,
+    code: stage === 'match' ? 'RIOT_SYNC_INCOMPLETE' : code,
+    retryAfter: code === 'RIOT_RATE_LIMIT' ? 90 : null,
+  }]);
+  expect(await player()).toMatchObject({ most_played: before.most_played, performance_score: before.performance_score, status: expectedMessage });
+  expect(await pool()).toEqual(beforePool);
 });
 
 it('T5-04 a demoted captain cannot restore their own role with an in-flight request', async () => {

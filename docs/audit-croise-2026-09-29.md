@@ -457,3 +457,43 @@ Les premiers tests ciblés ont nécessité la correction d’assertions sur le t
 - La protection React couvre les erreurs de rendu des descendants, pas les rejets asynchrones ou les erreurs de gestionnaires d’événements, qui conservent leurs traitements existants. Les tests vérifient focus, navigation et composants réels ; aucune recette visuelle dans un navigateur aux cinq largeurs de la charte n’a été réalisée.
 - La migration conserve les débordements mais ne crée pas d’interface de restauration. Sa durée et sa consommation mémoire restent à mesurer sur un volume représentatif avant déploiement.
 - Les caches Vite sont maintenus dans ce checkout par remplacement temporaire du lien `node_modules` par des liens vers les dépendances déjà disponibles ; aucune installation ni modification de dépendance. Le lien initial est restauré après validation.
+
+## Tour 6 — contre-vérification et corrections
+
+Travail dans `fix7`, branche `claude/fix7-20260929`, depuis `870aeb9` : `HEAD` et `claude/audit-croise-20260929` désignent exactement cette base, qui comprend le tour 5. Source : `/Users/sachadegouzon/Documents/NXT5/.claude/runs/audit6-claude.md`. Consignes locales, `/Users/sachadegouzon/Documents/Codex/AGENTS.md` et charte canonique consultées en lecture seule. Aucun commit, push, installation de dépendance ni accès métier distant ; toutes les écritures restent dans ce checkout.
+
+### Contre-vérification sur la version actuelle
+
+Les preuves `fichier:ligne` ci-dessous désignent **la base `870aeb9`, avant correction** ; les numéros de l’audit ne correspondent plus à cette version après le tour 5.
+
+| Constat | Verdict et preuve | Correction et régression |
+| --- | --- | --- |
+| **R6-01 — emoji tronqué, migration annulée** | **Confirmé.** `database/migrations/20260929_canonical_champions.mjs:112` applique toujours `.slice(0, MAX_PLAN_TEXT)` au texte fusionné, puis `:122` envoie ce texte sérialisé vers `jsonb`. Avec 3 999 `a` suivis de 😀, la coupure conserve uniquement le substitut haut. Le test sur PGlite reproduit `invalid input syntax for type json`. `tools/migration-runner.mjs:47`, `:66` et `:73` placent toute l’application dans une transaction et annulent celle-ci si `run()` échoue. | [Migration](../database/migrations/20260929_canonical_champions.mjs) : après la coupure à 4 000 unités UTF-16, retirer le substitut haut terminal éventuel. [Test R6-01](../src/__tests__/migrations.test.ts) : emoji à cheval sur la limite, emoji entièrement inclus à la limite et texte composé d’emojis ; vraie écriture JSONB, acceptation par `validateMatchupRequest`, sauvegardes complètes des deux originaux, second `run()` et registre idempotents. |
+| **R6-02 — diagnostics Riot masqués** | **Confirmé.** `netlify/functions/players-sync-most-played.ts:189` remplace tous les messages hors rate-limit ; `:192` persiste le remplacement et `:203` le renvoie dans `results[].error`. Pourtant `_lib/riot.ts:169` produit le 400 explicite, `:174` et `:116` le 404 compte introuvable, `:127` le `RIOT_API_ERROR` avec statut 502. Le message sans match est créé dans `players-sync-most-played.ts:169`, hors du traitement des erreurs de collecte à `:101`. Les transactions du tour 5 ne corrigent donc pas ce masquage. | [Synchronisation](../netlify/functions/players-sync-most-played.ts) : conserver le message des erreurs avec statut et du rate-limit ; garder le message générique pour `RIOT_SYNC_INCOMPLETE` et les erreurs inattendues sans statut. Classer explicitement l’absence de SoloQ comme erreur attendue avec statut interne 404, sans changer le HTTP 200 du lot ni son code de résultat `null`. [Tests R6-02](../src/__tests__/audit-tour5-server.test.ts) : 400, 404, API Riot 502, historique vide, rate-limit, erreur interne et collecte incomplète ; vérifier à la fois le résultat HTTP, le statut réellement enregistré et la conservation des statistiques et du pool. |
+
+### Rejets et adaptations motivés
+
+Aucun des deux défauts n’est rejeté. Deux limites à la proposition de correction sont explicitées :
+
+- **R6-01 : ne pas reprendre littéralement `Array.from(texte).slice(0, 4000).join('')`.** Cette proposition est compatible avec `length()` PostgreSQL (`database/migrations/20260915_player_matchups.sql:25`), mais pas avec le validateur courant (`netlify/functions/_lib/player-matchups.ts:38` et `:90`) ni avec `maxLength={4000}` dans `src/components/profile/MatchupNotebook.jsx:139`. Elle conserverait 3 999 `a` + 😀, soit 4 001 unités UTF-16, et réintroduirait un carnet impossible à sauvegarder, contraire à T5-02. La correction maintient donc la borne de l’éditeur et retire l’emoji qui la chevauche ; l’original intégral reste sauvegardé. Le test vérifie explicitement l’acceptation par le vrai validateur.
+- **R6-02 : conserver la classification des échecs de détail de partie comme `RIOT_SYNC_INCOMPLETE` (`players-sync-most-played.ts:99`).** Elle signifie que la collecte ne peut pas remplacer les statistiques existantes et provient de T3-G2. Le défaut confirmé concerne le second masquage dans le `catch` par joueur, qui effaçait aussi les erreurs avant toute collecte et l’absence de matchs. Une erreur `RIOT_API_ERROR` pendant la récupération des identifiants conserve désormais son diagnostic ; pendant la lecture d’un détail de partie, elle reste classée comme collecte incomplète. Les deux chemins sont testés. La priorité du rate-limit et les gardes `PLAYER_CHANGED` du tour 5 restent couvertes par les suites existantes.
+
+La migration n’étant pas publiée sur `main`, sa correction en place suit l’autorisation explicite de ce tour. Aucun registre de production n’a été consulté et aucune migration distante n’a été exécutée.
+
+### Fichiers modifiés
+
+- `database/migrations/20260929_canonical_champions.mjs`.
+- `netlify/functions/players-sync-most-played.ts`.
+- `src/__tests__/migrations.test.ts` et `src/__tests__/audit-tour5-server.test.ts`.
+- `docs/audit-croise-2026-09-29.md` : ajout de cette section uniquement.
+
+### Validation et points de doute
+
+Avant correction, les huit nouveaux cas exécutés seuls donnent **5 échecs et 3 succès** : le JSONB invalide et les quatre diagnostics masqués sont reproduits. Après correction, les trois suites ciblées (`migrations`, `audit-tour5-server`, `riot-sync-tour3`) passent : **48 tests réussis**. Aucun test désactivé ni délai augmenté.
+
+**`VITEST_MAX_WORKERS=1 npm run verify` : réussi, code de sortie 0** — TypeScript, **142 suites / 2 539 tests réussis**, build Vite et pré-rendu SEO des 13 pages. Avertissement environnemental WebSocket `listen EPERM 0.0.0.0:24678` pendant le pré-rendu, sans empêcher le succès de la commande. `git diff --check` est propre ; les liens ajoutés sont valides et les sections précédentes sont conservées à l’octet près.
+
+- PGlite exécute les migrations et les transactions SQL avec le constructeur de requêtes Neon réel ; le transport et Riot sont simulés. Aucun test de production ou de contention réelle entre connexions Neon.
+- Les sauvegardes conservent les textes entiers, mais leur restauration reste technique. Le volume mémoire et la durée de migration sur une base représentative ne sont pas mesurés ici.
+- Aucune modification visuelle. La limite UTF-16 de l’éditeur est conservée ; passer tout le produit à une limite en points de code demanderait une évolution distincte des validations et des champs.
+- Pour respecter l’interdiction d’écriture hors du checkout, le lien `node_modules` est temporairement remplacé par des liens vers les dépendances préexistantes, avec caches locaux ; son lien initial est restauré après la vérification.

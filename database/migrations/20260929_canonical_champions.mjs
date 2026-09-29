@@ -108,8 +108,11 @@ export async function run(client) {
     // The backup follows the surviving notebook's deletion lifecycle.
     for (const row of entries) await client.query(`insert into player_matchup_canonical_backups(original_id,notebook_id,team_id,original)
       values($1,$2,$3,$4::jsonb) on conflict(original_id) do nothing`, [row.id, keep.id, keep.team_id, JSON.stringify(row)]);
+    // Match the editor's UTF-16 limit without leaving a high surrogate at the cut.
+    // Complete originals, including any truncated emoji, remain in the backups.
     const plan = Object.fromEntries(['lanePlan', 'vigilance', 'toKeep'].map(field => [field,
-      [...new Set(entries.map(row => row.plan[field]).filter(Boolean))].join('\n\n').slice(0, MAX_PLAN_TEXT)]));
+      [...new Set(entries.map(row => row.plan[field]).filter(Boolean))].join('\n\n')
+        .slice(0, MAX_PLAN_TEXT).replace(/[\uD800-\uDBFF]$/, '')]));
     const experiments = [];
     let matchIds = new Set();
     for (const exp of new Map(entries.flatMap(row => row.experiments).reverse().map(exp => [exp.id, exp])).values()) {
