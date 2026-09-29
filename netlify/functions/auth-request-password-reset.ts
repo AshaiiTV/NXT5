@@ -3,7 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, isValidEmail, normalizeEmail, sha256 } from './_lib/auth';
 import { isPasswordEmailConfigured, sendPasswordResetEmail } from './_lib/email';
-import { assertRateLimit } from './_lib/rate-limit';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 
 export default async function handler(request: Request): Promise<Response> {
   try {
@@ -15,6 +15,12 @@ export default async function handler(request: Request): Promise<Response> {
 
     if (!isValidEmail(email) || email.length > 160) {
       throw Object.assign(new Error('Adresse e-mail invalide.'), { status: 400 });
+    }
+    try {
+      await assertSubjectRateLimit('password-reset-recipient', sha256(email), { limit: 3, windowSeconds: 3600 });
+    } catch (error: any) {
+      if (error?.status === 429) return json({ ok: true });
+      throw error;
     }
     if (!isPasswordEmailConfigured()) {
       throw Object.assign(new Error('Envoi e-mail non configuré. Ajoute RESEND_API_KEY et RESET_EMAIL_FROM dans Netlify.'), { status: 500, code: 'EMAIL_NOT_CONFIGURED' });

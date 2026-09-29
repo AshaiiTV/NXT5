@@ -290,14 +290,11 @@ create table if not exists reports (
   match_id uuid references matches(id) on delete set null,
   match_ids jsonb not null default '[]'::jsonb,
   created_by uuid references users(id) on delete set null,
-  source text not null default 'manual' check (source in ('manual', 'auto')),
   title text not null,
   content text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
-create unique index if not exists idx_reports_auto_match on reports(team_id, match_id) where source = 'auto';
 
 create table if not exists composition_types (
   id uuid primary key default gen_random_uuid(),

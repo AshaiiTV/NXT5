@@ -59,6 +59,11 @@ import { fetchRiotMatch } from '../../netlify/functions/_lib/riot';
 import importFile from '../../netlify/functions/matches-import-file';
 import manageCategories from '../../netlify/functions/match-categories-manage';
 import manageMatches from '../../netlify/functions/matches-manage';
+import linkAccount from '../../netlify/functions/players-link-account';
+import removeMember from '../../netlify/functions/team-member-remove';
+import availability from '../../netlify/functions/player-availability-manage';
+import manualPool from '../../netlify/functions/champion-pool-manual';
+import { sendNotification } from '../../netlify/functions/_mailer.js';
 import importRoster from '../../netlify/functions/players-import-roster';
 
 vi.mock('../../netlify/functions/_lib/auth', () => ({
@@ -66,7 +71,7 @@ vi.mock('../../netlify/functions/_lib/auth', () => ({
   requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' })
 }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
-vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => [], ensureUserNotificationColumns: async () => {} }));
+vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => ['subscriber@example.test'], ensureUserNotificationColumns: async () => {} }));
 vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({ fetchRiotMatch: vi.fn(() => { throw new Error('Unexpected Riot request in local file import'); }) }));
 
@@ -125,6 +130,7 @@ beforeAll(async () => {
   await database.pg.exec(schema);
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_report_source.sql', import.meta.url), 'utf8'));
   await database.pg.exec(`create table if not exists app_schema_migrations (
     migration_key text primary key, applied_at timestamptz not null default now(), checksum text
   ); insert into app_schema_migrations(migration_key) values ('audit-runtime-20260906-v1')`);
@@ -147,6 +153,7 @@ beforeEach(async () => {
     await database.pg.query('insert into match_categories(id, team_id, name) values ($1, $2, $3)', [id, team, name]);
   }
   database.statements = [];
+  vi.mocked(sendNotification).mockClear();
 });
 
 afterAll(async () => { await database.pg?.close(); });
@@ -890,5 +897,182 @@ describe('durable first import activation', () => {
     await expect(persistAnalyzedMatch(importArgs(666))).rejects.toMatchObject({ code: '23514' });
     expect((await database.pg.query('select first_import_at from teams where id=$1', [teamId])).rows[0].first_import_at).toBeNull();
     expect((await persistAnalyzedMatch(importArgs())).firstImport).toBe(true);
+  });
+});
+
+describe('cross audit backend regressions B1/B2/B5/B6/B7/B8/B9/N1', () => {
+  const targetId = '00000000-0000-4000-8000-000000000099';
+  const submit = (handler: any, body: any) => handler(new Request('https://nxt5.test/action', {
+    method: 'POST', body: JSON.stringify({ teamId, ...body })
+  }), {} as any);
+  const query = async (sql: string, params: any[] = []) => (await database.pg.query(sql, params)).rows;
+  async function target(role = 'player') {
+    await query("insert into users(id,account_name,name,password_hash) values ($1,'target','Target','unused')", [targetId]);
+    await query('insert into team_members(team_id,user_id,role) values($1,$2,$3)', [teamId, targetId, role]);
+  }
+
+  it('B1 refuses availability and pool writes by a removed member with a stale profile link', async () => {
+    await target();
+    await query('update teams set owner_id=$1 where id=$2', [targetId, teamId]);
+    await query('update players set user_id=$1 where id=$2', [userId, roster[0].id]);
+    expect((await submit(availability, { playerId: roster[0].id, weekStart: '2026-09-28', slots: {} })).status).toBe(403);
+    expect((await submit(manualPool, { playerId: roster[0].id, champion: 'Ahri' })).status).toBe(403);
+    expect((await submit(manualPool, { action: 'delete', poolId: categoryId })).status).toBe(403);
+  });
+
+  it('B1 rechecks target membership under the team lock if removal wins the race', async () => {
+    await target();
+    database.beforeBatch = async () => {
+      expect((await submit(removeMember, { userId: targetId })).status).toBe(200);
+    };
+    expect((await submit(linkAccount, { playerId: roster[0].id, userId: targetId })).status).toBe(403);
+    expect(await query('select user_id from players where id=$1', [roster[0].id])).toEqual([{ user_id: null }]);
+    expect(await query('select * from team_members where user_id=$1', [targetId])).toEqual([]);
+    expect(database.statements.filter(s => /from teams.*for update/.test(s)).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('B1 removal unlinks an already linked account and rolls both writes back on failure', async () => {
+    await target();
+    expect((await submit(linkAccount, { playerId: roster[0].id, userId: targetId })).status).toBe(200);
+    await database.pg.exec("alter table audit_logs add constraint reject_remove check(action <> 'team_member.remove')");
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect((await submit(removeMember, { userId: targetId })).status).toBe(500);
+      expect(await query('select user_id from players where id=$1', [roster[0].id])).toEqual([{ user_id: targetId }]);
+      expect(await query('select * from team_members where user_id=$1', [targetId])).toHaveLength(1);
+    } finally { await database.pg.exec('alter table audit_logs drop constraint reject_remove'); log.mockRestore(); }
+    expect((await submit(removeMember, { userId: targetId })).status).toBe(200);
+    expect(await query('select user_id from players where id=$1', [roster[0].id])).toEqual([{ user_id: null }]);
+  });
+
+  it.each(['coach', 'manager', 'board', 'captain', 'owner'])('N1 linking staff as %s only promotes with owner/captain permission', async role => {
+    await target();
+    if (role !== 'owner') {
+      await query('update teams set owner_id=$1 where id=$2', [targetId, teamId]);
+      await query('insert into team_members(team_id,user_id,role) values($1,$2,$3)', [teamId, userId, role]);
+    }
+    await query("update players set role='COACH' where id=$1", [roster[0].id]);
+    expect((await submit(linkAccount, { playerId: roster[0].id, userId: targetId })).status).toBe(200);
+    expect((await query('select role from team_members where user_id=$1', [targetId]))[0].role).toBe(['owner', 'captain'].includes(role) ? 'coach' : 'player');
+  });
+
+  it('B9 allows a manager to edit shared staff availability without a linked profile', async () => {
+    await target();
+    await query('update teams set owner_id=$1 where id=$2', [targetId, teamId]);
+    await query("insert into team_members(team_id,user_id,role) values($1,$2,'manager')", [teamId, userId]);
+    await query("update players set role='COACH' where id=$1", [roster[0].id]);
+    expect((await submit(availability, { playerId: roster[0].id, weekStart: '2026-09-28', slots: { MON: ['10:00'] } })).status).toBe(200);
+    expect(await query('select * from player_availability')).toHaveLength(1);
+  });
+
+  it('B2/B6 preserves manual reports, detaches deleted matches and refreshes pool statistics', async () => {
+    const first = await persistAnalyzedMatch(importArgs());
+    const args = importArgs(); args.gameId = 'EUW1_222';
+    const second = await persistAnalyzedMatch(args);
+    await query("insert into reports(team_id,match_id,match_ids,title,content) values($1,$2,$3,'Manual multi','Human notes'),($1,$2,$4,'Manual orphan','Keep me')",
+      [teamId, first.id, JSON.stringify([first.id, second.id]), JSON.stringify([first.id])]);
+    expect((await submit(manageMatches, { action: 'delete', matchId: first.id })).status).toBe(200);
+    expect(await query("select title,match_id,match_ids,content from reports where source='manual' order by title")).toEqual([
+      { title: 'Manual multi', match_id: second.id, match_ids: [second.id], content: 'Human notes' },
+      { title: 'Manual orphan', match_id: null, match_ids: [], content: 'Keep me' }
+    ]);
+    expect(await query("select * from reports where source='auto' and match_id=$1", [first.id])).toEqual([]);
+    expect((await query('select games from champion_pool')).every(p => p.games === 1)).toBe(true);
+  });
+
+  it('B5 preserves the first automatic report and flags only the new match as inserted', async () => {
+    expect((await persistAnalyzedMatch(importArgs())).inserted).toBe(true);
+    const before = await query('select * from reports');
+    expect((await persistAnalyzedMatch(importArgs(8))).inserted).toBe(false);
+    expect(await query('select * from reports')).toEqual(before);
+    expect(before).toHaveLength(1);
+    expect(before[0].source).toBe('auto');
+  });
+
+  it.each(['file', 'riot'])('B5 sends only one notification through the %s endpoint on reimport', async kind => {
+    const args = importArgs();
+    vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    const body = { ...args, teamId, payload: args.match };
+    const handler = kind === 'file' ? importFile : importRiot;
+    expect((await submit(handler, body)).status).toBe(200);
+    expect((await submit(handler, body)).status).toBe(200);
+    expect(sendNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it('B2/B5 backfills only an exact generated report, choosing the oldest duplicate', async () => {
+    await query('update teams set name=$1 where id=$2', ['Audit team', teamId]);
+    const match = await persistAnalyzedMatch(importArgs());
+    await query("update reports set source='manual', created_at='2026-01-01'");
+    await query("insert into reports(team_id,match_id,match_ids,title,content) select team_id,match_id,match_ids,title,content from reports");
+    await query("insert into reports(team_id,match_id,match_ids,title,content) select team_id,match_id,match_ids,title,content || E'\\nHuman addition' from reports limit 1");
+    const migration = readFileSync(new URL('../../database/migrations/20260929_report_source.sql', import.meta.url), 'utf8');
+    await database.pg.exec(migration);
+    expect(await query("select source from reports order by created_at, id")).toEqual([{ source: 'auto' }, { source: 'manual' }, { source: 'manual' }]);
+    await database.pg.exec(migration);
+    expect(await query("select * from reports where source='auto'")).toHaveLength(1);
+    await expect(query("insert into reports(team_id,match_id,title,content,source) values($1,$2,'Auto','Auto','auto')", [teamId, match.id])).rejects.toMatchObject({ code: '23505' });
+    await expect(query("insert into reports(team_id,title,content,source) values($1,'Bad','Bad','other')", [teamId])).rejects.toMatchObject({ code: '23514' });
+  });
+
+  it.each(['duplicate-role', 'duplicate-profile', 'staff', 'foreign-participant', 'null-profile'])('B7 rejects %s before any write', async kind => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const allies = before.participants.filter(p => p.team_key === 'ALLY');
+    const [a,b] = allies;
+    let assignments: any = { [a.id]: { role: a.role, playerId: a.player_id } };
+    if (kind === 'duplicate-role') assignments[a.id].role = b.role;
+    if (kind === 'duplicate-profile') assignments[a.id].playerId = b.player_id;
+    if (kind === 'null-profile') assignments[a.id].playerId = null;
+    if (kind === 'foreign-participant') assignments = { [categoryId]: 'TOP' };
+    if (kind === 'staff') await query("update players set role='COACH' where id=$1", [a.player_id]);
+    expect((await submit(manageMatches, { action: 'roles', matchId: match.id, roles: assignments })).status).toBe(400);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it('B6/B7 accepts a final role/profile swap and refreshes aggregates for the new assignments', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const allies = (await storedMatch()).participants.filter(p => p.team_key === 'ALLY');
+    const [a,b] = allies;
+    expect((await submit(manageMatches, { action: 'roles', matchId: match.id, roles: {
+      [a.id]: { role: b.role, playerId: b.player_id }, [b.id]: { role: a.role, playerId: a.player_id }
+    } })).status).toBe(200);
+    expect((await query('select player_id from champion_pool where champion=$1', [a.champion]))[0].player_id).toBe(b.player_id);
+  });
+
+  it.each(['delete','roles'])('B6 rolls back %s and the pool when refresh fails', async action => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const pool = await query('select * from champion_pool order by id');
+    // A delete still leaves a second match, ensuring the refresh attempts inserts.
+    if (action === 'delete') { const args = importArgs(); args.gameId='EUW1_333'; await persistAnalyzedMatch(args); }
+    const snapshot = await storedMatch(); const reports = await query('select * from reports order by id');
+    const currentPool = action === 'delete' ? await query('select * from champion_pool order by id') : pool;
+    await database.pg.exec('alter table champion_pool add constraint reject_pool_refresh check(games < 0) not valid');
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect((await submit(manageMatches, { action, matchId: match.id, roles: {} })).status).toBe(500);
+      expect(await storedMatch()).toEqual(action === 'delete' ? snapshot : before);
+      expect(await query('select * from reports order by id')).toEqual(reports);
+      expect(await query('select * from champion_pool order by id')).toEqual(currentPool);
+    } finally { log.mockRestore(); }
+  });
+
+  it('B7 rejects a concurrent participant correction rather than applying an obsolete final state', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const [a,b] = before.participants.filter(p => p.team_key === 'ALLY');
+    database.beforeBatch = async () => {
+      await query('update match_participants set role=$1 where id=$2', [b.role, a.id]);
+    };
+    expect((await submit(manageMatches, { action: 'roles', matchId: match.id, roles: {} })).status).toBe(409);
+    expect(await query("select * from audit_logs where action='matches.roles'")).toEqual([]);
+  });
+
+  it('B8 rechecks a secondary category deleted between validation and transaction', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    database.beforeBatch = async () => { await query('delete from match_categories where id=$1', [nextCategoryId]); };
+    expect((await submit(manageMatches, { matchId: match.id, categoryIds: [categoryId, nextCategoryId] })).status).toBe(409);
+    expect((await query('select category_ids from matches where id=$1', [match.id]))[0].category_ids).toEqual([categoryId]);
+    expect(await query("select * from audit_logs where action='matches.update'")).toHaveLength(0);
   });
 });

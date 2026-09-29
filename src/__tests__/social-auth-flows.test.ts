@@ -288,7 +288,7 @@ describe('signup completion and ownership', () => {
   it('allows only one competing redemption of the same signup ticket', async () => {
     enabled();
     const first = await prepareSignup(); const second = copyBrowser(first);
-    const responses = await Promise.all([complete(first, { email: 'first@example.test' }), complete(second, { email: 'second@example.test' })]);
+    const responses = await Promise.all([complete(first), complete(second)]);
     expect(responses.map(result => result.status).sort()).toEqual([200, 400]);
     expect(await rows('select * from users')).toHaveLength(1);
     expect(await rows('select * from social_identities')).toHaveLength(1);
@@ -309,40 +309,34 @@ describe('signup completion and ownership', () => {
 
   it('rolls back account creation when a competing signup already claimed the provider identity', async () => {
     enabled();
-    const first = await prepareSignup(); const second = await prepareSignup();
-    expect((await complete(first, { email: 'first@example.test' })).status).toBe(200);
-    const response = await complete(second, { email: 'second@example.test' });
+    const firstEmail = identity.email;
+    const first = await prepareSignup();
+    identity.email = 'second-verified@example.test';
+    const second = await prepareSignup();
+    expect((await complete(first, { email: firstEmail })).status).toBe(200);
+    const response = await complete(second);
     expect(response.status).toBe(409);
     expect((await response.json()).code).toBe('SOCIAL_CONFLICT');
-    expect(await rows('select email from users')).toEqual([{ email: 'first@example.test' }]);
+    expect(await rows('select email from users')).toEqual([{ email: firstEmail }]);
     expect(await rows('select * from social_identities')).toHaveLength(1);
     expect(await rows('select * from social_auth_tickets')).toHaveLength(1);
   });
 
-  it.each(['unverified-provider-email', 'different-chosen-email'])('does not inherit verification for %s', async kind => {
+  it.each(['unverified-provider-email', 'different-chosen-email'])('returns neutral acceptance without creating an account for %s', async kind => {
     enabled();
     if (kind === 'unverified-provider-email') identity.emailVerified = false;
     const chosenEmail = kind === 'different-chosen-email' ? 'different@example.test' : identity.email!;
     const target = await prepareSignup();
-    expect((await complete(target, { email: chosenEmail })).status).toBe(200);
-    const [account] = await rows('select * from users');
-    expect(account.email_verified).toBe(false);
-    expect(account.email_verify_token).toMatch(/^[0-9a-f]{64}$/);
-    expect(state.email).toHaveBeenCalledExactlyOnceWith({ to: chosenEmail, token: expect.any(String) });
-    expect(sha256(state.email.mock.calls[0][0].token)).toBe(account.email_verify_token);
+    const response = await complete(target, { email: chosenEmail });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toMatchObject({ ok: true, message: expect.any(String) });
+    expect(await rows('select * from users')).toHaveLength(0);
+    expect(await rows('select * from sessions')).toHaveLength(0);
+    expect(await rows('select * from social_identities')).toHaveLength(0);
+    expect(target.jar.has(COOKIE_NAME)).toBe(false);
+    expect(state.email).not.toHaveBeenCalled();
   });
 
-  it('keeps a committed unverified account usable if sending the verification email fails', async () => {
-    enabled(); identity.emailVerified = false;
-    state.email.mockRejectedValueOnce(new Error('Email provider unavailable'));
-    const target = await prepareSignup();
-    const response = await complete(target);
-    expect(response.status).toBe(200);
-    expect((await response.json()).verificationEmailSent).toBe(false);
-    expect(await rows('select * from users')).toHaveLength(1);
-    expect(await rows('select * from sessions')).toHaveLength(1);
-    expect(target.jar.has(COOKIE_NAME)).toBe(true);
-  });
 });
 
 describe('existing identities and guarded login sessions', () => {
@@ -413,5 +407,66 @@ describe('unlink authentication and transaction effects', () => {
     expect(await rows('select * from teams')).toEqual(teamSnapshot);
     expect(await rows('select * from team_members order by user_id')).toEqual(membershipSnapshot);
     expect((await finishHandler(get('finish'), callbackTarget.context)).headers.get('location')).toBe('/connexion?social=expired');
+  });
+});
+
+describe('B3 social signup address privacy', () => {
+  const neutral = { ok: true, message: 'Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.' };
+  it.each(['other-address', 'unverified-provider'])('returns neutral acceptance for an existing %s without creating anything', async kind => {
+    enabled(); await seedUser();
+    if (kind === 'unverified-provider') { identity.email = email; identity.emailVerified = false; }
+    const target = await prepareSignup();
+    const response = await complete(target, { email: `  ${email.toUpperCase()}  ` });
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual(neutral);
+    expect(await rows('select * from users')).toHaveLength(1);
+    expect(await rows('select * from sessions')).toHaveLength(0);
+    expect(await rows('select * from social_identities')).toHaveLength(0);
+    expect(state.email).not.toHaveBeenCalled();
+  });
+
+  it.each(['P0001', '23505'])('only exposes SQL %s conflicts for the verified provider address', async code => {
+    enabled(); const target = await prepareSignup();
+    state.beforeQuery = async query => {
+      if (!query.includes('complete_social_signup')) return;
+      throw Object.assign(new Error(code === 'P0001' ? 'SOCIAL_EMAIL_EXISTS' : 'duplicate key'), { code, constraint: 'idx_users_email_lower' });
+    };
+    const response = await complete(target);
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('SOCIAL_EMAIL_EXISTS');
+    state.beforeQuery = null;
+    expect(await rows('select * from users')).toHaveLength(0);
+    expect(await rows('select * from sessions')).toHaveLength(0);
+  });
+
+  it('does not distinguish an existing third-party address from an available one through response or cookies', async () => {
+    enabled(); await seedUser(); const target = await prepareSignup();
+    const beforeCookies = [...target.jar.entries()];
+    const existing = await complete(target, { email });
+    const available = await complete(target, { email: 'available@example.test' });
+    expect([existing.status, available.status]).toEqual([202, 202]);
+    expect(await existing.json()).toEqual(await available.json());
+    expect([...target.jar.entries()]).toEqual(beforeCookies);
+    expect(await rows('select * from users')).toHaveLength(1);
+    expect(await rows('select * from sessions')).toHaveLength(0);
+    expect(await rows('select * from social_identities')).toHaveLength(0);
+    expect(await rows('select * from social_auth_tickets')).toHaveLength(1);
+    expect(state.email).not.toHaveBeenCalled();
+  });
+
+  it('limits repeated use of the same hashed ticket across changing addresses', async () => {
+    enabled(); await seedUser(); const target = await prepareSignup();
+    const real = await vi.importActual<any>('../../netlify/functions/_lib/rate-limit');
+    state.rate.mockImplementation(async (...args: any[]) => {
+      if (args[0] === 'auth-social-complete-ticket') await real.assertSubjectRateLimit(...args);
+    });
+    try {
+      for (let i = 0; i < 5; i++) expect((await complete(target, { email })).status).toBe(202);
+      const response = await complete(target, { email: 'new@example.test' });
+      expect(response.status).toBe(429);
+      expect(await rows('select * from users')).toHaveLength(1);
+      expect(await rows('select * from sessions')).toHaveLength(0);
+      expect(state.rate).toHaveBeenCalledWith('auth-social-complete-ticket', sha256(target.jar.get(SOCIAL_TICKET_COOKIE)!), { limit: 5, windowSeconds: 300 });
+    } finally { state.rate.mockImplementation(async () => {}); }
   });
 });

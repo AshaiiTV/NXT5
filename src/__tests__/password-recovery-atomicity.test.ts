@@ -39,7 +39,7 @@ vi.mock('../../netlify/functions/_lib/auth', async importOriginal => {
   const actual: any = await importOriginal();
   return { ...actual, assertSessionSecret: () => {}, requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' }) };
 });
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {} }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
 vi.mock('../../netlify/functions/_lib/email', () => ({ isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails }));
 
 import changePassword from '../../netlify/functions/auth-change-password';

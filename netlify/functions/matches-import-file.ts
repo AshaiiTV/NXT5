@@ -144,9 +144,11 @@ export default async function handler(request: Request, context: Context): Promi
         values (${user.id}, 'match.import_file', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId: resolvedGameId, teamId, label, categoryIds })}::jsonb)
       `);
 
-    const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ request, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId }));
-    if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
-    else await notificationTask;
+    if (savedMatch.inserted) {
+      const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ request, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId }));
+      if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
+      else await notificationTask;
+    }
 
     return json({
       warnings: savedMatch.warnings || [],

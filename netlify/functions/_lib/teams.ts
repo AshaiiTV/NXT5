@@ -1,3 +1,6 @@
+/** Membership roles allowed to manage team content (ownership is checked separately). */
+export const TEAM_STAFF_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
+
 /** Fields shared with every team member. Invitations use their own role-gated response. */
 export function safeTeam(team: Record<string, any>) {
   return {

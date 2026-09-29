@@ -1,3 +1,4 @@
+import { TEAM_STAFF_ROLES } from './_lib/teams';
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
@@ -6,7 +7,6 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
 const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
-const MANAGE_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
 
 async function ensureChampionPoolSchema() {
   await assertSchemaReady();
@@ -80,7 +80,8 @@ export default async function handler(request: Request, context: Context): Promi
         and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
       limit 1
     `;
-    const canManageTeamPool = member[0]?.owner_id === user.id || MANAGE_ROLES.includes(String(member[0]?.role || '').toLowerCase());
+    if (!member[0]) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
+    const canManageTeamPool = member[0]?.owner_id === user.id || TEAM_STAFF_ROLES.includes(String(member[0]?.role || '').toLowerCase());
 
     if (action === 'delete') {
       if (!poolId) throw Object.assign(new Error('Pick requis.'), { status: 400 });

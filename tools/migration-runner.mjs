@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 export async function loadMigrations() {
   const definitions = [
-    ['baseline-20260906-v1', '../database/schema.sql'],
+    ['baseline-20260906-v1', '../database/migrations/20260906_baseline.sql'],
     ['audit-runtime-20260906-v1', '../database/migrations/20260906_runtime_schema.sql'],
     ['pricing-access-requests-20260908-v1', '../database/migrations/20260908_access_requests.sql'],
     ['pricing-access-requests-structure-20260908-v1', '../database/migrations/20260908_access_requests_structure.sql'],
@@ -26,6 +26,7 @@ export async function loadMigrations() {
     ['audience-activation-20260928-v1', '../database/migrations/20260928_audience_activation.sql'],
     ['team-activation-milestones-20260928-v1', '../database/migrations/20260928_team_activation_milestones.sql'],
     ['discord-group-exports-20260924-v1', '../database/migrations/20260924_discord_group_exports.sql'],
+    ['report-source-20260929-v1', '../database/migrations/20260929_report_source.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

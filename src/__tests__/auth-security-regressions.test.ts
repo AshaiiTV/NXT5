@@ -64,11 +64,12 @@ vi.mock('../../netlify/functions/_lib/auth', async (importOriginal) => {
 });
 vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ ensureUserNotificationColumns: async () => {}, getTeamMemberEmails: async () => state.recipients }));
 vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: state.notification }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails, isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails }));
 
 import verifyEmail from '../../netlify/functions/verify-email';
 import updateProfile from '../../netlify/functions/auth-update-profile';
 import changePassword from '../../netlify/functions/auth-change-password';
+import requestPasswordReset from '../../netlify/functions/auth-request-password-reset';
 import resetPassword from '../../netlify/functions/auth-reset-password';
 import registerAccount from '../../netlify/functions/auth-register';
 import resendVerification from '../../netlify/functions/resend-verify-email';
@@ -579,5 +580,30 @@ describe('first human review signal', () => {
     expect((await state.pg.query("select * from audit_logs where action='reports.create'")).rows).toHaveLength(0);
     expect((await state.pg.query('select first_review_at from teams where id=$1', [teamId])).rows[0].first_review_at).not.toBeNull();
     expect((await (await save()).json()).firstReview).toBe(false);
+  });
+});
+
+describe('B4 recipient password reset quota', () => {
+  it('shares the three/hour budget across IPs and normalized addresses without sending or invalidating when exhausted', async () => {
+    const submit = (index: number, email = 'original@example.test') => requestPasswordReset(new Request('https://nxt5.test/auth-request-password-reset', {
+      method: 'POST', headers: { 'x-nf-client-connection-ip': `192.0.2.${index}` }, body: JSON.stringify({ email })
+    }));
+    for (let index = 1; index <= 3; index++) {
+      const response = await submit(index);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ ok: true });
+    }
+    expect(state.emails).toHaveBeenCalledTimes(3);
+    const before = (await state.pg.query('select * from password_reset_tokens order by id')).rows;
+    expect(before.filter((row: any) => !row.used_at)).toHaveLength(1);
+    const blocked = await submit(4, '  ORIGINAL@EXAMPLE.TEST  ');
+    expect(blocked.status).toBe(200);
+    expect(await blocked.json()).toEqual({ ok: true });
+    expect(state.emails).toHaveBeenCalledTimes(3);
+    expect((await state.pg.query('select * from password_reset_tokens order by id')).rows).toEqual(before);
+    expect(await (await submit(5, 'missing@example.test')).json()).toEqual({ ok: true });
+    await state.pg.exec("update rate_limits set window_start=now()-interval '61 minutes'");
+    expect((await submit(6)).status).toBe(200);
+    expect(state.emails).toHaveBeenCalledTimes(4);
   });
 });

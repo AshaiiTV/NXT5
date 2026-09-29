@@ -471,6 +471,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
 
   let savedMatch;
   let firstImport = false;
+  let inserted = false;
   try {
     const results = await sql.transaction(tx => [
       // Same ordering is used by category deletion; imports of one team cannot
@@ -500,7 +501,8 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
           impact_score = excluded.impact_score, primary_focus = excluded.primary_focus, main_issue = excluded.main_issue,
           created_by = coalesce(matches.created_by, excluded.created_by), raw = excluded.raw,
           category_id = case when ${replaceCategories} then excluded.category_id else matches.category_id end,
-          category_ids = case when ${replaceCategories} then excluded.category_ids else matches.category_ids end`,
+          category_ids = case when ${replaceCategories} then excluded.category_ids else matches.category_ids end
+        returning (xmax = 0) as inserted`,
       tx`insert into match_raw_archives (team_id, match_id, game_id, source, payload)
          select team_id, id, game_id, ${(match as any)?.metadata?.source || 'import'}, raw
          from matches where team_id = ${team.id} and game_id = ${gameId}
@@ -544,6 +546,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       tx`select * from matches where team_id = ${team.id} and game_id = ${gameId}`
     ]);
     savedMatch = results[results.length - 1][0];
+    inserted = results[4]?.[0]?.inserted === true;
     firstImport = results[1]?.[0]?.first_import === true;
   } catch (error: any) {
     if (error?.code === '22012' || error?.code === '23503') {
@@ -568,9 +571,10 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
 
   const report = reportForMatch({ team, summary, participants });
   await runImportSideEffect('auto report creation', () => sql`
-      insert into reports (team_id, match_id, match_ids, created_by, title, content)
-      values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report})
+      insert into reports (team_id, match_id, match_ids, created_by, title, content, source)
+      values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report}, 'auto')
+      on conflict do nothing
     `);
 
-  return { ...savedMatch, warnings, firstImport };
+  return { ...savedMatch, warnings, firstImport, inserted };
 }

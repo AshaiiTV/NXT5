@@ -1,3 +1,4 @@
+import { TEAM_STAFF_ROLES } from './_lib/teams';
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
@@ -71,11 +72,13 @@ export default async function handler(request: Request, context: Context): Promi
       from teams
       left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
+        and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
       limit 1
     `;
     const member = memberRows[0];
+    if (!member) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
     const role = String(member?.role || '').toLowerCase();
-    const canManage = member?.owner_id === user.id || ['owner', 'captain', 'coach', 'assistant', 'analyst', 'board'].includes(role);
+    const canManage = member?.owner_id === user.id || TEAM_STAFF_ROLES.includes(role);
     const ownsProfile = player.user_id && player.user_id === user.id;
     if (!canManage && !ownsProfile) {
       throw Object.assign(new Error('Tu peux modifier uniquement tes disponibilités, sauf staff autorisé.'), { status: 403 });
