@@ -1,6 +1,6 @@
 /** Explicit, shared allowlist: no identifiers, arbitrary routes, query or tokens. */
 const PATHS = new Set([
-  '/', '/demo', '/guides/importer-premier-scrim', '/guides/preparer-debrief', '/fonctionnalites', '/connexion', '/creer-un-compte', '/inscription', '/tarifs',
+  '/', '/demo', '/guides/importer-premier-scrim', '/guides/preparer-debrief', '/fonctionnalites', '/connexion', '/creer-un-compte', '/inscription', '/soutenir',
   '/mentions-legales', '/confidentialite', '/cookies', '/conditions', '/reglement', '/contact', '/reseaux',
   '/equipes', '/games', '/integration', '/statistiques', '/tendances', '/planning', '/draft', '/draft/pool',
   '/draft/compositions', '/champion-pool', '/compositions-types', '/rapports', '/guide',

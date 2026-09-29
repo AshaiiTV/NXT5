@@ -96,15 +96,15 @@ describe("consent-gated audience collection", () => {
   it("creates no identifiers or audience requests until acceptance is confirmed", async () => {
     const h = setup();
     expect(h.request).not.toHaveBeenCalled();
-    await h.open("/tarifs?email=private%40example.com");
+    await h.open("/soutenir?email=private%40example.com");
     await h.client.trackEvent("signup");
     await vi.advanceTimersByTimeAsync(30_000);
     expect(h.uuid).not.toHaveBeenCalled();
     expect(h.events()).toEqual([]);
     expect(await h.client.choose(true)).toBe(true);
     await settle();
-    expect(h.events().map(event => event.type)).toEqual(["pageview", "event"]);
-    expect(h.events()[1].name).toBe("pricing_view");
+    expect(h.events().map(event => event.type)).toEqual(["pageview"]);
+    expect(h.events()[0].path).toBe("/soutenir");
   });
 
   it("stops immediately and preserves local refusal when the refusal request fails", async () => {
@@ -330,7 +330,7 @@ describe("audience event privacy and accounting", () => {
       return undefined;
     } });
     await h.open();
-    await h.client.trackEvent("access_request");
+    await h.client.trackEvent("login");
     await settle();
     expect(h.events().map(event => event.type)).toEqual(["pageview", "event", "pageview", "event"]);
     expect(h.events().filter(event => event.type === "event")).toHaveLength(2);
@@ -382,4 +382,22 @@ describe("audience event privacy and accounting", () => {
     expect(await queued).toBe(false);
     expect(h.events()).toHaveLength(1);
   });
+});
+
+it.each(['/tarifs', '/tarifs/?private=1', '/admin', '/admin/tarifs', '/admin/inconnu'])("N2-04: a consented non-admin never measures the admin route %s", async path => {
+  const h = setup({ initialConsent: consent() });
+  await h.open(path);
+  await h.client.trackEvent('login');
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(h.events()).toEqual([]);
+  expect(h.uuid).not.toHaveBeenCalled();
+});
+
+it('E5: no longer emits the legacy goals, but still measures current actions on Soutenir', async () => {
+  const h = setup({ initialConsent: consent() });
+  await h.open('/soutenir');
+  for (const name of ['pricing_view', 'access_request']) expect(await h.client.trackEvent(name)).toBe(false);
+  await h.client.trackEvent('login');
+  expect(h.events().map(event => event.type)).toEqual(['pageview', 'event']);
+  expect(h.events()[1]).toMatchObject({ name: 'login', path: '/soutenir' });
 });

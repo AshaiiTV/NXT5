@@ -22,7 +22,12 @@ function usePurchases(path) {
     const controller = new AbortController();
     setState({ path, loading: true, data: null, error: "" });
     apiFetch(path, { signal: controller.signal }).then(data => {
-      if (!data || typeof data !== "object" || (!data.pagination && !data.totals)) throw new Error("Les données d’achats sont indisponibles.");
+      const overview = new URLSearchParams(path.split("?")[1]).get("view") === "overview";
+      if (!data || typeof data !== "object" || (overview
+        ? !data.totals || !Array.isArray(data.monthly)
+        : !data.pagination || !Array.isArray(data.purchases))) {
+        throw new Error("Les données d’achats reçues sont incomplètes. Réessaie dans quelques instants.");
+      }
       if (current) setState({ path, loading: false, data, error: "" });
     }).catch(error => { if (current) setState({ path, loading: false, data: null, error: error.message }); });
     return () => { current = false; controller.abort(); };

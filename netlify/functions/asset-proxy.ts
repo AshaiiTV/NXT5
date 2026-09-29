@@ -15,6 +15,50 @@ const ALLOWED_CONTENT_TYPES = [
 
 const MAX_ASSET_BYTES = 2 * 1024 * 1024;
 const GITHUB_IMAGE_PATH_RE = /\.(png|jpe?g|webp)$/i;
+const RUNE_CATALOG_PATH_RE = /^\/cdn\/[1-9]\d?\.[1-9]\d?\.[1-9]\/data\/fr_FR\/runesReforged\.json$/;
+const MAX_RUNE_CATALOG_BYTES = 512 * 1024;
+
+// The only JSON exception: a versioned French rune catalogue, never arbitrary
+// JSON or SVG. Bound the streamed body, including when Content-Length is absent.
+async function runeCatalog(target: URL): Promise<HandlerResponse> {
+  const upstream = await fetch(target.toString(), {
+    headers: { Accept: 'application/json' },
+    redirect: 'error',
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!upstream.ok) return response(upstream.status, 'Rune catalogue unavailable');
+  const type = (upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (type !== 'application/json') return response(415, 'Unsupported catalogue type');
+  if (Number(upstream.headers.get('content-length')) > MAX_RUNE_CATALOG_BYTES) {
+    await upstream.body?.cancel();
+    return response(413, 'Rune catalogue too large');
+  }
+  const reader = upstream.body?.getReader();
+  if (!reader) return response(502, 'Empty rune catalogue');
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_RUNE_CATALOG_BYTES) {
+        await reader.cancel();
+        return response(413, 'Rune catalogue too large');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const body = Buffer.concat(chunks).toString('utf8');
+  try {
+    if (!Array.isArray(JSON.parse(body))) return response(502, 'Invalid rune catalogue');
+  } catch {
+    return response(502, 'Invalid rune catalogue');
+  }
+  return response(200, body, { 'Content-Type': 'application/json; charset=utf-8' });
+}
 
 function response(statusCode: number, body: string, headers: Record<string, string> = {}, isBase64Encoded = false): HandlerResponse {
   return {
@@ -35,6 +79,13 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
     const target = new URL(rawUrl);
     if (target.protocol !== 'https:' || !ALLOWED_HOSTS.has(target.hostname)) {
       return response(400, 'Asset host not allowed');
+    }
+    if (/\.json$/i.test(target.pathname)) {
+      if (target.hostname !== 'ddragon.leagueoflegends.com' || !RUNE_CATALOG_PATH_RE.test(target.pathname)
+        || target.port || target.username || target.password || target.search || target.hash) {
+        return response(400, 'Catalogue path not allowed');
+      }
+      return await runeCatalog(target);
     }
     if (target.hostname === 'raw.githubusercontent.com' && !GITHUB_IMAGE_PATH_RE.test(target.pathname)) {
       return response(400, 'GitHub asset path not allowed');

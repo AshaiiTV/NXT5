@@ -16,9 +16,9 @@ const VIEWS = {
 const FILTERS = [["all", "Toutes"], ["recent", "Import récent"], ["quiet", "Sans import depuis 30 j"], ["never", "Aucun import"], ["empty", "Sans profils"]];
 const FEATURES = [["matches", "Import de parties"], ["roster", "Joueurs et encadrement"], ["reports", "Débriefs"], ["planning", "Planning"], ["compositions", "Compositions"], ["championPool", "Champions déclarés"], ["goals", "Objectifs joueurs"], ["archives", "Archives"]];
 
-function date(value, time = false) {
+function date(value, time = false, daily = false) {
   if (!value || !Number.isFinite(Date.parse(value))) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", ...(time ? { timeStyle: "short" } : {}) }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", ...(daily ? { timeZone: "UTC" } : {}), ...(time ? { timeStyle: "short" } : {}) }).format(new Date(value));
 }
 
 function Section({ title, description, children, action }) {
@@ -48,12 +48,12 @@ export function ImportChart({ rows = [], field = "matches", label = "parties imp
   const max = Math.max(1, ...rows.map((row) => Number(row[field] || 0)));
   if (!rows.length) return <Message>Aucune donnée disponible pour cette période.</Message>;
   return <div className="admin-chart">
-    <div className="admin-chart-readout" aria-live="polite" aria-atomic="true"><span>{date(selected.date)}</span><strong>{n(selected[field])} {label}</strong></div>
+    <div className="admin-chart-readout" aria-live="polite" aria-atomic="true"><span>{date(selected.date, false, true)}</span><strong>{n(selected[field])} {label}</strong></div>
     <div className="admin-chart-scale"><span>{n(max)}</span><span>Échelle : {label} / jour</span></div>
     <div className="admin-chart-bars" role="group" aria-label={`${label} par jour`}>
-      {rows.map((row) => <button key={row.date} type="button" aria-pressed={row.date === selected.date} aria-label={`${date(row.date)} : ${n(row[field])} ${label}`} onMouseEnter={() => setSelectedDate(row.date)} onFocus={() => setSelectedDate(row.date)} onClick={() => setSelectedDate(row.date)}><span style={{ height: `${Number(row[field] || 0) / max * 100}%` }} /></button>)}
+      {rows.map((row) => <button key={row.date} type="button" aria-pressed={row.date === selected.date} aria-label={`${date(row.date, false, true)} : ${n(row[field])} ${label}`} onMouseEnter={() => setSelectedDate(row.date)} onFocus={() => setSelectedDate(row.date)} onClick={() => setSelectedDate(row.date)}><span style={{ height: `${Number(row[field] || 0) / max * 100}%` }} /></button>)}
     </div>
-    <div className="admin-chart-axis"><span>{date(rows[0].date)}</span><span>{date(rows.at(-1).date)}</span></div>
+    <div className="admin-chart-axis"><span>{date(rows[0].date, false, true)}</span><span>{date(rows.at(-1).date, false, true)}</span></div>
     <p className="admin-caption">Survole, touche ou sélectionne une journée au clavier. Les jours à zéro restent à zéro.</p>
   </div>;
 }

@@ -173,3 +173,14 @@ describe("accessible bot activity chart", () => {
     expect(renderer.root.findByProps({ "aria-label": "Données quotidiennes du bot" }).props.tabIndex).toBe(0);
   });
 });
+
+it.each(['teams', 'destinations', 'teamNames'].flatMap(field => [undefined, null, {}, 'invalid'].map(value => [field, value])))('E9: rejects malformed nested %s arrays (%j)', async (field, value) => {
+  const malformed = guild('123', 'Alpha', 'scrims');
+  if (field === 'teamNames') malformed.destinations[0].teamNames = value;
+  else malformed[field] = value;
+  apiFetch.mockResolvedValueOnce(report({ guilds: [malformed] }));
+  const renderer = await render();
+  expect(renderer.root.findAllByProps({ role: 'alert' })).toHaveLength(1);
+  expect(text(renderer)).toContain('Les statistiques reçues sont incomplètes');
+  expect(values(renderer)).toEqual([]);
+});

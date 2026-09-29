@@ -3,27 +3,27 @@
 // to the product's templates without maintaining separate mock layouts.
 export const EXPORT_TEMPLATES = Object.freeze([
   {
-    id: "game", category: "site", title: "Statistiques d’une game", source: "Games · Statistiques", format: "PNG",
+    id: "game", category: "site", title: "Statistiques d’une game", source: "Parties · Statistiques", format: "PNG",
     description: "Le bilan complet d’une game : les deux équipes, les dix joueurs et les objectifs.",
-    uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Bilan détaillé téléchargé depuis Games"],
+    uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Bilan détaillé téléchargé depuis Parties"],
   },
   {
-    id: "group", category: "site", title: "Groupe de games", source: "Games · Groupe de games", format: "PNG",
+    id: "group", category: "site", title: "Groupe de games", source: "Parties · Groupe de games", format: "PNG",
     description: "La synthèse d’une sélection de games, réunie dans une seule image.",
     uses: ["Victoires et moyennes de la sélection", "Comparaison équipe et adversaires", "Liste complète des games", "Champions joués et nombre de picks"],
   },
   {
-    id: "trends", category: "site", title: "Tendances d’équipe", source: "Tendances · Exporter la synthèse", format: "PNG",
+    id: "trends", category: "site", title: "Tendances d’équipe", source: "Analyses · Exporter la synthèse", format: "PNG",
     description: "Les résultats et les repères collectifs de la catégorie et de la période choisies.",
     uses: ["Taux de victoire et écarts d’or", "Résultats par côté", "Moyennes par rôle", "Champions les plus joués"],
   },
   {
-    id: "profile", category: "site", title: "Profil joueur", source: "Profils · Exporter le résumé", format: "PNG",
+    id: "profile", category: "site", title: "Profil joueur", source: "Mon profil · Exporter le résumé", format: "PNG",
     description: "Les statistiques d’un joueur sur les games reliées à son profil.",
     uses: ["Games analysées, victoires et KDA", "Moyennes par game et couverture des données", "CS à 10 et 20 minutes", "Résultats par champion"],
   },
   {
-    id: "pool", category: "site", title: "Pool de champions déclaré", source: "Profils · Pool déclaré / Champion Pool", format: "PNG",
+    id: "pool", category: "site", title: "Pool de champions déclaré", source: "Mon profil · Champions déclarés / Draft · Champions des joueurs", format: "PNG",
     description: "Les champions déclarés par le joueur ou le staff, regroupés par niveau de préparation.",
     uses: ["Picks de confiance", "Picks situationnels", "Picks en validation et en entraînement", "Games et taux de victoire disponibles"],
   },
@@ -152,8 +152,8 @@ function demoAudienceReport() {
     ].map(([date, visitors, sessions, pageviews, conversions]) => ({ date, visitors, sessions, pageviews, conversions })),
     pages: [
       { path: "/", views: 280, visitors: 150, avgDurationSeconds: 36, exits: 70 },
-      { path: "/decouverte", views: 180, visitors: 120, avgDurationSeconds: 51, exits: 60 },
-      { path: "/tarifs", views: 160, visitors: 105, avgDurationSeconds: 69, exits: 60 },
+      { path: "/demo", views: 180, visitors: 120, avgDurationSeconds: 51, exits: 60 },
+      { path: "/soutenir", views: 160, visitors: 105, avgDurationSeconds: 69, exits: 60 },
       { path: "/connexion", views: 100, visitors: 80, avgDurationSeconds: 61.8, exits: 50 },
     ],
     sources: [{ source: "direct", sessions: 120, visitors: 100, conversions: 12 }, { source: "organic", sessions: 72, visitors: 61, conversions: 8 }, { source: "social", sessions: 48, visitors: 44, conversions: 4 }],
@@ -161,7 +161,7 @@ function demoAudienceReport() {
     devices: [{ device: "desktop", sessions: 150 }, { device: "mobile", sessions: 84 }, { device: "tablet", sessions: 6 }],
     browsers: [{ browser: "Chrome", sessions: 144 }, { browser: "Safari", sessions: 60 }, { browser: "Firefox", sessions: 36 }],
     countries: [{ country: "FR", sessions: 192 }, { country: "BE", sessions: 24 }, { country: "CH", sessions: 24 }],
-    goals: [{ name: "signup", events: 18, sessions: 18, conversionRate: 7.5 }, { name: "access_request", events: 6, sessions: 6, conversionRate: 2.5 }, { name: "pricing_view", events: 160, sessions: 120, conversionRate: 50 }],
+    goals: [{ name: "signup", events: 24, sessions: 24, conversionRate: 10 }, { name: "first_import", events: 6, sessions: 6, conversionRate: 2.5 }, { name: "login", events: 160, sessions: 120, conversionRate: 50 }],
     heatmap: [[1, 18, 84], [2, 18, 102], [3, 18, 87], [4, 19, 108], [5, 19, 126], [6, 17, 108], [0, 17, 105]].map(([weekday, hour, pageviews]) => ({ weekday, hour, pageviews })),
     realtime: { windowMinutes: 5, visitors: 3 },
   };

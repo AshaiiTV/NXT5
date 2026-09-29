@@ -104,10 +104,10 @@ function Acquisition({ rows = [], sessions }) {
 
 function Goals({ goals = [], totals = {}, previous = {} }) {
   return <Section title="De la visite à l’action" icon={Target} description="Événements confirmés pendant les sessions avec consentement.">
-    <div className="audience-conversion-summary"><strong>{n(totals.conversions)}</strong><div><span>sessions converties</span><p>Création de compte ou demande d’accès</p></div><Badge tone="purple">{percent(totals.conversionRate)}</Badge></div>
+    <div className="audience-conversion-summary"><strong>{n(totals.conversions)}</strong><div><span>sessions converties</span><p>Création de compte ; anciennes demandes d’accès incluses</p></div><Badge tone="purple">{percent(totals.conversionRate)}</Badge></div>
     <Change value={totals.conversions} previous={previous.conversions} />
     <div className="audience-goals">{goals.length ? goals.map((goal) => <div key={goal.name}><div><strong>{GOAL_LABELS[goal.name] || goal.name}</strong><small>{n(goal.sessions)} sessions · {percent(goal.conversionRate)} des sessions</small></div><strong>{n(goal.events)}<small>événements</small></strong></div>) : <p className="audience-caption">Aucun événement sur cette période.</p>}</div>
-    <p className="audience-caption">Les actions peuvent se recouper. Le taux global compte chaque session convertie une seule fois. Ce tableau ne décrit pas un ordre de parcours.</p>
+    <p className="audience-caption">Les actions peuvent se recouper. Le taux global compte chaque session convertie une seule fois. Ce tableau ne décrit pas un ordre de parcours. Les demandes d’accès et consultations de tarifs ne sont plus collectées ; leurs anciennes mesures restent consultables. La page Soutenir est mesurée avec consentement. Les routes administratives, dont /tarifs, sont exclues des nouvelles collectes.</p>
   </Section>;
 }
 
@@ -170,7 +170,7 @@ export function AudienceReport({ report }) {
       <Metric label="Navigateurs distincts" value={totals.visitors} previous={previous.visitors} icon={Users} note={`${n(totals.returningVisitors)} déjà observés avant cette période`} />
       <Metric label="Sessions" value={totals.sessions} previous={previous.sessions} icon={MousePointer2} note="Une nouvelle visite après 30 min d’inactivité" />
       <Metric label="Pages vues" value={totals.pageviews} previous={previous.pageviews} icon={BarChart3} note={`${decimal(totals.pagesPerSession)} pages par session`} />
-      <Metric label="Taux de conversion" value={totals.conversionRate} previous={previous.conversionRate} format={percent} icon={Target} percentage note={`${n(totals.conversions)} sessions avec compte créé ou demande d’accès`} />
+      <Metric label="Taux de conversion" value={totals.conversionRate} previous={previous.conversionRate} format={percent} icon={Target} percentage note={`${n(totals.conversions)} sessions avec compte créé ou ancienne demande d’accès`} />
     </div>
     {finiteNumber(totals.sessions) === 0 && <Note className="audience-empty"><strong>Aucune visite mesurée sur cette période.</strong><p>Les statistiques apparaîtront après les premières visites avec consentement. Si des filtres sont actifs, essaie une vue plus large. Aucun historique antérieur à l’installation n’est reconstitué.</p></Note>}
     <div className="audience-main-grid"><Section title="Le rythme des visites" description="L’évolution quotidienne des navigateurs distincts et des pages vues." icon={Activity}><AudienceChart rows={report.timeseries} /></Section><Realtime data={report.realtime} /></div>

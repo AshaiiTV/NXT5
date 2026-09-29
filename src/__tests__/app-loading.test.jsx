@@ -9,7 +9,7 @@ import { apiFetch } from "../api/client.js";
 const visual = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../app/performance.js", () => ({ configurePerformanceMode: vi.fn(), PERFORMANCE_MODE_STORAGE_KEY: "performance" }));
-vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
+vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: ({ excluded }) => <aside data-audience-excluded={excluded} /> }));
 vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({
   default: function LoadingScreen({ phase, progress }) {
     const identity = useRef(Symbol("loader"));
@@ -234,4 +234,13 @@ it.each(["resolve", "reject"])("B9 ignores initial auth-me %s after successful l
   else await app.resolve(0, { user: null });
   expect(app.pages.some(node => node.props["data-page"] === "auth")).toBe(false);
   expect(app.pages.some(node => node.props["data-page"] === "teams")).toBe(true);
+});
+
+
+it.each(['/tarifs', '/admin', '/admin/tarifs', '/admin/inconnu'])('N2-04: excludes admin route %s in the actual collection context for a non-admin', async path => {
+  const app = mount(path);
+  await app.loadModule();
+  await app.resolve(0, { user });
+  expect(app.renderer.root.findByProps({ 'data-audience-excluded': true })).toBeDefined();
+  expect(app.pages.some(page => page.props['data-page'] === 'not-found')).toBe(true);
 });

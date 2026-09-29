@@ -75,3 +75,14 @@ describe("Discord export catalogue integration", () => {
     for (const participant of snapshot.participants.filter(row => row.teamKey === "ENEMY")) expect(drawnText.join(" ")).toContain(participant.name);
   });
 });
+
+it('E6: uses current navigation names and public routes in the synthetic audience export', async () => {
+  expect(EXPORT_TEMPLATES.find(item => item.id === 'game').source).toBe('Parties · Statistiques');
+  expect(EXPORT_TEMPLATES.find(item => item.id === 'trends').source).toContain('Analyses ·');
+  for (const id of ['profile', 'pool']) expect(EXPORT_TEMPLATES.find(item => item.id === id).source).toContain('Mon profil ·');
+  const example = await createExportExample('audience');
+  const csv = await example.blob.text();
+  expect(csv).toContain('/demo');
+  expect(csv).toContain('/soutenir');
+  expect(csv).not.toMatch(/\/decouverte|\/tarifs|Tarifs consultés|Demande d’accès envoyée/);
+});

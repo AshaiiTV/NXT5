@@ -67,7 +67,7 @@ describe("participant rune display", () => {
     await act(async () => { renderer = TestRenderer.create(<runes.ParticipantRunes row={participant} />); });
 
     expect(fetch).toHaveBeenCalledOnce();
-    expect(fetch.mock.calls[0][0]).toBe("https://ddragon.leagueoflegends.com/cdn/16.18.1/data/fr_FR/runesReforged.json");
+    expect(fetch.mock.calls[0][0]).toBe("/.netlify/functions/asset-proxy?url=" + encodeURIComponent("https://ddragon.leagueoflegends.com/cdn/16.18.1/data/fr_FR/runesReforged.json"));
     expect(content()).toContain("Sorcellerie Arbre secondaire Inspiration");
     expect(content()).toContain("Invocation d’Aery Ruban de mana Chaussures magiques");
     expect(content()).toContain("Force adaptative");
