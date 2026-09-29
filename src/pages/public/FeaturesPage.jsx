@@ -38,7 +38,7 @@ const FEATURES = [
     id: "discord", icon: MessageSquare, label: "Exports et Discord",
     title: "Partager un bilan lisible.",
     text: "Exporte les statistiques en PNG ou publie les bilans des parties dans les salons Discord choisis par l’équipe, après configuration du bot.",
-    detail: "La connexion du serveur, les salons et les droits se règlent dans Bot Discord. Le partage manuel présente un aperçu avant confirmation ; la diffusion automatique dépend de la configuration activée par l’équipe.",
+    detail: "Le bot est actuellement accessible gratuitement. Au lancement des offres, il sera réservé au Pass Équipe et ne sera pas inclus dans Découverte. La connexion du serveur, les salons et les droits se règlent dans Bot Discord. Le partage manuel présente un aperçu avant confirmation ; la diffusion automatique dépend de la configuration activée par l’équipe.",
     items: ["Exports PNG des parties et des analyses", "Bilans dans les salons Discord choisis", "Aperçu et confirmation du partage manuel"],
   },
 ];

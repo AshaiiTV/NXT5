@@ -61,7 +61,7 @@ export const AUTH_ROUTES = {
 export const PUBLIC_ROUTES = ["/", "/fonctionnalites", "/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact", "/reseaux", "/soutenir"];
 export const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 export const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
-export const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";
+export { DISCORD_INVITE_URL } from "./social-links.js";
 
 export const PLANNING_DAYS = [
   ["MON", "Lun"],
@@ -76,7 +76,7 @@ export const PLANNING_DAYS = [
 export const PLANNING_EVENT_TYPES = [
   { id: "scrim", label: "Scrim", dot: "bg-fuchsia-200", cell: "bg-fuchsia-400/10 text-fuchsia-100" },
   { id: "match", label: "Match", dot: "bg-cyan-200", cell: "bg-cyan-400/10 text-cyan-100" },
-  { id: "review", label: "Review", dot: "bg-violet-200", cell: "bg-violet-400/10 text-violet-100" },
+  { id: "review", label: "Débrief", dot: "bg-violet-200", cell: "bg-violet-400/10 text-violet-100" },
 ];
 
 export const PLANNING_TIMES = ["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00", "00:00"];

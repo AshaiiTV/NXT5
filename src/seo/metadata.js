@@ -1,3 +1,5 @@
+import { getSocialLinks } from "../app/social-links.js";
+
 export const SITE_ORIGIN = "https://nxt5.org";
 export const SOCIAL_IMAGE = "/og-nxt5.png";
 
@@ -26,7 +28,7 @@ export const PUBLIC_METADATA = {
   },
   "/guides/preparer-debrief": {
     title: "Préparer un débrief d’équipe League of Legends — Guide NXT5",
-    description: "Prépare une review utile avec NXT5 : choisis une partie, vérifie un fait avec les joueurs et transforme les observations en une action pour le prochain entraînement.",
+    description: "Prépare un débrief utile avec NXT5 : choisis une partie, vérifie un fait avec les joueurs et transforme les observations en une action pour le prochain entraînement.",
     label: "Premier débrief",
   },
   "/contact": {
@@ -36,7 +38,7 @@ export const PUBLIC_METADATA = {
   },
   "/reseaux": {
     title: "Communauté et Discord officiel — NXT5",
-    description: "Rejoins le Discord officiel de NXT5 pour échanger avec la communauté League of Legends, partager tes retours et trouver de l’aide auprès de l’équipe.",
+    description: "Retrouve NXT5 sur Discord et YouTube : échange avec la communauté League of Legends, partage tes retours et accède à la chaîne officielle.",
     label: "Réseaux et communauté",
   },
   "/soutenir": {
@@ -106,6 +108,7 @@ export function getMetadata(path = "/", { noindex = false, title } = {}) {
           "@type": "Organization", "@id": `${SITE_ORIGIN}/#organization`, name: "NXT5", url: `${SITE_ORIGIN}/`,
           description: "Projet indépendant d’analyse et de préparation pour les équipes League of Legends.",
           logo: { "@type": "ImageObject", url: `${SITE_ORIGIN}/assets/nxt5-logo.png` },
+          sameAs: getSocialLinks({}).map(({ href }) => href),
         },
         {
           "@type": "WebSite", "@id": `${SITE_ORIGIN}/#website`, name: "NXT5", url: `${SITE_ORIGIN}/`, inLanguage: "fr-FR",

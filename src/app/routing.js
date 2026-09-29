@@ -61,7 +61,7 @@ export function gameWorkspaceSectionFromPath(pathname = window.location.pathname
 }
 
 export function gameWorkspaceSectionLabel(sectionId = "games") {
-  return sectionId === "review" ? "Review" : "Games";
+  return sectionId === "review" ? "Débriefs" : "Parties";
 }
 
 export function authModeFromPath(pathname = window.location.pathname) {

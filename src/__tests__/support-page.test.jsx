@@ -36,7 +36,7 @@ describe("support page", () => {
   it("returns signed-in members to their workspace", () => {
     const html = renderToStaticMarkup(<SupportPage user={{ id: "member" }} supportUrl="" />);
     expect(html).toContain('href="/equipes"');
-    expect(html).toContain("Mon espace");
+    expect(html).toContain("Mon équipe");
     expect(html).not.toContain('href="/connexion"');
   });
 });
