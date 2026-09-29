@@ -16,7 +16,7 @@ type RateLimitConfig = {
   windowSeconds: number;
 };
 
-function requestIp(request: Request): string {
+export function requestIp(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   const netlifyIp = request.headers.get('x-nf-client-connection-ip');
   const clientIp = request.headers.get('client-ip');

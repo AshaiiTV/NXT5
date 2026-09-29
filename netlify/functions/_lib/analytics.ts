@@ -573,7 +573,12 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   const report = reportForMatch({ team, summary, participants });
   await runImportSideEffect('auto report creation', () => sql`
       insert into reports (team_id, match_id, match_ids, created_by, title, content, source)
-      values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report}, 'auto')
+      select ${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report}, 'auto'
+      where not exists (
+        select 1 from reports where team_id = ${team.id}
+          and title = ${`Review — ${team.name} — ${gameId}`}
+          and match_ids = ${JSON.stringify([savedMatch.id])}::jsonb
+      )
       on conflict do nothing
     `);
 

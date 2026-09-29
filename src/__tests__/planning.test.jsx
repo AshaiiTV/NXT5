@@ -243,3 +243,43 @@ describe("B4 leaving the planning store", () => {
     expect(save.mock.calls[0][0].notes).toBe("Brouillon");
   });
 });
+
+
+it("R-F3 clears the unload guard after a disposed save fails", async () => {
+  const listeners = new Map();
+  vi.stubGlobal("window", { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) });
+  let reject;
+  const store = createPlanningStore({ save: () => new Promise((_, no) => { reject = no; }) });
+  store.forContext(CURRENT).setNotes("Notes");
+  store.pause();
+  await Promise.resolve();
+  expect(listeners.has("beforeunload")).toBe(true);
+  reject(new Error("401"));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(listeners.has("beforeunload")).toBe(false);
+  vi.unstubAllGlobals();
+});
+
+it("R-F3 drains edits behind an active request before allowing logout, then retries errors", async () => {
+  const requests = [];
+  const store = createPlanningStore({ save: body => new Promise((resolve, reject) => requests.push({ body, resolve, reject })) });
+  const entry = store.forContext(CURRENT);
+  entry.setNotes("A");
+  const done = vi.fn();
+  const flush = store.flush().then(done);
+  await Promise.resolve();
+  entry.setNotes("B");
+  requests[0].resolve(serverRow(requests[0].body));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(done).not.toHaveBeenCalled();
+  expect(requests[1].body.notes).toBe("B");
+  requests[1].reject(new Error("Réseau"));
+  await flush;
+  expect(done).toHaveBeenCalledWith(false);
+  const retry = store.flush();
+  await Promise.resolve();
+  requests[2].resolve(serverRow(requests[2].body, 2));
+  expect(await retry).toBe(true);
+  expect(entry.pending()).toBe(false);
+  store.pause();
+});

@@ -3,6 +3,7 @@ export const CHAMPION_ASSET_ALIASES = {
   belveth: "Belveth",
   chogath: "Chogath",
   drmundo: "DrMundo",
+  fiddlesticks: "Fiddlesticks",
   jarvaniv: "JarvanIV",
   kaisa: "Kaisa",
   khazix: "Khazix",

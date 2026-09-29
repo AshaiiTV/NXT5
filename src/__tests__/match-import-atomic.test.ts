@@ -60,6 +60,8 @@ import importFile from '../../netlify/functions/matches-import-file';
 import manageCategories from '../../netlify/functions/match-categories-manage';
 import manageMatches from '../../netlify/functions/matches-manage';
 import linkAccount from '../../netlify/functions/players-link-account';
+import manageReports from '../../netlify/functions/reports-manage';
+import { canonicalChampion } from '../../shared/champions.js';
 import removeMember from '../../netlify/functions/team-member-remove';
 import availability from '../../netlify/functions/player-availability-manage';
 import manualPool from '../../netlify/functions/champion-pool-manual';
@@ -68,6 +70,7 @@ import importRoster from '../../netlify/functions/players-import-roster';
 
 vi.mock('../../netlify/functions/_lib/auth', () => ({
   assertSessionSecret: () => {},
+  sha256: (value: string) => value,
   requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' })
 }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
@@ -956,6 +959,70 @@ describe('cross audit backend regressions B1/B2/B5/B6/B7/B8/B9/N1', () => {
     expect((await query('select role from team_members where user_id=$1', [targetId]))[0].role).toBe(['owner', 'captain'].includes(role) ? 'coach' : 'player');
   });
 
+
+  it('R-I6 returns 404 for a target outside the team without writes', async () => {
+    await target();
+    await query('delete from team_members where user_id=$1', [targetId]);
+    const response = await submit(removeMember, { userId: targetId });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: 'Profil introuvable dans cette team.' });
+    expect(await query("select * from audit_logs where action='team_member.remove'")).toEqual([]);
+  });
+
+  it('R-I2 preserves a staff-edited auto report through reimport and match deletion', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const [report] = await query('select * from reports');
+    const response = await submit(manageReports, { action: 'update', reportId: report.id, title: report.title, content: 'Human coaching notes', matchIds: [match.id] });
+    expect(response.status).toBe(200);
+    expect((await response.json()).report.source).toBe('manual');
+    await persistAnalyzedMatch(importArgs(2));
+    expect(await query('select * from reports')).toHaveLength(1);
+    expect((await submit(manageMatches, { action: 'delete', matchId: match.id })).status).toBe(200);
+    expect(await query('select content,source,match_id,match_ids from reports')).toEqual([{ content: 'Human coaching notes', source: 'manual', match_id: null, match_ids: [] }]);
+  });
+
+  it('R-I1 skips an existing exact-title single-game legacy review regardless of source', async () => {
+    await persistAnalyzedMatch(importArgs());
+    await query("update reports set source='manual',content='Legacy V3'");
+    await persistAnalyzedMatch(importArgs(2));
+    expect(await query('select content,source from reports')).toEqual([{ content: 'Legacy V3', source: 'manual' }]);
+    // A similarly titled multi-game review is not the generated single-game review.
+    await query("update reports set match_ids='[]'::jsonb");
+    await persistAnalyzedMatch(importArgs(3));
+    expect(await query("select * from reports where source='auto'")).toHaveLength(1);
+  });
+
+  it('R-I1 migrates unchanged V3 backups only, without staff notes or duplicate auto reports', async () => {
+    const migration = readFileSync(new URL('../../database/migrations/20260929_report_source_v3.sql', import.meta.url), 'utf8');
+    await database.pg.exec(migration); // Optional backup table does not exist on fresh installs.
+    await database.pg.exec(`create table nxt5_review_backfill_backups (
+      operation_key text, report_id uuid references reports(id) on delete cascade, team_id uuid,
+      original_content text, rewritten_content text, primary key(operation_key,report_id)
+    )`);
+    try {
+      await query("update teams set name='Audit team' where id=$1", [teamId]);
+      await persistAnalyzedMatch(importArgs());
+      const [original] = await query('select * from reports');
+      const generated = "VERDICT COACH\nAuto\n[NXT5_REPORT_V3]\nNotes staff\n" + original.content;
+      await query("update reports set source='manual', content=$1, created_at='2026-01-01'", [generated]);
+      for (let i = 0; i < 5; i++) await query(`insert into reports(team_id,match_id,match_ids,title,content)
+        select team_id,match_id,match_ids,title,content from reports where id=$1`, [original.id]);
+      const all = await query('select * from reports order by created_at,id');
+      for (const report of all.slice(0, 5)) await query('insert into nxt5_review_backfill_backups values($1,$2,$3,$4,$5)', ['automatic-review-v3-20260908', report.id, teamId, original.content, generated]);
+      await query("update reports set content=content || 'Edited later' where id=$1", [all[2].id]);
+      await query("update reports set title='Human title' where id=$1", [all[3].id]);
+      await query("update reports set content=content || 'Preexisting staff notes' where id=$1", [all[4].id]);
+      await query("update nxt5_review_backfill_backups set original_content=original_content || 'Preexisting staff notes', rewritten_content=rewritten_content || 'Preexisting staff notes' where report_id=$1", [all[4].id]);
+      await database.pg.exec(migration);
+      expect(await query("select id from reports where source='auto'")).toEqual([{ id: original.id }]);
+      await database.pg.exec(migration);
+      expect(await query("select id from reports where source='auto'")).toEqual([{ id: original.id }]);
+      // An already automatic row prevents the next unchanged duplicate being promoted.
+      await query('delete from reports where id=$1', [all[1].id]);
+      expect(await query("select * from reports where source='manual'")).toHaveLength(4);
+    } finally { await database.pg.exec('drop table nxt5_review_backfill_backups'); }
+  });
+
   it('B9 allows a manager to edit shared staff availability without a linked profile', async () => {
     await target();
     await query('update teams set owner_id=$1 where id=$2', [targetId, teamId]);
@@ -1098,4 +1165,8 @@ describe('canonical champion names on import', () => {
     const rawNames = (await storedMatch()).matches.map((match: any) => match.raw.info.participants[0].championName).sort();
     expect(rawNames).toEqual(['MonkeyKing', 'Wukong']);
   });
+});
+
+it.each(['FiddleSticks', 'Fiddlesticks', 'FIDDLESTICKS', 'fiddlesticks'])('R-I4 canonicalizes %s', name => {
+  expect(canonicalChampion(name)).toBe('Fiddlesticks');
 });

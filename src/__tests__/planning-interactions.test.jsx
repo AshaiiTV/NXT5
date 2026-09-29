@@ -1,6 +1,7 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PlanningAvailabilityGrid } from "../components/games/PlanningAvailabilityGrid.jsx";
 import { Planning } from "../pages/workspace/Planning.jsx";
 import { createPlanningStore } from "../utils/planning-store.js";
 
@@ -131,4 +132,20 @@ it("N2 hides event creation for an unlinked ordinary team member", () => {
   const buttons = renderer.root.findAllByType("button");
   expect(buttons.some(node => node.props.children?.includes?.("Ajouter une séance"))).toBe(false);
   expect(buttons.filter(node => node.props["aria-label"]?.startsWith("Lun 10:00")).every(node => node.props.disabled)).toBe(true);
+});
+
+
+it.each(["assistant", "coach"])("R-F8 shows the shared staff line read-only to a non-manager linked as %s", userId => {
+  const save = vi.fn();
+  store = createPlanningStore({ save });
+  const players = [{ id: "c", team_id: "team", user_id: "coach", role: "COACH", name: "Coach" }, { id: "a", team_id: "team", user_id: "assistant", role: "ASSISTANT", name: "Assistant" }];
+  const availability = [{ team_id: "team", player_id: "c", week_start: "2026-09-07", slots: { MON: ["10:00"] } }];
+  act(() => { renderer = TestRenderer.create(<Planning data={{ players, availability }} selectedTeamId="team" user={{ id: userId }} currentMember={{ role: "player" }} planningStore={store} />); });
+  const cells = renderer.root.findAllByType("button").filter(node => node.props["aria-label"]?.startsWith("Lun 10:00"));
+  expect(cells.length).toBeGreaterThan(0);
+  expect(cells.every(node => node.props.disabled)).toBe(true);
+  const grid = renderer.root.findByType(PlanningAvailabilityGrid);
+  expect(grid.props.draftSlots.MON).toEqual(["10:00"]);
+  expect(cells.every(node => node.props["aria-label"].includes("Encadrement"))).toBe(true);
+  expect(save).not.toHaveBeenCalled();
 });

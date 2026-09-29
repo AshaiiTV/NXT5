@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import "./modal-dialog.css";
+import { registerDialog } from "./dialog-registry.js";
 
 const openDialogs = [];
 let previousOverflow = "";
@@ -26,6 +27,7 @@ export function ModalDialog({ children, onClose, busy = false, dirty = false, di
     openDialogs.push(dialog);
     document.body.style.overflow = "hidden";
     if (dialog && !dialog.open) dialog.showModal();
+    const unregister = registerDialog(dialog);
     const onHistory = (event) => {
       if (!event.isTrusted || openDialogs.at(-1) !== dialog) return;
       // A rejected Back creates a replacement entry without overwriting the
@@ -38,6 +40,7 @@ export function ModalDialog({ children, onClose, busy = false, dirty = false, di
     if (handleHistory) window.addEventListener("popstate", onHistory, true);
     return () => {
       if (handleHistory) window.removeEventListener("popstate", onHistory, true);
+      unregister();
       if (dialog?.open) dialog.close();
       const index = openDialogs.indexOf(dialog);
       if (index >= 0) openDialogs.splice(index, 1);

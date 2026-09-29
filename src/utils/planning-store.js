@@ -27,7 +27,7 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
   let guarding = false;
   const beforeUnload = (event) => { event.preventDefault(); event.returnValue = ""; };
   function updateGuard() {
-    const pending = [...entries.values()].some((entry) => entry.pending());
+    const pending = [...entries.values()].some((entry) => active ? entry.pending() : entry.getSnapshot().saving);
     if (typeof window === "undefined" || pending === guarding) return;
     guarding = pending;
     window[pending ? "addEventListener" : "removeEventListener"]("beforeunload", beforeUnload);
@@ -126,7 +126,17 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         return row && playerIds.has(String(row.player_id)) ? upsertAvailability(merged, row) : merged;
       }, rows);
     },
-    resume() { active = true; entries.forEach((entry) => entry.schedule()); },
-    pause() { active = false; entries.forEach((entry) => { void entry.flush(); }); },
+    async flush() {
+      // Drain edits queued behind an in-flight request, too. Errors remain retryable.
+      let pending;
+      do {
+        pending = [...entries.values()].filter(entry => entry.pending());
+        await Promise.all(pending.map(entry => entry.flush()));
+        if ([...entries.values()].some(entry => entry.getSnapshot().status === "error")) return false;
+      } while ([...entries.values()].some(entry => entry.pending()));
+      return true;
+    },
+    resume() { active = true; updateGuard(); entries.forEach((entry) => entry.schedule()); },
+    pause() { active = false; entries.forEach((entry) => { void entry.flush(); }); updateGuard(); },
   };
 }

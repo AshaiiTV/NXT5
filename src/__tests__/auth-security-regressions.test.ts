@@ -589,27 +589,28 @@ describe('first human review signal', () => {
   });
 });
 
-describe('B4 recipient password reset quota', () => {
-  it('shares the three/hour budget across IPs and normalized addresses without sending or invalidating when exhausted', async () => {
-    const submit = (index: number, email = 'original@example.test') => requestPasswordReset(new Request('https://nxt5.test/auth-request-password-reset', {
-      method: 'POST', headers: { 'x-nf-client-connection-ip': `192.0.2.${index}` }, body: JSON.stringify({ email })
-    }));
-    for (let index = 1; index <= 3; index++) {
-      const response = await submit(index);
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ ok: true });
-    }
-    expect(state.emails).toHaveBeenCalledTimes(3);
+describe('R-I5 password reset budgets', () => {
+  const submit = (ip: number, email = 'original@example.test') => requestPasswordReset(new Request('https://nxt5.test/auth-request-password-reset', {
+    method: 'POST', headers: { 'x-nf-client-connection-ip': `192.0.2.${ip}` }, body: JSON.stringify({ email })
+  }));
+  it('limits a recipient/IP pair to three without blocking recovery from another IP', async () => {
+    for (let index = 0; index < 3; index++) expect((await submit(1)).status).toBe(200);
     const before = (await state.pg.query('select * from password_reset_tokens order by id')).rows;
-    expect(before.filter((row: any) => !row.used_at)).toHaveLength(1);
-    const blocked = await submit(4, '  ORIGINAL@EXAMPLE.TEST  ');
-    expect(blocked.status).toBe(200);
-    expect(await blocked.json()).toEqual({ ok: true });
+    expect(await (await submit(1, '  ORIGINAL@EXAMPLE.TEST  ')).json()).toEqual({ ok: true });
     expect(state.emails).toHaveBeenCalledTimes(3);
     expect((await state.pg.query('select * from password_reset_tokens order by id')).rows).toEqual(before);
-    expect(await (await submit(5, 'missing@example.test')).json()).toEqual({ ok: true });
-    await state.pg.exec("update rate_limits set window_start=now()-interval '61 minutes'");
-    expect((await submit(6)).status).toBe(200);
+    expect(await (await submit(2)).json()).toEqual({ ok: true });
     expect(state.emails).toHaveBeenCalledTimes(4);
+    expect(await (await submit(3, 'missing@example.test')).json()).toEqual({ ok: true });
+    await state.pg.exec("update rate_limits set window_start=now()-interval '61 minutes'");
+    expect((await submit(1)).status).toBe(200);
+    expect(state.emails).toHaveBeenCalledTimes(5);
+  });
+  it('caps the global recipient budget at ten even across different IPs', async () => {
+    for (let ip = 1; ip <= 10; ip++) expect((await submit(ip)).status).toBe(200);
+    const before = (await state.pg.query('select * from password_reset_tokens order by id')).rows;
+    expect(await (await submit(11)).json()).toEqual({ ok: true });
+    expect(state.emails).toHaveBeenCalledTimes(10);
+    expect((await state.pg.query('select * from password_reset_tokens order by id')).rows).toEqual(before);
   });
 });

@@ -75,7 +75,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   const staffPlanningPlayer = orderedStaff.find((player) => String(player.role || "").toUpperCase() === "COACH") || orderedStaff[0] || null;
   const staffPlanningPlayerId = String(staffPlanningPlayer?.id || "");
   const canManagePlanningStaff = canStaffManage(currentMember?.role);
-  const linkedPlayer = linkedGameplayPlayer || (staffPlanningPlayer && canManagePlanningStaff ? staffPlanningPlayer : linkedStaffProfile) || (currentMember ? { teamOnly: true } : null);
+  const linkedPlayer = linkedGameplayPlayer || (staffPlanningPlayer && (canManagePlanningStaff || linkedStaffProfile) ? staffPlanningPlayer : null) || (currentMember ? { teamOnly: true } : null);
   const [eventMenu, setEventMenu] = useState(null);
   const [editingEvents, setEditingEvents] = useState(false);
   const eventMenuRef = useRef(null);
@@ -89,7 +89,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   const eventStoreRow = availability.find((item) => Object.keys(availabilityEvents(item?.slots)).length);
   const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || gameplayPlayers[0] || staffProfiles[0] || null;
   const eventStoreAvailability = availability.find((item) => item.player_id === eventStorePlayer?.id) || null;
-  const canEditSelected = Boolean(selectedPlayer && (String(selectedPlayer.user_id || "") === String(user?.id || "") || (selectedIsStaff && canManagePlanningStaff)));
+  const canEditSelected = Boolean(selectedPlayer && (selectedIsStaff ? canManagePlanningStaff : String(selectedPlayer.user_id || "") === String(user?.id || "")));
   const canEditEvents = Boolean(eventStorePlayer && (canEditSelected || canManagePlanningStaff));
   const planningDraft = usePlanningDraft(planningStore, { teamId: selectedTeamId, playerId: eventStorePlayer?.id, weekStart: selectedWeek.start }, eventStoreAvailability);
   const { slots: draftSlots, events: slotEvents, notes, status: saveStatus, saving, setSlots: setDraftSlots, setEvents: setSlotEvents, setNotes } = planningDraft;

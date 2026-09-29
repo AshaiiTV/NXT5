@@ -1480,8 +1480,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     try {
       const result = await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: creating ? "create" : "update", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
       groupSaved = true;
-      setArchiveForm((current) => ({ ...current, id: result.archive.id }));
-      if (creating && archiveForm.matchIds.length <= 20) {
+      setArchiveForm((current) => ({ ...current, id: result.archive.id, reportPending: creating || current.reportPending }));
+      if ((creating || archiveForm.reportPending) && archiveForm.matchIds.length <= 20) {
         const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
         await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
       }

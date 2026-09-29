@@ -56,7 +56,7 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   async function save(action) {
     if (!allowed || saving || (action === "update" && !editForm.label.trim()) || (action === "roles" && !match.participants?.length) || (action === "side" && !gameSideFormReady(match, sideForm, roster))) return;
     const matchId = match.id;
-    const body = { action, teamId: selectedTeamId, matchId, ...(action === "update" ? { label: editForm.label, categoryIds: editForm.categoryIds || [] } : action === "roles" ? { roles: roleForm } : action === "side" ? sideForm : {}) };
+    const body = { action, teamId: selectedTeamId, matchId, ...(action === "update" ? { label: editForm.label, categoryIds: editForm.categoryIds || [] } : action === "roles" ? { roles: Object.fromEntries(Object.entries(roleForm).map(([id, { playerId, ...role }]) => [id, { ...role, ...(playerId ? { playerId: playerId === "__unlink__" ? null : playerId } : {}) }])) } : action === "side" ? sideForm : {}) };
     setSaving(true);
     try {
       const result = await apiFetch("matches-manage", { method: "POST", body: JSON.stringify(body) });
@@ -305,7 +305,7 @@ export function ImportHistoryEditor({ match, categories, roster, editing, editFo
             <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion}</strong><span>{row.summoner_name || row.riot_id || "Joueur"}</span></div></div>
             <div className="ih-role-fields">
               <SelectInput label={`Poste · ${champion}`} value={form.role || ""} onChange={(role) => onRoleChange(row.id, role)}><option value="" disabled>À attribuer</option>{COMP_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
-              {teamKey === "ALLY" && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">Conserver le profil</option>{form.playerId && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>Profil lié hors roster</option>}{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>}
+              {teamKey === "ALLY" && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">Conserver le profil</option><option value="__unlink__">Aucun profil (délier)</option>{form.playerId && form.playerId !== "__unlink__" && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>Profil lié hors roster</option>}{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>}
             </div>
           </div>;
         })}</div>

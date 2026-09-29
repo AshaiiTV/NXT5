@@ -3,7 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, isValidEmail, normalizeEmail, sha256 } from './_lib/auth';
 import { isPasswordEmailConfigured, sendPasswordResetEmail } from './_lib/email';
-import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
+import { assertRateLimit, assertSubjectRateLimit, requestIp } from './_lib/rate-limit';
 
 export default async function handler(request: Request): Promise<Response> {
   try {
@@ -17,7 +17,8 @@ export default async function handler(request: Request): Promise<Response> {
       throw Object.assign(new Error('Adresse e-mail invalide.'), { status: 400 });
     }
     try {
-      await assertSubjectRateLimit('password-reset-recipient', sha256(email), { limit: 3, windowSeconds: 3600 });
+      await assertSubjectRateLimit('password-reset-recipient-ip', JSON.stringify([sha256(email), requestIp(request)]), { limit: 3, windowSeconds: 3600 });
+      await assertSubjectRateLimit('password-reset-recipient', sha256(email), { limit: 10, windowSeconds: 3600 });
     } catch (error: any) {
       if (error?.status === 429) return json({ ok: true });
       throw error;

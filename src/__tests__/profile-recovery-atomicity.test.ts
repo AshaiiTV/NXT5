@@ -47,6 +47,7 @@ vi.mock('../../netlify/functions/_lib/auth', async importOriginal => {
 });
 vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ ensureUserNotificationColumns: async () => {} }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({
+  requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown',
   assertRateLimit: async () => {},
   assertSubjectRateLimit: async () => {},
   assertVerificationEmailRateLimit: async () => {}

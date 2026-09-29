@@ -27,8 +27,10 @@ describe("B2 group creation", () => {
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ text: "Groupe créé, débrief non généré : Débrief indisponible" }));
     expect(props.refreshAll).toHaveBeenCalledOnce();
     expect(button("Enregistrer")).toBeTruthy();
-    apiFetch.mockResolvedValueOnce({ archive: { id: "created" } });
+    apiFetch.mockResolvedValueOnce({ archive: { id: "created" } }).mockResolvedValueOnce({ report: { id: "report" } });
     await act(async () => submit());
+    expect(apiFetch.mock.calls.filter(([path]) => path === "reports-manage")).toHaveLength(2);
+    expect(props.pushToast).toHaveBeenLastCalledWith(expect.objectContaining({ type: "green" }));
     const writes = apiFetch.mock.calls.filter(([path]) => path === "match-archives-manage").map(([, options]) => JSON.parse(options.body));
     expect(writes.map(body => body.action)).toEqual(["create", "update"]);
     expect(writes[1].archiveId).toBe("created");

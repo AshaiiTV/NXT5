@@ -1,8 +1,9 @@
-import React, { useEffect, useId, useRef, useState } from "react";
+import React, { useId, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, BarChart3, Check, ChevronDown, Eye, EyeOff, Loader2, X } from "lucide-react";
 import { cx, tone } from "../../app/helpers.js";
 import "./core.css";
+import { getTopDialog, subscribeDialogs } from "./dialog-registry.js";
 
 export function Badge({ children, tone: t = "slate", pulse = false, className = "", ...props }) {
   return (
@@ -117,7 +118,7 @@ export function SelectInput({ label, value, onChange, children, disabled = false
 
 export function PremiumToggle({ checked, onChange, title, text, disabled = false }) {
   return (
-    <button type="button" role="switch" aria-checked={checked} disabled={disabled} onClick={() => { if (!disabled) onChange(!checked); }} className="disabled:cursor-not-allowed disabled:opacity-50 nxt5-toggle group flex w-full items-center justify-between gap-4 p-3 text-left transition">
+    <button type="button" role="switch" aria-checked={checked} aria-disabled={disabled} onClick={() => { if (!disabled) onChange(!checked); }} className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 nxt5-toggle group flex w-full items-center justify-between gap-4 p-3 text-left transition">
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-white">{title}</span>
         {text && <span className="mt-1 block text-xs font-normal leading-5 text-slate-400">{text}</span>}
@@ -143,16 +144,7 @@ export function PageHeader({ eyebrow, title, subtitle, children }) {
 }
 
 export function ToastStack({ toasts, removeToast }) {
-  const [target, setTarget] = useState(null);
-  useEffect(() => {
-    if (typeof document === "undefined" || !document.querySelectorAll) return;
-    const updateTarget = () => setTarget([...document.querySelectorAll("dialog[open]")].at(-1) || null);
-    updateTarget();
-    if (typeof MutationObserver === "undefined") return;
-    const observer = new MutationObserver(updateTarget);
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["open"] });
-    return () => observer.disconnect();
-  }, []);
+  const target = useSyncExternalStore(subscribeDialogs, getTopDialog, () => null);
   const stack = (
     <div className="fixed bottom-5 right-4 z-[80] max-w-[calc(100vw-2rem)] space-y-3" aria-live="polite" aria-atomic="false">
       <React.Fragment>

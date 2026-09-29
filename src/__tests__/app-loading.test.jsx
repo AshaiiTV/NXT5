@@ -29,11 +29,12 @@ vi.mock("../pages/public/PublicPages.jsx", () => ({
 }));
 vi.mock("../components/layout/AppChrome.jsx", () => ({
   AmbientBackground: () => null,
-  Sidebar: () => null,
+  Sidebar: ({ onLogout }) => <button data-logout onClick={onLogout}>Déconnexion</button>,
   Topbar: () => null,
   BeginnerCompass: () => null,
   ApiBanner: ({ error, onRetry }) => error ? <aside role="alert">{error}<button onClick={onRetry}>Réessayer</button></aside> : null,
 }));
+vi.mock("../pages/workspace/Planning.jsx", () => ({ Planning: ({ planningStore }) => <button data-edit-planning onClick={() => planningStore.forContext({ teamId: "a", playerId: "p", weekStart: "2026-09-28" }).setNotes("Disponibilités")}>Modifier le planning</button> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: ({ data }) => <main data-page="teams" data-games={data.matches.length} /> }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => null }));
 vi.mock("../pages/public/DemoPage.jsx", () => ({ DemoPage: () => <main data-page="demo" /> }));
@@ -243,4 +244,31 @@ it.each(['/tarifs', '/admin', '/admin/tarifs', '/admin/inconnu'])('N2-04: exclud
   await app.resolve(0, { user });
   expect(app.renderer.root.findByProps({ 'data-audience-excluded': true })).toBeDefined();
   expect(app.pages.some(page => page.props['data-page'] === 'not-found')).toBe(true);
+});
+
+
+it.each([true, false])("R-F3 flushes before auth-logout and stays signed in on save failure (%s)", async succeeds => {
+  const app = mount("/planning");
+  await app.loadModule();
+  await app.resolve(0, { user });
+  await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a", owner_id: "user" }], selectedTeamId: "a", players: [{ id: "p", team_id: "a", role: "TOP", user_id: "user" }] });
+  await act(async () => app.renderer.root.findByProps({ "data-edit-planning": true }).props.onClick());
+  let logout;
+  act(() => { logout = app.renderer.root.findByProps({ "data-logout": true }).props.onClick(); });
+  await act(async () => { await Promise.resolve(); });
+  expect(app.requests[2].url).toBe("player-availability-manage");
+  expect(app.requests.some(r => r.url === "auth-logout")).toBe(false);
+  if (succeeds) {
+    await app.resolve(2, { availability: { team_id: "a", player_id: "p", week_start: "2026-09-28", notes: "Disponibilités" } });
+    expect(app.requests[3].url).toBe("auth-logout");
+    await app.resolve(3, {});
+    await logout;
+    expect(window.location.pathname).toBe("/connexion");
+  } else {
+    await app.reject(2);
+    await logout;
+    expect(app.requests.some(r => r.url === "auth-logout")).toBe(false);
+    expect(window.location.pathname).toBe("/planning");
+    expect(JSON.stringify(app.renderer.toJSON())).toContain("Déconnexion interrompue");
+  }
 });

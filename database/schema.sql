@@ -290,6 +290,7 @@ create table if not exists reports (
   match_id uuid references matches(id) on delete set null,
   match_ids jsonb not null default '[]'::jsonb,
   created_by uuid references users(id) on delete set null,
+  -- Human saves use manual; legacy V3 data is classified by 20260929_report_source_v3.sql.
   source text not null default 'manual' check (source in ('manual', 'auto')),
   title text not null,
   content text not null,

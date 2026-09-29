@@ -33,6 +33,7 @@ export default async function handler(request: Request, context: Context): Promi
         and user_id = ${userId}
       limit 1
     `;
+    if (!target[0]) throw Object.assign(new Error('Profil introuvable dans cette team.'), { status: 404 });
     if (String(target[0]?.owner_id || '') === userId || target[0]?.role === 'owner') {
       throw Object.assign(new Error('Le propriétaire ne peut pas être renvoyé de sa team.'), { status: 400 });
     }

@@ -30,6 +30,7 @@ export async function loadMigrations() {
     ['server-reminders-20260929-v1', '../database/migrations/20260929_server_reminders.sql'],
     ['social-email-signup-20260929-v1', '../database/migrations/20260929_social_email_signup.sql'],
     ['report-source-20260929-v1', '../database/migrations/20260929_report_source.sql'],
+    ['report-source-v3-20260929-v1', '../database/migrations/20260929_report_source_v3.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const sql = await readFile(new URL(file, import.meta.url), 'utf8');

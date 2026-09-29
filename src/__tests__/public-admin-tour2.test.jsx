@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, expect, it, vi } from "vitest";
 import { RoleIcon } from "../components/brand/BrandAssets.jsx";
 import GuidePage from "../pages/GuidePage.jsx";
-import { ImportChart } from "../pages/admin/AdminDashboard.jsx";
+import AdminDashboard, { ImportChart } from "../pages/admin/AdminDashboard.jsx";
 import { PurchaseHistory, PurchaseOverview } from "../pages/admin/Purchases.jsx";
 import { LEGAL_PAGES } from "../pages/public/PublicPages.jsx";
 import { apiFetch } from "../api/client.js";
@@ -91,4 +91,12 @@ it("E10: history also rejects a non-array instead of crashing", async () => {
   apiFetch.mockResolvedValueOnce({ pagination: {}, purchases: {} });
   const renderer = await render(<PurchaseHistory />);
   expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
+});
+
+
+it("C3 displays the weekly activity limitation returned by the API", async () => {
+  const weeklyActivityNote = "La série hebdomadaire des comptes actifs repose sur le dernier passage des sessions conservées. Leur réutilisation ou leur suppression modifie les semaines passées : ce n’est pas un historique complet des présences.";
+  apiFetch.mockResolvedValue({ weeklyActivityNote });
+  const renderer = await render(<AdminDashboard />);
+  expect(renderer.root.findAllByType("p").some(p => p.children.join("") === weeklyActivityNote)).toBe(true);
 });

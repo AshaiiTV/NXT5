@@ -7,6 +7,7 @@ import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
 import { PlayerUltimateProfile } from "../pages/workspace/PlayerUltimateProfile.jsx";
 import { Button, PremiumToggle, TextInput, ToastStack } from "../components/ui/Core.jsx";
 import { createPortal } from "react-dom";
+import { registerDialog } from "../components/ui/dialog-registry.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../components/ui/ModalDialog.jsx", () => ({ ModalDialog: ({ children }) => <dialog open>{children}</dialog> }));
@@ -48,7 +49,7 @@ describe("B1 verification recovery", () => {
     apiFetch.mockResolvedValueOnce({ hasPassword: false });
     await render(<EmailVerificationRequiredModal user={user} onLogout={vi.fn()} />);
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
-    expect(renderer.root.findAllByType(Button)).toHaveLength(1);
+    expect(renderer.root.findAllByType(Button)).toHaveLength(3);
     expect(text()).toContain("connexion sociale");
     expect(button("Se déconnecter").props.disabled).toBe(false);
   });
@@ -63,7 +64,8 @@ describe("B8 notification serialization", () => {
     const toggles = () => renderer.root.findAllByType(PremiumToggle);
     act(() => { toggles()[0].props.onChange(false); toggles()[1].props.onChange(false); });
     expect(toggles().every(node => node.props.disabled)).toBe(true);
-    expect(renderer.root.findAllByProps({ role: "switch" }).every(node => node.props.disabled)).toBe(true);
+    expect(renderer.root.findAllByProps({ role: "switch" }).every(node => node.props["aria-disabled"] && !node.props.disabled)).toBe(true);
+    act(() => renderer.root.findAllByProps({ role: "switch" })[0].props.onClick());
     expect(apiFetch.mock.calls.filter(([path]) => path === "/api/user/notifications")).toHaveLength(1);
     // A fresh user snapshot updates a different preference while the write is pending.
     await act(async () => renderer.update(<AccountSettings user={{ ...user, notif_report: false }} onUserUpdate={onUserUpdate} />));
@@ -106,20 +108,46 @@ it.each([true, false])("B3 preserves edits after sending and resumes clean synch
 });
 
 it("B10 moves live clickable toasts into the last open dialog and back on close", async () => {
-  let dialogs = [], observe;
-  vi.stubGlobal("document", { body: {}, querySelectorAll: () => dialogs });
-  vi.stubGlobal("MutationObserver", class { constructor(callback) { observe = callback; } observe() {} disconnect() {} });
+  let closeFirst, closeLast;
   const removeToast = vi.fn();
   await render(<ToastStack toasts={[{ id: "t", title: "Erreur import", type: "red" }]} removeToast={removeToast} />);
   const first = {}, last = {};
-  act(() => { dialogs = [first, last]; observe(); });
+  act(() => { closeFirst = registerDialog(first); closeLast = registerDialog(last); });
   expect(createPortal).toHaveBeenLastCalledWith(expect.anything(), last);
   expect(renderer.root.findByProps({ "aria-live": "polite" })).toBeTruthy();
   act(() => renderer.root.findByProps({ "aria-label": "Fermer la notification" }).props.onClick());
   expect(removeToast).toHaveBeenCalledWith("t");
-  act(() => { dialogs = [first]; observe(); });
+  act(() => closeLast());
   expect(createPortal).toHaveBeenLastCalledWith(expect.anything(), first);
   createPortal.mockClear();
-  act(() => { dialogs = []; observe(); });
+  act(() => closeFirst());
   expect(createPortal).not.toHaveBeenCalled();
+});
+
+
+it.each(["loading", "social", "error"])("R-F1 keeps verification actions available during %s", async mode => {
+  const pending = deferred();
+  apiFetch.mockImplementationOnce(() => mode === "loading" ? pending.promise : mode === "error" ? Promise.reject(new Error("Service indisponible")) : Promise.resolve({ hasPassword: false }));
+  const onUserUpdate = vi.fn();
+  await render(<EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} />);
+  expect(button("M'envoyer le lien").props.autoFocus).toBe(true);
+  expect(button("M'envoyer le lien").props.disabled).toBe(false);
+  apiFetch.mockResolvedValueOnce({ user });
+  await act(async () => button("M'envoyer le lien").props.onClick());
+  expect(apiFetch).toHaveBeenLastCalledWith("resend-verify-email", { method: "POST" });
+  apiFetch.mockResolvedValueOnce({ user: { ...user, email_verified: true } });
+  await act(async () => button("J'ai vérifié mon email").props.onClick());
+  expect(onUserUpdate).toHaveBeenLastCalledWith({ ...user, email_verified: true });
+  if (mode === "loading") await act(async () => pending.resolve({ hasPassword: true }));
+});
+
+it("R-F6 does not claim or send a correction for the same normalized email", async () => {
+  const pushToast = vi.fn();
+  await render(<EmailVerificationRequiredModal user={user} pushToast={pushToast} />);
+  act(() => renderer.root.findByProps({ label: "Nouvel e-mail" }).props.onChange("  TYPO@EXAMPLE.TEST  "));
+  act(() => renderer.root.findByProps({ label: "Mot de passe actuel" }).props.onChange("password"));
+  await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+  expect(apiFetch).toHaveBeenCalledTimes(1);
+  expect(pushToast).not.toHaveBeenCalled();
+  expect(text()).toContain("Cette adresse est déjà celle de ton compte");
 });

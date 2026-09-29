@@ -387,14 +387,14 @@ describe('controlled database migrations', { timeout: 30_000 }, () => {
 describe('B2/B5 report source upgrade', { timeout: 30_000 }, () => {
   it('upgrades the immutable historical baseline without a checksum mismatch and preserves uncertain reports', async () => {
     const { db, client, migrations } = await fixture();
-    const prior = migrations.slice(0, -1);
+    const prior = migrations.slice(0, migrations.findIndex(m => m.key === 'report-source-20260929-v1'));
     await applyMigrations(client, prior);
     expect((await db.query("select column_name from information_schema.columns where table_name='reports' and column_name='source'")).rows).toEqual([]);
     const userId = '00000000-0000-4000-8000-000000000001';
     await db.query("insert into users(id,account_name,name,password_hash) values($1,'report-owner','Owner','unused')", [userId]);
     const team: any = (await db.query("insert into teams(owner_id,name,tag) values($1,'Audit','AUD') returning id", [userId])).rows[0];
     await db.query("insert into reports(team_id,title,content) values($1,'Review — Audit — EUW1_1','Notes humaines à conserver')", [team.id]);
-    expect(await applyMigrations(client, migrations)).toEqual(['report-source-20260929-v1']);
+    expect(await applyMigrations(client, migrations)).toEqual(['report-source-20260929-v1', 'report-source-v3-20260929-v1']);
     expect((await db.query('select source,content from reports')).rows).toEqual([{ source: 'manual', content: 'Notes humaines à conserver' }]);
     expect(await applyMigrations(client, migrations)).toEqual([]);
     await expect(db.query("insert into reports(team_id,title,content,source) values($1,'Title','Text','invalid')", [team.id])).rejects.toMatchObject({ code: '23514' });

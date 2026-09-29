@@ -266,7 +266,7 @@ describe("game mutations from the options dialog", () => {
       action: "roles", teamId: "team", matchId: "team-game-1", roles: {
         "ally-adc-0": { role: "SUP", playerId: "support" },
         "ally-sup-0": { role: "ADC", playerId: "adc" },
-        "enemy-adc-0": { role: "MID", playerId: "" },
+        "enemy-adc-0": { role: "MID" },
       },
     } });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
@@ -289,7 +289,7 @@ describe("game mutations from the options dialog", () => {
     expect(props.refreshAll).not.toHaveBeenCalled();
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", text: "Assignation indisponible" }));
     await click(renderer, "Enregistrer");
-    expect(payload().body.roles["ally-adc-0"]).toEqual({ role: "SUP", playerId: "" });
+    expect(payload().body.roles["ally-adc-0"]).toEqual({ role: "SUP" });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
     expect(button(renderer, "Options de la game")).toBeTruthy();
   });
@@ -532,4 +532,16 @@ describe("import flow without a second game list", () => {
     expect(props.onImported).not.toHaveBeenCalled();
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", text: expect.stringContaining("JSON valide") }));
   });
+});
+
+
+it.each([["", undefined], ["__unlink__", null], ["support", "support"]])("R-I3 serializes profile choice %s explicitly", async (choice, expected) => {
+  const renderer = await render();
+  await openAction(renderer, "Corriger les rôles et profils");
+  await filter(renderer, "Profil NXT5 · Jinx", choice);
+  await click(renderer, "Enregistrer");
+  const request = apiFetch.mock.calls.find(([path]) => path === "matches-manage");
+  const row = JSON.parse(request[1].body).roles["ally-adc-0"];
+  expect(row.playerId).toBe(expected);
+  expect(Object.hasOwn(row, "playerId")).toBe(choice !== "");
 });

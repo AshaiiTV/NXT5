@@ -125,6 +125,10 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
   async function correctEmail(event) {
     event.preventDefault();
     if (busy || hasPassword !== true) return;
+    if (email.trim().toLowerCase() === String(user?.email || "").trim().toLowerCase()) {
+      setError("Cette adresse est déjà celle de ton compte. Utilise « M’envoyer le lien » pour recevoir un nouveau lien.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -186,10 +190,10 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
         {sent && <div role="status" className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.</div>}
         {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{error}</div>}
         {hasPassword === null && !error && <p role="status" className="mt-4 text-sm text-slate-300">Chargement des options de récupération…</p>}
-        {hasPassword === true && <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <Button type="button" autoFocus icon={sending ? Loader2 : Mail} onClick={resend} disabled={busy} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
           <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={busy} className="w-full py-4">{checking ? "Vérification..." : "J'ai vérifié mon email"}</Button>
-        </div>}
+        </div>
         {hasPassword === true && <form onSubmit={correctEmail} className="mt-6 space-y-4 border-t border-white/10 pt-5">
           <h3 className="text-lg font-bold text-white">Corriger mon adresse</h3>
           <TextInput label="Nouvel e-mail" type="email" autoComplete="email" value={email} onChange={setEmail} required disabled={busy} icon={Mail} />
@@ -322,7 +326,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     try { window.localStorage.setItem(guideStorageKey, hidden ? "1" : "0"); } catch {}
   }
 
-  const logout = onLogout;
+  const logout = () => onLogout(() => planningStore.flush());
   useEffect(() => { startTransition(() => setActiveState(new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path))); }, [route.path, route.search]);
   useEffect(() => {
     if (route.path === "/champion-pool" || route.path === "/draft") navigate("/draft/pool", { replace: true });
@@ -345,7 +349,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} />;
-    if (active === "draft") return <DraftWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
+    if (active === "draft") return <DraftWorkspace data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
@@ -453,7 +457,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       {assistantWidget}
       {inactivityReturnModal}
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
-      {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} onLogout={onLogout} />}
+      {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} onLogout={logout} />}
     </div>
   );
 }
@@ -516,8 +520,12 @@ export default function NXT5() {
     setCheckingSession(false);
     setUser(nextUser);
   }, []);
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(async (beforeLogout) => {
     if (reviewDrafts.hasDrafts() && !window.confirm("Te déconnecter supprimera les brouillons de débrief non enregistrés de cette session. Continuer ?")) return;
+    if (typeof beforeLogout === "function" && !await beforeLogout()) {
+      pushToast({ type: "red", title: "Déconnexion interrompue", text: "Le planning n’a pas pu être enregistré. Réessaie avant de te déconnecter." });
+      return;
+    }
     authGeneration.current += 1;
     try { await apiFetch("auth-logout", { method: "POST" }); }
     catch {
