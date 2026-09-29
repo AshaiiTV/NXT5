@@ -71,3 +71,35 @@ describe("accessible composition choices", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 });
+
+it("B7 refreshes the common pool after add, move and delete, including Pool → Compositions → Pool", async () => {
+  vi.stubGlobal("window", { confirm: () => true });
+  let shared = [];
+  const base = { teams: [{ id: "team" }], players, compositions: [] };
+  let tab = "pool";
+  const props = { selectedTeamId: "team", currentMember: { role: "player" }, user: { id: "user" }, pushToast: vi.fn() };
+  const page = () => tab === "pool" ? <Champions {...props} data={{ ...base, championPool: shared }} refreshAll={refreshAll} /> : <Compositions {...props} data={{ ...base, championPool: shared }} refreshAll={refreshAll} />;
+  const refreshAll = vi.fn(async () => renderer.update(page()));
+  apiFetch.mockImplementation(async (_path, options) => {
+    const body = JSON.parse(options.body);
+    if (body.action === "delete") { shared = []; return { ok: true }; }
+    const pick = { ...rows[0], status: body.status };
+    shared = [pick]; return { pick };
+  });
+  render(page());
+  await act(async () => renderer.root.findByProps({ "aria-label": "Classer Aatrox" }).props.onChange({ target: { value: "lock" } }));
+  expect(refreshAll).toHaveBeenCalledTimes(1);
+  act(() => { tab = "compositions"; renderer.update(page()); });
+  expect(selectRole("TOP").findAllByType("option").map(node => node.props.value)).toContain("aatrox");
+  act(() => { tab = "pool"; renderer.update(page()); });
+  await act(async () => renderer.root.findByProps({ "aria-label": "Déplacer Aatrox" }).props.onChange({ target: { value: "work" } }));
+  expect(refreshAll).toHaveBeenCalledTimes(2);
+  expect(shared[0].status).toBe("work");
+  await act(async () => renderer.root.findByProps({ "aria-label": "Retirer Aatrox de la liste" }).props.onClick());
+  expect(refreshAll).toHaveBeenCalledTimes(3);
+  act(() => { tab = "compositions"; renderer.update(page()); });
+  expect(selectRole("TOP").findAllByType("option").map(node => node.props.value)).not.toContain("aatrox");
+  act(() => { tab = "pool"; renderer.update(page()); });
+  expect(renderer.root.findAllByProps({ "aria-label": "Déplacer Aatrox" })).toHaveLength(0);
+  vi.unstubAllGlobals();
+});

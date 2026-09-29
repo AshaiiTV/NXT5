@@ -1453,7 +1453,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     if (!canImport) return <p className="games-import-help">Le capitaine ou le staff peut importer les parties de ton équipe.</p>;
     return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une partie</Button>;
   }
-  const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : [...current.matchIds, matchId] }));
+  const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : current.matchIds.length < 80 ? [...current.matchIds, matchId] : current.matchIds }));
   const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
   const editArchive = (archive) => {
     setArchiveForm({ id: archive.id, name: archive.name || "", description: archive.description || "", matchIds: archiveMatchIds(archive) });
@@ -1463,21 +1463,26 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   };
   async function saveArchive(event) {
     event.preventDefault();
+    if (savingArchive || archiveForm.matchIds.length > 80) return;
     setSavingArchive(true);
+    const creating = !archiveForm.id;
+    let groupSaved = false;
     try {
-      const creating = !archiveForm.id;
-      await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: archiveForm.id ? "update" : "create", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
-      if (creating) {
+      const result = await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: creating ? "create" : "update", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
+      groupSaved = true;
+      setArchiveForm((current) => ({ ...current, id: result.archive.id }));
+      if (creating && archiveForm.matchIds.length <= 20) {
         const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
         await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
       }
-      pushToast?.({ type: "green", title: archiveForm.id ? "Archive renommée" : "Archive créée", text: "Le groupe est prêt dans Parties." });
+      pushToast?.({ type: "green", title: creating ? "Groupe créé" : "Groupe mis à jour", text: "Le groupe est prêt dans Parties." });
       resetArchiveForm();
       setArchiveWorkspaceTab("select");
-      await refreshAll?.();
     } catch (err) {
-      pushToast?.({ type: "red", title: "Archive impossible", text: err.message });
+      pushToast?.({ type: "red", title: groupSaved ? "Groupe créé, débrief non généré" : "Archive impossible", text: groupSaved ? `Groupe créé, débrief non généré : ${err.message}` : err.message });
     } finally {
+      try { await refreshAll?.(); }
+      catch (err) { pushToast?.({ type: "red", title: "Actualisation impossible", text: err.message }); }
       setSavingArchive(false);
     }
   }
@@ -1556,7 +1561,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
-        <div className="games-group-heading"><div><h3>Groupes de parties</h3><p>Compare les parties d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
+        <div className="games-group-heading"><div><h3>Groupes de parties</h3><p>Compare les parties d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
         {archiveWorkspaceTab === "select" ? <div className="games-group-list">
           {archives.map((archive) => {
             const groupMatches = baseMatches.filter((match) => archiveMatchIds(archive).includes(match.id));
@@ -1570,8 +1575,10 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         </div> : <form onSubmit={saveArchive} className="games-group-form">
           <fieldset disabled={savingArchive}>
             <div className="games-group-fields"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK — 08/09" required /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Session, objectif du bloc…" /></div>
-            <div className="games-group-heading"><p>{archiveForm.matchIds.length} partie(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.map((match) => match.id) }))} disabled={!matches.length}>Tout sélectionner</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
-            <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {match.result || "Résultat inconnu"}</span></span></label>)}</div>
+            <div className="games-group-heading"><p>{archiveForm.matchIds.length} partie(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.slice(0, 80).map((match) => match.id) }))} disabled={!matches.length}>{matches.length > 80 ? "Sélectionner les 80 premières" : "Tout sélectionner"}</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
+            <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} disabled={archiveForm.matchIds.length >= 80 && !archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {match.result || "Résultat inconnu"}</span></span></label>)}</div>
+            <p className="text-sm text-slate-300">80 parties maximum par groupe. Un débrief automatique est généré à la création pour 20 parties maximum.</p>
+            {!archiveForm.id && archiveForm.matchIds.length > 20 && <p role="status" className="text-sm text-amber-100">Ce groupe contient plus de 20 parties : il sera créé sans débrief automatique.</p>}
             {!matches.length && <p>Importe une première partie pour créer un groupe.</p>}
             <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>Annuler</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? "Enregistrement…" : archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div>
           </fieldset>

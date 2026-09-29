@@ -71,7 +71,8 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   }, [availabilityKey, playersKey]);
   const linkedGameplayPlayer = gameplayPlayers.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
   const linkedStaffProfile = staffProfiles.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
-  const staffPlanningPlayer = linkedStaffProfile || staffProfiles.find((player) => String(player.role || "").toUpperCase() === "COACH") || staffProfiles[0] || null;
+  const orderedStaff = [...staffProfiles].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const staffPlanningPlayer = orderedStaff.find((player) => String(player.role || "").toUpperCase() === "COACH") || orderedStaff[0] || null;
   const staffPlanningPlayerId = String(staffPlanningPlayer?.id || "");
   const canManagePlanningStaff = canStaffManage(currentMember?.role);
   const linkedPlayer = linkedGameplayPlayer || (staffPlanningPlayer && canManagePlanningStaff ? staffPlanningPlayer : linkedStaffProfile) || (currentMember ? { teamOnly: true } : null);
@@ -89,7 +90,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   const eventStorePlayer = selectedPlayer || players.find((player) => player.id === eventStoreRow?.player_id) || gameplayPlayers[0] || staffProfiles[0] || null;
   const eventStoreAvailability = availability.find((item) => item.player_id === eventStorePlayer?.id) || null;
   const canEditSelected = Boolean(selectedPlayer && (String(selectedPlayer.user_id || "") === String(user?.id || "") || (selectedIsStaff && canManagePlanningStaff)));
-  const canEditEvents = Boolean(currentMember && eventStorePlayer);
+  const canEditEvents = Boolean(eventStorePlayer && (canEditSelected || canManagePlanningStaff));
   const planningDraft = usePlanningDraft(planningStore, { teamId: selectedTeamId, playerId: eventStorePlayer?.id, weekStart: selectedWeek.start }, eventStoreAvailability);
   const { slots: draftSlots, events: slotEvents, notes, status: saveStatus, saving, setSlots: setDraftSlots, setEvents: setSlotEvents, setNotes } = planningDraft;
 
@@ -193,12 +194,12 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
     })));
   }
 
-  function openPlanningEventMenu(event, day, time) {
+  function openPlanningEventMenu(event, day, time, trigger = event.currentTarget) {
     event.preventDefault();
     event.stopPropagation();
     if (!canEditEvents) return;
-    eventTriggerRef.current = event.currentTarget;
-    const rect = event.currentTarget.getBoundingClientRect();
+    eventTriggerRef.current = trigger;
+    const rect = trigger.getBoundingClientRect();
     const pointerX = event.clientX || rect.left;
     const pointerY = event.clientY || rect.bottom;
     setEventMenu({

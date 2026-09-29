@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, ChevronDown, Loader2, Lock, Mail, Settings, Shield, ShieldCheck, UserPlus } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { configurePerformanceMode, currentPerformanceMode, setStoredPerformanceMode } from "../../app/performance.js";
@@ -20,6 +20,14 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
+  const notificationRequest = useRef({ generation: 0, pending: false });
+  useEffect(() => {
+    const request = notificationRequest.current;
+    request.pending = false;
+    request.generation += 1;
+    setSavingNotifications(false);
+    return () => { request.generation += 1; request.pending = false; };
+  }, [user?.id]);
   const [resendingVerify, setResendingVerify] = useState(false);
   const [visualMode, setVisualMode] = useState(currentPerformanceMode);
 
@@ -98,19 +106,26 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     }
   }
 
-  async function updateNotifications(next) {
-    const previous = notificationForm;
+  async function updateNotifications(field, checked) {
+    const request = notificationRequest.current;
+    if (request.pending) return;
+    request.pending = true;
+    const generation = ++request.generation;
+    const previous = notificationForm[field];
+    const next = { ...notificationForm, [field]: checked };
     setNotificationForm(next);
     setSavingNotifications(true);
     try {
       const result = await apiFetch("/api/user/notifications", { method: "PATCH", body: JSON.stringify(next) });
+      if (generation !== request.generation) return;
       onUserUpdate?.(result.user);
       pushToast?.({ type: "green", title: "Préférences enregistrées", text: "Tes notifications e-mail sont à jour." });
     } catch (err) {
-      setNotificationForm(previous);
+      if (generation !== request.generation) return;
+      setNotificationForm((current) => ({ ...current, [field]: previous }));
       pushToast?.({ type: "red", title: "Préférences non enregistrées", text: err.message });
     } finally {
-      setSavingNotifications(false);
+      if (generation === request.generation) { request.pending = false; setSavingNotifications(false); }
     }
   }
 
@@ -186,9 +201,9 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
           {savingNotifications && <Badge tone="cyan">Enregistrement...</Badge>}
         </div>
         <div className="nxt5-account-notifications">
-          <PremiumToggle checked={notificationForm.notif_match} onChange={(checked) => updateNotifications({ ...notificationForm, notif_match: checked })} title="Nouvelle partie importée" text="Un e-mail lorsqu’une partie est ajoutée à ton équipe." />
-          <PremiumToggle checked={notificationForm.notif_report} onChange={(checked) => updateNotifications({ ...notificationForm, notif_report: checked })} title="Nouveau débrief disponible" text="Un e-mail lorsqu’un débrief d’équipe est généré." />
-          <PremiumToggle checked={notificationForm.notif_inactivity} onChange={(checked) => updateNotifications({ ...notificationForm, notif_inactivity: checked })} title="Recevoir le rappel après 3 mois" text="Un seul e-mail par période d'inactivité, sans donnée d'équipe ou de jeu." />
+          <PremiumToggle disabled={savingNotifications} checked={notificationForm.notif_match} onChange={(checked) => updateNotifications("notif_match", checked)} title="Nouvelle partie importée" text="Un e-mail lorsqu’une partie est ajoutée à ton équipe." />
+          <PremiumToggle disabled={savingNotifications} checked={notificationForm.notif_report} onChange={(checked) => updateNotifications("notif_report", checked)} title="Nouveau débrief disponible" text="Un e-mail lorsqu’un débrief d’équipe est généré." />
+          <PremiumToggle disabled={savingNotifications} checked={notificationForm.notif_inactivity} onChange={(checked) => updateNotifications("notif_inactivity", checked)} title="Recevoir le rappel après 3 mois" text="Un seul e-mail par période d'inactivité, sans donnée d'équipe ou de jeu." />
         </div>
       </Surface>
     </div>

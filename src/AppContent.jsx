@@ -102,11 +102,44 @@ export function MissingEmailModal({ user, onUserUpdate, pushToast }) {
   );
 }
 
-export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }) {
+export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, onLogout }) {
   const [sending, setSending] = useState(false);
   const [checking, setChecking] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [hasPassword, setHasPassword] = useState(null);
+  const busy = saving || sending || checking;
+  useEffect(() => {
+    let active = true;
+    setHasPassword(null);
+    apiFetch("auth-social-status").then((result) => {
+      if (active) setHasPassword(result.hasPassword === true);
+    }).catch((err) => { if (active) setError(err.message || "Options de sécurité indisponibles. Reconnecte-toi pour réessayer."); });
+    return () => { active = false; };
+  }, [user?.id]);
+
+  async function correctEmail(event) {
+    event.preventDefault();
+    if (busy || hasPassword !== true) return;
+    setSaving(true);
+    setError("");
+    try {
+      const result = await apiFetch("auth-update-profile", { method: "POST", body: JSON.stringify({ name: user?.name || user?.account_name || "Compte NXT5", email, currentPassword }) });
+      setCurrentPassword("");
+      setEmail("");
+      onUserUpdate?.(result.user);
+      setSent(true);
+      pushToast?.({ type: "green", title: "E-mail corrigé", text: "Un lien de vérification vient de t’être envoyé." });
+    } catch (err) {
+      setError(err.message || "Impossible de corriger cet e-mail.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function resend() {
     setSending(true);
@@ -142,20 +175,29 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast }
   }
 
   return (
-    <ModalDialog dismissable={false} busy={sending || checking} aria-labelledby="verify-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
+    <ModalDialog dismissable={false} busy={busy} aria-labelledby="verify-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
         <Badge tone="orange">Vérification obligatoire</Badge>
         <h2 id="verify-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton e-mail</h2>
-        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Ton compte utilise l'adresse <span className="font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
+        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Ton compte utilise l'adresse <span className="break-all font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
         <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
           <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Profil non vérifié</p>
           <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications restent bloquées tant que l'e-mail n'est pas confirmé.</p>
         </div>
         {sent && <div role="status" className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.</div>}
         {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{error}</div>}
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <Button type="button" autoFocus icon={sending ? Loader2 : Mail} onClick={resend} disabled={sending || checking} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
-          <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={sending || checking} className="w-full py-4">{checking ? "Vérification..." : "J'ai vérifié mon email"}</Button>
-        </div>
+        {hasPassword === null && !error && <p role="status" className="mt-4 text-sm text-slate-300">Chargement des options de récupération…</p>}
+        {hasPassword === true && <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Button type="button" autoFocus icon={sending ? Loader2 : Mail} onClick={resend} disabled={busy} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
+          <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={busy} className="w-full py-4">{checking ? "Vérification..." : "J'ai vérifié mon email"}</Button>
+        </div>}
+        {hasPassword === true && <form onSubmit={correctEmail} className="mt-6 space-y-4 border-t border-white/10 pt-5">
+          <h3 className="text-lg font-bold text-white">Corriger mon adresse</h3>
+          <TextInput label="Nouvel e-mail" type="email" autoComplete="email" value={email} onChange={setEmail} required disabled={busy} icon={Mail} />
+          <TextInput label="Mot de passe actuel" type="password" autoComplete="current-password" value={currentPassword} onChange={setCurrentPassword} required disabled={busy} icon={Lock} />
+          <Button type="submit" disabled={busy || !email.trim() || !currentPassword} icon={saving ? Loader2 : Mail} className="w-full">{saving ? "Enregistrement…" : "Corriger mon adresse"}</Button>
+        </form>}
+        {hasPassword === false && <p className="mt-5 text-sm leading-6 text-slate-300">Ce compte utilise une connexion sociale et n’a pas de mot de passe NXT5. La correction de l’adresse nécessite une réauthentification par mot de passe. Déconnecte-toi pour utiliser un autre compte ou contacte le support si cette adresse est incorrecte.</p>}
+        <Button type="button" variant="ghost" icon={LogOut} onClick={onLogout} disabled={busy} className="mt-4 w-full">Se déconnecter</Button>
     </ModalDialog>
   );
 }
@@ -411,7 +453,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
       {assistantWidget}
       {inactivityReturnModal}
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
-      {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} />}
+      {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} onLogout={onLogout} />}
     </div>
   );
 }
@@ -450,6 +492,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
 });
 
 export default function NXT5() {
+  const authGeneration = useRef(0);
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -469,10 +512,13 @@ export default function NXT5() {
   }, []);
   const removeToast = useCallback((id) => { setToasts((current) => current.filter((item) => item.id !== id)); }, []);
   const handleAuth = useCallback((nextUser) => {
+    authGeneration.current += 1;
+    setCheckingSession(false);
     setUser(nextUser);
   }, []);
   const handleLogout = useCallback(async () => {
     if (reviewDrafts.hasDrafts() && !window.confirm("Te déconnecter supprimera les brouillons de débrief non enregistrés de cette session. Continuer ?")) return;
+    authGeneration.current += 1;
     try { await apiFetch("auth-logout", { method: "POST" }); }
     catch {
       pushToast({ type: "red", title: "Déconnexion impossible", text: "La session n’a pas pu être fermée. Réessaie." });
@@ -501,7 +547,8 @@ export default function NXT5() {
 
   useEffect(() => {
     let mounted = true;
-    apiFetch("auth-me").then((result) => { if (mounted) setUser(result.user); }).catch(() => { if (mounted) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
+    const generation = authGeneration.current;
+    apiFetch("auth-me").then((result) => { if (mounted && authGeneration.current === generation) setUser(result.user); }).catch(() => { if (mounted && authGeneration.current === generation) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
     return () => { mounted = false; };
   }, []);
 

@@ -371,3 +371,16 @@ describe("administration access boundary", () => {
     expect(JSON.stringify(renderer.toJSON())).toContain("Déconnexion impossible");
   });
 });
+
+it("B5 warns before unloading a dirty or saving administrative form", async () => {
+  await open("/admin/abonnements");
+  const dispatch = () => { const event = { type: "beforeunload", preventDefault: vi.fn() }; window.dispatchEvent(event); return event; };
+  expect(dispatch().preventDefault).not.toHaveBeenCalled();
+  act(() => renderer.root.findByProps({ "aria-label": "Formulaire modifié" }).props.onChange({ target: { checked: true } }));
+  expect(dispatch().preventDefault).toHaveBeenCalledOnce();
+  act(() => renderer.root.findByProps({ "aria-label": "Formulaire modifié" }).props.onChange({ target: { checked: false } }));
+  act(() => renderer.root.findByProps({ "aria-label": "Enregistrement en cours" }).props.onChange({ target: { checked: true } }));
+  expect(dispatch().preventDefault).toHaveBeenCalledOnce();
+  act(() => renderer.unmount()); renderer = undefined;
+  expect(dispatch().preventDefault).not.toHaveBeenCalled();
+});

@@ -19,7 +19,7 @@ vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({
 }));
 vi.mock("../pages/public/PublicPages.jsx", () => ({
   HomeScreen: ({ navigate }) => <main data-page="home"><button onClick={() => navigate("/equipes")}>Ouvrir</button></main>,
-  AuthPage: () => <main data-page="auth" />,
+  AuthPage: ({ onAuth }) => <main data-page="auth"><button onClick={() => onAuth({ id: "user", email: "staff@nxt5.test", email_verified: true })}>Connexion réussie</button></main>,
   LegalPage: () => <main data-page="legal" />,
   ForgotPasswordPage: () => <main data-page="forgot" />,
   ResetPasswordPage: () => <main data-page="reset" />,
@@ -219,4 +219,19 @@ describe("one continuous application loading screen", () => {
     expect(app.pages[0].props["data-games"]).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
   });
+});
+
+
+it.each(["resolve", "reject"])("B9 ignores initial auth-me %s after successful login", async (outcome) => {
+  const app = mount("/connexion");
+  await app.loadModule();
+  act(() => app.renderer.root.findAllByType("button").find(node => node.props.children === "Connexion réussie").props.onClick());
+  await act(async () => { await vi.dynamicImportSettled(); });
+  expect(app.requests[1].url).toContain("bootstrap");
+  await app.resolve(1, emptySnapshot);
+  await act(async () => { await vi.dynamicImportSettled(); });
+  if (outcome === "reject") await app.reject(0);
+  else await app.resolve(0, { user: null });
+  expect(app.pages.some(node => node.props["data-page"] === "auth")).toBe(false);
+  expect(app.pages.some(node => node.props["data-page"] === "teams")).toBe(true);
 });

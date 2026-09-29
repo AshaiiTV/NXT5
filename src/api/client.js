@@ -36,43 +36,46 @@ export async function apiFetch(path, options = {}) {
     timeoutId = globalThis.setTimeout(() => controller.abort(new DOMException("API timeout", "TimeoutError")), timeoutMs);
   }
   try {
-    const url = String(path || "").startsWith("/") ? path : `${API_BASE}/${path}`;
-    response = await fetch(url, {
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(fetchOptions.headers || {}),
-      },
-      ...fetchOptions,
-      signal: controller?.signal || signal,
-    });
-  } catch (err) {
-    const timedOut = err?.name === "AbortError" || err?.name === "TimeoutError" || controller?.signal?.aborted;
-    throw new Error(timedOut ? "NXT5 met trop longtemps à répondre. Réessaie dans quelques instants." : "Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants.");
+    try {
+      const url = String(path || "").startsWith("/") ? path : `${API_BASE}/${path}`;
+      response = await fetch(url, {
+        credentials: "include",
+        ...fetchOptions,
+        headers: { "Content-Type": "application/json", ...(fetchOptions.headers || {}) },
+        signal: controller?.signal || signal,
+      });
+    } catch (err) {
+      const aborted = err?.name === "AbortError" || err?.name === "TimeoutError" || controller?.signal.aborted || signal?.aborted;
+      throw new Error(aborted ? "NXT5 met trop longtemps à répondre ou la requête a été annulée. Réessaie dans quelques instants." : "Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants.");
+    }
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (err) {
+      if (err?.name === "AbortError" || err?.name === "TimeoutError" || controller?.signal.aborted || signal?.aborted) {
+        throw new Error("NXT5 met trop longtemps à répondre ou la requête a été annulée. Réessaie dans quelques instants.");
+      }
+    }
+    if (controller?.signal.aborted || signal?.aborted) throw new Error("NXT5 met trop longtemps à répondre ou la requête a été annulée. Réessaie dans quelques instants.");
+    if (!response.ok) throw attachApiErrorMetadata(new Error(apiPayloadMessage(payload, response.status)), payload, response.status);
+    return payload;
   } finally {
     if (timeoutId) globalThis.clearTimeout(timeoutId);
     if (controller && signal) signal.removeEventListener("abort", abortFromCaller);
   }
-
-  let payload = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    throw attachApiErrorMetadata(new Error(apiPayloadMessage(payload, response.status)), payload, response.status);
-  }
-
-  return payload;
 }
 
-export function apiUploadJson(path, data, onProgress) {
+export function apiUploadJson(path, data, onProgress, { signal, timeoutMs = 120000 } = {}) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${API_BASE}/${path}`);
     xhr.withCredentials = true;
+    xhr.timeout = timeoutMs;
+    const abort = () => xhr.abort();
+    const cleanup = () => signal?.removeEventListener("abort", abort);
+    const fail = (error) => { cleanup(); reject(error); };
+    xhr.ontimeout = () => fail(new Error("L’envoi a dépassé le délai maximal. Réessaie dans quelques instants."));
+    xhr.onabort = () => fail(new Error("L’envoi du fichier a été annulé."));
     xhr.setRequestHeader("Content-Type", "application/json");
 
     xhr.upload.onprogress = (event) => {
@@ -81,8 +84,9 @@ export function apiUploadJson(path, data, onProgress) {
       onProgress?.({ phase: "upload", percent, loaded: event.loaded, total: event.total });
     };
     xhr.upload.onload = () => onProgress?.({ phase: "server", percent: 100 });
-    xhr.onerror = () => reject(new Error("Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants."));
+    xhr.onerror = () => fail(new Error("Impossible de joindre NXT5 pour le moment. Reessaie dans quelques instants."));
     xhr.onload = () => {
+      cleanup();
       let payload = null;
       try {
         payload = xhr.responseText ? JSON.parse(xhr.responseText) : null;
@@ -97,6 +101,8 @@ export function apiUploadJson(path, data, onProgress) {
     };
 
     onProgress?.({ phase: "upload", percent: 0, loaded: 0, total: 0 });
-    xhr.send(JSON.stringify(data));
+    if (signal?.aborted) { fail(new Error("L’envoi du fichier a été annulé.")); return; }
+    signal?.addEventListener("abort", abort, { once: true });
+    try { xhr.send(JSON.stringify(data)); } catch (error) { fail(error); }
   });
 }
