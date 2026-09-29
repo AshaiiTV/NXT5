@@ -1,3 +1,4 @@
+import { resultSummary, resultLabel, winrateLabel } from "../../utils/statistics.js";
 import React, { useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
@@ -48,17 +49,17 @@ function DraftTrendDetails({ sectionId, model, onOpenSources, sourceGamesForMatc
     subtitle,
     metrics: [
       { label: "Parties", value: String(entry.games) },
-      { label: "Bilan", value: `${entry.wins} V · ${entry.games - entry.wins} D` },
-      { label: "Victoires", value: `${entry.wr}%` },
+      { label: "Bilan", value: resultLabel(entry) },
+      { label: "Victoires", value: `${winrateLabel(entry.wr)}` },
       { label: "Fréquence", value: frequency(entry.games, active.games) },
     ],
     games: sourceGamesForMatches?.(entry.matches || []) || [],
   });
-  const sourceAction = (pick) => onOpenSources ? () => openSources(pick, `Champion de l’équipe : ${championDisplayName(pick.champion)}`, `${roleLabel(pick.role)} · ${pick.games} parties · ${pick.wr}% de victoires`) : undefined;
-  const tableSources = onOpenSources ? (row) => openSources(row, row.label || (row.tag ? `Composition équipe : ${tagLabel(row.tag)}` : row.champions), `${row.pair ? `${row.pair} · ` : ""}${row.games} parties · ${row.wr}% de victoires`) : undefined;
+  const sourceAction = (pick) => onOpenSources ? () => openSources(pick, `Champion de l’équipe : ${championDisplayName(pick.champion)}`, `${roleLabel(pick.role)} · ${pick.games} parties · ${winrateLabel(pick.wr)} de victoires`) : undefined;
+  const tableSources = onOpenSources ? (row) => openSources(row, row.label || (row.tag ? `Composition équipe : ${tagLabel(row.tag)}` : row.champions), `${row.pair ? `${row.pair} · ` : ""}${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined;
   const picks = active.picks || [];
-  const eligiblePicks = sectionId === "confort" ? picks.filter((pick) => pick.games >= 2 && pick.wr >= 50)
-    : sectionId === "a-revoir" ? picks.filter((pick) => pick.games >= 2 && pick.wr < 50).slice().sort((a, b) => a.wr - b.wr || b.games - a.games)
+  const eligiblePicks = sectionId === "confort" ? picks.filter((pick) => pick.known >= 2 && pick.wr >= 50)
+    : sectionId === "a-revoir" ? picks.filter((pick) => pick.known >= 2 && pick.wr < 50).slice().sort((a, b) => a.wr - b.wr || b.games - a.games)
       : picks;
   const visiblePicks = eligiblePicks.filter((pick) => (!role || pick.role === role) && matchesSearch(`${championDisplayName(pick.champion)} ${roleLabel(pick.role)} ${(pick.tags || []).map(tagLabel).join(" ")}`, query));
   const availableRoles = [...ROSTER_ROLE_ORDER, ...new Set([...eligiblePicks.map((pick) => pick.role), role].filter((pickRole) => pickRole && !ROSTER_ROLE_ORDER.includes(pickRole)))];
@@ -68,8 +69,9 @@ function DraftTrendDetails({ sectionId, model, onOpenSources, sourceGamesForMatc
   const visibleArchetypes = (active.archetypes || []).filter((entry) => matchesSearch(tagLabel(entry.tag), query));
   const profileRows = DRAFT_SCORE_TAGS.map(([id, tags]) => {
     const drafts = (active.matchDrafts || []).filter((entry) => entry.identity.scores.some((score) => score.id === id && score.count > 0));
-    const wins = drafts.filter((entry) => entry.win).length;
-    return { label: tagLabel(id), tag: id, games: drafts.length, wins, wr: drafts.length ? Math.round((wins / drafts.length) * 100) : 0, matches: drafts.map((entry) => entry.match), tags };
+    const matches = drafts.map((entry) => entry.match);
+    const results = resultSummary(matches);
+    return { label: tagLabel(id), tag: id, ...results, wr: results.winrate, matches, tags };
   }).filter((row) => row.games > 0).sort((a, b) => b.games - a.games || b.wr - a.wr);
   const pickList = (list) => <div className="draft-champion-list">{list.map((pick) => <DraftMiniChampion key={`${pick.role}-${pick.champion}`} item={pick} onSources={sourceAction(pick)} detailed totalGames={active.games} />)}</div>;
 
@@ -90,7 +92,7 @@ function DraftTrendDetails({ sectionId, model, onOpenSources, sourceGamesForMatc
         <h3>Signaux à vérifier</h3>
         {active.identity?.gaps?.length ? <ul className="draft-warning-list">{active.identity.gaps.map((gap) => <li key={gap}>{gap}</li>)}</ul> : <p className="draft-description">Aucun signal de style particulier sur cette sélection.</p>}
         <p className="draft-footnote">Les signaux d’initiation, de première ligne résistante (frontline) et de contrôle signalent l’absence de leurs marqueurs dans les champions du bloc. Les signaux de progression en fin de partie ou de rythme de jeu apparaissent à partir de trois marqueurs correspondants dans le bloc.</p>
-        {onOpenSources && <button type="button" className="draft-source-link" onClick={() => openSources({ games: active.games, wins: active.wins, wr: active.wr, matches: active.matchDrafts.map((entry) => entry.match) }, "Drafts à examiner", "Ensemble des drafts de la période pour remettre les signaux en contexte.")}>Examiner les parties du bloc <ArrowRight aria-hidden="true" /></button>}
+        {onOpenSources && <button type="button" className="draft-source-link" onClick={() => openSources({ ...active, matches: active.matchDrafts.map((entry) => entry.match) }, "Drafts à examiner", "Ensemble des drafts de la période pour remettre les signaux en contexte.")}>Examiner les parties du bloc <ArrowRight aria-hidden="true" /></button>}
       </section>}
 
       {PICK_SECTIONS.has(sectionId) && <section className="draft-detail-section">

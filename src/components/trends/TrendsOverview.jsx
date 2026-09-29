@@ -1,3 +1,4 @@
+import { winrateLabel } from "../../utils/statistics.js";
 import React from "react";
 import { ArrowRight, FileText, Target } from "lucide-react";
 import { Badge, Button, Surface } from "../ui/Core.jsx";
@@ -45,7 +46,7 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
       <div className="trends-role-columns" aria-hidden="true"><span>Rôle et champions</span><span>Lecture du rôle</span><span>Part d’or</span><span>Part de dégâts</span><span>Sources</span></div>
       <div className="trends-roles">{[...roles].sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role)).map((row) => <article className="trends-role" key={row.role}>
         <div className="trends-role-name"><RoleIcon role={row.role} lightweight /><div><h5>{roleLabel(row.role)}</h5><p>{row.championText || "Champions non renseignés"}</p></div></div>
-        <div className="trends-role-function"><strong>{row.functionLabel}</strong><p>{row.games} partie{row.games > 1 ? "s" : ""} · {row.wr}% de victoires</p></div>
+        <div className="trends-role-function"><strong>{row.functionLabel}</strong><p>{row.games} partie{row.games > 1 ? "s" : ""} · {winrateLabel(row.wr)} de victoires</p></div>
         <div className="trends-role-number"><span>Part d’or</span><b>{row.goldShare === null ? "—" : `${Math.round(row.goldShare)}%`}</b></div>
         <div className="trends-role-number"><span>Part de dégâts</span><b>{row.damageShare === null ? "—" : `${Math.round(row.damageShare)}%`}</b></div>
         <button type="button" className="trends-text-action" aria-label={`Voir les sources du rôle ${roleLabel(row.role)}`} onClick={() => onOpenSources({ title: roleLabel(row.role), subtitle: row.functionLabel, games: row.sourceGames })}><FileText aria-hidden="true" /><span>Sources</span></button>
@@ -56,7 +57,7 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
     </details></Surface>
 
     <Surface className="trends-review-surface"><section aria-labelledby="trend-review-title"><div className="trends-section-heading"><div><h3 id="trend-review-title">Approfondir un point du débrief</h3><p>Ouvre seulement les sujets utiles à la discussion. Chaque constat renvoie aux parties concernées.</p></div></div>
-      <div className="trends-review-list">{briefs.filter((brief) => !["Bilan", "Plan de jeu"].includes(brief.label)).map((brief) => <details key={brief.label}><summary><span className="trends-eyebrow">{analysisCopy(brief.label)}</span><strong>{analysisCopy(brief.title)}</strong><span>{brief.sourceGames?.length || 0} parties</span></summary><div className="trends-review-content"><p>{analysisCopy(brief.text, { csComparison: true })}</p>{brief.evidence?.length > 0 && <ul>{brief.evidence.map((item) => <li key={item}>{analysisCopy(item, { csComparison: true })}</li>)}</ul>}<button type="button" className="trends-text-action" onClick={() => open(brief)}><FileText aria-hidden="true" /> Voir les parties sources</button></div></details>)}</div>
+      <div className="trends-review-list">{briefs.filter((brief) => !["Bilan", "Plan de jeu"].includes(brief.label)).map((brief) => <details key={brief.label}><summary><span className="trends-eyebrow">{analysisCopy(brief.label)}</span><strong>{analysisCopy(brief.title)}</strong><span>{brief.sourceGames?.length || 0} parties</span></summary><div className="trends-review-content"><p>{analysisCopy(brief.text, { csComparison: true })}</p>{brief.evidence?.length > 0 && <ul>{[...new Set(brief.evidence)].map((item) => <li key={item}>{analysisCopy(item, { csComparison: true })}</li>)}</ul>}<button type="button" className="trends-text-action" onClick={() => open(brief)}><FileText aria-hidden="true" /> Voir les parties sources</button></div></details>)}</div>
       {alerts.length > 0 && <details className="trends-alerts trends-secondary-disclosure"><summary><strong>Autres points de vigilance</strong><span>{Math.min(alerts.length, 3)}</span></summary>{alerts.slice(0, 3).map((alert) => <article key={alert.title}><alert.icon aria-hidden="true" /><div><h5>{analysisCopy(alert.title)}</h5><p>{analysisCopy(alert.text)}</p><p>{analysisCopy(alert.action)}</p></div></article>)}</details>}
     </section></Surface>
 

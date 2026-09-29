@@ -1,3 +1,6 @@
+import { availableNumber, resultSummary, resultLabel, sideResults } from "./utils/statistics.js";
+import { csAtMinute } from "./utils/match-timeline.js";
+import { importedGameSide } from "./utils/imported-games.js";
 import React, { useState } from "react";
 import {
   Activity,
@@ -49,9 +52,9 @@ function openRoute(path) {
 }
 
 function parsePercent(value) {
-  if (typeof value === "string" && value.includes("%")) return Number(value.replace("%", "")) || 0;
-  const number = Number(value || 0);
-  return number <= 1 ? number * 100 : number;
+  const percent = typeof value === "string" && value.includes("%");
+  const number = availableNumber(percent ? value.replace("%", "") : value);
+  return number === null ? null : percent || number > 1 ? number : number * 100;
 }
 
 function normalizeRole(value) {
@@ -75,11 +78,14 @@ function teamRows(match, teamKey = "ALLY") {
 }
 
 function sum(rows, key) {
-  return rows.reduce((total, row) => total + Number(row?.[key] || 0), 0);
+  const values = rows.map((row) => availableNumber(row?.[key]));
+  return rows.length === 5 && values.every(Number.isFinite) ? values.reduce((a, b) => a + b, 0) : null;
 }
 
 function matchDiff(match, key) {
-  return sum(teamRows(match), key) - sum(teamRows(match, "ENEMY"), key);
+  const ally = sum(teamRows(match), key);
+  const enemy = sum(teamRows(match, "ENEMY"), key);
+  return ally === null || enemy === null ? null : ally - enemy;
 }
 
 function hasTimeline(match) {
@@ -172,17 +178,14 @@ function blockMatches(allMatches, categories, key) {
 }
 
 function blockSnapshot(matches) {
-  const wins = matches.filter((match) => match.result === "Victoire").length;
+  const results = resultSummary(matches);
   const allyRows = matches.flatMap((match) => teamRows(match));
   const average = (values) => {
     const available = values.filter((value) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)));
     return available.length ? available.reduce((total, value) => total + Number(value), 0) / available.length : null;
   };
-  const side = (name) => {
-    const scoped = matches.filter((match) => String(match.side || "").toLowerCase().includes(name));
-    const sideWins = scoped.filter((match) => match.result === "Victoire").length;
-    return scoped.length ? Math.round((sideWins / scoped.length) * 100) : null;
-  };
+  const sides = sideResults(matches);
+  const side = (name) => sides.find((item) => item.side === name)?.winrate ?? null;
   const roles = ROLES.map((role) => {
     const rows = allyRows.filter((row) => normalizeRole(row.role || row.raw?.teamPosition || row.raw?.individualPosition) === role);
     return { role, games: rows.length, kp: average(rows.map((row) => {
@@ -191,8 +194,8 @@ function blockSnapshot(matches) {
     })), deaths: average(rows.map((row) => row.deaths)), cs: average(rows.map((row) => row.cs)) };
   });
   return {
-    games: matches.length,
-    wr: matches.length ? Math.round((wins / matches.length) * 100) : null,
+    ...results,
+    wr: results.winrate,
     blue: side("blue"),
     red: side("red"),
     gold: average(matches.map((match) => matchDiff(match, "gold"))),
@@ -262,9 +265,9 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const right = blockSnapshot(rightMatches);
   const overlap = blockOverlapCount(leftMatches, rightMatches);
   const gameCount = (count) => `${count} partie${count > 1 ? "s" : ""}`;
-  const sideCount = (games, side) => gameCount(games.filter((match) => String(match.side || "").toLowerCase().includes(side)).length);
+  const sideCount = (games, side) => resultLabel(resultSummary(games.filter((match) => importedGameSide(match) === side)));
   const metrics = [
-    { label: "Taux de victoire", detail: "Victoires / parties du bloc", before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
+    { label: "Taux de victoire", detail: "Victoires / résultats connus", beforeDetail: resultLabel(left), afterDetail: resultLabel(right), before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
     { label: "Écart d’or moyen", detail: "Notre équipe − adversaire · or / partie", before: left.gold, after: right.gold, deltaSuffix: " or" },
     { label: "Écart de dégâts moyen", detail: "Notre équipe − adversaire · dégâts / partie", before: left.damage, after: right.damage, deltaSuffix: " dég." },
     { label: "Écart de vision moyen", detail: "Notre équipe − adversaire · score / partie", before: left.vision, after: right.vision, deltaSuffix: " pts" },
@@ -281,7 +284,7 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   return <Panel className="block-comparison">
     <div className="block-comparison-heading">
       <h3>Ce qui change entre deux sélections</h3>
-      <p>Choisis une référence à gauche, puis les parties à observer à droite. Les résultats montrent ce qui a changé entre les deux sélections.</p>
+      <p>Choisis une référence à gauche, puis les parties à observer à droite. Les filtres de période et de catégorie des autres rubriques ne s’appliquent pas ici.</p>
     </div>
     <div className="block-comparison-selection">
       {[{ label: "Bloc de référence", key: referenceKey, setKey: setLeftKey, games: leftMatches, snapshot: left }, { label: "Bloc observé", key: observedKey, setKey: setRightKey, games: rightMatches, snapshot: right }].map(({ label, key, setKey, games, snapshot }) => <div key={label} className="block-comparison-selector">
@@ -352,20 +355,18 @@ export function ReviewQueuePanel({ matches = [], reports = [], selectedTeamId, r
 }
 
 
-function goalMetricValue(row, metric) {
-  if (metric === "deaths") return Number(row.deaths || 0);
+export function goalMetricValue(row, metric) {
+  if (metric === "deaths" || metric === "vision") return availableNumber(row[metric]);
   if (metric === "kp") return parsePercent(row.kill_participation ?? row.kp);
-  if (metric === "kda") return (Number(row.kills || 0) + Number(row.assists || 0)) / Math.max(1, Number(row.deaths || 0));
-  if (metric === "vision") return Number(row.vision || 0);
-  if (metric === "cs10") {
-    const direct = row.raw?.challenges?.laneMinionsFirst10Minutes ?? row.raw?.csAt10;
-    const rate = row.raw?.timeline?.creepsPerMinDeltas?.["0-10"];
-    return Number(direct ?? (Number.isFinite(Number(rate)) ? Number(rate) * 10 : 0));
+  if (metric === "kda") {
+    const values = [row.kills, row.assists, row.deaths].map(availableNumber);
+    return values.every(Number.isFinite) ? (values[0] + values[1]) / Math.max(1, values[2]) : null;
   }
-  return 0;
+  if (metric === "cs10") return csAtMinute(row, 10);
+  return null;
 }
 
-function evaluateGoal(goal, rows) {
+export function evaluateGoal(goal, rows) {
   const started = new Date(goal.starts_at || goal.created_at || 0).getTime();
   const unique = Array.from(rows.reduce((map, row) => {
     const key = String(row.match?.id || row.match?.game_id || "");
@@ -374,9 +375,9 @@ function evaluateGoal(goal, rows) {
     return map;
   }, new Map()).values()).sort((a, b) => new Date(a.match?.created_at || 0) - new Date(b.match?.created_at || 0)).slice(0, Number(goal.sample_size || 3));
   const values = unique.map((row) => goalMetricValue(row, goal.metric));
-  const successes = values.filter((value) => goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value)).length;
+  const successes = values.filter((value) => Number.isFinite(value) && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value))).length;
   const required = Number(goal.required_successes || 2);
-  return { rows: unique, values, successes, required, complete: successes >= required, impossible: values.length >= Number(goal.sample_size || 3) && successes < required };
+  return { rows: unique, values, successes, required, complete: successes >= required, impossible: values.filter(Number.isFinite).length >= Number(goal.sample_size || 3) && successes < required };
 }
 
 export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId, canManage, refreshAll, pushToast }) {
@@ -425,8 +426,8 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
         <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : "En cours"}</Label><span>{result.successes}/{result.required} réussites</span></div><h4>{goal.title}</h4><p>{metricLabels[goal.metric] || metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} parties</p></div>
         <div className="profile-goal-progress"><div className="profile-goal-samples">{Array.from({ length: Number(goal.sample_size || 3) }, (_, index) => {
           const value = result.values[index];
-          const success = value !== undefined && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value));
-          return <div key={index} className={cx("profile-goal-sample", value === undefined ? "is-pending" : success ? "is-success" : "is-missed")}><span>Partie {index + 1}</span><strong>{value === undefined ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? "À jouer" : success ? "Cible atteinte" : "Hors cible"}</small></div>;
+          const success = Number.isFinite(value) && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value));
+          return <div key={index} className={cx("profile-goal-sample", !Number.isFinite(value) ? "is-pending" : success ? "is-success" : "is-missed")}><span>Partie {index + 1}</span><strong>{!Number.isFinite(value) ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? "À jouer" : value === null ? "Indisponible" : success ? "Cible atteinte" : "Hors cible"}</small></div>;
         })}</div><p>Parties depuis le {formatDate(goal.starts_at || goal.created_at)}</p></div>
         {canManage && <IconButton icon={Trash2} label="Archiver l'objectif" danger disabled={saving} onClick={() => archive(goal)} />}
       </article>;

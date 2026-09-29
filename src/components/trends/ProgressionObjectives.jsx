@@ -28,7 +28,7 @@ export function ProgressionObjectives({ teamObjective, roleObjectives, gamesCoun
         <p className="objectives-eyebrow">Cible collective</p>
         <p className="objectives-team-target">{readableTarget(teamObjective.target)}</p>
         <p className="objectives-current">Actuel <span>{analysisCopy(teamObjective.current)}</span></p>
-        <p className="objectives-checkpoint">À vérifier sur {Math.min(3, Math.max(1, gamesCount)) === 1 ? "la prochaine partie" : `les ${Math.min(3, gamesCount)} prochaines parties`}.</p>
+        <p className="objectives-checkpoint">À vérifier sur les 3 prochaines parties.</p>
       </div>
     </div>
 
