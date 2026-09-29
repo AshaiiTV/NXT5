@@ -15,6 +15,7 @@ function match(id, result, allyGold, enemyGold, createdAt = "2026-07-31T12:00:00
     participants: [
       { team_key: "ALLY", role: "ADC", gold: allyGold, damage: 20000, vision: 20, deaths: 2, cs: 210, kp: 0.65 },
       { team_key: "ENEMY", role: "ADC", gold: enemyGold, damage: 18000, vision: 18, deaths: 4, cs: 190, kp: 0.5 },
+      ...["ALLY", "ENEMY"].flatMap((team_key) => ["TOP", "JGL", "MID", "SUP"].map((role) => ({ team_key, role, gold: 0, damage: 0, vision: 0, deaths: 0 }))),
     ],
   };
 }

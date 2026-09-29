@@ -1,3 +1,6 @@
+import { MILESTONE_TOLERANCE_MS } from "../../../shared/timeline-milestones.js";
+import { assetProxyUrl } from "../../utils/matches.js";
+import { availableNumber } from "../../utils/statistics.js";
 import { buildGamePublicationSnapshot } from "../../../shared/publications/game-publication.js";
 import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumeric, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
@@ -322,7 +325,7 @@ function objectiveEventIcon(event) {
   if (label.includes("cloud")) return "C";
   if (label.includes("chemtech")) return "CH";
   if (label.includes("hextech")) return "HX";
-  return "D";
+  return objectiveEventType(event) === "dragon" ? "D" : "?";
 }
 
 function objectiveDragonElementKey(event) {
@@ -355,7 +358,7 @@ function objectiveTeamKeyForSide(match, side) {
   if (exact) return exact;
   const allySide = String(match?.side || "").toUpperCase().startsWith("BLUE") ? "BLUE" : String(match?.side || "").toUpperCase().startsWith("RED") ? "RED" : "";
   if (allySide) return side === allySide ? "ALLY" : "ENEMY";
-  return side === "BLUE" ? "ALLY" : "ENEMY";
+  return "";
 }
 
 function objectiveDragonElement(event) {
@@ -441,12 +444,12 @@ const OBJECTIVE_ICON_SOURCES = {
 };
 
 function ObjectivePictogram({ type, className = "", fallback = "O" }) {
-  const sources = OBJECTIVE_ICON_SOURCES[type] || OBJECTIVE_ICON_SOURCES.dragon;
+  const sources = OBJECTIVE_ICON_SOURCES[type] || [];
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [type]);
   const source = sources[sourceIndex];
   if (!source) return <ObjectiveFallbackIcon type={type} fallback={fallback} className={className} />;
-  return <img src={source} alt="" className={cx("object-contain drop-shadow-[0_0_10px_rgba(255,255,255,.2)]", className)} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
+  return <img src={assetProxyUrl(source)} alt="" className={cx("object-contain drop-shadow-[0_0_10px_rgba(255,255,255,.2)]", className)} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
 function ObjectiveFallbackIcon({ type, fallback = "O", className = "" }) {
@@ -531,17 +534,18 @@ function ObjectiveHud({ match, compact = false }) {
         <ol className="flex w-max min-w-full items-stretch px-2 py-1">
           {events.map((event, index) => {
             const isRed = event.side === "RED";
+            const isBlue = event.side === "BLUE";
             return <li key={`${event.timestamp}-${index}`} className="flex shrink-0 items-center">
-              <div className={cx("relative flex min-h-[4rem] w-[10.5rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[10.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : "border-cyan-200/12 bg-cyan-400/[0.045]")}>
-                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full", isRed ? "bg-rose-300/70" : "bg-cyan-200/70")} />
+              <div className={cx("relative flex min-h-[4rem] w-[10.5rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[10.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : isBlue ? "border-cyan-200/12 bg-cyan-400/[0.045]" : "border-white/10 bg-white/[0.025]")}>
+                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full", isRed ? "bg-rose-300/70" : isBlue ? "bg-cyan-200/70" : "bg-slate-400/70")} />
                 <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(objectiveEventTone(event)))}>
                   <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-center gap-1">
                     <time className="shrink-0 text-xs font-black tabular-nums text-white">{event.time}</time>
-                    <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-rose-300" : "bg-cyan-200")} />
-                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-rose-100/75" : "text-cyan-100/75")}>{isRed ? "Rouge" : "Bleu"}</span>
+                    <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-rose-300" : isBlue ? "bg-cyan-200" : "bg-slate-400")} />
+                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-rose-100/75" : isBlue ? "text-cyan-100/75" : "text-slate-300")}>{isRed ? "Rouge" : isBlue ? "Bleu" : "—"}</span>
                   </span>
                   <span className="mt-0.5 block text-xs font-black leading-4 text-white">{event.label}</span>
                 </span>
@@ -568,7 +572,8 @@ function timelineFrames(match) {
 function teamKeyFromTeamId(match, teamId) {
   const allyTeamId = objectiveTeamId(match, "ALLY");
   const enemyTeamId = objectiveTeamId(match, "ENEMY");
-  if (Number(teamId || 0) === allyTeamId) return "ALLY";
+  if (![100, 200].includes(Number(teamId))) return "";
+  if (Number(teamId) === allyTeamId) return "ALLY";
   if (Number(teamId || 0) === enemyTeamId) return "ENEMY";
   return "";
 }
@@ -587,7 +592,7 @@ function championKillEvents(match) {
     const victimTeam = teamKeyFromTeamId(match, teams.get(victimId));
     const victim = rowByParticipantId(match, victimId);
     const killer = rowByParticipantId(match, killerId);
-    return { ...event, killerId, victimId, killerTeam, victimTeam, victim, killer, timestamp: Number(event.timestamp || frame.timestamp || 0), time: formatCountdown(Math.floor(Number(event.timestamp || frame.timestamp || 0) / 1000)), shutdown: Number(event.shutdownBounty || event.bounty || 0) };
+    return { ...event, killerId, victimId, killerTeam, victimTeam, victim, killer, timestamp: Number(event.timestamp || frame.timestamp || 0), time: formatCountdown(Math.floor(Number(event.timestamp || frame.timestamp || 0) / 1000)), shutdown: availableNumber(event.shutdownBounty) };
   })).sort((a, b) => a.timestamp - b.timestamp);
 }
 
@@ -595,16 +600,25 @@ function buildingEvents(match) {
   const teams = participantTeamMap(match);
   return timelineFrames(match).flatMap((frame) => (frame.events || []).filter((event) => event.type === "BUILDING_KILL").map((event) => {
     const killerId = Number(event.killerId || 0);
-    const teamKey = teamKeyFromTeamId(match, teams.get(killerId) || event.teamId);
-    return { ...event, teamKey: teamKey || (Number(event.teamId) === objectiveTeamId(match, "ALLY") ? "ENEMY" : "ALLY"), timestamp: Number(event.timestamp || frame.timestamp || 0), time: formatCountdown(Math.floor(Number(event.timestamp || frame.timestamp || 0) / 1000)), label: String(event.buildingType || "Tour").replace("TOWER_BUILDING", "Tour").replace(/_/g, " ") };
+    const killerTeam = teamKeyFromTeamId(match, teams.get(killerId));
+    const ownerTeam = teamKeyFromTeamId(match, event.teamId);
+    const teamKey = killerTeam || (ownerTeam === "ALLY" ? "ENEMY" : ownerTeam === "ENEMY" ? "ALLY" : "");
+    return { ...event, teamKey, timestamp: Number(event.timestamp || frame.timestamp || 0), time: formatCountdown(Math.floor(Number(event.timestamp || frame.timestamp || 0) / 1000)), label: String(event.buildingType || "Tour").replace("TOWER_BUILDING", "Tour").replace(/_/g, " ") };
   })).sort((a, b) => a.timestamp - b.timestamp);
 }
 
+function frameTeamGold(match, teamKey, frame) {
+  const rows = teamRows(match, teamKey);
+  const ids = rows.map(rowParticipantId);
+  if (!frame?.participantFrames || rows.length !== 5 || ids.some((id) => !id) || new Set(ids).size !== 5) return null;
+  const values = ids.map((id) => availableNumber(frame.participantFrames[String(id)]?.totalGold));
+  return values.every(Number.isFinite) ? values.reduce((a, b) => a + b, 0) : null;
+}
+
 function teamGoldAtMinute(match, teamKey, minute) {
-  const frame = timelineFrames(match).find((item) => Number(item.timestamp || 0) >= minute * 60 * 1000);
-  const ids = new Set(teamRows(match, teamKey).map(rowParticipantId).filter(Boolean));
-  if (!frame || !ids.size) return null;
-  return Object.entries(frame.participantFrames || {}).reduce((total, [id, data]) => ids.has(Number(id)) ? total + Number(data.totalGold || 0) : total, 0);
+  const target = minute * 60000;
+  const frame = timelineFrames(match).find((item) => item.timestamp >= target && item.timestamp <= target + MILESTONE_TOLERANCE_MS);
+  return frameTeamGold(match, teamKey, frame);
 }
 
 function timelineStatus(match) {
@@ -660,13 +674,13 @@ function roleDiffRows(match) {
 function timelineTeamLabel(teamKey, teamName = "Notre équipe") {
   if (teamKey === "ALLY") return String(teamName || "Notre équipe").trim() || "Notre équipe";
   if (teamKey === "ENEMY") return "Adversaire";
-  return "Contesté";
+  return teamKey === "NEUTRAL" ? "Contesté" : "—";
 }
 
 function timelineTeamTone(teamKey) {
   if (teamKey === "ALLY") return "cyan";
   if (teamKey === "ENEMY") return "red";
-  return "yellow";
+  return teamKey === "NEUTRAL" ? "yellow" : "slate";
 }
 
 function formatSignedShort(value) {
@@ -682,16 +696,10 @@ function timelinePhaseMeta(timestamp) {
 }
 
 function teamGoldAtTimestamp(match, teamKey, timestamp) {
-  const frames = timelineFrames(match);
-  const ids = new Set(teamRows(match, teamKey).map(rowParticipantId).filter(Boolean));
-  if (!frames.length || !ids.size) return null;
-  const target = Number(timestamp || 0);
-  let frame = frames[0];
-  for (const item of frames) {
-    if (Number(item.timestamp || 0) <= target) frame = item;
-    else break;
-  }
-  return Object.entries(frame?.participantFrames || {}).reduce((total, [id, data]) => ids.has(Number(id)) ? total + Number(data.totalGold || 0) : total, 0);
+  // Event cards use the most recent past frame; never borrow a future frame.
+  const frame = timelineFrames(match).filter((item) => Number.isFinite(item.timestamp) && item.timestamp <= timestamp)
+    .sort((a, b) => b.timestamp - a.timestamp)[0];
+  return frameTeamGold(match, teamKey, frame);
 }
 
 function timelineGoldDiff(match, timestamp) {
@@ -751,7 +759,7 @@ function importantBuildingEvents(match) {
   return events.filter((event, index) => {
     const type = `${event.buildingType || ""} ${event.towerType || ""}`.toUpperCase();
     return index === 0 || index < 4 || type.includes("INHIBITOR") || type.includes("NEXUS");
-  }).slice(0, 6);
+  });
 }
 
 function timelineMilestones(match, teamName) {
@@ -771,7 +779,7 @@ function timelineMilestones(match, teamName) {
     context: "Pression structure",
     detail: String(event.towerType || event.laneType || "").replace(/_/g, " ") || "Tour détruite",
   }));
-  return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0)).slice(0, 18);
+  return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
 }
 
 function MatchTimelineReview({ match, teamName }) {
@@ -826,7 +834,7 @@ function TimelineGoldCheckpoint({ minute, diff }) {
   const missing = diff === null;
   return <div className={cx("rounded-2xl border px-3 py-2", missing ? tone("slate") : tone(diffTone(diff)))}>
     <p className="text-xs font-semibold opacity-80">{minute} min</p>
-    <p className="mt-1 text-lg font-black leading-none text-white">{missing ? "N/A" : formatSignedShort(diff)}</p>
+    <p className="mt-1 text-lg font-black leading-none text-white">{missing ? "—" : formatSignedShort(diff)}</p>
     <p className="mt-1 break-words text-xs font-semibold opacity-75">écart or</p>
   </div>;
 }
@@ -853,9 +861,10 @@ function TimelineEventCard({ event, index, kills, match, teamName }) {
   const score = killScoreAtTimestamp(kills, event.timestamp);
   const gold = timelineGoldDiff(match, event.timestamp);
   const enemy = event.teamKey === "ENEMY";
+  const unknown = !["ALLY", "ENEMY", "NEUTRAL"].includes(event.teamKey);
   const neutral = event.teamKey === "NEUTRAL";
-  const frame = neutral ? "border-amber-200/18 bg-amber-300/[0.055]" : enemy ? "border-rose-300/18 bg-rose-500/[0.055]" : "border-cyan-300/18 bg-cyan-400/[0.055]";
-  const rail = neutral ? "bg-amber-200" : enemy ? "bg-rose-200" : "bg-cyan-200";
+  const frame = unknown ? "border-white/10 bg-white/[0.025]" : neutral ? "border-amber-200/18 bg-amber-300/[0.055]" : enemy ? "border-rose-300/18 bg-rose-500/[0.055]" : "border-cyan-300/18 bg-cyan-400/[0.055]";
+  const rail = unknown ? "bg-slate-400" : neutral ? "bg-amber-200" : enemy ? "bg-rose-200" : "bg-cyan-200";
   const kindLabel = event.kind === "objective" ? "Objectif" : event.kind === "fight" ? "Fight" : "Structure";
   return <article className={cx("games-timeline-event", frame)}>
     <div className={cx("absolute inset-y-3 left-0 w-1 rounded-r-full ", rail)} />
@@ -872,7 +881,7 @@ function TimelineEventCard({ event, index, kills, match, teamName }) {
         {event.detail && event.detail !== event.context && <p className="mt-1 text-xs leading-5 text-slate-400">{event.detail}</p>}
         <div className="mt-3 grid grid-cols-3 gap-1.5">
           <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Kills</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Gold</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "N/A" : formatSignedShort(gold)}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Gold</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "—" : formatSignedShort(gold)}</span></span>
           <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Type</span><span className="break-words text-xs font-black text-white">{kindLabel}</span></span>
         </div>
       </div>
@@ -889,8 +898,9 @@ function TimelinePhaseColumn({ phase, kills, match, teamName }) {
       </div>
       <Badge tone={phase.toneName}>{phase.events.length}</Badge>
     </div>
+    {phase.events.length > 6 && <p className="mb-2 text-xs text-slate-400">6 moments affichés sur {phase.events.length} dans cette phase.</p>}
     <div className="space-y-2">
-      {phase.events.length ? phase.events.map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
+      {phase.events.length ? phase.events.slice(0, 6).map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
     </div>
   </section>;
 }
