@@ -11,7 +11,6 @@ Premier lot de l’audit de nettoyage : fichiers obsolètes, documentation d’e
 | `tools/nxt5-importer.mjs` et les scripts `local-importer` / `local-import-export` | Ancien exportateur HTTP local qui demandait une clé Riot, remplacé par NXT5 Importer. |
 | `public/og-image.png` | Remplacée par `public/og-nxt5.png` (`src/seo/metadata.js`). |
 | `public/favicon.png`, `public/favicon-512x512.png` | Copies identiques d’`android-chrome-512x512.png`, référencées nulle part. |
-| `importer-app/assets/nxt5-logo.png`, `importer-app/assets/nxt5-wordmark.png` | Référencés nulle part, mais embarqués dans chaque build Electron (`assets/**/*`), soit environ 2 Mo. |
 
 ## Mis à jour
 
@@ -28,6 +27,7 @@ Premier lot de l’audit de nettoyage : fichiers obsolètes, documentation d’e
 - `public/assets/objectives/herald.png` : non référencé, mais c’est l’icône locale de secours absente de la liste du Héraut dans `GameWorkspace.jsx`, contrairement aux autres objectifs. À rebrancher plutôt qu’à supprimer.
 - `public/android-chrome-192x192.png` et `-512x512.png` : à déclarer dans le manifest (lot « cohérence des textes »).
 - `importer-app/assets/nxt5-mark.png` : dessin complet propre à l’Importer, distinct du symbole web abandonné.
+- `importer-app/assets/nxt5-logo.png` et `nxt5-wordmark.png` : référencés nulle part (environ 2 Mo embarqués dans chaque build Electron), mais toute modification de `importer-app/` relance la publication de l’Importer. À retirer avec la prochaine version de l’Importer.
 - Double vérification web dans `build-importer.yml` : elle conditionne la publication des versions de l’Importer.
 - Rapports datés : laissés à leur place pour ne pas casser leurs liens ; le sommaire les rend accessibles.
 
