@@ -1,54 +1,60 @@
-# NXT5 — Netlify + Neon
+# NXT5
 
-Espace de travail des équipes et coachs League of Legends : analyse des parties, débriefs, préparation des champions et organisation des entraînements.
+Espace de travail des équipes et coachs League of Legends : analyse des parties, débriefs, préparation des champions et organisation des entraînements. Site public : [nxt5.org](https://nxt5.org).
 
-## Présentation publique et référencement
+La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation et l’historique des travaux.
 
-L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[audit SEO du 24 septembre 2026](docs/audit-seo-2026-09-24.md) documente l’état initial et le plan de suivi de l’acquisition. Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
+## Stack
+
+- React 18 + Vite + Tailwind CSS, pages publiques pré-rendues (`tools/prerender.mjs`)
+- Netlify Hosting et Netlify Functions (TypeScript)
+- Neon PostgreSQL, migrations versionnées dans `database/`
+- Auth par cookie HttpOnly + sessions en base, connexions Google, Discord et Apple optionnelles
+- Riot Match-V5 API côté serveur
+- Resend pour les e-mails, OpenAI pour l’assistant intégré
+- Bot Discord (commandes `/nxt` et publications d’équipe)
+- NXT5 Importer, application desktop Electron dans `importer-app/`
+- Vitest pour les tests
+
+## Installation locale
+
+Prérequis : Node 24 (`>=24.15.0 <25`) et la [CLI Netlify](https://docs.netlify.com/cli/get-started/), utilisée par `npm run dev`.
+
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Avant toute pull request, lancer le contrôle complet :
+
+```bash
+npm run verify
+```
+
+Il enchaîne TypeScript, les tests et le build. Les changements arrivent sur `main` uniquement par pull request.
 
 ## Sécurité
 
 La [politique de sécurité](SECURITY.md) précise les versions maintenues, le signalement privé d’une vulnérabilité, les contrôles d’exploitation et la réponse aux incidents. Pour un signalement sensible, suivre la [page Contact](https://nxt5.org/contact) et joindre l’équipe en message privé.
 
-## Stack
-
-- React + Vite
-- Tailwind CSS
-- Netlify Hosting
-- Netlify Functions
-- Neon PostgreSQL
-- Riot Match-V5 API côté serveur
-- Auth par cookie HttpOnly + sessions en DB
-
-## Installation locale
-
-```bash
-npm install
-npm run dev
-```
-
-## Passage à GitHub
-
-Lis `README_GIT.md` si tu veux connecter NXT5 à GitHub puis à Netlify.
-Le dépôt est préparé pour éviter d'envoyer les secrets (`.env`, clés Riot, URL Neon).
+Le front ne stocke aucune donnée métier en localStorage. Les données importantes passent par Neon. La clé Riot n’est jamais exposée côté navigateur.
 
 ## Déploiement Netlify
 
-Tu peux uploader ce dossier sur Netlify ou le connecter à GitHub.
-
-Netlify doit utiliser :
+La production est publiée par Netlify à chaque fusion dans `main`. La configuration est dans `netlify.toml` (Node 24) :
 
 ```txt
-Build command (production): npm run verify && npm run db:migrate
+Build command (production): npm run verify && npm audit --audit-level=moderate && npm run db:migrate
 Publish directory: dist
 Functions directory: netlify/functions
 ```
 
-Le fichier `netlify.toml` est déjà configuré avec Node 24. Les contrôles TypeScript, tests et build doivent réussir avant les migrations et la publication.
+Les contrôles TypeScript, tests, build et audit des dépendances doivent réussir avant les migrations et la publication.
 
-## Variables d'environnement Netlify
+## Variables d’environnement Netlify
 
-Dans Netlify : Site configuration → Environment variables.
+Dans Netlify : Site configuration → Environment variables. La liste complète et commentée est dans [`.env.example`](.env.example). Les principales :
 
 ```txt
 DATABASE_URL=postgresql://...
@@ -56,75 +62,52 @@ RIOT_API_KEY=RGAPI-...
 SESSION_SECRET=une_phrase_longue_random_64_caracteres_minimum
 APP_ENV=production
 RIOT_PROFILE_SYNC_MAX_MATCHES=300
-PUBLIC_SITE_URL=https://ton-site.netlify.app
+PUBLIC_SITE_URL=https://nxt5.org
 RESEND_API_KEY=re_...
 RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 ```
 
 `DATABASE_URL` vient de Neon et doit être disponible pour les fonctions. Pour les migrations, donne accès au contexte **production / Builds** à `MIGRATION_DATABASE_URL` (ou à `DATABASE_URL` en son absence). Ne partage pas les identifiants de production avec les Deploy Previews.
-`RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton "Analyser profils" recalcule les champions joués sur la saison courante.
+`RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton « Analyser profils » recalcule les champions joués sur la saison courante.
+`PUBLIC_SITE_URL` est facultative ; si elle est définie, elle doit valoir exactement `https://nxt5.org`, sinon le build échoue pour ne pas publier de mauvaise URL canonique.
 `RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
 
 ## Neon
 
-Après `npm ci`, initialise ou mets à jour une base avec la connexion appropriée dans l'environnement :
+Après `npm ci`, initialise ou mets à jour une base avec la connexion appropriée dans l’environnement :
 
 ```txt
 npm run db:migrate
 ```
 
-Cette commande applique le schéma et les migrations versionnées dans une transaction avec verrou PostgreSQL. Elle s'exécute automatiquement avant la publication Netlify en production. Les fonctions ne modifient plus le schéma pendant une requête. Voir [le guide des migrations](database/MIGRATIONS.md).
+Cette commande applique le schéma et les migrations versionnées dans une transaction avec verrou PostgreSQL. Elle s’exécute automatiquement avant la publication Netlify en production. Les fonctions ne modifient plus le schéma pendant une requête. Voir [le guide des migrations](database/MIGRATIONS.md).
 
-## Validation commerciale avant paiement
+Pour créer un compte, les fonctions Netlify doivent recevoir `DATABASE_URL` et `npm run db:migrate` doit avoir réussi sur cette base. Sans le marqueur de migration attendu, les fonctions répondent temporairement 503.
 
-La première phase du [plan de financement](docs/plan-financement.md) est préparée en accès administrateur uniquement : `/tarifs` permet de prévisualiser les offres envisagées et le formulaire, et `/admin/demandes-acces` permet de suivre les demandes. Les deux pages sont accessibles depuis le tableau de bord d’administration, sans lien public. La soumission comme la gestion des demandes exigent un compte administrateur côté serveur.
+Le déploiement de production effectue aussi la [réécriture unique des reviews historiques](docs/review-backfill.md), avec sauvegarde des anciennes versions et conservation des notes.
 
-La proposition de lancement comporte deux cartes : **Découverte, 14 jours d’accès complet sans carte bancaire**, et **Pass Équipe à 9,90 € TTC/mois/équipe**, résiliable à tout moment, avec les mêmes fonctions et jusqu’à 15 membres. Le prix reste une hypothèse à valider. La grille, le formulaire et les choix manuels utilisent ces deux formules et leurs mêmes libellés tarifaires. Saison, Structure, annuel et fondateur sont retirés des choix proposés ; aucun parcours de contact multi-équipe n’est affiché. Les anciennes demandes commerciales et leur historique sont conservés.
+## Présentation publique et référencement
 
-La décision du 9 septembre 2026 prévoit **14 jours d’accès complet à tous les outils, puis le Pass Équipe pour continuer à utiliser NXT5**. L’essai et le Pass incluent imports, reviews, exports produit, tendances, compositions, Champion Pool, planning, statistiques, roster et profils joueurs. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu. Les exports de données personnelles, la confidentialité, la sécurité et la gestion du compte restent accessibles indépendamment du Pass.
-
-Les fonctions enregistrent les demandes dans Neon ; aucun essai d’équipe, paiement, e-mail automatique ou quota commercial n’est activé par ce formulaire. **Les abonnements ne sont pas lancés : aucune fonction n’est bloquée aujourd’hui**, même sans abonnement. Le futur masquage flouté et son message Pass sont préparés avec `SUBSCRIPTION_RESTRICTIONS_ENABLED = false` dans `src/app/pass-access.js`. Ils ne constituent pas un contrôle d’accès serveur. Voir [le périmètre des fonctions Pass](docs/pass-feature-access.md) pour les règles, la prévisualisation et les conditions d’une future activation.
-
-La migration additive `database/migrations/20260908_access_requests.sql` est incluse dans `npm run db:migrate`. Le déploiement de production existant l’appliquera avant publication. Aucune variable Stripe n’est nécessaire ; la connexion Neon et la configuration d’administration existantes suffisent. La purge planifiée supprime quotidiennement les demandes de plus de six mois.
-
-Voir [le guide de validation commerciale](docs/validation-commerciale.md) pour la recette, les entretiens et les critères de passage au paiement.
-
-## Abonnements manuels des profils
-
-Dans **Profils et abonnements** (`/admin/abonnements`), l’administrateur attribue désormais uniquement **Découverte — 14 jours** ou **Pass Équipe**. Découverte peut rester préparée sans dates, au statut `pending`, ou être démarrée explicitement pour 14 × 24 heures ; le serveur calcule son échéance. Aucun essai ne démarre automatiquement pour les profils existants ou les nouveaux comptes.
-
-Les anciennes attributions Saison et Structure sont converties en Pass Équipe en conservant leurs dates, notes et retraits. La conversion est auditée, incrémente la révision et préserve l’historique antérieur. Le titulaire retrouve la formule et son statut actualisés dans son compte. Une attribution expirée, programmée, retirée ou non démarrée n’a aucun plan effectif ; elle ne rétablit pas un gratuit permanent.
-
-Ces attributions restent personnelles : elles ne facturent pas une équipe et ne changent aucun accès avant le lancement. Voir [le guide des abonnements manuels](docs/abonnements-manuels.md) pour l’administration, les migrations et le contrat des API.
+L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[audit SEO du 24 septembre 2026](docs/audit-seo-2026-09-24.md) documente l’état initial et le plan de suivi de l’acquisition. Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
 
 ## Test rapide du suivi d’équipe
 
-1. Crée un compte.
-2. Crée ou sélectionne une team.
-3. Ajoute un joueur avec son Riot ID exact, exemple : `Ashaii#8942`.
-4. Importe une game où ce joueur était présent, exemple : `EUW1_7123456789`.
-5. Va dans Reviews, Champion Pool, Compos Types et Rapports.
-
-## Import local NXT5
-
-Si tu veux préparer un import sans coller de clé Riot dans un outil local, tu peux générer un JSON complet depuis un Game ID.
-
-Colle un Game ID du type `EUW1_7123456789`. L'outil demande les données à NXT5 côté serveur et génère un fichier `nxt5-...json` contenant le match Riot complet. Il ne demande aucune clé Riot.
-
-Dans NXT5 : Intégration → Importer un fichier NXT5 local → Choisir le JSON.
-
-NXT5 importe ensuite ce JSON local sans avoir besoin de relire Riot.
+1. Crée un compte et vérifie ton adresse e-mail.
+2. Dans **Équipe**, crée ou rejoins une équipe.
+3. Ajoute un joueur avec son Riot ID exact, par exemple `Pseudo#EUW`.
+4. Exporte une partie de ce joueur avec NXT5 Importer, puis dans **Parties**, choisis **Importer une partie** et charge le fichier JSON.
+5. Ouvre la partie, puis consulte **Débriefs**, **Analyses** et **Draft**.
 
 ## Application NXT5 Importer
 
 Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.3** pour Windows, Mac Intel et Mac Apple Silicon.
 
-1. Lancez le `.exe` Windows ou ouvrez `NXT5 Importer.app` après extraction du zip Mac adapté à votre processeur.
-2. Collez le numéro de game ou un ID complet comme `EUW1_7861632138`. Vérifiez la région.
-3. Cliquez sur **Exporter la game**, suivez la progression et choisissez l’emplacement du fichier.
-4. Dans NXT5, ouvrez **Intégration → Importer un fichier NXT5 local** pour ajouter le JSON à votre équipe.
+1. Lance le `.exe` Windows ou ouvre `NXT5 Importer.app` après extraction du zip Mac adapté à ton processeur.
+2. Colle le numéro de la partie ou un ID complet comme `EUW1_7861632138`. Vérifie la région.
+3. Clique sur **Exporter la game**, suis la progression et choisis l’emplacement du fichier.
+4. Dans NXT5, ouvre **Parties → Importer une partie** et charge le JSON pour l’ajouter à ton équipe.
 
-L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvrez le client et son historique. Si le jeu est installé ailleurs, choisissez son dossier dans **Paramètres**. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
+L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvre le client et son historique. Si le jeu est installé ailleurs, choisis son dossier dans **Paramètres**. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
 
 Les 30 derniers exports sont accessibles dans **Exports récents** : recherche, affichage dans Finder/Explorateur et réexport. Le récapitulatif précise la présence de la timeline ; son absence n’empêche pas l’export du match. Les fichiers sont enregistrés atomiquement et restent sur cet appareil jusqu’à leur import manuel dans NXT5. L’application nécessite un match de deux équipes de cinq joueurs, conformément au format du site.
 
@@ -146,23 +129,19 @@ La fenêtre d’enregistrement reprend le dossier du dernier export réussi, mê
 
 Voir [les changements 0.3.3](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
 
-## Important
-
-Le front ne stocke aucune donnée métier en localStorage. Les données importantes passent par Neon. La clé Riot n'est jamais exposée côté navigateur.
-
-
 ## Commandes du bot Discord
 
 Le bot propose cinq commandes visibles : `/nxt help`, `/nxt lier`, `/nxt profil`, `/nxt voir` et `/nxt connecter`. Après la liaison personnelle Discord–NXT5, l’équipe est reconnue grâce au salon de commandes qui lui est réservé ; `/nxt voir` rassemble les consultations courantes. Le [guide de développement et d’activation](docs/discord-bot-commandes.md) décrit les droits, les rappels/bilans planifiés et l’ordre déploiement serveur → enregistrement de la commande Discord. Les contrôles locaux n’attestent pas un enregistrement ou un envoi réel.
 
 Le responsable commence par `/nxt lier` avant `/nxt connecter` et génère le code avec ce même compte NXT5. `/nxt connecter` exige d’être propriétaire ou capitaine de l’équipe visée et de disposer de **Gérer le serveur** ou **Administrateur** dans Discord. Chaque équipe configure son propre salon de commandes et, si nécessaire, les rôles Discord autorisés. Partager un serveur Discord ne donne aucun accès aux autres équipes NXT5.
 
-## Connexion à la base de données
+## Offres et abonnements (en préparation)
 
-Pour créer un compte, les fonctions Netlify doivent recevoir `DATABASE_URL` et `npm run db:migrate` doit avoir réussi sur cette base. Sans le marqueur de migration attendu, les fonctions répondent temporairement 503.
+**Les abonnements ne sont pas lancés : aucune fonction n’est bloquée aujourd’hui.** `/tarifs` et `/admin/demandes-acces` sont des prévisualisations réservées à l’administrateur plateforme, sans lien public ni paiement.
 
-Le déploiement de production effectue aussi la [réécriture unique des reviews historiques](docs/review-backfill.md), avec sauvegarde des anciennes versions et conservation des notes.
+La proposition de lancement comporte deux formules pour une équipe de 15 membres maximum : **Découverte**, 14 jours d’accès complet sans carte bancaire, puis **Pass Équipe** à 9,90 € TTC/mois/équipe, résiliable à tout moment. Le bot Discord est réservé au Pass Équipe (décision du 22 septembre 2026). L’administrateur peut attribuer manuellement l’une des deux formules à un profil depuis `/admin/abonnements`, sans effet sur les accès avant le lancement.
 
+Détails : [validation commerciale](docs/validation-commerciale.md), [périmètre des fonctions Pass](docs/pass-feature-access.md), [abonnements manuels](docs/abonnements-manuels.md) et [plan de financement](docs/plan-financement.md).
 
 ## Statistiques de fréquentation et cookies
 

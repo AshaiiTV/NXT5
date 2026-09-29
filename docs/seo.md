@@ -14,7 +14,7 @@ node tools/generate-social-card.mjs
 
 ## Construction du HTML public
 
-`npm run build` exécute Vite puis `tools/prerender.mjs`. Dix pages publiques sont produites depuis les mêmes composants React que l’application : accueil, fonctionnalités, contact, réseaux, soutien, mentions légales, confidentialité, cookies, conditions et règlement. Leur texte, leurs liens et leurs styles sont disponibles avant JavaScript. Aucune donnée de compte ou d’équipe n’est lue pour ce rendu.
+`npm run build` exécute Vite puis `tools/prerender.mjs`. Les pages publiques déclarées dans `src/seo/metadata.js` (treize au 29 septembre 2026) sont produites depuis les mêmes composants React que l’application : accueil, fonctionnalités, démonstration, deux guides, contact, réseaux, soutien, mentions légales, confidentialité, cookies, conditions et règlement. Leur texte, leurs liens et leurs styles sont disponibles avant JavaScript. Aucune donnée de compte ou d’équipe n’est lue pour ce rendu.
 
 Le navigateur conserve ce contenu jusqu’au chargement de l’application publique. Les routes de travail privées gardent l’écran de chargement partagé. Les pages publiques Réseaux et Soutien restent publiques pour les comptes connectés.
 
@@ -25,7 +25,7 @@ Le JSON-LD décrit le projet NXT5, le site et les pages avec leur fil d’Ariane
 ## Routage et indexation
 
 - Les fichiers HTML publics utilisent les Pretty URLs de Netlify, sans extension dans les liens et canonical.
-- Le build crée un véritable `robots.txt` texte et un `sitemap.xml` contenant les dix URL publiques.
+- Le build crée un véritable `robots.txt` texte et un `sitemap.xml` contenant toutes les URL publiques de `PUBLIC_METADATA`.
 - Les pages d’authentification, les liens à jeton et les routes de travail sont dirigés vers `app-shell.html`, marqué `noindex`. Leur protection effective reste l’authentification serveur ; `noindex` n’est pas un contrôle d’accès.
 - Les routes absentes reçoivent une réponse 404 avec la vraie page « Page introuvable ». Les fichiers statiques et Netlify Functions conservent leur routage.
 - `_redirects` et `_headers` sont générés dans `dist`. Ne pas réintroduire un fallback global `/* /index.html 200` dans `public/_redirects` ou `netlify.toml`.
