@@ -125,10 +125,10 @@ export default async function handler(request: Request, context: Context): Promi
           invalid('Les rôles doivent être distincts pour chaque côté de la partie.');
         }
       }
-      const allies = final.filter(p => p.team_key === 'ALLY');
-      if (allies.some(p => !p.player_id || !validPlayerIds.has(p.player_id))) invalid('Chaque allié doit être lié à un profil de jeu de l’équipe, hors staff.');
-      const playerIds = allies.map(p => p.player_id);
-      if (new Set(playerIds).size !== allies.length) invalid('Chaque allié doit être lié à un profil de jeu distinct.');
+      // An ally may stay unlinked (e.g. an unregistered substitute), but linked allies need distinct gameplay profiles.
+      const playerIds = final.filter(p => p.team_key === 'ALLY' && p.player_id).map(p => String(p.player_id));
+      if (playerIds.some(id => !validPlayerIds.has(id))) invalid('Chaque allié lié doit l’être à un profil de jeu de l’équipe, hors staff.');
+      if (new Set(playerIds).size !== playerIds.length) invalid('Chaque allié doit être lié à un profil de jeu distinct.');
       await sql.transaction(tx => [
         ...lockedMatchQueries(tx),
         tx`select id from match_participants where match_id = ${matchId} for update`,

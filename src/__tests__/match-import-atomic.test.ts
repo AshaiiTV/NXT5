@@ -1014,7 +1014,14 @@ describe('cross audit backend regressions B1/B2/B5/B6/B7/B8/B9/N1', () => {
     await expect(query("insert into reports(team_id,title,content,source) values($1,'Bad','Bad','other')", [teamId])).rejects.toMatchObject({ code: '23514' });
   });
 
-  it.each(['duplicate-role', 'duplicate-profile', 'staff', 'foreign-participant', 'null-profile'])('B7 rejects %s before any write', async kind => {
+  it('B7 keeps allowing an unlinked ally (unregistered substitute)', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const ally = (await storedMatch()).participants.find(p => p.team_key === 'ALLY');
+    expect((await submit(manageMatches, { action: 'roles', matchId: match.id, roles: { [ally.id]: { role: ally.role, playerId: null } } })).status).toBe(200);
+    expect((await query('select player_id from match_participants where id=$1', [ally.id]))[0].player_id).toBeNull();
+  });
+
+  it.each(['duplicate-role', 'duplicate-profile', 'staff', 'foreign-participant'])('B7 rejects %s before any write', async kind => {
     const match = await persistAnalyzedMatch(importArgs());
     const before = await storedMatch();
     const allies = before.participants.filter(p => p.team_key === 'ALLY');
@@ -1022,7 +1029,6 @@ describe('cross audit backend regressions B1/B2/B5/B6/B7/B8/B9/N1', () => {
     let assignments: any = { [a.id]: { role: a.role, playerId: a.player_id } };
     if (kind === 'duplicate-role') assignments[a.id].role = b.role;
     if (kind === 'duplicate-profile') assignments[a.id].playerId = b.player_id;
-    if (kind === 'null-profile') assignments[a.id].playerId = null;
     if (kind === 'foreign-participant') assignments = { [categoryId]: 'TOP' };
     if (kind === 'staff') await query("update players set role='COACH' where id=$1", [a.player_id]);
     expect((await submit(manageMatches, { action: 'roles', matchId: match.id, roles: assignments })).status).toBe(400);
@@ -1074,6 +1080,8 @@ describe('cross audit backend regressions B1/B2/B5/B6/B7/B8/B9/N1', () => {
     expect((await submit(manageMatches, { matchId: match.id, categoryIds: [categoryId, nextCategoryId] })).status).toBe(409);
     expect((await query('select category_ids from matches where id=$1', [match.id]))[0].category_ids).toEqual([categoryId]);
     expect(await query("select * from audit_logs where action='matches.update'")).toHaveLength(0);
+  });
+});
 describe('canonical champion names on import', () => {
   it('groups display names and Riot IDs in the champion pool without rewriting the raw file', async () => {
     for (const names of [['Wukong', 'Lee Sin'], ['MonkeyKing', 'LeeSin']]) {
