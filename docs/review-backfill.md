@@ -11,6 +11,7 @@ L’opération `automatic-review-v3-20260908` enregistre l’analyse complète d
 - Seuls `content` et `updated_at` changent. Les titres, auteurs, équipes et liens aux games restent identiques.
 - Des verrous empêchent la réécriture de remplacer une note concurrente avec une version périmée. Un conflit non résolu entraîne l’annulation de la transaction.
 - Les reviews sans sources complètes et celles dépassant les limites de l’éditeur restent intactes. Les motifs figurent dans le bilan de l’opération.
+- Ces copies temporaires (rapport original, métadonnées, contenu original et réécrit) expirent 30 jours après `backed_up_at`. La fonction Netlify `review-backfill-cleanup` les purge chaque jour à 03:55 UTC ; une table absente est ignorée. Une modification ultérieure du débrief ne renouvelle pas ce délai.
 - Les sauvegardes suivent la suppression de leur review ou de leur équipe grâce aux clés étrangères avec suppression en cascade.
 
 ## Vérification
@@ -21,4 +22,4 @@ Le bilan durable se trouve dans `nxt5_review_backfill_runs` pour la clé de l’
 
 ## Restauration ciblée
 
-En cas de besoin, une intervention sur la base peut restaurer `original_content` depuis la sauvegarde d’une review. Comparer d’abord le contenu actuel à `rewritten_content` et verrouiller la ligne dans une transaction : s’ils diffèrent, des modifications ont eu lieu après la réécriture et doivent être conservées. Ne pas supprimer le bilan global pour relancer l’opération sur les nouvelles notes.
+La restauration n’est possible que tant que la copie temporaire n’a pas été purgée. En cas de besoin, une intervention sur la base peut restaurer `original_content` depuis la sauvegarde d’une review. Comparer d’abord le contenu actuel à `rewritten_content` et verrouiller la ligne dans une transaction : s’ils diffèrent, des modifications ont eu lieu après la réécriture et doivent être conservées. Ne pas supprimer le bilan global pour relancer l’opération sur les nouvelles notes.

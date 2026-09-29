@@ -1074,5 +1074,20 @@ describe('cross audit backend regressions B1/B2/B5/B6/B7/B8/B9/N1', () => {
     expect((await submit(manageMatches, { matchId: match.id, categoryIds: [categoryId, nextCategoryId] })).status).toBe(409);
     expect((await query('select category_ids from matches where id=$1', [match.id]))[0].category_ids).toEqual([categoryId]);
     expect(await query("select * from audit_logs where action='matches.update'")).toHaveLength(0);
+describe('canonical champion names on import', () => {
+  it('groups display names and Riot IDs in the champion pool without rewriting the raw file', async () => {
+    for (const names of [['Wukong', 'Lee Sin'], ['MonkeyKing', 'LeeSin']]) {
+      const args = importArgs();
+      args.gameId += names[0] === 'Wukong' ? '1' : '2';
+      args.match.info.participants[0].championName = names[0];
+      args.match.info.participants[1].championName = names[1];
+      args.laneAssignments.TOP = 'participant:1';
+      args.laneAssignments.JGL = 'participant:2';
+      await persistAnalyzedMatch(args);
+    }
+    const rows = (await database.pg.query("select champion, games from champion_pool where champion in ('MonkeyKing', 'LeeSin') order by champion")).rows;
+    expect(rows).toEqual([{ champion: 'LeeSin', games: 2 }, { champion: 'MonkeyKing', games: 2 }]);
+    const rawNames = (await storedMatch()).matches.map((match: any) => match.raw.info.participants[0].championName).sort();
+    expect(rawNames).toEqual(['MonkeyKing', 'Wukong']);
   });
 });

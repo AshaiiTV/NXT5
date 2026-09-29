@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import { createChampionCatalog } from "../src/network.js";
 
 // Exercise the shipped conversion helpers without launching Electron or registering IPC.
 const source = await fs.readFile(
@@ -15,7 +16,7 @@ const { lcuWinValue, localPosition, lcuToRiotMatch, csAtMinuteFromTimeline } =
   new Function(
     "catalog",
     `${helpers}; return { lcuWinValue, localPosition, lcuToRiotMatch, csAtMinuteFromTimeline };`,
-  )({ name: async (id) => `Champion ${id}` });
+  )({ name: async () => "Annie" });
 
 test("LCU result strings do not turn losses into wins", () => {
   for (const win of [false, "Fail", "false", 0, "0", undefined])
@@ -78,14 +79,14 @@ test("LCU conversion preserves numeric item/spell stats, ISO dates and derives t
   assert.equal(match.info.participants[0].damageDealtToTurrets, 123);
   assert.equal(match.info.participants[0].win, false);
   assert.equal(match.info.participants[0].teamPosition, "UTILITY");
-  assert.equal(match.info.participants[0].championName, "Champion 1");
+  assert.equal(match.info.participants[0].championName, "Annie");
 });
 
 test("CS milestones require the observed minute and never borrow an eleven-minute frame", () => {
   const timeline = {
     info: {
       frames: [
-        { timestamp: 660000, participantFrames: { 1: { minionsKilled: 99 } } },
+        { timestamp: 660000, participantFrames: { 1: { minionsKilled: 99, jungleMinionsKilled: 0 } } },
       ],
     },
   };
@@ -93,4 +94,34 @@ test("CS milestones require the observed minute and never borrow an eleven-minut
   assert.equal(csAtMinuteFromTimeline(timeline, 1, 20, 900), null);
   timeline.info.frames[0].timestamp = 600020;
   assert.equal(csAtMinuteFromTimeline(timeline, 1, 10, 1800), 99);
+});
+
+test("missing or non-finite CS components stay null and explicit zeros remain measured", () => {
+  for (const minute of [10, 20]) {
+    const frame = { timestamp: minute * 60000, participantFrames: { 1: {} } };
+    const timeline = { info: { frames: [frame] } };
+    for (const key of ["minionsKilled", "jungleMinionsKilled"]) {
+      for (const value of [undefined, null, NaN, Infinity, "0", false]) {
+        frame.participantFrames[1] = { minionsKilled: 0, jungleMinionsKilled: 0, [key]: value };
+        assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), null);
+      }
+    }
+    frame.participantFrames[1] = { minionsKilled: 0, jungleMinionsKilled: 0 };
+    frame.timestamp = minute * 60000 + 5000;
+    assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), 0);
+    frame.timestamp++;
+    assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), null);
+  }
+});
+
+test("LCU conversion uses Riot IDs and rejects an unavailable catalog", async () => {
+  const convert = (catalog) => new Function("catalog", `${helpers}; return lcuToRiotMatch;`)(catalog);
+  const game = { participants: [{ participantId: 1, teamId: 100, championId: 62 }] };
+  const online = createChampionCatalog(async (url) => ({ response: { ok: true }, payload:
+    url.endsWith("versions.json") ? ["16.1.1"] : { data: { MonkeyKing: { key: "62", id: "MonkeyKing", name: "Wukong" } } },
+  }));
+  const match = await convert(online)(game, "EUW1_7861632138");
+  assert.equal(match.info.participants[0].championName, "MonkeyKing");
+  const offline = createChampionCatalog(async () => { throw new Error("offline"); });
+  await assert.rejects(convert(offline)(game, "EUW1_7861632138"), /Catalogue des champions indisponible, réessaie connecté/);
 });

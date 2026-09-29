@@ -1,3 +1,4 @@
+import { MILESTONE_TOLERANCE_MS } from '../../../shared/timeline-milestones.js';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, AlertTriangle, ArrowLeft, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
 import { openAppPath } from "../../app/routing.js";
@@ -72,7 +73,7 @@ export function buildTrendsPngData(matches = []) {
     const raw = row.match?.raw;
     const frames = raw?.timeline?.info?.frames || raw?.metadata?.timeline?.info?.frames || raw?.timeline?.frames || [];
     if (!frames.length) return number(raw?.nxt5?.timelineSummary?.csMilestones?.[String(participantId)]?.cs10);
-    const frame = frames.find((entry) => Number(entry.timestamp) >= 600000 && Number(entry.timestamp) <= 660000);
+    const frame = frames.find((entry) => Number(entry.timestamp) >= 600000 && Number(entry.timestamp) <= 600000 + MILESTONE_TOLERANCE_MS);
     const participant = frame?.participantFrames?.[String(participantId)];
     return number(participant?.minionsKilled) !== null && number(participant?.jungleMinionsKilled) !== null ? value : null;
   };

@@ -209,3 +209,12 @@ describe("PNG export timeline coverage", () => {
     expect(profileMeasure(profile, "CS à 20 min")).toMatchObject({ value: null, count: 0 });
   });
 });
+
+describe("audit milestone consumers", () => {
+  it.each([605001, 660000])("excludes a late frame (%s) from trends and profile averages", timestamp => {
+    const match = frameGame({ minionsKilled: 70, jungleMinionsKilled: 0 });
+    match.raw.timeline.info.frames[0].timestamp = timestamp;
+    expect(buildTrendsPngData([match]).roles[0].cs10).toEqual({ value: null, count: 0 });
+    expect(profileMeasure(playerProfilePngData([playerRow(match)]), "CS à 10 min")).toMatchObject({ value: null, count: 0 });
+  });
+});

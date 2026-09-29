@@ -1,3 +1,4 @@
+import { canonicalChampion } from '../../../shared/champions.js';
 import { assertSchemaReady } from './migrations';
 import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 import { sql } from './db';
@@ -254,7 +255,7 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
         team_key: p.teamId === allyTeamId ? 'ALLY' : 'ENEMY',
         summoner_name: p.summonerName || p.riotIdGameName || 'Unknown',
         riot_id: rid,
-        champion: p.championName,
+        champion: canonicalChampion(p.championName),
         role,
         kills,
         deaths,
