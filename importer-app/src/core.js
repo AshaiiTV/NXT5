@@ -46,14 +46,14 @@ export function normalizePlatform(value = "EUW1") {
   const platform = ALIASES[raw] || raw;
   if (!PLATFORMS.has(platform))
     throw new Error(
-      "Région invalide. Sélectionnez le serveur de cette partie.",
+      "Région invalide. Sélectionne le serveur de cette partie.",
     );
   return platform;
 }
 
 export function normalizeGameId(value, platform = "EUW1") {
   if (typeof value !== "string" && typeof value !== "number")
-    throw new Error("Renseignez un Game ID.");
+    throw new Error("Renseigne un Game ID.");
   let raw = String(value).trim().toUpperCase();
   if (raw.length > 2048) throw new Error("Game ID trop long.");
   const full = raw.match(/\b([A-Z0-9]{2,5})[_-](\d{6,20})\b/);
@@ -223,7 +223,7 @@ export function validateLocalIdentity(game, requestedId, clientRegion) {
   const [platform, numericId] = requestedId.split("_");
   if (String(game?.gameId) !== numericId)
     throw new Error(
-      "Le client LoL a renvoyé une autre partie. Rouvrez la partie demandée dans son historique.",
+      "Le client LoL a renvoyé une autre partie. Rouvre la partie demandée dans son historique.",
     );
   let actualPlatform;
   try {
@@ -237,7 +237,7 @@ export function validateLocalIdentity(game, requestedId, clientRegion) {
     actualPlatform = undefined;
   if (!actualPlatform)
     throw new Error(
-      "Impossible de vérifier la région du client LoL. Vérifiez que le client est connecté.",
+      "Impossible de vérifier la région du client LoL. Vérifie que le client est connecté.",
     );
   if (actualPlatform !== platform)
     throw new Error(
@@ -566,7 +566,7 @@ export function selectUpdate(payload, currentVersion, platform, arch) {
     ...(!latest
       ? {
           message:
-            "Aucune version compatible avec votre système n’est disponible dans cette publication.",
+            "Aucune version compatible avec ton système n’est disponible dans cette publication.",
         }
       : {}),
   };
@@ -603,7 +603,7 @@ export function createImportService(deps) {
     async generate(form, progress = () => {}) {
       if (controller)
         throw new Error(
-          "Un import est déjà en cours. Attendez sa fin ou annulez-le.",
+          "Un import est déjà en cours. Attends sa fin ou annule-le.",
         );
       controller = new AbortController();
       const signal = controller.signal;
@@ -701,7 +701,7 @@ export function createImportService(deps) {
           throw new Error(
             "Cette partie dépasse la limite d’import de NXT5 (5 Mo). Aucun fichier inutilisable n’a été créé.",
           );
-        report("save", "Choisissez où enregistrer votre fichier JSON…");
+        report("save", "Choisis où enregistrer ton fichier JSON…");
         const destination = await deps.chooseSave(gameId);
         throwIfAborted(signal);
         if (destination.canceled || !destination.filePath)
@@ -729,7 +729,7 @@ export function createImportService(deps) {
         // Once the file is committed, report success even if a late cancellation arrived.
         progress({
           stage: "complete",
-          message: "Votre fichier JSON est prêt à être importé dans NXT5.",
+          message: "Ton fichier JSON est prêt à être importé dans NXT5.",
         });
         return {
           canceled: false,

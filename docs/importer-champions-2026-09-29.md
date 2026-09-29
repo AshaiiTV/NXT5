@@ -1,4 +1,4 @@
-# NXT5 Importer 0.3.4 — noms de champions et détection du client — 29 septembre 2026
+# NXT5 Importer 0.3.4 — noms de champions, détection du client, logo et ton — 29 septembre 2026
 
 ## Problème
 
@@ -16,10 +16,16 @@ Hors ligne, les noms devenaient aussi « Champion 157 », sans avertissement, et
 - Sous Windows, `riotInstallDirectories` lit `RiotClientInstalls.json` et `league_of_legends.live.product_settings.yaml` dans `ProgramData\Riot Games` pour retrouver une installation hors de `C:`. Si ces fichiers sont absents, les chemins habituels restent utilisés.
 - `assets/nxt5-logo.png` et `assets/nxt5-wordmark.png` sont retirés : ils n’étaient référencés nulle part et restent disponibles, identiques, dans `public/assets`. Ce retrait était prévu avec la prochaine version de l’Importer (`docs/nettoyage-depot-2026-09-29.md` sur la branche de nettoyage).
 
+## Alignement sur la charte et maintenance
+
+- **Logo** : l’en-tête recomposait « NXT5 » en texte Inter, alors que la charte demande de ne pas reconstituer la signature avec du texte. Il utilise désormais `assets/nxt5-wordmark-320.webp` (15 Ko), copie de `public/assets/nxt5-wordmark-320.webp`, suivi de la mention « IMPORTER ». Le symbole `nxt5-mark.png` propre à l’Importer (trident complet) est conservé. Le « NXT5 » du pied de page reste un texte de mention, pas une signature.
+- **Ton** : tous les textes de l’interface et des messages d’erreur passent au tutoiement, comme le site (« Français direct et concret, tutoiement cohérent avec l’accueil »). Le README et le CHANGELOG, destinés aux développeurs, ne changent pas.
+- **Electron** : 44.2.0 → 44.4.3 (commit Dependabot repris), dans la même version pour ne publier qu’une seule release.
+
 ## Vérifications
 
 - `pnpm test` (depuis `importer-app`) : 36 tests, dont les alias du client, le rejet des entrées sans alias, `champion.id` de Data Dragon, la conversion LCU, le relais des avertissements et la détection d’une installation sur un autre disque.
-- `node scripts/smoke-electron.mjs` avec Electron 44.2.0 : 22/22. Le scénario client LoL vérifie `Annie`, `TwistedFate`, `Leblanc`, `FiddleSticks`, puis « Champion 10 » avec son avertissement lorsque le champion est absent du catalogue et que Data Dragon est hors ligne. Le JSON obtenu passe le validateur d’import du site.
+- `node scripts/smoke-electron.mjs` avec Electron 44.2.0, puis 44.4.3 après la mise à jour, le logo et le tutoiement : 22/22 à chaque fois. Les captures d’accueil (fenêtre normale et minimale) montrent le logo officiel net et les textes au tutoiement. Le scénario client LoL vérifie `Annie`, `TwistedFate`, `Leblanc`, `FiddleSticks`, puis « Champion 10 » avec son avertissement lorsque le champion est absent du catalogue et que Data Dragon est hors ligne. Le JSON obtenu passe le validateur d’import du site.
 
 ## Limites
 

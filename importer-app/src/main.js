@@ -414,8 +414,8 @@ async function localMatch(gameId, signal, progress) {
   const warnings = unknownChampions
     ? [
         unknownChampions > 1
-          ? `${unknownChampions} champions n’ont pas pu être identifiés : ils apparaîtront sous leur numéro. Réexportez la game une fois connecté à Internet.`
-          : "Un champion n’a pas pu être identifié : il apparaîtra sous son numéro. Réexportez la game une fois connecté à Internet.",
+          ? `${unknownChampions} champions n’ont pas pu être identifiés : ils apparaîtront sous leur numéro. Réexporte la game quand la connexion Internet est rétablie.`
+          : "Un champion n’a pas pu être identifié : il apparaîtra sous son numéro. Réexporte la game quand la connexion Internet est rétablie.",
       ]
     : [];
   return { match, timeline, source: "nxt5-lcu-importer", warnings };
@@ -449,7 +449,7 @@ const importer = createImportService({
       throw new Error(
         typeof detail === "string" && detail !== "Bad Request"
           ? detail.slice(0, 500)
-          : `Partie indisponible auprès de Riot (${response.status}). Vérifiez le Game ID et la région.`,
+          : `Partie indisponible auprès de Riot (${response.status}). Vérifie le Game ID et la région.`,
       );
     }
     return payload;
@@ -533,7 +533,7 @@ const handlers = {
     const choice = await dialog.showMessageBox(mainWindow, {
       type: "question",
       title: "Localiser League of Legends",
-      message: "Sélectionnez le dossier du jeu ou son fichier lockfile.",
+      message: "Sélectionne le dossier du jeu ou son fichier lockfile.",
       detail:
         "Le lockfile est créé dans le dossier du jeu lorsque le client est ouvert.",
       buttons: ["Choisir un dossier", "Choisir le lockfile", "Annuler"],
@@ -556,7 +556,7 @@ const handlers = {
     const leaguePath = result.filePaths[0];
     if (choice.response === 1 && path.basename(leaguePath) !== "lockfile")
       throw new Error(
-        "Sélectionnez le fichier nommé lockfile dans le dossier League of Legends.",
+        "Sélectionne le fichier nommé lockfile dans le dossier League of Legends.",
       );
     await store.saveSettings({ leaguePath });
     return { canceled: false, leaguePath };
@@ -565,7 +565,7 @@ const handlers = {
     // Paths are only granted by the native chooser; the renderer may reset one.
     if (settings?.leaguePath !== undefined && settings.leaguePath !== "")
       throw new Error(
-        "Utilisez le sélecteur de dossier pour localiser League of Legends.",
+        "Utilise le sélecteur de dossier pour localiser League of Legends.",
       );
     return store.saveSettings(settings);
   },

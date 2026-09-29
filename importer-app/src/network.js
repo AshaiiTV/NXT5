@@ -52,7 +52,7 @@ export async function fetchJson(
       payload = JSON.parse(body);
     } catch {
       throw new Error(
-        `Réponse JSON invalide du serveur (${response.status}). Réessayez dans quelques instants.`,
+        `Réponse JSON invalide du serveur (${response.status}). Réessaie dans quelques instants.`,
       );
     }
     return { response, payload };
@@ -60,11 +60,11 @@ export async function fetchJson(
     if (signal?.aborted) throw abortError();
     if (timedOut)
       throw new Error(
-        `Le serveur n’a pas répondu après ${Math.round(timeoutMs / 1000)} secondes. Vérifiez votre connexion puis réessayez.`,
+        `Le serveur n’a pas répondu après ${Math.round(timeoutMs / 1000)} secondes. Vérifie ta connexion puis réessaie.`,
       );
     if (error instanceof TypeError)
       throw new Error(
-        "Connexion au serveur impossible. Vérifiez votre connexion Internet.",
+        "Connexion au serveur impossible. Vérifie ta connexion Internet.",
       );
     throw error;
   } finally {
@@ -190,7 +190,7 @@ export async function readLeagueLockfile(
     }
   }
   throw new Error(
-    "Client LoL introuvable. Ouvrez League of Legends ou indiquez son dossier dans les réglages.",
+    "Client LoL introuvable. Ouvre League of Legends ou indique son dossier dans les Paramètres.",
   );
 }
 
@@ -225,7 +225,7 @@ export function lcuRequest(
       () =>
         complete(
           new Error(
-            "Le client LoL ne répond pas. Ouvrez son historique de parties puis réessayez.",
+            "Le client LoL ne répond pas. Ouvre son historique de parties puis réessaie.",
           ),
         ),
       timeoutMs,
