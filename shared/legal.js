@@ -4,4 +4,4 @@ export const LEGAL_VERSION = "2026-09-23";
 export const LEGAL_UPDATED_LABEL = "23 septembre 2026";
 
 export const NXT5_EDITOR_NAME = "Sacha Degouzon";
-export const NXT5_CONTACT_EMAIL = "sachad.d91@gmail.com";
+export const NXT5_CONTACT_EMAIL = "contact@nxt5.org";
