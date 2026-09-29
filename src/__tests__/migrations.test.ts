@@ -457,3 +457,39 @@ it('T3-03 backfills only summaries with retained frames and is idempotent', asyn
   await client.query('commit');
   expect((await db.query('select game_id,raw from matches order by game_id')).rows).toEqual(rows);
 }, 30_000);
+
+
+it('T5-02 keeps merged notebooks saveable at 200 distinct matches and backs up all 400 references', async () => {
+  const { validateMatchupRequest } = await import('../../netlify/functions/_lib/player-matchups');
+  const { db, client, migrations } = await fixture();
+  const index = migrations.findIndex(m => m.key === 'canonical-champions-20260929-v1');
+  await applyMigrations(client, migrations.slice(0, index));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('limits','Limits','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'Limits','LIM') returning id", [user])).rows[0].id;
+  const player = (await db.query("insert into players(team_id,name,role) values($1,'Player','MID') returning id", [team])).rows[0].id;
+  const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const originals: any[] = [];
+  for (let notebook = 0; notebook < 2; notebook++) {
+    const experiments = Array.from({ length: 4 }, (_, i) => ({
+      id: uuid(1000 + notebook * 4 + i), title: `Essai ${i}`, plan: '', observation: '', conclusion: '', status: 'planned',
+      matchIds: Array.from({ length: 50 }, (_, j) => uuid(notebook * 200 + i * 50 + j)),
+    }));
+    originals.push((await db.query(`insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,experiments)
+      values($1,$2,$3,'ahri','MID',$4::jsonb) returning *`, [team, player, notebook ? 'monkeyking' : 'wukong', JSON.stringify(experiments)])).rows[0]);
+  }
+  await applyMigrations(client, migrations);
+  const notebook = (await db.query('select * from player_matchup_notebooks')).rows[0];
+  expect(notebook.experiments).toHaveLength(4);
+  expect(new Set(notebook.experiments.flatMap((exp: any) => exp.matchIds)).size).toBe(200);
+  expect(() => validateMatchupRequest({ action: 'save', teamId: team, playerId: player,
+    champion: notebook.champion, opponentChampion: notebook.opponent_champion, role: notebook.role,
+    expectedRevision: notebook.revision, plan: notebook.plan, experiments: notebook.experiments })).not.toThrow();
+  const backups = (await db.query('select original from player_matchup_canonical_backups')).rows;
+  expect(backups).toHaveLength(2);
+  for (const original of originals) expect(backups.find((b: any) => b.original.id === original.id)!.original.experiments).toEqual(original.experiments);
+  expect(new Set(backups.flatMap((b: any) => b.original.experiments.flatMap((exp: any) => exp.matchIds))).size).toBe(400);
+  await client.query('begin');
+  await migrations[index].run!(client);
+  await client.query('commit');
+  expect((await db.query('select * from player_matchup_notebooks')).rows).toEqual([notebook]);
+}, 30_000);

@@ -40,6 +40,12 @@ export const sql = `create table if not exists player_matchup_canonical_backups 
   created_at timestamptz not null default now()
 );`;
 
+// Frozen editor limits: never import the evolving runtime validator into a migration.
+const MAX_EXPERIMENTS = 20;
+const MAX_NOTEBOOK_MATCHES = 200;
+const MAX_EXPERIMENT_MATCHES = 50;
+const MAX_PLAN_TEXT = 4000;
+
 const rank = row => (['manual', 'riot_manual'].includes(row.source) ? 10 : 0)
   + ({ danger: 4, lock: 3, pocket: 2, work: 1 }[row.status] || 0);
 const key = values => JSON.stringify(values);
@@ -103,8 +109,15 @@ export async function run(client) {
     for (const row of entries) await client.query(`insert into player_matchup_canonical_backups(original_id,notebook_id,team_id,original)
       values($1,$2,$3,$4::jsonb) on conflict(original_id) do nothing`, [row.id, keep.id, keep.team_id, JSON.stringify(row)]);
     const plan = Object.fromEntries(['lanePlan', 'vigilance', 'toKeep'].map(field => [field,
-      [...new Set(entries.map(row => row.plan[field]).filter(Boolean))].join('\n\n').slice(0, 4000)]));
-    const experiments = [...new Map(entries.flatMap(row => row.experiments).reverse().map(exp => [exp.id, exp])).values()].slice(0, 20);
+      [...new Set(entries.map(row => row.plan[field]).filter(Boolean))].join('\n\n').slice(0, MAX_PLAN_TEXT)]));
+    const experiments = [];
+    let matchIds = new Set();
+    for (const exp of new Map(entries.flatMap(row => row.experiments).reverse().map(exp => [exp.id, exp])).values()) {
+      const combined = new Set([...matchIds, ...exp.matchIds.map(id => id.toLowerCase())]);
+      if (experiments.length >= MAX_EXPERIMENTS || exp.matchIds.length > MAX_EXPERIMENT_MATCHES || combined.size > MAX_NOTEBOOK_MATCHES) continue;
+      experiments.push(exp);
+      matchIds = combined;
+    }
     for (const row of entries.slice(1)) await client.query('delete from player_matchup_notebooks where id=$1', [row.id]);
     await client.query(`update player_matchup_notebooks set champion=$2,opponent_champion=$3,plan=$4::jsonb,experiments=$5::jsonb,revision=$6 where id=$1`,
       [keep.id, champion, opponent, JSON.stringify(plan), JSON.stringify(experiments), Math.max(...entries.map(row => row.revision)) + 1]);

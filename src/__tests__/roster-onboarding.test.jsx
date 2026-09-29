@@ -3,6 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button } from "../components/ui/Core.jsx";
+import { useTeamCreation } from "../hooks/useTeamCreation.js";
 import { Teams, TeamManagementPanel } from "../pages/workspace/Teams.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -26,13 +27,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function CreationHost(props) {
+  const teamCreation = useTeamCreation(props);
+  return <Teams {...props} teamCreation={teamCreation} />;
+}
+
 async function render(settings) {
   const scrollIntoView = vi.fn();
   const focus = vi.fn();
   const scrollEditIntoView = vi.fn();
   const focusEdit = vi.fn();
   let renderer;
-  const view = (next) => <Suspense fallback="Chargement"><Teams {...next} /></Suspense>;
+  const view = (next) => <Suspense fallback="Chargement"><CreationHost {...next} /></Suspense>;
   await act(async () => {
     renderer = TestRenderer.create(view(settings), {
       createNodeMock: (element) => element.props.id === "team-roster-setup"

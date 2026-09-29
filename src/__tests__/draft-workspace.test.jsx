@@ -104,3 +104,18 @@ it("R-F7 patches the common pool after add, move and delete, including Pool → 
   expect(renderer.root.findAllByProps({ "aria-label": "Déplacer Aatrox" })).toHaveLength(0);
   vi.unstubAllGlobals();
 });
+
+
+it('T5-05 renders historical malformed slots with a populated champion pool', () => {
+  vi.stubGlobal('window', { scrollTo: vi.fn() });
+  render(<Compositions data={{ players, championPool: rows, compositions: [{
+    id: 'legacy', team_id: 'team', created_by: 'user', title: 'Ancienne composition',
+    slots: JSON.stringify({ TOP: null, JGL: [], MID: { poolId: 'ahri', playerId: 'mid' }, ADC: 12, SUP: 'bad', UNKNOWN: { poolId: 'aatrox' } }),
+  }] }} selectedTeamId="team" currentMember={{ role: 'player' }} user={{ id: 'user' }} refreshAll={vi.fn()} pushToast={vi.fn()} />);
+  expect(JSON.stringify(renderer.toJSON())).toContain('Ancienne composition');
+  const edit = renderer.root.findAllByType(Button).find(node => node.props.children === 'Modifier');
+  act(() => edit.props.onClick());
+  expect(selectRole('MID').props.value).toBe('ahri');
+  expect(selectRole('TOP').props.value).toBe('');
+  vi.unstubAllGlobals();
+});

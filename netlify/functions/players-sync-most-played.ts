@@ -137,15 +137,29 @@ export default async function handler(request: Request, context: Context): Promi
     const results: any[] = [];
 
     for (const player of players) {
+      // Collect Riot data without holding a lock, then revalidate its entire context.
+      const persist = (writes) => sql.transaction(tx => [
+        tx`select id from teams where id = ${teamId} for update`,
+        tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t
+           where t.id = ${teamId} and t.region is not distinct from ${team.region}
+             and (t.owner_id = ${user.id} or exists (select 1 from team_members
+               where team_id = t.id and user_id = ${user.id}
+                 and role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board')))`,
+        tx`select id from players where id = ${player.id} and team_id = ${teamId} for update`,
+        tx`select 1 / case when count(*) = 1 then 1 else 0 end from players
+           where id = ${player.id} and team_id = ${teamId}
+             and riot_id is not distinct from ${player.riot_id} and role = ${player.role}`,
+        ...writes(tx)
+      ]);
       try {
         const staffRole = STAFF_ROLES.has(String(player.role || '').toUpperCase());
         if (staffRole || !player.riot_id) {
-          await sql`
+          await persist(tx => [tx`
             update players
             set status = ${staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant'},
                 updated_at = now()
-            where id = ${player.id}
-          `;
+            where id = ${player.id} and team_id = ${teamId}
+          `]);
           results.push({ playerId: player.id, riotId: player.riot_id, ok: true, skipped: true, reason: staffRole ? 'Profil staff sans Riot ID' : 'Riot ID manquant' });
           continue;
         }
@@ -155,32 +169,38 @@ export default async function handler(request: Request, context: Context): Promi
         if (!mostPlayed.length) throw new Error('Aucun match SoloQ trouvé sur la saison courante.');
 
         const totalPoints = mostPlayed.reduce((sum, item) => sum + Number(item.points || 0), 0);
-        await sql`
+        await persist(tx => [tx`
           update players
           set most_played = ${JSON.stringify(mostPlayed)}::jsonb,
               performance_score = ${totalPoints || null},
               status = ${mostPlayed.length ? 'Top SoloQ saison synchronisé' : 'Aucun match SoloQ saison trouvé'},
               updated_at = now()
-          where id = ${player.id}
-        `;
-
-        await sql`
+          where id = ${player.id} and team_id = ${teamId}
+        `, tx`
           delete from champion_pool
           where team_id = ${teamId}
             and player_id = ${player.id}
             and source in ('match_history', 'mastery')
-        `;
+        `]);
 
         results.push({ playerId: player.id, riotId: player.riot_id, ok: true, mostPlayed, source: 'ranked_solo_history' });
       } catch (err) {
-        const message = err.code === 'RIOT_RATE_LIMIT' ? err.message : 'Synchronisation incomplète';
-        await sql`
-          update players
-          set status = ${message},
-              updated_at = now()
-          where id = ${player.id}
-        `;
-        results.push({ playerId: player.id, riotId: player.riot_id, ok: false, error: message, code: err.code || null, retryAfter: err.retryAfter || null });
+        let code = err.code || null;
+        let message = code === 'RIOT_RATE_LIMIT' ? err.message : 'Synchronisation incomplète';
+        if (code !== '22012') {
+          try {
+            await persist(tx => [tx`update players set status = ${message}, updated_at = now()
+              where id = ${player.id} and team_id = ${teamId} and riot_id is not distinct from ${player.riot_id}`]);
+          } catch (statusError) {
+            if (statusError.code !== '22012') throw statusError;
+            code = '22012';
+          }
+        }
+        if (code === '22012') {
+          code = 'PLAYER_CHANGED';
+          message = 'Le profil ou les accès ont changé. Recharge l’équipe puis réessaie.';
+        }
+        results.push({ playerId: player.id, riotId: player.riot_id, ok: false, error: message, code, retryAfter: err.retryAfter || null });
         if (err.code === 'RIOT_RATE_LIMIT') break;
       }
     }

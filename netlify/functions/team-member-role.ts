@@ -45,21 +45,25 @@ export default async function handler(request: Request, context: Context): Promi
     if (!target[0]) throw Object.assign(new Error('Compte introuvable dans cette team.'), { status: 404 });
     if (target[0].role === 'owner') throw Object.assign(new Error('Le statut owner ne peut pas être modifié.'), { status: 400 });
 
-    const rows = await sql`
-      update team_members
-      set role = ${role}
-      where team_id = ${teamId}
-        and user_id = ${userId}
-      returning *
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'team_member.role_update', 'team', ${teamId}, ${JSON.stringify({ targetUserId: userId, role })}::jsonb)
-    `;
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t
+         where t.id = ${teamId} and t.owner_id <> ${userId}
+           and (t.owner_id = ${user.id} or exists (select 1 from team_members
+             where team_id = t.id and user_id = ${user.id} and role = any(${ROLE_MANAGEMENT_ROLES})))
+           and not exists (select 1 from team_members where team_id = t.id and user_id = ${userId} and role = 'owner')`,
+      tx`update team_members set role = ${role}
+         where team_id = ${teamId} and user_id = ${userId} returning *`,
+      tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+         select ${user.id}, 'team_member.role_update', 'team', ${teamId}, ${JSON.stringify({ targetUserId: userId, role })}::jsonb
+         where exists (select 1 from team_members where team_id = ${teamId} and user_id = ${userId})`
+    ]);
+    const rows = results[2];
+    if (!rows[0]) throw Object.assign(new Error('Compte introuvable dans cette team.'), { status: 404 });
 
     return json({ member: rows[0] });
   } catch (err) {
+    if (err?.code === '22012') return json({ error: 'L’adhésion ou les accès ont changé. Recharge l’équipe.' }, 403);
     return handleError(err);
   }
 }

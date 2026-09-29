@@ -74,6 +74,9 @@ export default async function handler(request: Request, context: Context): Promi
       ...(promotingToMain ? [tx`update players set roster_status = 'SUB', updated_at = now()
          where team_id = ${teamId} and role = ${playerRole} and id <> ${playerId} and roster_status = 'MAIN'`] : []),
       tx`update players set name = ${name}, riot_id = ${riotId}, opgg_url = ${opggUrl},
+           most_played = case when riot_id is distinct from ${riotId} then '[]'::jsonb else most_played end,
+           performance_score = case when riot_id is distinct from ${riotId} then null else performance_score end,
+           status = case when riot_id is distinct from ${riotId} then 'À synchroniser' else status end,
            roster_status = ${rosterStatus}, updated_at = now()
          where id = ${playerId} and team_id = ${teamId}`,
       tx`update champion_pool set player_name = ${name} where player_id = ${playerId} and team_id = ${teamId}`,

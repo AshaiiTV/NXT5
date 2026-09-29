@@ -99,14 +99,13 @@ function opggUrlFromRiotId(riotId, region) {
   return `https://www.op.gg/lol/summoners/${String(region || "EUW").toLowerCase()}/${slug}`;
 }
 
-function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false }) {
+function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false, teamCreation = {} }) {
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
-  const pendingCreationRef = useRef(null);
-  const creationBusyRef = useRef(false);
-  const [pendingCreation, setPendingCreation] = useState(null);
+  const pendingCreation = teamCreation.pending;
   const [playerForm, setPlayerForm] = useState(() => emptyPlayerForm());
   const [joinCode, setJoinCode] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [localSaving, setSaving] = useState(false);
+  const saving = localSaving || teamCreation.busy;
   const [syncingPlayerId, setSyncingPlayerId] = useState("");
   const [teamSetupOpen, setTeamSetupOpen] = useState(false);
   const [riotCooldownUntil, setRiotCooldownUntil] = useState(0);
@@ -161,47 +160,21 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     });
   }, [selectedTeam?.id]);
 
-  async function createTeam(event) {
-    event.preventDefault();
-    if (creationBusyRef.current) return;
-    creationBusyRef.current = true;
-    setSaving(true);
-    let pending = pendingCreationRef.current;
-    try {
-      if (!pending) {
-        const result = await apiFetch("teams-create", { method: "POST", body: JSON.stringify({ name: teamForm.name, tag: teamForm.tag, region: teamForm.region }) });
-        pending = { team: result.team, next: 0, players: multiPlayers.map((player, index) => ({
-          teamId: result.team.id, name: player.name, riotId: player.riotId,
-          opggUrl: opggUrlFromRiotId(player.riotId, teamForm.region), role: ROSTER_ROLE_ORDER[index] || "SUB",
-        })) };
-        pendingCreationRef.current = pending;
-        setPendingCreation({ ...pending });
-      }
-      setSelectedTeamId(pending.team.id);
-      while (pending.next < pending.players.length) {
-        await apiFetch("players-create", { method: "POST", body: JSON.stringify(pending.players[pending.next]) });
-        pending.next += 1;
-        setPendingCreation({ ...pending });
-      }
-      pendingCreationRef.current = null;
-      setPendingCreation(null);
+  const previousCompletion = useRef(teamCreation.completed);
+  useEffect(() => {
+    if (teamCreation.completed !== previousCompletion.current) {
+      previousCompletion.current = teamCreation.completed;
       setTeamForm({ name: "", tag: "", region: "EUW", multiOpgg: "" });
       setTeamSetupOpen(false);
-      openAppPath("/equipes");
-      pushToast({ type: "green", title: "Team créée", text: pending.next ? `${pending.next} joueur(s) importé(s) depuis le multi OP.GG.` : "Tu peux maintenant ajouter le roster ou générer un code d’invitation." });
-    } catch (err) {
-      if (pending) setTeamSetupOpen(true);
-      pushToast({ type: "red", title: pending ? "Équipe créée, joueurs à compléter" : "Création impossible", text: pending ? `${pending.next} joueur(s) ajouté(s). Reprends uniquement les joueurs manquants. ${err.message}` : err.message });
-    } finally {
-      try {
-        if (pending) await refreshAll({ teamId: pending.team.id });
-      } catch (err) {
-        pushToast({ type: "red", title: "Actualisation impossible", text: `L’équipe est créée. ${err.message}` });
-      } finally {
-        creationBusyRef.current = false;
-        setSaving(false);
-      }
     }
+  }, [teamCreation.completed]);
+
+  function createTeam(event) {
+    event.preventDefault();
+    if (saving) return;
+    return teamCreation.create(teamForm, multiPlayers.map((player, index) => ({
+      ...player, opggUrl: opggUrlFromRiotId(player.riotId, teamForm.region), role: ROSTER_ROLE_ORDER[index] || "SUB",
+    })));
   }
 
   async function joinTeam(event) {
@@ -507,8 +480,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
         {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter les joueurs", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une partie", "Retrouve son résultat, ses statistiques et les points à discuter."]].map(([number, title, text]) => <div key={title} className="team-start-step"><p className="text-sm font-semibold text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
       </div>
     </Surface>}
-    <div className={cx("teams-workspace-layout", hasTeams && teamSetupOpen && !setupOnly && "has-roster-setup")}>
-      {(!hasTeams || teamSetupOpen || setupOnly) && <div className="team-setup-forms">
+    <div className={cx("teams-workspace-layout", hasTeams && (teamSetupOpen || pendingCreation) && !setupOnly && "has-roster-setup")}>
+      {(!hasTeams || teamSetupOpen || pendingCreation || setupOnly) && <div className="team-setup-forms">
         <Surface>
           <h3 className="text-xl font-black text-white">Créer une équipe</h3>
           <p className="mt-1 text-sm text-slate-300">Pour organiser les joueurs et retrouver les parties de ton équipe.</p>

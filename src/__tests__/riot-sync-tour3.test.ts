@@ -1,12 +1,14 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({ queries: [] as { sql: string; values: any[] }[], fetch: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret() {}, requireAuth: async () => ({ id: 'owner' }) }));
-vi.mock('../../netlify/functions/_lib/db', () => ({ sql: async (parts: TemplateStringsArray, ...values: any[]) => {
+vi.mock('../../netlify/functions/_lib/db', () => { const sql = async (parts: TemplateStringsArray, ...values: any[]) => {
   const sql = parts.join('?'); state.queries.push({ sql, values });
   if (sql.includes('select distinct teams')) return [{ id: 'team', region: 'EUW' }];
   if (sql.includes('select * from players')) return [{ id: 'p', role: 'MID', riot_id: 'One#EUW' }, { id: 'next', role: 'TOP', riot_id: 'Two#EUW' }];
   return [];
-} }));
+};
+  return { sql: Object.assign(sql, { transaction: async callback => Promise.all(callback(sql)) }) };
+});
 vi.mock('../../netlify/functions/_lib/riot', () => ({
   fetchAccountByRiotId: async () => ({ puuid: 'puuid' }),
   fetchMatchIdsByPuuid: async () => Array.from({ length: 30 }, (_, i) => String(i)),

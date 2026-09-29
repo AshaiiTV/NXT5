@@ -20,6 +20,8 @@ import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
 import { cx, preciseErrorText } from "./app/helpers.js";
 import { createPlanningStore, upsertAvailability } from "./utils/planning-store.js";
+import { useTeamCreation } from "./hooks/useTeamCreation.js";
+import { WorkspaceErrorBoundary } from "./components/ui/WorkspaceErrorBoundary.jsx";
 import { useTeamData } from "./hooks/useTeamData.js";
 import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 import { matchDisplayName } from "./utils/matches.js";
@@ -272,7 +274,7 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
   return null;
 }
 
-function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
@@ -281,7 +283,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const previousPage = useRef(active);
   useEffect(() => {
     if (previousPage.current !== active && !document.querySelector?.("dialog[open]")) {
-      document.getElementById?.("workspace-content")?.focus({ preventScroll: true });
+      const target = document.querySelector?.("[data-workspace-error]") || document.getElementById?.("workspace-content");
+      target?.focus({ preventScroll: true });
     }
     previousPage.current = active;
   }, [active]);
@@ -295,6 +298,7 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
   const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore, route.search);
+  const teamCreation = useTeamCreation({ setSelectedTeamId, refreshAll, pushToast });
   const independentAccountPage = active === "account-settings";
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
@@ -344,8 +348,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
 
   const page = useMemo(() => {
     if (active === "bot-discord") return <DiscordWorkspace data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
-    if (active === "teams") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} />;
-    if (active === "team-management") return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
+    if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} />;
+    if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} />;
@@ -353,8 +357,8 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-    return <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly]);
+    return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation]);
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{page}</PassFeatureGate> : page;
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
@@ -402,7 +406,9 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           </div>
         </div>
         <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-        <Teams data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />
+        <WorkspaceErrorBoundary key={active}>
+          <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />
+        </WorkspaceErrorBoundary>
       </main>
       <LegalLinks navigate={navigate} />
       {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
@@ -443,14 +449,14 @@ function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
           onManageTeam={openTeamManagement}
         />
         <main id="workspace-content" tabIndex={-1} className="nxt5-workspace-main">
-          <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-          {showBeginnerCompass && <BeginnerCompass steps={onboardingSteps} onNavigate={navigate} onClose={() => setBeginnerCompassHidden(true)} />}
-          {guideAvailable && guidePage && active === "teams" && beginnerCompassHidden && <div className="nxt5-compass-resume"><Button type="button" variant="ghost" onClick={() => setBeginnerCompassHidden(false)}>Reprendre le guide de démarrage</Button></div>}
-          <React.Fragment>
+          <WorkspaceErrorBoundary key={active}>
+            <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
+            {showBeginnerCompass && <BeginnerCompass steps={onboardingSteps} onNavigate={navigate} onClose={() => setBeginnerCompassHidden(true)} />}
+            {guideAvailable && guidePage && active === "teams" && beginnerCompassHidden && <div className="nxt5-compass-resume"><Button type="button" variant="ghost" onClick={() => setBeginnerCompassHidden(false)}>Reprendre le guide de démarrage</Button></div>}
             <div key={active} className="nxt5-fade-in min-w-0">
               <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? guardedPage : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
             </div>
-          </React.Fragment>
+          </WorkspaceErrorBoundary>
         </main>
         <LegalLinks navigate={navigate} />
       </div>
