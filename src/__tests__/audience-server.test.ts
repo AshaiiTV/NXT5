@@ -217,11 +217,11 @@ describe('audience collection correctness', () => {
 
   it('enforces route/event/duration bounds and strips query strings and personal campaign/referrer payloads', async () => {
     const client = browser(); await accept(client);
-    for (const bad of [{ path:'/admin' },{ path:'/reinitialiser-mot-de-passe?token=secret' },{ path:'/mon-profil/private-id' },{ type:'event',name:'arbitrary' },{ type:'engagement',durationSeconds:86401 },{ type:'engagement',scrollDepth:-1 }]) {
+    for (const bad of [{ path:'/admin' },{ path:'/tarifs?email=secret' },{ path:'/admin/tarifs' },{ path:'/reinitialiser-mot-de-passe?token=secret' },{ path:'/mon-profil/private-id' },{ type:'event',name:'arbitrary' },{ type:'engagement',durationSeconds:86401 },{ type:'engagement',scrollDepth:-1 }]) {
       expect((await collect(request('audience-events',event(bad)),client.context)).status).toBe(400);
     }
-    const response = await collect(request('audience-events',event({ path:'/tarifs?email=alice@example.com#secret',source:'alice@example.com',medium:'paid_social',campaign:'newsletter-septembre',referrer:'https://private.example/alice' })),client.context);
-    expect(response.status).toBe(200); expect((await rows('audience_pages'))[0].path).toBe('/tarifs');
+    const response = await collect(request('audience-events',event({ path:'/soutenir?email=alice@example.com#secret',source:'alice@example.com',medium:'paid_social',campaign:'newsletter-septembre',referrer:'https://private.example/alice' })),client.context);
+    expect(response.status).toBe(200); expect((await rows('audience_pages'))[0].path).toBe('/soutenir');
     expect((await rows('audience_sessions'))[0]).toMatchObject({ source:'direct',medium:'paid_social',campaign:'newsletter-septembre',device:'desktop',browser:'Chrome',country:'FR' });
     const persisted = JSON.stringify([await rows('audience_consents'),await rows('audience_sessions'),await rows('audience_pages'),await rows('audience_events')]);
     expect(persisted).not.toContain('alice'); expect(persisted).not.toContain('198.51.100.42'); expect(persisted).not.toContain('TestPrivateAgent');

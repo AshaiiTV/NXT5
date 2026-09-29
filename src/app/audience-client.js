@@ -4,7 +4,7 @@ import { canonicalAudiencePath, sanitizeCampaignValue } from "./audience-paths.j
 export const AUDIENCE_CONSENT_VERSION = "2026-09-14";
 export const AUDIENCE_SETTINGS_EVENT = "nxt5:cookie-settings";
 const OPT_OUT = "nxt5_audience_optout";
-const GOALS = new Set(["signup", "login", "access_request", "pricing_view", "first_import", "first_review"]);
+const GOALS = new Set(["signup", "login", "first_import", "first_review"]);
 
 // No network, browser identifiers or storage are accessed at module evaluation.
 export function createAudienceClient({ request = apiFetch, win = globalThis.window, doc = globalThis.document, now = Date.now, uuid = () => globalThis.crypto.randomUUID() } = {}) {
@@ -85,7 +85,6 @@ export function createAudienceClient({ request = apiFetch, win = globalThis.wind
     lastActivity = time;
     view = { id: uuid(), path: route, durationMs: 0, lastTick: time, lastTransmissionAt: time, visible: visible(), scroll: scrollDepth(), sentDuration: -1, sentScroll: -1 };
     send({ type: "pageview", eventId: uuid(), pageId: view.id, path: view.path, ...metadata() });
-    if (route === "/tarifs") trackEvent("pricing_view");
   }
   function resumePage() {
     if (view && now() - view.lastTransmissionAt >= 1800000) { view = null; beginPage(); }

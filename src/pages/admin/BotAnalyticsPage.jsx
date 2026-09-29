@@ -20,7 +20,9 @@ function isReport(data, days) {
   return data.period?.days === days && data.summary && metrics.every(key => Number.isFinite(data.summary[key]))
     && (data.summary.successRate === null || Number.isFinite(data.summary.successRate))
     && Array.isArray(data.coverage?.notes) && Number.isFinite(Date.parse(data.coverage.commandsFrom))
-    && ["daily", "commands", "guilds", "recentActivity"].every(key => Array.isArray(data[key]));
+    && ["daily", "commands", "guilds", "recentActivity"].every(key => Array.isArray(data[key]))
+    && data.guilds.every(guild => Array.isArray(guild?.teams) && Array.isArray(guild?.destinations)
+      && guild.destinations.every(channel => Array.isArray(channel?.teamNames)));
 }
 
 function useBotReport(days) {
