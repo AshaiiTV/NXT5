@@ -32,3 +32,19 @@ export function assertSocialSchemaReady(): Promise<void> {
   });
   return socialReady;
 }
+
+export const REQUIRED_ACCOUNT_DELETION_SCHEMA_VERSION = 'account-deletion-20260930-v1';
+let accountDeletionReady: Promise<void> | undefined;
+export function assertAccountDeletionSchemaReady(): Promise<void> {
+  if (accountDeletionReady) return accountDeletionReady;
+  accountDeletionReady = (async () => {
+    const rows = await sql`select migration_key from app_schema_migrations where migration_key = ${REQUIRED_ACCOUNT_DELETION_SCHEMA_VERSION}`;
+    if (!rows.length) throw new Error('Missing account deletion schema');
+  })().catch(() => {
+    accountDeletionReady = undefined;
+    throw Object.assign(new Error('La suppression de compte sera disponible après la mise à jour du service.'), {
+      status: 503, code: 'SCHEMA_MIGRATION_REQUIRED', publicMessage: 'La suppression de compte sera disponible après la mise à jour du service.'
+    });
+  });
+  return accountDeletionReady;
+}

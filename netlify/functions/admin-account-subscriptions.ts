@@ -27,7 +27,7 @@ async function mutateAccount(body: ReturnType<typeof validateSubscriptionMutatio
       with changed as (
         insert into account_subscriptions(user_id, plan_code, starts_at, ends_at, note, updated_by, revision, updated_at)
         select id, ${planCode}, ${startsAt}::timestamptz, ${endsAt}::timestamptz, ${note}, ${adminId}::uuid, 1, clock_timestamp()
-        from users where id = ${userId}
+        from users where id = ${userId} and deleted_at is null
           and coalesce((select revision from account_subscriptions where user_id = ${userId}), 0) = ${expectedRevision}
         on conflict(user_id) do update set plan_code = excluded.plan_code, starts_at = excluded.starts_at,
           ends_at = excluded.ends_at, revoked_at = null, note = excluded.note, updated_by = excluded.updated_by,
@@ -88,9 +88,9 @@ export default async function handler(request: Request, context: Context): Promi
     const [accounts, counts] = await sql.transaction(tx => [
       tx`select u.id, u.name, u.account_name, u.email, to_jsonb(s) as subscription
          from users u left join account_subscriptions s on s.user_id = u.id
-         where concat_ws(' ', u.name, u.account_name, u.email) ilike ${search}
+         where u.deleted_at is null and concat_ws(' ', u.name, u.account_name, u.email) ilike ${search}
          order by u.created_at desc, u.id desc limit ${pageSize} offset ${(page - 1) * pageSize}`,
-      tx`select count(*)::integer as total from users u where concat_ws(' ', u.name, u.account_name, u.email) ilike ${search}`
+      tx`select count(*)::integer as total from users u where u.deleted_at is null and concat_ws(' ', u.name, u.account_name, u.email) ilike ${search}`
     ], { isolationLevel: 'RepeatableRead', readOnly: true });
     const total = Number(counts[0].total);
     return json({ accounts: accounts.map(serializeSubscriptionAccount), pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } });

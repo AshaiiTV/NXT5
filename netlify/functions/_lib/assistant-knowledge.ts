@@ -351,6 +351,21 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     suggestions: ['Pourquoi un bouton est bloqué ?', 'Comment modifier un accès ?', 'Comment sécuriser mon compte ?']
   },
   {
+    id: 'account-deletion',
+    title: 'Supprimer mon compte',
+    path: '/parametres',
+    actionLabel: 'Ouvrir les paramètres',
+    summary: "La section « Supprimer mon compte », en bas de Paramètres, supprime définitivement ton compte après deux confirmations. Une équipe qui compte d’autres membres est transférée au membre que tu choisis, jamais supprimée.",
+    keywords: ['supprimer mon compte', 'suppression du compte', 'supprimer compte', 'effacer mon compte', 'fermer mon compte', 'désinscription', 'rgpd', 'effacement', 'données personnelles'],
+    steps: [
+      "Ouvre Paramètres, puis la section « Supprimer mon compte » en bas de page.",
+      "Lis les conséquences et choisis un nouveau propriétaire pour chaque équipe qui compte d’autres membres.",
+      "Saisis SUPPRIMER puis ton mot de passe actuel. Sans mot de passe NXT5, reconnecte-toi avec un service associé.",
+      "Conserve la référence du reçu affiché. Les parties partagées de l’équipe restent disponibles sans ton nom d’auteur."
+    ],
+    suggestions: ['Que devient mon équipe ?', 'Quelles données sont conservées ?', 'Comment sécuriser mon compte ?']
+  },
+  {
     id: 'troubleshooting',
     title: 'Résoudre un problème courant',
     path: '/parametres',

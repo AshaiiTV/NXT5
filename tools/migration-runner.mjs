@@ -33,6 +33,7 @@ export async function loadMigrations() {
     ['report-source-v3-20260929-v1', '../database/migrations/20260929_report_source_v3.sql'],
     ['canonical-champions-20260929-v1', '../database/migrations/20260929_canonical_champions.mjs'],
     ['timeline-cs-rule-20260929-v2', '../database/migrations/20260929_timeline_cs_rule.mjs'],
+    ['account-deletion-20260930-v1', '../database/migrations/20260930_account_deletion.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const source = await readFile(new URL(file, import.meta.url), 'utf8');

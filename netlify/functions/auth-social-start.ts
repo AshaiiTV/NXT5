@@ -2,10 +2,10 @@ import type { Context } from '@netlify/functions';
 import { assertSessionSecret, readSessionCookie, sha256 } from './_lib/auth';
 import { sql } from './_lib/db';
 import { assertMethod, json, readJson } from './_lib/http';
-import { assertSocialSchemaReady } from './_lib/migrations';
+import { assertAccountDeletionSchemaReady, assertSocialSchemaReady } from './_lib/migrations';
 import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 import { createSocialAuthorizationUrl, requireSocialConfig } from './_lib/social-auth-protocol';
-import { assertSocialOrigin, optionalSocialUser, parseSocialProvider, randomSocialValue, setSocialCookie, socialCookie, socialDestination, socialError, socialFailure, SOCIAL_BROWSER_COOKIE, SOCIAL_TICKET_COOKIE } from './_lib/social-auth';
+import { assertSocialOrigin, isAccountBoundFlow, optionalSocialUser, parseSocialProvider, randomSocialValue, setSocialCookie, socialCookie, socialDestination, socialError, socialFailure, SOCIAL_BROWSER_COOKIE, SOCIAL_TICKET_COOKIE } from './_lib/social-auth';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
@@ -17,13 +17,25 @@ export default async function handler(request: Request, context: Context): Promi
     const body = await readJson(request, 4096);
     const provider = parseSocialProvider(body.provider);
     const config = requireSocialConfig(provider);
-    if (!['login', 'register', 'link'].includes(body.flow)) throw socialError(400, 'SOCIAL_FLOW', 'Parcours de connexion invalide.');
+    if (!['login', 'register', 'link', 'reauth'].includes(body.flow)) throw socialError(400, 'SOCIAL_FLOW', 'Parcours de connexion invalide.');
     const user = await optionalSocialUser(request, context);
-    if (body.flow === 'link' && !user) throw socialError(401, 'SOCIAL_LOGIN_REQUIRED', 'Connecte-toi avant d’associer un compte.');
-    if (body.flow !== 'link' && user) throw socialError(409, 'SOCIAL_ALREADY_SIGNED_IN', 'Tu es déjà connecté. Associe ce compte depuis tes paramètres.');
+    const bound = isAccountBoundFlow(body.flow);
+    if (bound && !user) throw socialError(401, 'SOCIAL_LOGIN_REQUIRED', body.flow === 'reauth' ? 'Connecte-toi avant de confirmer ton identité.' : 'Connecte-toi avant d’associer un compte.');
+    if (!bound && user) throw socialError(409, 'SOCIAL_ALREADY_SIGNED_IN', 'Tu es déjà connecté. Associe ce compte depuis tes paramètres.');
     if (user) await assertSubjectRateLimit('auth-social-link', user.id, { limit: 5, windowSeconds: 60 });
+    if (body.flow === 'reauth') {
+      // La reconnexion prouve le contrôle d'une identité associée AVANT l'ouverture
+      // de cette session : une association faite depuis la session ne compte pas.
+      await assertAccountDeletionSchemaReady();
+      const linked = await sql`select 1 from social_identities
+        join sessions on sessions.user_id = social_identities.user_id
+          and sessions.token_hash = ${sha256(readSessionCookie(context) || '')}
+        where social_identities.user_id = ${user!.id} and social_identities.provider = ${provider}
+          and social_identities.linked_at < sessions.created_at`;
+      if (!linked.length) throw socialError(409, 'SOCIAL_REAUTH_PROVIDER', 'Ce service n’est pas associé à ton compte NXT5.');
+    }
     const state = randomSocialValue(), browser = randomSocialValue(), nonce = randomSocialValue(), codeVerifier = randomSocialValue();
-    const authorizationUrl = await createSocialAuthorizationUrl(config, { state, nonce, codeVerifier });
+    const authorizationUrl = await createSocialAuthorizationUrl(config, { state, nonce, codeVerifier, freshLogin: body.flow === 'reauth' });
     const oldBrowser = sha256(socialCookie(context, SOCIAL_BROWSER_COOKIE));
     await sql`delete from social_auth_flows where expires_at <= now() or browser_hash = ${oldBrowser}`;
     await sql`delete from social_auth_tickets where expires_at <= now() or browser_hash = ${oldBrowser}`;
