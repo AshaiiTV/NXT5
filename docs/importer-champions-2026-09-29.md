@@ -12,7 +12,7 @@ Hors ligne, les noms devenaient aussi « Champion 157 », sans avertissement, et
 
 - `lcuChampionNames` lit `/lol-game-data/assets/v1/champion-summary.json` dans le client et garde l’`alias`, identique au `championName` de Riot (y compris `FiddleSticks`). Le client étant ouvert pour ce parcours, aucun accès Internet n’est nécessaire.
 - Data Dragon reste un secours et renvoie désormais `champion.id`.
-- Un champion introuvable garde le nom « Champion N », et l’export affiche un avertissement invitant à réexporter la partie. Seuls les avertissements du client local sont relayés, jamais ceux d’une réponse distante.
+- Si un champion reste introuvable dans les deux catalogues, l’export échoue (« Catalogue des champions indisponible, réessaie connecté. ») au lieu d’enregistrer « Champion N ». Cette règle vient de l’audit croisé (PR #97).
 - Sous Windows, `riotInstallDirectories` lit `RiotClientInstalls.json` et `league_of_legends.live.product_settings.yaml` dans `ProgramData\Riot Games` pour retrouver une installation hors de `C:`. Si ces fichiers sont absents, les chemins habituels restent utilisés.
 - `assets/nxt5-logo.png` et `assets/nxt5-wordmark.png` sont retirés : ils n’étaient référencés nulle part et restent disponibles, identiques, dans `public/assets`. Ce retrait était prévu avec la prochaine version de l’Importer (`docs/nettoyage-depot-2026-09-29.md` sur la branche de nettoyage).
 
@@ -21,13 +21,15 @@ Hors ligne, les noms devenaient aussi « Champion 157 », sans avertissement, et
 - **Logo** : l’en-tête recomposait « NXT5 » en texte Inter, alors que la charte demande de ne pas reconstituer la signature avec du texte. Il utilise désormais `assets/nxt5-wordmark-320.webp` (15 Ko), copie de `public/assets/nxt5-wordmark-320.webp`, suivi de la mention « IMPORTER ». Le symbole `nxt5-mark.png` propre à l’Importer (trident complet) est conservé. Le « NXT5 » du pied de page reste un texte de mention, pas une signature.
 - **Ton** : tous les textes de l’interface et des messages d’erreur passent au tutoiement, comme le site (« Français direct et concret, tutoiement cohérent avec l’accueil »). Le README et le CHANGELOG, destinés aux développeurs, ne changent pas.
 - **Electron** : 44.2.0 → 44.4.3 (commit Dependabot repris), dans la même version pour ne publier qu’une seule release.
+- **Build** : une surcharge `undici@6: ^6.28.1` corrige l’alerte GHSA-3wwx-pv8p-q78v, remontée par `electron-builder` → `node-gyp`, qui bloquait `pnpm audit` en CI.
+- **Correctifs de l’audit croisé (PR #97)**, déplacés ici pour qu’une seule PR publie la 0.3.4 : une seule équipe gagnante exigée, CS à 10/20 minutes indisponibles si une composante manque, parcours du site à jour après l’export (« Parties → Importer une partie → Choisir mon fichier »).
 
 ## Vérifications
 
-- `pnpm test` (depuis `importer-app`) : 36 tests, dont les alias du client, le rejet des entrées sans alias, `champion.id` de Data Dragon, la conversion LCU, le relais des avertissements et la détection d’une installation sur un autre disque.
-- `node scripts/smoke-electron.mjs` avec Electron 44.2.0, puis 44.4.3 après la mise à jour, le logo et le tutoiement : 22/22 à chaque fois. Les captures d’accueil (fenêtre normale et minimale) montrent le logo officiel net et les textes au tutoiement. Le scénario client LoL vérifie `Annie`, `TwistedFate`, `Leblanc`, `FiddleSticks`, puis « Champion 10 » avec son avertissement lorsque le champion est absent du catalogue et que Data Dragon est hors ligne. Le JSON obtenu passe le validateur d’import du site.
+- `pnpm test` (depuis `importer-app`) : 38 tests, dont les alias du client, le rejet des entrées sans alias, `champion.id` de Data Dragon, la conversion LCU et la détection d’une installation sur un autre disque. `pnpm audit --audit-level=moderate` : aucune vulnérabilité.
+- `node scripts/smoke-electron.mjs` avec Electron 44.4.3 : 23/23 sur la version finale. Les captures d’accueil (fenêtre normale et minimale) montrent le logo officiel net et les textes au tutoiement. Le scénario client LoL vérifie `Annie`, `TwistedFate`, `Leblanc`, `FiddleSticks` et `Kayle` sans jamais appeler Data Dragon. Un second scénario, sans catalogue du client et hors ligne, vérifie que l’export échoue sans ouvrir la fenêtre d’enregistrement. Le JSON obtenu passe le validateur d’import du site.
 
 ## Limites
 
 - Aucune vérification avec un vrai client Riot : le format de `champion-summary.json` a été contrôlé sur la copie publiée par Community Dragon, et celui des fichiers d’installation Windows n’a pas été vérifié sur une machine Windows.
-- Les parties déjà importées avec un nom affiché restent en base sous ce nom. Les regrouper demanderait de normaliser la clé du champion pool et des carnets côté site.
+- Les parties déjà importées avec un nom affiché sont regroupées côté site par la PR #97 (normalisation à l’import et migration `20260929_canonical_champions.mjs`). La PR #96, qui faisait le même travail, a été fermée à son profit.

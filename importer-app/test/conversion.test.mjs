@@ -77,7 +77,7 @@ test("LCU conversion preserves numeric item/spell stats, ISO dates and derives t
   assert.equal(match.info.participants[0].damageDealtToTurrets, 123);
   assert.equal(match.info.participants[0].win, false);
   assert.equal(match.info.participants[0].teamPosition, "UTILITY");
-  assert.equal(match.info.participants[0].championName, "Champion 1");
+  assert.equal(match.info.participants[0].championName, "");
 });
 
 test("LCU conversion uses Riot's internal champion names so site stats stay grouped", () => {
@@ -100,7 +100,8 @@ test("LCU conversion uses Riot's internal champion names so site stats stay grou
     "EUW1_7861632138",
     champions,
   ).info.participants.map((participant) => participant.championName);
-  assert.deepEqual(names, ["MonkeyKing", "DrMundo", "Champion 999"]);
+  // An unknown champion stays empty so export validation refuses it instead of storing a placeholder.
+  assert.deepEqual(names, ["MonkeyKing", "DrMundo", ""]);
 });
 
 test("CS milestones require the observed minute and never borrow an eleven-minute frame", () => {

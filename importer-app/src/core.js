@@ -645,9 +645,6 @@ export function createImportService(deps) {
           }
           warnings.push(
             "Partie récupérée depuis le client LoL. Certaines statistiques peuvent être moins détaillées.",
-            ...(Array.isArray(exported.warnings) ? exported.warnings : [])
-              .filter((warning) => typeof warning === "string")
-              .slice(0, 5),
           );
         }
         report("timeline", "Vérification de la timeline et des statistiques…");

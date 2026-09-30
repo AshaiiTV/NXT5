@@ -1,7 +1,7 @@
 # NXT5 Importer 0.3.4
 
 - Les parties récupérées depuis le client LoL utilisent le nom interne des champions employé par Riot (`MonkeyKing`, `DrMundo`, `FiddleSticks`…). Elles ne créent plus de doublons « Wukong », « Dr. Mundo » ou « Nunu & Willump » dans le champion pool et les carnets de matchups du site.
-- Le catalogue des champions est lu dans le client LoL, sans connexion Internet ; Data Dragon ne sert plus que de secours. Si un champion reste inconnu, l’export le signale au lieu de l’enregistrer silencieusement sous son numéro.
+- Le catalogue des champions est lu dans le client LoL, sans connexion Internet ; Data Dragon ne sert plus que de secours. Si un champion reste inconnu, l’export échoue avec une invitation à réessayer connecté, sans enregistrer de faux nom.
 - Sous Windows, le client est retrouvé sur un autre disque que `C:` grâce aux informations d’installation du Riot Client.
 - L’en-tête affiche le logo officiel NXT5 au lieu d’une signature recomposée en texte, conformément à la charte.
 - L’interface et les messages tutoient l’utilisateur, comme le site.

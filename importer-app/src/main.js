@@ -129,7 +129,7 @@ function lcuToRiotMatch(lcuGame, fallbackGameId, champions = new Map()) {
       const championName =
         champions.get(String(participant.championId)) ||
         participant.championName ||
-        `Champion ${participant.championId || "?"}`;
+        "";
       const riotName =
         player.gameName ||
         player.summonerName ||
@@ -388,11 +388,13 @@ async function localMatch(gameId, signal, progress) {
     lockfile,
     signal,
   );
-  const unknownChampions = game.participants.filter(
-    (participant) =>
-      !champions.has(String(participant.championId)) &&
-      !participant.championName,
-  ).length;
+  // A placeholder name would be stored by the site and split its statistics.
+  if (
+    game.participants.some(
+      (participant) => !champions.has(String(participant.championId)),
+    )
+  )
+    throw new Error("Catalogue des champions indisponible, réessaie connecté.");
   const match = lcuToRiotMatch(game, gameId, champions);
   progress?.("Récupération de la timeline depuis le client LoL…");
   let timeline = null;
@@ -412,15 +414,7 @@ async function localMatch(gameId, signal, progress) {
       throwIfAborted(signal);
     }
   }
-  // Placeholder names would be stored by the site, so the user must know to re-export.
-  const warnings = unknownChampions
-    ? [
-        unknownChampions > 1
-          ? `${unknownChampions} champions n’ont pas pu être identifiés : ils apparaîtront sous leur numéro. Réexporte la game quand la connexion Internet est rétablie.`
-          : "Un champion n’a pas pu être identifié : il apparaîtra sous son numéro. Réexporte la game quand la connexion Internet est rétablie.",
-      ]
-    : [];
-  return { match, timeline, source: "nxt5-lcu-importer", warnings };
+  return { match, timeline, source: "nxt5-lcu-importer" };
 }
 
 async function championNames(championIds, lockfile, signal) {
