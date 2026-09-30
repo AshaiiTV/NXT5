@@ -1,6 +1,6 @@
 import { renderGamePublicationCanvas } from './game-publication-canvas.js';
 import { renderDiscordPublicationCanvas } from './discord-publication-canvas.js';
-import { pngLoadImage, pngDownload } from '../../src/utils/png-report.js';
+import { pngLoadImage } from '../../src/utils/png-report.js';
 
 const fontSources = [
   [400, new URL('../../node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2', import.meta.url).href],
@@ -25,8 +25,4 @@ export async function renderGamePublicationPng(snapshot, { loadAssets, layout = 
     loadAssets,
   });
   return canvas;
-}
-
-export async function downloadGamePublicationPng(snapshot, filename, options = {}) {
-  await pngDownload(await renderGamePublicationPng(snapshot, options), filename || 'nxt5-game.png');
 }

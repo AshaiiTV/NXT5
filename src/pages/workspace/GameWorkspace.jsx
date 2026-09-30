@@ -565,10 +565,6 @@ function roleScore(row) {
   return statValue(row, "damage") / 1000 + statValue(row, "gold") / 1000 + statValue(row, "vision") * 0.4 + kda * 6 + kp * 0.2;
 }
 
-function timelineFrames(match) {
-  return matchTimelineFrames(match);
-}
-
 function teamKeyFromTeamId(match, teamId) {
   const allyTeamId = objectiveTeamId(match, "ALLY");
   const enemyTeamId = objectiveTeamId(match, "ENEMY");
@@ -585,7 +581,7 @@ function rowByParticipantId(match, participantId) {
 
 function championKillEvents(match) {
   const teams = participantTeamMap(match);
-  return timelineFrames(match).flatMap((frame) => (frame.events || []).filter((event) => event.type === "CHAMPION_KILL").map((event) => {
+  return matchTimelineFrames(match).flatMap((frame) => (frame.events || []).filter((event) => event.type === "CHAMPION_KILL").map((event) => {
     const killerId = Number(event.killerId || 0);
     const victimId = Number(event.victimId || 0);
     const killerTeam = teamKeyFromTeamId(match, teams.get(killerId));
@@ -598,7 +594,7 @@ function championKillEvents(match) {
 
 function buildingEvents(match) {
   const teams = participantTeamMap(match);
-  return timelineFrames(match).flatMap((frame) => (frame.events || []).filter((event) => event.type === "BUILDING_KILL").map((event) => {
+  return matchTimelineFrames(match).flatMap((frame) => (frame.events || []).filter((event) => event.type === "BUILDING_KILL").map((event) => {
     const killerId = Number(event.killerId || 0);
     const killerTeam = teamKeyFromTeamId(match, teams.get(killerId));
     const ownerTeam = teamKeyFromTeamId(match, event.teamId);
@@ -617,7 +613,7 @@ function frameTeamGold(match, teamKey, frame) {
 
 function teamGoldAtMinute(match, teamKey, minute) {
   const target = minute * 60000;
-  const frame = timelineFrames(match).find((item) => item.timestamp >= target && item.timestamp <= target + MILESTONE_TOLERANCE_MS);
+  const frame = matchTimelineFrames(match).find((item) => item.timestamp >= target && item.timestamp <= target + MILESTONE_TOLERANCE_MS);
   return frameTeamGold(match, teamKey, frame);
 }
 
@@ -697,7 +693,7 @@ function timelinePhaseMeta(timestamp) {
 
 function teamGoldAtTimestamp(match, teamKey, timestamp) {
   // Event cards use the most recent past frame; never borrow a future frame.
-  const frame = timelineFrames(match).filter((item) => Number.isFinite(item.timestamp) && item.timestamp <= timestamp)
+  const frame = matchTimelineFrames(match).filter((item) => Number.isFinite(item.timestamp) && item.timestamp <= timestamp)
     .sort((a, b) => b.timestamp - a.timestamp)[0];
   return frameTeamGold(match, teamKey, frame);
 }
@@ -2219,4 +2215,4 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   );
 }
 
-export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, timelineFrames, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
+export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
