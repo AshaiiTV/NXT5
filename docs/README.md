@@ -75,5 +75,6 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 | 2026-09-29 | [Mesure du chargement de l’historique](perf-historique-2026-09-29.md) |
 | 2026-09-30 | [Factorisation des doublons](factorisation-2026-09-30.md) |
 | 2026-09-30 | [Correctifs repris de feat/pricing-validation](pricing-validation-restes-2026-09-30.md) |
+| 2026-09-30 | [Importer 0.3.5 : Electron et actions GitHub](importer-0-3-5-2026-09-30.md) |
 
 Ajouter chaque nouveau rapport daté à ce tableau dans la même pull request.
