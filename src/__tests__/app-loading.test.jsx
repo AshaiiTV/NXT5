@@ -9,7 +9,7 @@ import { apiFetch } from "../api/client.js";
 const visual = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../app/performance.js", () => ({ configurePerformanceMode: vi.fn(), PERFORMANCE_MODE_STORAGE_KEY: "performance" }));
-vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
+vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: ({ excluded }) => <aside data-audience-excluded={excluded} /> }));
 vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({
   default: function LoadingScreen({ phase, progress }) {
     const identity = useRef(Symbol("loader"));
@@ -19,7 +19,7 @@ vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({
 }));
 vi.mock("../pages/public/PublicPages.jsx", () => ({
   HomeScreen: ({ navigate }) => <main data-page="home"><button onClick={() => navigate("/equipes")}>Ouvrir</button></main>,
-  AuthPage: () => <main data-page="auth" />,
+  AuthPage: ({ onAuth }) => <main data-page="auth"><button onClick={() => onAuth({ id: "user", email: "staff@nxt5.test", email_verified: true })}>Connexion réussie</button></main>,
   LegalPage: () => <main data-page="legal" />,
   ForgotPasswordPage: () => <main data-page="forgot" />,
   ResetPasswordPage: () => <main data-page="reset" />,
@@ -29,11 +29,12 @@ vi.mock("../pages/public/PublicPages.jsx", () => ({
 }));
 vi.mock("../components/layout/AppChrome.jsx", () => ({
   AmbientBackground: () => null,
-  Sidebar: () => null,
+  Sidebar: ({ onLogout }) => <button data-logout onClick={onLogout}>Déconnexion</button>,
   Topbar: () => null,
   BeginnerCompass: () => null,
   ApiBanner: ({ error, onRetry }) => error ? <aside role="alert">{error}<button onClick={onRetry}>Réessayer</button></aside> : null,
 }));
+vi.mock("../pages/workspace/Planning.jsx", () => ({ Planning: ({ planningStore }) => <button data-edit-planning onClick={() => planningStore.forContext({ teamId: "a", playerId: "p", weekStart: "2026-09-28" }).setNotes("Disponibilités")}>Modifier le planning</button> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: ({ data }) => <main data-page="teams" data-games={data.matches.length} /> }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => null }));
 vi.mock("../pages/public/DemoPage.jsx", () => ({ DemoPage: () => <main data-page="demo" /> }));
@@ -60,7 +61,7 @@ beforeEach(() => {
   const browser = {
     location: new URL("https://nxt5.test/equipes"),
     addEventListener: vi.fn(), removeEventListener: vi.fn(), scrollTo: vi.fn(),
-    setTimeout, clearTimeout,
+    setTimeout, clearTimeout, confirm: vi.fn(() => false),
     localStorage: { getItem: vi.fn(), setItem: vi.fn() },
   };
   const setUrl = (_state, _title, path) => { browser.location = new URL(path, browser.location); };
@@ -219,4 +220,71 @@ describe("one continuous application loading screen", () => {
     expect(app.pages[0].props["data-games"]).toBe(0);
     expect(vi.getTimerCount()).toBe(0);
   });
+});
+
+
+it.each(["resolve", "reject"])("B9 ignores initial auth-me %s after successful login", async (outcome) => {
+  const app = mount("/connexion");
+  await app.loadModule();
+  act(() => app.renderer.root.findAllByType("button").find(node => node.props.children === "Connexion réussie").props.onClick());
+  await act(async () => { await vi.dynamicImportSettled(); });
+  expect(app.requests[1].url).toContain("bootstrap");
+  await app.resolve(1, emptySnapshot);
+  await act(async () => { await vi.dynamicImportSettled(); });
+  if (outcome === "reject") await app.reject(0);
+  else await app.resolve(0, { user: null });
+  expect(app.pages.some(node => node.props["data-page"] === "auth")).toBe(false);
+  expect(app.pages.some(node => node.props["data-page"] === "teams")).toBe(true);
+});
+
+
+it.each(['/tarifs', '/admin', '/admin/tarifs', '/admin/inconnu'])('N2-04: excludes admin route %s in the actual collection context for a non-admin', async path => {
+  const app = mount(path);
+  await app.loadModule();
+  await app.resolve(0, { user });
+  expect(app.renderer.root.findByProps({ 'data-audience-excluded': true })).toBeDefined();
+  expect(app.pages.some(page => page.props['data-page'] === 'not-found')).toBe(true);
+});
+
+
+it.each([true, false])("R-F3 flushes before auth-logout and stays signed in on save failure (%s)", async succeeds => {
+  const app = mount("/planning");
+  await app.loadModule();
+  await app.resolve(0, { user });
+  await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a", owner_id: "user" }], selectedTeamId: "a", players: [{ id: "p", team_id: "a", role: "TOP", user_id: "user" }] });
+  await act(async () => app.renderer.root.findByProps({ "data-edit-planning": true }).props.onClick());
+  let logout;
+  act(() => { logout = app.renderer.root.findByProps({ "data-logout": true }).props.onClick(); });
+  await act(async () => { await Promise.resolve(); });
+  expect(app.requests[2].url).toBe("player-availability-manage");
+  expect(app.requests.some(r => r.url === "auth-logout")).toBe(false);
+  if (succeeds) {
+    await app.resolve(2, { availability: { team_id: "a", player_id: "p", week_start: "2026-09-28", notes: "Disponibilités" } });
+    expect(app.requests[3].url).toBe("auth-logout");
+    await app.resolve(3, {});
+    await logout;
+    expect(window.location.pathname).toBe("/connexion");
+  } else {
+    await app.reject(2);
+    await logout;
+    expect(app.requests.some(r => r.url === "auth-logout")).toBe(false);
+    expect(window.location.pathname).toBe("/planning");
+    expect(JSON.stringify(app.renderer.toJSON())).toContain("Déconnexion interrompue");
+  }
+});
+
+it.each([401, 403, 500])('R4-V2 actually logs out after a planning error %s', async status => {
+  window.confirm.mockReturnValue(true);
+  const app = mount('/planning');
+  await app.loadModule(); await app.resolve(0, { user });
+  await app.resolve(1, { ...emptySnapshot, teams: [{ id: 'a', owner_id: 'user' }], selectedTeamId: 'a', players: [{ id: 'p', team_id: 'a', role: 'TOP', user_id: 'user' }] });
+  await act(async () => app.renderer.root.findByProps({ 'data-edit-planning': true }).props.onClick());
+  let logout;
+  await act(async () => { logout = app.renderer.root.findByProps({ 'data-logout': true }).props.onClick(); });
+  await act(async () => app.requests[2].reject(Object.assign(new Error('Planning failed'), { status })));
+  expect(app.requests[3].url).toBe('auth-logout');
+  expect(window.confirm).toHaveBeenCalledTimes(status === 500 ? 1 : 0);
+  await app.resolve(3, {}); await logout;
+  expect(window.location.pathname).toBe('/connexion');
+  expect(app.requests.filter(r => r.url === 'player-availability-manage')).toHaveLength(1);
 });

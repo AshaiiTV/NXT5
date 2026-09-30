@@ -295,3 +295,22 @@ describe("explicit roster creation from an import preview", () => {
     expect(apiUploadJson).toHaveBeenCalledTimes(1);
   });
 });
+
+it("B10 announces malformed JSON inside the import panel and releases busy state", async () => {
+  const onBusyChange = vi.fn();
+  const { renderer } = await mount({ onBusyChange });
+  await act(async () => renderer.root.findByType(ImporterDownloadPanel).props.onImport({ name: "broken.json", size: 5, text: async () => "{oops" }));
+  expect(renderer.root.findAllByProps({ role: "alert" }).some(node => text(node).includes("JSON valide"))).toBe(true);
+  expect(onBusyChange).toHaveBeenLastCalledWith(false);
+  expect(apiUploadJson).not.toHaveBeenCalled();
+});
+
+it("B12 releases the import dialog when the upload times out", async () => {
+  const onBusyChange = vi.fn();
+  const { renderer } = await mount({ onBusyChange });
+  apiUploadJson.mockRejectedValueOnce(new Error("L’envoi a dépassé le délai maximal."));
+  await act(async () => renderer.root.findByType(ImporterDownloadPanel).props.onImport({ name: "game.json", size: 2, text: async () => "{}" }));
+  expect(onBusyChange).toHaveBeenLastCalledWith(false);
+  expect(renderer.root.findByType(ImporterDownloadPanel).props.fileImporting).toBe(false);
+  expect(renderer.root.findAllByProps({ role: "alert" }).some(node => text(node).includes("délai maximal"))).toBe(true);
+});

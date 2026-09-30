@@ -10,14 +10,17 @@ export function emptyCompositionSlots(players = [], roles = DEFAULT_COMP_ROLES) 
 }
 
 export function compositionSlots(value) {
-  if (value && typeof value === "object" && !Array.isArray(value)) return value;
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
-    } catch {}
+  let input = value;
+  if (typeof input === "string") {
+    try { input = JSON.parse(input); } catch { return {}; }
   }
-  return {};
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  return Object.fromEntries(Object.entries(input)
+    .filter(([role, slot]) => DEFAULT_COMP_ROLES.includes(role) && slot && typeof slot === "object" && !Array.isArray(slot))
+    .map(([role, slot]) => [role, {
+      playerId: typeof slot.playerId === "string" ? slot.playerId : "",
+      poolId: typeof slot.poolId === "string" ? slot.poolId : "",
+    }]));
 }
 
 export function jsonList(value) {

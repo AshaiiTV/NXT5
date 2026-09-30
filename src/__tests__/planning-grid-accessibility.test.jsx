@@ -28,7 +28,7 @@ describe("planning keyboard and daily controls", () => {
     key("3:7", "ArrowRight"); expect(entry()).toEqual(["3:7"]);
     key("3:7", "Home", { ctrlKey: true }); expect(entry()).toEqual(["0:1"]);
     key("1:2", "F10", { shiftKey: true });
-    expect(app.settings.onEvent).toHaveBeenCalledWith(expect.any(Object), "TUE", "19:00");
+    expect(app.settings.onEvent).toHaveBeenCalledWith(expect.any(Object), "TUE", "19:00", expect.objectContaining({ dataset: { position: "1:2" } }));
   });
   it.each(["0:3", "2:0"])("keeps a keyboard entry if personal editing is removed at %s", position => {
     const app = setup();
@@ -53,8 +53,10 @@ describe("planning keyboard and daily controls", () => {
     expect(app.focus).toHaveBeenLastCalledWith('[data-hour="2"]');
     app.update({ editingEvents: true });
     cells = renderer.root.findByProps({ "aria-label": "Créneaux du WED" }).findAllByType("button");
-    act(() => cells[2].props.onClick({ kind: "click" }));
-    expect(app.settings.onEvent).toHaveBeenCalledWith({ kind: "click" }, "WED", "21:00");
+    const trigger = { focus: vi.fn() };
+    const event = { kind: "click", currentTarget: trigger };
+    act(() => cells[2].props.onClick(event));
+    expect(app.settings.onEvent).toHaveBeenCalledWith(event, "WED", "21:00", trigger);
     expect(cells[2].props["aria-pressed"]).toBeUndefined();
   });
 });

@@ -64,11 +64,12 @@ vi.mock('../../netlify/functions/_lib/auth', async (importOriginal) => {
 });
 vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ ensureUserNotificationColumns: async () => {}, getTeamMemberEmails: async () => state.recipients }));
 vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: state.notification }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails, isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails }));
 
 import verifyEmail from '../../netlify/functions/verify-email';
 import updateProfile from '../../netlify/functions/auth-update-profile';
 import changePassword from '../../netlify/functions/auth-change-password';
+import requestPasswordReset from '../../netlify/functions/auth-request-password-reset';
 import resetPassword from '../../netlify/functions/auth-reset-password';
 import registerAccount from '../../netlify/functions/auth-register';
 import resendVerification from '../../netlify/functions/resend-verify-email';
@@ -157,6 +158,12 @@ describe('authentication request size limits', () => {
 });
 
 describe('email verification belongs to the current address', () => {
+  it('rejects the stored hash as a bearer token but accepts the original token once', async () => {
+    expect((await verify(sha256(originalToken))).headers.get('location')).toContain('error=invalid');
+    expect((await user()).email_verified).toBe(false);
+    expect((await verify()).headers.get('location')).toContain('success=true');
+    expect((await verify()).headers.get('location')).toContain('error=invalid');
+  });
   it('consumes a current unexpired token exactly once', async () => {
     const responses = await Promise.all([verify(), verify()]);
     const locations = responses.map(response => response.headers.get('location'));
@@ -579,5 +586,31 @@ describe('first human review signal', () => {
     expect((await state.pg.query("select * from audit_logs where action='reports.create'")).rows).toHaveLength(0);
     expect((await state.pg.query('select first_review_at from teams where id=$1', [teamId])).rows[0].first_review_at).not.toBeNull();
     expect((await (await save()).json()).firstReview).toBe(false);
+  });
+});
+
+describe('R-I5 password reset budgets', () => {
+  const submit = (ip: number, email = 'original@example.test') => requestPasswordReset(new Request('https://nxt5.test/auth-request-password-reset', {
+    method: 'POST', headers: { 'x-nf-client-connection-ip': `192.0.2.${ip}` }, body: JSON.stringify({ email })
+  }));
+  it('limits a recipient/IP pair to three without blocking recovery from another IP', async () => {
+    for (let index = 0; index < 3; index++) expect((await submit(1)).status).toBe(200);
+    const before = (await state.pg.query('select * from password_reset_tokens order by id')).rows;
+    expect(await (await submit(1, '  ORIGINAL@EXAMPLE.TEST  ')).json()).toEqual({ ok: true });
+    expect(state.emails).toHaveBeenCalledTimes(3);
+    expect((await state.pg.query('select * from password_reset_tokens order by id')).rows).toEqual(before);
+    expect(await (await submit(2)).json()).toEqual({ ok: true });
+    expect(state.emails).toHaveBeenCalledTimes(4);
+    expect(await (await submit(3, 'missing@example.test')).json()).toEqual({ ok: true });
+    await state.pg.exec("update rate_limits set window_start=now()-interval '61 minutes'");
+    expect((await submit(1)).status).toBe(200);
+    expect(state.emails).toHaveBeenCalledTimes(5);
+  });
+  it('caps the global recipient budget at ten even across different IPs', async () => {
+    for (let ip = 1; ip <= 10; ip++) expect((await submit(ip)).status).toBe(200);
+    const before = (await state.pg.query('select * from password_reset_tokens order by id')).rows;
+    expect(await (await submit(11)).json()).toEqual({ ok: true });
+    expect(state.emails).toHaveBeenCalledTimes(10);
+    expect((await state.pg.query('select * from password_reset_tokens order by id')).rows).toEqual(before);
   });
 });

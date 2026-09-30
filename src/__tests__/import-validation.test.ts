@@ -18,6 +18,20 @@ function match(): RiotMatch {
 }
 
 describe('import validation before persistence', () => {
+  it.each([[true, true], [false, false]])('rejects contradictory winners %s / %s', (blue, red) => {
+    const input = match();
+    input.info.teams[0].win = blue;
+    input.info.teams[1].win = red;
+    expect(() => assertImportMatch(input)).toThrow(/exactement une équipe gagnante/);
+  });
+
+  it('accepts a red-side victory', () => {
+    const input = match();
+    input.info.teams[0].win = false;
+    input.info.teams[1].win = true;
+    expect(() => assertImportMatch(input)).not.toThrow();
+  });
+
   it('accepts a complete Riot or local importer match', () => {
     expect(() => assertImportMatch(match())).not.toThrow();
     const local = match();

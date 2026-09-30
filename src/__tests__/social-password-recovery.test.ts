@@ -40,7 +40,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 vi.mock('../../netlify/functions/_lib/auth', async original => ({ ...await original<any>(), assertSessionSecret: () => {} }));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
 vi.mock('../../netlify/functions/_lib/email', () => ({ isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails, sendEmailVerificationEmail: state.verification }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: state.rate, assertSubjectRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown', assertRateLimit: state.rate, assertSubjectRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate }));
 
 import resetPassword from '../../netlify/functions/auth-reset-password';
 import requestPasswordReset from '../../netlify/functions/auth-request-password-reset';

@@ -56,7 +56,7 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   async function save(action) {
     if (!allowed || saving || (action === "update" && !editForm.label.trim()) || (action === "roles" && !match.participants?.length) || (action === "side" && !gameSideFormReady(match, sideForm, roster))) return;
     const matchId = match.id;
-    const body = { action, teamId: selectedTeamId, matchId, ...(action === "update" ? { label: editForm.label, categoryIds: editForm.categoryIds || [] } : action === "roles" ? { roles: roleForm } : action === "side" ? sideForm : {}) };
+    const body = { action, teamId: selectedTeamId, matchId, ...(action === "update" ? { label: editForm.label, categoryIds: editForm.categoryIds || [] } : action === "roles" ? { roles: Object.fromEntries(Object.entries(roleForm).map(([id, { playerId, ...role }]) => [id, { ...role, ...(playerId ? { playerId: playerId === "__unlink__" ? null : playerId } : {}) }])) } : action === "side" ? sideForm : {}) };
     setSaving(true);
     try {
       const result = await apiFetch("matches-manage", { method: "POST", body: JSON.stringify(body) });
@@ -305,7 +305,7 @@ export function ImportHistoryEditor({ match, categories, roster, editing, editFo
             <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion}</strong><span>{row.summoner_name || row.riot_id || "Joueur"}</span></div></div>
             <div className="ih-role-fields">
               <SelectInput label={`Poste · ${champion}`} value={form.role || ""} onChange={(role) => onRoleChange(row.id, role)}><option value="" disabled>À attribuer</option>{COMP_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
-              {teamKey === "ALLY" && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">Conserver le profil</option>{form.playerId && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>Profil lié hors roster</option>}{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>}
+              {teamKey === "ALLY" && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">Conserver le profil</option><option value="__unlink__">Aucun profil (délier)</option>{form.playerId && form.playerId !== "__unlink__" && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>Profil lié hors roster</option>}{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>}
             </div>
           </div>;
         })}</div>
@@ -329,6 +329,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const [profileDraft, setProfileDraft] = useState({});
   const [creatingProfiles, setCreatingProfiles] = useState(false);
   const [fileImporting, setFileImporting] = useState(false);
+  const [fileError, setFileError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(null);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const gameplayRoster = [...new Map([...(data.players || []), ...createdRoster].filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)).map(player => [player.id, player])).values()];
@@ -529,6 +530,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     if (importing || creatingProfiles || !importReady || !canImport) return;
     window.clearTimeout(progressTimer.current);
     const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [] };
+    setFileError("");
     setImporting(true);
     setUploadProgress({ active: true, label: "Import final", phase: "upload", percent: 0, loaded: 0, total: 0 });
     try {
@@ -541,7 +543,9 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
       clearUploadProgressSoon();
       onImported?.(result);
     } catch (err) {
-      pushToast(errorToast(err, "Import impossible", "match-import"));
+      const toast = errorToast(err, "Import impossible", "match-import");
+      setFileError(toast.text || err.message);
+      pushToast(toast);
       clearUploadProgressSoon();
     } finally {
       setImporting(false);
@@ -549,7 +553,8 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   }
   async function importLocalFile(file) {
     if (!file || importing || fileImporting || creatingProfiles || !selectedTeamId || !canImport) return;
-    if (file.size > 5 * 1024 * 1024) { pushToast({ type: "red", title: "Fichier trop volumineux", text: "Choisis un fichier JSON de 5 Mo maximum." }); return; }
+    setFileError("");
+    if (file.size > 5 * 1024 * 1024) { setFileError("Choisis un fichier JSON de 5 Mo maximum."); pushToast({ type: "red", title: "Fichier trop volumineux", text: "Choisis un fichier JSON de 5 Mo maximum." }); return; }
     window.clearTimeout(progressTimer.current);
     setFileImporting(true);
     setUploadProgress({ active: true, label: file.name || "Prévisualisation JSON", phase: "prepare", percent: 0, loaded: 0, total: file.size || 0 });
@@ -567,8 +572,11 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
       pushToast({ type: "green", title: "Fichier chargé", text: "Choisis ton équipe, puis vérifie les champions et les joueurs avant de confirmer." });
       clearUploadProgressSoon();
     } catch (err) {
-      if (err instanceof SyntaxError) pushToast({ type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Importer." });
-      else pushToast(errorToast(err, "Import fichier impossible", "match-import"));
+      const toast = err instanceof SyntaxError
+        ? { type: "red", title: "Import fichier impossible", text: "Le fichier choisi n’est pas un JSON valide. Génère-le avec NXT5 Importer." }
+        : errorToast(err, "Import fichier impossible", "match-import");
+      setFileError(toast.text || err.message);
+      pushToast(toast);
       clearUploadProgressSoon();
     } finally {
       setFileImporting(false);
@@ -608,6 +616,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     <div className="mt-4"><LinkButton href={!selectedTeamId ? "/equipes" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? "Ouvrir mon équipe" : "Retour aux parties"}</LinkButton></div>
   </Surface>;
   return <div className="nxt5-data-dense nxt5-import-page game-import-flow grid min-w-0 gap-5">
+        {fileError && <p role="alert" className="mb-4 rounded-xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm text-rose-100">{fileError}</p>}
         <ImporterDownloadPanel fileImporting={fileImporting || importing || creatingProfiles} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
           {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
         </ImporterDownloadPanel>

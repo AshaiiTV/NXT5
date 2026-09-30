@@ -9,3 +9,14 @@
 
 .nxt5-native-dialog:not([open]) { display: none; }
 .nxt5-native-dialog[open] { position: fixed; inset: 0; }
+
+/* Keep fixed toast descendants anchored to the viewport, including during entry.
+   Override historical transform animations without changing reduced-motion rules. */
+@keyframes nxt5-dialog-enter { from { opacity: 0; } to { opacity: 1; } }
+.nxt5-native-dialog[open] {
+  animation-name: nxt5-dialog-enter;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  container-type: normal;
+}

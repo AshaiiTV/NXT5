@@ -99,13 +99,19 @@ function opggUrlFromRiotId(riotId, region) {
   return `https://www.op.gg/lol/summoners/${String(region || "EUW").toLowerCase()}/${slug}`;
 }
 
-function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false }) {
+function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false, teamCreation = {} }) {
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
+  const pendingCreation = teamCreation.pending;
   const [playerForm, setPlayerForm] = useState(() => emptyPlayerForm());
   const [joinCode, setJoinCode] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [localSaving, setSaving] = useState(false);
+  const saving = localSaving || teamCreation.busy;
   const [syncingPlayerId, setSyncingPlayerId] = useState("");
   const [teamSetupOpen, setTeamSetupOpen] = useState(false);
+  const [dismissedCreationId, setDismissedCreationId] = useState(null);
+  const pageRef = useRef(null);
+  const setupRef = useRef(null);
+  const focusSetup = useRef(false);
   const [riotCooldownUntil, setRiotCooldownUntil] = useState(0);
   const [nowTick, setNowTick] = useState(Date.now());
   const [teamEdit, setTeamEdit] = useState({ name: "", tag: "", avatarDataUrl: "", avatarZoom: 1, avatarX: 50, avatarY: 50 });
@@ -120,8 +126,14 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const inviteCodes = selectedTeam ?(data.inviteCodes || []).filter((code) => code.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
   const hasTeams = data.teams.length > 0;
-  const canManageTeam = Boolean(user?.id && selectedTeam?.owner_id === user.id) || canStaffManage(currentMember?.role);
-  const canDeleteTeam = ["owner", "captain"].includes(String(currentMember?.role || "").toLowerCase());
+  const showSetup = !hasTeams || teamSetupOpen || setupOnly || (pendingCreation && dismissedCreationId !== pendingCreation.team.id);
+  const owner = Boolean(user?.id && selectedTeam?.owner_id === user.id);
+  const accessRole = String(currentMember?.role || "").toLowerCase();
+  const canManageRoster = owner || canStaffManage(accessRole);
+  const canEditIdentity = owner || ["owner", "captain", "manager"].includes(accessRole);
+  const canInvite = canEditIdentity;
+  const canManageMembers = owner || ["owner", "captain"].includes(accessRole);
+  const canDeleteTeam = owner;
   const riotCooldownSeconds = Math.max(0, Math.ceil((riotCooldownUntil - nowTick) / 1000));
 
   useEffect(() => {
@@ -153,37 +165,43 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     });
   }, [selectedTeam?.id]);
 
-  async function createTeam(event) {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      const result = await apiFetch("teams-create", { method: "POST", body: JSON.stringify({ name: teamForm.name, tag: teamForm.tag, region: teamForm.region }) });
-      const createdTeam = result.team;
-      let importedCount = 0;
-      for (const [index, player] of multiPlayers.entries()) {
-        await apiFetch("players-create", {
-          method: "POST",
-          body: JSON.stringify({
-            teamId: createdTeam.id,
-            name: player.name,
-            riotId: player.riotId,
-            opggUrl: opggUrlFromRiotId(player.riotId, teamForm.region),
-            role: ROSTER_ROLE_ORDER[index] || "SUB",
-          }),
-        });
-        importedCount += 1;
-      }
+  const previousCompletion = useRef(teamCreation.completed);
+  useEffect(() => {
+    if (teamCreation.completed !== previousCompletion.current) {
+      previousCompletion.current = teamCreation.completed;
       setTeamForm({ name: "", tag: "", region: "EUW", multiOpgg: "" });
-      setSelectedTeamId(createdTeam.id);
       setTeamSetupOpen(false);
-      openAppPath("/equipes");
-      await refreshAll({ teamId: createdTeam.id });
-      pushToast({ type: "green", title: "Team créée", text: importedCount ?`${importedCount} joueur${importedCount > 1 ?"s" : ""} importé${importedCount > 1 ?"s" : ""} depuis le multi OP.GG.` : "Tu peux maintenant ajouter le roster ou générer un code d’invitation." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Création impossible", text: err.message });
-    } finally {
-      setSaving(false);
     }
+  }, [teamCreation.completed]);
+
+  useEffect(() => {
+    if (showSetup && focusSetup.current) {
+      focusSetup.current = false;
+      setupRef.current?.querySelector('button[type="submit"]')?.focus();
+    }
+  }, [showSetup]);
+
+  function closeSetup() {
+    setTeamSetupOpen(false);
+    setDismissedCreationId(pendingCreation?.team.id || null);
+    openAppPath("/equipes");
+    // Return focus to the page heading (a named, focusable landmark) rather than an unnamed container.
+    const heading = pageRef.current?.querySelector(".nxt5-page-title");
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  }
+
+  function abandonCreation() {
+    if (saving || !teamCreation.abandon()) return;
+    setTeamForm({ name: "", tag: "", region: "EUW", multiOpgg: "" });
+    closeSetup();
+  }
+
+  function createTeam(event) {
+    event.preventDefault();
+    if (saving) return;
+    return teamCreation.create(teamForm, multiPlayers.map((player, index) => ({
+      ...player, opggUrl: opggUrlFromRiotId(player.riotId, teamForm.region), role: ROSTER_ROLE_ORDER[index] || "SUB",
+    })));
   }
 
   async function joinTeam(event) {
@@ -206,7 +224,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   async function createPlayer(event) {
     event.preventDefault();
-    if (!selectedTeam || !canManageTeam || saving) return;
+    if (!selectedTeam || !canManageRoster || saving) return;
     setSaving(true);
     try {
       await apiFetch("players-create", { method: "POST", body: JSON.stringify({ ...playerForm, rosterStatus: playerForm.rosterStatus === "AUTO" ? "" : playerForm.rosterStatus, teamId: selectedTeam.id }) });
@@ -221,6 +239,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   }
 
   async function copyInviteLink() {
+    if (!canInvite || saving) return;
     if (!selectedTeam) return;
     setSaving(true);
     try {
@@ -236,6 +255,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   }
 
   async function revokeInvites() {
+    if (!canInvite || saving) return;
     if (!selectedTeam) return;
     setSaving(true);
     try {
@@ -328,6 +348,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   }
 
   async function updateMemberRole(userId, role) {
+    if (!canManageMembers || saving) return;
     if (!selectedTeam) return;
     setSaving(true);
     try {
@@ -358,6 +379,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   async function updateTeam(event) {
     event.preventDefault();
+    if (!canEditIdentity || saving) return;
     if (!selectedTeam) return;
     setSaving(true);
     try {
@@ -372,6 +394,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   }
 
   async function removeMember(userId, label) {
+    if (!canManageMembers || saving) return;
     if (!selectedTeam) return;
     if (!window.confirm(`Renvoyer ${label || "ce profil"} de la team ?`)) return;
     setSaving(true);
@@ -434,6 +457,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   }
 
   async function deleteTeam() {
+    if (!canDeleteTeam || saving) return;
     if (!selectedTeam) return;
     const confirmed = window.confirm(`Supprimer définitivement la team "${selectedTeam.name}" ? Cette action supprime aussi roster, matchs, reviews et invitations liés.`);
     if (!confirmed) return;
@@ -456,7 +480,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       <LinkButton href="/equipes" navigate={openAppPath} variant="ghost" icon={ArrowLeft}>Retour à l’équipe</LinkButton>
     </PageHeader>
     {selectedTeam ? <div className="space-y-5">
-      <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} onRevokeInvites={revokeInvites} canManage={canManageTeam} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch} />
+      <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} onRevokeInvites={revokeInvites} canManageRoster={canManageRoster} canEditIdentity={canEditIdentity} canInvite={canInvite} canManageMembers={canManageMembers} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch} />
       <Surface className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0"><h3 className="text-lg font-black text-white">Bot Discord</h3><p className="mt-1 text-sm leading-6 text-slate-300">Invitation, connexion du serveur, salons et historique des publications de ton équipe.</p></div>
@@ -467,9 +491,10 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && !setupOnly && <>
-      {canManageTeam && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
-      {teamSetupOpen && <Button type="button" variant="ghost" icon={X} onClick={() => { setTeamSetupOpen(false); openAppPath("/equipes"); }}>Fermer les formulaires</Button>}
+  return <div ref={pageRef} className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && <>
+      {canManageRoster && !setupOnly && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
+      {showSetup && <Button type="button" variant="ghost" icon={X} disabled={saving} onClick={closeSetup}>Fermer les formulaires</Button>}
+      {pendingCreation && !showSetup && <Button type="button" variant="ghost" onClick={() => { focusSetup.current = true; setTeamSetupOpen(true); }}>Reprendre l’import de joueurs</Button>}
     </>}</PageHeader>
     {!hasTeams && <Surface className="mb-5 p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -483,18 +508,25 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
         {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter les joueurs", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une partie", "Retrouve son résultat, ses statistiques et les points à discuter."]].map(([number, title, text]) => <div key={title} className="team-start-step"><p className="text-sm font-semibold text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
       </div>
     </Surface>}
-    <div className={cx("teams-workspace-layout", hasTeams && teamSetupOpen && !setupOnly && "has-roster-setup")}>
-      {(!hasTeams || teamSetupOpen || setupOnly) && <div className="team-setup-forms">
+    <div className={cx("teams-workspace-layout", hasTeams && showSetup && !setupOnly && "has-roster-setup")}>
+      {showSetup && <div ref={setupRef} className="team-setup-forms">
         <Surface>
           <h3 className="text-xl font-black text-white">Créer une équipe</h3>
           <p className="mt-1 text-sm text-slate-300">Pour organiser les joueurs et retrouver les parties de ton équipe.</p>
           <form onSubmit={createTeam} className="mt-5 space-y-4">
+            {!pendingCreation && <>
             <TextInput label="Nom de l’équipe" value={teamForm.name} onChange={(name) => setTeamForm({ ...teamForm, name })} placeholder="Nom de l'équipe" required icon={Trophy} />
             <TextInput label="Tag" value={teamForm.tag} onChange={(tag) => setTeamForm({ ...teamForm, tag })} placeholder="TAG" required icon={Shield} />
             <SelectInput label="Région" value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })}><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option><option>BR</option><option>LAN</option><option>LAS</option><option>JP</option><option>OCE</option><option>TR</option></SelectInput>
             <TextAreaInput label="Joueurs à ajouter (facultatif)" value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} placeholder={"Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW"} icon={Clipboard} />
             {multiPlayers.length > 0 && <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{multiPlayers.length} joueur{multiPlayers.length > 1 ?"s" : ""} détecté{multiPlayers.length > 1 ?"s" : ""}</p><div className="mt-2 flex flex-wrap gap-2">{multiPlayers.map((player, index) => <Badge key={player.riotId} tone={index < 5 ?"cyan" : "slate"}>{ROSTER_ROLE_ORDER[index] || "SUB"} · {player.riotId}</Badge>)}</div></div>}
-            <Button type="submit" disabled={saving} icon={saving ?Loader2 : Plus} className="w-full">Créer l’équipe</Button>
+            </>}
+            {pendingCreation && <p role="status" className="break-words text-sm text-slate-300">L’équipe {pendingCreation.team.name} est créée. Joueurs restant à ajouter : {pendingCreation.players.slice(pendingCreation.next).map(player => player.riotId).join(", ")}.</p>}
+            <Button type="submit" disabled={saving} icon={saving ? Loader2 : Plus} className="w-full">{pendingCreation ? "Reprendre les joueurs manquants" : "Créer l’équipe"}</Button>
+            {pendingCreation && <>
+              <p className="text-sm text-slate-300">L’abandon conserve l’équipe et les joueurs déjà ajoutés.</p>
+              <Button type="button" variant="ghost" disabled={saving} onClick={abandonCreation} className="w-full">Abandonner l’import restant</Button>
+            </>}
           </form>
         </Surface>
 
@@ -516,18 +548,18 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
             {roster.length > 0 && <div className="nxt5-roster-actions flex flex-wrap justify-end gap-2">
               {mainTeamRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")}>Copier OP.GG titulaires · {mainTeamRoster.length}</Button>}
               {substituteRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")}>Copier OP.GG remplaçants · {substituteRoster.length}</Button>}
-              {canManageTeam && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
+              {canManageRoster && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
             </div>}
           </div>
 
-          <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} canManage={canManageTeam} />
+          <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} canManage={canManageRoster} />
         </Surface>
       </div>}
     </div>
   </div>;
 }
 
-function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, onRevokeInvites, canManage, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer, routeSearch = "" }) {
+function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, onRevokeInvites, canManageRoster, canEditIdentity, canInvite, canManageMembers, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onRosterStatusChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer, routeSearch = "" }) {
   const [nowTick, setNowTick] = useState(Date.now());
   const profileSectionRef = useRef(null);
   const profileEditRef = useRef(null);
@@ -535,16 +567,16 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
   const editingPlayerId = editingPlayer?.id || "";
   const rosterRequested = new URLSearchParams(routeSearch).get("section") === "roster";
   useEffect(() => {
-    if (!rosterRequested || !canManage) return;
+    if (!rosterRequested || !canManageRoster) return;
     const section = profileSectionRef.current;
     section?.scrollIntoView({ behavior: "auto", block: "start" });
     section?.querySelector("input:not(:disabled)")?.focus({ preventScroll: true });
-  }, [rosterRequested, routeSearch, team.id, canManage]);
+  }, [rosterRequested, routeSearch, team.id, canManageRoster]);
   useEffect(() => {
-    if (!editingPlayerId || !canManage) return;
+    if (!editingPlayerId || !canManageRoster) return;
     profileEditRef.current?.scrollIntoView({ behavior: "auto", block: "start" });
     profileEditRef.current?.querySelector("input:not(:disabled)")?.focus({ preventScroll: true });
-  }, [editingPlayerId, canManage]);
+  }, [editingPlayerId, canManageRoster]);
   useEffect(() => {
     if (editingPlayerId || saving) return;
     if (editTriggerRef.current?.isConnected) editTriggerRef.current.focus();
@@ -590,22 +622,22 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         <div><h4 id="team-roster-setup-title" className="text-xl font-black text-white">Ajouter un joueur ou un membre du staff</h4><p className="mt-1 text-sm text-slate-300">Le profil représente une personne dans l’équipe. Son compte NXT5, utilisé pour se connecter, pourra être associé plus tard.</p></div>
         <Badge tone="purple">Effectif</Badge>
       </div>
-      {canManage ? <form onSubmit={onCreatePlayer} className="team-profile-form" aria-labelledby="team-roster-setup-title">
+      {canManageRoster ? <form onSubmit={onCreatePlayer} className="team-profile-form" aria-labelledby="team-roster-setup-title">
         <TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur ou staff" required />
         <TextInput label="Riot ID" value={playerForm.riotId} onChange={(riotId) => setPlayerForm({ ...playerForm, riotId })} placeholder={isStaffRole(playerForm.role) ? "Optionnel pour staff" : "Pseudo#TAG"} required={!isStaffRole(playerForm.role)} disabled={isStaffRole(playerForm.role)} />
         <TextInput label="OP.GG (facultatif)" value={playerForm.opggUrl} onChange={(opggUrl) => setPlayerForm({ ...playerForm, opggUrl })} placeholder={isStaffRole(playerForm.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(playerForm.role)} />
         <SelectInput label="Poste ou fonction" value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role, riotId: isStaffRole(role) ? "" : playerForm.riotId, opggUrl: isStaffRole(role) ? "" : playerForm.opggUrl, rosterStatus: isStaffRole(role) ? "INACTIVE" : role === "SUB" ? "SUB" : playerForm.rosterStatus === "INACTIVE" ? "AUTO" : playerForm.rosterStatus })}>{PROFILE_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
         <SelectInput label="Effectif" value={playerForm.rosterStatus} onChange={(rosterStatus) => setPlayerForm({ ...playerForm, rosterStatus })} disabled={isStaffRole(playerForm.role) || playerForm.role === "SUB"}><option value="AUTO">Automatique</option>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectInput>
-        <div className="flex items-end"><Button type="submit" disabled={saving || !canManage} icon={saving ? Loader2 : UserPlus} className="w-full">{isStaffRole(playerForm.role) ? "Ajouter au staff" : "Ajouter le joueur"}</Button></div>
+        <div className="flex items-end"><Button type="submit" disabled={saving || !canManageRoster} icon={saving ? Loader2 : UserPlus} className="w-full">{isStaffRole(playerForm.role) ? "Ajouter au staff" : "Ajouter le joueur"}</Button></div>
       </form> : <p className="mt-4 text-sm leading-6 text-slate-300">Seul le staff peut ajouter des profils. Demande à ton capitaine, coach ou manager d’ajouter les joueurs.</p>}
-      {canManage && <div className="team-import-next" aria-label="Après les joueurs">
+      {canManageRoster && <div className="team-import-next" aria-label="Après les joueurs">
         <div><h5>Ensuite, ajoute une partie</h5><p>{gameplayCount >= 5 ? "Les profils joueurs sont prêts. Tu pourras vérifier qui a joué avant d’enregistrer la partie." : `${gameplayCount} profil${gameplayCount > 1 ? "s" : ""} joueur${gameplayCount > 1 ? "s" : ""} sur 5 nécessaires. Les membres du staff ne comptent pas parmi ces cinq joueurs.`}</p></div>
         {gameplayCount >= 5 && <LinkButton href="/games?import=1" navigate={openAppPath} variant="ghost" icon={Upload}>Importer une partie</LinkButton>}
       </div>}
-      {canManage && editingPlayer && <form ref={profileEditRef} onSubmit={onUpdatePlayer} className="team-profile-edit" style={{ scrollMarginTop: "6rem" }}>
+      {canManageRoster && editingPlayer && <form ref={profileEditRef} onSubmit={onUpdatePlayer} className="team-profile-edit" style={{ scrollMarginTop: "6rem" }}>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><Badge tone="orange">Modification</Badge><h4 className="mt-3 text-xl font-black text-white">Modifier {editingPlayer.name}</h4><p className="mt-1 text-sm font-semibold text-cyan-100/80">Corrige le nom, le Riot ID ou l’OP.GG du profil.</p></div><Button type="button" variant="ghost" icon={X} onClick={onClosePlayerEdit}>Fermer</Button></div>
         <div className="team-profile-edit-fields"><TextInput label="Nom" value={playerEditForm.name} onChange={(name) => setPlayerEditForm({ ...playerEditForm, name })} placeholder="Nom visible" required /><TextInput label="Riot ID" value={playerEditForm.riotId} onChange={(riotId) => setPlayerEditForm({ ...playerEditForm, riotId })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "Pseudo#TAG"} required={!isStaffRole(editingPlayer.role)} disabled={isStaffRole(editingPlayer.role)} /><TextInput label="OP.GG" value={playerEditForm.opggUrl} onChange={(opggUrl) => setPlayerEditForm({ ...playerEditForm, opggUrl })} placeholder={isStaffRole(editingPlayer.role) ? "Non utilisé pour staff" : "https://op.gg/..."} disabled={isStaffRole(editingPlayer.role)} /><SelectInput label="Effectif" value={playerEditForm.rosterStatus} onChange={(rosterStatus) => setPlayerEditForm({ ...playerEditForm, rosterStatus })} disabled={isStaffRole(editingPlayer.role) || editingPlayer.role === "SUB"}>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</SelectInput></div>
-        <div className="mt-4 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClosePlayerEdit}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button></div>
+        <div className="mt-4 flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClosePlayerEdit}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManageRoster}>Enregistrer</Button></div>
       </form>}
     </section>
 
@@ -616,24 +648,24 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             {edit.avatarDataUrl ? <img src={edit.avatarDataUrl} alt={team.name} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(edit.avatarZoom || 1) + ")", objectPosition: Number(edit.avatarX ?? 50) + "% " + Number(edit.avatarY ?? 50) + "%" }} /> : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-9 w-9 text-slate-400" /></div>}
           </div>
           <div className="min-w-0 flex-1 space-y-3">
-            <TextInput label="Nom de l'équipe" value={edit.name} onChange={(name) => setEdit({ ...edit, name })} placeholder="Nom" required icon={Trophy} />
-            <TextInput label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} />
+            <TextInput disabled={!canEditIdentity || saving} label="Nom de l'équipe" value={edit.name} onChange={(name) => setEdit({ ...edit, name })} placeholder="Nom" required icon={Trophy} />
+            <TextInput disabled={!canEditIdentity || saving} label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} />
           </div>
         </div>
         <details className="team-image-options">
           <summary className="team-disclosure-label">Image de l’équipe</summary>
-          <label className="team-image-upload"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="sr-only" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canManage || saving} /></label>
+          <label className="team-image-upload"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="sr-only" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canEditIdentity || saving} /></label>
           <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <label className="block"><span className="nxt5-field-label">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
-            <label className="block"><span className="nxt5-field-label">Horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
-            <label className="block"><span className="nxt5-field-label">Vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canManage || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
           </div>
         </details>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canManage}>Enregistrer</Button>
+          <Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canEditIdentity}>Enregistrer</Button>
           {canDeleteTeam && <Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={onDeleteTeam} disabled={saving}>Supprimer</Button>}
         </div>
-        {!canManage && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}
+        {!canEditIdentity && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}
       </form>
 
       <div className="team-invitations">
@@ -642,7 +674,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             <h4 className="text-xl font-black text-white">Invitations temporaires</h4>
             <p className="mt-1 text-sm font-semibold text-slate-300">Un lien valable 1h, à transmettre au joueur ou au staff. Créer un nouveau lien révoque les précédents.</p>
           </div>
-          <Button type="button" variant="ghost" icon={saving ? Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canManage}>Créer et copier un lien</Button>
+          <Button type="button" variant="ghost" icon={saving ? Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canInvite}>Créer et copier un lien</Button>
         </div>
         <div className="team-invitation-list">
           {activeCodes.length ? activeCodes.map((code) => {
@@ -652,7 +684,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
               <p className="mt-1 break-words text-[13px] text-slate-300">Créé par {code.created_by_name || "staff"}</p>
             </div>;
           }) : <p className="team-empty-row">Aucune invitation active.</p>}
-          {activeCodes.length > 0 && canManage && <Button type="button" variant="danger" onClick={onRevokeInvites} disabled={saving}>Révoquer les invitations</Button>}
+          {activeCodes.length > 0 && canInvite && <Button type="button" variant="danger" onClick={onRevokeInvites} disabled={saving}>Révoquer les invitations</Button>}
         </div>
       </div>
     </div>
@@ -668,16 +700,16 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
           const staff = isStaffRole(player.role);
           return <div key={player.id} className="nxt5-management-profile">
             <div className="min-w-0">
-              <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge>{!staff && <label><span className="sr-only">Effectif de {player.name}</span><select value={playerRosterStatus(player)} onChange={(event) => onRosterStatusChange?.(player, event.target.value)} disabled={saving || !canManage || player.role === "SUB"} title="Groupe d’effectif" className="nxt5-input-shell nxt5-control team-roster-select">{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}</div>
+              <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge>{!staff && <label><span className="sr-only">Effectif de {player.name}</span><select value={playerRosterStatus(player)} onChange={(event) => onRosterStatusChange?.(player, event.target.value)} disabled={saving || !canManageRoster || player.role === "SUB"} title="Groupe d’effectif" className="nxt5-input-shell nxt5-control team-roster-select">{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}</div>
               <p className="mt-2 break-words text-lg font-semibold text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
               <p className="break-words text-[13px] text-slate-300">{player.riot_id || (staff ? "Staff" : "Riot ID manquant")}</p>
             </div>
-            <label className="block min-w-0"><span className="nxt5-field-label">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManage} className="nxt5-input-shell nxt5-control team-access-select"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
-            <label className="block min-w-0"><span className="nxt5-field-label">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManage || String(linkedMember?.role || "").toLowerCase() === "owner"} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+            <label className="block min-w-0"><span className="nxt5-field-label">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManageRoster} className="nxt5-input-shell nxt5-control team-access-select"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
+            <label className="block min-w-0"><span className="nxt5-field-label">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManageMembers || String(linkedMember?.role || "").toLowerCase() === "owner"} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <div className="nxt5-management-actions">
-              {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} className="px-3" onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManage || String(linkedMember.role || "").toLowerCase() === "owner"}><span>Renvoyer</span></Button>}
-              <Button type="button" variant="ghost" icon={Pencil} className="px-3" onClick={(event) => { editTriggerRef.current = event.currentTarget; onEditPlayer(player); }} disabled={saving || !canManage}><span>Modifier</span></Button>
-              <Button type="button" variant="danger" icon={Trash2} className="px-3" onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManage}><span>Supprimer</span></Button>
+              {linkedMember && <Button type="button" variant="ghost" icon={UserMinus} className="px-3" onClick={() => onRemoveMember(linkedMember.user_id, roleLabel(player.role) + " · " + (linkedMember.name || player.name))} disabled={saving || !canManageMembers || String(linkedMember.role || "").toLowerCase() === "owner"}><span>Renvoyer</span></Button>}
+              <Button type="button" variant="ghost" icon={Pencil} className="px-3" onClick={(event) => { editTriggerRef.current = event.currentTarget; onEditPlayer(player); }} disabled={saving || !canManageRoster}><span>Modifier</span></Button>
+              <Button type="button" variant="danger" icon={Trash2} className="px-3" onClick={() => onDeletePlayer(player.id, player.name)} disabled={saving || !canManageRoster}><span>Supprimer</span></Button>
             </div>
           </div>;
         })}
@@ -689,7 +721,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
       <div className="mt-4 grid gap-2 lg:grid-cols-2">
         {unlinkedMemberRows.map((member) => <div key={member.id} className="team-unlinked-account">
           <div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone="slate">Non-lié</Badge><Badge tone={profileStatusTone(member)}>{profileStatusLabel(member)}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{member.name || member.account_name || "Compte invité"}</p></div>
-          <div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"} aria-label={`Accès de ${member.name || member.account_name || "ce compte"}`} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || "ce compte non lié")} disabled={saving || !canManage || String(member.role || "").toLowerCase() === "owner"}>Renvoyer</Button></div>
+          <div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManageMembers || String(member.role || "").toLowerCase() === "owner"} aria-label={`Accès de ${member.name || member.account_name || "ce compte"}`} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || "ce compte non lié")} disabled={saving || !canManageMembers || String(member.role || "").toLowerCase() === "owner"}>Renvoyer</Button></div>
         </div>)}
       </div>
     </div>}

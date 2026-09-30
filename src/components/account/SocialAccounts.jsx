@@ -114,6 +114,8 @@ export function SocialLogin({ flow = "login", rememberMe = false, disabled = fal
 }
 
 export function SocialSignup({ onComplete, loginHref }) {
+  const [emailRequested, setEmailRequested] = useState(false);
+  const [emailToken] = useState(() => new URLSearchParams((window.location.hash || "").replace(/^#/, "")).get("email_token") || "");
   const [pending, setPending] = useState(null);
   const [form, setForm] = useState({ email: "", displayName: "" });
   const [legalAccepted, setLegalAccepted] = useState(false);
@@ -124,12 +126,15 @@ export function SocialSignup({ onComplete, loginHref }) {
   const inFlight = useRef(false);
   useEffect(() => {
     let active = true;
+    if (emailToken) window.history?.replaceState(null, "", window.location.pathname + window.location.search);
     apiFetch("auth-social-pending").then((result) => {
       if (!active) return;
       if (!PROVIDERS.some((provider) => provider.id === result?.provider)) throw new Error("Cette inscription a expiré. Recommence avec le service de ton choix.");
       setPending(result);
       setForm({ email: result.email || "", displayName: result.name || "" });
-    }).catch((err) => { if (active) setError(err.message || "Cette inscription a expiré. Recommence la connexion."); })
+    }).catch((err) => { if (active) setError(emailToken && err.code === "SOCIAL_EXPIRED"
+      ? "Ouvre ce lien dans le navigateur où tu as commencé l’inscription (valable 15 min). Si le lien a expiré, recommence la connexion."
+      : err.message || "Cette inscription a expiré. Recommence la connexion."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
@@ -137,14 +142,15 @@ export function SocialSignup({ onComplete, loginHref }) {
   async function submit(event) {
     event.preventDefault();
     if (inFlight.current || !pending) return;
-    if (!legalAccepted) { setError("Accepte les conditions et le règlement pour créer ton compte."); return; }
-    if (!form.displayName.trim() || !form.email.trim()) { setError("Renseigne ton pseudo et ton adresse e-mail."); return; }
+    if (!emailToken && !legalAccepted) { setError("Accepte les conditions et le règlement pour créer ton compte."); return; }
+    if (!emailToken && (!form.displayName.trim() || !form.email.trim())) { setError("Renseigne ton pseudo et ton adresse e-mail."); return; }
     inFlight.current = true;
     setSaving(true);
     setError("");
     setCollision(false);
     try {
-      const result = await apiFetch("auth-social-complete", { method: "POST", body: JSON.stringify({ displayName: form.displayName.trim(), email: form.email.trim(), acceptLegal: true, legalVersion: LEGAL_VERSION }) });
+      const result = await apiFetch("auth-social-complete", { method: "POST", body: JSON.stringify(emailToken ? { emailToken } : { displayName: form.displayName.trim(), email: form.email.trim(), acceptLegal: true, legalVersion: LEGAL_VERSION }) });
+      if (result?.emailVerificationRequired === true) { setEmailRequested(true); return; }
       if (!result?.user?.id) throw new Error("La création du compte n’a pas pu être confirmée. Réessaie.");
       onComplete(result.user, result.destination);
     } catch (err) {
@@ -155,6 +161,8 @@ export function SocialSignup({ onComplete, loginHref }) {
   }
 
   if (loading) return <p className="mt-5 text-sm text-slate-300" role="status">Préparation de ton inscription…</p>;
+  if (emailRequested) return <div className="nxt5-social-signup"><Feedback success>Vérifie ta boîte e-mail pour poursuivre. Ouvre le lien dans ce navigateur sous quinze minutes. Si aucun message n’arrive, recommence la connexion.</Feedback><a href={loginHref}>Revenir à la connexion</a></div>;
+  if (emailToken && pending) return <div className="nxt5-social-signup"><p className="nxt5-social-help">Confirme la création de ton compte avec {providerLabel(pending.provider)} et l’adresse e-mail que tu viens de vérifier.</p><form onSubmit={submit}>{error && <Feedback>{error}</Feedback>}<Button type="submit" disabled={saving} icon={saving ? Loader2 : ShieldCheck}>{saving ? "Confirmation…" : "Confirmer mon inscription"}</Button></form><a href={loginHref}>Revenir à la connexion</a></div>;
   return <div className="nxt5-social-signup">
     {pending && <><p className="flex items-start gap-2 text-sm leading-6 text-cyan-100"><ShieldCheck aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" /><span>Connexion avec {providerLabel(pending.provider)} confirmée. Choisis ton pseudo NXT5 pour terminer.</span></p>
       <form onSubmit={submit} className="nxt5-auth-form">

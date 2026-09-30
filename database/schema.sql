@@ -290,11 +290,15 @@ create table if not exists reports (
   match_id uuid references matches(id) on delete set null,
   match_ids jsonb not null default '[]'::jsonb,
   created_by uuid references users(id) on delete set null,
+  -- Human saves use manual; legacy V3 data is classified by 20260929_report_source_v3.sql.
+  source text not null default 'manual' check (source in ('manual', 'auto')),
   title text not null,
   content text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+create unique index if not exists idx_reports_auto_match on reports(team_id, match_id) where source = 'auto';
 
 create table if not exists composition_types (
   id uuid primary key default gen_random_uuid(),
@@ -433,3 +437,17 @@ for each row execute function set_updated_at();
 drop trigger if exists trg_match_archives_updated_at on match_archives;
 create trigger trg_match_archives_updated_at before update on match_archives
 for each row execute function set_updated_at();
+
+-- player_matchup_notebooks is installed by 20260915_player_matchups.sql.
+-- Full migrations create this backup table even when applying this baseline first.
+do $$ begin
+  if to_regclass('player_matchup_notebooks') is not null then
+    create table if not exists player_matchup_canonical_backups (
+      original_id uuid primary key,
+      notebook_id uuid not null references player_matchup_notebooks(id) on delete cascade,
+      team_id uuid not null references teams(id) on delete cascade,
+      original jsonb not null,
+      created_at timestamptz not null default now()
+    );
+  end if;
+end $$;

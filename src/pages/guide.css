@@ -13,6 +13,6 @@
  .nxt5-guide-layout { grid-template-columns: minmax(0, 1fr); }
  .nxt5-guide-nav { border-right: 0; border-bottom: 1px solid var(--nxt5-border); padding: 1rem; }
  .nxt5-guide-menu { display: none; }
- .nxt5-guide-mobile-label { display: grid; gap: .5rem; color: var(--nxt5-text-secondary); font-size: .8125rem; font-weight: 600; }
- .nxt5-guide-mobile-label select { width: 100%; min-height: 48px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: #050d1a; color: var(--nxt5-text); padding: .625rem .75rem; font-size: 1rem; }
+ .nxt5-guide-mobile-label { display: grid; gap: .5rem; color: var(--nxt5-text-secondary); font-size: .875rem; font-weight: 600; }
+ .nxt5-guide-mobile-label select { width: 100%; min-height: 48px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-bg); color: var(--nxt5-text); padding: .625rem .75rem; font-size: 1rem; }
 }

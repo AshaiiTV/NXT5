@@ -28,9 +28,12 @@ export async function pruneDiscordBotArtifacts() {
 
 export function validateTimezone(value: unknown): string {
   const zone = String(value || '').trim();
-  try { new Intl.DateTimeFormat('fr-FR', { timeZone: zone }).format(); } catch { throw discordError('Fuseau IANA invalide, par exemple Europe/Paris.'); }
-  if (!zone) throw discordError('Fuseau requis.');
-  return zone;
+  // Reject offsets and POSIX abbreviations even when Node accepts them.
+  if (!/^(?:UTC|(?:Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)\/[A-Za-z_-]+(?:\/[A-Za-z_-]+)?)$/i.test(zone)) {
+    throw discordError('Fuseau IANA invalide, par exemple Europe/Paris.');
+  }
+  try { return new Intl.DateTimeFormat('fr-FR', { timeZone: zone }).resolvedOptions().timeZone; }
+  catch { throw discordError('Fuseau IANA invalide, par exemple Europe/Paris.'); }
 }
 export function localParts(date: Date, timezone: string) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date).map(p => [p.type, p.value]));

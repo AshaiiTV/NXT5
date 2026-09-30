@@ -1,9 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-import { ensurePlayerRosterSchema, isPlayerRosterStatus, type PlayerRosterStatus } from './_lib/player-roster';
+import { ensurePlayerRosterSchema, isPlayerRosterStatus } from './_lib/player-roster';
 
 const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
 const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', ...STAFF_ROLES]);
@@ -51,62 +52,42 @@ export default async function handler(request: Request, context: Context): Promi
     await ensurePlayerRoleConstraint();
     await ensurePlayerRosterSchema();
 
-    let rosterStatus: PlayerRosterStatus;
-    if (staffRole) {
-      rosterStatus = 'INACTIVE';
-    } else if (role === 'SUB') {
-      rosterStatus = 'SUB';
-    } else if (requestedRosterStatus) {
-      rosterStatus = requestedRosterStatus as PlayerRosterStatus;
-    } else {
-      const currentMain = await sql`
-        select id
-        from players
-        where team_id = ${teamId}
-          and role = ${role}
-          and roster_status = 'MAIN'
-        limit 1
-      `;
-      rosterStatus = currentMain[0] ? 'SUB' : 'MAIN';
-    }
-
-    const promotingToMain = rosterStatus === 'MAIN' && LANE_ROLES.has(role);
-    const insertStatus: PlayerRosterStatus = promotingToMain ? 'SUB' : rosterStatus;
-
-    const inserted = await sql`
-      insert into players (team_id, name, riot_id, opgg_url, role, roster_status)
-      values (${teamId}, ${name}, ${riotId}, ${opggUrl}, ${role}, ${insertStatus})
-      returning *
-    `;
-    let player = inserted[0];
-
-    if (promotingToMain) {
-      await sql`
-        update players
-        set roster_status = 'SUB', updated_at = now()
-        where team_id = ${teamId}
-          and role = ${role}
-          and id <> ${player.id}
-          and roster_status = 'MAIN'
-      `;
-      const promoted = await sql`
-        update players
-        set roster_status = 'MAIN', updated_at = now()
-        where id = ${player.id}
-          and team_id = ${teamId}
-        returning *
-      `;
-      player = promoted[0];
-    }
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'player.create', 'player', ${player.id}, ${JSON.stringify({ teamId, riotId, role, rosterStatus })}::jsonb)
-    `;
+    const automatic = !staffRole && role !== 'SUB' && !requestedRosterStatus;
+    const rosterStatus = staffRole ? 'INACTIVE' : role === 'SUB' ? 'SUB' : requestedRosterStatus || 'MAIN';
+    const promotingToMain = !automatic && rosterStatus === 'MAIN' && LANE_ROLES.has(role);
+    const playerId = randomUUID();
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t
+         where t.id = ${teamId} and (t.owner_id = ${user.id} or exists (
+           select 1 from team_members where team_id = t.id and user_id = ${user.id} and role = any(${MANAGE_ROLES})))`,
+      ...(promotingToMain ? [tx`update players set roster_status = 'SUB', updated_at = now()
+         where team_id = ${teamId} and role = ${role} and roster_status = 'MAIN'`] : []),
+      tx`insert into players (id, team_id, name, riot_id, opgg_url, role, roster_status)
+         values (${playerId}, ${teamId}, ${name}, ${riotId}, ${opggUrl}, ${role},
+           case when ${automatic} and exists (select 1 from players where team_id = ${teamId} and role = ${role} and roster_status = 'MAIN')
+             then 'SUB' else ${rosterStatus} end)`,
+      tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+         select ${user.id}, 'player.create', 'player', id,
+           jsonb_build_object('teamId', team_id, 'riotId', riot_id, 'role', role, 'rosterStatus', roster_status)
+         from players where id = ${playerId}`,
+      tx`select * from players where id = ${playerId}`
+    ]);
+    const player = results[results.length - 1][0];
 
     return json({ player });
   } catch (err) {
-    if (String(err.message || '').includes('duplicate key')) err.message = 'Ce Riot ID existe déjà dans cette team.';
+    if (err.constraint === 'idx_players_one_main_per_role') {
+      err.status = 409;
+      err.message = 'Un titulaire occupe déjà ce poste. Recharge l’équipe puis réessaie.';
+    } else if (err.code === '23505') {
+      err.status = 409;
+      err.code = 'PLAYER_RIOT_ID_EXISTS';
+      err.message = 'Ce Riot ID existe déjà dans cette team.';
+    } else if (err.code === '22012') {
+      err.status = 409;
+      err.message = 'Les accès ont changé. Recharge l’équipe puis réessaie.';
+    }
     return handleError(err);
   }
 }

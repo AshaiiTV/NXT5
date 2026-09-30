@@ -69,9 +69,6 @@ export function RoleIcon({ role, className = "h-7 w-7", lightweight = false }) {
   if (!key) return <Users className={cx("text-slate-300", className)} />;
   const sources = [
     `/assets/roles/position-${key}.svg`,
-    `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-champ-select/global/default/svg/position-${key}.svg`,
-    `https://raw.communitydragon.org/12.23/plugins/rcp-fe-lol-champ-select/global/default/svg/position-${key}.svg`,
-    `https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/svg/position-${key}.svg`,
   ];
   const source = sources[sourceIndex];
   if (!source) return <span className={cx("inline-flex items-center justify-center text-[0.62rem] font-black text-cyan-100", className)}>{roleKey}</span>;

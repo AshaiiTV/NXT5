@@ -79,7 +79,7 @@ function fetchRuneCatalog(version, retry) {
       // must not leave every participant waiting on the shared promise forever.
       const payload = await Promise.race([
         (async () => {
-          const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/runesReforged.json`, { signal: controller.signal });
+          const response = await fetch(assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/runesReforged.json`), { signal: controller.signal });
           return response.ok ? response.json() : null;
         })(),
         new Promise((resolve) => {

@@ -125,7 +125,7 @@ export default function AccessRequestsPage({ navigate, embedded = false }) {
   };
   const pagination = data?.pagination;
   const stats = data?.stats;
-  const blocked = loading || Boolean(busy);
+  const blocked = loading || Boolean(busy) || dirtyRequests.size > 0;
   useAdminNavigationGuard({ dirty: dirtyRequests.size > 0, disabled: Boolean(busy) });
   return <div className="nxt5-data-dense access-requests-page">
     <PageHeader eyebrow="Ventes et accès" title="Demandes d’accès" subtitle="Retrouve les demandes reçues et mets à jour les échanges, les statuts et les notes de suivi.">
@@ -138,6 +138,7 @@ export default function AccessRequestsPage({ navigate, embedded = false }) {
     {stats && <Surface><div className="access-requests-metrics"><Metric label="Demandes reçues" value={stats.total} detail="Tous les statuts, toutes les pages" /><Metric label="Équipes avec offre présentée" value={stats.presentedTeams} target={10} detail="Présentation renseignée manuellement" /><Metric label="Intentions d’achat confirmées" value={stats.confirmedTeams} target={3} detail="Équipes ayant validé une formule payante" /></div><p className="access-requests-caption">Les objectifs portent sur des équipes distinctes d’après le nom renseigné. Les nouvelles demandes et leur intention déclarée ne comptent pas comme validation. Les statuts « Offre présentée », « Intention confirmée après échange » et « Offre présentée, sans suite » alimentent le suivi des présentations.</p></Surface>}
     <Surface>
       <div className="access-requests-list-heading"><h3>Suivi des demandes</h3><p>Ouvre le suivi d’une équipe pour consigner un échange ou modifier son statut.</p></div>
+      {dirtyRequests.size > 0 && <p className="access-requests-caption" role="status">Enregistre ou annule le suivi en cours pour changer de filtre, de page ou actualiser la liste.</p>}
       <div className="access-requests-toolbar"><SelectInput label="Afficher les demandes" value={statusFilter} disabled={blocked} onChange={(value) => { setStatusFilter(value); setPage(1); setAnnouncement(""); }}><option value="">Tous les statuts</option>{STATUSES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</SelectInput><Button type="button" variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={blocked} onClick={load}>{loading ? "Actualisation…" : "Actualiser"}</Button></div>
       {!data && loading && <div aria-label="Chargement des demandes"><SkeletonRows count={3} /></div>}
       {data && <div aria-busy={loading} className="access-requests-list">{data.requests.length ? data.requests.map((request) => <RequestCard key={`${request.id}:${request.updatedAt}`} request={request} busy={busy || (loading ? "loading" : "")} onDirtyChange={handleDirtyChange} onSave={(id, status, adminNote) => mutate(id, "POST", { id, status, adminNote })} onDelete={(id) => mutate(id, "DELETE", { id })} />) : <EmptyState icon={ClipboardList} title={statusFilter ? "Aucune demande avec ce statut" : "Aucune demande pour le moment"} text={statusFilter ? "Choisis un autre statut pour retrouver les demandes enregistrées." : "Les demandes de test envoyées par l’administrateur depuis la prévisualisation des tarifs apparaîtront ici."} />}</div>}

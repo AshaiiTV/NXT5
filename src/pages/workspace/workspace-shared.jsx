@@ -1,3 +1,5 @@
+import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } from "../../utils/statistics.js";
+import { canonicalChampion as championAssetId, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, Shield, Swords, Target, Upload, Flame, Gauge, ShieldCheck } from "lucide-react";
@@ -43,41 +45,10 @@ const ALL_CHAMPION_STYLE_TAGS = {
   ...ADDITIONAL_CHAMPION_STYLE_TAGS,
 };
 
-const CHAMPION_ASSET_ALIASES = {
-  aurelionsol: "AurelionSol",
-  belveth: "Belveth",
-  chogath: "Chogath",
-  drmundo: "DrMundo",
-  jarvaniv: "JarvanIV",
-  kaisa: "Kaisa",
-  khazix: "Khazix",
-  kogmaw: "KogMaw",
-  ksante: "KSante",
-  leblanc: "Leblanc",
-  leesin: "LeeSin",
-  masteryi: "MasterYi",
-  missfortune: "MissFortune",
-  monkeyking: "MonkeyKing",
-  nunuwillump: "Nunu",
-  reksai: "RekSai",
-  renataglasc: "Renata",
-  tahmkench: "TahmKench",
-  twistedfate: "TwistedFate",
-  velkoz: "Velkoz",
-  viego: "Viego",
-  wukong: "MonkeyKing",
-  xinzhao: "XinZhao",
-};
-
 function championKey(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function championAssetId(value) {
-  const raw = String(value || "").trim();
-  const key = championKey(raw);
-  return CHAMPION_ASSET_ALIASES[key] || raw.replace(/[^A-Za-z0-9]/g, "");
-}
 
 function championDisplayName(value) {
   const raw = String(value || "").trim();
@@ -421,13 +392,9 @@ function playerDisplayFromRow(row, players = []) {
 
 function buildStaffAlerts(matches = [], players = []) {
   const rows = teamMatchRows(matches, "ALLY");
-  const wins = matches.filter((match) => match.result === "Victoire").length;
-  const losses = matches.length - wins;
-  const sideGroups = ["Blue", "Red"].map((side) => {
-    const sideMatches = matches.filter((match) => String(match.side || "").toLowerCase().includes(side.toLowerCase()));
-    const sideWins = sideMatches.filter((match) => match.result === "Victoire").length;
-    return { side, games: sideMatches.length, wins: sideWins, wr: Math.round((sideWins / Math.max(1, sideMatches.length)) * 100) };
-  });
+  const results = resultSummary(matches);
+  const { wins, losses, known, unknown } = results;
+  const sideGroups = sideResults(matches).map((side) => ({ ...side, wr: side.winrate }));
   const roleRows = ROSTER_ROLE_ORDER.map((role) => {
     const roleItems = rows.filter((row) => row.role === role);
     const games = roleItems.length;
@@ -450,15 +417,16 @@ function buildStaffAlerts(matches = [], players = []) {
   const exposed = playerRows.slice().sort((a, b) => b.avgDeaths - a.avgDeaths)[0];
   const disconnected = playerRows.slice().sort((a, b) => a.avgKp - b.avgKp)[0];
   const weakRole = roleRows.slice().sort((a, b) => b.deaths - a.deaths || a.kp - b.kp)[0];
-  const sideGap = sideGroups[0]?.games && sideGroups[1]?.games ? Math.abs(sideGroups[0].wr - sideGroups[1].wr) : 0;
+  const sideGap = comparableSides(sideGroups) ? Math.abs(sideGroups[0].wr - sideGroups[1].wr) : 0;
   const worseSide = sideGroups.slice().sort((a, b) => a.wr - b.wr)[0];
   return [
+    unknown > 0 && { title: "Résultats indisponibles", text: resultLabel(results), action: "Les taux de victoire utilisent uniquement les résultats connus.", toneName: "slate", icon: AlertTriangle },
     matches.length < 3 && { title: "Pas assez de volume", text: `${matches.length} game${matches.length > 1 ? "s" : ""} importée${matches.length > 1 ? "s" : ""}. Lire les signaux comme des hypothèses.`, action: "Importer le prochain bloc avant de conclure.", toneName: "slate", icon: Upload },
-    losses >= wins && matches.length >= 3 && { title: "Bloc à stabiliser", text: `${wins}W - ${losses}L sur le contexte actif.`, action: "Choisir une seule priorité équipe avant la prochaine session.", toneName: "orange", icon: AlertTriangle },
+    losses >= wins && known >= 3 && { title: "Bloc à stabiliser", text: `${resultLabel(results)} sur le contexte actif.`, action: "Choisir une seule priorité équipe avant la prochaine session.", toneName: "orange", icon: AlertTriangle },
     exposed?.games >= 2 && exposed.avgDeaths >= 4 && { title: "Exposition joueur", text: `${exposed.name} est à ${exposed.avgDeaths.toFixed(1)} morts/game.`, action: `Ouvrir ${matchDisplayName(exposed.rows.slice().sort((a, b) => Number(b.deaths || 0) - Number(a.deaths || 0))[0]?.match, "la game source")} et classer les morts.`, toneName: "red", icon: Shield },
     disconnected?.games >= 2 && disconnected.avgKp < 52 && { title: "Connexion fights", text: `${disconnected.name} descend à ${Math.round(disconnected.avgKp)}% KP moyen.`, action: "Revoir le move 30s avant les deux premiers objectifs.", toneName: "yellow", icon: Swords },
     weakRole?.games >= 2 && { title: "Rôle à review", text: `${roleLabel(weakRole.role)} ressort comme le rôle le plus fragile du bloc.`, action: weakRole.sample ? `Source : ${matchDisplayName(weakRole.sample.match, "game")} sur ${championDisplayName(weakRole.sample.champion)}.` : "Comparer lane, morts et KP.", toneName: "purple", icon: Target },
-    sideGap >= 20 && worseSide?.games >= 2 && { title: "Side faible", text: `${worseSide.side} side tombe à ${worseSide.wr}% WR.`, action: "Préparer un plan draft et une condition de victoire spécifique à ce side.", toneName: "cyan", icon: BarChart3 },
+    sideGap >= 20 && worseSide?.games >= 2 && { title: "Côté à travailler", text: `${sideLabel(worseSide.side)} : ${Math.round(worseSide.wr)}% de victoires sur ${worseSide.known} résultats connus.`, action: "Préparer un plan draft et une condition de victoire spécifique à ce côté.", toneName: "cyan", icon: BarChart3 },
   ].filter(Boolean).slice(0, 6);
 }
 
@@ -696,12 +664,8 @@ function objectiveEventLabel(event) {
 }
 
 function objectiveEventType(event) {
-  const label = objectiveEventLabel(event).toLowerCase();
-  if (label.includes("nashor")) return "baron";
-  if (label.includes("herald")) return "herald";
-  if (label.includes("grub")) return "grub";
-  if (label.includes("tower") || label.includes("tour")) return "tower";
-  return "dragon";
+  if (event?.type === "BUILDING_KILL") return "tower";
+  return { DRAGON: "dragon", BARON_NASHOR: "baron", RIFTHERALD: "herald", HORDE: "grub" }[String(event?.monsterType || "").toUpperCase()] || "other";
 }
 
 function objectiveEvents(match) {
@@ -715,7 +679,7 @@ function objectiveEvents(match) {
     const killerTeamId = Number(event.killerTeamId || participantTeam.get(Number(event.killerId)) || 0);
     return {
       ...event,
-      teamKey: killerTeamId && allyTeamId && killerTeamId === allyTeamId ? "ALLY" : "ENEMY",
+      teamKey: [100, 200].includes(killerTeamId) && [100, 200].includes(allyTeamId) ? killerTeamId === allyTeamId ? "ALLY" : "ENEMY" : "",
       side: killerTeamId === 100 ? "BLUE" : killerTeamId === 200 ? "RED" : "",
       time: formatCountdown(Math.floor(Number(event.timestamp || 0) / 1000)),
       label: objectiveEventLabel(event),
@@ -744,7 +708,7 @@ function objectiveTeamAnyValue(match, teamKey, names) {
 
 function objectiveTeamSummary(match, teamKey) {
   const events = objectiveEvents(match);
-  const teamEvents = events.filter((event) => event.teamKey === teamKey);
+  const teamEvents = events.filter((event) => ["ALLY", "ENEMY"].includes(teamKey) && event.teamKey === teamKey);
   const dragons = teamEvents.filter((event) => objectiveEventType(event) === "dragon");
   const rawDragons = objectiveTeamAnyValue(match, teamKey, ["dragon"]);
   const rawGrubs = objectiveTeamAnyValue(match, teamKey, ["horde", "voidgrub", "voidGrubs", "grub", "grubs"]);

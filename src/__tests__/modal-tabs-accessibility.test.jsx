@@ -1,4 +1,6 @@
 import React from "react";
+import { readFileSync } from "node:fs";
+import { getTopDialog } from "../components/ui/dialog-registry.js";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ModalDialog } from "../components/ui/ModalDialog.jsx";
@@ -21,12 +23,14 @@ describe("shared native modal", () => {
   it("opens a real dialog, locks scrolling and returns focus after dismissal", () => {
     const app = setup();
     expect(app.modal.showModal).toHaveBeenCalledOnce();
+    expect(getTopDialog()).toBe(app.modal);
     expect(document.body.style.overflow).toBe("hidden");
     const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
     act(() => renderer.root.findByType("dialog").props.onCancel(event));
     expect(app.close).toHaveBeenCalledWith({ reason: "dismiss" });
     act(() => renderer.unmount()); renderer = null;
     expect(document.body.style.overflow).toBe("auto");
+    expect(getTopDialog()).toBeNull();
     expect(app.focus).toHaveBeenCalled();
   });
   it("allows Back to close a clean dialog and only confirms a dirty dismissal", () => {
@@ -69,4 +73,12 @@ describe("shared keyboard tabs", () => {
       expect(event.preventDefault).toHaveBeenCalled();
     }
   });
+});
+
+
+it("R-F2 prevents dialog styles from containing or clipping fixed toast descendants", () => {
+  const css = readFileSync(new URL("../components/ui/modal-dialog.css", import.meta.url), "utf8");
+  expect(css).toMatch(/\.nxt5-native-dialog\[open\]\s*\{[^}]*animation-name: nxt5-dialog-enter;[^}]*transform: none !important;[^}]*filter: none !important;[^}]*backdrop-filter: none !important;[^}]*container-type: normal;/);
+  const animation = css.match(/@keyframes nxt5-dialog-enter[^\n]+/)[0];
+  expect(animation).not.toContain("transform");
 });

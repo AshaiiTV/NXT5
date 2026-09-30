@@ -141,6 +141,7 @@ export default async function handler(request: Request, context: Context): Promi
             match_ids = ${JSON.stringify(validMatchIds)}::jsonb,
             title = ${title},
             content = ${content},
+            source = 'manual',
             updated_at = now()
         where id = ${reportId}
           and team_id = ${teamId}

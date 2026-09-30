@@ -1,6 +1,7 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { PlanningAvailabilityGrid } from "../components/games/PlanningAvailabilityGrid.jsx";
 import { Planning } from "../pages/workspace/Planning.jsx";
 import { createPlanningStore } from "../utils/planning-store.js";
 
@@ -89,4 +90,62 @@ describe("planning session controls", () => {
     expect(renderer.root.findByProps({ "aria-label": "Type de séance" })).toBeTruthy();
     expect(app.cell().props["aria-pressed"]).toBe(true);
   });
+});
+
+it.each(["Escape", "selection"])("B13 returns focus to the weekly cell after Shift+F10 and %s", (close) => {
+  const app = mountPlanning();
+  const grid = renderer.root.findByProps({ "aria-label": "Disponibilités de la semaine" });
+  const cell = grid.findAllByType("button").find(node => node.props["aria-label"]?.startsWith("Lun 10:00"));
+  const trigger = { ...app.trigger, dataset: { position: cell.props["data-position"] } };
+  const container = { focus: vi.fn(), getBoundingClientRect: () => ({ left: 0, bottom: 0 }) };
+  act(() => grid.props.onKeyDown({ key: "F10", shiftKey: true, preventDefault: vi.fn(), stopPropagation: vi.fn(), target: { closest: () => trigger }, currentTarget: container }));
+  const menu = renderer.root.findByProps({ "aria-label": "Type de séance" });
+  expect(menu.props.style).toEqual({ left: 80, top: 492 });
+  if (close === "Escape") act(() => listeners.get("keydown")({ key: "Escape" }));
+  else act(() => menu.findAllByType("button").find(node => node.findAllByType("span").some(span => span.children.includes("Entraînement"))).props.onClick());
+  expect(trigger.focus).toHaveBeenCalledOnce();
+  expect(container.focus).not.toHaveBeenCalled();
+});
+
+it.each([true, false])("B6 shares one staff profile across accounts (coach present: %s)", async (coachPresent) => {
+  const players = [
+    { id: "z", team_id: "team", user_id: "coach", role: coachPresent ? "COACH" : "ASSISTANT", name: "Coach" },
+    { id: "a", team_id: "team", user_id: "assistant", role: "ASSISTANT", name: "Assistant" },
+  ];
+  const bodies = [];
+  for (const userId of ["coach", "assistant"]) {
+    const save = vi.fn(async body => { bodies.push(body); return { team_id: body.teamId, player_id: body.playerId, week_start: body.weekStart, slots: body.slots }; });
+    store = createPlanningStore({ save });
+    act(() => { renderer = TestRenderer.create(<Planning data={{ players, availability: [] }} selectedTeamId="team" user={{ id: userId }} currentMember={{ role: "coach" }} planningStore={store} />); });
+    const cell = renderer.root.findAllByType("button").find(node => node.props["aria-label"]?.startsWith("Lun 10:00"));
+    act(() => cell.props.onClick({ preventDefault: vi.fn(), stopPropagation: vi.fn() }));
+    await act(async () => vi.advanceTimersByTimeAsync(650));
+    act(() => renderer.unmount()); renderer = null; store.pause();
+  }
+  expect(bodies.map(body => body.playerId)).toEqual(coachPresent ? ["z", "z"] : ["a", "a"]);
+  expect(bodies[0].slots).toEqual(bodies[1].slots);
+});
+
+it("N2 hides event creation for an unlinked ordinary team member", () => {
+  store = createPlanningStore({ save: vi.fn() });
+  act(() => { renderer = TestRenderer.create(<Planning data={{ players: [{ id: "p", team_id: "team", user_id: "other", role: "TOP", name: "Top" }], availability: [] }} selectedTeamId="team" user={{ id: "viewer" }} currentMember={{ role: "member" }} planningStore={store} />); });
+  const buttons = renderer.root.findAllByType("button");
+  expect(buttons.some(node => node.props.children?.includes?.("Ajouter une séance"))).toBe(false);
+  expect(buttons.filter(node => node.props["aria-label"]?.startsWith("Lun 10:00")).every(node => node.props.disabled)).toBe(true);
+});
+
+
+it.each(["assistant", "coach"])("R-F8 shows the shared staff line read-only to a non-manager linked as %s", userId => {
+  const save = vi.fn();
+  store = createPlanningStore({ save });
+  const players = [{ id: "c", team_id: "team", user_id: "coach", role: "COACH", name: "Coach" }, { id: "a", team_id: "team", user_id: "assistant", role: "ASSISTANT", name: "Assistant" }];
+  const availability = [{ team_id: "team", player_id: "c", week_start: "2026-09-07", slots: { MON: ["10:00"] } }];
+  act(() => { renderer = TestRenderer.create(<Planning data={{ players, availability }} selectedTeamId="team" user={{ id: userId }} currentMember={{ role: "player" }} planningStore={store} />); });
+  const cells = renderer.root.findAllByType("button").filter(node => node.props["aria-label"]?.startsWith("Lun 10:00"));
+  expect(cells.length).toBeGreaterThan(0);
+  expect(cells.every(node => node.props.disabled)).toBe(true);
+  const grid = renderer.root.findByType(PlanningAvailabilityGrid);
+  expect(grid.props.draftSlots.MON).toEqual(["10:00"]);
+  expect(cells.every(node => node.props["aria-label"].includes("Encadrement"))).toBe(true);
+  expect(save).not.toHaveBeenCalled();
 });

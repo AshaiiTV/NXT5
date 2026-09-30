@@ -21,6 +21,7 @@ async function sendResendEmail({ to, subject, text, html }) {
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
+    signal: AbortSignal.timeout(8_000),
     headers: {
       Authorization: `Bearer ${env('RESEND_API_KEY')}`,
       'Content-Type': 'application/json'
@@ -204,4 +205,12 @@ export async function sendInactivityReminderEmail({ to, name }) {
       </div>
     `
   });
+}
+
+export async function sendSocialSignupEmail({ to, signupUrl }: { to: string; signupUrl: string | null }) {
+  const text = signupUrl
+    ? `Pour créer ton compte NXT5 et associer le service choisi, ouvre ce lien dans le navigateur où tu as commencé l’inscription :\n${signupUrl}\n\nCe lien est à usage unique et expire dans 15 minutes. Si tu n’as pas demandé cette inscription, ignore ce message.`
+    : 'Une inscription sociale a été demandée avec ton adresse. Tu possèdes déjà un compte NXT5 : connecte-toi puis associe ce service dans Paramètres. Aucun compte n’a été créé ni associé. Si tu n’es pas à l’origine de cette demande, ignore ce message.';
+  await sendResendEmail({ to, subject: 'Ta demande d’inscription NXT5', text,
+    html: `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p>${signupUrl ? `<p><a href="${escapeHtml(signupUrl)}">Confirmer mon inscription</a></p>` : ''}` });
 }

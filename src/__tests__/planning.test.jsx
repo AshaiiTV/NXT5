@@ -201,3 +201,107 @@ describe("planning autosave across React navigation", () => {
     expect(app.draft.status).toBe("saved");
   });
 });
+
+describe("B4 leaving the planning store", () => {
+  it("flushes queued changes at unmount and drains edits behind an active request without callbacks", async () => {
+    const listeners = new Map();
+    vi.stubGlobal("window", { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: (name) => listeners.delete(name) });
+    const requests = [];
+    const onSaved = vi.fn(), onError = vi.fn(), subscriber = vi.fn();
+    const store = createPlanningStore({ save: (body) => new Promise(resolve => requests.push({ body, resolve })), onSaved, onError });
+    const entry = store.forContext(CURRENT);
+    entry.subscribe(subscriber);
+    entry.setNotes("A");
+    const event = { preventDefault: vi.fn() };
+    listeners.get("beforeunload")(event);
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    void entry.flush();
+    await Promise.resolve();
+    entry.setNotes("B");
+    subscriber.mockClear();
+    store.pause();
+    requests[0].resolve(serverRow(requests[0].body));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(requests).toHaveLength(2);
+    expect(requests[1].body.notes).toBe("B");
+    expect(listeners.has("beforeunload")).toBe(true);
+    requests[1].resolve(serverRow(requests[1].body, 2));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(listeners.has("beforeunload")).toBe(false);
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(subscriber).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+  it("sends a debounce that has not yet fired on pause", async () => {
+    const save = vi.fn(async body => serverRow(body));
+    const store = createPlanningStore({ save });
+    store.forContext(CURRENT).setNotes("Brouillon");
+    store.pause();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(save).toHaveBeenCalledOnce();
+    expect(save.mock.calls[0][0].notes).toBe("Brouillon");
+  });
+});
+
+
+it("R-F3 clears the unload guard after a disposed save fails", async () => {
+  const listeners = new Map();
+  vi.stubGlobal("window", { addEventListener: (name, fn) => listeners.set(name, fn), removeEventListener: name => listeners.delete(name) });
+  let reject;
+  const store = createPlanningStore({ save: () => new Promise((_, no) => { reject = no; }) });
+  store.forContext(CURRENT).setNotes("Notes");
+  store.pause();
+  await Promise.resolve();
+  expect(listeners.has("beforeunload")).toBe(true);
+  reject(new Error("401"));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(listeners.has("beforeunload")).toBe(false);
+  vi.unstubAllGlobals();
+});
+
+it("R-F3 drains edits behind an active request before allowing logout, then retries errors", async () => {
+  const requests = [];
+  const store = createPlanningStore({ save: body => new Promise((resolve, reject) => requests.push({ body, resolve, reject })) });
+  const entry = store.forContext(CURRENT);
+  entry.setNotes("A");
+  const done = vi.fn();
+  const flush = store.flush().then(done);
+  await Promise.resolve();
+  entry.setNotes("B");
+  requests[0].resolve(serverRow(requests[0].body));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(done).not.toHaveBeenCalled();
+  expect(requests[1].body.notes).toBe("B");
+  requests[1].reject(new Error("Réseau"));
+  await flush;
+  expect(done).toHaveBeenCalledWith(false);
+  const retry = store.flush();
+  await Promise.resolve();
+  requests[2].resolve(serverRow(requests[2].body, 2));
+  expect(await retry).toBe(true);
+  expect(entry.pending()).toBe(false);
+  store.pause();
+});
+
+it.each([401, 403, 429, 500, undefined])('R4-V2 permits logout after planning error %s without retrying discarded edits', async status => {
+  const confirm = vi.fn(() => false);
+  vi.stubGlobal('window', { confirm, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  const save = vi.fn().mockRejectedValue(Object.assign(new Error('Unavailable'), { status }));
+  const store = createPlanningStore({ save });
+  const entry = store.forContext(CURRENT);
+  entry.setNotes('Unsaved');
+  const authorizationLost = [401, 403].includes(status);
+  expect(await store.prepareLogout()).toBe(authorizationLost);
+  expect(confirm).toHaveBeenCalledTimes(authorizationLost ? 0 : 1);
+  if (!authorizationLost) {
+    expect(entry.getSnapshot().notes).toBe('Unsaved');
+    confirm.mockReturnValue(true);
+    expect(await store.prepareLogout()).toBe(true);
+  }
+  expect(entry.pending()).toBe(false);
+  const calls = save.mock.calls.length;
+  store.pause();
+  await Promise.resolve();
+  expect(save).toHaveBeenCalledTimes(calls);
+});

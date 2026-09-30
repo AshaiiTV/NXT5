@@ -31,8 +31,8 @@ async function loadDashboard() {
         (select count(*) from players where created_at >= now() - interval '30 days') as players_30d,
         (select count(*) from matches where created_at >= now() - interval '7 days') as matches_7d,
         (select count(*) from matches where created_at >= now() - interval '30 days') as matches_30d,
-        (select count(distinct user_id) from sessions where revoked_at is null and expires_at > now() and last_seen_at >= now() - interval '7 days') as active_users_7d,
-        (select count(distinct user_id) from sessions where revoked_at is null and expires_at > now() and last_seen_at >= now() - interval '30 days') as active_users_30d,
+        (select count(*) from users where last_active_at >= now() - interval '7 days') as active_users_7d,
+        (select count(*) from users where last_active_at >= now() - interval '30 days') as active_users_30d,
         (select count(distinct team_id) from matches where created_at >= now() - interval '7 days') as active_teams_7d,
         (select count(distinct team_id) from matches where created_at >= now() - interval '30 days') as active_teams_30d,
         (select count(*) from users where coalesce(email_verified, false)) as verified_users
@@ -62,7 +62,7 @@ async function loadDashboard() {
         coalesce(users.email_verified, false) as email_verified,
         users.created_at,
         (select count(*) from team_members where team_members.user_id = users.id) as team_count,
-        (select max(sessions.last_seen_at) from sessions where sessions.user_id = users.id) as last_seen_at
+        users.last_active_at as last_seen_at
       from users
       order by users.created_at desc
       limit ${RECENT_LIMIT}
@@ -136,11 +136,11 @@ async function loadDashboard() {
         (select count(distinct user_id) from team_members) as users_in_team,
         (select count(distinct user_id) from players where user_id is not null) as users_linked_to_player,
         (select count(*) from users where coalesce(email_verified, false)) as verified,
-        (select count(distinct user_id) from sessions where last_seen_at >= now() - interval '30 days') as seen_30d,
-        (select count(distinct sessions.user_id)
-          from sessions join users on users.id = sessions.user_id
+        (select count(*) from users where last_active_at >= now() - interval '30 days') as seen_30d,
+        (select count(*)
+          from users
           where users.created_at < now() - interval '30 days'
-            and sessions.last_seen_at >= now() - interval '30 days') as returning_30d
+            and users.last_active_at >= now() - interval '30 days') as returning_30d
     `,
     sql`
       select
@@ -209,7 +209,10 @@ async function loadDashboard() {
             and email is not null
             and email <> ''
             and (inactivity_email_sent_at is null or inactivity_email_sent_at < last_active_at)
-        ) as awaiting_delivery
+            and not exists (select 1 from inactivity_reminder_pending p
+              where p.user_id=users.id and p.inactive_since_at >= users.last_active_at)
+        ) as awaiting_delivery,
+        (select count(*) from inactivity_reminder_pending where state='sending') as sending
       from inactivity_reminder_deliveries
     `
   ]);
@@ -276,6 +279,7 @@ async function loadDashboard() {
       recipients: count(inactivityReminderSummary.recipients),
       deliveries30d: count(inactivityReminderSummary.deliveries_30d),
       awaitingDelivery: count(inactivityReminderSummary.awaiting_delivery),
+      sending: count(inactivityReminderSummary.sending),
       recent: inactivityDeliveryRows.map((row: any) => ({
         id: row.id,
         userId: row.user_id,
@@ -290,6 +294,7 @@ async function loadDashboard() {
     },
     teamsByRegion: regionRows.map((row: any) => ({ region: row.region || 'Non renseignée', count: count(row.team_count) })),
     daily: dailyRows.map((row: any) => ({ date: row.date, users: count(row.users), teams: count(row.teams), matches: count(row.matches) })),
+    weeklyActivityNote: 'La série hebdomadaire des comptes actifs repose sur le dernier passage des sessions conservées. Leur réutilisation ou leur suppression modifie les semaines passées : ce n’est pas un historique complet des présences.',
     weekly: weeklyRows.map((row: any) => ({ date: row.date, users: count(row.users), teams: count(row.teams), matches: count(row.matches), activeUsers: count(row.active_users) })),
     teamDirectory: teamDirectoryRows.map((row: any) => ({
       id: row.id, name: row.name, tag: row.tag, region: row.region, createdAt: row.created_at,

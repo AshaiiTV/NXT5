@@ -180,7 +180,7 @@ function ChampionSearchTile({ champion, active, existingRow, canManage, saving, 
   </div>;
 }
 
-function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
+function Champions({ data, setData, selectedTeamId, pushToast, currentMember, user }) {
   const activeTeamId = selectedTeamId || data.teams[0]?.id || null;
   const canManageTeamPool = canStaffManage(currentMember?.role);
   const players = (data.players || []).filter((player) => String(player.team_id || "") === String(activeTeamId || "") && isGameplayRole(player.role));
@@ -284,7 +284,9 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     setSaving(true);
     try {
       const result = await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ teamId: activeTeamId, playerId: selectedPlayer.id, champion: championName, status, poolId: existing && ["manual", "riot_manual"].includes(String(existing.source || "")) ? existing.id : null, notes: "" }) });
-      if (result?.pick) setLocalPool((current) => current.map((row) => row.id === optimistic.id ? result.pick : row));
+      if (!result?.pick) throw new Error("Confirmation du champion indisponible. Réessaie.");
+      setLocalPool((current) => current.map((row) => row.id === optimistic.id ? result.pick : row));
+      setData?.((current) => ({ ...current, championPool: [...(current.championPool || []).filter(row => row.id !== existing?.id && row.id !== result.pick.id), result.pick] }));
     } catch (err) {
       setLocalPool((current) => existing
         ? current.map((row) => row.id === existing.id ? existing : row)
@@ -307,6 +309,7 @@ function Champions({ data, selectedTeamId, refreshAll, pushToast, currentMember,
     setSaving(true);
     try {
       await apiFetch("champion-pool-manual", { method: "POST", body: JSON.stringify({ action: "delete", teamId: activeTeamId, poolId: row.id }) });
+      setData?.((current) => ({ ...current, championPool: (current.championPool || []).filter(item => item.id !== row.id) }));
     } catch (err) {
       setLocalPool(previousPool);
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
@@ -828,7 +831,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   );
 }
 
-function DraftWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route, navigate }) {
+function DraftWorkspace({ data, setData, selectedTeamId, refreshAll, pushToast, currentMember, user, route, navigate }) {
   const view = draftViewFromPath(route?.path);
   const icons = { pool: Crown, compositions: Sparkles };
   return <div>
@@ -836,7 +839,7 @@ function DraftWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
     <div id="draft-panel" role="tabpanel" aria-labelledby={`draft-tab-${view}`} tabIndex={0}>
     {view === "compositions"
       ? <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />
-      : <Champions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+      : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
     </div>
   </div>;
 }

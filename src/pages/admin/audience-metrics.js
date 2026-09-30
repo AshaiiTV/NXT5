@@ -44,7 +44,7 @@ export const SOURCE_LABELS = {
   social: "Réseaux sociaux", referral: "Site référent", email: "E-mail", paid: "Publicité", unknown: "Inconnu",
 };
 export const DEVICE_LABELS = { desktop: "Ordinateur", mobile: "Mobile", tablet: "Tablette", unknown: "Inconnu" };
-export const GOAL_LABELS = { signup: "Compte créé", login: "Connexion réussie", access_request: "Demande d’accès envoyée", pricing_view: "Tarifs consultés", first_import: "Première partie importée", first_review: "Premier débrief enregistré par l’équipe" };
+export const GOAL_LABELS = { signup: "Compte créé", login: "Connexion réussie", access_request: "Demande d’accès envoyée (historique)", pricing_view: "Tarifs consultés (historique)", first_import: "Première partie importée", first_review: "Premier débrief enregistré par l’équipe" };
 export const sourceLabel = (value) => SOURCE_LABELS[value] || value || "Direct / inconnu";
 
 export function countryLabel(value) {

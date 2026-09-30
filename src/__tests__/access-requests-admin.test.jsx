@@ -180,3 +180,27 @@ describe("access request administration", () => {
     expect(navigation(renderer).dirty).toBe(false);
   });
 });
+
+it("B5 blocks list context changes while a follow-up draft exists", async () => {
+  apiFetch.mockResolvedValueOnce(result({ pagination: { page: 1, pageSize: 10, total: 11, totalPages: 2 } }));
+  const renderer = await render();
+  act(() => button(renderer, "Suivre cette demande").props.onClick());
+  act(() => renderer.root.findByType(TextAreaInput).props.onChange("À rappeler demain"));
+  expect(renderer.root.findAllByType(SelectInput).find(node => node.props.label === "Afficher les demandes").props.disabled).toBe(true);
+  expect(button(renderer, "Page suivante des demandes").props.disabled).toBe(true);
+  expect(button(renderer, "Actualiser").props.disabled).toBe(true);
+  expect(text(renderer)).toContain("Enregistre ou annule le suivi");
+  act(() => button(renderer, "Annuler").props.onClick());
+  expect(button(renderer, "Page suivante des demandes").props.disabled).toBe(false);
+});
+
+it("NEW-2 handles an unconfirmed mutation without an unhandled rejection", async () => {
+  apiFetch.mockResolvedValueOnce(result());
+  const renderer = await render();
+  act(() => button(renderer, "Suivre cette demande").props.onClick());
+  act(() => renderer.root.findByType(TextAreaInput).props.onChange("Note conservée"));
+  apiFetch.mockResolvedValueOnce({ ok: false });
+  await act(async () => { await expect(renderer.root.findByType("form").props.onSubmit({ preventDefault() {} })).resolves.toBeUndefined(); });
+  expect(renderer.root.findByType(TextAreaInput).props.value).toBe("Note conservée");
+  expect(renderer.root.findAllByProps({ role: "alert" }).some(node => JSON.stringify(node.children).includes("Le serveur"))).toBe(true);
+});

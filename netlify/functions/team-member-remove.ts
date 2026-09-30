@@ -33,33 +33,27 @@ export default async function handler(request: Request, context: Context): Promi
         and user_id = ${userId}
       limit 1
     `;
+    if (!target[0]) throw Object.assign(new Error('Profil introuvable dans cette team.'), { status: 404 });
     if (String(target[0]?.owner_id || '') === userId || target[0]?.role === 'owner') {
       throw Object.assign(new Error('Le propriétaire ne peut pas être renvoyé de sa team.'), { status: 400 });
     }
 
-    const rows = await sql`
-      delete from team_members
-      where team_id = ${teamId}
-        and user_id = ${userId}
-      returning *
-    `;
-    if (!rows[0]) throw Object.assign(new Error('Profil introuvable dans cette team.'), { status: 404 });
-
-    await sql`
-      update players
-      set user_id = null,
-          updated_at = now()
-      where team_id = ${teamId}
-        and user_id = ${userId}
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'team_member.remove', 'team', ${teamId}, ${JSON.stringify({ targetUserId: userId })}::jsonb)
-    `;
-
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t
+         where t.id = ${teamId} and t.owner_id <> ${userId}
+           and (t.owner_id = ${user.id} or exists (select 1 from team_members
+             where team_id = t.id and user_id = ${user.id} and role = 'captain'))
+           and exists (select 1 from team_members where team_id = t.id and user_id = ${userId} and role <> 'owner')`,
+      tx`update players set user_id = null, updated_at = now() where team_id = ${teamId} and user_id = ${userId}`,
+      tx`delete from team_members where team_id = ${teamId} and user_id = ${userId} returning *`,
+      tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+         values (${user.id}, 'team_member.remove', 'team', ${teamId}, ${JSON.stringify({ targetUserId: userId })}::jsonb)`
+    ]);
+    const rows = results[3];
     return json({ ok: true, member: rows[0] });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.code === '22012') return json({ error: 'L’adhésion ou les accès ont changé. Recharge l’équipe.' }, 403);
     return handleError(err);
   }
 }

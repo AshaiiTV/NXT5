@@ -1,3 +1,4 @@
+import { registerDialog } from "../ui/dialog-registry.js";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ArrowRight, FileText, X } from "lucide-react";
@@ -18,7 +19,9 @@ function TrendsDialog({ title, subtitle, children, onClose, id }) {
     openDialogs += 1;
     document.body.style.overflow = "hidden";
     dialog?.showModal();
+    const unregister = registerDialog(dialog);
     return () => {
+      unregister();
       dialog?.close();
       openDialogs -= 1;
       if (openDialogs === 0) document.body.style.overflow = bodyOverflow;

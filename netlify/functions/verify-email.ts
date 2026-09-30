@@ -28,7 +28,7 @@ export default async function handler(request: Request): Promise<Response> {
           email_verify_token = null,
           email_verify_expires_at = null,
           updated_at = now()
-      where email_verify_token in (${tokenHash}, ${token})
+      where email_verify_token = ${tokenHash}
         and email_verify_expires_at > now()
       returning id
     `;

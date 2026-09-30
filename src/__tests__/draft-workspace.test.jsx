@@ -71,3 +71,51 @@ describe("accessible composition choices", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 });
+
+it("R-F7 patches the common pool after add, move and delete, including Pool → Compositions → Pool", async () => {
+  vi.stubGlobal("window", { confirm: () => true });
+  let shared = [];
+  const base = { teams: [{ id: "team" }], players, compositions: [] };
+  let tab = "pool";
+  const props = { selectedTeamId: "team", currentMember: { role: "player" }, user: { id: "user" }, pushToast: vi.fn() };
+  const page = () => tab === "pool" ? <Champions {...props} data={{ ...base, championPool: shared }} setData={setData} refreshAll={refreshAll} /> : <Compositions {...props} data={{ ...base, championPool: shared }} refreshAll={refreshAll} />;
+  const refreshAll = vi.fn(() => new Promise(() => {}));
+  const setData = update => { shared = update({ ...base, championPool: shared }).championPool; renderer.update(page()); };
+  apiFetch.mockImplementation(async (_path, options) => {
+    const body = JSON.parse(options.body);
+    if (body.action === "delete") return { ok: true };
+    const pick = { ...rows[0], status: body.status };
+    return { pick };
+  });
+  render(page());
+  await act(async () => renderer.root.findByProps({ "aria-label": "Classer Aatrox" }).props.onChange({ target: { value: "lock" } }));
+  expect(refreshAll).not.toHaveBeenCalled();
+  act(() => { tab = "compositions"; renderer.update(page()); });
+  expect(selectRole("TOP").findAllByType("option").map(node => node.props.value)).toContain("aatrox");
+  act(() => { tab = "pool"; renderer.update(page()); });
+  await act(async () => renderer.root.findByProps({ "aria-label": "Déplacer Aatrox" }).props.onChange({ target: { value: "work" } }));
+  expect(refreshAll).not.toHaveBeenCalled();
+  expect(shared[0].status).toBe("work");
+  await act(async () => renderer.root.findByProps({ "aria-label": "Retirer Aatrox de la liste" }).props.onClick());
+  expect(refreshAll).not.toHaveBeenCalled();
+  act(() => { tab = "compositions"; renderer.update(page()); });
+  expect(selectRole("TOP").findAllByType("option").map(node => node.props.value)).not.toContain("aatrox");
+  act(() => { tab = "pool"; renderer.update(page()); });
+  expect(renderer.root.findAllByProps({ "aria-label": "Déplacer Aatrox" })).toHaveLength(0);
+  vi.unstubAllGlobals();
+});
+
+
+it('T5-05 renders historical malformed slots with a populated champion pool', () => {
+  vi.stubGlobal('window', { scrollTo: vi.fn() });
+  render(<Compositions data={{ players, championPool: rows, compositions: [{
+    id: 'legacy', team_id: 'team', created_by: 'user', title: 'Ancienne composition',
+    slots: JSON.stringify({ TOP: null, JGL: [], MID: { poolId: 'ahri', playerId: 'mid' }, ADC: 12, SUP: 'bad', UNKNOWN: { poolId: 'aatrox' } }),
+  }] }} selectedTeamId="team" currentMember={{ role: 'player' }} user={{ id: 'user' }} refreshAll={vi.fn()} pushToast={vi.fn()} />);
+  expect(JSON.stringify(renderer.toJSON())).toContain('Ancienne composition');
+  const edit = renderer.root.findAllByType(Button).find(node => node.props.children === 'Modifier');
+  act(() => edit.props.onClick());
+  expect(selectRole('MID').props.value).toBe('ahri');
+  expect(selectRole('TOP').props.value).toBe('');
+  vi.unstubAllGlobals();
+});

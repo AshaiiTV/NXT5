@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { beforeAll,beforeEach,afterAll,afterEach,describe,it,expect,vi } from 'vitest';
-const database=vi.hoisted(()=>({pg:null as any,failQuery:null as any}));
+const database=vi.hoisted(()=>({pg:null as any,failQuery:null as any,timezoneCatalog:false}));
 const transport=vi.hoisted(()=>({send:vi.fn(),find:vi.fn(),guild:vi.fn(),connectionTest:vi.fn(),enabled:true}));
 vi.mock('../../netlify/functions/_lib/db',async () => {
   const {neon,neonConfig} = await import('@neondatabase/serverless');
@@ -9,7 +9,7 @@ vi.mock('../../netlify/functions/_lib/db',async () => {
     const body = JSON.parse(options.body);
     async function execute(connection:any,statement:any) {
       if (database.failQuery && statement.query.includes(database.failQuery)) {database.failQuery=null;throw new Error('Simulated database acknowledgement failure');}
-      const result = await connection.query(statement.query,statement.params);
+      const result = await connection.query(database.timezoneCatalog ? statement.query.replaceAll('pg_timezone_names', 'test_timezone_names') : statement.query,statement.params);
       return {fields:result.fields,rows:result.rows.map((row:any) => result.fields.map((field:any) => {
         const value=row[field.name];
         if (value===null || value===undefined) return null;
@@ -44,7 +44,7 @@ vi.mock('../../netlify/functions/_lib/discord-bot-common',()=>({
   assertBotStaff:(ctx:any,manage=false)=>{if(manage?!ctx.canManage:!ctx.canStaff)throw new Error('Staff requis');},
 }));
 import { executeDiscordAction } from '../../netlify/functions/_lib/discord-bot-actions';
-import { enqueueScheduledBotMessages,deliverBotOutbox,localDateTime,nextWeeklyRun,queueBotMessage } from '../../netlify/functions/_lib/discord-bot-schedule';
+import { enqueueScheduledBotMessages,deliverBotOutbox,localDateTime,nextWeeklyRun,queueBotMessage,validateTimezone } from '../../netlify/functions/_lib/discord-bot-schedule';
 import { withDiscordContext } from '../../netlify/functions/_lib/discord-runtime';
 import { loadBotWorkflows } from '../../netlify/functions/_lib/discord-bot-bootstrap';
 const user='00000000-0000-4000-8000-000000000001',team='00000000-0000-4000-8000-000000000002',player='00000000-0000-4000-8000-000000000003',other='00000000-0000-4000-8000-000000000004';
@@ -94,7 +94,7 @@ describe('Discord workflows with real PostgreSQL and fake transport',()=>{
     await rows(`insert into player_availability(team_id,player_id,week_start,slots) values($1,$2,'2030-04-29','{"MON":["17:00"],"WED":["19:00"],"_events":{"WED|19:00":{"label":"Scrim"}}}')`,[team,player]);
     await executeDiscordAction(ctx,'disponibilites definir',{date:'2030-05-01',debut:'23:00',fin:'01:00'});
     const[r]=await rows('select slots from player_availability');
-    expect(r.slots.MON).toEqual(['17:00']);expect(r.slots.WED).toEqual(['19:00','23:00']);expect(r.slots.THU).toEqual(['00:00']);expect(r.slots._events).toBeTruthy();
+    expect(r.slots.MON).toEqual(['17:00']);expect(r.slots.WED).toEqual(['00:00','19:00','23:00']);expect(r.slots.THU).toBeUndefined();expect(r.slots._events).toBeTruthy();
   });
   it('restricts personal goal writes and preserves completion history',async()=>{
     await executeDiscordAction(ctx,'objectifs definir',{objectif:'Objectif collectif'},true);
@@ -291,4 +291,64 @@ describe('Explicit approval keeps a review summary current',()=>{
     await expect(executeDiscordAction(ctx,'objectifs definir',{objectif:'Test',joueur:'renamed'})).rejects.toThrow('Plusieurs joueurs');
     await expect(executeDiscordAction({...ctx,teamId:other},'objectifs definir',{objectif:'Test',joueur:player})).rejects.toThrow('introuvable');
   });
+});
+
+// Audit tour 2: the web grid stores 00:00 at the END of its labelled day.
+it.each([
+  ['2026-09-24', '22:00', 'THU', '2026-09-21'],
+  ['2026-09-27', '22:00', 'SUN', '2026-09-21'],
+  ['2026-09-28', '00:00', 'SUN', '2026-09-21'],
+])('stores midnight on the preceding grid day for %s %s', async (date, debut, day, week) => {
+  await executeDiscordAction(ctx,'disponibilites definir',{date,debut,fin:'01:00'});
+  const saved=await rows('select week_start::text,slots from player_availability');
+  expect(saved).toHaveLength(1);
+  expect(saved[0].week_start).toBe(week);
+  expect(saved[0].slots[day]).toContain('00:00');
+  expect(Object.keys(saved[0].slots)).toEqual([day]);
+});
+it('rejects numeric/POSIX zones and saves a Node/PostgreSQL canonical named zone', async () => {
+  for(const zone of ['-0530','+02:00','GMT+2','EST','Etc/GMT+2','Mars/Olympus']) expect(()=>validateTimezone(zone)).toThrow();
+  expect(validateTimezone('europe/paris')).toBe('Europe/Paris');
+  expect(validateTimezone('America/Port-au-Prince')).toBe('America/Port-au-Prince');
+  expect(()=>validateTimezone('US/Eastern')).toThrow();
+  await executeDiscordAction(ctx,'reglages fuseau',{fuseau:'europe/paris'},true);
+  expect((await rows('select timezone from discord_bot_settings where team_id=$1',[team]))[0].timezone).toBe('Europe/Paris');
+  expect((await rows("select extract(hour from '2026-09-29T12:00:00Z'::timestamptz at time zone 'Europe/Paris')::int as hour"))[0].hour).toBe(14);
+});
+it.each(['-0530','+02:00','EST','Invalid/Zone'])('resets existing unsafe timezone %s without changing valid named zones', async zone => {
+  await rows("update discord_bot_settings set timezone=$2 where team_id=$1",[team,zone]);
+  await rows("insert into discord_bot_settings(team_id,timezone) values($1,'America/New_York') on conflict(team_id) do update set timezone=excluded.timezone",[other]);
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_server_timezones.sql',import.meta.url),'utf8'));
+  expect((await rows('select timezone from discord_bot_settings where team_id=$1',[team]))[0].timezone).toBe('Europe/Paris');
+  expect((await rows('select timezone from discord_bot_settings where team_id=$1',[other]))[0].timezone).toBe('America/New_York');
+});
+
+it('canonicalizes existing named timezone aliases instead of resetting their region',async()=>{
+  await rows("update discord_bot_settings set timezone='asia/kolkata' where team_id=$1",[team]);
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_server_timezones.sql',import.meta.url),'utf8'));
+  expect((await rows('select timezone from discord_bot_settings where team_id=$1',[team]))[0].timezone).toBe('Asia/Kolkata');
+});
+
+
+it.each([
+  ['Asia/Kolkata', 'Asia/Calcutta'], ['Europe/Kyiv', 'Europe/Kiev'],
+])('R4-V3 accepts entered %s first, with canonical fallback %s on older tzdata', async (modern, legacy) => {
+  await database.pg.exec('create temporary table test_timezone_names(name text)');
+  const migration = readFileSync(new URL('../../database/migrations/20260929_server_timezones.sql', import.meta.url), 'utf8').replaceAll('pg_timezone_names', 'test_timezone_names');
+  database.timezoneCatalog = true;
+  try {
+    for (const available of [[modern], [legacy], [modern, legacy]]) {
+      await rows('truncate test_timezone_names');
+      for (const zone of available) await rows('insert into test_timezone_names values($1)', [zone]);
+      const expected = available[0];
+      await executeDiscordAction(ctx, 'reglages fuseau', { fuseau: '  '+modern.toLowerCase()+'  ' }, true);
+      expect((await rows('select timezone from discord_bot_settings where team_id=$1', [team]))[0].timezone).toBe(expected);
+      await rows('update discord_bot_settings set timezone=$2 where team_id=$1', [team, modern.toLowerCase()]);
+      await database.pg.exec(migration);
+      expect((await rows('select timezone from discord_bot_settings where team_id=$1', [team]))[0].timezone).toBe(expected);
+    }
+  } finally {
+    database.timezoneCatalog = false;
+    await database.pg.exec('drop table test_timezone_names');
+  }
 });

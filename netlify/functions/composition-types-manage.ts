@@ -8,6 +8,29 @@ function cleanText(value, max = 160) {
   return String(value || '').trim().slice(0, max);
 }
 
+const SLOT_ROLES = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function invalidSlots(): never {
+  throw Object.assign(new Error('Les emplacements de la composition sont invalides.'), { status: 400 });
+}
+function normalizeSlots(value: unknown): Record<string, { playerId: string; poolId: string }> {
+  if (value === undefined) return {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) invalidSlots();
+  return Object.fromEntries(Object.entries(value).map(([role, slot]) => {
+    if (!SLOT_ROLES.includes(role)) invalidSlots();
+    if (slot === null) return [role, { playerId: '', poolId: '' }];
+    if (!slot || typeof slot !== 'object' || Array.isArray(slot)
+      || Object.keys(slot).some(key => !['playerId', 'poolId'].includes(key))) invalidSlots();
+    const ids = ['playerId', 'poolId'].map(key => {
+      const id = slot[key];
+      if (id === undefined || id === '') return '';
+      if (typeof id !== 'string' || !UUID.test(id)) invalidSlots();
+      return id.toLowerCase();
+    });
+    return [role, { playerId: ids[0], poolId: ids[1] }];
+  }));
+}
+
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -21,7 +44,6 @@ export default async function handler(request: Request, context: Context): Promi
     const compositionId = cleanText(body.compositionId, 80);
     const title = cleanText(body.title, 120);
     const notes = cleanText(body.notes, 500) || null;
-    const slots = body.slots && typeof body.slots === 'object' ? body.slots : {};
     const tags = Array.isArray(body.tags) ? body.tags.map((tag) => cleanText(tag, 24)).filter(Boolean).slice(0, 6) : [];
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
@@ -56,6 +78,22 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     if (!title) throw Object.assign(new Error('Titre requis.'), { status: 400 });
+    const slots = normalizeSlots(body.slots);
+    const playerIds = [...new Set(Object.values(slots).map(slot => slot.playerId).filter(Boolean))];
+    const poolIds = [...new Set(Object.values(slots).map(slot => slot.poolId).filter(Boolean))];
+    // References outside this team are never stored. A pick or profile deleted since the
+    // composition was saved simply empties its slot instead of blocking every later edit.
+    const teamPlayerIds = new Set(playerIds.length
+      ? (await sql`select id from players where team_id = ${teamId} and id = any(${playerIds}::uuid[])`).map(row => String(row.id).toLowerCase())
+      : []);
+    const teamPoolIds = new Set(poolIds.length
+      ? (await sql`select id from champion_pool where team_id = ${teamId} and id = any(${poolIds}::uuid[])`).map(row => String(row.id).toLowerCase())
+      : []);
+    for (const slot of Object.values(slots)) {
+      if (slot.playerId && !teamPlayerIds.has(slot.playerId)) slot.playerId = '';
+      if (slot.poolId && !teamPoolIds.has(slot.poolId)) slot.poolId = '';
+    }
+
 
     if (action === 'update') {
       if (!compositionId) throw Object.assign(new Error('Composition requise.'), { status: 400 });

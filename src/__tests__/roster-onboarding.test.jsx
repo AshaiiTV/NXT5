@@ -3,6 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button } from "../components/ui/Core.jsx";
+import { useTeamCreation } from "../hooks/useTeamCreation.js";
 import { Teams, TeamManagementPanel } from "../pages/workspace/Teams.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -26,24 +27,35 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function CreationHost(props) {
+  const teamCreation = useTeamCreation(props);
+  return <Teams {...props} teamCreation={teamCreation} />;
+}
+
 async function render(settings) {
   const scrollIntoView = vi.fn();
   const focus = vi.fn();
   const scrollEditIntoView = vi.fn();
   const focusEdit = vi.fn();
+  const focusPage = vi.fn();
+  const focusResume = vi.fn();
   let renderer;
-  const view = (next) => <Suspense fallback="Chargement"><Teams {...next} /></Suspense>;
+  const view = (next) => <Suspense fallback="Chargement"><CreationHost {...next} /></Suspense>;
   await act(async () => {
     renderer = TestRenderer.create(view(settings), {
       createNodeMock: (element) => element.props.id === "team-roster-setup"
         ? { scrollIntoView, querySelector: () => ({ focus }) }
         : element.props.className === "team-profile-edit"
           ? { scrollIntoView: scrollEditIntoView, querySelector: () => ({ focus: focusEdit }) }
-          : null,
+          : element.props.className === 'nxt5-teams-page'
+            ? { querySelector: (selector) => selector === '.nxt5-page-title' ? { focus: focusPage } : null }
+            : element.props.className === 'team-setup-forms'
+              ? { querySelector: () => ({ focus: focusResume }) }
+              : null,
     });
   });
   cleanups.push(() => act(() => renderer.unmount()));
-  return { renderer, scrollIntoView, focus, scrollEditIntoView, focusEdit, update: async (next) => act(async () => renderer.update(view(next))) };
+  return { renderer, scrollIntoView, focus, scrollEditIntoView, focusEdit, focusPage, focusResume, update: async (next) => act(async () => renderer.update(view(next))) };
 }
 const content = (renderer) => JSON.stringify(renderer.toJSON());
 const field = (renderer, label, value) => act(() => renderer.root.findByProps({ label }).props.onChange(value));
@@ -202,4 +214,78 @@ describe("temporary team invitations", () => {
     expect(settings.pushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Révocation impossible" }));
     expect(action(renderer, "Révoquer les invitations").props.disabled).toBe(false);
   });
+});
+
+it('T3-G4 selects and refreshes the created team after a partial import, then retries only missing players', async () => {
+  const settings = { ...props(), data: { teams: [], players: [], matches: [] }, selectedTeamId: '', setupOnly: true };
+  const { renderer } = await render(settings);
+  field(renderer, 'Nom de l’équipe', 'Created team');
+  field(renderer, 'Tag', 'CT');
+  field(renderer, 'Joueurs à ajouter (facultatif)', 'First#EUW\nSecond#EUW\nThird#EUW');
+  apiFetch.mockResolvedValueOnce({ team }).mockResolvedValueOnce({ player: { id: 'one' } }).mockRejectedValueOnce(new Error('Player failed'));
+  const submit = () => renderer.root.findAllByType('form').find(form => form.findAllByType(Button).some(b => ['Créer l’équipe','Reprendre les joueurs manquants'].includes(b.props.children)));
+  await act(async () => submit().props.onSubmit({ preventDefault() {} }));
+  expect(settings.setSelectedTeamId).toHaveBeenCalledWith(team.id);
+  expect(settings.refreshAll).toHaveBeenCalledWith({ teamId: team.id });
+  expect(content(renderer)).toContain('Reprendre les joueurs manquants');
+  expect(content(renderer)).toContain('Second#EUW, Third#EUW');
+  apiFetch.mockResolvedValue({ player: { id: 'saved' } });
+  await act(async () => submit().props.onSubmit({ preventDefault() {} }));
+  expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === 'teams-create')).toHaveLength(1);
+  expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === 'players-create').map(([, options]) => JSON.parse(options.body).riotId)).toEqual(['First#EUW','Second#EUW','Second#EUW','Third#EUW']);
+  expect(settings.refreshAll).toHaveBeenCalledTimes(2);
+});
+
+it.each(['owner','captain','manager','coach','assistant','analyst','board','player'])('T3-G5 aligns management permissions for %s', async role => {
+  const settings = { ...props(), managementOnly: true, currentMember: { role }, user: { id: role === 'owner' ? 'captain' : 'someone-else' } };
+  settings.data.teamMembers = [{ id: 'm', team_id: team.id, user_id: 'member', name: 'Member', role: 'player' }];
+  const { renderer } = await render(settings);
+  const panel = renderer.root.findByType(TeamManagementPanel);
+  expect(panel.props.canEditIdentity).toBe(['owner','captain','manager'].includes(role));
+  expect(panel.props.canInvite).toBe(['owner','captain','manager'].includes(role));
+  expect(panel.props.canManageMembers).toBe(['owner','captain'].includes(role));
+  expect(panel.props.canManageRoster).toBe(role !== 'player');
+  expect(panel.props.canDeleteTeam).toBe(role === 'owner');
+  const invite = renderer.root.findAllByType(Button).find(b => b.props.children === 'Créer et copier un lien');
+  expect(invite.props.disabled).toBe(!panel.props.canInvite);
+  expect(renderer.root.findByProps({ 'aria-label': 'Accès de Member' }).props.disabled).toBe(!panel.props.canManageMembers);
+});
+
+
+it('R8-02 closes and reopens pending forms with focus, then abandons without deleting saved data', async () => {
+  const settings = { ...props(), routeSearch: '?create=1' };
+  const { renderer, update, focusPage, focusResume } = await render(settings);
+  field(renderer, 'Nom de l’équipe', 'Created');
+  field(renderer, 'Joueurs à ajouter (facultatif)', 'First#EUW\nSecond#EUW');
+  apiFetch.mockResolvedValueOnce({ team }).mockResolvedValueOnce({ player }).mockRejectedValueOnce(Object.assign(new Error('Refus'), { status: 403 }));
+  await act(async () => renderer.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }));
+  // Simulate the bootstrap/remount query clearing after the partial creation.
+  await update({ ...settings, routeSearch: '' });
+  const action = label => renderer.root.findAllByType(Button).find(b => b.props.children === label);
+  expect(content(renderer)).toContain('Second#EUW');
+  expect(action('Fermer les formulaires')).toBeTruthy();
+  act(() => action('Fermer les formulaires').props.onClick());
+  expect(content(renderer)).not.toContain('Reprendre les joueurs manquants');
+  expect(focusPage).toHaveBeenCalledWith({ preventScroll: true });
+  act(() => action('Reprendre l’import de joueurs').props.onClick());
+  expect(focusResume).toHaveBeenCalledOnce();
+  expect(content(renderer)).toContain('Second#EUW');
+  expect(content(renderer)).toContain('L’abandon conserve l’équipe et les joueurs déjà ajoutés.');
+  let reject;
+  apiFetch.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail; }));
+  let retry;
+  act(() => { retry = renderer.root.findAllByType('form')[0].props.onSubmit({ preventDefault() {} }); });
+  expect(action('Abandonner l’import restant').props.disabled).toBe(true);
+  expect(action('Fermer les formulaires').props.disabled).toBe(true);
+  await act(async () => { reject(Object.assign(new Error('Refus'), { status: 403 })); await retry; });
+  const calls = apiFetch.mock.calls.length;
+  act(() => action('Abandonner l’import restant').props.onClick());
+  expect(content(renderer)).not.toContain('Reprendre l’import de joueurs');
+  expect(content(renderer)).not.toContain('Reprendre les joueurs manquants');
+  expect(content(renderer)).toContain('Joueurs et encadrement');
+  expect(focusPage).toHaveBeenCalledTimes(2);
+  expect(apiFetch).toHaveBeenCalledTimes(calls);
+  await update(settings);
+  expect(renderer.root.findByProps({ label: 'Nom de l’équipe' }).props.value).toBe('');
+  expect(action('Créer l’équipe')).toBeTruthy();
 });

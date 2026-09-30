@@ -53,6 +53,9 @@ export function assertImportMatch(match: RiotMatch): void {
       if (stats?.kills !== undefined) integer(stats.kills, `objectives.${objective}.kills`);
     }
   }
+  if (match.info.teams.filter(team => team.win === true).length !== 1) {
+    invalid("La partie doit avoir exactement une équipe gagnante.");
+  }
   const participantIds = new Set<number>();
   for (const participant of match.info.participants) {
     if (!participant || ![100, 200].includes(participant.teamId)) invalid('Équipe de participant invalide.');

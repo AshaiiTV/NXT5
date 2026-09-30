@@ -16,9 +16,9 @@ const VIEWS = {
 const FILTERS = [["all", "Toutes"], ["recent", "Import récent"], ["quiet", "Sans import depuis 30 j"], ["never", "Aucun import"], ["empty", "Sans profils"]];
 const FEATURES = [["matches", "Import de parties"], ["roster", "Joueurs et encadrement"], ["reports", "Débriefs"], ["planning", "Planning"], ["compositions", "Compositions"], ["championPool", "Champions déclarés"], ["goals", "Objectifs joueurs"], ["archives", "Archives"]];
 
-function date(value, time = false) {
+function date(value, time = false, daily = false) {
   if (!value || !Number.isFinite(Date.parse(value))) return "—";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", ...(time ? { timeStyle: "short" } : {}) }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", ...(daily ? { timeZone: "UTC" } : {}), ...(time ? { timeStyle: "short" } : {}) }).format(new Date(value));
 }
 
 function Section({ title, description, children, action }) {
@@ -48,12 +48,12 @@ export function ImportChart({ rows = [], field = "matches", label = "parties imp
   const max = Math.max(1, ...rows.map((row) => Number(row[field] || 0)));
   if (!rows.length) return <Message>Aucune donnée disponible pour cette période.</Message>;
   return <div className="admin-chart">
-    <div className="admin-chart-readout" aria-live="polite" aria-atomic="true"><span>{date(selected.date)}</span><strong>{n(selected[field])} {label}</strong></div>
+    <div className="admin-chart-readout" aria-live="polite" aria-atomic="true"><span>{date(selected.date, false, true)}</span><strong>{n(selected[field])} {label}</strong></div>
     <div className="admin-chart-scale"><span>{n(max)}</span><span>Échelle : {label} / jour</span></div>
     <div className="admin-chart-bars" role="group" aria-label={`${label} par jour`}>
-      {rows.map((row) => <button key={row.date} type="button" aria-pressed={row.date === selected.date} aria-label={`${date(row.date)} : ${n(row[field])} ${label}`} onMouseEnter={() => setSelectedDate(row.date)} onFocus={() => setSelectedDate(row.date)} onClick={() => setSelectedDate(row.date)}><span style={{ height: `${Number(row[field] || 0) / max * 100}%` }} /></button>)}
+      {rows.map((row) => <button key={row.date} type="button" aria-pressed={row.date === selected.date} aria-label={`${date(row.date, false, true)} : ${n(row[field])} ${label}`} onMouseEnter={() => setSelectedDate(row.date)} onFocus={() => setSelectedDate(row.date)} onClick={() => setSelectedDate(row.date)}><span style={{ height: `${Number(row[field] || 0) / max * 100}%` }} /></button>)}
     </div>
-    <div className="admin-chart-axis"><span>{date(rows[0].date)}</span><span>{date(rows.at(-1).date)}</span></div>
+    <div className="admin-chart-axis"><span>{date(rows[0].date, false, true)}</span><span>{date(rows.at(-1).date, false, true)}</span></div>
     <p className="admin-caption">Survole, touche ou sélectionne une journée au clavier. Les jours à zéro restent à zéro.</p>
   </div>;
 }
@@ -161,7 +161,7 @@ function Reminders({ data = {} }) {
   const recent = data.recent || [];
   const rows = recent.filter((row) => `${row.name || ""} ${row.accountName || ""} ${row.recipientEmail || ""}`.toLocaleLowerCase("fr").includes(search.trim().toLocaleLowerCase("fr")) && (filter === "all" || (filter === "returned" ? row.returnedAfterReminder : !row.returnedAfterReminder)));
   const safePage = Math.min(page, Math.max(1, Math.ceil(rows.length / 10)));
-  return <div className="admin-stack"><div className="admin-metrics"><Metric label="Envois · 30 j" value={data.deliveries30d} note="Envois enregistrés sur 30 jours" /><Metric label="Comptes destinataires" value={data.recipients} note="Comptes distincts dans le journal" /><Metric label="Éligibles à l’envoi" value={data.awaitingDelivery} note="90 j d’inactivité, e-mail vérifié, rappel activé" /><Metric label="Envois conservés" value={data.deliveries} note="Journal conservé pendant 12 mois" /></div><Section title="À qui les rappels ont-ils été envoyés ?" description="Un rappel par période de 90 jours d’inactivité. Les adresses ci-dessous sont réservées à l’administrateur plateforme."><div className="admin-toolbar"><SearchField label="Rechercher un destinataire" placeholder="Nom, compte ou adresse e-mail…" value={search} onChange={setSearch} /><SelectInput label="Retour sur NXT5" value={filter} onChange={setFilter}><option value="all">Tous les destinataires</option><option value="returned">Revenus depuis l’envoi</option><option value="waiting">Pas de retour enregistré</option></SelectInput></div>
+  return <div className="admin-stack"><div className="admin-metrics"><Metric label="Envois · 30 j" value={data.deliveries30d} note="Envois enregistrés sur 30 jours" /><Metric label="Comptes destinataires" value={data.recipients} note="Comptes distincts dans le journal" /><Metric label="Éligibles à l’envoi" value={data.awaitingDelivery} note="90 j d’inactivité, e-mail vérifié, rappel activé" /><Metric label="Envois à vérifier" value={data.sending} note="Envoi engagé, sans confirmation enregistrée" /><Metric label="Envois conservés" value={data.deliveries} note="Journal conservé pendant 12 mois" /></div><Section title="À qui les rappels ont-ils été envoyés ?" description="Un rappel par période de 90 jours d’inactivité. Les adresses ci-dessous sont réservées à l’administrateur plateforme."><div className="admin-toolbar"><SearchField label="Rechercher un destinataire" placeholder="Nom, compte ou adresse e-mail…" value={search} onChange={setSearch} /><SelectInput label="Retour sur NXT5" value={filter} onChange={setFilter}><option value="all">Tous les destinataires</option><option value="returned">Revenus depuis l’envoi</option><option value="waiting">Pas de retour enregistré</option></SelectInput></div>
       <p className="admin-caption">{n(recent.length)} derniers envois disponibles sur {n(data.deliveries)} conservés. La recherche porte sur cette liste. Un envoi enregistré ne confirme ni la livraison dans la boîte mail, ni sa lecture.</p>
       {rows.length ? <div className="admin-table-scroll nxt5-responsive-scroll" role="region" aria-label="Journal des destinataires" tabIndex={0}><table className="admin-table"><thead><tr>{["Destinataire", "Inactif depuis", "Envoi enregistré", "Retour sur NXT5"].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>{rows.slice((safePage - 1) * 10, safePage * 10).map((row) => <tr key={row.id}><td><strong>{row.name || row.accountName || "Compte"}</strong><span className="admin-email">{row.recipientEmail}</span></td><td>{date(row.inactiveSinceAt)}</td><td>{date(row.sentAt, true)}</td><td><Badge tone={row.returnedAfterReminder ? "green" : "slate"}>{row.returnedAfterReminder ? "Revenu depuis l’envoi" : "Pas de retour enregistré"}</Badge></td></tr>)}</tbody></table></div> : <Message>{recent.length ? "Aucun destinataire ne correspond à ces critères." : "Aucun rappel n’a encore été enregistré."}{recent.length > 0 && <Button variant="ghost" onClick={() => { setSearch(""); setFilter("all"); }}>Réinitialiser les filtres</Button>}</Message>}
       <Pagination page={safePage} setPage={setPage} total={rows.length} label="rappels" /><p className="admin-caption">Le retour est déduit d’une activité du compte après l’envoi ; il ne prouve pas que le rappel a provoqué ce retour.</p>

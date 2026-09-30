@@ -1,3 +1,5 @@
+import { TEAM_STAFF_ROLES } from './_lib/teams';
+import { canonicalChampion } from '../../shared/champions.js';
 import { assertSchemaReady } from './_lib/migrations';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
@@ -6,7 +8,6 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
 const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
-const MANAGE_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
 
 async function ensureChampionPoolSchema() {
   await assertSchemaReady();
@@ -24,35 +25,6 @@ function championKey(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function canonicalChampion(value) {
-  const raw = cleanText(value, 80);
-  const aliases = {
-    aurelionsol: 'AurelionSol',
-    belveth: 'Belveth',
-    chogath: 'Chogath',
-    drmundo: 'DrMundo',
-    jarvaniv: 'JarvanIV',
-    kaisa: 'Kaisa',
-    khazix: 'Khazix',
-    kogmaw: 'KogMaw',
-    ksante: 'KSante',
-    leblanc: 'Leblanc',
-    leesin: 'LeeSin',
-    masteryi: 'MasterYi',
-    missfortune: 'MissFortune',
-    monkeyking: 'MonkeyKing',
-    nunuwillump: 'Nunu',
-    reksai: 'RekSai',
-    renataglasc: 'Renata',
-    tahmkench: 'TahmKench',
-    twistedfate: 'TwistedFate',
-    velkoz: 'Velkoz',
-    viego: 'Viego',
-    wukong: 'MonkeyKing',
-    xinzhao: 'XinZhao',
-  };
-  return aliases[championKey(raw)] || raw.replace(/[^A-Za-z0-9]/g, '');
-}
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
@@ -65,7 +37,7 @@ export default async function handler(request: Request, context: Context): Promi
     const action = cleanText(body.action || 'upsert', 20);
     const teamId = cleanText(body.teamId, 80);
     const playerId = cleanText(body.playerId, 80);
-    const champion = canonicalChampion(body.champion);
+    const champion = canonicalChampion(cleanText(body.champion, 80));
     const status = cleanText(body.status || 'work', 20);
     const notes = cleanText(body.notes, 240) || null;
     const poolId = cleanText(body.poolId, 80);
@@ -80,7 +52,8 @@ export default async function handler(request: Request, context: Context): Promi
         and (teams.owner_id = ${user.id} or team_members.user_id = ${user.id})
       limit 1
     `;
-    const canManageTeamPool = member[0]?.owner_id === user.id || MANAGE_ROLES.includes(String(member[0]?.role || '').toLowerCase());
+    if (!member[0]) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
+    const canManageTeamPool = member[0]?.owner_id === user.id || TEAM_STAFF_ROLES.includes(String(member[0]?.role || '').toLowerCase());
 
     if (action === 'delete') {
       if (!poolId) throw Object.assign(new Error('Pick requis.'), { status: 400 });

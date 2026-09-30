@@ -1,3 +1,5 @@
+import { csAtMinute } from '../utils/match-timeline.js';
+import { MILESTONE_TOLERANCE_MS } from '../../shared/timeline-milestones.js';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildNxt5TimelineSummary } from '../../netlify/functions/_lib/analytics';
@@ -44,5 +46,36 @@ describe('CS milestones reflect an observed game minute', () => {
     } };
     expect(buildNxt5TimelineSummary(match).csMilestones['1']).toEqual({ cs10: 75, cs20: null });
     expect(match.nxt5.timelineSummary.csMilestones['1'].cs20).toBe(114);
+  });
+});
+
+describe('shared website and desktop milestone boundaries', () => {
+  it.each([10, 20])('accepts only the five-second window at minute %s', minute => {
+    const match = fixture(1800);
+    const frame = match.timeline.info.frames[0];
+    match.timeline.info.frames = [frame];
+    const row = { participantId: 1, match: { raw: match } };
+    for (const offset of [-1, 0, MILESTONE_TOLERANCE_MS, MILESTONE_TOLERANCE_MS + 1, 60000]) {
+      frame.timestamp = minute * 60000 + offset;
+      const expected = offset >= 0 && offset <= MILESTONE_TOLERANCE_MS ? 75 : null;
+      expect(csAtMinute(row, minute)).toBe(expected);
+      expect(importerCsAt(match.timeline, 1, minute, 1800)).toBe(expected);
+    }
+  });
+
+  it.each([undefined, null, NaN, Infinity, '0', false])('keeps a missing or invalid CS component unavailable: %s', value => {
+    const match = fixture(1800);
+    const row = { participantId: 1, match: { raw: match } };
+    for (const key of ['minionsKilled', 'jungleMinionsKilled']) {
+      match.timeline.info.frames[0].participantFrames['1'] = { minionsKilled: 0, jungleMinionsKilled: 0, [key]: value } as any;
+      expect(csAtMinute(row, 10)).toBeNull();
+    }
+  });
+
+  it('preserves measured zero and cached null', () => {
+    const match = fixture(1800);
+    match.timeline.info.frames[0].participantFrames['1'] = { minionsKilled: 0, jungleMinionsKilled: 0 };
+    expect(csAtMinute({ participantId: 1, match: { raw: match } }, 10)).toBe(0);
+    expect(csAtMinute({ participantId: 1, match: { raw: { nxt5: { timelineSummary: { csMilestones: { '1': { cs10: null } } } } } } }, 10)).toBeNull();
   });
 });

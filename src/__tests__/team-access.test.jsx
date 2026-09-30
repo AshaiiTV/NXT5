@@ -2,7 +2,8 @@ import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
-import { Teams } from "../pages/workspace/Teams.jsx";
+import { useTeamCreation } from "../hooks/useTeamCreation.js";
+import { Teams as TeamsView } from "../pages/workspace/Teams.jsx";
 import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
 import { Button, TextInput } from "../components/ui/Core.jsx";
 
@@ -12,6 +13,11 @@ beforeEach(() => {
   vi.stubGlobal("window", { location: new URL("https://nxt5.test/equipes"), history: { pushState: (_state, _title, path) => { window.location = new URL(path, window.location); } }, addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(), scrollTo: vi.fn(), localStorage: { getItem: () => "full" } });
 });
 afterEach(() => { cleanups.splice(0).forEach((fn) => fn()); vi.clearAllMocks(); vi.unstubAllGlobals(); });
+
+function Teams(props) {
+  const teamCreation = useTeamCreation(props);
+  return <TeamsView {...props} teamCreation={teamCreation} />;
+}
 
 async function render(element) {
   let renderer;

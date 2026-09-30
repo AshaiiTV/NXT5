@@ -19,11 +19,19 @@ function snapshotFromRow(row, status = "idle") {
   return { slots: availabilitySlots(row?.slots), events: availabilityEvents(row?.slots), notes: row?.notes || "", status, saving: false };
 }
 
-// Owned by MainApp, so a route change cannot discard a draft or an active save.
+// Owned by MainApp; pending writes are drained even when it unmounts.
 // Each team/player/week has its own serial queue and acknowledged server row.
 export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
   const entries = new Map();
   let active = true;
+  let guarding = false;
+  const beforeUnload = (event) => { event.preventDefault(); event.returnValue = ""; };
+  function updateGuard() {
+    const pending = [...entries.values()].some((entry) => active ? entry.pending() : entry.getSnapshot().saving);
+    if (typeof window === "undefined" || pending === guarding) return;
+    guarding = pending;
+    window[pending ? "addEventListener" : "removeEventListener"]("beforeunload", beforeUnload);
+  }
 
   function forContext(context, initialRow) {
     const key = availabilityKey(context);
@@ -35,8 +43,9 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
     let savedRevision = 0;
     let timer = null;
     let inFlight = null;
+    let lastError = null;
     const listeners = new Set();
-    const emit = () => listeners.forEach((listener) => listener());
+    const emit = () => { updateGuard(); if (active) listeners.forEach((listener) => listener()); };
     const clearTimer = () => { clearTimeout(timer); timer = null; };
 
     function schedule() {
@@ -56,7 +65,6 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
 
     function flush() {
       clearTimer();
-      if (!active) return Promise.resolve();
       if (inFlight) return inFlight;
       if (revision === savedRevision) return Promise.resolve();
       const savingRevision = revision;
@@ -67,12 +75,14 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         if (!row || availabilityKey(row) !== key) throw new Error("La confirmation du planning est invalide. Réessaie.");
         if (!confirmed || rowTime(row) >= rowTime(confirmed)) confirmed = row;
         savedRevision = savingRevision;
+        lastError = null;
         // A response acknowledges its snapshot, never edits made while it ran.
         snapshot = revision === savingRevision
           ? { ...snapshotFromRow(confirmed, "saved"), saving: true }
           : { ...snapshot, status: "dirty" };
         if (active) onSaved?.(confirmed);
       }).catch((error) => {
+        lastError = error;
         snapshot = { ...snapshot, status: "error" };
         if (active) onError?.(error);
       }).finally(() => {
@@ -80,13 +90,15 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         snapshot = { ...snapshot, saving: false };
         emit();
         // Failures wait for an explicit retry or another edit, avoiding a loop.
-        schedule();
+        if (!active && snapshot.status === "dirty") void flush();
+        else schedule();
       });
       return inFlight;
     }
 
     const entry = {
       getSnapshot: () => snapshot,
+      pending: () => revision !== savedRevision || Boolean(inFlight),
       subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
       setSlots: (value) => update("slots", value),
       setEvents: (value) => update("events", value),
@@ -100,6 +112,14 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         emit();
       },
       confirmed: () => confirmed,
+      authorizationLost: () => [401, 403].includes(lastError?.status),
+      discard() {
+        clearTimer();
+        savedRevision = revision;
+        snapshot = snapshotFromRow(confirmed);
+        lastError = null;
+        emit();
+      },
       clearTimer,
       schedule,
     };
@@ -117,7 +137,25 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         return row && playerIds.has(String(row.player_id)) ? upsertAvailability(merged, row) : merged;
       }, rows);
     },
-    resume() { active = true; entries.forEach((entry) => entry.schedule()); },
-    pause() { active = false; entries.forEach((entry) => entry.clearTimer()); },
+    async flush() {
+      // Drain edits queued behind an in-flight request, too. Errors remain retryable.
+      let pending;
+      do {
+        pending = [...entries.values()].filter(entry => entry.pending());
+        await Promise.all(pending.map(entry => entry.flush()));
+        if ([...entries.values()].some(entry => entry.getSnapshot().status === "error")) return false;
+      } while ([...entries.values()].some(entry => entry.pending()));
+      return true;
+    },
+    async prepareLogout() {
+      if (await this.flush()) return true;
+      const unsaved = [...entries.values()].filter(entry => entry.pending());
+      if (unsaved.some(entry => !entry.authorizationLost()) &&
+          !window.confirm("Le planning n’a pas pu être enregistré. Te déconnecter et abandonner les modifications du planning ?")) return false;
+      unsaved.forEach(entry => entry.discard());
+      return true;
+    },
+    resume() { active = true; updateGuard(); entries.forEach((entry) => entry.schedule()); },
+    pause() { active = false; entries.forEach((entry) => { void entry.flush(); }); updateGuard(); },
   };
 }

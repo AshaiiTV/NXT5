@@ -59,6 +59,12 @@ export default function AdministrationPage({ route, navigate, user, onLogout }) 
   }, [page?.id]);
   useEffect(() => { if (pending) confirmation.current?.focus(); }, [pending]);
   useEffect(() => { if (!guard.dirty) setPending(null); }, [guard.dirty]);
+  useEffect(() => {
+    if (!guard.dirty && !guard.disabled) return;
+    const beforeUnload = (event) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [guard.dirty, guard.disabled]);
   if (!page) return null;
 
   function go(path) {

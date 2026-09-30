@@ -383,3 +383,184 @@ describe('controlled database migrations', { timeout: 30_000 }, () => {
     expect(await applyMigrations(client, migrations)).toEqual([]);
   });
 });
+
+describe('B2/B5 report source upgrade', { timeout: 30_000 }, () => {
+  it('upgrades the immutable historical baseline without a checksum mismatch and preserves uncertain reports', async () => {
+    const { db, client, migrations } = await fixture();
+    const prior = migrations.slice(0, migrations.findIndex(m => m.key === 'report-source-20260929-v1'));
+    await applyMigrations(client, prior);
+    expect((await db.query("select column_name from information_schema.columns where table_name='reports' and column_name='source'")).rows).toEqual([]);
+    const userId = '00000000-0000-4000-8000-000000000001';
+    await db.query("insert into users(id,account_name,name,password_hash) values($1,'report-owner','Owner','unused')", [userId]);
+    const team: any = (await db.query("insert into teams(owner_id,name,tag) values($1,'Audit','AUD') returning id", [userId])).rows[0];
+    await db.query("insert into reports(team_id,title,content) values($1,'Review — Audit — EUW1_1','Notes humaines à conserver')", [team.id]);
+    expect(await applyMigrations(client, migrations)).toEqual(['report-source-20260929-v1', 'report-source-v3-20260929-v1', 'canonical-champions-20260929-v1', 'timeline-cs-rule-20260929-v2']);
+    expect((await db.query('select source,content from reports')).rows).toEqual([{ source: 'manual', content: 'Notes humaines à conserver' }]);
+    expect(await applyMigrations(client, migrations)).toEqual([]);
+    await expect(db.query("insert into reports(team_id,title,content,source) values($1,'Title','Text','invalid')", [team.id])).rejects.toMatchObject({ code: '23514' });
+    expect((await db.query("select indexdef from pg_indexes where indexname='idx_reports_auto_match'")).rows).toHaveLength(1);
+  });
+});
+
+it('N3-01 canonicalises historical champions and notebook keys without changing raw, with collision preservation and idempotence', async () => {
+  const { db, client, migrations } = await fixture();
+  const index = migrations.findIndex(m => m.key === 'canonical-champions-20260929-v1');
+  await applyMigrations(client, migrations.slice(0, index));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('canon','Canon','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'Canonical','CAN') returning id", [user])).rows[0].id;
+  const player = (await db.query("insert into players(team_id,name,role) values($1,'Player','MID') returning id", [team])).rows[0].id;
+  const raw = { info: { participants: [{ championName: 'Wukong' }] } };
+  const match = (await db.query("insert into matches(team_id,game_id,raw) values($1,'canon',$2::jsonb) returning id", [team, JSON.stringify(raw)])).rows[0].id;
+  await db.query("insert into match_participants(match_id,player_id,team_key,champion,raw) values($1,$2,'ALLY','Wukong',$3::jsonb),($1,null,'ENEMY','FiddleSticks',$3::jsonb)", [match, player, JSON.stringify(raw)]);
+  const pool = (await db.query(`insert into champion_pool(team_id,player_id,player_name,champion,source,status) values
+    ($1,$2,'Player','Wukong','manual','lock'),($1,$2,'Player','MonkeyKing','riot','work') returning id,champion`, [team, player])).rows;
+  await db.query("insert into composition_types(team_id,title,slots) values($1,'Keep slot',$2::jsonb)", [team, JSON.stringify({ MID: { poolId: pool.find(p => p.champion === 'MonkeyKing')!.id } })]);
+  for (const [champion, opponent, note] of [['wukong','fiddlesticks','First plan'],['monkeyking','fiddlesticks','Second plan']]) {
+    await db.query("insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,plan) values($1,$2,$3,$4,'MID',$5::jsonb)", [team, player, champion, opponent, JSON.stringify({ lanePlan: note, vigilance: '', toKeep: '' })]);
+  }
+  await applyMigrations(client, migrations);
+  expect((await db.query('select champion from match_participants order by team_key')).rows).toEqual([{ champion: 'MonkeyKing' }, { champion: 'Fiddlesticks' }]);
+  expect((await db.query('select raw from matches')).rows[0].raw).toEqual(raw);
+  expect((await db.query('select raw from match_participants')).rows.every(r => JSON.stringify(r.raw) === JSON.stringify(raw))).toBe(true);
+  expect((await db.query('select champion,source,status from champion_pool')).rows).toEqual([{ champion: 'MonkeyKing', source: 'manual', status: 'lock' }]);
+  expect((await db.query('select slots from composition_types')).rows[0].slots.MID.poolId).toBe(pool.find(p => p.champion === 'Wukong')!.id);
+  const notebooks = (await db.query('select * from player_matchup_notebooks')).rows;
+  expect(notebooks).toHaveLength(1);
+  expect(notebooks[0].champion).toBe('monkeyking');
+  expect(notebooks[0].plan.lanePlan).toContain('First plan');
+  expect(notebooks[0].plan.lanePlan).toContain('Second plan');
+  expect((await db.query('select * from player_matchup_canonical_backups')).rows).toHaveLength(2);
+  await client.query('begin');
+  await migrations[index].run!(client);
+  await client.query('commit');
+  expect((await db.query('select * from player_matchup_notebooks')).rows).toEqual(notebooks);
+  expect(await applyMigrations(client, migrations)).toEqual([]);
+  await db.query('delete from player_matchup_notebooks');
+  expect((await db.query('select * from player_matchup_canonical_backups')).rows).toHaveLength(0);
+}, 30_000);
+
+it('T3-03 backfills only summaries with retained frames and is idempotent', async () => {
+  const { db, client, migrations } = await fixture();
+  await applyMigrations(client, migrations.slice(0, -1));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('cs','CS','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'CS','CS') returning id", [user])).rows[0].id;
+  const base = { info: { gameDuration: 1800, participants: [{ participantId: 1, championName: 'Wukong' }] }, nxt5: { timelineSummary: { csMilestones: { '1': { cs10: 80 } }, wards: [{ x: 1 }] } } };
+  const framed = { ...base, timeline: { info: { frames: [{ timestamp: 660000, participantFrames: { '1': { minionsKilled: 70, jungleMinionsKilled: 10 } } }] } } };
+  await db.query("insert into matches(team_id,game_id,raw) values($1,'legacy',$2::jsonb),($1,'frames',$3::jsonb)", [team, JSON.stringify(base), JSON.stringify(framed)]);
+  await applyMigrations(client, migrations);
+  const rows = (await db.query('select game_id,raw from matches order by game_id')).rows;
+  expect(rows[0].raw.nxt5.timelineSummary).toMatchObject({ csRule: 2, csMilestones: { '1': { cs10: null, cs20: null } }, wards: [{ x: 1 }] });
+  expect(rows[0].raw.timeline).toEqual(framed.timeline);
+  expect(rows[1].raw).toEqual(base);
+  await client.query('begin');
+  await migrations.at(-1)!.run!(client);
+  await client.query('commit');
+  expect((await db.query('select game_id,raw from matches order by game_id')).rows).toEqual(rows);
+}, 30_000);
+
+
+it('R6-01 migrates emoji boundaries into valid JSONB and editable plans with complete backups', async () => {
+  const { validateMatchupRequest } = await import('../../netlify/functions/_lib/player-matchups');
+  const { db, client, migrations } = await fixture();
+  const index = migrations.findIndex(m => m.key === 'canonical-champions-20260929-v1');
+  await applyMigrations(client, migrations.slice(0, index));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('emoji','Emoji','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'Emoji','EMO') returning id", [user])).rows[0].id;
+  const player = (await db.query("insert into players(team_id,name,role) values($1,'Player','MID') returning id", [team])).rows[0].id;
+  // PostgreSQL accepts these legacy plans; its length() counts Unicode code points.
+  const original = { lanePlan: 'a'.repeat(3999) + '😀', vigilance: 'a'.repeat(3998) + '😀', toKeep: '😀'.repeat(2001) };
+  const older = { lanePlan: 'Older lane', vigilance: 'Older vigilance', toKeep: 'Older keep' };
+  for (const [champion, plan, date] of [['wukong', original, '2026-09-29'], ['monkeyking', older, '2026-09-28']]) {
+    await db.query("insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,plan,updated_at) values($1,$2,$3,'ahri','MID',$4::jsonb,$5)",
+      [team, player, champion, JSON.stringify(plan), date]);
+  }
+  await applyMigrations(client, migrations);
+  const notebooks = (await db.query('select * from player_matchup_notebooks')).rows;
+  expect(notebooks).toHaveLength(1);
+  const notebook = notebooks[0];
+  expect(notebook.plan).toEqual({ lanePlan: 'a'.repeat(3999), vigilance: 'a'.repeat(3998) + '😀', toKeep: '😀'.repeat(2000) });
+  expect(() => validateMatchupRequest({ action: 'save', teamId: team, playerId: player,
+    champion: notebook.champion, opponentChampion: notebook.opponent_champion, role: notebook.role,
+    expectedRevision: notebook.revision, plan: notebook.plan, experiments: notebook.experiments })).not.toThrow();
+  const backups = (await db.query('select original from player_matchup_canonical_backups order by original->>\'champion\'')).rows;
+  expect(backups.map(b => b.original.plan)).toEqual([older, original]);
+  await client.query('begin');
+  await migrations[index].run!(client);
+  await client.query('commit');
+  expect((await db.query('select * from player_matchup_notebooks')).rows).toEqual(notebooks);
+  expect(await applyMigrations(client, migrations)).toEqual([]);
+}, 30_000);
+
+it('T5-02 keeps merged notebooks saveable at 200 distinct matches and backs up all 400 references', async () => {
+  const { validateMatchupRequest } = await import('../../netlify/functions/_lib/player-matchups');
+  const { db, client, migrations } = await fixture();
+  const index = migrations.findIndex(m => m.key === 'canonical-champions-20260929-v1');
+  await applyMigrations(client, migrations.slice(0, index));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('limits','Limits','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'Limits','LIM') returning id", [user])).rows[0].id;
+  const player = (await db.query("insert into players(team_id,name,role) values($1,'Player','MID') returning id", [team])).rows[0].id;
+  const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const originals: any[] = [];
+  for (let notebook = 0; notebook < 2; notebook++) {
+    const experiments = Array.from({ length: 4 }, (_, i) => ({
+      id: uuid(1000 + notebook * 4 + i), title: `Essai ${i}`, plan: '', observation: '', conclusion: '', status: 'planned',
+      matchIds: Array.from({ length: 50 }, (_, j) => uuid(notebook * 200 + i * 50 + j)),
+    }));
+    originals.push((await db.query(`insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,experiments)
+      values($1,$2,$3,'ahri','MID',$4::jsonb) returning *`, [team, player, notebook ? 'monkeyking' : 'wukong', JSON.stringify(experiments)])).rows[0]);
+  }
+  await applyMigrations(client, migrations);
+  const notebook = (await db.query('select * from player_matchup_notebooks')).rows[0];
+  expect(notebook.experiments).toHaveLength(4);
+  expect(new Set(notebook.experiments.flatMap((exp: any) => exp.matchIds)).size).toBe(200);
+  expect(() => validateMatchupRequest({ action: 'save', teamId: team, playerId: player,
+    champion: notebook.champion, opponentChampion: notebook.opponent_champion, role: notebook.role,
+    expectedRevision: notebook.revision, plan: notebook.plan, experiments: notebook.experiments })).not.toThrow();
+  const backups = (await db.query('select original from player_matchup_canonical_backups')).rows;
+  expect(backups).toHaveLength(2);
+  for (const original of originals) expect(backups.find((b: any) => b.original.id === original.id)!.original.experiments).toEqual(original.experiments);
+  expect(new Set(backups.flatMap((b: any) => b.original.experiments.flatMap((exp: any) => exp.matchIds))).size).toBe(400);
+  await client.query('begin');
+  await migrations[index].run!(client);
+  await client.query('commit');
+  expect((await db.query('select * from player_matchup_notebooks')).rows).toEqual([notebook]);
+}, 30_000);
+
+
+it('R8-01 preserves experiment order and gives newer notebooks priority at both limits', async () => {
+  const { validateMatchupRequest } = await import('../../netlify/functions/_lib/player-matchups');
+  const { db, client, migrations } = await fixture();
+  const index = migrations.findIndex(m => m.key === 'canonical-champions-20260929-v1');
+  await applyMigrations(client, migrations.slice(0, index));
+  const user = (await db.query("insert into users(account_name,name,password_hash) values('order','Order','hash') returning id")).rows[0].id;
+  const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'Order','ORD') returning id", [user])).rows[0].id;
+  const player = (await db.query("insert into players(team_id,name,role) values($1,'Player','MID') returning id", [team])).rows[0].id;
+  const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  const exp = (n: number, matches = 0) => ({ id: uuid(n), title: `Essai ${n}`, plan: '', observation: '', conclusion: '', status: 'planned', matchIds: Array.from({ length: matches }, (_, j) => uuid(1000 + n * 50 + j)) });
+  const cases = [
+    { role: 'TOP', newer: [exp(1), exp(2), exp(3)], older: [] },
+    { role: 'JGL', newer: [exp(1), exp(2), exp(3)], older: [exp(4), { ...exp(2), title: 'Ancien doublon' }, exp(5)] },
+    { role: 'MID', newer: Array.from({ length: 20 }, (_, i) => exp(i + 1)), older: [exp(21), { ...exp(2), title: 'Ancien doublon' }] },
+    { role: 'ADC', newer: [exp(1, 50), exp(2, 50), exp(3, 50), exp(4, 50)], older: [exp(5, 50)] },
+  ];
+  for (const item of cases) {
+    await db.query("insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,experiments,updated_at) values($1,$2,'wukong','ahri',$3,$4::jsonb,'2026-09-29')", [team, player, item.role, JSON.stringify(item.newer)]);
+    if (item.older.length) await db.query("insert into player_matchup_notebooks(team_id,player_id,champion,opponent_champion,role,experiments,updated_at) values($1,$2,'monkeyking','ahri',$3,$4::jsonb,'2026-09-28')", [team, player, item.role, JSON.stringify(item.older)]);
+  }
+  const originals = (await db.query('select * from player_matchup_notebooks order by id')).rows;
+  await applyMigrations(client, migrations);
+  const rows = (await db.query('select * from player_matchup_notebooks order by id')).rows;
+  for (const item of cases) {
+    const row = rows.find((row: any) => row.role === item.role) as any;
+    expect(row.experiments).toEqual(item.role === 'JGL' ? [...item.newer, exp(4), exp(5)] : item.newer);
+    expect(() => validateMatchupRequest({ action: 'save', teamId: team, playerId: player, champion: row.champion, opponentChampion: row.opponent_champion, role: row.role, expectedRevision: row.revision, plan: row.plan, experiments: row.experiments })).not.toThrow();
+  }
+  const backups = (await db.query('select original from player_matchup_canonical_backups')).rows as any[];
+  expect(backups).toHaveLength(originals.length);
+  for (const original of originals as any[]) expect(backups.find(b => b.original.id === original.id).original.experiments).toEqual(original.experiments);
+  await client.query('begin');
+  await migrations[index].run!(client);
+  await client.query('commit');
+  expect((await db.query('select * from player_matchup_notebooks order by id')).rows).toEqual(rows);
+  expect(await applyMigrations(client, migrations)).toEqual([]);
+}, 30_000);

@@ -14,7 +14,7 @@ export function PlanningAvailabilityGrid({ rows, weekDays, canEditSelected, canE
   const interactive = canEditSelected || canEditEvents;
   const cellLabel = (cell) => `${weekDays[cell.dayIndex]?.[1]} ${cell.time} · ${cell.title}${canEditSelected ? (cell.activeSlot ? " · Disponible" : " · Indisponible") : ""}`;
   function selectCell(event, cell) {
-    if (editingEvents || !canEditSelected) onEvent(event, cell.day, cell.time);
+    if (editingEvents || !canEditSelected) onEvent(event, cell.day, cell.time, event.currentTarget);
     else onToggle(cell.day, cell.time);
   }
   function gridKeys(event) {
@@ -29,7 +29,7 @@ export function PlanningAvailabilityGrid({ rows, weekDays, canEditSelected, canE
     else if (event.key === "Home") { nextColumn = row === 0 || !canEditSelected ? 1 : 0; if (event.ctrlKey) nextRow = canEditSelected ? 0 : 1; }
     else if (event.key === "End") { nextColumn = 7; if (event.ctrlKey) nextRow = rows.length; }
     else if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
-      if (row > 0 && column > 0) onEvent(event, weekDays[column - 1][0], rows[row - 1].time);
+      if (row > 0 && column > 0) onEvent(event, weekDays[column - 1][0], rows[row - 1].time, button);
       return;
     } else return;
     event.preventDefault();
@@ -51,7 +51,7 @@ export function PlanningAvailabilityGrid({ rows, weekDays, canEditSelected, canE
     else if (event.key === "ArrowUp") next--;
     else if (event.key === "Home") next = 0;
     else if (event.key === "End") next = rows.length - 1;
-    else if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) { onEvent(event, weekDays[dayIndex][0], rows[hour].time); return; }
+    else if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) { onEvent(event, weekDays[dayIndex][0], rows[hour].time, event.currentTarget); return; }
     else return;
     event.preventDefault();
     next = Math.max(0, Math.min(rows.length - 1, next));
@@ -69,7 +69,7 @@ export function PlanningAvailabilityGrid({ rows, weekDays, canEditSelected, canE
       <p className="text-sm text-slate-300">Flèches haut et bas pour parcourir les heures. Entrée pour modifier le créneau.</p>
       <div ref={daily} role="group" aria-label={`Créneaux du ${weekDays[dayIndex][1]}`} className="nxt5-planning-daily-slots">{rows.map((row, hour) => {
         const cell = row.cells[dayIndex];
-        return <button type="button" key={row.time} data-hour={hour} disabled={!interactive} tabIndex={hour === activeHour ? 0 : -1} onFocus={() => setActiveHour(hour)} onKeyDown={event => dailyKeys(event, hour)} onClick={event => selectCell(event, cell)} onContextMenu={event => onEvent(event, cell.day, cell.time)} aria-label={cellLabel(cell)} aria-pressed={canEditSelected && !editingEvents ? cell.activeSlot : undefined} className={cx("nxt5-planning-daily-slot", frameTone(cell.slotEvent))}>
+        return <button type="button" key={row.time} data-hour={hour} disabled={!interactive} tabIndex={hour === activeHour ? 0 : -1} onFocus={() => setActiveHour(hour)} onKeyDown={event => dailyKeys(event, hour)} onClick={event => selectCell(event, cell)} onContextMenu={event => onEvent(event, cell.day, cell.time, event.currentTarget)} aria-label={cellLabel(cell)} aria-pressed={canEditSelected && !editingEvents ? cell.activeSlot : undefined} className={cx("nxt5-planning-daily-slot", frameTone(cell.slotEvent))}>
           <strong>{row.time}</strong><span>{cell.slotEventLabel || (cell.activeSlot ? "Disponible" : "Non renseigné")}</span>{icons(cell)}
         </button>;
       })}</div>
@@ -82,7 +82,7 @@ export function PlanningAvailabilityGrid({ rows, weekDays, canEditSelected, canE
           {weekDays.map(([day, label, date], index) => <button type="button" key={day} {...gridPosition(0,index + 1)} disabled={!canEditSelected} onClick={() => onDay(day, (draftSlots[day] || []).length ? [] : rows.map(row => row.time))} title={(draftSlots[day] || []).length ? "Vider la journée" : "Remplir la journée"} className="nxt5-planning-day-header px-1.5 py-1 text-center text-slate-300"><span className="block">{label}</span>{date.toLocaleDateString("fr-FR", {day:"2-digit",month:"2-digit"})}</button>)}
           {rows.map((row, rowIndex) => <React.Fragment key={row.time}>
             <button type="button" {...gridPosition(rowIndex + 1,0)} disabled={!canEditSelected} onClick={() => onTime(row.time)} title="Basculer cette heure sur toute la semaine" className="nxt5-planning-time text-white">{row.time}</button>
-            {row.cells.map((cell, column) => <button type="button" key={cell.key} {...gridPosition(rowIndex + 1,column + 1)} disabled={!interactive} onClick={event => selectCell(event, cell)} onContextMenu={event => onEvent(event, cell.day, cell.time)} aria-label={cellLabel(cell)} aria-pressed={canEditSelected && !editingEvents ? cell.activeSlot : undefined} className={cx("nxt5-planning-cell relative min-h-14 overflow-hidden px-1 py-1 text-left", frameTone(cell.slotEvent), cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base")}>
+            {row.cells.map((cell, column) => <button type="button" key={cell.key} {...gridPosition(rowIndex + 1,column + 1)} disabled={!interactive} onClick={event => selectCell(event, cell)} onContextMenu={event => onEvent(event, cell.day, cell.time, event.currentTarget)} aria-label={cellLabel(cell)} aria-pressed={canEditSelected && !editingEvents ? cell.activeSlot : undefined} className={cx("nxt5-planning-cell relative min-h-14 overflow-hidden px-1 py-1 text-left", frameTone(cell.slotEvent), cell.dayIndex % 2 ? "nxt5-planning-day-alt" : "nxt5-planning-day-base")}>
               {cell.slotEvent && <span className="nxt5-planning-event-label">{cell.slotEventLabel}</span>}{icons(cell)}
             </button>)}
           </React.Fragment>)}

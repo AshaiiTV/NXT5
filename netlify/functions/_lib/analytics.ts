@@ -1,3 +1,5 @@
+import { csFromTimelineFrames } from '../../../shared/timeline-milestones.js';
+import { canonicalChampion } from '../../../shared/champions.js';
 import { logFailure } from './safe-log';
 import { assertSchemaReady } from './migrations';
 import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
@@ -99,12 +101,8 @@ export function buildNxt5TimelineSummary(match) {
   for (const participant of participants) {
     const participantId = Number(participant.participantId || 0);
     const csAt = (minute) => {
-      const target = Number(minute || 0) * 60 * 1000;
       if (duration < minute * 60) return null;
-      const frame = frames.find((item) => Number(item.timestamp || 0) >= target);
-      const participantFrame = frame?.participantFrames?.[String(participantId)] || frame?.participantFrames?.[participantId];
-      if (!participantFrame) return null;
-      return Number(participantFrame.minionsKilled || 0) + Number(participantFrame.jungleMinionsKilled || 0);
+      return csFromTimelineFrames(frames, participantId, minute);
     };
     csMilestones[String(participantId)] = {
       participantId,
@@ -150,7 +148,7 @@ export function buildNxt5TimelineSummary(match) {
     })
     .filter(Boolean));
 
-  return { available: true, frameCount: frames.length, csMilestones, wards, wardCount: wards.length };
+  return { available: true, csRule: 2, frameCount: frames.length, csMilestones, wards, wardCount: wards.length };
 }
 
 function buildNxt5TimelineEvents(match) {
@@ -255,7 +253,7 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
         team_key: p.teamId === allyTeamId ? 'ALLY' : 'ENEMY',
         summoner_name: p.summonerName || p.riotIdGameName || 'Unknown',
         riot_id: rid,
-        champion: p.championName,
+        champion: canonicalChampion(p.championName),
         role,
         kills,
         deaths,
@@ -472,6 +470,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
 
   let savedMatch;
   let firstImport = false;
+  let inserted = false;
   try {
     const results = await sql.transaction(tx => [
       // Same ordering is used by category deletion; imports of one team cannot
@@ -501,7 +500,8 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
           impact_score = excluded.impact_score, primary_focus = excluded.primary_focus, main_issue = excluded.main_issue,
           created_by = coalesce(matches.created_by, excluded.created_by), raw = excluded.raw,
           category_id = case when ${replaceCategories} then excluded.category_id else matches.category_id end,
-          category_ids = case when ${replaceCategories} then excluded.category_ids else matches.category_ids end`,
+          category_ids = case when ${replaceCategories} then excluded.category_ids else matches.category_ids end
+        returning (xmax = 0) as inserted`,
       tx`insert into match_raw_archives (team_id, match_id, game_id, source, payload)
          select team_id, id, game_id, ${(match as any)?.metadata?.source || 'import'}, raw
          from matches where team_id = ${team.id} and game_id = ${gameId}
@@ -545,6 +545,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       tx`select * from matches where team_id = ${team.id} and game_id = ${gameId}`
     ]);
     savedMatch = results[results.length - 1][0];
+    inserted = results[4]?.[0]?.inserted === true;
     firstImport = results[1]?.[0]?.first_import === true;
   } catch (error: any) {
     if (error?.code === '22012' || error?.code === '23503') {
@@ -569,9 +570,15 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
 
   const report = reportForMatch({ team, summary, participants });
   await runImportSideEffect('auto report creation', () => sql`
-      insert into reports (team_id, match_id, match_ids, created_by, title, content)
-      values (${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report})
+      insert into reports (team_id, match_id, match_ids, created_by, title, content, source)
+      select ${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report}, 'auto'
+      where not exists (
+        select 1 from reports where team_id = ${team.id}
+          and title = ${`Review — ${team.name} — ${gameId}`}
+          and match_ids = ${JSON.stringify([savedMatch.id])}::jsonb
+      )
+      on conflict do nothing
     `);
 
-  return { ...savedMatch, warnings, firstImport };
+  return { ...savedMatch, warnings, firstImport, inserted };
 }

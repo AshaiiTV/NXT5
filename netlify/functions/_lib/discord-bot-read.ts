@@ -369,7 +369,7 @@ async function pools(ctx: BotContext, command: string, options: Row) {
     const purpose = String(requestedGoal?.title || objective);
     const comfort = /confort|fiable|confiance|match/.test(purpose.toLowerCase());
     const ordered = [...rows].sort((a, b) => {
-      const score = (p: Row) => (comfort ? ['comfort', 'main', 'ready', 'confort'].includes(p.status) : ['work', 'working', 'developing'].includes(p.status)) ? 1 : 0;
+      const score = (p: Row) => comfort ? ({ lock: 2, pocket: 1 } as Row)[p.status] || 0 : ({ danger: 2, work: 1 } as Row)[p.status] || 0;
       return score(b) - score(a) || (comfort ? Number(b.games) - Number(a.games) : Number(a.games) - Number(b.games)) || String(a.champion).localeCompare(String(b.champion));
     });
     return message(ctx, 'Pistes de travail du pool', `Objectif : ${text(purpose, 250)}.\nRègle déterministe : ${comfort ? 'champions déclarés de confiance, puis pratique enregistrée décroissante' : 'champions déclarés en travail, puis pratique enregistrée croissante'}. Aucune recommandation de méta ou analyse adverse. À valider par le staff.`,
@@ -427,6 +427,7 @@ async function planning(ctx: BotContext, options: Row) {
     ), legacy as (
       select distinct a.team_id,e.value->>'label' as title,coalesce(e.value->>'type','custom') as event_type,
       (a.week_start + (case split_part(e.key,'|',1) when 'MON' then 0 when 'TUE' then 1 when 'WED' then 2 when 'THU' then 3 when 'FRI' then 4 when 'SAT' then 5 when 'SUN' then 6 end)
+        + case when split_part(e.key,'|',2)='00:00' then 1 else 0 end
         + split_part(e.key,'|',2)::time) at time zone $2 as starts_at
       from player_availability a cross join lateral jsonb_each(case
         when jsonb_typeof(a.slots->'_events')='object' then a.slots->'_events'

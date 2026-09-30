@@ -122,3 +122,35 @@ describe('shared NXT5 game publication', () => {
     expect(snapshot.participants[0].participantId).toBe(1);
   });
 });
+
+describe('audit: publication timeline coverage', () => {
+  it.each([[600000, 75], [605000, 75], [605001, null], [660000, null]])('CS10 at %s is %s', (timestamp, expected) => {
+    const input = publicationFixture();
+    input.match.raw.timeline = { info: { frames: [{ timestamp, participantFrames: { '1': { minionsKilled: 70, jungleMinionsKilled: 5 } }, events: [] }] } };
+    expect(buildGamePublicationSnapshot(input).participants.find(row => row.participantId === 1).cs10).toBe(expected);
+  });
+
+  it('marks frames without kills unavailable when final stats contain kills or deaths', () => {
+    const input = publicationFixture();
+    input.match.raw.timeline.info.frames.forEach(frame => { frame.events = []; });
+    const snapshot = buildGamePublicationSnapshot(input);
+    expect(snapshot.coverage.timeline.combatEventsAvailable).toBe(false);
+    expect(snapshot.coverage.timeline.detail).toContain('combats indisponibles');
+    expect(snapshot.coach.metrics.find(([label]) => label === 'Fights')[1]).toBe('Indisponible');
+    expect(snapshot.coach.playerReads.every(row => row.catchText.includes('indisponibles'))).toBe(true);
+    expect(JSON.stringify(snapshot.coach)).not.toContain('Aucune mort non échangée');
+    expect(buildGameReviewContent(input.match)).toContain('indisponibles');
+  });
+
+  it('keeps genuine zero-kill games available and detects missing kills in compact timelines', () => {
+    const input = publicationFixture();
+    input.match.raw.timeline.info.frames.forEach(frame => { frame.events = []; });
+    input.match.participants.forEach(row => { row.kills = 0; row.deaths = 0; });
+    input.match.raw.info.teams.forEach(team => { team.objectives.champion = { kills: 0 }; });
+    expect(buildGamePublicationSnapshot(input).coverage.timeline.combatEventsAvailable).toBe(true);
+    delete input.match.raw.timeline;
+    input.match.raw.nxt5 = { timelineEvents: [{ type: 'ITEM_PURCHASED', timestamp: 5000 }] };
+    input.match.participants[0].deaths = 1;
+    expect(buildGamePublicationSnapshot(input).coverage.timeline.combatEventsAvailable).toBe(false);
+  });
+});

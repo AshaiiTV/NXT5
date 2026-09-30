@@ -10,10 +10,14 @@ async function handler(request:Request) {
     const body=await request.text();
     if(request.method!=='POST'||!verifyDiscordInternalRequest(request,body))return json({error:'Accès refusé.'},401);
     await assertDiscordBotSchemaReady();
-    const pruned=await pruneDiscordBotArtifacts();
-    if(!isDiscordEnabled())return json({enabled:false,pruned});
-    const queued=await enqueueScheduledBotMessages();
-    return json({queued,pruned,...await deliverBotOutbox(10)});
+    if(!isDiscordEnabled())return json({enabled:false,pruned:await pruneDiscordBotArtifacts()});
+    let pruned: Awaited<ReturnType<typeof pruneDiscordBotArtifacts>> | undefined;
+    let queued=0;
+    let schedulingError: unknown;
+    try { pruned=await pruneDiscordBotArtifacts(); queued=await enqueueScheduledBotMessages(); } catch (error) { schedulingError=error; }
+    const delivered=await deliverBotOutbox(10);
+    if(schedulingError)throw schedulingError;
+    return json({queued,pruned,...delivered});
   }catch(error){return discordResponseError(error);}
 }
 export default withDiscordRuntime(handler);
