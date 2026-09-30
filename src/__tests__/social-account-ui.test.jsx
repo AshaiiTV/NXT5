@@ -1,5 +1,4 @@
 import React from "react";
-import { LEGAL_VERSION } from "../../shared/legal.js";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
