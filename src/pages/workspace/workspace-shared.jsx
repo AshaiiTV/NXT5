@@ -1,5 +1,5 @@
 import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } from "../../utils/statistics.js";
-import { canonicalChampion as championAssetId, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
+import { canonicalChampion as championAssetId, championNameKey as championKey, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
 import { normalizeRole as normalizeProfileRole } from "../../../shared/roles.js";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
@@ -45,10 +45,6 @@ const ALL_CHAMPION_STYLE_TAGS = {
   ...CHAMPION_STYLE_TAGS,
   ...ADDITIONAL_CHAMPION_STYLE_TAGS,
 };
-
-function championKey(value) {
-  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
 
 
 function championDisplayName(value) {
