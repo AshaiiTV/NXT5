@@ -5,15 +5,11 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { cleanText } from './_lib/text';
 
-async function ensureArchiveTable() {
-  await assertSchemaReady();
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
-    await ensureArchiveTable();
+    await assertSchemaReady();
     const user = await requireAuth(request, context);
     const body = await readJson(request);
     const action = cleanText(body.action || 'create', 20);

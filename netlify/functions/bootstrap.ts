@@ -8,10 +8,6 @@ import { json, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { seedDefaultMatchCategories } from './_lib/match-categories';
 
-async function ensureBootstrapSchema() {
-  await assertSchemaReady();
-}
-
 function buildDashboard(matches, improvements) {
   const recent = matches.slice(0, 10);
   const wins = recent.filter((m) => m.result === 'Victoire').length;
@@ -121,7 +117,7 @@ export default async function handler(request: Request, context: Context): Promi
     }
     const selectedTeamId = String(selectedTeam.id);
     const teamIds = [selectedTeamId];
-    await ensureBootstrapSchema();
+    await assertSchemaReady();
     const page = await loadMatchPage(selectedTeamId, pageOptions);
     if (url.searchParams.get('matchesOnly') === '1') return json({ selectedTeamId, ...page });
     await seedDefaultMatchCategories(teamIds, user.id);

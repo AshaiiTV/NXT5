@@ -11,10 +11,6 @@ function makeInviteCode() {
   return `NXT5-${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
 }
 
-async function ensureInviteExpiryColumn() {
-  await assertSchemaReady();
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -28,7 +24,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!['create', 'revoke'].includes(action)) throw Object.assign(new Error('Action invalide.'), { status: 400 });
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
-    await ensureInviteExpiryColumn();
+    await assertSchemaReady();
 
     const allowed = await sql`
       select teams.id

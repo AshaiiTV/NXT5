@@ -11,10 +11,6 @@ const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', ...STAFF_ROLES]
 const LANE_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP']);
 const MANAGE_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
 
-async function ensurePlayerRoleConstraint() {
-  await assertSchemaReady();
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -49,7 +45,7 @@ export default async function handler(request: Request, context: Context): Promi
     `;
     if (!allowed[0]) throw Object.assign(new Error('Seul l’owner ou un staff autorisé peut ajouter un profil.'), { status: 403 });
 
-    await ensurePlayerRoleConstraint();
+    await assertSchemaReady();
     await ensurePlayerRosterSchema();
 
     const automatic = !staffRole && role !== 'SUB' && !requestedRosterStatus;

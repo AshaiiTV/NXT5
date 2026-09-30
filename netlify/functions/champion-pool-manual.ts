@@ -10,10 +10,6 @@ import { cleanText } from './_lib/text';
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
 const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
 
-async function ensureChampionPoolSchema() {
-  await assertSchemaReady();
-}
-
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 }
@@ -29,7 +25,7 @@ export default async function handler(request: Request, context: Context): Promi
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
     const body = await readJson(request);
-    await ensureChampionPoolSchema();
+    await assertSchemaReady();
 
     const action = cleanText(body.action || 'upsert', 20);
     const teamId = cleanText(body.teamId, 80);

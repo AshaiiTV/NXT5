@@ -8,10 +8,6 @@ import { cleanText } from './_lib/text';
 const COACHING_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
 const MAX_CONTENT_LENGTH = 4000;
 
-async function ensureCoachingNotesTable() {
-  await assertSchemaReady();
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -24,7 +20,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     if (!teamId || !playerId) throw Object.assign(new Error('Team et profil requis.'), { status: 400 });
 
-    await ensureCoachingNotesTable();
+    await assertSchemaReady();
 
     const membership = await sql`
       select teams.owner_id, team_members.role

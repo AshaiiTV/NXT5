@@ -10,10 +10,6 @@ import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { cleanText } from './_lib/text';
 
-async function ensureMatchManagementColumns() {
-  await assertSchemaReady();
-}
-
 function cleanIdList(value) {
   return [...new Set((Array.isArray(value) ? value : [value]).map((id) => cleanText(id, 80)).filter(Boolean))];
 }
@@ -23,7 +19,7 @@ export default async function handler(request: Request, context: Context): Promi
     assertMethod(request, 'POST');
     assertMatchSourceMutationEnvironment(context);
     assertSessionSecret();
-    await ensureMatchManagementColumns();
+    await assertSchemaReady();
     const user = await requireAuth(request, context);
     const body = await readJson(request);
     const action = cleanText(body.action || 'update', 20);

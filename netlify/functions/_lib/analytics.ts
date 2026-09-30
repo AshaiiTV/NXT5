@@ -405,14 +405,6 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
   }
 }
 
-async function ensureMatchArchiveSchema() {
-  await assertSchemaReady();
-}
-
-async function ensureMatchImporterColumn() {
-  await assertSchemaReady();
-}
-
 export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId?: string | null; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[] }) {
   assertImportMatch(match);
   const validCategoryIds = normalizeImportCategoryIds(categoryIds);
@@ -465,8 +457,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   const raw = JSON.stringify(match);
   const serializedParticipants = JSON.stringify(participants);
   const assignedPlayerIds = [...new Set(Object.values(normalizedPlayerAssignments))];
-  await ensureMatchImporterColumn();
-  await ensureMatchArchiveSchema();
+  await assertSchemaReady();
 
   let savedMatch;
   let firstImport = false;
