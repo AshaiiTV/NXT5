@@ -65,7 +65,7 @@ import { canonicalChampion } from '../../shared/champions.js';
 import removeMember from '../../netlify/functions/team-member-remove';
 import availability from '../../netlify/functions/player-availability-manage';
 import manualPool from '../../netlify/functions/champion-pool-manual';
-import { sendNotification } from '../../netlify/functions/_mailer.js';
+import { sendNotification } from '../../netlify/functions/_lib/email';
 import importRoster from '../../netlify/functions/players-import-roster';
 
 vi.mock('../../netlify/functions/_lib/auth', () => ({
@@ -75,7 +75,7 @@ vi.mock('../../netlify/functions/_lib/auth', () => ({
 }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
 vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => ['subscriber@example.test'], ensureUserNotificationColumns: async () => {} }));
-vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: vi.fn() }));
+vi.mock('../../netlify/functions/_lib/email', async (importOriginal) => ({ ...(await importOriginal<object>()), sendNotification: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({ fetchRiotMatch: vi.fn(() => { throw new Error('Unexpected Riot request in local file import'); }) }));
 
 const userId = '00000000-0000-4000-8000-000000000001';

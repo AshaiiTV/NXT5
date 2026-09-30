@@ -9,7 +9,7 @@ import { assertMatchSourceMutationEnvironment } from './_lib/match-source-enviro
 import { fetchRiotMatch } from './_lib/riot';
 import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
-import { sendNotification } from './_mailer.js';
+import { sendNotification } from './_lib/email';
 import { escapeHtml } from './_lib/text';
 
 function unwrapImportPayload(body) {

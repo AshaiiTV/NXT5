@@ -11,7 +11,7 @@ vi.mock('../../netlify/functions/_lib/match-side', () => ({ changeMatchSide: moc
 vi.mock('../../netlify/functions/_lib/discord-wake', () => ({ wakeDiscordPublications: mocks.wake }));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: mocks.schema }));
 vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: mocks.emails }));
-vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: mocks.notify }));
+vi.mock('../../netlify/functions/_lib/email', async (importOriginal) => ({ ...(await importOriginal<object>()), sendNotification: mocks.notify }));
 
 import importRiot from '../../netlify/functions/matches-import';
 import importFile from '../../netlify/functions/matches-import-file';

@@ -9,7 +9,7 @@ import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
-import { sendNotification } from './_mailer.js';
+import { sendNotification } from './_lib/email';
 import { escapeHtml } from './_lib/text';
 
 function cleanText(value, max = 240) {
