@@ -615,7 +615,8 @@ describe("Discord dashboard onboarding", () => {
     await click(renderer, "Copier la commande");
     expect(clipboard.writeText).toHaveBeenCalledWith("/nxt connecter code:AAAA-BBBB-CCCC-DDDD");
     const before = apiFetch.mock.calls.filter(([path, options]) => path.startsWith("team-discord-connection?") && !options?.method).length;
-    await act(async () => vi.advanceTimersByTimeAsync(120000));
+    // Un act par intervalle : React 19 ne rend qu'à la fin de chaque act.
+    for (let tick = 0; tick < 24; tick += 1) await act(async () => vi.advanceTimersByTimeAsync(5000));
     const after = apiFetch.mock.calls.filter(([path, options]) => path.startsWith("team-discord-connection?") && !options?.method).length;
     expect(after - before).toBe(24);
     await act(async () => vi.advanceTimersByTimeAsync(30000));
