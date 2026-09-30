@@ -3,10 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureAuditLogsSchema, ensureWorkflowSchema } from './_lib/schema';
-
-function cleanText(value: unknown, max = 240) {
-  return String(value || '').trim().slice(0, max);
-}
+import { cleanText } from './_lib/text';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {

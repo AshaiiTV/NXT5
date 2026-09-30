@@ -25,8 +25,12 @@ export const CHAMPION_ASSET_ALIASES = {
   xinzhao: "XinZhao",
 };
 
+/** Case- and punctuation-insensitive key of a champion name ("Kai'Sa" → "kaisa"), aliases not applied. */
+export function championNameKey(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 export function canonicalChampion(value) {
   const raw = String(value || "").trim();
-  const key = raw.toLowerCase().replace(/[^a-z0-9]/g, "");
-  return CHAMPION_ASSET_ALIASES[key] || raw.replace(/[^A-Za-z0-9]/g, "");
+  return CHAMPION_ASSET_ALIASES[championNameKey(raw)] || raw.replace(/[^A-Za-z0-9]/g, "");
 }

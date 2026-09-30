@@ -29,10 +29,6 @@ function limitForEndpoint(endpoint: string, options: RateLimitOptions = {}): Rat
   return AUTH_LIMIT;
 }
 
-async function ensureRateLimitTable(): Promise<void> {
-  await assertSchemaReady();
-}
-
 export async function assertRateLimit(request: Request, endpoint: string, options: RateLimitOptions = {}): Promise<void> {
   const ip = requestIp(request);
   return assertLimit(`${ip}:${endpoint}`, ip, endpoint, options);
@@ -64,7 +60,7 @@ async function assertLimit(rateKey: string, ip: string, endpoint: string, option
   const resetBefore = new Date(Date.now() - windowSeconds * 1000).toISOString();
 
   try {
-    await ensureRateLimitTable();
+    await assertSchemaReady();
     await sql`delete from rate_limits where updated_at < now() - interval '1 day'`;
 
     const rows = await sql`

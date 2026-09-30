@@ -37,16 +37,12 @@ function cleanSlots(value) {
   return output;
 }
 
-async function ensureAvailabilityTable() {
-  await assertSchemaReady();
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
-    await ensureAvailabilityTable();
+    await assertSchemaReady();
     const body = await readJson(request);
     const teamId = String(body.teamId || '').trim();
     const playerId = String(body.playerId || '').trim();

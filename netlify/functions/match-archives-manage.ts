@@ -3,20 +3,13 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-
-function cleanText(value, max = 4000) {
-  return String(value || '').trim().slice(0, max);
-}
-
-async function ensureArchiveTable() {
-  await assertSchemaReady();
-}
+import { cleanText } from './_lib/text';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
-    await ensureArchiveTable();
+    await assertSchemaReady();
     const user = await requireAuth(request, context);
     const body = await readJson(request);
     const action = cleanText(body.action || 'create', 20);

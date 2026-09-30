@@ -5,17 +5,10 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
-
-function cleanText(value, max = 80) {
-  return String(value || '').trim().slice(0, max);
-}
+import { cleanText } from './_lib/text';
 
 function makeInviteCode() {
   return `NXT5-${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
-}
-
-async function ensureInviteExpiryColumn() {
-  await assertSchemaReady();
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -26,12 +19,12 @@ export default async function handler(request: Request, context: Context): Promi
     await assertRateLimit(request, 'team-invite-manage', { limit: 20, windowSeconds: 60 });
     await assertSubjectRateLimit('team-invite-manage', user.id, { limit: 10, windowSeconds: 60 });
     const body = await readJson(request, 4096);
-    const teamId = cleanText(body.teamId);
+    const teamId = cleanText(body.teamId, 80);
     const action = body.action || 'create';
     if (!['create', 'revoke'].includes(action)) throw Object.assign(new Error('Action invalide.'), { status: 400 });
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
-    await ensureInviteExpiryColumn();
+    await assertSchemaReady();
 
     const allowed = await sql`
       select teams.id

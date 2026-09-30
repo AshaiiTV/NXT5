@@ -45,7 +45,7 @@ vi.mock('../../netlify/functions/_lib/auth', async importOriginal => {
     requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' })
   };
 });
-vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ ensureUserNotificationColumns: async () => {} }));
+vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ ensureUserNotificationColumns: async () => {} }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({
   requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown',
   assertRateLimit: async () => {},

@@ -5,26 +5,14 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { cleanText } from './_lib/text';
 
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
 const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
 
-async function ensureChampionPoolSchema() {
-  await assertSchemaReady();
-}
-
-function cleanText(value, max = 120) {
-  return String(value || '').trim().slice(0, max);
-}
-
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
 }
-
-function championKey(value) {
-  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
@@ -32,7 +20,7 @@ export default async function handler(request: Request, context: Context): Promi
     assertMethod(request, 'POST');
     const user = await requireAuth(request, context);
     const body = await readJson(request);
-    await ensureChampionPoolSchema();
+    await assertSchemaReady();
 
     const action = cleanText(body.action || 'upsert', 20);
     const teamId = cleanText(body.teamId, 80);

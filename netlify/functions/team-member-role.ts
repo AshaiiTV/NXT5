@@ -7,10 +7,6 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 const ROLES = new Set(['captain', 'coach', 'assistant', 'analyst', 'manager', 'board', 'player']);
 const ROLE_MANAGEMENT_ROLES = ['captain'];
 
-async function ensureTeamMemberRoleConstraint() {
-  await assertSchemaReady();
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -23,7 +19,7 @@ export default async function handler(request: Request, context: Context): Promi
     const role = String(body.role || '').trim().toLowerCase();
 
     if (!teamId || !userId || !ROLES.has(role)) throw Object.assign(new Error('Team, compte et statut requis.'), { status: 400 });
-    await ensureTeamMemberRoleConstraint();
+    await assertSchemaReady();
 
     const allowed = await sql`
       select teams.id

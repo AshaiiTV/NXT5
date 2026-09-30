@@ -3,10 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { safeTeam } from './_lib/teams';
-
-function cleanText(value, max = 80) {
-  return String(value || '').trim().slice(0, max);
-}
+import { cleanText } from './_lib/text';
 
 function cleanNumber(value, fallback = 0) {
   const number = Number(value);
@@ -20,8 +17,8 @@ export default async function handler(request: Request, context: Context): Promi
     const user = await requireAuth(request, context);
     const body = await readJson(request);
 
-    const teamId = cleanText(body.teamId);
-    const name = cleanText(body.name);
+    const teamId = cleanText(body.teamId, 80);
+    const name = cleanText(body.name, 80);
     const tag = cleanText(body.tag, 12).toUpperCase();
     const avatarDataUrl = cleanText(body.avatarDataUrl, 1_500_000) || null;
     const avatarZoom = Math.min(2.5, Math.max(1, cleanNumber(body.avatarZoom, 1)));

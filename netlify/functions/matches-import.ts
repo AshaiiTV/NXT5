@@ -8,16 +8,12 @@ import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { assertRateLimit } from './_lib/rate-limit';
-import { getTeamMemberEmails } from './_getTeamMembers.js';
-import { sendNotification } from './_mailer.js';
+import { getTeamMemberEmails } from './_lib/team-member-emails';
+import { sendNotification } from './_lib/email';
+import { escapeHtml } from './_lib/text';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
-}
-
-function escapeHtml(value) {
-  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  return String(value || '').replace(/[&<>"']/g, (char) => entities[char] || char);
 }
 
 async function notifyMatchImport({ request, teamId, matchId, gameId }) {

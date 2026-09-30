@@ -8,8 +8,9 @@ import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { fetchRiotMatch } from './_lib/riot';
 import { assertRateLimit } from './_lib/rate-limit';
-import { getTeamMemberEmails } from './_getTeamMembers.js';
-import { sendNotification } from './_mailer.js';
+import { getTeamMemberEmails } from './_lib/team-member-emails';
+import { sendNotification } from './_lib/email';
+import { escapeHtml } from './_lib/text';
 
 function unwrapImportPayload(body) {
   const payload = body?.payload || body?.file || body;
@@ -38,11 +39,6 @@ function assertRiotMatchShape(match) {
   if (!match.info || !Array.isArray(match.info.participants) || !Array.isArray(match.info.teams)) {
     throw Object.assign(new Error('Fichier invalide : il manque info.participants ou info.teams.'), { status: 400, code: 'NXT5_IMPORT_FILE_INVALID' });
   }
-}
-
-function escapeHtml(value) {
-  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  return String(value || '').replace(/[&<>"']/g, (char) => entities[char] || char);
 }
 
 async function notifyMatchImport({ request, teamId, matchId, gameId }) {
