@@ -433,6 +433,7 @@ const OBJECTIVE_ICON_SOURCES = {
   ],
   herald: [
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.srt_2024_strategy_differentiation_preseason.png",
+    "/assets/objectives/herald.png",
     "https://raw.communitydragon.org/pbe/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.srt_2024_strategy_differentiation_preseason.png",
     "https://raw.communitydragon.org/latest/game/assets/characters/sru_riftherald/hud/sruriftherald_circle.png",
   ],

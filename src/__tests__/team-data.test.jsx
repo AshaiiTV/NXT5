@@ -53,6 +53,79 @@ function expectRequest(request, { offset = 0, teamId, matchesOnly = false } = {}
   expect(url.searchParams.get("matchesOnly")).toBe(matchesOnly ? "1" : null);
 }
 
+// Régression du commit b818225 (branche feat/pricing-validation) : une équipe
+// supprimée ou dont l’accès a été retiré ne reste pas affichée.
+describe("revoked team membership", () => {
+  const forbidden = () => Object.assign(new Error("Accès à cette équipe refusé."), { status: 403 });
+  const empty = () => page(null, [], 0, { teams: [], players: [], reports: [] });
+
+  it("clears a revoked team, reloads memberships and opens a remaining team", async () => {
+    const app = mount();
+    await app.resolve(0, page("a", games("a", 2)));
+    app.refresh();
+    await app.reject(1, forbidden());
+    expect(app.state.bootstrapReady).toBe(false);
+    expect(app.state.selectedTeamId).toBeNull();
+    expect(app.state.data.teams).toEqual([]);
+    expect(app.state.data.matches).toEqual([]);
+    expect(app.state.apiError).toBe("");
+    expectRequest(app.requests[2]);
+    expect(new URL(app.requests[2].url, "https://nxt5.test").searchParams.has("teamId")).toBe(false);
+    await app.resolve(2, page("b", games("b", 1), 0, { teams: [teams[1]] }));
+    expect(app.state.selectedTeamId).toBe("b");
+    expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.data.matches.map((match) => match.id)).toEqual(["b-1"]);
+    expect(app.state.apiError).toBe("");
+  });
+
+  it("reaches the team-less state when the last team was removed", async () => {
+    const app = mount();
+    await app.resolve(0, page("a", games("a", 2)));
+    app.select("b");
+    await app.reject(1, forbidden());
+    await app.resolve(2, empty());
+    expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.selectedTeamId).toBeNull();
+    expect(app.state.data.teams).toEqual([]);
+    expect(app.state.apiError).toBe("");
+    expect(app.requests).toHaveLength(3);
+  });
+
+  it("does not restore the revoked team if the membership reload fails", async () => {
+    const app = mount();
+    await app.resolve(0, page("a", games("a", 2)));
+    app.refresh();
+    await app.reject(1, forbidden());
+    await app.reject(2);
+    expect(app.state.bootstrapReady).toBe(false);
+    expect(app.state.data.teams).toEqual([]);
+    expect(app.state.apiError).toBeTruthy();
+    expect(app.requests).toHaveLength(3);
+    app.refresh();
+    expect(new URL(app.requests[3].url, "https://nxt5.test").searchParams.has("teamId")).toBe(false);
+    await app.resolve(3, empty());
+    expect(app.state.bootstrapReady).toBe(true);
+    expect(app.state.data.teams).toEqual([]);
+  });
+
+  it("keeps a forbidden linked team as an explicit error without opening another team", async () => {
+    const app = mount("?team=forbidden&match=private");
+    await app.reject(0, forbidden());
+    expect(app.state.apiError).toContain("Accès à cette équipe refusé");
+    expect(app.state.selectedTeamId).toBe("forbidden");
+    expect(app.requests).toHaveLength(1);
+  });
+
+  it("clears the deleted team's snapshot as soon as the selection is emptied", async () => {
+    const app = mount();
+    await app.resolve(0, page("a", games("a", 2)));
+    app.select(null);
+    expect(app.state.data.teams).toEqual([]);
+    expect(app.state.data.matches).toEqual([]);
+    expect(app.state.bootstrapReady).toBe(false);
+  });
+});
+
 describe("complete team history lifecycle in React", () => {
   it("loads the linked team directly, preserving the requested game throughout pagination", async () => {
     const app = mount("?team=b&match=b-101");

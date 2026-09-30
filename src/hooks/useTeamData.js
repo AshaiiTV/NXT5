@@ -23,6 +23,8 @@ export function useTeamData(planningStore, routeSearch = "") {
 
   const setSelectedTeamId = useCallback((id) => {
     selected.current = id;
+    // After a deletion, no page may reselect the team from the previous snapshot.
+    if (!id) setData(DEFAULT_DATA);
     setSelectedId(id);
     if (id && latestData.current.selectedTeamId === id && pendingTeam.current !== undefined && pendingTeam.current !== id) {
       generation.current += 1;
@@ -96,7 +98,19 @@ export function useTeamData(planningStore, routeSearch = "") {
       selected.current = activeTeam;
       setSelectedId(activeTeam);
     } catch (error) {
-      if (isCurrent()) setApiError(error.message || "Impossible de charger toutes les games de cette équipe.");
+      if (!isCurrent()) return;
+      if (teamId && error?.status === 403 && (latestData.current.teams || []).some((team) => team.id === teamId)) {
+        // The team was deleted or this account lost access: never leave its
+        // workspace visible. Reload the remaining memberships, which opens
+        // another team or the team-less screen. An unknown linked team keeps
+        // its explicit error instead.
+        selected.current = null;
+        setSelectedId(null);
+        setData(DEFAULT_DATA);
+        await refreshAll();
+        return;
+      }
+      setApiError(error.message || "Impossible de charger toutes les games de cette équipe.");
     } finally {
       if (ticket === generation.current) {
         pendingTeam.current = undefined;
