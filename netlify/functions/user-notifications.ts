@@ -2,7 +2,7 @@ import type { Context, Config } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth, safeUser } from './_lib/auth';
-import { ensureUserNotificationColumns } from './_getTeamMembers.js';
+import { ensureUserNotificationColumns } from './_lib/team-member-emails';
 
 function asBoolean(value, fallback) {
   return typeof value === 'boolean' ? value : fallback;

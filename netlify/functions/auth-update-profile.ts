@@ -4,7 +4,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, ensureEmailVerificationColumns, isValidEmail, normalizeEmail, requireAuth, safeUser, sha256, verifyPassword } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
-import { ensureUserNotificationColumns } from './_getTeamMembers.js';
+import { ensureUserNotificationColumns } from './_lib/team-member-emails';
 import { assertSubjectRateLimit, assertVerificationEmailRateLimit } from './_lib/rate-limit';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

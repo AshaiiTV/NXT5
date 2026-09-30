@@ -1,4 +1,4 @@
-import { ensureAuthUserSchema } from './_lib/auth';
+import { ensureAuthUserSchema } from './auth';
 
 const PREFERENCE_COLUMNS = new Set(['notif_match', 'notif_report']);
 

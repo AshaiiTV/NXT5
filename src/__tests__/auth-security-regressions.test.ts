@@ -62,7 +62,7 @@ vi.mock('../../netlify/functions/_lib/auth', async (importOriginal) => {
     requireAuth: async () => (await state.pg.query('select * from users where id = $1', [state.userId])).rows[0]
   };
 });
-vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ ensureUserNotificationColumns: async () => {}, getTeamMemberEmails: async () => state.recipients }));
+vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ ensureUserNotificationColumns: async () => {}, getTeamMemberEmails: async () => state.recipients }));
 vi.mock('../../netlify/functions/_lib/email', () => ({ sendNotification: state.notification, sendEmailVerificationEmail: state.emails, isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails }));
 
 import verifyEmail from '../../netlify/functions/verify-email';

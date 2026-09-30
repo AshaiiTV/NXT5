@@ -8,7 +8,7 @@ import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { assertRateLimit } from './_lib/rate-limit';
-import { getTeamMemberEmails } from './_getTeamMembers.js';
+import { getTeamMemberEmails } from './_lib/team-member-emails';
 import { sendNotification } from './_lib/email';
 import { escapeHtml } from './_lib/text';
 

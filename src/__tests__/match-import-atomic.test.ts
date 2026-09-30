@@ -74,7 +74,7 @@ vi.mock('../../netlify/functions/_lib/auth', () => ({
   requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' })
 }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
-vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => ['subscriber@example.test'], ensureUserNotificationColumns: async () => {} }));
+vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ getTeamMemberEmails: async () => ['subscriber@example.test'], ensureUserNotificationColumns: async () => {} }));
 vi.mock('../../netlify/functions/_lib/email', async (importOriginal) => ({ ...(await importOriginal<object>()), sendNotification: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({ fetchRiotMatch: vi.fn(() => { throw new Error('Unexpected Riot request in local file import'); }) }));
 
