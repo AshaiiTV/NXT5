@@ -54,3 +54,46 @@ describe("B12 upload termination", () => {
     expect(xhr.send).not.toHaveBeenCalled();
   });
 });
+
+// Régression du commit 76dbb10 (branche feat/pricing-validation), pour la part
+// que l’audit croisé n’avait pas reprise : réponse 2xx inexploitable et message
+// de configuration serveur.
+describe("unexpected API responses", () => {
+  const html = () => new Response("<!doctype html><title>NXT5</title>", { status: 200, headers: { "Content-Type": "text/html" } });
+
+  it.each([
+    ["an HTML page", html],
+    ["a JSON null", () => new Response("null", { status: 200 })],
+    ["an empty body", () => new Response("", { status: 200 })],
+  ])("rejects %s instead of returning null to the caller", async (_label, respond) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respond()));
+    await expect(apiFetch("bootstrap")).rejects.toMatchObject({ message: expect.stringContaining("réponse inattendue"), code: "INVALID_API_RESPONSE", status: 200 });
+  });
+
+  it("still accepts objects, arrays and 204 responses", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true })))
+      .mockResolvedValueOnce(new Response("[]"))
+      .mockResolvedValueOnce(new Response(null, { status: 204 })));
+    await expect(apiFetch("a")).resolves.toEqual({ ok: true });
+    await expect(apiFetch("b")).resolves.toEqual([]);
+    await expect(apiFetch("c")).resolves.toBeNull();
+  });
+
+  it("does not reveal the server session configuration", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "SESSION_SECRET must be set", code: "SESSION_SECRET_MISCONFIGURED" }), { status: 500 })));
+    const error = await apiFetch("auth-me").catch((err) => err);
+    expect(error.message).toBe("La connexion est temporairement indisponible. Réessaie dans quelques instants.");
+    expect(error.message).not.toMatch(/SESSION_SECRET|Netlify/);
+    expect(error).toMatchObject({ status: 500, code: "SESSION_SECRET_MISCONFIGURED" });
+  });
+
+  it("rejects an upload answered by a non-JSON page", async () => {
+    const xhr = { open: vi.fn(), setRequestHeader: vi.fn(), send: vi.fn(), upload: {} };
+    vi.stubGlobal("XMLHttpRequest", class { constructor() { return xhr; } });
+    const pending = apiUploadJson("import", {}, vi.fn());
+    Object.assign(xhr, { status: 200, responseText: "<!doctype html>" });
+    xhr.onload();
+    await expect(pending).rejects.toMatchObject({ code: "INVALID_API_RESPONSE" });
+  });
+});

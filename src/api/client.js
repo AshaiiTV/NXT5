@@ -12,7 +12,8 @@ function attachApiErrorMetadata(error, payload, status) {
 }
 
 function apiPayloadMessage(payload, status) {
-  if (payload?.code === "SESSION_SECRET_MISCONFIGURED") return "Session serveur mal configurée : SESSION_SECRET manque ou est trop court dans Netlify.";
+  // Server configuration details stay in the deployment logs.
+  if (payload?.code === "SESSION_SECRET_MISCONFIGURED") return "La connexion est temporairement indisponible. Réessaie dans quelques instants.";
   return payload?.error || apiFallbackMessage(status);
 }
 
@@ -20,6 +21,16 @@ function apiFallbackMessage(status) {
   return status === 502 || status === 503
     ? "Service temporairement indisponible. Reessaie quand le site est pret."
     : `Erreur ${status}.`;
+}
+
+// Every endpoint answers with a JSON object or array. Anything else (an HTML
+// page, an empty body) must not reach callers as a null result.
+function isApiPayload(payload) {
+  return payload !== null && typeof payload === "object";
+}
+
+function invalidApiResponse(status) {
+  return attachApiErrorMetadata(new Error("NXT5 a reçu une réponse inattendue. Recharge la page puis réessaie."), { code: "INVALID_API_RESPONSE" }, status);
 }
 
 export async function apiFetch(path, options = {}) {
@@ -58,6 +69,7 @@ export async function apiFetch(path, options = {}) {
     }
     if (controller?.signal.aborted || signal?.aborted) throw new Error("NXT5 met trop longtemps à répondre ou la requête a été annulée. Réessaie dans quelques instants.");
     if (!response.ok) throw attachApiErrorMetadata(new Error(apiPayloadMessage(payload, response.status)), payload, response.status);
+    if (response.status !== 204 && !isApiPayload(payload)) throw invalidApiResponse(response.status);
     return payload;
   } finally {
     if (timeoutId) globalThis.clearTimeout(timeoutId);
@@ -95,6 +107,10 @@ export function apiUploadJson(path, data, onProgress, { signal, timeoutMs = 1200
       }
       if (xhr.status < 200 || xhr.status >= 300) {
         reject(attachApiErrorMetadata(new Error(apiPayloadMessage(payload, xhr.status)), payload, xhr.status));
+        return;
+      }
+      if (xhr.status !== 204 && !isApiPayload(payload)) {
+        reject(invalidApiResponse(xhr.status));
         return;
       }
       resolve(payload);
