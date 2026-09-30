@@ -1,3 +1,8 @@
+# NXT5 Importer 0.3.5
+
+- Electron 44.4.5 (correctifs de sécurité et de stabilité d’Electron, sans changement de fonctionnement).
+- Chaîne de build mise à jour : actions GitHub de construction et de publication en dernière version majeure, sans changement du contenu publié.
+
 # NXT5 Importer 0.3.4
 
 - Les parties récupérées depuis le client LoL utilisent le nom interne des champions employé par Riot (`MonkeyKing`, `DrMundo`, `FiddleSticks`…). Elles ne créent plus de doublons « Wukong », « Dr. Mundo » ou « Nunu & Willump » dans le champion pool et les carnets de matchups du site.
