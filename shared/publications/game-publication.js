@@ -1,4 +1,5 @@
 import { MILESTONE_TOLERANCE_MS } from '../timeline-milestones.js';
+import { normalizeRole } from '../roles.js';
 /** Browser/server publication model. Never loads secrets, React, remote assets or staff notes. */
 import { pngNumeric } from '../../src/utils/png-report.js';
 export const PUBLICATION_ANALYSIS_VERSION = 'nxt5-game-2';
@@ -17,7 +18,6 @@ const subtract = (a, b) => finite(a) && finite(b) ? a - b : null;
 const object = (value) => { if (typeof value === 'string') { try { return JSON.parse(value) || {}; } catch { return {}; } } return value && typeof value === 'object' ? value : {}; };
 const cleanText = (value, limit = 240) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, limit);
 const list = (value) => Array.isArray(value) ? value : [];
-const normalizeRole = (value) => ({ JUNGLE: 'JGL', MIDDLE: 'MID', BOTTOM: 'ADC', SUPPORT: 'SUP', UTILITY: 'SUP' }[String(value || '').toUpperCase()] || String(value || '').toUpperCase());
 const clock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 const sourcesFor = (row) => [row, row.raw?.participant, row.raw?.stats, row.raw].filter(Boolean);
 const stat = (row, key) => {

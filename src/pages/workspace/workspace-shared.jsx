@@ -1,5 +1,6 @@
 import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } from "../../utils/statistics.js";
 import { canonicalChampion as championAssetId, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
+import { normalizeRole as normalizeProfileRole } from "../../../shared/roles.js";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, Shield, Swords, Target, Upload, Flame, Gauge, ShieldCheck } from "lucide-react";
@@ -439,15 +440,6 @@ function formatCountdown(seconds) {
 
 function normalizeProfileKey(value) {
   return String(value || "").toLowerCase().replace(/\s+/g, "").replace("#", "-");
-}
-
-function normalizeProfileRole(value) {
-  const raw = String(value || "").toUpperCase();
-  if (raw === "JUNGLE") return "JGL";
-  if (raw === "MIDDLE") return "MID";
-  if (raw === "BOTTOM") return "ADC";
-  if (raw === "UTILITY" || raw === "SUPPORT") return "SUP";
-  return raw;
 }
 
 function playerIntegratedRows(player, matches = []) {

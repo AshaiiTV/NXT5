@@ -1,13 +1,12 @@
 import { csFromTimelineFrames } from '../../../shared/timeline-milestones.js';
 import { canonicalChampion } from '../../../shared/champions.js';
+import { ROLE_SORT_ORDER } from '../../../shared/roles.js';
 import { logFailure } from './safe-log';
 import { assertSchemaReady } from './migrations';
 import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 import { sql } from './db';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
-
-const ROLE_ORDER = { TOP: 1, JUNGLE: 2, JGL: 2, MIDDLE: 3, MID: 3, BOTTOM: 4, ADC: 4, UTILITY: 5, SUP: 5, SUPPORT: 5 };
 
 function mmss(seconds) {
   const s = Number(seconds || 0);
@@ -226,7 +225,7 @@ function buildParticipants(match, allyTeamId, roster, laneAssignments = {}, play
 
   return match.info.participants
     .slice()
-    .sort((a, b) => (a.teamId - b.teamId) || ((ROLE_ORDER[a.teamPosition] || 99) - (ROLE_ORDER[b.teamPosition] || 99)))
+    .sort((a, b) => (a.teamId - b.teamId) || ((ROLE_SORT_ORDER[a.teamPosition] || 99) - (ROLE_SORT_ORDER[b.teamPosition] || 99)))
     .map((p) => {
       const manualRole = p.teamId === allyTeamId ? manualRoleForParticipant(p, laneAssignments) : manualRoleForParticipant(p, enemyLaneAssignments);
       // Both teams require five manual assignments. Falling back to Riot's

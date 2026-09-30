@@ -1,6 +1,7 @@
 import { canonicalChampion as sharedChampion } from '../../../shared/champions.js';
 import { sql } from './db';
 import { assertSchemaReady } from './migrations';
+import { canonicalRole } from '../../../shared/roles.js';
 
 export const PLAYER_MATCHUPS_SCHEMA_VERSION = 'player-matchups-20260915-v1';
 let ready: Promise<void> | undefined;
@@ -57,11 +58,6 @@ function champion(value: unknown): string {
   return result;
 }
 
-export function matchupRole(value: unknown): string {
-  const role = String(value ?? '').trim().toUpperCase();
-  return ({ TOP: 'TOP', JGL: 'JGL', JUNGLE: 'JGL', MID: 'MID', MIDDLE: 'MID', ADC: 'ADC', BOTTOM: 'ADC', BOT: 'ADC', SUP: 'SUP', SUPPORT: 'SUP', UTILITY: 'SUP' } as Record<string, string>)[role] || '';
-}
-
 export type MatchupPlan = { lanePlan: string; vigilance: string; toKeep: string };
 export type MatchupExperiment = {
   id: string; title: string; plan: string; observation: string; conclusion: string;
@@ -115,8 +111,8 @@ export function canEditMatchup(userId: string, membership: Record<string, any>, 
 export function isLinkedMatchup(rows: Record<string, any>[], scope: MatchupSave): boolean {
   if (!rows.length || rows.some(row => row.team_id !== scope.teamId)) return false;
   const allies = rows.filter(row => row.team_key === 'ALLY' && row.player_id === scope.playerId);
-  if (allies.length !== 1 || canonicalChampion(allies[0].champion) !== scope.champion || matchupRole(allies[0].role) !== scope.role) return false;
-  const enemies = rows.filter(row => row.team_key === 'ENEMY' && matchupRole(row.role) === scope.role);
+  if (allies.length !== 1 || canonicalChampion(allies[0].champion) !== scope.champion || canonicalRole(allies[0].role) !== scope.role) return false;
+  const enemies = rows.filter(row => row.team_key === 'ENEMY' && canonicalRole(row.role) === scope.role);
   return enemies.length === 1 && canonicalChampion(enemies[0].champion) === scope.opponentChampion;
 }
 

@@ -1,6 +1,7 @@
 import { availableNumber, resultSummary, resultLabel, sideResults } from "./utils/statistics.js";
 import { csAtMinute } from "./utils/match-timeline.js";
 import { importedGameSide } from "./utils/imported-games.js";
+import { normalizeRole } from "../shared/roles.js";
 import React, { useState } from "react";
 import {
   Activity,
@@ -55,11 +56,6 @@ function parsePercent(value) {
   const percent = typeof value === "string" && value.includes("%");
   const number = availableNumber(percent ? value.replace("%", "") : value);
   return number === null ? null : percent || number > 1 ? number : number * 100;
-}
-
-function normalizeRole(value) {
-  const role = String(value || "").toUpperCase();
-  return { JUNGLE: "JGL", MIDDLE: "MID", BOTTOM: "ADC", UTILITY: "SUP", SUPPORT: "SUP" }[role] || role;
 }
 
 function matchName(match) {
