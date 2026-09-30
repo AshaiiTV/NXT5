@@ -1,3 +1,16 @@
+# NXT5 Importer 0.3.4
+
+- Les parties récupérées depuis le client LoL utilisent le nom interne des champions employé par Riot (`MonkeyKing`, `DrMundo`, `FiddleSticks`…). Elles ne créent plus de doublons « Wukong », « Dr. Mundo » ou « Nunu & Willump » dans le champion pool et les carnets de matchups du site.
+- Le catalogue des champions est lu dans le client LoL, sans connexion Internet ; Data Dragon ne sert plus que de secours. Si un champion reste inconnu, l’export échoue avec une invitation à réessayer connecté, sans enregistrer de faux nom.
+- Sous Windows, le client est retrouvé sur un autre disque que `C:` grâce aux informations d’installation du Riot Client.
+- L’en-tête affiche le logo officiel NXT5 au lieu d’une signature recomposée en texte, conformément à la charte.
+- L’interface et les messages tutoient l’utilisateur, comme le site.
+- Une partie dont les deux équipes sont marquées gagnantes (ou aucune) est refusée au lieu d'être exportée avec un résultat faux.
+- Un CS à 10 ou 20 minutes dont une composante manque dans la timeline est exporté comme indisponible, et non comme 0.
+- Les instructions après export indiquent le parcours actuel du site : Parties → Importer une partie → Choisir mon fichier.
+- Electron 44.4.3.
+- Retrait de deux copies de logos inutilisées, environ 2 Mo de moins dans chaque application.
+
 # NXT5 Importer 0.3.3
 
 - La fenêtre d’enregistrement réutilise le dossier du dernier export réussi, y compris après fermeture et réouverture de l’application.

@@ -72,9 +72,16 @@
           aria-label="NXT5 Importer, accueil"
         >
           <img src="../assets/nxt5-mark.png" alt="" />
-          <span class="brand-name"
-            >NXT<span>5</span><small>IMPORTER</small></span
-          >
+          <span class="brand-name">
+            <img
+              class="brand-wordmark"
+              src="../assets/nxt5-wordmark-320.webp"
+              alt=""
+              width="320"
+              height="100"
+            />
+            <small>IMPORTER</small>
+          </span>
         </a>
         <nav class="nav" aria-label="Navigation principale">
           <button
@@ -125,7 +132,7 @@
         <div id="globalNotice" class="notice" role="status" hidden></div>
         <section id="update" class="update-banner" hidden>
           <div>
-            <strong>La prochaine version vous attend.</strong>
+            <strong>La prochaine version t’attend.</strong>
             <p id="updateText"></p>
           </div>
           <button id="updateLink" class="button compact">
@@ -136,7 +143,7 @@
           <div class="export-layout">
             <div class="hero-pane">
               <p class="eyebrow">
-                <span class="eyebrow-line"></span> VOTRE GAME. VOTRE
+                <span class="eyebrow-line"></span> TA GAME. TA
                 PROGRESSION.
               </p>
               <h1 id="exportHeading" tabindex="-1">
@@ -145,7 +152,7 @@
                 >
               </h1>
               <p class="hero-lead">
-                Transformez votre game en données.<br />Et vos données en
+                Transforme ta game en données.<br />Et tes données en
                 longueur d’avance.
               </p>
               <div class="nxt-art" aria-hidden="true">
@@ -181,7 +188,7 @@
                 hidden
               >
                 <div class="section-title">
-                  <h2 id="progressHeading">Préparation de votre export</h2>
+                  <h2 id="progressHeading">Préparation de ton export</h2>
                   <button id="cancelImport" class="text-button">Annuler</button>
                 </div>
                 <ol class="progress-steps" id="progressSteps">
@@ -207,7 +214,7 @@
                   ></span>
                   <div>
                     <p class="eyebrow">EXPORT ENREGISTRÉ</p>
-                    <h2 id="resultHeading" tabindex="-1">Votre game est prête.</h2>
+                    <h2 id="resultHeading" tabindex="-1">Ta game est prête.</h2>
                   </div>
                 </div>
                 <strong class="match-id" id="resultGameId"></strong>
@@ -222,7 +229,7 @@
                   </button>
                 </div>
                 <p class="field-hint">
-                  Dans NXT5 : Intégration → Importer un fichier NXT5 local.
+                  Dans NXT5 : Parties → Importer une partie → Choisir mon fichier.
                 </p>
               </section>
               <div
@@ -239,8 +246,8 @@
                 </div>
                 <div class="card-title">
                   <div>
-                    <h2>Votre game, prête à analyser.</h2>
-                    <p>Récupérez les données. Faites la différence.</p>
+                    <h2>Ta game, prête à analyser.</h2>
+                    <p>Récupère les données. Fais la différence.</p>
                   </div>
                 </div>
                 <label for="gameId"
@@ -294,7 +301,7 @@
                   ><span class="keyboard-hint" id="exportShortcut">Ctrl ↵</span>
                 </div>
                 <p class="export-caption">
-                  <svg><use href="#i-shield" /></svg> Aucune clé Riot. Votre
+                  <svg><use href="#i-shield" /></svg> Aucune clé Riot. Ton
                   fichier reste sur cet appareil.
                 </p>
               </form>
@@ -314,12 +321,12 @@
                   ?<span class="help-plus">+</span>
                 </summary>
                 <p>
-                  Copiez l’identifiant depuis l’historique du client LoL. Pour
-                  un numéro sans préfixe, choisissez le serveur de la partie.
+                  Copie l’identifiant depuis l’historique du client LoL. Pour
+                  un numéro sans préfixe, choisis le serveur de la partie.
                 </p>
                 <p>
-                  Le client n’est pas détecté ? Ouvrez League of Legends ou
-                  indiquez son dossier d’installation.
+                  Le client n’est pas détecté ? Ouvre League of Legends ou
+                  indique son dossier d’installation.
                 </p>
                 <button class="text-button" id="openClientSettings">
                   Configurer le client <svg><use href="#i-arrow" /></svg>
@@ -331,15 +338,15 @@
             <div>
               <span class="step-number">01</span>
               <p>
-                <strong>Copiez l’identifiant</strong
-                ><small>Depuis l’historique de votre game.</small>
+                <strong>Copie l’identifiant</strong
+                ><small>Depuis l’historique de ta game.</small>
               </p>
             </div>
             <svg class="workflow-arrow"><use href="#i-arrow" /></svg>
             <div>
               <span class="step-number">02</span>
               <p>
-                <strong>Exportez le match</strong
+                <strong>Exporte le match</strong
                 ><small>Un fichier, toutes les données disponibles.</small>
               </p>
             </div>
@@ -347,8 +354,8 @@
             <div>
               <span class="step-number">03</span>
               <p>
-                <strong>Ouvrez de nouvelles pistes</strong
-                ><small>Importez le fichier dans Intégration sur NXT5.</small>
+                <strong>Ouvre de nouvelles pistes</strong
+                ><small>Dans NXT5 : Parties → Importer une partie → Choisir mon fichier.</small>
               </p>
             </div>
           </section>
@@ -362,7 +369,7 @@
           <div class="page-heading">
             <p class="eyebrow"><span></span> CHAQUE GAME COMPTE</p>
             <h1 id="historyHeading" tabindex="-1">Exports récents</h1>
-            <p>Votre collection de games. Prête pour la prochaine review.</p>
+            <p>Ta collection de games. Prête pour la prochaine review.</p>
           </div>
           <div class="card history-card">
             <div class="history-toolbar">
@@ -387,7 +394,7 @@
               ></span>
               <h3>Aucune game exportée pour le moment</h3>
               <p>
-                Vos prochains fichiers apparaîtront ici après leur
+                Tes prochains fichiers apparaîtront ici après leur
                 enregistrement.
               </p>
               <button class="button compact" id="firstExport">
@@ -396,7 +403,7 @@
             </div>
             <p class="history-footnote">
               Les 30 derniers exports sont conservés ici. Les fichiers restent à
-              l’emplacement que vous avez choisi.
+              l’emplacement que tu as choisi.
             </p>
           </div>
         </section>
@@ -407,9 +414,9 @@
           hidden
         >
           <div class="page-heading">
-            <p class="eyebrow"><span></span> VOTRE CONFIGURATION</p>
+            <p class="eyebrow"><span></span> TA CONFIGURATION</p>
             <h1 id="settingsHeading" tabindex="-1">Paramètres</h1>
-            <p>Gardez votre application et votre connexion au client à jour.</p>
+            <p>Garde ton application et ta connexion au client à jour.</p>
           </div>
           <div class="settings-stack">
             <section class="card settings-card">
@@ -433,7 +440,7 @@
                 </button>
               </div>
               <p class="field-hint">
-                Si League est installé ailleurs, sélectionnez son dossier ou son
+                Si League est installé ailleurs, sélectionne son dossier ou son
                 fichier « lockfile ».
               </p>
             </section>
@@ -444,7 +451,7 @@
                 ></span>
                 <div>
                   <h2>Version & mises à jour</h2>
-                  <p>Le téléchargement correspond à votre système.</p>
+                  <p>Le téléchargement correspond à ton système.</p>
                 </div>
               </div>
               <div class="update-settings-row">
@@ -464,11 +471,11 @@
             <section class="privacy-note">
               <svg><use href="#i-shield" /></svg>
               <div>
-                <h3>Des données sous votre contrôle</h3>
+                <h3>Des données sous ton contrôle</h3>
                 <p>
                   Les préférences et l’historique des exports sont enregistrés
                   sur cet appareil. La récupération d’un match peut contacter
-                  NXT5 et les services Riot. L’envoi du fichier à votre équipe
+                  NXT5 et les services Riot. L’envoi du fichier à ton équipe
                   se fait ensuite dans NXT5.
                 </p>
               </div>
