@@ -3,10 +3,7 @@ import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureAuditLogsSchema, ensureCompositionTypesSchema } from './_lib/schema';
-
-function cleanText(value, max = 160) {
-  return String(value || '').trim().slice(0, max);
-}
+import { cleanText } from './_lib/text';
 
 const SLOT_ROLES = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

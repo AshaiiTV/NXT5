@@ -3,17 +3,10 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { cleanText } from './_lib/text';
 
 const COACHING_ROLES = ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
 const MAX_CONTENT_LENGTH = 4000;
-
-function cleanText(value, max = MAX_CONTENT_LENGTH) {
-  return String(value || '').trim().slice(0, max);
-}
-
-async function ensureCoachingNotesTable() {
-  await assertSchemaReady();
-}
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
@@ -27,7 +20,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     if (!teamId || !playerId) throw Object.assign(new Error('Team et profil requis.'), { status: 400 });
 
-    await ensureCoachingNotesTable();
+    await assertSchemaReady();
 
     const membership = await sql`
       select teams.owner_id, team_members.role

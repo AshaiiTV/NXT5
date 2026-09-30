@@ -8,8 +8,8 @@ const database = vi.hoisted(() => ({
 vi.mock('../../netlify/functions/_lib/db', () => ({ sql: database.sql }));
 vi.mock('../../netlify/functions/_lib/auth', async original => ({ ...await original<any>(), assertSessionSecret: vi.fn(), requireAuth: async () => ({ id: 'user' }) }));
 vi.mock('../../netlify/functions/_lib/schema', () => ({ ensureReportsSchema: vi.fn(), ensureAuditLogsSchema: vi.fn() }));
-vi.mock('../../netlify/functions/_getTeamMembers.js', () => ({ getTeamMemberEmails: async () => [] }));
-vi.mock('../../netlify/functions/_mailer.js', () => ({ sendNotification: vi.fn() }));
+vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ getTeamMemberEmails: async () => [] }));
+vi.mock('../../netlify/functions/_lib/email', async (importOriginal) => ({ ...(await importOriginal<object>()), sendNotification: vi.fn() }));
 
 import manageReport from '../../netlify/functions/reports-manage';
 

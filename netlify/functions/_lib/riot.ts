@@ -53,7 +53,6 @@ const ACCOUNT_REGION_BY_PLATFORM = {
   ...ROUTES
 };
 
-let championNameCache: Map<number, string> | null = null;
 let championDataCache: Map<number, ChampionData> | null = null;
 
 export function isRiotConfigured() {
@@ -174,17 +173,6 @@ export async function fetchAccountByRiotId(riotId, platform = 'EUW1') {
   return riotFetch(url, `Compte Riot introuvable : ${riotId}`);
 }
 
-export async function fetchTopChampionMastery(puuid, platform = 'EUW1', count = 5) {
-  const host = platformFromRegion(platform).toLowerCase();
-  const url = `https://${host}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/${encodeURIComponent(puuid)}/top?count=${count}`;
-  return riotFetch(url, 'Maîtrises champion introuvables côté Riot.');
-}
-
-export async function getChampionNameMap() {
-  const data = await getChampionDataMap();
-  return new Map([...data.entries()].map(([key, champion]) => [key, champion.name]));
-}
-
 export async function getChampionDataMap() {
   if (championDataCache) return championDataCache;
 
@@ -207,6 +195,5 @@ export async function getChampionDataMap() {
       imageUrl: `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${champion.image.full}`
     }])
   );
-  championNameCache = new Map([...championDataCache.entries()].map(([key, champion]) => [key, champion.name]));
   return championDataCache;
 }

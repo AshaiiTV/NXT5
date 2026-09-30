@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { sendNotification } from '../../netlify/functions/_mailer.js';
-import { sendPasswordResetEmail } from '../../netlify/functions/_lib/email';
+import { sendNotification, sendPasswordResetEmail } from '../../netlify/functions/_lib/email';
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 

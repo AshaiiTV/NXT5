@@ -2,7 +2,7 @@ import type { Context } from "@netlify/functions";
 import { json, assertMethod, handleError } from './_lib/http';
 import { COOKIE_NAME, assertSessionSecret, ensureEmailVerificationColumns, readSessionCookie, requireAuth, safeUser } from './_lib/auth';
 import { sql } from './_lib/db';
-import { ensureUserNotificationColumns } from './_getTeamMembers.js';
+import { ensureUserNotificationColumns } from './_lib/team-member-emails';
 import { isPlatformAdmin } from './_lib/platform-admin';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {

@@ -6,10 +6,6 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 
 const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
-async function ensureTeamMemberRoleConstraint() {
-  await assertSchemaReady();
-}
-
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -23,7 +19,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     if (!teamId || !playerId) throw Object.assign(new Error('Team et joueur requis.'), { status: 400 });
 
-    await ensureTeamMemberRoleConstraint();
+    await assertSchemaReady();
 
     const allowed = await sql`
       select teams.id

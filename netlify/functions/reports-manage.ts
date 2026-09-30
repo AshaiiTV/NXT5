@@ -2,22 +2,14 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth, sha256 } from './_lib/auth';
-import { getTeamMemberEmails } from './_getTeamMembers.js';
-import { sendNotification } from './_mailer.js';
+import { getTeamMemberEmails } from './_lib/team-member-emails';
+import { sendNotification } from './_lib/email';
 import { ensureAuditLogsSchema, ensureReportsSchema } from './_lib/schema';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
+import { cleanText, escapeHtml } from './_lib/text';
 
 const MAX_REPORT_CONTENT_LENGTH = 256000;
 const MAX_REPORT_MATCHES = 20;
-
-function cleanText(value, max = 4000) {
-  return String(value || '').trim().slice(0, max);
-}
-
-function escapeHtml(value) {
-  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  return String(value || '').replace(/[&<>"']/g, (char) => entities[char] || char);
-}
 
 async function recordReviewAudit(userId: string, teamId: string, reportId: string, action: string, title: string, matchIds: string[]): Promise<boolean> {
   // An atomic conditional update serializes concurrent first saves. Keeping

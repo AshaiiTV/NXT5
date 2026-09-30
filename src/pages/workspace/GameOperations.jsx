@@ -7,6 +7,7 @@ import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName } from "../../utils/matches.js";
 import { importedGameSide } from "../../utils/imported-games.js";
+import { normalizeRole } from "../../../shared/roles.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
@@ -381,13 +382,8 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }, {});
   }
   function normalizePreviewRole(value) {
-    const raw = String(value || "").toUpperCase();
-    if (raw === "JUNGLE") return "JGL";
-    if (raw === "MIDDLE") return "MID";
-    if (raw === "BOTTOM") return "ADC";
-    if (raw === "UTILITY" || raw === "SUPPORT") return "SUP";
-    if (COMP_ROLES.includes(raw)) return raw;
-    return "";
+    const role = normalizeRole(value);
+    return COMP_ROLES.includes(role) ? role : "";
   }
   function previewRiotRole(participant) {
     return normalizePreviewRole(participant?.teamPosition || participant?.individualPosition || participant?.lane);

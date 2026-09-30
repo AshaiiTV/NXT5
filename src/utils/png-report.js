@@ -20,12 +20,6 @@ export function pngAccent(name = "cyan") {
   return PNG_THEME[key] || PNG_THEME.cyan;
 }
 
-export function pngTint(name = "cyan", alpha = 0.12) {
-  const hex = pngAccent(name).slice(1);
-  const rgb = [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
-  return `rgba(${rgb.join(",")},${Math.max(0, Math.min(1, alpha))})`;
-}
-
 // Every truncation removes a source character, even when the ellipsis is wider
 // than the available space. This also handles very long unbroken identifiers.
 function ellipsize(ctx, text, width) {

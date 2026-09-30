@@ -1,17 +1,11 @@
 import { canonicalChampion } from '../../shared/champions.js';
+import { canonicalRole as normalizeMatchupRole } from "../../shared/roles.js";
 /** Stable database key; the original champion spelling remains available for display. */
 export function championKey(value) {
   return canonicalChampion(value).toLowerCase();
 }
 
-const ROLE_ALIASES = {
-  TOP: "TOP", JGL: "JGL", JUNGLE: "JGL", MID: "MID", MIDDLE: "MID",
-  ADC: "ADC", BOTTOM: "ADC", BOT: "ADC", SUP: "SUP", SUPPORT: "SUP", UTILITY: "SUP",
-};
-
-export function normalizeMatchupRole(value) {
-  return ROLE_ALIASES[String(value ?? "").trim().toUpperCase()] || "";
-}
+export { normalizeMatchupRole };
 
 /** A duel needs one unambiguous opponent at the recorded role, never an array-index guess. */
 export function strictOpponent(row) {
