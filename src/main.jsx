@@ -14,6 +14,10 @@ import './components/games/imported-games.css';
 import './pages/public/support.css';
 import NXT5, { preloadApp } from './App.jsx';
 import { isAppPath } from './app/routing.js';
+import { installChunkRecovery } from './app/chunk-recovery.js';
+
+const stopChunkRecovery = installChunkRecovery();
+if (import.meta.hot) import.meta.hot.dispose(stopChunkRecovery);
 
 function mount(initialApp) {
   createRoot(document.getElementById('root')).render(

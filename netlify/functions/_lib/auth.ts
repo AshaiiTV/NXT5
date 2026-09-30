@@ -271,6 +271,8 @@ export async function requireAuth(request: Request, context: Context): Promise<D
   const rows = await sql`
     select
       sessions.id as session_id,
+      (sessions.last_seen_at is null or sessions.last_seen_at < now() - interval '5 minutes') as session_activity_due,
+      (users.last_active_at is null or users.last_active_at < now() - interval '5 minutes') as user_activity_due,
       users.id,
       users.account_name,
       users.email,
@@ -292,22 +294,27 @@ export async function requireAuth(request: Request, context: Context): Promise<D
     limit 1
   `;
 
-  const user = rows[0] as DbUser | undefined;
-  if (!user) {
+  const authenticated = rows[0] as (DbUser & { session_id: string; session_activity_due?: boolean; user_activity_due?: boolean }) | undefined;
+  if (!authenticated) {
     context.cookies.set({ name: COOKIE_NAME, value: '', ...sessionCookieOptions(request), maxAge: 0 });
     throw Object.assign(new Error('Session invalide ou expirée.'), { status: 401 });
   }
 
+  const { session_activity_due, user_activity_due, ...user } = authenticated;
   // Keep platform activity metrics useful without writing on every request.
-  // A session is refreshed at most once every five minutes.
-  await sql`
-    update sessions
-    set last_seen_at = now()
-    where id = ${(rows[0] as any).session_id}
-      and (last_seen_at is null or last_seen_at < now() - interval '5 minutes')
-  `;
+  // Freshness is read with the database clock in the authentication query, so
+  // activity recorded less than five minutes ago costs no extra round trip.
+  // The SQL guards stay: concurrent requests cannot repeat a due write.
+  if (session_activity_due !== false) {
+    await sql`
+      update sessions
+      set last_seen_at = now()
+      where id = ${authenticated.session_id}
+        and (last_seen_at is null or last_seen_at < now() - interval '5 minutes')
+    `;
+  }
 
-  return recordUserActivity(user);
+  return user_activity_due === false ? user : recordUserActivity(user);
 }
 
 export async function revokeSession(context: Context, request: Request | null = null): Promise<void> {
