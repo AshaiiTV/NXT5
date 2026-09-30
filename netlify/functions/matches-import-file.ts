@@ -1,3 +1,4 @@
+import { logFailure } from './_lib/safe-log';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -68,7 +69,7 @@ async function runOptionalImportTask(label: string, task: () => Promise<unknown>
   try {
     await task();
   } catch (err) {
-    console.error(`[match-import-file] ${label} failed after match persistence.`, err);
+    logFailure(`[match-import-file] ${label} failed after match persistence.`, err);
   }
 }
 

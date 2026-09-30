@@ -1,3 +1,4 @@
+import { logFailure } from './safe-log';
 const SECURITY_HEADERS: Record<string, string> = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
@@ -106,7 +107,7 @@ export function handleError(err: any): Response {
   const code = typeof failure.code === 'string' && /^[A-Z0-9_]{1,80}$/.test(failure.code) ? failure.code : null;
   // Errors from database and HTTP clients can contain queries, parameters,
   // credentials or whole upstream responses. Only log bounded metadata.
-  console.error('[http] Request failed.', { status, code: code || 'UNEXPECTED_ERROR' });
+  logFailure('[http] Request failed.', { status, code: code || 'UNEXPECTED_ERROR' });
   const serverSideFailure = status >= 500;
   const message = serverSideFailure ? failure.publicMessage : failure.message;
   const payload: Record<string, unknown> = { error: typeof message === 'string' && message ? message : 'Erreur serveur.' };

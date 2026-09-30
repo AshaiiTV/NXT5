@@ -1,3 +1,4 @@
+import { logFailure } from './safe-log';
 import { assertSchemaReady } from './migrations';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
@@ -128,7 +129,7 @@ export async function purgeExpiredAuthData(): Promise<void> {
     try {
       await operation();
     } catch (err: any) {
-      if (err?.code !== '42P01') console.warn(`Auth retention cleanup failed: ${label}`, { code: err?.code || null });
+      if (err?.code !== '42P01') logFailure(`Auth retention cleanup failed: ${label}`, err, {}, 'warn');
     }
   };
 

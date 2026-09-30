@@ -1,3 +1,4 @@
+import { logFailure } from './safe-log';
 import type { Context } from '@netlify/functions';
 import { sql } from './db';
 import { requireAuth } from './auth';
@@ -47,7 +48,7 @@ export function discordResponseError(error: any): Response {
   const status = upstream && sourceStatus === 401 ? 503 : sourceStatus;
   const message = status >= 500 && !upstream && !String(error?.code || '').startsWith('DISCORD_')
     ? 'La publication Discord est temporairement indisponible.' : error.message || 'Opération Discord impossible.';
-  console.error('[discord]', { code: error?.code || 'DISCORD_FAILED', status });
+  logFailure('[discord]', { code: error?.code, status }, { code: 'DISCORD_FAILED' });
   return json({ error: message, code: error?.code || 'DISCORD_FAILED', ...(error?.retryAfter ? { retryAfter: error.retryAfter } : {}) },
     status, error?.retryAfter ? { 'Retry-After': String(Math.ceil(error.retryAfter)) } : {});
 }
