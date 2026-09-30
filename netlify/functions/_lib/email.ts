@@ -1,13 +1,11 @@
+import { escapeHtml } from './text';
+
 function env(name) {
   return (globalThis as any).Netlify?.env?.get?.(name) || process.env[name] || '';
 }
 
 export function isPasswordEmailConfigured() {
   return Boolean(env('RESEND_API_KEY') && env('RESET_EMAIL_FROM'));
-}
-
-function escapeHtml(value) {
-  return String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char] || char));
 }
 
 async function sendResendEmail({ to, subject, text, html }) {

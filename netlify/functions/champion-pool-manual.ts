@@ -5,16 +5,13 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { cleanText } from './_lib/text';
 
 const STATUSES = new Set(['lock', 'pocket', 'work', 'danger']);
 const GAMEPLAY_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB']);
 
 async function ensureChampionPoolSchema() {
   await assertSchemaReady();
-}
-
-function cleanText(value, max = 120) {
-  return String(value || '').trim().slice(0, max);
 }
 
 function isUuid(value) {

@@ -4,10 +4,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureMatchCategoriesSchema, normalizeCategoryColor, seedDefaultMatchCategories } from './_lib/match-categories';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
-
-function cleanText(value, max = 120) {
-  return String(value || '').trim().slice(0, max);
-}
+import { cleanText } from './_lib/text';
 
 async function requireCategoryManager(teamId, userId) {
   const membership = await sql`

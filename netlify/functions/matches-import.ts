@@ -10,14 +10,10 @@ import { assertMatchSourceMutationEnvironment } from './_lib/match-source-enviro
 import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_getTeamMembers.js';
 import { sendNotification } from './_mailer.js';
+import { escapeHtml } from './_lib/text';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
-}
-
-function escapeHtml(value) {
-  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  return String(value || '').replace(/[&<>"']/g, (char) => entities[char] || char);
 }
 
 async function notifyMatchImport({ request, teamId, matchId, gameId }) {

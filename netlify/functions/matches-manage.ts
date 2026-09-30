@@ -8,10 +8,7 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { changeMatchSide } from './_lib/match-side';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
-
-function cleanText(value, max = 240) {
-  return String(value || '').trim().slice(0, max);
-}
+import { cleanText } from './_lib/text';
 
 async function ensureMatchManagementColumns() {
   await assertSchemaReady();

@@ -1,9 +1,7 @@
+import { escapeHtml } from './_lib/text';
+
 function env(name) {
   return globalThis.Netlify?.env?.get?.(name) || process.env[name] || '';
-}
-
-function escapeHtml(value) {
-  return String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 }
 
 function notificationShell({ subject, html }) {
