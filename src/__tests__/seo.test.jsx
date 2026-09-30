@@ -1,4 +1,5 @@
 import React from "react";
+import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyDocumentMetadata, getMetadata, PUBLIC_METADATA, renderMetadata, serializeStructuredData, SITE_ORIGIN } from "../seo/metadata.js";
@@ -29,6 +30,32 @@ describe("public SEO and real component rendering", () => {
     expect(metadata.robots).toContain("index, follow");
     expect(metadata.description.length).toBeGreaterThan(80);
     expect(metadata.structuredData["@graph"].some(item => ["WebPage", "ContactPage"].includes(item["@type"]) && item.url === metadata.canonical)).toBe(true);
+  });
+
+  it("identifies the official community accounts in organization metadata", () => {
+    const metadata = getMetadata("/reseaux");
+    expect(metadata.description).toContain("Discord");
+    expect(metadata.description).toContain("YouTube");
+    const organization = metadata.structuredData["@graph"].find(item => item["@type"] === "Organization");
+    expect(organization.sameAs).toEqual([
+      "https://discord.gg/esPcQAeNWu",
+      "https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA",
+    ]);
+    for (const href of organization.sameAs) expect(render("/reseaux")).toContain(`href="${href}"`);
+    expect(renderMetadata(metadata)).toContain(JSON.stringify(organization.sameAs));
+  });
+
+  it("keeps the French manifest aligned with the homepage and existing install icons", () => {
+    const manifest = JSON.parse(readFileSync(new URL("../../public/manifest.webmanifest", import.meta.url), "utf8"));
+    expect(manifest.description).toBe(PUBLIC_METADATA["/"].description);
+    expect(manifest.lang).toBe("fr");
+    for (const size of [192, 512]) {
+      const src = `/android-chrome-${size}x${size}.png`;
+      expect(manifest.icons).toContainEqual({ src, sizes: `${size}x${size}`, type: "image/png" });
+      const bytes = readFileSync(new URL(`../../public${src}`, import.meta.url));
+      expect(bytes.readUInt32BE(16)).toBe(size);
+      expect(bytes.readUInt32BE(20)).toBe(size);
+    }
   });
 
   it("strips query, fragment and trailing slash from canonical URLs", () => {

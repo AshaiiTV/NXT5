@@ -1,3 +1,4 @@
+import { LEGAL_VERSION } from '../../shared/legal.js';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -111,7 +112,7 @@ describe('social account recovery proves mailbox ownership and removes other acc
       await rows("insert into password_reset_tokens(user_id,token_hash,expires_at,email) values($1,$2,now()+interval '1 hour',$3)", [recoveredId, sha256(registrationToken), registrationEmail]);
       expect((await reset(nextPassword, registrationToken)).status).toBe(200);
     };
-    const response = await register(post('auth-register', { email: registrationEmail, displayName: 'New victim', password: 'Attacker initial password', acceptLegal: true, legalVersion: '2026-09-23' }), context);
+    const response = await register(post('auth-register', { email: registrationEmail, displayName: 'New victim', password: 'Attacker initial password', acceptLegal: true, legalVersion: LEGAL_VERSION }), context);
     expect(recoveredId).toBeTruthy();
     expect(response.status).toBe(202);
     expect(context.cookies.set).not.toHaveBeenCalled();

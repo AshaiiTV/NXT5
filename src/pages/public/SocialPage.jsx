@@ -22,7 +22,7 @@ export default function SocialPage({ navigate, user }) {
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
         <LinkButton href={user ? "/equipes" : "/connexion"} navigate={navigate} variant="ghost">
-          {user ? "Retour à l’app" : "Connexion"}
+          {user ? "Mon équipe" : "Se connecter"}
         </LinkButton>
       </SiteHeader>
       <main className="nxt5-information-main">
@@ -55,7 +55,7 @@ export default function SocialPage({ navigate, user }) {
             </a></li>
           ))}</ul></Surface>
         </section>}
-        {!links.length && <Surface><p className="nxt5-community-empty">Les liens de la communauté seront disponibles prochainement.</p></Surface>}
+        {!links.length && <Surface><p className="nxt5-community-empty">Aucun lien vers les réseaux de NXT5 n’est disponible sur cette page.</p></Surface>}
         <p id="social-new-tab" className="nxt5-social-link-note"><ArrowUpRight aria-hidden="true" size={15} />Les liens vers les réseaux s’ouvrent dans un nouvel onglet.</p>
 
         <section id="contact" className="nxt5-contact-section" aria-label="Contacter NXT5">

@@ -14,7 +14,7 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
       <AmbientBackground />
       <SiteHeader navigate={navigate} simple>
         <LinkButton href={user ? "/equipes" : "/connexion"} navigate={navigate} variant="ghost">
-          {user ? "Mon espace" : "Se connecter"}
+          {user ? "Mon équipe" : "Se connecter"}
         </LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-support-main">

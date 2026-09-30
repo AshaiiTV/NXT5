@@ -244,7 +244,7 @@ export function SocialAccounts({ onStatus }) {
   return <Surface className="nxt5-social-connections xl:col-span-2">
     <Badge tone="cyan">Connexions</Badge>
     <h3 className="nxt5-social-title">Connexions associées</h3>
-    <p className="nxt5-social-description">Associe un service pour te reconnecter au même compte NXT5 avec Google, Discord, Apple ou Riot.</p>
+    <p className="nxt5-social-description">Associe un service pour te reconnecter au même compte NXT5.{status?.providers?.some((provider) => provider.enabled === true) && ` Services disponibles : ${PROVIDERS.filter((provider) => status.providers.some((entry) => entry.id === provider.id && entry.enabled === true)).map((provider) => provider.label).join(", ")}.`}</p>
     {socialCallbackStatus() && <div className="mt-4"><SocialNotice /></div>}
     {loading && <p className="mt-4 text-sm text-slate-300" role="status">Chargement des comptes associés…</p>}
     {error && <div className="mt-4"><Feedback>{error}</Feedback>{!status && <Button type="button" variant="ghost" className="mt-3" onClick={() => setAttempt((value) => value + 1)}>Réessayer</Button>}</div>}
