@@ -21,7 +21,12 @@ Hors ligne, les noms devenaient aussi « Champion 157 », sans avertissement, et
 - **Logo** : l’en-tête recomposait « NXT5 » en texte Inter, alors que la charte demande de ne pas reconstituer la signature avec du texte. Il utilise désormais `assets/nxt5-wordmark-320.webp` (15 Ko), copie de `public/assets/nxt5-wordmark-320.webp`, suivi de la mention « IMPORTER ». Le symbole `nxt5-mark.png` propre à l’Importer (trident complet) est conservé. Le « NXT5 » du pied de page reste un texte de mention, pas une signature.
 - **Ton** : tous les textes de l’interface et des messages d’erreur passent au tutoiement, comme le site (« Français direct et concret, tutoiement cohérent avec l’accueil »). Le README et le CHANGELOG, destinés aux développeurs, ne changent pas.
 - **Electron** : 44.2.0 → 44.4.3 (commit Dependabot repris), dans la même version pour ne publier qu’une seule release.
-- **Build** : une surcharge `undici@6: ^6.28.1` corrige l’alerte GHSA-3wwx-pv8p-q78v, remontée par `electron-builder` → `node-gyp`, qui bloquait `pnpm audit` en CI.
+- **Build** : des surcharges ciblées dans `pnpm-workspace.yaml` corrigent les alertes qui bloquaient `pnpm audit` en CI :
+  - `undici@6: ^6.28.1` (GHSA-3wwx-pv8p-q78v, via `electron-builder` → `node-gyp`) ;
+  - `brace-expansion` 1/2/5 → 1.1.21, 2.1.7 et 5.0.12 (GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p et GHSA-q2hr-2g5m-vwhr, via `minimatch`) ;
+  - `fast-uri@3: ^3.1.8` (GHSA-hrr3-gc8f-f4qj, via `ajv`).
+
+  Ces paquets servent seulement à construire l’application et ne sont pas embarqués. Retirer les surcharges quand `electron-builder` résoudra lui-même les versions corrigées.
 - **Correctifs de l’audit croisé (PR #97)**, déplacés ici pour qu’une seule PR publie la 0.3.4 : une seule équipe gagnante exigée, CS à 10/20 minutes indisponibles si une composante manque, parcours du site à jour après l’export (« Parties → Importer une partie → Choisir mon fichier »).
 
 ## Vérifications
