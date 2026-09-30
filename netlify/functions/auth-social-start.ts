@@ -24,13 +24,18 @@ export default async function handler(request: Request, context: Context): Promi
     if (!bound && user) throw socialError(409, 'SOCIAL_ALREADY_SIGNED_IN', 'Tu es déjà connecté. Associe ce compte depuis tes paramètres.');
     if (user) await assertSubjectRateLimit('auth-social-link', user.id, { limit: 5, windowSeconds: 60 });
     if (body.flow === 'reauth') {
-      // Reauthentication proves control of an identity already linked to this account.
+      // La reconnexion prouve le contrôle d'une identité associée AVANT l'ouverture
+      // de cette session : une association faite depuis la session ne compte pas.
       await assertAccountDeletionSchemaReady();
-      const linked = await sql`select 1 from social_identities where user_id = ${user!.id} and provider = ${provider}`;
+      const linked = await sql`select 1 from social_identities
+        join sessions on sessions.user_id = social_identities.user_id
+          and sessions.token_hash = ${sha256(readSessionCookie(context) || '')}
+        where social_identities.user_id = ${user!.id} and social_identities.provider = ${provider}
+          and social_identities.linked_at < sessions.created_at`;
       if (!linked.length) throw socialError(409, 'SOCIAL_REAUTH_PROVIDER', 'Ce service n’est pas associé à ton compte NXT5.');
     }
     const state = randomSocialValue(), browser = randomSocialValue(), nonce = randomSocialValue(), codeVerifier = randomSocialValue();
-    const authorizationUrl = await createSocialAuthorizationUrl(config, { state, nonce, codeVerifier });
+    const authorizationUrl = await createSocialAuthorizationUrl(config, { state, nonce, codeVerifier, freshLogin: body.flow === 'reauth' });
     const oldBrowser = sha256(socialCookie(context, SOCIAL_BROWSER_COOKIE));
     await sql`delete from social_auth_flows where expires_at <= now() or browser_hash = ${oldBrowser}`;
     await sql`delete from social_auth_tickets where expires_at <= now() or browser_hash = ${oldBrowser}`;

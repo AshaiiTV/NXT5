@@ -75,7 +75,7 @@ let passwordHash: string;
 // Every foreign key to users and its documented treatment
 // (docs/suppression-compte-2026-09-30.md). A new foreign key fails this test
 // until its treatment is decided in nxt5_delete_account and documented.
-const FOREIGN_KEY_DECISIONS: Record<string, 'delete' | 'transfer' | 'null' | 'purge-profile'> = {
+const FOREIGN_KEY_DECISIONS: Record<string, 'delete' | 'transfer' | 'null' | 'anonymize-profile'> = {
   'access_requests.updated_by': 'null', 'account_deletion_confirmations.user_id': 'delete',
   'account_reauthentications.user_id': 'delete', 'account_subscriptions.updated_by': 'null',
   'account_subscriptions.user_id': 'delete', 'audit_logs.user_id': 'null',
@@ -93,7 +93,7 @@ const FOREIGN_KEY_DECISIONS: Record<string, 'delete' | 'transfer' | 'null' | 'pu
   'matches.created_by': 'null', 'matches.reviewed_by': 'null',
   'password_reset_tokens.user_id': 'delete', 'player_availability.updated_by': 'null',
   'player_coaching_notes.updated_by': 'null', 'player_goals.created_by': 'null',
-  'player_matchup_notebooks.updated_by': 'null', 'players.user_id': 'purge-profile',
+  'player_matchup_notebooks.updated_by': 'null', 'players.user_id': 'anonymize-profile',
   'reports.created_by': 'null', 'sessions.user_id': 'delete',
   'social_auth_flows.user_id': 'delete', 'social_auth_tickets.user_id': 'delete',
   'social_identities.user_id': 'delete', 'team_invite_codes.created_by': 'null',
@@ -272,7 +272,7 @@ describe('owner of a team with other members', { timeout: 30_000 }, () => {
     expect(response.status).toBe(200);
     const { receipt } = await response.json();
     expect(receipt.summary).toMatchObject({ teamsTransferred: 1, teamsDeleted: 0, membershipsRemoved: 2,
-      profilesPurged: 1, participantsAnonymized: 1, sessionsClosed: 1, sharedHistoryRetained: true });
+      profilesAnonymized: 1, participantsAnonymized: 1, sessionsClosed: 1, sharedHistoryRetained: true });
 
     expect(await account()).toMatchObject({ email: null, name: 'Compte supprimé', account_name: `deleted-${ownerId}`,
       password_hash: '!deleted', email_verified: false, notif_match: false, notif_inactivity: false, legal_version: null });
@@ -283,14 +283,19 @@ describe('owner of a team with other members', { timeout: 30_000 }, () => {
       { team_id: teamId, user_id: successorId, role: 'captain' }, { team_id: teamId, user_id: coachId, role: 'coach' },
       { team_id: otherTeamId, user_id: successorId, role: 'captain' },
     ]);
-    expect(await rows('select id from players')).toEqual([{ id: successorPlayerId }]);
+    // The linked profile stays in its team, detached and anonymised, with the team data attached to it.
+    expect(await rows('select id, user_id, name, riot_id, role from players order by name')).toEqual([
+      { id: ownerPlayerId, user_id: null, name: 'Joueur supprimé', riot_id: null, role: 'TOP' },
+      { id: successorPlayerId, user_id: successorId, name: 'Successor player', riot_id: 'Successor#EUW', role: 'MID' },
+    ]);
     for (const table of ['champion_pool', 'player_availability', 'player_coaching_notes', 'player_goals', 'player_matchup_notebooks']) {
-      expect((await rows(`select player_id from ${table}`)).map((row: any) => row.player_id)).toEqual([successorPlayerId]);
+      expect((await rows(`select player_id from ${table} order by player_id`)).map((row: any) => row.player_id)).toEqual([ownerPlayerId, successorPlayerId]);
     }
-    expect(await rows('select updated_by from player_coaching_notes')).toEqual([{ updated_by: null }]);
+    expect(await rows('select player_name from champion_pool order by player_id')).toEqual([{ player_name: 'Joueur supprimé' }, { player_name: 'Successor player' }]);
+    expect(await rows('select updated_by from player_coaching_notes')).toEqual([{ updated_by: null }, { updated_by: null }]);
     expect(await rows('select created_by, reviewed_by from matches')).toEqual([{ created_by: null, reviewed_by: null }]);
     const participants = await rows('select player_id, summoner_name, riot_id, raw from match_participants order by champion');
-    expect(participants[0]).toEqual({ player_id: null, summoner_name: 'Joueur supprimé', riot_id: null, raw: { championName: 'Ahri', item0: 3089 } });
+    expect(participants[0]).toEqual({ player_id: ownerPlayerId, summoner_name: 'Joueur supprimé', riot_id: null, raw: { championName: 'Ahri', item0: 3089 } });
     expect(participants[1]).toMatchObject({ player_id: successorPlayerId, summoner_name: 'Successor player', raw: { puuid: 'KEPT' } });
     const [report] = await rows('select created_by, content, updated_at from reports');
     expect(report).toMatchObject({ created_by: null, content: 'Contenu partagé' });
@@ -309,10 +314,76 @@ describe('owner of a team with other members', { timeout: 30_000 }, () => {
     expect(JSON.stringify(logs)).not.toContain(ownerId);
     expect(JSON.stringify(logs)).not.toContain('owner@example.test');
     expect(logs.find((log: any) => log.action === 'team.create')).toMatchObject({ user_id: successorId, metadata: { name: 'Kept' } });
-    expect(logs.find((log: any) => log.action === 'team_member.role_update')).toMatchObject({ user_id: null, entity_id: teamId, metadata: {} });
+    // Written by another member: only the value designating the deleted account is removed.
+    expect(logs.find((log: any) => log.action === 'team_member.role_update')).toMatchObject({ user_id: successorId, entity_id: teamId, metadata: { targetUserId: null, role: 'player' } });
+    expect(logs.find((log: any) => log.action === 'old.action')).toMatchObject({ user_id: null, metadata: { email: null } });
     expect(logs.find((log: any) => log.action === 'auth.account_deleted')).toMatchObject({ id: receipt.reference, user_id: null });
     expect(JSON.stringify(receipt)).not.toContain(ownerId);
     expect(target.set).toHaveBeenCalledWith(expect.objectContaining({ name: COOKIE_NAME, maxAge: 0 }));
+  });
+
+  it('scrubs only exact values designating the account in other accounts\' audit logs', async () => {
+    const annId = '93000000-0000-4000-8000-000000000006';
+    await seedUser(annId, 'ann', passwordHash, 'ann@x.fr');
+    await seedSession(annId, 'ann-session');
+    await rows("insert into audit_logs(user_id, action, metadata) values ($1,'profile.update','{\"email\":\"joann@x.fr\"}')", [successorId]);
+    await rows("insert into audit_logs(user_id, action, metadata) values ($1,'team.invite',$2)",
+      [successorId, JSON.stringify({ invited: [{ email: 'ANN@X.FR' }, { email: 'joann@x.fr' }], note: 'ann@x.fr et joann@x.fr', team: 'Kept' })]);
+    await rows("insert into audit_logs(user_id, action, metadata) values ($1,'profile.update','{\"email\":\"ann@x.fr\"}')", [annId]);
+    const target = browser({ [COOKIE_NAME]: 'ann-session' });
+    expect((await remove(target, await prepare(target))).status).toBe(200);
+    const logs = await rows("select user_id, metadata from audit_logs where action <> 'auth.account_deleted' order by action, user_id");
+    expect(logs).toEqual([
+      { user_id: successorId, metadata: { email: 'joann@x.fr' } },
+      { user_id: null, metadata: { email: null } },
+      { user_id: successorId, metadata: { invited: [{ email: null }, { email: 'joann@x.fr' }], note: 'ann@x.fr et joann@x.fr', team: 'Kept' } },
+    ]);
+  });
+
+  it('keeps the linked profile and the data other members wrote about it in another team', async () => {
+    await seedTeam(otherTeamId, successorId, [[successorId, 'captain'], [coachId, 'coach'], [ownerId, 'player']]);
+    await rows("insert into players(id, team_id, user_id, name, riot_id, opgg_url, role, most_played) values ($1,$2,$3,'Owner player','Owner#EUW','https://op.gg/owner','ADC','[{\"champion\":\"Jinx\"}]')",
+      [ownerPlayerId, otherTeamId, ownerId]);
+    await rows("insert into player_coaching_notes(team_id, player_id, content, updated_by) values ($1,$2,'Coach feedback',$3)", [otherTeamId, ownerPlayerId, coachId]);
+    const [goal] = await rows("insert into player_goals(team_id, player_id, title, metric, target_value, created_by) values ($1,$2,'CS','cs',8,$3) returning id", [otherTeamId, ownerPlayerId, coachId]);
+    await rows("insert into discord_player_goal_updates(team_id, goal_id, user_id, note) values ($1,$2,$3,'Coach update')", [otherTeamId, goal.id, coachId]);
+    await rows("insert into player_matchup_notebooks(team_id, player_id, champion, opponent_champion, role, updated_by) values ($1,$2,'jinx','caitlyn','ADC',$3)", [otherTeamId, ownerPlayerId, coachId]);
+    await rows("insert into player_availability(team_id, player_id, week_start, notes, updated_by) values ($1,$2,'2026-09-28','Team planning',$3)", [otherTeamId, ownerPlayerId, coachId]);
+    await rows("insert into matches(id, team_id, game_id) values ($1,$2,'EUW1_3')", [matchId, otherTeamId]);
+    await rows("insert into match_participants(match_id, player_id, team_key, summoner_name, riot_id, champion, raw) values ($1,$2,'ALLY','Owner player','Owner#EUW','Jinx','{\"puuid\":\"PRIVATE\"}')", [matchId, ownerPlayerId]);
+
+    const target = browser();
+    const response = await remove(target, await prepare(target));
+    expect(response.status).toBe(200);
+    expect((await response.json()).receipt.summary).toMatchObject({ profilesAnonymized: 1, participantsAnonymized: 1 });
+    expect(await rows('select team_id, user_id, name, riot_id, opgg_url, role, roster_status, most_played from players')).toEqual([
+      { team_id: otherTeamId, user_id: null, name: 'Joueur supprimé', riot_id: null, opgg_url: null, role: 'ADC', roster_status: 'MAIN', most_played: [] },
+    ]);
+    expect(await rows('select content, updated_by from player_coaching_notes')).toEqual([{ content: 'Coach feedback', updated_by: coachId }]);
+    expect(await rows('select player_id, created_by from player_goals')).toEqual([{ player_id: ownerPlayerId, created_by: coachId }]);
+    expect(await rows('select note, user_id from discord_player_goal_updates')).toEqual([{ note: 'Coach update', user_id: coachId }]);
+    expect(await rows('select player_id from player_matchup_notebooks')).toEqual([{ player_id: ownerPlayerId }]);
+    expect(await rows('select notes from player_availability')).toEqual([{ notes: 'Team planning' }]);
+    expect(await rows('select player_id, summoner_name, riot_id, raw from match_participants')).toEqual([
+      { player_id: ownerPlayerId, summoner_name: 'Joueur supprimé', riot_id: null, raw: {} },
+    ]);
+    expect(await allReferencesTo(ownerId)).toEqual([]);
+  });
+
+  it('reports an unexpected unique conflict without blaming a team name', async () => {
+    const target = browser();
+    const token = await prepare(target);
+    state.beforeQuery = async (query) => {
+      if (!query.includes('nxt5_delete_account')) return;
+      throw Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' });
+    };
+    const response = await remove(target, token);
+    expect(response.status).toBe(409);
+    const body = await response.json();
+    expect(body.code).toBe('DELETION_CONFLICT');
+    expect(body.error).not.toMatch(/nom|équipe de ce nom/);
+    expect(body.error).toContain('Aucune suppression effectuée');
+    expect((await account()).deleted_at).toBeNull();
   });
 
   it('refuses a direct DELETE of an owner whose team has other members', async () => {
@@ -377,7 +448,8 @@ describe('account connected only through a provider', { timeout: 30_000 }, () =>
   const subject = 'google-subject-social-only';
   async function seedSocialAccount() {
     await seedUser(socialId, 'social', '');
-    await rows("insert into social_identities(user_id, provider, subject, display_name) values ($1,'google',$2,'Social player')", [socialId, subject]);
+    // Linked at sign-up, before the current session was opened.
+    await rows("insert into social_identities(user_id, provider, subject, display_name, linked_at) values ($1,'google',$2,'Social player',now() - interval '1 day')", [socialId, subject]);
     await seedSession(socialId, 'social-session');
   }
   function socialBrowser() { return browser({ [COOKIE_NAME]: 'social-session' }); }
@@ -417,6 +489,44 @@ describe('account connected only through a provider', { timeout: 30_000 }, () =>
     expect(await rows('select * from account_reauthentications')).toHaveLength(0);
     expect(await allReferencesTo(socialId)).toEqual([]);
     expect(await account(socialId)).toMatchObject({ email: null, password_hash: '!deleted' });
+  });
+
+  it('forces a fresh provider login only for the reauthentication flow', async () => {
+    await seedSocialAccount();
+    const target = socialBrowser();
+    await reauthenticate(target);
+    expect(state.authorize).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ freshLogin: true }));
+  });
+
+  it('refuses a provider linked after the current session was opened', async () => {
+    await seedSocialAccount();
+    const target = socialBrowser();
+    const token = await prepare(target);
+    // An identity added through the « link » flow from this session proves nothing.
+    await rows("update social_identities set linked_at = now() + interval '1 minute'");
+    expect((await inspect(target)).reauthentication.providers).toEqual([]);
+    const started = await startSocial(new Request(`${origin}/.netlify/functions/auth-social-start`, {
+      method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: JSON.stringify({ provider: 'google', flow: 'reauth' }),
+    }), target.context);
+    expect(started.status).toBe(409);
+    expect((await started.json()).code).toBe('SOCIAL_REAUTH_PROVIDER');
+
+    // Linked between the start and the provider's answer: no proof is recorded.
+    await rows("update social_identities set linked_at = now() - interval '1 day'");
+    state.beforeQuery = async (query) => {
+      if (!query.includes('account_reauthentications')) return;
+      state.beforeQuery = null;
+      await state.pg.query("update social_identities set linked_at = now() + interval '1 minute'");
+    };
+    expect(await reauthenticate(target)).toBe('/parametres?reauth=mismatch&provider=google');
+    expect(await rows('select * from account_reauthentications')).toHaveLength(0);
+
+    // Even with a proof in place, the SQL function checks when the identity was linked.
+    await rows('insert into account_reauthentications(session_hash, user_id, provider) values ($1,$2,$3)', [sha256('social-session'), socialId, 'google']);
+    const refused = await remove(target, token, { currentPassword: undefined });
+    expect(refused.status).toBe(403);
+    expect((await refused.json()).code).toBe('DELETION_REAUTH_REQUIRED');
+    expect((await account(socialId)).deleted_at).toBeNull();
   });
 
   it('does not start a reauthentication with a provider that is not linked', async () => {
@@ -468,6 +578,8 @@ describe('account linked to Discord', { timeout: 30_000 }, () => {
     await rows("insert into discord_team_goals(id, team_id, title, created_by) values ($1,$2,'Team goal',$3)", [goalId, teamId, successorId]);
     await rows("insert into discord_goal_updates(team_id, goal_id, user_id, note) values ($1,$2,$3,'Progress shared with the team')", [teamId, goalId, discordUserId]);
     await rows("insert into audit_logs(action, metadata) values ('discord.command', $1)", [JSON.stringify({ discordUserId: discordSnowflake })]);
+    await rows("insert into audit_logs(user_id, action, entity_type, entity_id, metadata) values ($1,'discord.connected','team',$2,$3)",
+      [successorId, teamId, JSON.stringify({ guildId: '111111111111111111', discordUserId: discordSnowflake, interactionId: 'interaction-1' })]);
 
     const target = browser({ [COOKIE_NAME]: 'discord-session' });
     expect(await inspect(target)).toMatchObject({ discordLinked: true, teams: [] });
@@ -485,7 +597,11 @@ describe('account linked to Discord', { timeout: 30_000 }, () => {
     expect(await rows('select created_by from discord_connections')).toEqual([{ created_by: null }]);
     expect(await rows('select created_by from discord_routes')).toEqual([{ created_by: null }]);
     expect(await rows('select user_id, note from discord_goal_updates')).toEqual([{ user_id: null, note: 'Progress shared with the team' }]);
-    expect(await rows("select metadata from audit_logs where action = 'discord.command'")).toEqual([{ metadata: {} }]);
+    expect(await rows("select metadata from audit_logs where action = 'discord.command'")).toEqual([{ metadata: { discordUserId: null } }]);
+    // Written for the team owner when the server was connected: author and other details stay.
+    expect(await rows("select user_id, entity_id, metadata from audit_logs where action = 'discord.connected'")).toEqual([
+      { user_id: successorId, entity_id: teamId, metadata: { guildId: '111111111111111111', discordUserId: null, interactionId: 'interaction-1' } },
+    ]);
     expect(await rows('select owner_id from teams')).toEqual([{ owner_id: successorId }]);
     expect(await allReferencesTo(discordUserId)).toEqual([]);
   });

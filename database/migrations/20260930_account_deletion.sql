@@ -137,6 +137,30 @@ begin
   end loop;
 end $$;
 
+-- Retire d'un document JSON les valeurs texte égales (sans casse) à l'une des
+-- cibles, déjà en minuscules, à toute profondeur. Les autres valeurs et la
+-- structure restent intactes : une sous-chaîne (joann@x.fr pour ann@x.fr) ne
+-- correspond jamais.
+create function nxt5_scrub_json_values(doc jsonb, targets text[]) returns jsonb
+language plpgsql immutable
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  case jsonb_typeof(doc)
+    when 'string' then
+      if lower(doc #>> '{}') = any(targets) then return 'null'::jsonb; end if;
+      return doc;
+    when 'object' then
+      return coalesce((select jsonb_object_agg(entry.key, nxt5_scrub_json_values(entry.item, targets))
+        from jsonb_each(doc) as entry(key, item)), '{}'::jsonb);
+    when 'array' then
+      return coalesce((select jsonb_agg(nxt5_scrub_json_values(entry.item, targets) order by entry.position)
+        from jsonb_array_elements(doc) with ordinality as entry(item, position)), '[]'::jsonb);
+    else
+      return doc;
+  end case;
+end $$;
+
 create function nxt5_delete_account(
   account_id uuid, expected_password_hash text, session_hash_value text, confirmation_hash text
 ) returns jsonb
@@ -155,7 +179,8 @@ declare
   teams_transferred integer := 0;
   teams_deleted integer := 0;
   memberships_removed integer;
-  profiles_purged integer;
+  profiles_anonymized integer;
+  scrub_targets text[];
   participants_anonymized integer;
   sessions_closed integer;
   connections_removed integer;
@@ -173,12 +198,16 @@ begin
       raise exception 'ACCOUNT_CHANGED' using errcode = 'P0001';
     end if;
   else
-    -- Compte sans mot de passe : reconnexion récente, sur cette session, avec un fournisseur encore associé.
+    -- Compte sans mot de passe : reconnexion récente, sur cette session, avec un
+    -- fournisseur encore associé ET associé avant l'ouverture de la session. Une
+    -- identité ajoutée depuis la session (parcours « link ») ne prouve rien.
     delete from account_reauthentications proof
       where proof.user_id = account_id and proof.session_hash = session_hash_value
         and proof.expires_at > clock_timestamp()
         and exists (select 1 from social_identities identity
-          where identity.user_id = account_id and identity.provider = proof.provider);
+          join sessions on sessions.user_id = identity.user_id and sessions.token_hash = session_hash_value
+          where identity.user_id = account_id and identity.provider = proof.provider
+            and identity.linked_at < sessions.created_at);
     get diagnostics affected = row_count;
     if affected = 0 then raise exception 'DELETION_REAUTH_REQUIRED' using errcode = 'P0001'; end if;
   end if;
@@ -225,17 +254,24 @@ begin
     end if;
   end loop;
 
-  -- players.user_id : profils joueur liés supprimés (cascade sur pool, disponibilités,
-  -- objectifs, notes de coaching, carnets de matchups et objectifs Discord du joueur).
-  -- Les participations restent dans l'historique de l'équipe, sans identifiant Riot.
+  -- players.user_id : les profils joueur ne sont PAS supprimés. Ils appartiennent
+  -- aussi à l'équipe : leur suppression effacerait en cascade les notes de coaching,
+  -- objectifs, mises à jour d'objectifs Discord, carnets de matchups et
+  -- disponibilités écrits par les autres membres. Chaque profil est détaché du
+  -- compte et anonymisé ; le poste, le statut et les données d'équipe liées restent.
+  -- Les participations gardent leur lien au profil, sans nom ni identifiant Riot.
   select coalesce(array_agg(id), '{}'::uuid[]) into player_ids from players where user_id = account_id;
   update match_participants set summoner_name = 'Joueur supprimé', riot_id = null,
     raw = case when jsonb_typeof(raw) = 'object' then raw - array['puuid', 'summonerName', 'summonerId',
       'riotIdGameName', 'riotIdTagline', 'riotIdName', 'profileIcon', 'summonerLevel'] else raw end
     where player_id = any(player_ids);
   get diagnostics participants_anonymized = row_count;
-  delete from players where id = any(player_ids);
-  get diagnostics profiles_purged = row_count;
+  update champion_pool set player_name = 'Joueur supprimé' where player_id = any(player_ids);
+  -- riot_id nul : l'unicité (team_id, riot_id) admet plusieurs valeurs nulles.
+  update players set user_id = null, name = 'Joueur supprimé', riot_id = null, opgg_url = null,
+    most_played = '[]'::jsonb
+    where id = any(player_ids);
+  get diagnostics profiles_anonymized = row_count;
 
   -- Liaisons Discord : suppression (cascade sur les choix d'équipe et commandes en attente)
   -- et des traces rattachées aux mêmes identifiants Discord.
@@ -299,14 +335,19 @@ begin
   update access_requests set updated_by = null where updated_by = account_id;
   perform set_config('nxt5.preserve_updated_at', 'off', true);
 
-  -- Journaux : auteur, cible et métadonnées retirés lorsqu'ils désignent le compte.
-  update audit_logs set user_id = null,
+  -- Journaux : l'auteur et la cible ne sont retirés que s'ils sont ce compte. Dans
+  -- les métadonnées, seules les valeurs exactement égales à son UUID, son e-mail
+  -- (sans casse) ou un de ses identifiants Discord deviennent nulles ; les journaux
+  -- des autres comptes gardent leur auteur et le reste de leurs métadonnées.
+  -- La recherche de sous-chaîne n'est qu'un préfiltre bon marché avant le parcours exact.
+  scrub_targets := array_remove(array[lower(account_id::text), lower(account.email)] || discord_ids, null);
+  update audit_logs set
+    user_id = case when user_id = account_id then null else user_id end,
     entity_id = case when entity_id = account_id then null else entity_id end,
-    metadata = '{}'::jsonb
+    metadata = nxt5_scrub_json_values(metadata, scrub_targets)
     where user_id = account_id or entity_id = account_id
-      or strpos(metadata::text, account_id::text) > 0
-      or (account.email is not null and strpos(lower(metadata::text), lower(account.email)) > 0)
-      or exists (select 1 from unnest(discord_ids) as discord_id where strpos(metadata::text, discord_id) > 0);
+      or (exists (select 1 from unnest(scrub_targets) as target where strpos(lower(metadata::text), target) > 0)
+        and nxt5_scrub_json_values(metadata, scrub_targets) is distinct from metadata);
 
   update users set deleted_at = now(), account_name = 'deleted-' || id::text,
     name = 'Compte supprimé', email = null, password_hash = '!deleted',
@@ -317,9 +358,9 @@ begin
     social_link_revision = social_link_revision + 1
     where id = account_id;
 
-  result_summary := jsonb_build_object('policyVersion', '2026-09-30',
+  result_summary := jsonb_build_object('policyVersion', '2026-09-30.2',
     'teamsTransferred', teams_transferred, 'teamsDeleted', teams_deleted,
-    'membershipsRemoved', memberships_removed, 'profilesPurged', profiles_purged,
+    'membershipsRemoved', memberships_removed, 'profilesAnonymized', profiles_anonymized,
     'participantsAnonymized', participants_anonymized, 'sessionsClosed', sessions_closed,
     'externalConnectionsRemoved', connections_removed, 'discordLinksRemoved', discord_links_removed,
     'sharedHistoryRetained', true);

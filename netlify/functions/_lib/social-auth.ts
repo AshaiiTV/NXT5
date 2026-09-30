@@ -126,8 +126,8 @@ export async function socialTicket(context: Context, purpose: 'callback' | 'sign
   return rows[0] as SocialTicket || null;
 }
 
-/** Records a fresh proof that the signed-in person controls an identity already
- * linked to this account. It is valid for ten minutes and for this session only. */
+/** Records a fresh proof that the signed-in person controls an identity linked
+ * to this account before the current session was opened. It is valid for ten minutes and for this session only. */
 export async function recordSocialReauthentication(pending: SocialTicket): Promise<boolean> {
   const rows = await sql`
     with authorized_user as materialized (
@@ -138,6 +138,8 @@ export async function recordSocialReauthentication(pending: SocialTicket): Promi
       join authorized_user on authorized_user.id = sessions.user_id
       join social_identities on social_identities.user_id = sessions.user_id
         and social_identities.provider = ${pending.provider} and social_identities.subject = ${pending.subject}
+        -- Seule une identité associée avant l'ouverture de la session prouve quelque chose.
+        and social_identities.linked_at < sessions.created_at
       where sessions.token_hash = ${pending.session_hash} and sessions.revoked_at is null
         and sessions.expires_at > clock_timestamp()
     ), recorded as (

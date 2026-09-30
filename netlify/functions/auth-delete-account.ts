@@ -77,7 +77,11 @@ export default async function handler(request: Request, context: Context): Promi
     if (body.action === 'inspect') {
       const [teams, identities, proof, discord] = await Promise.all([
         ownedTeams(user.id),
-        sql`select provider from social_identities where user_id = ${user.id} order by linked_at`,
+        // Seules les identités associées avant cette session peuvent confirmer la suppression.
+        sql`select provider from social_identities join sessions on sessions.user_id = social_identities.user_id
+          and sessions.token_hash = ${sessionHash}
+          where social_identities.user_id = ${user.id} and social_identities.linked_at < sessions.created_at
+          order by social_identities.linked_at`,
         sql`select provider from account_reauthentications where user_id = ${user.id}
           and session_hash = ${sessionHash} and expires_at > now()`,
         sql`select 1 from discord_user_links where user_id = ${user.id}`,
@@ -136,9 +140,11 @@ export default async function handler(request: Request, context: Context): Promi
     try { clearSessionCookie(context, request); } catch { console.warn('Account deletion completed; cookie cleanup unavailable.'); }
     return json({ ok: true, receipt: rows[0].receipt });
   } catch (error: any) {
+    // Aucune contrainte d'unicité connue n'est attendue ici : une écriture
+    // concurrente a pu créer un doublon. Message générique, rien n'est appliqué.
     if (error?.code === '23505') return json({
-      error: 'Le nouveau propriétaire possède déjà une équipe de ce nom. Renomme ton équipe ou choisis un autre membre, puis recommence. Aucune suppression effectuée.',
-      code: 'DELETION_TEAM_CHANGED'
+      error: 'Une modification simultanée de ton compte ou de tes équipes a empêché la suppression. Aucune suppression effectuée : recharge la page puis recommence.',
+      code: 'DELETION_CONFLICT'
     }, 409);
     const conflict = CONFLICTS[error?.message];
     if (conflict && ['P0001', '23514'].includes(error?.code)) {

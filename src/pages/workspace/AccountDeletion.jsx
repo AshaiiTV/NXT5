@@ -178,7 +178,7 @@ export function AccountDeletion({ onDeleted }) {
           throw new Error("La réponse a été interrompue. La suppression peut avoir abouti : vérifie son résultat avant toute autre action.");
         }
         forget(ACCOUNT_DELETION_PENDING_KEY);
-        if (["DELETION_CONFIRMATION_EXPIRED", "DELETION_TEAM_CHANGED", "ACCOUNT_CHANGED"].includes(err.code)) {
+        if (["DELETION_CONFIRMATION_EXPIRED", "DELETION_TEAM_CHANGED", "DELETION_CONFLICT", "ACCOUNT_CHANGED"].includes(err.code)) {
           forget(ACCOUNT_DELETION_CONFIRMATION_KEY);
           setStep(0); setToken(""); setConfirmation(""); setAcknowledged(false);
           setTeamPlan({}); setDeleteEmptyTeams(false); setDetails(null);
@@ -219,7 +219,7 @@ export function AccountDeletion({ onDeleted }) {
         {step === 1 ? <form onSubmit={prepare} className="mt-4 space-y-4">
           <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-slate-300">
             <li>Ton accès est désactivé, toutes tes sessions sont fermées, ton pseudo et ton e-mail sont effacés.</li>
-            <li>Tes profils joueur liés sont supprimés, avec leurs pools de champions, disponibilités, objectifs, notes de coaching et carnets de matchups.</li>
+            <li>Tes profils joueur liés restent dans leur équipe, détachés de ton compte et renommés « Joueur supprimé », sans Riot ID ; les pools de champions, disponibilités, objectifs, notes de coaching et carnets de matchups qui s’y rattachent restent à l’équipe.</li>
             <li>Tes connexions Google, Discord, Apple ou Riot{details?.discordLinked ? ", la liaison de ton compte Discord au bot" : ""} et ton abonnement sont retirés.</li>
             <li>Les parties, débriefs et contenus partagés des équipes conservées restent disponibles, sans ton nom d’auteur. Des mentions de ton pseudo peuvent subsister dans les fichiers de match importés et les textes rédigés par l’équipe.</li>
             <li>Une preuve datée de la suppression est conservée 12 mois, sans ton nom ni ton e-mail.</li>

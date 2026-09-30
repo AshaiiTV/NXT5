@@ -1,6 +1,6 @@
 # Suppression de compte en libre-service — 30 septembre 2026
 
-Portage de la suppression de compte de `3099fdb` (branche `feat/pricing-validation`, 14 septembre, jamais fusionnée), réécrite pour le schéma actuel. Les textes légaux reprennent ceux de `c32b78c` (`fix/legal-harmonization-20260923`), adaptés. Branche `claude/suppression-compte-20260930`, construite sur la PR #97 (`claude/audit-croise-20260929`), qui contient les lots fix1.
+Portage de la suppression de compte de `3099fdb` (branche `feat/pricing-validation`, 14 septembre, jamais fusionnée), réécrite pour le schéma actuel. Les textes légaux reprennent ceux de `c32b78c` (`fix/legal-harmonization-20260923`), adaptés. Branche `claude/suppression-compte-v2-20260930`, construite sur `main`.
 
 ## Principe
 
@@ -12,7 +12,9 @@ La ligne `users` n’est **jamais supprimée**. `teams.owner_id` est en `ON DELE
 2. **Confirmation 1 :** l’utilisateur lit les conséquences, choisit un nouveau propriétaire pour chaque équipe partagée et donne un accord distinct pour supprimer ses équipes sans autre membre. `prepare` enregistre ces choix dans `account_deletion_confirmations` : empreinte d’un jeton aléatoire, compte, session, validité de 15 minutes.
 3. **Confirmation 2 :** saisie de `SUPPRIMER`, puis :
    - **mot de passe actuel**, pour un compte qui en a un ;
-   - pour un compte **sans mot de passe** (connexion sociale uniquement), **reconnexion avec un fournisseur déjà associé**. Le parcours social `reauth` réutilise start, callback et finish. Comme `link`, il est lié au compte, à la session et à `social_link_revision`. `finish` vérifie que le couple (fournisseur, sujet) appartient au compte, puis enregistre une preuve dans `account_reauthentications`, valable 10 minutes pour cette session. La fonction SQL consomme cette preuve. Un autre compte chez le même fournisseur renvoie `?reauth=mismatch`. Le jeton de confirmation survit à la redirection via `sessionStorage`, sans aucun secret.
+   - pour un compte **sans mot de passe** (connexion sociale uniquement), **reconnexion avec un fournisseur déjà associé**. Le parcours social `reauth` réutilise start, callback et finish. Comme `link`, il est lié au compte, à la session et à `social_link_revision`. `finish` vérifie que le couple (fournisseur, sujet) appartient au compte, puis enregistre une preuve dans `account_reauthentications`, valable 10 minutes pour cette session. La fonction SQL consomme cette preuve. Un autre compte chez le même fournisseur renvoie `?reauth=mismatch`.
+   - **Seule une identité associée avant l’ouverture de la session compte** (`social_identities.linked_at < sessions.created_at`). Sinon, quiconque tient la session d’un compte sans mot de passe pourrait associer son propre compte Google ou Discord par `link`, puis s’en servir pour confirmer. La règle est appliquée au démarrage (`auth-social-start`), à l’enregistrement de la preuve (`recordSocialReauthentication`), dans la liste des fournisseurs proposés (`inspect`) et dans `nxt5_delete_account`.
+   - L’URL d’autorisation du seul parcours `reauth` force une interaction : `prompt=select_account` et `max_age=0` chez Google (qui refuse `prompt=login`), `prompt=consent` chez Discord (seule valeur disponible). Apple demande toujours une action ; Riot RSO ne documente pas d’option équivalente, la règle d’antériorité reste la protection. Le jeton de confirmation survit à la redirection via `sessionStorage`, sans aucun secret.
 4. **`delete` :** un seul appel à `nxt5_delete_account`, atomique. Il verrouille le compte, revalide mot de passe ou preuve, confirmation, session, équipes et successeurs. Toute erreur annule l’ensemble, trace comprise.
 5. **Reçu :** la référence et la date s’affichent à l’écran, puis retour à la connexion. Le jeton permet de retrouver le reçu pendant 24 h, même sans session (`status`, et au redémarrage de l’application après une réponse perdue). Le même envoi ne peut jamais s’appliquer deux fois.
 
@@ -31,7 +33,7 @@ Recensement avec `git grep "references users" -- database/`, puis confirmé sur 
 | --- | --- | --- | --- |
 | `teams.owner_id` | CASCADE | **Transférer** au membre choisi (il devient `captain`), ou **supprimer** l’équipe si elle n’a aucun autre membre, après accord explicite | Ne jamais effacer une équipe partagée |
 | `team_members.user_id` | CASCADE | Supprimer | Adhésions personnelles |
-| `players.user_id` | SET NULL | **Supprimer les profils liés** : cascade sur pools, disponibilités, objectifs, notes de coaching, carnets de matchups et objectifs Discord du joueur. Les participations sont anonymisées : « Joueur supprimé », `riot_id` nul, identifiants Riot retirés du `raw` (puuid, summonerName/Id, riotIdGameName/Tagline/Name, profileIcon, summonerLevel) | Données personnelles sur la personne, historique d’équipe conservé |
+| `players.user_id` | SET NULL | **Détacher et anonymiser les profils liés, sans les supprimer** : `user_id` nul, `name = Joueur supprimé`, `riot_id`, `opgg_url` nuls, `most_played` vide ; `champion_pool.player_name` renommé. Poste, statut, score et données d’équipe rattachées (pools, disponibilités, objectifs, notes de coaching, mises à jour d’objectifs Discord, carnets de matchups) conservés. Les participations gardent leur `player_id` et sont anonymisées : « Joueur supprimé », `riot_id` nul, identifiants Riot retirés du `raw` (puuid, summonerName/Id, riotIdGameName/Tagline/Name, profileIcon, summonerLevel) | Un profil appartient aussi à l’équipe : le supprimer effacerait en cascade les notes, objectifs et carnets écrits par les autres membres, dans toutes les équipes du compte. L’équipe peut ensuite supprimer le profil elle-même |
 | `sessions.user_id` | CASCADE | Supprimer | Accès |
 | `password_reset_tokens.user_id` | CASCADE | Supprimer | Accès |
 | `social_identities.user_id` | CASCADE | Supprimer | Libère l’identité externe ; une nouvelle inscription reste possible |
@@ -60,7 +62,7 @@ Recensement avec `git grep "references users" -- database/`, puis confirmé sur 
 | `discord_draft_notes.author_id`, `discord_goal_updates.user_id`, `discord_player_goal_updates.user_id` | SET NULL | Référence nulle, texte conservé | Notes partagées avec l’équipe |
 | `discord_community_announcements.created_by`, `discord_community_settings.updated_by` | SET NULL | Référence nulle | Administration de la plateforme |
 | `access_requests.updated_by` | SET NULL | Référence nulle ; les demandes envoyées depuis **l’adresse vérifiée** du compte sont supprimées | Seule une adresse vérifiée établit l’appartenance |
-| `audit_logs.user_id` | SET NULL | Auteur retiré ; cible et métadonnées vidées lorsqu’elles contiennent l’UUID, l’e-mail ou un identifiant Discord lié | Journaux sans identité, conservés 12 mois |
+| `audit_logs.user_id` | SET NULL | Auteur retiré **seulement s’il s’agit du compte** ; cible retirée si c’est le compte ; dans les métadonnées, seules les valeurs texte **exactement égales** à l’UUID, à l’e-mail (sans casse) ou à un identifiant Discord lié deviennent `null`, à toute profondeur (`nxt5_scrub_json_values`). Le reste des métadonnées et l’auteur des journaux d’autres comptes sont conservés | Journaux sans identité, conservés 12 mois. Une recherche de sous-chaîne ne sert que de préfiltre : `joann@x.fr` n’est jamais touché pour `ann@x.fr` |
 
 Les retraits d’auteur conservent `updated_at` grâce au réglage transactionnel `nxt5.preserve_updated_at`, lu par `set_updated_at()`. Un débrief ne paraît donc pas modifié le jour de la suppression. Les modifications ordinaires ne changent pas.
 
@@ -96,8 +98,9 @@ L’administration exclut les comptes supprimés de la recherche « Comptes et a
 - **Publications Discord :** les messages déjà envoyés ne sont pas supprimés. Anonymiser les participations modifie l’empreinte des parties concernées. Les publications encore suivies par une connexion active peuvent donc être actualisées avec « Joueur supprimé ».
 - **Ce qui n’est pas purgé automatiquement :**
   - JSON bruts importés, qui contiennent les Riot IDs des dix joueurs ;
+  - copies des publications Discord (`publication_snapshots.body`) et charges utiles de la file du bot (`discord_bot_outbox.payload`), qui peuvent contenir l’ancien pseudo : les modifier casserait les empreintes et la déduplication des publications, elles ne sont donc pas réécrites ; les textes légaux l’annoncent ;
   - textes libres des débriefs et des notes ;
-  - profils joueur non liés au compte ;
+  - profils joueur non liés au compte, et profils liés (conservés anonymisés dans leur équipe) ;
   - demandes commerciales d’une adresse non vérifiée ;
   - sauvegardes Neon (30 jours) et journaux de l’hébergeur.
 
@@ -106,10 +109,10 @@ L’administration exclut les comptes supprimés de la recherche « Comptes et a
 
 ## Textes légaux
 
-`LEGAL_VERSION` passe de `2026-09-23` à `2026-09-30`, et `LEGAL_UPDATED_LABEL` à « 30 septembre 2026 ». Le libre-service change les CGU acceptées. Un formulaire d’inscription ouvert pendant le déploiement devra être rechargé.
+`LEGAL_VERSION` passe de `2026-09-30` (publiée le même jour par #91) à `2026-09-30.2` ; `LEGAL_UPDATED_LABEL` reste « 30 septembre 2026 ». Le libre-service change les CGU : sans nouvelle version, les nouveaux textes seraient enregistrés sous une version déjà acceptée avec d’autres textes. La version est une chaîne libre (`users.legal_version` et `social_signup_emails.legal_version` en `text`, comparaison stricte à l’inscription, aucune analyse de date) ; `legal.test.jsx` accepte désormais un suffixe `.N`. Le reçu enregistre `policyVersion: 2026-09-30.2`. Un formulaire d’inscription ouvert pendant le déploiement devra être rechargé. **Limite :** NXT5 ne redemande pas l’acceptation aux comptes existants ; la version ne sert qu’à dater l’acceptation des nouvelles inscriptions.
 
 - **Confidentialité :**
-  - nouvelles sections « Suppression de ton compte » et « Traces de la suppression », reprises de `c32b78c` et complétées (reconnexion sociale, Discord, carnets, participations anonymisées, publications suivies, purge quotidienne des reçus) ;
+  - nouvelles sections « Suppression de ton compte » et « Traces de la suppression », reprises de `c32b78c` et complétées (reconnexion sociale, Discord, profils joueurs conservés anonymisés avec leurs données d’équipe, participations anonymisées, publications suivies et copies techniques des publications, journaux nettoyés valeur par valeur, purge quotidienne des reçus) ;
   - « Durées de conservation » et « Connexions Google, Discord, Apple et Riot » datées du 30 septembre.
 - **CGU :** « Fin d’utilisation » décrit le parcours au lieu du renvoi vers l’e-mail ; nouvelle section « Données après suppression du compte ».
 - **Contact :** « Supprimer ton compte » renvoie d’abord vers Paramètres.
@@ -137,10 +140,14 @@ L’administration exclut les comptes supprimés de la recherche « Comptes et a
   - confirmations et quota de mot de passe ;
   - confirmation expirée, autre session ou mot de passe changé ;
   - administrateur ;
-  - **propriétaire d’une équipe avec d’autres membres** : transfert, données des autres membres intactes, historique conservé, participations anonymisées, `updated_at` préservé, journaux nettoyés, aucune référence restante ;
+  - **propriétaire d’une équipe avec d’autres membres** : transfert, données des autres membres intactes, historique conservé, profil anonymisé et conservé, participations anonymisées, `updated_at` préservé, journaux nettoyés, aucune référence restante ;
+  - **journaux d’autres comptes** : `joann@x.fr` intact pour la suppression de `ann@x.fr`, valeur exacte retirée dans un tableau imbriqué (sans casse), texte libre conservé ;
+  - **profil dans une équipe d’un autre propriétaire** : notes de coaching, objectifs, mises à jour Discord, carnets, disponibilités et participations conservés ;
+  - conflit d’unicité inattendu : message générique `DELETION_CONFLICT`, rien n’est appliqué ;
   - refus du `DELETE` direct ;
   - successeur parti, équipe solitaire, nouveau membre arrivé entre-temps, échec d’écriture de la trace (tout est annulé) ;
   - **compte uniquement social** : suppression refusée sans reconnexion, mauvais compte fournisseur refusé, preuve liée à la session et expirée, puis suppression ;
+  - **identité associée après l’ouverture de la session** : absente de `inspect`, refusée au démarrage, à l’enregistrement de la preuve et par la fonction SQL ; reconnexion forcée demandée au fournisseur (`freshLogin`, testée aussi dans `social-auth-protocol.test.ts`) ;
   - **compte lié à Discord** : liaison, demandes, reçus d’interaction, réponses, lectures, codes, contenus partagés conservés ;
   - reçu idempotent sans session, blocage après suppression ;
   - inventaire des clés étrangères.
@@ -148,19 +155,30 @@ L’administration exclut les comptes supprimés de la recherche « Comptes et a
 - `src/__tests__/app-loading.test.jsx` : reçu retrouvé au démarrage après une réponse perdue.
 - Tests adaptés :
   - `migrations.test.ts` : deux tests supposaient que leur migration était la dernière de la liste ; ils la cherchent désormais par clé ;
-  - version légale dans `public-admin-tour2`, `auth-security-regressions` et `social-account-ui`.
+  - version légale dans `public-admin-tour2`, `legal.test.jsx`, `auth-security-regressions` et `social-account-ui`.
 - `npm run verify` : voir la PR.
 
 **Non vérifié :**
 - navigateur réel ;
 - vrai retour OAuth Google, Discord, Apple ou Riot ;
 - contention sur plusieurs connexions Neon ;
-- durée de la fonction sur un compte avec un très grand historique : les mises à jour de participations déclenchent la file de publication.
+- vrai comportement de `max_age=0` chez Google (paramètre OIDC non documenté par Google, ignoré s’il n’est pas pris en charge).
 
 ## Déploiement et conflits
 
 - Appliquer la migration (`npm run db:migrate`) avant les fonctions. La route répond 503 tant que le marqueur manque.
-- **Dépend de la PR #97**, qui contient les lots fix1 et 7 migrations. Rebaser sur `main` après sa fusion ; la migration du 30 septembre reste en fin de liste.
-- **Conflits textuels probables :**
-  - `shared/legal.js` et `PublicPages.jsx` avec #91 (textes) et #93 (adresse de contact). Les textes utilisent `NXT5_CONTACT_EMAIL` et suivront l’adresse retenue ;
-  - `tools/migration-runner.mjs` si #97 ajoute une migration.
+- La migration du 30 septembre reste en fin de liste dans `tools/migration-runner.mjs` ; une migration ajoutée entre-temps sur `main` se place avant elle.
+
+### Vérification avant fusion
+
+La migration n’a été appliquée nulle part et a été corrigée sur place. Avant la fusion, vérifier sur la base de production :
+
+```sql
+select to_regclass('account_deletion_receipts'), to_regproc('nxt5_delete_account');
+```
+
+Les deux valeurs doivent être `null`. Sinon, une version antérieure a été appliquée : ne pas fusionner en l’état, écrire une nouvelle migration.
+
+### Limite connue : coût sur un compte très actif
+
+Non mesuré. Chaque participation anonymisée déclenche `discord_participant_changed` (déclencheur différé sur `match_participants`), qui recalcule et met en file les publications Discord suivies des parties concernées. Sur un compte avec un très grand historique, la transaction unique de `nxt5_delete_account` peut donc être longue et produire beaucoup de publications. Le nettoyage des journaux parcourt aussi toute la table `audit_logs` (préfiltre textuel, puis parcours exact des seules lignes candidates). À mesurer sur une copie de taille représentative avant d’ouvrir la fonction à de gros comptes.
