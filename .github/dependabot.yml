@@ -1,19 +1,32 @@
 version: 2
 updates:
+  # Mises à jour mineures et correctives regroupées en une PR par écosystème ;
+  # les versions majeures restent séparées pour être évaluées une par une.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      web-minor-patch:
+        update-types: [minor, patch]
+      react:
+        patterns: [react, react-dom, react-test-renderer]
 
   - package-ecosystem: npm
     directory: /importer-app
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      importer-minor-patch:
+        update-types: [minor, patch]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]
