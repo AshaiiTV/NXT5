@@ -1,6 +1,7 @@
 import { LEGAL_VERSION } from '../../shared/legal.js';
 import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
+import { LEGAL_VERSION } from '../../shared/legal.js';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({

@@ -36,7 +36,7 @@ Les verrous sur l’utilisateur et la révision `social_link_revision` empêchen
 
 Retirer le drapeau d’un fournisseur arrête les nouveaux démarrages, callbacks et inscriptions en attente. Les comptes et associations sont conservés ; une association peut encore être dissociée avec le mot de passe NXT5. Les sessions NXT5 déjà établies continuent jusqu’à leur expiration ou révocation.
 
-Les clés étrangères suppriment les identités et parcours associés lorsque `users` est effectivement supprimé. Le parcours actuel de demande d’effacement via Contact continue de s’appliquer ; cette évolution n’introduit pas de nouvel écran de suppression du compte.
+La suppression du compte en libre-service (Paramètres, depuis le 30 septembre 2026) retire explicitement les identités, parcours et tickets associés ; la ligne `users` est conservée et anonymisée, jamais supprimée. Un compte sans mot de passe NXT5 confirme cette suppression par un parcours `reauth` : même liaison au compte, à la session et à la révision que `link`, mais l’identité renvoyée doit déjà être associée au compte. La preuve est conservée 10 minutes dans `account_reauthentications`, pour la seule session concernée. Détails : [suppression de compte](suppression-compte-2026-09-30.md).
 
 ## Vérification
 

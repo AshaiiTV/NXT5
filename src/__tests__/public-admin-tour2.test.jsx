@@ -119,5 +119,10 @@ it('R4-S3 legal revision is dated globally and keeps the audience consent versio
   for (const route of ['/confidentialite', '/cookies']) {
     expect(LEGAL_PAGES[route].sections.every(([title]) => !/mise à jour du/.test(title))).toBe(true);
   }
+  // Self-service account deletion (30 September) is described without dated titles.
+  const titles = (route) => LEGAL_PAGES[route].sections.map(([title]) => title);
+  expect(titles('/confidentialite')).toEqual(expect.arrayContaining(['Suppression de ton compte', 'Traces de la suppression']));
+  expect(titles('/conditions')).toEqual(expect.arrayContaining(['Fin d’utilisation', 'Données après suppression du compte']));
+  expect(JSON.stringify(LEGAL_PAGES['/conditions'])).toContain('section « Supprimer mon compte »');
   expect(JSON.stringify(LEGAL_PAGES['/confidentialite'])).toContain('conservées jusqu’à l’exécution de cette correction');
 });

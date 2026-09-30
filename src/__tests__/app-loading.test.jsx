@@ -152,6 +152,21 @@ describe("one continuous application loading screen", () => {
     expect(["demo", "public-guide"]).toContain(app.pages[0].props["data-page"]);
   });
 
+  it("shows the receipt of a deletion whose response was lost before checking the session", async () => {
+    const removeItem = vi.fn();
+    window.sessionStorage = { getItem: vi.fn((key) => key === "nxt5_account_deletion_pending" ? "a".repeat(43) : null), removeItem };
+    const app = mount("/parametres");
+    await app.loadModule();
+    expect(app.requests[0].url).toBe("auth-delete-account");
+    await app.resolve(0, { ok: true, receipt: { reference: "receipt-123", completedAt: "2026-09-30T12:00:00Z", summary: {} } });
+    await act(async () => { await vi.dynamicImportSettled(); });
+    expect(app.loaders).toHaveLength(0);
+    expect(JSON.stringify(app.renderer.toJSON())).toContain("receipt-123");
+    expect(removeItem).toHaveBeenCalledWith("nxt5_account_deletion_pending");
+    expect(app.requests).toHaveLength(1);
+    expect(window.location.pathname).toBe("/connexion");
+  });
+
   it("releases the loader when a private session is missing or fails", async () => {
     const app = mount("/statistiques");
     await app.loadModule();

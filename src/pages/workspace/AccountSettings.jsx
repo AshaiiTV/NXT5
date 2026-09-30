@@ -7,8 +7,9 @@ import { cx, preciseErrorText } from "../../app/helpers.js";
 import "./account-settings.css";
 import AccountSubscription from "../../components/account/AccountSubscription.jsx";
 import { SocialAccounts } from "../../components/account/SocialAccounts.jsx";
+import { AccountDeletion } from "./AccountDeletion.jsx";
 
-function AccountSettings({ user, onUserUpdate, pushToast }) {
+function AccountSettings({ user, onUserUpdate, onAccountDeleted, pushToast }) {
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [emailPassword, setEmailPassword] = useState("");
   const [hasPassword, setHasPassword] = useState(null);
@@ -208,6 +209,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
       </Surface>
     </div>
     <AccountSubscription key={user?.id} />
+    <AccountDeletion key={`deletion-${user?.id}`} onDeleted={onAccountDeleted} />
   </div>;
 }
 

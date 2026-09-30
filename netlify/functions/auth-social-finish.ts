@@ -5,7 +5,7 @@ import { assertMethod } from './_lib/http';
 import { assertSocialSchemaReady } from './_lib/migrations';
 import { assertRateLimit } from './_lib/rate-limit';
 import { socialProviderEnabled, type SocialProvider } from './_lib/social-auth-protocol';
-import { assertSocialOrigin, issueSocialTicket, linkSocialIdentity, optionalSocialUser, setSocialCookie, socialCookie, socialNotice, socialRedirect, socialTicket, SOCIAL_BROWSER_COOKIE, SOCIAL_TICKET_COOKIE } from './_lib/social-auth';
+import { assertSocialOrigin, isAccountBoundFlow, issueSocialTicket, linkSocialIdentity, optionalSocialUser, recordSocialReauthentication, setSocialCookie, socialCookie, socialNotice, socialRedirect, socialTicket, SOCIAL_BROWSER_COOKIE, SOCIAL_TICKET_COOKIE } from './_lib/social-auth';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   let flow = 'login'; let provider: SocialProvider | undefined;
@@ -21,8 +21,15 @@ export default async function handler(request: Request, context: Context): Promi
     flow = pending.flow; provider = pending.provider;
     if (!socialProviderEnabled(provider)) return socialNotice(flow, 'failed', provider);
     const user = await optionalSocialUser(request, context);
-    if ((flow === 'link' && (!user || user.id !== pending.user_id || sha256(readSessionCookie(context) || '') !== pending.session_hash))
-      || (flow !== 'link' && user)) return socialNotice(flow, 'account_changed', provider);
+    const bound = isAccountBoundFlow(flow);
+    if ((bound && (!user || user.id !== pending.user_id || sha256(readSessionCookie(context) || '') !== pending.session_hash))
+      || (!bound && user)) return socialNotice(flow, 'account_changed', provider);
+    if (flow === 'reauth') {
+      // Another account at the same provider never counts as a reauthentication.
+      if (!await recordSocialReauthentication(pending)) return socialNotice(flow, 'mismatch', provider);
+      setSocialCookie(context, SOCIAL_BROWSER_COOKIE, '');
+      return socialNotice(flow, 'verified', provider);
+    }
     if (flow === 'link') {
       if (!await linkSocialIdentity(pending)) return socialNotice(flow, 'account_changed', provider);
       setSocialCookie(context, SOCIAL_BROWSER_COOKIE, '');

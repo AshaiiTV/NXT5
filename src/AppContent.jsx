@@ -274,7 +274,7 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
   return null;
 }
 
-export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+export function MainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, navigate, route }) {
   const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
@@ -356,9 +356,9 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
     if (active === "draft") return <DraftWorkspace data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
-    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
+    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} />;
     return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, onAccountDeleted, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation]);
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{page}</PassFeatureGate> : page;
 
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
@@ -468,7 +468,10 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
   );
 }
 
-const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate }) {
+const AccountDeletionReceipt = lazy(() => import("./pages/workspace/AccountDeletion.jsx").then((module) => ({ default: module.AccountDeletionReceipt })));
+const ACCOUNT_DELETION_PENDING_KEY = "nxt5_account_deletion_pending";
+
+const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate, onAccountDeleted }) {
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
@@ -495,7 +498,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
   if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
   if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} onAuth={onAuth} />;
-  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+  if (user) return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} navigate={navigate} route={route} />;
   if (mode) return <AuthPage mode={mode} onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
   if (routeIsPrivate) return <AuthPage mode="login" onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
   return <HomeScreen navigate={navigate} />;
@@ -506,6 +509,8 @@ export default function NXT5() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [accountDeletionReceipt, setAccountDeletionReceipt] = useState(null);
+  useAppLoading(accountDeletionReceipt ? null : undefined);
   const [route, setRoute] = useState(readRoute);
 
   const navigate = useCallback((path, options = {}) => {
@@ -524,8 +529,19 @@ export default function NXT5() {
   const handleAuth = useCallback((nextUser) => {
     authGeneration.current += 1;
     setCheckingSession(false);
+    setAccountDeletionReceipt(null);
     setUser(nextUser);
   }, []);
+  // The server already closed every session: leave the private space without a logout request.
+  const handleAccountDeleted = useCallback((receipt) => {
+    authGeneration.current += 1;
+    reviewDrafts.clear();
+    setCheckingSession(false);
+    setUser(null);
+    setToasts([]);
+    setAccountDeletionReceipt(receipt);
+    navigate("/connexion", { replace: true });
+  }, [navigate]);
   const handleLogout = useCallback(async (beforeLogout) => {
     if (reviewDrafts.hasDrafts() && !window.confirm("Te déconnecter supprimera les brouillons de débrief non enregistrés de cette session. Continuer ?")) return;
     if (typeof beforeLogout === "function" && !await beforeLogout()) {
@@ -562,7 +578,23 @@ export default function NXT5() {
   useEffect(() => {
     let mounted = true;
     const generation = authGeneration.current;
-    apiFetch("auth-me").then((result) => { if (mounted && authGeneration.current === generation) setUser(result.user); }).catch(() => { if (mounted && authGeneration.current === generation) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
+    (async () => {
+      // A deletion whose response was lost (reload, network) is resolved before the session check.
+      let pending = "";
+      try { pending = window.sessionStorage?.getItem(ACCOUNT_DELETION_PENDING_KEY) || ""; } catch {}
+      if (pending) {
+        try {
+          const result = await apiFetch("auth-delete-account", { method: "POST", body: JSON.stringify({ action: "status", confirmationToken: pending }) });
+          if (result?.ok && result.receipt?.reference) {
+            try { window.sessionStorage?.removeItem(ACCOUNT_DELETION_PENDING_KEY); } catch {}
+            if (mounted && authGeneration.current === generation) handleAccountDeleted(result.receipt);
+            return;
+          }
+        } catch {}
+      }
+      const result = await apiFetch("auth-me");
+      if (mounted && authGeneration.current === generation) setUser(result.user);
+    })().catch(() => { if (mounted && authGeneration.current === generation) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
     return () => { mounted = false; };
   }, []);
 
@@ -593,5 +625,6 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} /><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  if (accountDeletionReceipt) return <div className="relative min-h-screen text-white"><AmbientBackground /><Suspense fallback={<p role="status" className="relative z-10 p-6 text-slate-200">Compte supprimé. Chargement du reçu…</p>}><AccountDeletionReceipt receipt={accountDeletionReceipt} onContinue={() => { setAccountDeletionReceipt(null); navigate("/connexion", { replace: true }); }} /></Suspense></div>;
+  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} onAccountDeleted={handleAccountDeleted} /><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

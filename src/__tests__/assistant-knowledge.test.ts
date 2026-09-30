@@ -12,6 +12,7 @@ describe('assistant knowledge', () => {
     ['Comment préparer un débrief ?', '/rapports', 'reviews'],
     ['Comment organiser les titulaires et les remplaçants ?', '/equipes', 'teams-and-roster'],
     ['Comment indiquer le niveau de maîtrise d’un champion ?', '/draft/pool', 'champion-pool'],
+    ['Comment supprimer mon compte ?', '/equipes', 'account-deletion'],
   ])('recognizes the visible wording: %s', (question, route, expected) => {
     const matches = retrieveAssistantKnowledge(question, route);
     expect(matches[0].id).toBe(expected);

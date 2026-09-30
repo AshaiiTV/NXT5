@@ -3,6 +3,7 @@ import { LEGAL_VERSION } from "../../shared/legal.js";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
+import { LEGAL_VERSION } from "../../shared/legal.js";
 import { SocialAccounts, SocialLogin, SocialNotice, SocialSignup, socialReturnContext } from "../components/account/SocialAccounts.jsx";
 import { AuthPage, ResetPasswordPage } from "../pages/public/PublicPages.jsx";
 import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
