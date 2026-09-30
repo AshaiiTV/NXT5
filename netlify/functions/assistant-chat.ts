@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { sql } from './_lib/db';
 import { assertMethod, handleError, json, readJson } from './_lib/http';
-import { assertRateLimit } from './_lib/rate-limit';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 import {
   assistantSources,
   buildFallbackAssistantResponse,
@@ -20,6 +20,9 @@ const MAX_HISTORY_CONTENT = 500;
 const MAX_REQUEST_BYTES = 20_000;
 const MAX_ANSWER_LENGTH = 2_800;
 const DEFAULT_MODEL = 'gpt-5.4-mini';
+const DEFAULT_DAILY_AI_CALLS_PER_ACCOUNT = 50;
+const DEFAULT_DAILY_AI_CALLS_TOTAL = 1_000;
+const DAY_SECONDS = 86_400;
 const ALLOWED_ENTITY_TYPES = new Set(['match', 'report', 'player', 'group']);
 
 type SafeHistoryItem = {
@@ -132,6 +135,31 @@ async function askGateway(args: {
   return parseModelJson(content);
 }
 
+function dailyLimit(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+/** Model calls are billed: past the account or platform daily budget, answer from the local help only. */
+async function hasDailyAiBudget(userId: string): Promise<boolean> {
+  try {
+    // Check the account first so that an account over its budget cannot consume the shared one.
+    await assertSubjectRateLimit('assistant-ai-daily-account', userId, {
+      limit: dailyLimit(process.env.NXT5_ASSISTANT_DAILY_USER_LIMIT, DEFAULT_DAILY_AI_CALLS_PER_ACCOUNT),
+      windowSeconds: DAY_SECONDS
+    });
+    await assertSubjectRateLimit('assistant-ai-daily-total', 'platform', {
+      limit: dailyLimit(process.env.NXT5_ASSISTANT_DAILY_TOTAL_LIMIT, DEFAULT_DAILY_AI_CALLS_TOTAL),
+      windowSeconds: DAY_SECONDS
+    });
+    return true;
+  } catch (err: any) {
+    // An unverifiable budget must not open unlimited model calls.
+    if (err?.status === 429 || err?.code === 'RATE_LIMIT_UNAVAILABLE') return false;
+    throw err;
+  }
+}
+
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -159,6 +187,7 @@ export default async function handler(request: Request, context: Context): Promi
     const fallback = buildFallbackAssistantResponse(rawMessage, matches);
 
     if (process.env.NXT5_ASSISTANT_DISABLE_AI === '1') return json(fallback);
+    if (!await hasDailyAiBudget(String(user.id))) return json(fallback);
 
     try {
       const modelPayload = await askGateway({ message: rawMessage, route, entityType, history, matches });
