@@ -72,5 +72,6 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 | 2026-09-29 | [Plafond journalier de l’assistant IA](assistant-plafond-2026-09-29.md) |
 | 2026-09-29 | [Cohérence des textes publics](coherence-textes-2026-09-29.md) |
 | 2026-09-29 | [Nettoyage du dépôt](nettoyage-depot-2026-09-29.md) |
+| 2026-09-30 | [Factorisation des doublons](factorisation-2026-09-30.md) |
 
 Ajouter chaque nouveau rapport daté à ce tableau dans la même pull request.
