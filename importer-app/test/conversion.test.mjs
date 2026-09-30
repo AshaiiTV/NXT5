@@ -107,7 +107,7 @@ test("CS milestones require the observed minute and never borrow an eleven-minut
   const timeline = {
     info: {
       frames: [
-        { timestamp: 660000, participantFrames: { 1: { minionsKilled: 99 } } },
+        { timestamp: 660000, participantFrames: { 1: { minionsKilled: 99, jungleMinionsKilled: 0 } } },
       ],
     },
   };
@@ -115,4 +115,22 @@ test("CS milestones require the observed minute and never borrow an eleven-minut
   assert.equal(csAtMinuteFromTimeline(timeline, 1, 20, 900), null);
   timeline.info.frames[0].timestamp = 600020;
   assert.equal(csAtMinuteFromTimeline(timeline, 1, 10, 1800), 99);
+});
+
+test("missing or non-finite CS components stay null and explicit zeros remain measured", () => {
+  for (const minute of [10, 20]) {
+    const frame = { timestamp: minute * 60000, participantFrames: { 1: {} } };
+    const timeline = { info: { frames: [frame] } };
+    for (const key of ["minionsKilled", "jungleMinionsKilled"]) {
+      for (const value of [undefined, null, NaN, Infinity, "0", false]) {
+        frame.participantFrames[1] = { minionsKilled: 0, jungleMinionsKilled: 0, [key]: value };
+        assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), null);
+      }
+    }
+    frame.participantFrames[1] = { minionsKilled: 0, jungleMinionsKilled: 0 };
+    frame.timestamp = minute * 60000 + 5000;
+    assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), 0);
+    frame.timestamp++;
+    assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), null);
+  }
 });

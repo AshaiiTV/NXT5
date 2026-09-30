@@ -121,6 +121,8 @@ export function validateMatch(match, requestedId) {
     throw new Error(
       "Les équipes ou le résultat de la partie reçue sont invalides.",
     );
+  if (teams.filter((team) => team.win === true).length !== 1)
+    throw new Error("La partie doit avoir exactement une équipe gagnante.");
   const integer = (value, minimum = 0) =>
     (typeof value === "number" || typeof value === "string") &&
     String(value).trim() &&
