@@ -79,7 +79,7 @@ describe("B8 notification serialization", () => {
     const onUserUpdate = vi.fn();
     await render(<AccountSettings user={user} onUserUpdate={onUserUpdate} />);
     const pending = deferred(); apiFetch.mockImplementationOnce(() => pending.promise);
-    act(() => renderer.root.findAllByType(PremiumToggle)[0].props.onChange(false));
+    act(() => { renderer.root.findAllByType(PremiumToggle)[0].props.onChange(false); });
     await act(async () => renderer.update(<AccountSettings user={{ ...user, id: "other" }} onUserUpdate={onUserUpdate} />));
     await act(async () => pending.resolve({ user: { ...user, notif_match: false } }));
     expect(onUserUpdate).not.toHaveBeenCalled();

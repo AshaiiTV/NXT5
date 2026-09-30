@@ -486,7 +486,9 @@ describe("import flow without a second game list", () => {
   it("previews JSON, keeps the original assignment payload, and opens the imported game only after refresh", async () => {
     const order = [];
     const result = { match: { id: "imported", team_id: "team" }, warnings: [{ message: "Chronologie partielle" }] };
-    apiUploadJson.mockResolvedValueOnce({ match: preview }).mockResolvedValueOnce(result);
+    let resolveImport;
+    const finalImport = new Promise((resolve) => { resolveImport = resolve; });
+    apiUploadJson.mockResolvedValueOnce({ match: preview }).mockImplementationOnce(() => finalImport);
     const { renderer, props } = await renderFlow({ refreshAll: vi.fn(async () => order.push("refresh")), onImported: vi.fn(() => order.push("imported")) });
     const source = { metadata: { label: "Finale" }, info: { gameId: "fixture" } };
     expect(renderer.root.findAllByProps({ type: "search" })).toHaveLength(0);
@@ -497,7 +499,12 @@ describe("import flow without a second game list", () => {
     const blue = renderer.root.findAllByType("button").find((node) => text(node).startsWith("Côté bleu"));
     await act(async () => blue.props.onClick());
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
-    await click(renderer, "Confirmer l’import");
+    // React 19 regroupe les rendus d'un même act : l'import final reste en attente
+    // pour observer l'état occupé avant sa résolution.
+    let confirming;
+    await act(async () => { confirming = activate(button(renderer, "Confirmer l’import")); });
+    expect(props.onBusyChange).toHaveBeenLastCalledWith(true);
+    await act(async () => { resolveImport(result); await confirming; });
     expect(apiUploadJson.mock.calls[1].slice(0, 2)).toEqual(["matches-import-file", {
       teamId: "team", payload: source, label: "Finale", categoryIds: [], allyTeamSide: "BLUE",
       laneAssignments: Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 1}`])),
