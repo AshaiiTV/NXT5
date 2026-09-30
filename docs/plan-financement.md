@@ -14,13 +14,13 @@ Décision du 8 septembre 2026 : simplifier la grille en deux cartes, pour permet
 
 La page et le formulaire restent une prévisualisation réservée à l’administrateur plateforme. Cette évolution de la proposition commerciale n’active ni paiement, ni essai chronométré, ni nouveaux droits ou quotas. **Les abonnements ne sont pas lancés : ne bloquer aucune fonction aujourd’hui**, quel que soit le profil ou le nombre d’imports. Les parcours de paiement et règles d’accès décrits plus bas constituent une étape future.
 
-Décision du 9 septembre 2026 : **Découverte donne accès à tous les outils pendant 14 jours, puis le Pass Équipe est nécessaire pour continuer à utiliser NXT5**. Il n’y a pas de niveau gratuit permanent ni de quota de dix imports ; Champion Pool suit la même règle que les autres outils. Le [périmètre des fonctions Pass](pass-feature-access.md) détaille le masquage flouté préparé, actuellement désactivé, et les contrôles serveur nécessaires avant lancement.
+Décision du 9 septembre 2026, précisée le 22 septembre 2026 (PR #54) : **Découverte donne accès pendant 14 jours à tous les outils sauf le bot Discord, réservé au Pass Équipe. Après l’essai, le Pass Équipe est nécessaire pour continuer à utiliser NXT5**. Il n’y a pas de niveau gratuit permanent ni de quota de dix imports ; Champion Pool suit la même règle que les autres outils. Le [périmètre des fonctions Pass](pass-feature-access.md) détaille le masquage flouté préparé, actuellement désactivé, et les contrôles serveur nécessaires avant lancement.
 
 ### Découverte — 14 jours gratuits, sans carte bancaire
 
 - Une équipe et jusqu’à 15 membres.
-- Accès complet aux mêmes fonctions que le Pass Équipe pendant 14 jours : imports, statistiques, reviews, planning, champion pools, compositions, tendances, historique, export et accès du staff.
-- Aucun quota commercial d’imports, de compositions ou de reviews pendant l’essai ; les limites techniques contre les abus restent applicables.
+- Accès pendant 14 jours aux fonctions du Pass Équipe, sauf le bot Discord (décision du 22 septembre 2026) : imports, statistiques, débriefs, planning, champion pools, compositions, tendances, historique, export et accès du staff.
+- Aucun quota commercial d’imports, de compositions ou de débriefs pendant l’essai ; les limites techniques contre les abus restent applicables.
 - Aucun prélèvement automatique à la fin : le passage au Pass Équipe exige une souscription explicite.
 
 Le futur essai doit permettre d’éprouver le produit sur plusieurs sessions. Sa demande dans la prévisualisation ne le démarre pas.
@@ -28,8 +28,8 @@ Le futur essai doit permettre d’éprouver le produit sur plusieurs sessions. S
 ### Pass Équipe — 9,90 € TTC par mois et par équipe
 
 - Une équipe et jusqu’à 15 membres.
-- Accès à tous les outils : imports, reviews, compositions, tendances, exports produit, Champion Pool, statistiques, planning, roster, profils joueurs et historique.
-- Aucun quota commercial réduit d’imports, de reviews ou de compositions.
+- Accès à tous les outils : imports, débriefs, compositions, tendances, exports produit, Champion Pool, statistiques, planning, roster, profils joueurs, historique et bot Discord.
+- Aucun quota commercial réduit d’imports, de débriefs ou de compositions.
 - Gestion des rôles et accès du staff.
 - Assistance standard.
 - Résiliation à tout moment, avec accès jusqu’à la fin de la période payée.
@@ -48,7 +48,7 @@ NXT5 ne doit pas être présenté comme une IA qui gagne les drafts ou remplace 
 
 Arguments concrets :
 
-- retrouver les games et les reviews sans multiplier les fichiers ;
+- retrouver les parties et les débriefs sans multiplier les fichiers ;
 - garder les champion pools à jour ;
 - préparer une session avec le même support pour tout le staff ;
 - conserver l’historique quand le roster change.
@@ -59,7 +59,7 @@ Arguments concrets :
 
 - Le capitaine ou le manager démarre explicitement les 14 jours d’essai pour son équipe.
 - Les dates de début et de fin sont enregistrées côté serveur, sans collecte de carte bancaire.
-- Les droits fonctionnels sont ceux du Pass Équipe, dans la limite de 15 membres.
+- Les droits fonctionnels sont ceux du Pass Équipe, sauf le bot Discord qui en reste exclu, dans la limite de 15 membres.
 - Le service affiche la date de fin et propose une souscription explicite au mensuel.
 - À l’expiration, le Pass Équipe devient nécessaire pour continuer à utiliser les outils ; les données sont conservées et aucun paiement n’est créé automatiquement. Les fonctions de compte, de sécurité et de droits sur les données restent accessibles.
 - La règle d’éligibilité à un nouvel essai et le traitement des équipes existantes doivent être décidés avant activation, sans réinitialisation implicite.
@@ -80,7 +80,7 @@ Arguments concrets :
 ### Depuis l’application
 
 - Une page `/abonnement` affiche l’offre de l’équipe, les limites, l’échéance et le payeur.
-- Après lancement uniquement, les outils sans essai ou Pass valide affichent un aperçu décoratif flouté et un message contextualisé, par exemple « Prends le Pass Équipe pour accéder aux reviews », avec accès au parcours d’abonnement. Aucun contenu protégé réel ne doit être chargé sous le flou.
+- Après lancement uniquement, les outils sans essai ou Pass valide affichent un aperçu décoratif flouté et un message contextualisé, par exemple « Prends le Pass Équipe pour accéder aux débriefs », avec accès au parcours d’abonnement. Aucun contenu protégé réel ne doit être chargé sous le flou.
 - Le bouton « Gérer la facturation » ouvre le portail client Stripe.
 - Le propriétaire peut mettre à jour la carte, télécharger ses factures ou résilier.
 
@@ -256,13 +256,14 @@ Le catalogue et les composants actuels préparent la présentation ; `SUBSCRIPTI
 
 | Périmètre après lancement | Essai de 14 jours ou Pass valide | Sans essai ni Pass valide |
 | --- | --- | --- |
-| Tous les outils de l’équipe, dont Champion Pool et les imports | Accès complet | Pass requis pour continuer |
+| Outils de l’équipe hors bot Discord, dont Champion Pool et les imports | Accès complet | Pass requis pour continuer |
+| Bot Discord | Pass Équipe uniquement, exclu de Découverte | Pass requis |
 | Compte, sécurité, confidentialité et droits sur les données | Accessible | Accessible |
 | Souscription et régularisation de la facturation | Selon le rôle autorisé | Selon le rôle autorisé |
 
-Les 14 jours et le Pass donnent accès aux mêmes outils, sans quota commercial de dix imports. Les limites techniques contre les abus et les autorisations de rôle restent inchangées.
+Les 14 jours et le Pass donnent accès aux mêmes outils, sauf le bot Discord réservé au Pass Équipe, sans quota commercial de dix imports. Les limites techniques contre les abus et les autorisations de rôle restent inchangées.
 
-Découverte et Pass Équipe ont les mêmes droits fonctionnels et la même limite de 15 membres pendant l’essai valide. À l’expiration de l’essai ou de la période payée sans autre droit valide :
+Découverte et Pass Équipe ont les mêmes droits fonctionnels hors bot Discord et la même limite de 15 membres pendant l’essai valide. À l’expiration de l’essai ou de la période payée sans autre droit valide :
 
 - exiger le Pass pour continuer à utiliser les outils, y compris Champion Pool, planning, statistiques et roster ;
 - présenter l’aperçu flouté contextualisé, sans rendre les outils ou leurs données accessibles sous un simple filtre CSS ;
@@ -335,7 +336,7 @@ Calcul : arrondir au supérieur `coûts / (9,90 − (9,90 × 1,5 % + 0,25))`. Ce
 
 ### Premières équipes
 
-Proposer la même offre de lancement aux premières équipes : 14 jours d’accès complet sans carte, puis une souscription volontaire à 9,90 € TTC par mois. Organiser un retour produit pendant l’essai et après les premiers renouvellements. Aucun tarif fondateur distinct ni prix « à vie » n’est proposé.
+Proposer la même offre de lancement aux premières équipes : 14 jours d’accès aux outils hors bot Discord sans carte, puis une souscription volontaire à 9,90 € TTC par mois. Organiser un retour produit pendant l’essai et après les premiers renouvellements. Aucun tarif fondateur distinct ni prix « à vie » n’est proposé.
 
 ### Vente directe
 
@@ -363,13 +364,13 @@ Pas de publicité payante avant de connaître le taux de conversion et la réten
 - démarrage et fin de l’essai, puis démarrage et réussite de Checkout ;
 - création de la première équipe ;
 - premier joueur ajouté ;
-- première game importée ;
-- première review créée ;
+- première partie importée ;
+- premier débrief créé ;
 - ouverture du portail client ;
 - résiliation ;
 - paiement échoué.
 
-Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game à l’outil d’analytics.
+Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de partie à l’outil d’analytics.
 
 ## 14. Déploiement par étapes
 
@@ -417,7 +418,7 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 - un paiement échoué applique une période de grâce définie ;
 - l’essai expire après 14 jours sans prélèvement ni renouvellement automatique ;
 - un changement de propriétaire ne divulgue aucune facture ;
-- une équipe en essai garde les mêmes fonctions qu’une équipe payante et ne contourne ni l’échéance ni la limite de 15 membres via l’API ;
+- une équipe en essai garde les mêmes fonctions qu’une équipe payante, sauf le bot Discord réservé au Pass Équipe, et ne contourne ni l’échéance ni la limite de 15 membres via l’API ;
 - les imports au-delà de dix sont autorisés pendant l’essai et avec le Pass ; aucun niveau gratuit permanent n’est créé ;
 - sans essai ni Pass valide, tous les outils sont protégés contre les appels API directs ; les exports RGPD et la gestion du compte restent accessibles ;
 - les pages achat et facturation fonctionnent sur mobile ;
@@ -436,6 +437,6 @@ Ne pas envoyer les noms de joueurs, Riot IDs, notes de coach ou données de game
 
 ## 17. Décision de lancement
 
-Retenir Découverte, 14 jours d’accès complet sans carte bancaire, puis Pass Équipe à 9,90 € TTC par mois et par équipe pour continuer à utiliser tous les outils. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu. Le formulaire et les choix manuels reprennent uniquement ces deux offres, sans lien ni demande Structure. Les autres formules sont hors du lancement.
+Retenir Découverte, 14 jours d’accès aux outils hors bot Discord sans carte bancaire, puis Pass Équipe à 9,90 € TTC par mois et par équipe pour continuer à utiliser tous les outils. Aucun niveau gratuit permanent ni quota de dix imports n’est prévu. Le formulaire et les choix manuels reprennent uniquement ces deux offres, sans lien ni demande Structure. Les autres formules sont hors du lancement.
 
 Le développement du paiement vient après des échanges réels et au moins trois intentions d’achat documentées pour le mensuel. Ce prix reste à tester ; la fidélité des premières équipes et les coûts observés permettront de décider de la suite. La présente révision ne démarre aucun essai, n’encaisse aucun paiement et conserve le périmètre administrateur de la prévisualisation.

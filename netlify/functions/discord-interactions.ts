@@ -1,3 +1,4 @@
+import { logFailure } from './_lib/safe-log';
 import type { Config, Context } from '@netlify/functions';
 import { withDiscordRuntime } from './_lib/discord-runtime';
 import { createHash } from 'node:crypto';
@@ -169,7 +170,7 @@ async function replyToDeferred(interaction: any) {
     }
   }
   catch (error: any) {
-    console.error('[discord-interaction]', { code: error?.code || 'COMMAND_FAILED', status: error?.status || 500 });
+    logFailure('[discord-interaction]', error, { code: 'COMMAND_FAILED', status: 500 });
     message = discordBotFailure(error);
   }
   const { applicationId } = getDiscordConfig();

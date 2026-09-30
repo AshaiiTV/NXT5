@@ -13,9 +13,8 @@ const helpers = source.slice(
 );
 const { lcuWinValue, localPosition, lcuToRiotMatch, csAtMinuteFromTimeline } =
   new Function(
-    "catalog",
     `${helpers}; return { lcuWinValue, localPosition, lcuToRiotMatch, csAtMinuteFromTimeline };`,
-  )({ name: async (id) => `Champion ${id}` });
+  )();
 
 test("LCU result strings do not turn losses into wins", () => {
   for (const win of [false, "Fail", "false", 0, "0", undefined])
@@ -40,8 +39,8 @@ test("LCU position mapping distinguishes bot carry and support and respects expl
   );
 });
 
-test("LCU conversion preserves numeric item/spell stats, ISO dates and derives team kills", async () => {
-  const match = await lcuToRiotMatch(
+test("LCU conversion preserves numeric item/spell stats, ISO dates and derives team kills", () => {
+  const match = lcuToRiotMatch(
     {
       gameId: 7861632138,
       gameCreationDate: "2026-09-06T12:00:00Z",
@@ -78,14 +77,38 @@ test("LCU conversion preserves numeric item/spell stats, ISO dates and derives t
   assert.equal(match.info.participants[0].damageDealtToTurrets, 123);
   assert.equal(match.info.participants[0].win, false);
   assert.equal(match.info.participants[0].teamPosition, "UTILITY");
-  assert.equal(match.info.participants[0].championName, "Champion 1");
+  assert.equal(match.info.participants[0].championName, "");
+});
+
+test("LCU conversion uses Riot's internal champion names so site stats stay grouped", () => {
+  const game = {
+    gameId: 7861632138,
+    gameDuration: 1800,
+    participants: [
+      { participantId: 1, teamId: 100, championId: 62, stats: {} },
+      { participantId: 2, teamId: 100, championId: 36, stats: {} },
+      { participantId: 3, teamId: 100, championId: 999, stats: {} },
+    ],
+    teams: [],
+  };
+  const champions = new Map([
+    ["62", "MonkeyKing"],
+    ["36", "DrMundo"],
+  ]);
+  const names = lcuToRiotMatch(
+    game,
+    "EUW1_7861632138",
+    champions,
+  ).info.participants.map((participant) => participant.championName);
+  // An unknown champion stays empty so export validation refuses it instead of storing a placeholder.
+  assert.deepEqual(names, ["MonkeyKing", "DrMundo", ""]);
 });
 
 test("CS milestones require the observed minute and never borrow an eleven-minute frame", () => {
   const timeline = {
     info: {
       frames: [
-        { timestamp: 660000, participantFrames: { 1: { minionsKilled: 99 } } },
+        { timestamp: 660000, participantFrames: { 1: { minionsKilled: 99, jungleMinionsKilled: 0 } } },
       ],
     },
   };
@@ -93,4 +116,22 @@ test("CS milestones require the observed minute and never borrow an eleven-minut
   assert.equal(csAtMinuteFromTimeline(timeline, 1, 20, 900), null);
   timeline.info.frames[0].timestamp = 600020;
   assert.equal(csAtMinuteFromTimeline(timeline, 1, 10, 1800), 99);
+});
+
+test("missing or non-finite CS components stay null and explicit zeros remain measured", () => {
+  for (const minute of [10, 20]) {
+    const frame = { timestamp: minute * 60000, participantFrames: { 1: {} } };
+    const timeline = { info: { frames: [frame] } };
+    for (const key of ["minionsKilled", "jungleMinionsKilled"]) {
+      for (const value of [undefined, null, NaN, Infinity, "0", false]) {
+        frame.participantFrames[1] = { minionsKilled: 0, jungleMinionsKilled: 0, [key]: value };
+        assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), null);
+      }
+    }
+    frame.participantFrames[1] = { minionsKilled: 0, jungleMinionsKilled: 0 };
+    frame.timestamp = minute * 60000 + 5000;
+    assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), 0);
+    frame.timestamp++;
+    assert.equal(csAtMinuteFromTimeline(timeline, 1, minute, 1800), null);
+  }
 });

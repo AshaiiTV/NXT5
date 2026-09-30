@@ -11,9 +11,9 @@ const integer = (name, description, required, min_value, max_value) => ({ type: 
 const team = () => text('equipe', 'Équipe de ce serveur.', false, { autocomplete: true });
 const player = (required = false) => id('joueur', 'Joueur de l’équipe.', required);
 const period = (values = ['semaine', 'mois']) => choice('periode', 'Période du bilan.', values.map(value => [value, ({ session: 'Une session', semaine: '7 derniers jours', mois: '30 derniers jours', aujourdhui: 'Aujourd’hui' })[value]]));
-const category = () => text('categorie', 'Catégorie des games.');
+const category = () => text('categorie', 'Catégorie des parties.');
 const event = () => id('evenement', 'Identifiant de l’événement.');
-const review = () => id('review', 'Identifiant de la review.');
+const review = () => id('review', 'Identifiant du débrief.');
 const role = () => choice('role', 'Rôle dans la composition.', [['top', 'Top'], ['jungle', 'Jungle'], ['mid', 'Mid'], ['adc', 'ADC'], ['support', 'Support']]);
 const active = () => ({ type: 5, name: 'actif', description: 'Activer cette diffusion.', required: true });
 const channel = () => ({ type: 7, name: 'canal', description: 'Salon de publication.', required: true, channel_types: [0, 5] });
@@ -33,8 +33,8 @@ export const discordCommandCategories = [
 // previous registration. New registrations use discordCommandCatalog below.
 const legacyHelpSections = [
   { id: 'accueil', label: 'Accueil' }, { id: 'compte', label: 'Mon compte' },
-  { id: 'preparer', label: 'Avant la session' }, { id: 'games', label: 'Games et bilan' },
-  { id: 'review', label: 'Reviews et progression' }, { id: 'responsable', label: 'Installer le bot' },
+  { id: 'preparer', label: 'Avant la session' }, { id: 'games', label: 'Parties et bilan' },
+  { id: 'review', label: 'Débriefs et progression' }, { id: 'responsable', label: 'Installer le bot' },
 ];
 const command = (path, description, categoryId, access, options = []) => ({ path, description, category: categoryId, access, options });
 
@@ -47,11 +47,11 @@ export const discordLegacyCommandCatalog = [
   command('equipe liste', 'Lister tes équipes autorisées ici.', 'comptes', 'Membre'),
   command('equipe choisir', 'Choisir ton équipe active.', 'comptes', 'Membre', [text('nom', 'Équipe autorisée sur ce serveur.', false, { autocomplete: true })]),
 
-  command('derniere', 'Retrouver la dernière game.', 'games', 'Membre', [team()]),
-  command('game voir', 'Consulter la fiche d’une game.', 'games', 'Membre', [id('game', 'Identifiant de la game.')]),
-  command('game chercher', 'Rechercher des games par période.', 'games', 'Membre', [period(), category()]),
-  command('game comparer', 'Comparer deux games accessibles.', 'games', 'Membre', [id('game_a', 'Première game.'), id('game_b', 'Deuxième game.')]),
-  command('bilan', 'Résumer une session ou une période.', 'games', 'Membre', [period(['session', 'semaine', 'mois']), id('groupe', 'Groupe de games de la session.', false), category()]),
+  command('derniere', 'Retrouver la dernière partie.', 'games', 'Membre', [team()]),
+  command('game voir', 'Consulter la fiche d’une partie.', 'games', 'Membre', [id('game', 'Identifiant de la partie.')]),
+  command('game chercher', 'Rechercher des parties par période.', 'games', 'Membre', [period(), category()]),
+  command('game comparer', 'Comparer deux parties accessibles.', 'games', 'Membre', [id('game_a', 'Première partie.'), id('game_b', 'Deuxième partie.')]),
+  command('bilan', 'Résumer une session ou une période.', 'games', 'Membre', [period(['session', 'semaine', 'mois']), id('groupe', 'Groupe de parties de la session.', false), category()]),
   command('stats equipe', 'Afficher les statistiques d’équipe.', 'games', 'Membre', [period(), category()]),
   command('stats tendance', 'Comparer deux périodes successives.', 'games', 'Membre', [period()]),
   command('reglages bilan', 'Planifier le bilan hebdomadaire.', 'games', 'Responsable', [active(), choice('jour', 'Jour du bilan.', [['lundi', 'Lundi'], ['mardi', 'Mardi'], ['mercredi', 'Mercredi'], ['jeudi', 'Jeudi'], ['vendredi', 'Vendredi'], ['samedi', 'Samedi'], ['dimanche', 'Dimanche']], false), time('heure', false), team()]),
@@ -72,7 +72,7 @@ export const discordLegacyCommandCatalog = [
   command('draft notes', 'Ajouter une consigne de draft.', 'draft', 'Staff', [event(), prose('texte', 'Consigne de préparation.')]),
 
   command('planning', 'Consulter les prochains rendez-vous.', 'planning', 'Membre', [choice('periode', 'Période du planning.', [['aujourdhui', 'Aujourd’hui'], ['semaine', '7 prochains jours'], ['mois', '30 prochains jours']])]),
-  command('evenement creer', 'Créer un événement après aperçu.', 'planning', 'Staff', [choice('type', 'Type de rendez-vous.', [['scrim', 'Scrim'], ['match', 'Match'], ['review', 'Review']], true), date(), time(), integer('duree', 'Durée en minutes.', true, 1, 1440)]),
+  command('evenement creer', 'Créer un événement après aperçu.', 'planning', 'Staff', [choice('type', 'Type de rendez-vous.', [['scrim', 'Scrim'], ['match', 'Match'], ['review', 'Débrief']], true), date(), time(), integer('duree', 'Durée en minutes.', true, 1, 1440)]),
   command('evenement modifier', 'Modifier un événement par formulaire.', 'planning', 'Staff', [event(), text('titre', 'Titre du rendez-vous.'), date('date', false), time('heure', false), integer('duree', 'Durée en minutes.', false, 1, 1440), prose('details', 'Détails du rendez-vous.', false)]),
   command('evenement annuler', 'Annuler un événement après confirmation.', 'planning', 'Staff', [event(), prose('motif', 'Motif de l’annulation.', false)]),
   command('presence repondre', 'Confirmer ta présence à un événement.', 'planning', 'Membre', [event(), choice('statut', 'Ta réponse.', [['present', 'Présent'], ['absent', 'Absent'], ['retard', 'En retard']], true), integer('retard', 'Retard prévu en minutes.', false, 1, 1440)]),
@@ -80,10 +80,10 @@ export const discordLegacyCommandCatalog = [
   command('presence relancer', 'Préparer une relance ciblée.', 'planning', 'Staff', [event()]),
   command('disponibilites definir', 'Renseigner ton créneau disponible.', 'planning', 'Membre', [date(), time('debut'), time('fin')]),
 
-  command('review liste', 'Retrouver les reviews accessibles.', 'reviews', 'Membre', [period(), player()]),
-  command('review voir', 'Ouvrir les points clés d’une review.', 'reviews', 'Membre', [review()]),
-  command('review creer', 'Rédiger une review en brouillon.', 'reviews', 'Staff', [id('game', 'Game à analyser.'), text('titre', 'Titre de la review.', true), prose('resume', 'Résumé de la review.', false), prose('corrections', 'Points à corriger.', false), prose('actions', 'Actions de suivi.', false)]),
-  command('review partager', 'Partager une review après aperçu.', 'reviews', 'Staff', [review(), channel(), prose('resume', 'Consignes validées à partager.', false)]),
+  command('review liste', 'Retrouver les débriefs accessibles.', 'reviews', 'Membre', [period(), player()]),
+  command('review voir', 'Ouvrir les points clés d’un débrief.', 'reviews', 'Membre', [review()]),
+  command('review creer', 'Rédiger un débrief en brouillon.', 'reviews', 'Staff', [id('game', 'Partie à analyser.'), text('titre', 'Titre du débrief.', true), prose('resume', 'Résumé du débrief.', false), prose('corrections', 'Points à corriger.', false), prose('actions', 'Actions de suivi.', false)]),
+  command('review partager', 'Partager un débrief après aperçu.', 'reviews', 'Staff', [review(), channel(), prose('resume', 'Consignes validées à partager.', false)]),
   command('review lire', 'Confirmer la lecture de cette version.', 'reviews', 'Membre', [review()]),
   command('review lectures', 'Voir les lectures de la version partagée.', 'reviews', 'Staff', [review()]),
 
@@ -91,7 +91,7 @@ export const discordLegacyCommandCatalog = [
   command('statut', 'Afficher l’état de la connexion.', 'gestion', 'Responsable', [team()]),
   command('pause', 'Suspendre les publications de l’équipe.', 'gestion', 'Responsable', [team()]),
   command('reprendre', 'Reprendre les publications de l’équipe.', 'gestion', 'Responsable', [team()]),
-  command('reglages canal', 'Choisir un salon de publication.', 'gestion', 'Responsable', [choice('type', 'Type de publication.', [['games', 'Games'], ['planning', 'Planning'], ['reviews', 'Reviews'], ['bilans', 'Bilans']], true), channel(), team()]),
+  command('reglages canal', 'Choisir un salon de publication.', 'gestion', 'Responsable', [choice('type', 'Type de publication.', [['games', 'Parties'], ['planning', 'Planning'], ['reviews', 'Débriefs'], ['bilans', 'Bilans']], true), channel(), team()]),
   command('reglages rappels', 'Configurer les rappels de session.', 'gestion', 'Responsable', [active(), integer('delai', 'Minutes avant le rendez-vous.', false, 1, 10080), team()]),
   command('reglages fuseau', 'Régler le fuseau horaire de l’équipe.', 'gestion', 'Responsable', [text('fuseau', 'Fuseau IANA, par exemple Europe/Paris.', true), team()]),
   command('diffusion test', 'Tester le salon configuré.', 'gestion', 'Responsable', [team()]),
@@ -106,8 +106,8 @@ export const discordCommandCatalog = [
   command('profil', 'Vérifier ton compte NXT5 lié.', 'joueur', 'Compte lié'),
   command('voir', 'Consulter les données de ton équipe dans son salon.', 'joueur', 'Membre', [
     choice('sujet', 'Données à afficher.', [
-      ['derniere', 'Dernière game'], ['bilan', 'Bilan'], ['stats', 'Statistiques'],
-      ['planning', 'Planning'], ['objectifs', 'Objectifs'], ['reviews', 'Reviews'], ['draft', 'Draft'],
+      ['derniere', 'Dernière partie'], ['bilan', 'Bilan'], ['stats', 'Statistiques'],
+      ['planning', 'Planning'], ['objectifs', 'Objectifs'], ['reviews', 'Débriefs'], ['draft', 'Draft'],
     ], true),
   ]),
   command('connecter', 'Relier une équipe NXT5 à ce serveur.', 'gestion', 'Responsable', [

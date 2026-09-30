@@ -110,9 +110,9 @@ describe('NXT5 visible Discord command contract', () => {
       expect.objectContaining({
         name: 'sujet', type: 3, required: true,
         choices: [
-          { name: 'Dernière game', value: 'derniere' }, { name: 'Bilan', value: 'bilan' },
+          { name: 'Dernière partie', value: 'derniere' }, { name: 'Bilan', value: 'bilan' },
           { name: 'Statistiques', value: 'stats' }, { name: 'Planning', value: 'planning' },
-          { name: 'Objectifs', value: 'objectifs' }, { name: 'Reviews', value: 'reviews' },
+          { name: 'Objectifs', value: 'objectifs' }, { name: 'Débriefs', value: 'reviews' },
           { name: 'Draft', value: 'draft' },
         ],
       }),

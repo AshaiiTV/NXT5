@@ -37,8 +37,8 @@ describe("unified Games navigation", () => {
     expect(pathFromPage("matches")).toBe("/games");
     expect(pathFromPage("stats")).toBe("/games");
     expect(pathFromPage("reports")).toBe("/rapports");
-    expect(gameWorkspaceSectionLabel("games")).toBe("Games");
-    expect(gameWorkspaceSectionLabel("review")).toBe("Review");
+    expect(gameWorkspaceSectionLabel("games")).toBe("Parties");
+    expect(gameWorkspaceSectionLabel("review")).toBe("Débriefs");
     const visible = NAV.filter((item) => [...PRIMARY_NAV_IDS, ...MORE_NAV_IDS].includes(item.id));
     expect(visible.filter((item) => item.label === "Parties")).toHaveLength(1);
     expect(visible.some((item) => item.id === "stats")).toBe(false);

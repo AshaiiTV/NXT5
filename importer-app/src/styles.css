@@ -213,20 +213,22 @@ svg {
   text-decoration: none;
   color: var(--text);
 }
-.brand img {
+.brand > img {
   width: 40px;
   height: 44px;
   object-fit: contain;
 }
 .brand-name {
-  font-family: "Inter", sans-serif;
-  font-size: 25px;
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: -1.5px;
+  display: flex;
+  flex-direction: column;
 }
-.brand-name > span {
-  color: var(--cyan);
+/* Official NXT5 wordmark asset: the signature is never recomposed with text. */
+.brand-wordmark {
+  display: block;
+  width: auto;
+  height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.3));
 }
 .brand small {
   display: block;
@@ -1760,12 +1762,12 @@ input[aria-invalid="true"] {
     padding: 0 26px;
     gap: 17px;
   }
-  .brand img {
+  .brand > img {
     width: 32px;
     height: 38px;
   }
-  .brand-name {
-    font-size: 22px;
+  .brand-wordmark {
+    height: 22px;
   }
   .brand small {
     font-size: 6px;

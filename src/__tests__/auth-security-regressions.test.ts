@@ -333,7 +333,7 @@ describe('shared verification email budgets', () => {
     expect(await response.json()).not.toHaveProperty('user');
     state.userId = (await state.pg.query('select id from users where email = $1', ['new-account@example.test'])).rows[0].id;
     const created = (await state.pg.query('select legal_version from users where id = $1', [state.userId])).rows[0];
-    expect(created.legal_version).toBe('2026-09-23');
+    expect(created.legal_version).toBe(LEGAL_VERSION);
     await state.pg.query("update users set email_verify_expires_at = now() + interval '23 hours' where id = $1", [state.userId]);
     expect((await resend()).status).toBe(429);
     expect(state.emails).toHaveBeenCalledTimes(1);

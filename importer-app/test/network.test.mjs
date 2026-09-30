@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { EventEmitter } from "node:events";
 import {
@@ -8,7 +10,10 @@ import {
   lcuRequest,
   parseLockfile,
   createChampionCatalog,
+  lcuChampionNames,
   lockfileCandidates,
+  readLeagueLockfile,
+  riotInstallDirectories,
 } from "../src/network.js";
 
 async function server(t, handler) {
@@ -82,6 +87,44 @@ test("lockfile restricts credentials to a valid TLS loopback port", () => {
       path.join("/custom/League.app", "Contents", "LoL", "lockfile"),
     ),
   );
+});
+
+test("Windows installs on other drives are found through Riot Client metadata", async (t) => {
+  const programData = await fs.mkdtemp(path.join(os.tmpdir(), "nxt5-riot-"));
+  t.after(() => fs.rm(programData, { recursive: true, force: true }));
+  const riot = path.join(programData, "Riot Games");
+  const metadata = path.join(riot, "Metadata", "league_of_legends.live");
+  const game = path.join(programData, "D", "Riot Games", "League of Legends");
+  await fs.mkdir(metadata, { recursive: true });
+  await fs.mkdir(game, { recursive: true });
+  await fs.writeFile(
+    path.join(riot, "RiotClientInstalls.json"),
+    JSON.stringify({
+      associated_client: {
+        "E:/Riot Games/VALORANT/live/": "E:/Riot Games/Riot Client/RiotClientServices.exe",
+      },
+      rc_default: "E:/Riot Games/Riot Client/RiotClientServices.exe",
+    }),
+  );
+  await fs.writeFile(
+    path.join(metadata, "league_of_legends.live.product_settings.yaml"),
+    `product_install_full_path: "${game}"\r\nproduct_install_root: "D:/"\r\n`,
+  );
+  assert.deepEqual(await riotInstallDirectories(programData), [
+    game,
+    "E:/Riot Games/VALORANT/live/",
+  ]);
+  await fs.writeFile(
+    path.join(game, "lockfile"),
+    "LeagueClient:12:54321:password:https",
+  );
+  const lockfile = await readLeagueLockfile("", () =>
+    riotInstallDirectories(programData),
+  );
+  assert.equal(lockfile.filePath, path.join(game, "lockfile"));
+  assert.equal(lockfile.port, 54321);
+  assert.deepEqual(await riotInstallDirectories(path.join(programData, "absent")), []);
+  assert.deepEqual(await riotInstallDirectories(""), []);
 });
 
 function fakeRequest({
@@ -159,15 +202,20 @@ test("ten champion lookups share one versions request and one catalog request", 
       response: { ok: true },
       payload: url.endsWith("versions.json")
         ? ["16.1.1"]
-        : { data: { Annie: { key: "1", name: "Annie" } } },
+        : {
+            data: {
+              MonkeyKing: { key: "62", id: "MonkeyKing", name: "Wukong" },
+            },
+          },
     };
   });
+  // Riot match-v5 uses the internal ID, never the display name ("Wukong").
   assert.deepEqual(
-    await Promise.all(Array.from({ length: 10 }, () => catalog.name(1))),
-    Array(10).fill("Annie"),
+    await Promise.all(Array.from({ length: 10 }, () => catalog.name(62))),
+    Array(10).fill("MonkeyKing"),
   );
   assert.equal(calls.length, 2);
-  assert.equal(await catalog.name(999), "Champion 999");
+  assert.equal(await catalog.name(999), "");
   assert.equal(calls.length, 2);
 });
 
@@ -180,9 +228,41 @@ test("champion names gracefully fall back offline without retry storms", async (
   const names = await Promise.all(
     Array.from({ length: 10 }, (_, index) => catalog.name(index + 1)),
   );
-  assert.equal(names[0], "Champion 1");
-  assert.equal(names[9], "Champion 10");
+  assert.deepEqual(names, Array(10).fill(""));
   assert.equal(calls, 1);
-  assert.equal(await catalog.name(11), "Champion 11");
+  assert.equal(await catalog.name(11), "");
   assert.equal(calls, 1);
+});
+
+test("the local client catalog provides offline Riot champion IDs and ignores placeholders", async () => {
+  const request = fakeRequest({
+    body: JSON.stringify([
+      { id: -1, name: "None", alias: "None" },
+      { id: 9, name: "Fiddlesticks", alias: "FiddleSticks" },
+      { id: 62, name: "Wukong", alias: "MonkeyKing" },
+      { id: 36, name: "Dr. Mundo", alias: "Dr. Mundo" },
+      { id: 20, name: "Nunu & Willump" },
+    ]),
+  });
+  const names = await lcuChampionNames(
+    { port: 54321, password: "local-only" },
+    {
+      request: (lockfile, endpoint, options) =>
+        lcuRequest(lockfile, endpoint, {
+          ...options,
+          requestImpl: request.requestImpl,
+        }),
+    },
+  );
+  assert.equal(
+    request.options().path,
+    "/lol-game-data/assets/v1/champion-summary.json",
+  );
+  assert.deepEqual(
+    [...names],
+    [
+      ["9", "FiddleSticks"],
+      ["62", "MonkeyKing"],
+    ],
+  );
 });

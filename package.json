@@ -10,8 +10,6 @@
     "test": "vitest run",
     "preview": "vite preview",
     "optimize:assets": "node tools/optimize-assets.mjs",
-    "local-importer": "node tools/nxt5-importer.mjs",
-    "local-import-export": "node tools/nxt5-importer.mjs",
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm test && npm run build",
     "db:migrate": "node tools/migrate.mjs",

@@ -6,7 +6,7 @@ Les tests unitaires s’exécutent depuis `importer-app` avec `pnpm test`. Ils v
 
 Le script `scripts/smoke-electron.mjs` lance le vrai processus principal, le preload isolé et l’interface. Il utilise des réponses NXT5/Riot simulées, un serveur HTTPS LCU sur `127.0.0.1`, un lockfile temporaire et des dialogues natifs simulés. Il ne contacte pas Riot, n’ouvre pas de navigateur externe et ne lit pas votre historique réel : chaque exécution utilise un nouveau dossier de préférences.
 
-Prérequis : Node.js 24 ou plus récent, Electron, le paquet `playwright` complet et `openssl` accessible dans le `PATH`. Aucune dépendance supplémentaire n’est ajoutée au projet. Ce parcours a été vérifié sur macOS Apple Silicon avec Electron 44.2. Sous Linux, une session graphique ou un affichage virtuel est nécessaire ; le packaging Windows doit toujours être vérifié par la CI Windows.
+Prérequis : Node.js 24 ou plus récent, Electron, le paquet `playwright` complet et `openssl` accessible dans le `PATH`. Aucune dépendance supplémentaire n’est ajoutée au projet. Ce parcours a été vérifié sur macOS Apple Silicon avec Electron 44.4.3. Sous Linux, une session graphique ou un affichage virtuel est nécessaire ; le packaging Windows doit toujours être vérifié par la CI Windows.
 
 Depuis `importer-app`, si Electron et Playwright sont déjà résolus par Node :
 

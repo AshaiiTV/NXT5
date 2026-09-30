@@ -1,4 +1,5 @@
 import React from "react";
+import { LEGAL_VERSION } from "../../shared/legal.js";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
@@ -120,7 +121,7 @@ describe("social account entry and completion", () => {
   it("requires explicit legal acceptance and an email for Riot, without asking for a local password", async () => {
     const onComplete = vi.fn();
     apiFetch.mockResolvedValueOnce({ provider: "riot", email: null, name: "RiotPlayer", emailVerified: false });
-    const renderer = await render(<SocialSignup legalVersion="2026-09-23" onComplete={onComplete} loginHref="/connexion?next=%2Fparametres" />);
+    const renderer = await render(<SocialSignup legalVersion={LEGAL_VERSION} onComplete={onComplete} loginHref="/connexion?next=%2Fparametres" />);
     expect(renderer.root.findAllByProps({ type: "password" })).toHaveLength(0);
     const legalLinks = renderer.root.findAllByType("a").filter((node) => node.props.target === "_blank");
     expect(legalLinks).toHaveLength(3);
@@ -133,14 +134,14 @@ describe("social account entry and completion", () => {
     act(() => renderer.root.findByProps({ type: "checkbox" }).props.onChange({ target: { checked: true } }));
     apiFetch.mockResolvedValueOnce({ user: { id: 42 }, destination: "/equipes?invite=token" });
     await act(async () => { await submit(renderer); });
-    expect(JSON.parse(apiFetch.mock.calls[1][1].body)).toEqual({ displayName: "RiotPlayer", email: "player@example.fr", acceptLegal: true, legalVersion: "2026-09-23" });
+    expect(JSON.parse(apiFetch.mock.calls[1][1].body)).toEqual({ displayName: "RiotPlayer", email: "player@example.fr", acceptLegal: true, legalVersion: LEGAL_VERSION });
     expect(onComplete).toHaveBeenCalledWith({ id: 42 }, "/equipes?invite=token");
   });
 
   it("keeps the form after an email collision and sends the user to the existing account", async () => {
     const onComplete = vi.fn();
     apiFetch.mockResolvedValueOnce({ provider: "apple", email: "relay@privaterelay.appleid.com", name: "Joueur", emailVerified: true });
-    const renderer = await render(<SocialSignup legalVersion="2026-09-23" onComplete={onComplete} loginHref="/connexion?next=%2Fparametres" />);
+    const renderer = await render(<SocialSignup legalVersion={LEGAL_VERSION} onComplete={onComplete} loginHref="/connexion?next=%2Fparametres" />);
     act(() => renderer.root.findByProps({ type: "checkbox" }).props.onChange({ target: { checked: true } }));
     apiFetch.mockRejectedValueOnce(Object.assign(new Error("existing"), { code: "SOCIAL_EMAIL_EXISTS" }));
     await act(async () => { await submit(renderer); });
@@ -242,7 +243,7 @@ describe("social account settings", () => {
     window.location.search = "?token=reset-token";
     const onAuth = vi.fn();
     const renderer = await render(<ResetPasswordPage navigate={vi.fn()} onAuth={onAuth} />);
-    expect(content(renderer.root)).toContain("dissocie tes comptes Google, Discord, Apple et Riot");
+    expect(content(renderer.root)).toContain("dissocie toutes tes connexions externes associées");
     edit(renderer, "Nouveau mot de passe", "a-long-new-password");
     edit(renderer, "Confirmer", "a-long-new-password");
     apiFetch.mockResolvedValueOnce({ ok: true });

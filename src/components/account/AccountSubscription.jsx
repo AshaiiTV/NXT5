@@ -64,7 +64,7 @@ export default function AccountSubscription({ compact = false }) {
     {subscription && <div className="account-subscription-detail">
       <div className="flex flex-wrap items-center gap-3"><p className="account-subscription-plan">{presentation.label}</p><Badge tone={presentation.tone}>{presentation.statusLabel}</Badge></div>
       {hasAttribution ? <>
-        {isDiscovery && <p className="mt-3 text-sm leading-6 text-slate-300">Découverte comprend {DISCOVERY_TRIAL_DAYS} jours d’accès à tous les outils. Après cet essai, le Pass Équipe sera nécessaire pour continuer à les utiliser lorsque les abonnements seront lancés.</p>}
+        {isDiscovery && <p className="mt-3 text-sm leading-6 text-slate-300">Au lancement des offres, Découverte comprendra {DISCOVERY_TRIAL_DAYS} jours d’accès à tous les outils, sauf le bot Discord, réservé au Pass Équipe. Après cet essai, le Pass Équipe sera nécessaire pour continuer à les utiliser lorsque les abonnements seront lancés.</p>}
         <dl className="mt-4 text-sm leading-6">
           <div><dt className="text-slate-400">{isDiscovery ? "Période de l’essai" : "Période du Pass"}</dt><dd className="mt-1 font-bold">{subscriptionPeriodLabel(subscription)}</dd></div>
         </dl>

@@ -1,3 +1,4 @@
+import { logFailure } from './_lib/safe-log';
 import type { Config } from '@netlify/functions';
 import { sql } from './_lib/db';
 import { ensureEmailVerificationColumns } from './_lib/auth';
@@ -76,7 +77,7 @@ export default async function handler(_request: Request): Promise<Response> {
       await sendInactivityReminderEmail({ to: candidate.email, name: candidate.name });
     } catch (error: any) {
       failed += 1;
-      console.error('[inactivity-reminders] Delivery failed.', { userId: candidate.id, code: error?.code || null });
+      logFailure('[inactivity-reminders] Delivery failed.', error);
       // Only explicit provider rejection/configuration failure proves no send.
       // Network interruptions are ambiguous and retain the durable barrier.
       if (['EMAIL_DELIVERY_FAILED', 'EMAIL_NOT_CONFIGURED'].includes(error?.code)) {

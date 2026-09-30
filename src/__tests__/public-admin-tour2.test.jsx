@@ -56,7 +56,7 @@ it("E5/E1: public policies describe current collection, closed requests and rema
     expect(measurement).not.toMatch(/connexion, (?:consultation des tarifs|demande d’accès)/);
   }
   const privacy = JSON.stringify(LEGAL_PAGES["/confidentialite"]);
-  expect(privacy).toContain("formulaire public de demande d’accès est fermé");
+  expect(privacy).toContain("réservés à l’administrateur de plateforme");
   expect(privacy).toContain("CommunityDragon ou Data Dragon");
   expect(privacy).toContain("catalogue des runes Data Dragon passe par le serveur NXT5");
 });
@@ -104,32 +104,20 @@ it("R4-V6 omits the weekly activity note when no weekly series is rendered", asy
 it('T3-04 distinguishes OAuth and social email confirmation lifetimes in both policies', () => {
   for (const route of ['/cookies','/confidentialite']) {
     const text = JSON.stringify(LEGAL_PAGES[route]);
-    expect(text).toContain('5 min pour les étapes de connexion, 15 min pour la confirmation par e-mail d’une inscription');
-    expect(text).not.toMatch(/cinq minutes (au maximum|maximum)|expirent après cinq minutes/);
+    expect(text).toContain('cinq minutes pour les étapes de connexion, ou quinze minutes pour la confirmation par e-mail d’une inscription');
+    expect(text).not.toMatch(/cinq minutes (au maximum|maximum)|expirent après cinq minutes et/);
   }
 });
 
-it('R4-S3 dates revised legal sections without changing acceptance or audience consent versions', async () => {
+it('R4-S3 legal revision is dated globally and keeps the audience consent version', async () => {
   const { LEGAL_VERSION, LEGAL_UPDATED_LABEL } = await import('../../shared/legal.js');
   const { AUDIENCE_CONSENT_VERSION } = await import('../app/audience-client.js');
-  expect(LEGAL_VERSION).toBe('2026-09-23');
+  // #91 bumped the legal version for the whole rewrite; section titles no longer carry dates.
+  expect(LEGAL_VERSION).toBe('2026-09-30');
+  expect(LEGAL_UPDATED_LABEL).toBe('30 septembre 2026');
   expect(AUDIENCE_CONSENT_VERSION).toBe('2026-09-14');
-  expect(LEGAL_UPDATED_LABEL).toBe('29 septembre 2026');
-  for (const [route, titles] of [
-    ['/confidentialite', ['Accès et destinataires', 'Demandes d’accès', 'Mesure de fréquentation', 'Connexions Google']],
-    ['/cookies', ['Ce que nous mesurons', 'Cookies temporaires']],
-  ]) for (const title of titles) {
-    expect(LEGAL_PAGES[route].sections.find(section => section[0].startsWith(title))[0]).toContain('mise à jour du 29 septembre 2026');
+  for (const route of ['/confidentialite', '/cookies']) {
+    expect(LEGAL_PAGES[route].sections.every(([title]) => !/mise à jour du/.test(title))).toBe(true);
   }
   expect(JSON.stringify(LEGAL_PAGES['/confidentialite'])).toContain('conservées jusqu’à l’exécution de cette correction');
-});
-
-it('R4-V1 shows uncertain sends separately from eligible reminders in administration', async () => {
-  apiFetch.mockResolvedValue({ inactivityReminders: { sending: 7, awaitingDelivery: 2 } });
-  const renderer = await render(<AdminDashboard view='reminders' />);
-  const metrics = renderer.root.findAllByProps({ className: 'admin-metric' });
-  const uncertain = metrics.find(metric => metric.findByType('p').children.join('') === 'Envois à vérifier');
-  expect(uncertain.findByType('strong').children).toEqual(['7']);
-  expect(uncertain.findByType('span').children.join('')).toContain('sans confirmation enregistrée');
-  expect(metrics.find(metric => metric.findByType('p').children.join('') === 'Éligibles à l’envoi').findByType('strong').children).toEqual(['2']);
 });

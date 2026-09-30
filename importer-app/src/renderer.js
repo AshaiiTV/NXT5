@@ -45,7 +45,7 @@ const dateFormat = new Intl.DateTimeFormat("fr-FR", {
 
 function cleanError(error) {
   return String(
-    error?.message || error || "Une erreur est survenue. Réessayez.",
+    error?.message || error || "Une erreur est survenue. Réessaie.",
   )
     .replace(/^Error invoking remote method '[^']+':\s*(?:Error:\s*)?/, "")
     .replace(/^Error:\s*/, "");
@@ -139,8 +139,8 @@ function renderHistory() {
     ? "Aucun export ne correspond"
     : "Aucune game exportée pour le moment";
   $("#historyEmpty p").textContent = query
-    ? "Essayez avec une autre partie de l’identifiant."
-    : "Vos prochains fichiers apparaîtront ici après leur enregistrement.";
+    ? "Essaie avec une autre partie de l’identifiant."
+    : "Tes prochains fichiers apparaîtront ici après leur enregistrement.";
   $("#firstExport").hidden = Boolean(query);
   for (const item of items) {
     const row = document.createElement("article");
@@ -187,7 +187,7 @@ async function revealExport(id, button) {
   try {
     if (!id || !(await api.showExport(id)))
       throw new Error(
-        "Ce fichier a été déplacé ou supprimé. Vous pouvez réexporter la game.",
+        "Ce fichier a été déplacé ou supprimé. Tu peux réexporter la game.",
       );
     notice("#globalNotice", "", "");
   } catch (error) {
@@ -237,7 +237,7 @@ async function checkForUpdate({ manual = false } = {}) {
     $("#update").hidden = !info.updateAvailable;
     $("#latestVersion").textContent = info.updateAvailable
       ? `Version ${info.latestVersion} disponible`
-      : "Votre application est à jour";
+      : "Ton application est à jour";
     $("#updateText").textContent =
       `Version ${info.latestVersion} · installée : ${appState.version || info.currentVersion}`;
     if (manual)
@@ -251,7 +251,7 @@ async function checkForUpdate({ manual = false } = {}) {
   } catch (error) {
     $("#latestVersion").textContent = "Vérification indisponible";
     $("#updateStatus").textContent =
-      `${cleanError(error)} Vous pouvez continuer à utiliser l’application.`;
+      `${cleanError(error)} Tu peux continuer à utiliser l’application.`;
   } finally {
     checkingUpdate = false;
     $("#manualUpdateButton").disabled = false;
@@ -292,8 +292,8 @@ function validateInput() {
     gameInput.setAttribute("aria-invalid", "true");
     $("#gameIdError").hidden = false;
     $("#gameIdError").textContent = !input
-      ? "Ajoutez l’identifiant de la game à exporter."
-      : "Utilisez un numéro de game ou un ID complet, comme EUW1_7861632138.";
+      ? "Ajoute l’identifiant de la game à exporter."
+      : "Utilise un numéro de game ou un ID complet, comme EUW1_7861632138.";
     gameInput.focus();
     return false;
   }
@@ -378,7 +378,7 @@ form.addEventListener("submit", async (event) => {
   });
   const start = Date.now();
   $("#progressTime").textContent =
-    "Vous pourrez choisir l’emplacement du fichier à la fin.";
+    "Tu pourras choisir l’emplacement du fichier à la fin.";
   progressTimer = setInterval(() => {
     $("#progressTime").textContent =
       `${Math.round((Date.now() - start) / 1000)} s écoulées · La disponibilité des données dépend de Riot et du client LoL.`;
@@ -406,7 +406,7 @@ form.addEventListener("submit", async (event) => {
         notice(
           "#status",
           "success",
-          `Export ${result.gameId} enregistré. Vous pouvez l’ajouter dans NXT5.`,
+          `Export ${result.gameId} enregistré. Tu peux l’ajouter dans NXT5.`,
         );
     }
   } catch (error) {
@@ -546,7 +546,7 @@ async function initialize() {
     notice(
       "#globalNotice",
       "error",
-      "Le moteur local ne s’est pas chargé. Fermez puis rouvrez NXT5 Importer. Si le problème persiste, réinstallez la dernière version.",
+      "Le moteur local ne s’est pas chargé. Ferme puis rouvre NXT5 Importer. Si le problème persiste, réinstalle la dernière version.",
     );
     return;
   }

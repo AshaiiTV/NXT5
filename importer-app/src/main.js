@@ -17,6 +17,7 @@ import {
   fetchJson,
   readLeagueLockfile,
   lcuRequest,
+  lcuChampionNames,
   createChampionCatalog,
 } from "./network.js";
 
@@ -109,7 +110,7 @@ function lcuWinValue(team) {
   return ["win", "true", "1"].includes(String(team?.win || "").toLowerCase());
 }
 
-async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
+function lcuToRiotMatch(lcuGame, fallbackGameId, champions = new Map()) {
   const statNumber = (stats, ...keys) => {
     for (const key of keys) {
       const value = Number(stats?.[key] ?? 0);
@@ -117,8 +118,8 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
     }
     return 0;
   };
-  const participants = await Promise.all(
-    (lcuGame.participants || []).map(async (participant, index) => {
+  const participants = (lcuGame.participants || []).map(
+    (participant, index) => {
       const identity = (lcuGame.participantIdentities || []).find(
         (item) => item.participantId === participant.participantId,
       );
@@ -126,8 +127,9 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
       const stats = participant.stats || {};
       const timeline = participant.timeline || {};
       const championName =
+        champions.get(String(participant.championId)) ||
         participant.championName ||
-        (await catalog.name(participant.championId, signal));
+        "";
       const riotName =
         player.gameName ||
         player.summonerName ||
@@ -181,7 +183,7 @@ async function lcuToRiotMatch(lcuGame, fallbackGameId, signal) {
           statNumber(stats, "summoner2Id", "spell2Id"),
         win: lcuWinValue(stats),
       };
-    }),
+    },
   );
 
   return {
@@ -249,8 +251,10 @@ function csAtMinuteFromTimeline(timeline, participantId, minute, gameDuration) {
     frame?.participantFrames?.[participantId];
   if (!participantFrame || Number(frame.timestamp) - target > 5000) return null;
   return (
-    Number(participantFrame.minionsKilled || 0) +
-    Number(participantFrame.jungleMinionsKilled || 0)
+    Number.isFinite(participantFrame.minionsKilled) &&
+    Number.isFinite(participantFrame.jungleMinionsKilled)
+      ? participantFrame.minionsKilled + participantFrame.jungleMinionsKilled
+      : null
   );
 }
 
@@ -379,7 +383,19 @@ async function localMatch(gameId, signal, progress) {
   }
   if (!game)
     throw lastError || new Error("Partie introuvable dans le client LoL.");
-  const match = await lcuToRiotMatch(game, gameId, signal);
+  const champions = await championNames(
+    game.participants.map((participant) => participant.championId),
+    lockfile,
+    signal,
+  );
+  // A placeholder name would be stored by the site and split its statistics.
+  if (
+    game.participants.some(
+      (participant) => !champions.has(String(participant.championId)),
+    )
+  )
+    throw new Error("Catalogue des champions indisponible, réessaie connecté.");
+  const match = lcuToRiotMatch(game, gameId, champions);
   progress?.("Récupération de la timeline depuis le client LoL…");
   let timeline = null;
   for (const endpoint of [
@@ -401,6 +417,21 @@ async function localMatch(gameId, signal, progress) {
   return { match, timeline, source: "nxt5-lcu-importer" };
 }
 
+async function championNames(championIds, lockfile, signal) {
+  let names = new Map();
+  try {
+    names = await lcuChampionNames(lockfile, { signal });
+  } catch {
+    throwIfAborted(signal);
+  }
+  for (const id of new Set(championIds.map(String))) {
+    if (names.has(id)) continue;
+    const name = await catalog.name(id, signal);
+    if (name) names.set(id, name);
+  }
+  return names;
+}
+
 const importer = createImportService({
   async fetchRemote(gameId, platform, signal) {
     // A numeric ID is only unique within its region. Never search other regions silently.
@@ -414,7 +445,7 @@ const importer = createImportService({
       throw new Error(
         typeof detail === "string" && detail !== "Bad Request"
           ? detail.slice(0, 500)
-          : `Partie indisponible auprès de Riot (${response.status}). Vérifiez le Game ID et la région.`,
+          : `Partie indisponible auprès de Riot (${response.status}). Vérifie le Game ID et la région.`,
       );
     }
     return payload;
@@ -498,7 +529,7 @@ const handlers = {
     const choice = await dialog.showMessageBox(mainWindow, {
       type: "question",
       title: "Localiser League of Legends",
-      message: "Sélectionnez le dossier du jeu ou son fichier lockfile.",
+      message: "Sélectionne le dossier du jeu ou son fichier lockfile.",
       detail:
         "Le lockfile est créé dans le dossier du jeu lorsque le client est ouvert.",
       buttons: ["Choisir un dossier", "Choisir le lockfile", "Annuler"],
@@ -521,7 +552,7 @@ const handlers = {
     const leaguePath = result.filePaths[0];
     if (choice.response === 1 && path.basename(leaguePath) !== "lockfile")
       throw new Error(
-        "Sélectionnez le fichier nommé lockfile dans le dossier League of Legends.",
+        "Sélectionne le fichier nommé lockfile dans le dossier League of Legends.",
       );
     await store.saveSettings({ leaguePath });
     return { canceled: false, leaguePath };
@@ -530,7 +561,7 @@ const handlers = {
     // Paths are only granted by the native chooser; the renderer may reset one.
     if (settings?.leaguePath !== undefined && settings.leaguePath !== "")
       throw new Error(
-        "Utilisez le sélecteur de dossier pour localiser League of Legends.",
+        "Utilise le sélecteur de dossier pour localiser League of Legends.",
       );
     return store.saveSettings(settings);
   },

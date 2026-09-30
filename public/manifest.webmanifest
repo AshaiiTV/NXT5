@@ -1,7 +1,7 @@
 {
   "name": "NXT5",
   "short_name": "NXT5",
-  "description": "Dashboard premium d'analyse LoL pour équipes semi-pro",
+  "description": "NXT5 réunit les outils de travail de ton équipe League of Legends : analyse de parties, débriefs, préparation de draft et planning d’entraînement.",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#00d8ff",
@@ -16,6 +16,17 @@
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
-  ]
+  ],
+  "lang": "fr"
 }

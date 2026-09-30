@@ -163,6 +163,12 @@ async function bootFixture() {
       reply({}, 401); return;
     }
     if (request.url === '/riotclient/region-locale') { reply({ region: 'EUW', locale: 'fr_FR' }); return; }
+    if (request.url === '/lol-game-data/assets/v1/champion-summary.json') {
+      if (state.mode === 'local-no-catalog') { reply({}, 404); return; }
+      const aliases = ['Annie', 'Olaf', 'Galio', 'TwistedFate', 'XinZhao', 'Urgot', 'Leblanc', 'Vladimir', 'FiddleSticks', 'Kayle'];
+      reply([{ id: -1, name: 'None', alias: 'None' }, ...aliases.map((alias, index) => ({ id: index + 1, name: alias, alias }))]);
+      return;
+    }
     if (request.url.includes('timeline')) { reply(timeline); return; }
     if (['remote-error', 'malformed', 'wrong-match'].includes(state.mode)) { reply({}, 404); return; }
     if (/\/lol-match-history\/v1\/games?\/\d+$/.test(request.url)) {
@@ -353,7 +359,7 @@ async function runSmoke() {
       await mode('success'); await page.locator('#submit').click();
       await expect(page.locator('#resultPanel')).toBeVisible();
     });
-    await test('LCU fallback preserves losses, roles, dates and objectives offline', async () => {
+    await test('LCU fallback preserves losses, roles, dates, objectives and Riot champion IDs offline', async () => {
       await mode('local-success'); await clickExport();
       await expect(page.locator('#resultPanel')).toBeVisible();
       const saved = await readExport('local-success');
@@ -361,13 +367,28 @@ async function runSmoke() {
       assert.equal(saved.match.info.participants[9].win, false);
       assert.equal(saved.match.info.participants[4].teamPosition, 'UTILITY');
       assert.equal(saved.match.info.participants[2].teamPosition, 'MIDDLE');
-      assert.equal(saved.match.info.participants[0].championName, 'Champion 1');
+      assert.deepEqual(
+        [0, 3, 6, 8, 9].map((index) => saved.match.info.participants[index].championName),
+        ['Annie', 'TwistedFate', 'Leblanc', 'FiddleSticks', 'Kayle']
+      );
       assert.equal(saved.match.info.gameCreation, Date.parse('2026-09-05T16:00:00.000Z'));
       assert.equal(saved.match.info.teams[0].objectives.champion.kills, 10);
       assert.equal(saved.match.info.teams[1].objectives.champion.kills, 35);
       const calls = await application.evaluate(() => globalThis.__NXT5_SMOKE.calls);
-      assert.equal(calls.filter((url) => url.includes('ddragon')).length, 1);
+      // The client's own catalog names every champion: Data Dragon is never needed offline.
+      assert.equal(calls.filter((url) => url.includes('ddragon')).length, 0);
       assert.ok(calls.filter((url) => url.includes('riot-match-export')).every((url) => url.includes('fallback=0')));
+    });
+    await test('LCU fallback refuses unknown champions instead of saving placeholder names', async () => {
+      await mode('local-no-catalog');
+      const count = await application.evaluate(() => globalThis.__NXT5_SMOKE.saveDialogCalls);
+      await clickExport();
+      await expect(page.locator('#status')).toHaveClass(/error/);
+      await expect(page.locator('#status')).toContainText('Catalogue des champions indisponible');
+      await expect(page.locator('#submit')).toBeEnabled();
+      assert.equal(await application.evaluate(() => globalThis.__NXT5_SMOKE.saveDialogCalls), count);
+      const calls = await application.evaluate(() => globalThis.__NXT5_SMOKE.calls);
+      assert.equal(calls.filter((url) => url.includes('ddragon')).length, 1);
     });
     for (const scenario of ['local-wrong-match', 'local-wrong-region', 'malformed', 'wrong-match']) {
       await test(`reject ${scenario} before the save dialog`, async () => {

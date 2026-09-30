@@ -1,5 +1,6 @@
 import { csFromTimelineFrames } from '../../../shared/timeline-milestones.js';
 import { canonicalChampion } from '../../../shared/champions.js';
+import { logFailure } from './safe-log';
 import { assertSchemaReady } from './migrations';
 import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 import { sql } from './db';
@@ -400,7 +401,7 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
   try {
     await task();
   } catch (err) {
-    console.error(`[match-import] ${label} failed after match persistence.`, err);
+    logFailure(`[match-import] ${label} failed after match persistence.`, err);
   }
 }
 
@@ -559,7 +560,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   try {
     await rebuildChampionPool(team.id);
   } catch (error) {
-    console.error('[match-import] champion pool rebuild failed after match persistence.', error);
+    logFailure('[match-import] champion pool rebuild failed after match persistence.', error);
     warnings.push({
       code: 'CHAMPION_POOL_REBUILD_FAILED',
       message: 'Game importée, mais le Champion Pool n’a pas pu être recalculé. Les données précédentes ont été conservées.'
