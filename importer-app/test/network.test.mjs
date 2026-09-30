@@ -159,7 +159,7 @@ test("ten champion lookups share one versions request and one catalog request", 
       response: { ok: true },
       payload: url.endsWith("versions.json")
         ? ["16.1.1"]
-        : { data: { Annie: { key: "1", id: "Annie", name: "Annie" }, MonkeyKing: { key: "62", id: "MonkeyKing", name: "Wukong" }, LeeSin: { key: "64", id: "LeeSin", name: "Lee Sin" } } },
+        : { data: { Annie: { key: "1", name: "Annie" } } },
     };
   });
   assert.deepEqual(
@@ -167,35 +167,22 @@ test("ten champion lookups share one versions request and one catalog request", 
     Array(10).fill("Annie"),
   );
   assert.equal(calls.length, 2);
-  assert.equal(await catalog.name(62), "MonkeyKing");
-  assert.equal(await catalog.name(64), "LeeSin");
-  await assert.rejects(catalog.name(999), /Catalogue des champions indisponible, réessaie connecté/);
+  assert.equal(await catalog.name(999), "Champion 999");
   assert.equal(calls.length, 2);
 });
 
-test("champion lookup fails clearly offline without retry storms", async () => {
+test("champion names gracefully fall back offline without retry storms", async () => {
   let calls = 0;
   const catalog = createChampionCatalog(async () => {
     calls++;
     throw new Error("Offline");
   });
-  const names = await Promise.allSettled(
+  const names = await Promise.all(
     Array.from({ length: 10 }, (_, index) => catalog.name(index + 1)),
   );
-  for (const result of names) {
-    assert.equal(result.status, "rejected");
-    assert.match(result.reason.message, /Catalogue des champions indisponible, réessaie connecté/);
-  }
+  assert.equal(names[0], "Champion 1");
+  assert.equal(names[9], "Champion 10");
   assert.equal(calls, 1);
-  await assert.rejects(catalog.name(11), /Catalogue des champions indisponible/);
+  assert.equal(await catalog.name(11), "Champion 11");
   assert.equal(calls, 1);
-});
-
-test("empty or malformed catalogs cannot produce placeholder names", async () => {
-  for (const data of [{}, { Annie: { key: "1", name: "Annie" } }]) {
-    const catalog = createChampionCatalog(async (url) => ({
-      response: { ok: true }, payload: url.endsWith("versions.json") ? ["16.1.1"] : { data },
-    }));
-    await assert.rejects(catalog.name(1), /Catalogue des champions indisponible/);
-  }
 });

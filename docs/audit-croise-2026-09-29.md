@@ -1,5 +1,7 @@
 # Audit croisé Claude ↔ GPT — 29 septembre 2026
 
+> **Importer (30/09) :** les correctifs de `importer-app/` issus de cet audit (une seule équipe gagnante, CS incomplets indisponibles, parcours du site dans les instructions) ont été déplacés dans la PR #95 (Importer 0.3.4), pour qu’une seule PR publie une seule version de l’Importer. La correction des noms de champions côté Importer est celle de #95 ; le site normalise de son côté les noms reçus (`shared/champions.js`).
+
 Audits successifs à tour de rôle (GPT puis Claude), chaque constat contre-vérifié par l’autre modèle avant correction.
 
 ## Backend

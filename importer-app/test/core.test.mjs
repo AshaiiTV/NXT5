@@ -519,12 +519,3 @@ test("external navigation accepts the configured site and release pages, rejects
   ])
     assert.equal(safeExternalUrl(url, "https://nxt5.org"), "");
 });
-
-test("exactly one winner is required on either side", () => {
-  for (const wins of [[true, true], [false, false], [true, false], [false, true]]) {
-    const match = matchFixture();
-    match.info.teams.forEach((team, index) => { team.win = wins[index]; });
-    if (wins[0] === wins[1]) assert.throws(() => validateMatch(match, ID), /exactement une équipe gagnante/);
-    else assert.doesNotThrow(() => validateMatch(match, ID));
-  }
-});

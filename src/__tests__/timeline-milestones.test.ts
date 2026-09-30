@@ -69,7 +69,6 @@ describe('shared website and desktop milestone boundaries', () => {
     for (const key of ['minionsKilled', 'jungleMinionsKilled']) {
       match.timeline.info.frames[0].participantFrames['1'] = { minionsKilled: 0, jungleMinionsKilled: 0, [key]: value } as any;
       expect(csAtMinute(row, 10)).toBeNull();
-      expect(importerCsAt(match.timeline, 1, 10, 1800)).toBeNull();
     }
   });
 

@@ -267,8 +267,8 @@ export function createChampionCatalog(getJson = fetchJson) {
         if (!catalog.response.ok)
           throw new Error("Catalogue champions indisponible.");
         for (const champion of Object.values(catalog.payload?.data || {}))
-          if (champion?.key && typeof champion?.id === "string" && champion.id.trim())
-            names.set(String(champion.key), champion.id);
+          if (champion?.key && champion?.name)
+            names.set(String(champion.key), String(champion.name));
       })()
         .catch(() => {
           if (!signal?.aborted) retryAt = Date.now() + 60000;
@@ -283,10 +283,7 @@ export function createChampionCatalog(getJson = fetchJson) {
   return {
     async name(id, signal) {
       await load(signal);
-      throwIfAborted(signal);
-      const name = names.get(String(id));
-      if (!name) throw new Error("Catalogue des champions indisponible, réessaie connecté.");
-      return name;
+      return names.get(String(id)) || `Champion ${id || "?"}`;
     },
   };
 }
