@@ -32,3 +32,9 @@ Le dossier d’enregistrement est vérifié dans les options transmises au dialo
 Le dossier annoncé en fin d’exécution contient `results.json`, les exports synthétiques et des captures : accueil vide, taille minimale, progression, résultat et historique de test. La progression, le résultat et leurs actions sont vérifiés dans la fenêtre minimale sans défilement effectué par le test. L’historique et la connexion LCU visibles sur ces captures sont simulés. Un code de sortie non nul indique une erreur.
 
 Ces tests prouvent le fonctionnement local et la compatibilité du format dans les scénarios simulés. Ils ne valident pas la disponibilité actuelle des services Riot, les données d’une partie réelle, la signature macOS ni le téléchargement d’une release publiée.
+
+## Contrôles de distribution macOS
+
+Les tests `test/mac-release.test.mjs` vérifient les cas de rejet par les fonctions de contrôle : identifiants absents ou incomplets, signature ad hoc ou de développement, ticket invalide et rejet de Gatekeeper. Les commandes Apple sont simulées dans ces tests ; ils ne prouvent pas une notarisation réelle.
+
+Les commandes `pnpm dist:mac` et `pnpm dist:mac:arm` exécutent les vrais contrôles Apple sur une copie extraite du ZIP final. Elles nécessitent les accès décrits dans [la procédure de signature](macos-signing.md). `pnpm dist:mac:preview` vérifie le packaging sans ces accès, avec une signature ad hoc et un dossier de sortie distinct. Un aperçu réussi ne valide pas la signature Developer ID ni la notarisation.
