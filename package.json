@@ -31,7 +31,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
     "@types/node": "^25.9.3",
-    "@vitejs/plugin-react": "5.2.0",
+    "@vitejs/plugin-react": "6.1.1",
     "autoprefixer": "^10.6.1",
     "esbuild": "0.28.2",
     "lucide-react": "^1.48.0",
