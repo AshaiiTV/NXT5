@@ -1,0 +1,22 @@
+/* Carte finale : le même logo qu'à l'ouverture, l'adresse, la cible et l'accès gratuit, tenus longtemps. */
+NX.scene({
+  id: 'fin', start: NX.T.end - 0.2, end: NX.DURATION, z: 3,
+  build(root) {
+    this.halo = NX.el(`<div style="position:absolute;left:50%;top:380px;width:1300px;height:900px;margin:-450px 0 0 -650px;background:radial-gradient(closest-side,rgba(103,232,249,.18),rgba(129,140,248,.08) 45%,transparent)"></div>`, root);
+    this.logo = NX.el(`<img src="../public/assets/nxt5-logo.png" alt="" style="position:absolute;left:50%;top:90px;width:700px;margin-left:-350px">`, root);
+    this.url = NX.el(`<div class="tz-center" style="top:690px"><span class="nx-cta" style="font-size:40px;padding:20px 52px">nxt5.org</span></div>`, root);
+    this.line1 = NX.el(`<div class="tz-center" style="top:830px;font-weight:600;font-size:34px;color:var(--text)">Pour les équipes et coachs League of Legends</div>`, root);
+    this.line2 = NX.el(`<div class="tz-center" style="top:888px;font-weight:600;font-size:28px;color:var(--muted)">Accès actuellement gratuit</div>`, root);
+  },
+  render(S) {
+    const t = S.t, a = NX.T.end;
+    const p = NX.ease.outCubic(NX.seg(t, a, a + 0.9));
+    const flash = t >= a ? Math.exp(-(t - a) * 3) : 0;
+    this.logo.style.opacity = p;
+    this.logo.style.transform = `scale(${NX.lerp(1.12, 1, p) * (1 + 0.025 * NX.seg(t, a, NX.DURATION))})`;
+    this.logo.style.filter = `${p < 1 ? `blur(${(1 - p) * 24}px) ` : ''}drop-shadow(0 0 ${30 + 50 * flash}px rgba(129,140,248,${0.45 + 0.4 * flash}))`;
+    this.halo.style.opacity = p * (0.6 + 0.4 * flash);
+    const rise = (el, s) => { const e = NX.ease.outCubic(NX.seg(t, s, s + 0.6)); el.style.opacity = e; el.style.transform = `translateY(${(1 - e) * 24}px)`; el.style.filter = e < 1 ? `blur(${(1 - e) * 8}px)` : ''; };
+    rise(this.url, a + 0.6); rise(this.line1, a + 1.0); rise(this.line2, a + 1.3);
+  },
+});

@@ -41,6 +41,10 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 - [Shopify, réseaux et préparation juridique](shopify-et-checklist-juridique.md)
 - [Soutenir NXT5](soutenir-nxt5.md) et [page Ko-fi](kofi-nxt5.md)
 
+### Communication
+
+- [Teaser vidéo NXT5](../teaser/README.md)
+
 ### NXT5 Importer
 
 - [Changements](../importer-app/CHANGELOG.md)

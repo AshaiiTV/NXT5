@@ -1,0 +1,10 @@
+{
+  "name": "nxt5-teaser",
+  "private": true,
+  "type": "module",
+  "description": "Teaser vidéo NXT5 rendu image par image dans Chromium.",
+  "devDependencies": {
+    "@fontsource/inter": "5.2.8",
+    "playwright-core": "1.56.1"
+  }
+}

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>NXT5 Teaser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="engine.css">
+</head>
+<body>
+<div id="viewport">
+  <div id="stage">
+    <canvas id="bg" width="1920" height="1080"></canvas>
+    <div id="shake">
+      <div id="world"></div>
+      <canvas id="fx" width="1920" height="1080"></canvas>
+    </div>
+    <div id="post">
+      <div id="leak"></div>
+      <div id="vignette"></div>
+      <canvas id="grain" width="960" height="540"></canvas>
+      <div id="flash"></div>
+      <div id="lb-top" class="lb"></div>
+      <div id="lb-bot" class="lb"></div>
+      <div id="fade"></div>
+    </div>
+  </div>
+</div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <filter id="nx-fx" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+    <feTurbulence id="nx-turb" type="fractalNoise" baseFrequency="0.0001 0.06" numOctaves="1" seed="1" result="noise"/>
+    <feDisplacementMap id="nx-disp" in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="A" result="disp"/>
+    <feColorMatrix in="disp" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
+    <feOffset id="nx-r" in="r" dx="0" dy="0" result="ro"/>
+    <feColorMatrix in="disp" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>
+    <feColorMatrix in="disp" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
+    <feOffset id="nx-b" in="b" dx="0" dy="0" result="bo"/>
+    <feBlend in="ro" in2="g" mode="screen" result="rg"/>
+    <feBlend in="rg" in2="bo" mode="screen"/>
+  </filter>
+</svg>
+<div id="controls">
+  <button id="play" type="button">Lecture</button>
+  <button id="mute" type="button">Son : oui</button>
+  <input id="scrub" type="range" min="0" max="31.2" step="0.01" value="0" aria-label="Position">
+  <span id="time">0.00 s</span>
+  <span id="scenes"></span>
+</div>
+<script src="engine.js"></script>
+<script src="shader.js"></script>
+<script src="synth.js"></script>
+<script src="audio.js"></script>
+<script src="scenes/index.js"></script>
+<script src="boot.js"></script>
+</body>
+</html>
