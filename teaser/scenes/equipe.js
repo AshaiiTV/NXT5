@@ -79,7 +79,7 @@
       NX.blockOut(this.team, t, T.fuse - 0.15, T.fuse + 0.3);
       // Emblème : naît de la fusion, puis s'élève vers la lumière avant les outils.
       const ep = NX.ease.outCubic(NX.seg(t, T.emblem - 0.05, T.emblem + 0.7));
-      const eo = NX.ease.inOutCubic(NX.seg(t, T.tools - 0.6, T.tools));
+      const eo = NX.ease.inOutCubic(NX.seg(t, T.tools - 0.45, T.tools + 0.1));
       const flash = t >= T.emblem ? Math.exp(-(t - T.emblem) * 5) : 0;
       this.emblem.style.opacity = Math.min(ep, 1 - eo);
       this.emblem.style.transform = `translateY(${-120 * eo}px) scale(${NX.lerp(1.3, 1, ep) * NX.lerp(1, 0.7, eo)})`;
@@ -89,7 +89,7 @@
       if (flash > 0.01) NX.fx.glow(CX, CY, 380, 'rgba(165,243,252,1)', flash * 0.5);
       NX.wordsIn(this.wDir, t, T.emblem + 0.3, 0.16);
       this.dir.style.display = t > T.emblem ? 'block' : 'none';
-      NX.blockOut(this.dir, t, T.tools - 0.45, T.tools - 0.05);
+      NX.blockOut(this.dir, t, T.tools - 0.35, T.tools + 0.05);
     },
   });
 })();

@@ -10,7 +10,8 @@ NX.scene({
   },
   render(S) {
     const t = S.t, a = NX.T.end;
-    const p = NX.ease.outCubic(NX.seg(t, a, a + 0.9));
+    // Le logo commence à apparaître juste avant l'impact : aucun écran vide entre les outils et la fin.
+    const p = NX.ease.outCubic(NX.seg(t, a - 0.15, a + 0.8));
     const flash = t >= a ? Math.exp(-(t - a) * 3) : 0;
     this.logo.style.opacity = p;
     this.logo.style.transform = `scale(${NX.lerp(1.12, 1, p) * (1 + 0.025 * NX.seg(t, a, NX.DURATION))})`;

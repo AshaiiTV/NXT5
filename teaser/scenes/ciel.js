@@ -13,12 +13,13 @@ NX.scene({
       speed: 1, intensity: 1,
     }, 1);
     NX.bg.pulse = groove * NX.pulse(t, NX.BEAT, 7, 0);
-    // Impacts : un éclair doux sur le fond et une petite secousse, jamais d'écran blanc ni noir.
+    // Impacts : les rayons venus du haut s'intensifient, avec une petite secousse.
+    // Pas de voile uniforme sur toute l'image : il donnait un écran gris délavé.
     let flash = 0, shake = 0;
-    for (const h of T.hits) if (t >= h) { const e = Math.exp(-(t - h) * 5.5); flash += e; shake += Math.exp(-(t - h) * 9); }
-    NX.bg.flash = 0.22 * flash;
-    NX.post.flash = 0.16 * flash;
-    NX.post.shake = 7 * shake;
+    for (const h of T.hits) if (t >= h) { const e = Math.exp(-(t - h) * 4); flash += e; shake += Math.exp(-(t - h) * 9); }
+    NX.bgAdd({ rays: 1.1 * flash, intensity: 0.25 * flash });
+    NX.bg.flash = 0.02 * flash;
+    NX.post.shake = 6 * shake;
     NX.post.vignette = 0.8;
   },
 });

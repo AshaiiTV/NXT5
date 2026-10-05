@@ -73,7 +73,8 @@
       const t = S.t, T = NX.T;
       this.panels.forEach((P, k) => {
         const a = T.tools + k * T.tool, b = a + T.tool;
-        const visible = t >= a - 0.3 && t < b + 0.1;
+        const visible = t >= a - 0.3 && t < b + 0.15;
+        const last = k === this.panels.length - 1;
         P.left.style.display = P.card.style.display = visible ? 'block' : 'none';
         if (!visible) return;
         // Entrée : le titre mot à mot, l'écran glisse depuis la droite.
@@ -82,8 +83,7 @@
         NX.wordsIn(P.words, t, a + 0.1, 0.16);
         const cp = NX.ease.outQuart(NX.seg(t, a + 0.05, a + 0.85));
         // Sortie vers la gauche, sauf le dernier qui laisse place à la carte finale.
-        const last = k === this.panels.length - 1;
-        const q = NX.ease.inOutCubic(NX.seg(t, b - 0.35, b + 0.05));
+        const q = NX.ease.inOutCubic(NX.seg(t, b - (last ? 0.3 : 0.35), b + (last ? 0.1 : 0.05)));
         P.card.style.opacity = Math.min(cp, 1 - q);
         P.card.style.transform = `translateX(${(1 - cp) * 180 - q * (last ? 0 : 160)}px) scale(${NX.lerp(0.96, 1, cp) * (last ? NX.lerp(1, 0.94, q) : 1)})`;
         P.card.style.filter = (1 - cp) + q > 0.002 ? `blur(${((1 - cp) + q) * 10}px)` : '';
