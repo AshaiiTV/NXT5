@@ -31,7 +31,8 @@ Règles de contenu toujours valables : jamais « Cinq rôles », jamais « sans 
 ```bash
 cd teaser
 npm install
-./tools/render.sh out/final/nxt5-teaser-v6.mp4      # 6 sous-images par image, environ 15 min sur 4 cœurs
+./tools/render.sh out/final/nxt5-teaser-v6.mp4      # 6 sous-images par image, environ 55 min sur 4 cœurs sans GPU
+./tools/encode.sh out/final/nxt5-teaser-v6.mp4 6    # réencode seul, si les images sont déjà rendues
 ./tools/mobile.sh out/final/nxt5-teaser-v6.mp4 out/final/nxt5-teaser-v6-mobile.mp4
 ```
 
