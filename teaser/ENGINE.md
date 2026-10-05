@@ -1,6 +1,6 @@
 # NXT5 teaser engine — guide for scene builders
 
-Workspace: this folder. Film = 1920×1080, 30 fps, 31.2 s, 100 BPM (beat 0.6 s, bar 2.4 s). Key moments live in `NX.T` (`scenes/style.js`).
+Workspace: this folder. Film = 1920×1080, 30 fps, 33.6 s, 100 BPM (beat 0.6 s, bar 2.4 s). Key moments live in `NX.T` (`scenes/style.js`).
 Everything is a **pure function of absolute time `t`**: `NX.render(t)` can be called for any t in any order
 (frames are rendered out of order by parallel workers, plus motion-blur sub-frames per frame).
 **Never keep state between render calls** (no accumulators, no "previous value", no Math.random, no Date, no CSS transitions/animations — CSS `animation`/`transition` are forbidden because capture seeks time).

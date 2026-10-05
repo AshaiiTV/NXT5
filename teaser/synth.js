@@ -10,10 +10,11 @@
     const sr = ctx.sampleRate, R = NX.rng(opts.seed || 5);
     // Bus maître : compression de colle → limiteur
     const master = ctx.createGain(); master.gain.value = opts.master ?? 0.9;
-    const glue = ctx.createDynamicsCompressor(); glue.threshold.value = -18; glue.ratio.value = 3; glue.attack.value = 0.01; glue.release.value = 0.2; glue.knee.value = 8;
+    const glue = ctx.createDynamicsCompressor(); glue.threshold.value = -10; glue.ratio.value = 3; glue.attack.value = 0.01; glue.release.value = 0.2; glue.knee.value = 8;
     const limit = ctx.createDynamicsCompressor(); limit.threshold.value = -2; limit.ratio.value = 20; limit.attack.value = 0.001; limit.release.value = 0.08; limit.knee.value = 0;
     const bus = ctx.createGain();
-    bus.connect(glue).connect(master).connect(limit).connect(ctx.destination);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 30; hp.Q.value = 0.7;
+    bus.connect(hp).connect(glue).connect(master).connect(limit).connect(ctx.destination);
     // Réverbération à convolution (réponse synthétique stéréo)
     const irLen = Math.floor(sr * (opts.verbTime || 3.2));
     const ir = ctx.createBuffer(2, irLen, sr);
@@ -82,11 +83,11 @@
     };
 
     /* ---------- Basses et impacts ---------- */
-    S.sub = (t, dur, { note = 'D1', gain = 0.7, drop = 0, pan = 0 } = {}) => {
+    S.sub = (t, dur, { note = 'D1', gain = 0.7, drop = 0, pan = 0, attack = 0.01, release = 0.3 } = {}) => {
       const o = S.out(t, { gain, pan, send: 0 });
       const osc = ctx.createOscillator(); const f = hz(note); osc.frequency.setValueAtTime(f * (drop ? 2 : 1), t);
       if (drop) osc.frequency.exponentialRampToValueAtTime(f, t + drop);
-      const g = ctx.createGain(); adsr(g.gain, t, { a: 0.01, d: dur, s: 0.6, r: 0.3, dur });
+      const g = ctx.createGain(); adsr(g.gain, t, { a: attack, d: dur, s: 0.6, r: release, dur });
       const sh = ctx.createWaveShaper(); const c = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 1.8); } sh.curve = c;
       osc.connect(sh).connect(g).connect(o); osc.start(t); osc.stop(t + dur + 0.5);
     };
@@ -112,21 +113,21 @@
       const o = S.out(t, { gain, pan, send: 0.35 });
       const n = S.noise(t, dur, t * 5); const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 2.5;
       f.frequency.setValueAtTime(from, t); f.frequency.exponentialRampToValueAtTime(to, t + dur);
-      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1, t + dur * 0.97); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.02);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.03, t); g.gain.exponentialRampToValueAtTime(1, t + dur * 0.97); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.02);
       n.connect(f).connect(g).connect(o);
       if (pitch) {
         const s = ctx.createOscillator(); s.type = 'sawtooth'; s.frequency.setValueAtTime(110, t); s.frequency.exponentialRampToValueAtTime(880, t + dur);
         const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(400, t); lp.frequency.exponentialRampToValueAtTime(6000, t + dur);
-        const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.0001, t); g2.gain.exponentialRampToValueAtTime(0.25, t + dur * 0.97); g2.gain.linearRampToValueAtTime(0.0001, t + dur + 0.02);
+        const g2 = ctx.createGain(); g2.gain.setValueAtTime(0.01, t); g2.gain.exponentialRampToValueAtTime(0.25, t + dur * 0.97); g2.gain.linearRampToValueAtTime(0.0001, t + dur + 0.02);
         s.connect(lp).connect(g2).connect(o); s.start(t); s.stop(t + dur + 0.05);
       }
     };
     /** Souffle de mouvement (whip pan) centré sur t + dur/2, avec balayage stéréo. */
-    S.whoosh = (t, dur = 0.5, { gain = 0.4, dir = 1, from = 500, to = 5000 } = {}) => {
+    S.whoosh = (t, dur = 0.5, { gain = 0.4, dir = 1, from = 500, to = 5000, panFrom = -0.8 * dir, panTo = 0.8 * dir } = {}) => {
       const o = S.out(t, { gain, send: 0.25 });
       const n = S.noise(t, dur, t * 13); const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.4;
       f.frequency.setValueAtTime(from, t); f.frequency.exponentialRampToValueAtTime(to, t + dur * 0.5); f.frequency.exponentialRampToValueAtTime(from, t + dur);
-      const p = ctx.createStereoPanner(); p.pan.setValueAtTime(-0.8 * dir, t); p.pan.linearRampToValueAtTime(0.8 * dir, t + dur);
+      const p = ctx.createStereoPanner(); p.pan.setValueAtTime(panFrom, t); p.pan.linearRampToValueAtTime(panTo, t + dur);
       const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1, t + dur * 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       n.connect(f).connect(p).connect(g).connect(o);
     };
@@ -188,7 +189,7 @@
       const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = hz(note);
       const sq = ctx.createOscillator(); sq.type = 'square'; sq.frequency.value = hz(note) / 2;
       const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 4; lp.frequency.setValueAtTime(cutoff + env, t); lp.frequency.exponentialRampToValueAtTime(cutoff, t + 0.15);
-      const g = ctx.createGain(); adsr(g.gain, t, { a: 0.003, d: dur, s: 0.7, r: 0.06, dur }); const sg = ctx.createGain(); sg.gain.value = 0.5;
+      const g = ctx.createGain(); adsr(g.gain, t, { a: 0.003, d: dur, s: 0.7, r: 0.06, dur }); const sg = ctx.createGain(); sg.gain.value = 0.15;
       osc.connect(lp); sq.connect(sg).connect(lp); lp.connect(g).connect(o);
       osc.start(t); sq.start(t); osc.stop(t + dur + 0.2); sq.stop(t + dur + 0.2);
     };

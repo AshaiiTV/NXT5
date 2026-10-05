@@ -2,8 +2,8 @@
  * Aucune scène ne doit garder d'état entre deux appels de render : même t → même image. */
 (function () {
   const NX = (window.NX = {});
-  NX.W = 1920; NX.H = 1080; NX.FPS = 30; NX.DURATION = 31.2;
-  /* v6 : 100 BPM, un temps = 0,6 s, une mesure = 2,4 s. Le film dure 13 mesures. */
+  NX.W = 1920; NX.H = 1080; NX.FPS = 30; NX.DURATION = 33.6;
+  /* v6 : 100 BPM, un temps = 0,6 s, une mesure = 2,4 s. Le film dure 14 mesures. */
   NX.BPM = 100; NX.BEAT = 0.6; NX.BAR = 2.4;
   NX.beat = n => n * NX.BEAT;
   NX.bar = n => n * NX.BAR;

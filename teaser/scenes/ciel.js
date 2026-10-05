@@ -5,7 +5,8 @@ NX.scene({
   render(S) {
     const t = S.t, T = NX.T;
     // Groove : le fond respire au tempo une fois la batterie entrée.
-    const groove = NX.smooth(T.tools - 0.2, T.tools, t) * (1 - NX.smooth(T.end + 2.4, T.end + 4, t));
+    // Le dernier pouls du ciel tombe sur la dernière cloche de la carte finale.
+    const groove = NX.smooth(T.tools - 0.2, T.tools, t) * (1 - NX.smooth(T.end + 1.9, T.end + 2.4, t));
     NX.bgMix({
       nebula: 0.58, warp: 0.6, rays: 0.9, rayX: 0, rayY: 0.6, rayStrength: 1, stars: 0.32,
       hue: 0.12 + 0.55 * NX.smooth(0, NX.DURATION, t),

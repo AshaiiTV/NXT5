@@ -7,19 +7,20 @@
   NX.T = {
     hookEnd: 2 * BAR,            // 4,8 : fin de l'accroche, apparition du logo
     roles: 3 * BAR,              // 7,2 : premier rôle posé, puis un rôle par temps
-    team: 4 * BAR + 0.3,         // 9,9 : « Toute ton équipe. »
-    fuse: 5 * BAR,               // 12,0 : début de la fusion
-    emblem: 5 * BAR + 2 * B,     // 13,2 : l'emblème naît de la fusion
-    tools: 6.5 * BAR,            // 15,6 : premier outil, la batterie entre
+    team: 4 * BAR,               // 9,6 : « Toute ton équipe. », tenu pendant la fusion
+    fuse: 5 * BAR + B,           // 12,6 : début de la fusion (1,8 s)
+    emblem: 6 * BAR,             // 14,4 : l'emblème naît de la fusion, « Une même direction. »
+    tools: 7.5 * BAR,            // 18,0 : premier outil, la batterie entre
     tool: 1.5 * BAR,             // 3,6 s par outil
-    end: 11 * BAR,               // 26,4 : carte finale
-    hits: [2 * BAR, 5 * BAR + 2 * B, 6.5 * BAR, 11 * BAR],
+    end: 12 * BAR,               // 28,8 : carte finale
   };
+  /* Impacts partagés par l'image et le son. */
+  NX.T.hits = [NX.T.hookEnd, NX.T.emblem, NX.T.tools, NX.T.end];
 
   NX.css(`
   .tz-title{font-weight:800;font-size:96px;line-height:1.06;letter-spacing:-.032em;color:var(--text);white-space:nowrap}
   .tz-title .nx-word{will-change:transform,opacity,filter}
-  .tz-kicker{font-weight:700;font-size:26px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan)}
+  .tz-kicker{font-weight:700;font-size:32px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan)}
   .tz-center{position:absolute;left:0;right:0;text-align:center}
   `);
 

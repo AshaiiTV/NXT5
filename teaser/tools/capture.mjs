@@ -52,7 +52,7 @@ if (mode === 'stills' || mode === 'sheet') {
   await browser.close();
 } else if (mode === 'frames') {
   const fps = +(opt.fps || 30), sub = +(opt.sub || 1), workers = +(opt.workers || 4);
-  const from = +(opt.from || 0), to = +(opt.to || 31.2), shutter = +(opt.shutter || 0.5);
+  const from = +(opt.from || 0), to = +(opt.to || 33.6), shutter = +(opt.shutter || 0.5);
   const first = Math.round(from * fps), last = Math.round(to * fps);
   mkdirSync(opt.out, { recursive: true });
   const jobs = []; for (let f = first; f < last; f++) jobs.push(f);

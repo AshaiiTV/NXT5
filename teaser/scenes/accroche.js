@@ -16,7 +16,7 @@ NX.scene({
     NX.wordsIn(this.w1, t, -0.3, 0.16);
     NX.wordsIn(this.w2, t, 1.5, 0.14);
     const push = NX.lerp(0.97, 1, NX.ease.outCubic(NX.seg(t, 0, end)));
-    const q = NX.ease.inOutCubic(NX.seg(t, end - 0.4, end));
+    const q = NX.ease.inOutCubic(NX.seg(t, end - 0.3, end + 0.05));
     this.box.style.opacity = 1 - q;
     this.box.style.filter = q > 0.001 ? `blur(${q * 14}px)` : '';
     this.box.style.transform = `scale(${push * (1 + 0.08 * q)})`;

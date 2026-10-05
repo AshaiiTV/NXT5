@@ -2,11 +2,11 @@
 NX.scene({
   id: 'fin', start: NX.T.end - 0.2, end: NX.DURATION, z: 3,
   build(root) {
-    this.halo = NX.el(`<div style="position:absolute;left:50%;top:380px;width:1300px;height:900px;margin:-450px 0 0 -650px;background:radial-gradient(closest-side,rgba(103,232,249,.18),rgba(129,140,248,.08) 45%,transparent)"></div>`, root);
-    this.logo = NX.el(`<img src="../public/assets/nxt5-logo.png" alt="" style="position:absolute;left:50%;top:90px;width:700px;margin-left:-350px">`, root);
-    this.url = NX.el(`<div class="tz-center" style="top:690px"><span class="nx-cta" style="font-size:40px;padding:20px 52px">nxt5.org</span></div>`, root);
-    this.line1 = NX.el(`<div class="tz-center" style="top:830px;font-weight:600;font-size:34px;color:var(--text)">Pour les équipes et coachs League of Legends</div>`, root);
-    this.line2 = NX.el(`<div class="tz-center" style="top:888px;font-weight:600;font-size:28px;color:var(--muted)">Accès actuellement gratuit</div>`, root);
+    this.halo = NX.el(`<div style="position:absolute;left:50%;top:320px;width:1300px;height:900px;margin:-450px 0 0 -650px;background:radial-gradient(closest-side,rgba(103,232,249,.18),rgba(129,140,248,.08) 45%,transparent)"></div>`, root);
+    this.logo = NX.el(`<img src="../public/assets/nxt5-logo.png" alt="" style="position:absolute;left:50%;top:70px;width:620px;margin-left:-310px">`, root);
+    this.url = NX.el(`<div class="tz-center" style="top:600px"><span class="nx-cta" style="font-size:56px;padding:22px 64px">nxt5.org</span></div>`, root);
+    this.line1 = NX.el(`<div class="tz-center" style="top:770px;font-weight:700;font-size:48px;letter-spacing:-.01em;color:var(--text)">Pour les équipes et coachs League of Legends</div>`, root);
+    this.line2 = NX.el(`<div class="tz-center" style="top:850px;font-weight:600;font-size:40px;color:var(--text2)">Accès actuellement gratuit</div>`, root);
   },
   render(S) {
     const t = S.t, a = NX.T.end;
