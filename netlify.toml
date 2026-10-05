@@ -1,5 +1,5 @@
 [build]
-  command = "npm run verify && npm audit --audit-level=moderate"
+  command = "npm run verify && node tools/audit-dependencies.mjs"
   publish = "dist"
   functions = "netlify/functions"
 
@@ -8,7 +8,7 @@
   VITE_NXT5_SUPPORT_URL = "https://ko-fi.com/nxt5org"
 
 [context.production]
-  command = "npm run verify && npm audit --audit-level=moderate && npm run db:migrate"
+  command = "npm run verify && node tools/audit-dependencies.mjs && npm run db:migrate"
 
 [functions]
   node_bundler = "esbuild"
