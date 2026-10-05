@@ -1391,6 +1391,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
+  const [archiveSearch, setArchiveSearch] = useState("");
+  const deferredArchiveSearch = useDeferredValue(archiveSearch);
+  const normalizeArchiveSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr-FR");
+  const normalizedArchiveSearch = normalizeArchiveSearch(deferredArchiveSearch.trim());
+  const searchedArchives = normalizedArchiveSearch ? archives.filter((archive) => normalizeArchiveSearch([archive.name, archive.description, archive.created_by_name].filter(Boolean).join(" ")).includes(normalizedArchiveSearch)) : archives;
   const importTriggerRef = useRef(null);
   const statsRef = useRef(null);
   const listRef = useRef(null);
@@ -1569,8 +1574,17 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
         <div className="games-group-heading"><div><h3>Groupes de parties</h3><p>Compare les parties d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
-        {archiveWorkspaceTab === "select" ? <div className="games-group-list">
-          {archives.map((archive) => {
+        {archiveWorkspaceTab === "select" ? <>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-100/70" />
+                  <input type="text" inputMode="search" role="searchbox" aria-label="Rechercher un groupe" value={archiveSearch} onChange={(event) => setArchiveSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setArchiveSearch(""); }} placeholder="Rechercher par nom, description, auteur..." className="h-11 w-full rounded-xl border border-white/10 bg-black/25 pl-10 pr-10 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-300/10" />
+                  {archiveSearch && <button type="button" onClick={() => setArchiveSearch("")} aria-label="Effacer la recherche de groupes" title="Effacer la recherche" className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-white/[0.07] hover:text-white"><X className="h-4 w-4" /></button>}
+                </div>
+                <p aria-live="polite" className="shrink-0 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{searchedArchives.length} sur {archives.length} groupes</p>
+              </div>
+<div className="games-group-list">
+          {searchedArchives.map((archive) => {
             const groupMatches = baseMatches.filter((match) => archiveMatchIds(archive).includes(match.id));
             const groupWins = groupMatches.filter((match) => match.result === "Victoire").length;
             return <div key={archive.id} className="games-group-row">
@@ -1579,7 +1593,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
             </div>;
           })}
           {!archives.length && <EmptyState icon={FileText} title="Aucun groupe" text="Rassemble les parties d’un entraînement ou d’une compétition pour lire leurs résultats ensemble." />}
-        </div> : <form onSubmit={saveArchive} className="games-group-form">
+          {!!archives.length && !searchedArchives.length && <EmptyState icon={Search} title="Aucun groupe trouvé" text="Essaie un autre nom, une description ou un auteur." />}
+        </div></> : <form onSubmit={saveArchive} className="games-group-form">
           <fieldset disabled={savingArchive}>
             <div className="games-group-fields"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK — 08/09" required /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Session, objectif du bloc…" /></div>
             <div className="games-group-heading"><p>{archiveForm.matchIds.length} partie(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.slice(0, 80).map((match) => match.id) }))} disabled={!matches.length}>{matches.length > 80 ? "Sélectionner les 80 premières" : "Tout sélectionner"}</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
