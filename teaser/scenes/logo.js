@@ -117,10 +117,12 @@
       this.box.style.transform = q > 0 ? `translate3d(0,${dy.toFixed(2)}px,${dz.toFixed(2)}px)` : '';
       this.halo.style.transform = `translate3d(0,${dy.toFixed(2)}px,${(dz - 2).toFixed(2)}px)`;
       const fade = 1 - sm(FADE[0], FADE[1], t), vanish = 1 - E.inCubic(seg(t, VANISH[0], VANISH[1]));
-      // Écriture : front local dans la boîte ; silhouette forge 0 → 0,24 (inQuad) puis → 0,30 (outQuad), effacée par le front.
+      // Écriture : front local dans la boîte ; silhouette forge 0 → 0,24 (inQuad, 4,0–4,5) puis → 0,30 (4,5–4,8) par une
+      // approche exponentielle qui part avec la pente de fin de l'inQuad (0,96 /s) : une seule courbe, sans cassure ni
+      // segment linéaire. Elle est effacée par le front.
       const full = this.tFull ?? Infinity, writing = t >= 4.2 && t < full;
       const front = writing ? NX.light.local(G.left, G.top, ZL, NX.FRONT.hook(t), t) : null;
-      const forge = t >= full ? 0 : 0.24 * E.inQuad(seg(t, 4.0, 4.5)) + 0.06 * E.outQuad(seg(t, 4.5, 4.8));
+      const forge = t >= full ? 0 : t < 4.5 ? 0.24 * E.inQuad(seg(t, 4.0, 4.5)) : 0.24 + 0.06 * (1 - Math.exp(-4.8 * seg(t, 4.5, 4.8))) / (1 - Math.exp(-4.8));
       const lumRaw = ((tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.45 * sm(EXIT[0], 6.95, t)) * vanish;
       const lum = lumRaw < 0.002 ? 0 : lumRaw;                       // éteinte : son masque n'a plus d'effet
       const gp = seg(t, GLINT[0], GLINT[1]), sweepP = gp > 0 && gp < 1 ? E.sheen(gp) : -1;
@@ -140,8 +142,9 @@
       this.halo.style.opacity = (sm(4.6, 5.0, t) * (0.6 + 0.4 * (tau >= 0 ? Math.exp(-3 * tau) : 1)) * fade).toFixed(4);
       // Étincelles : carrés de lumière additifs, alpha (1 − u)², toutes éteintes à 6,5 s. Le canvas fx se pose sur le DOM
       // (source-over) : une étincelle pâle sur le chrome blanc y ferait une poussière grise. Sur un trait clair (m = masque
-      // de luminance au point de la boîte) sa couleur monte donc vers le blanc : jamais plus sombre que le chrome, elle s'y
-      // lit comme un éclat ; sur le ciel elle garde la couleur du pixel d'origine.
+      // de luminance au point de la boîte) le carré monte donc vers le blanc et son halo doux s'efface (× (1 − 0,9 m)) :
+      // jamais plus sombre que le chrome, elle s'y lit comme un éclat net ; sur le ciel elle garde la couleur du pixel
+      // d'origine et son halo.
       if (this.sparks && t < 6.5) {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         for (const p of this.sparks) {
@@ -149,7 +152,7 @@
           const u = age / p.life, X = p.X + NX.noise(p.n, t) * 6, Y = p.Y - p.rise * E.outCubic(u), a = (1 - u) * (1 - u);
           const m = this.lo ? logoLoAt(this.lo, (X - G.left) / W, (Y - G.top) / H) : 0, k = v => Math.round(v + (255 - v) * m);
           const pr = NX.cam.project(X, Y, ZL, c), z = p.s * pr.s, R = 2.8 * z + 2;
-          ctx.globalAlpha = 0.24 * a; ctx.drawImage(this.sprite, pr.x - R, pr.y - R, 2 * R, 2 * R);
+          ctx.globalAlpha = 0.24 * a * (1 - 0.9 * m); ctx.drawImage(this.sprite, pr.x - R, pr.y - R, 2 * R, 2 * R);
           ctx.globalAlpha = a; ctx.fillStyle = `rgb(${k(p.col[0])},${k(p.col[1])},${k(p.col[2])})`; ctx.fillRect(pr.x - z / 2, pr.y - z / 2, z, z);
         }
         ctx.restore();
