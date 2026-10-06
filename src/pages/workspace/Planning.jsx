@@ -7,7 +7,9 @@ import { cx } from "../../app/helpers.js";
 import { openAppPath } from "../../app/routing.js";
 import { addDays, availabilityEvents, availabilitySlots, dateFromKey, dateKey, formatWeekRange, mondayOfWeek, planningEventKey, planningEventMeta } from "../../utils/planning.js";
 import { usePlanningDraft } from "../../hooks/usePlanningDraft.js";
-import { COMP_ROLES, sortPlayersByRole, canStaffManage, isGameplayRole, isStaffRole, normalizeProfileRole } from "./workspace-shared.jsx";
+import { aggregatePlanningEvents } from "../../utils/planning-events.js";
+import { planningRoleSlots, countAvailablePlanningRoles } from "../../utils/planning-roster.js";
+import { sortPlayersByRole, canStaffManage, isGameplayRole, isStaffRole } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Planning.css";
 import { PlanningAvailabilityGrid } from "../../components/games/PlanningAvailabilityGrid.jsx";
@@ -19,6 +21,14 @@ const SESSION_LABELS = {
   review: { label: "Débrief", detail: "Review des parties" },
 };
 
+function sessionLabel(event) {
+  return SESSION_LABELS[event?.type]?.label || event?.label || "Séance";
+}
+
+function sessionGroupLabel(group) {
+  return group?.events.map(sessionLabel).join(" · ") || "";
+}
+
 function formatPlanningDate(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
@@ -26,9 +36,11 @@ function formatPlanningDate(date) {
 
 function Planning({ data, selectedTeamId, planningStore, currentMember, user }) {
   const gameplayPlayers = useMemo(() => sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role))), [data.players, selectedTeamId]);
+  const roleSlots = useMemo(() => planningRoleSlots(gameplayPlayers), [gameplayPlayers]);
+  const representedRoles = roleSlots.filter(({ player }) => player).length;
   const staffProfiles = useMemo(() => (data.players || []).filter((player) => player.team_id === selectedTeamId && isStaffRole(player.role)).sort((a, b) => String(roleLabel(a.role)).localeCompare(String(roleLabel(b.role))) || String(a.name || "").localeCompare(String(b.name || ""))), [data.players, selectedTeamId]);
   const players = useMemo(() => [...gameplayPlayers, ...staffProfiles], [gameplayPlayers, staffProfiles]);
-  const planningUnitTotal = gameplayPlayers.length + (staffProfiles.length ? 1 : 0);
+  const planningUnitTotal = representedRoles + (staffProfiles.length ? 1 : 0);
   const baseWeekStart = useMemo(() => mondayOfWeek(), []);
   const weekOptions = useMemo(() => [
     { id: "current", label: "Semaine en cours", start: dateKey(baseWeekStart), range: formatWeekRange(baseWeekStart) },
@@ -43,18 +55,14 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
     return item.team_id === selectedTeamId && itemWeek === selectedWeek.start;
   }), [data.availability, selectedTeamId, selectedWeek.start, weekOptions]);
   const playersKey = players.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
-  const gameplayPlayersKey = gameplayPlayers.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
   const staffProfilesKey = staffProfiles.map((player) => `${player.id}:${player.role}:${player.name || ""}:${player.user_id || ""}`).join("|");
   const staffProfileIdSet = useMemo(() => new Set(staffProfiles.map((player) => String(player.id))), [staffProfilesKey]);
   const availabilityKey = availability.map((row) => `${row.id}:${row.player_id}:${row.updated_at || ""}`).join("|");
   const planningLookup = useMemo(() => {
-    const slotsByPlayer = new Map();
     const playerIdsByCell = new Map();
-    const events = {};
     for (const row of availability) {
       const playerId = String(row.player_id || "");
       const slots = availabilitySlots(row?.slots);
-      slotsByPlayer.set(playerId, slots);
       for (const [day, times] of Object.entries(slots)) {
         for (const time of times || []) {
           const key = planningEventKey(day, time);
@@ -63,11 +71,8 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
           playerIdsByCell.set(key, list);
         }
       }
-      for (const [key, event] of Object.entries(availabilityEvents(row?.slots))) {
-        if (event?.label && !events[key]) events[key] = { ...event, playerId: row.player_id };
-      }
     }
-    return { slotsByPlayer, playerIdsByCell, events };
+    return { playerIdsByCell };
   }, [availabilityKey, playersKey]);
   const linkedGameplayPlayer = gameplayPlayers.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
   const linkedStaffProfile = staffProfiles.find((player) => player.user_id && String(player.user_id) === String(user?.id || ""));
@@ -119,10 +124,6 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
     };
   }, [eventMenu]);
 
-  function slotList(playerId, day) {
-    return planningLookup.slotsByPlayer.get(String(playerId || ""))?.[day] || [];
-  }
-
   function toggleSlot(day, time) {
     if (!canEditSelected) return;
     setDraftSlots((current) => {
@@ -130,23 +131,12 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
       const nextList = list.includes(time) ? list.filter((item) => item !== time) : PLANNING_TIMES.filter((item) => [...list, time].includes(item));
       return { ...current, [day]: nextList };
     });
-    if ((draftSlots[day] || []).includes(time)) {
-      setSlotEvents((current) => {
-        const next = { ...current };
-        delete next[planningEventKey(day, time)];
-        return next;
-      });
-    }
   }
 
   function setDaySlots(day, times) {
     if (!canEditSelected) return;
     const nextTimes = PLANNING_TIMES.filter((time) => times.includes(time));
     setDraftSlots((current) => ({ ...current, [day]: nextTimes }));
-    setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
-      const [eventDay, eventTime] = key.split("|");
-      return eventDay !== day || nextTimes.includes(eventTime);
-    })));
   }
 
   function setTimeForWeek(time) {
@@ -159,9 +149,6 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
         return [day, nextList];
       }));
     });
-    if (allActive) {
-      setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => key.split("|")[1] !== time)));
-    }
   }
 
   function applyAvailabilityPreset(kind) {
@@ -173,25 +160,16 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
     };
     if (kind === "clear") {
       setDraftSlots({});
-      setSlotEvents({});
       return;
     }
     if (kind === "weekend") {
       const nextSlots = Object.fromEntries(weekDays.map(([day]) => [day, ["20:00", "21:00", "22:00", "23:00"].filter(() => ["SAT", "SUN"].includes(day))]));
       setDraftSlots(nextSlots);
-      setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
-        const [day, time] = key.split("|");
-        return (nextSlots[day] || []).includes(time);
-      })));
       return;
     }
     const times = presets[kind] || [];
     const nextSlots = Object.fromEntries(weekDays.map(([day]) => [day, PLANNING_TIMES.filter((time) => times.includes(time))]));
     setDraftSlots(nextSlots);
-    setSlotEvents((current) => Object.fromEntries(Object.entries(current).filter(([key]) => {
-      const [day, time] = key.split("|");
-      return (nextSlots[day] || []).includes(time);
-    })));
   }
 
   function openPlanningEventMenu(event, day, time, trigger = event.currentTarget) {
@@ -236,14 +214,6 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
     eventTriggerRef.current?.focus();
   }
 
-  function teamEventFor(day, time) {
-    const key = planningEventKey(day, time);
-    return availability.map((row) => {
-      const event = availabilityEvents(row?.slots)[key];
-      return event?.label ? { ...event, playerId: row.player_id } : null;
-    }).find(Boolean) || null;
-  }
-
   const selectedPlayerId = String(selectedPlayer?.id || "");
   const effectivePlayerIdsByCell = useMemo(() => {
     const map = new Map();
@@ -266,7 +236,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   }, [draftSlots, planningLookup, selectedIsStaff, selectedPlayerId, staffPlanningAvailabilityExists, staffPlanningPlayerId, staffProfileIdSet, weekDays]);
   const planningUnitCountForIds = (ids = []) => {
     const availableIds = new Set(ids.map((id) => String(id)));
-    const playerCount = gameplayPlayers.filter((player) => availableIds.has(String(player.id))).length;
+    const playerCount = countAvailablePlanningRoles(roleSlots, availableIds);
     const coachingStaffCount = staffPlanningPlayerId && availableIds.has(staffPlanningPlayerId) ? 1 : 0;
     return playerCount + coachingStaffCount;
   };
@@ -275,30 +245,31 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
     time,
     timeIndex,
     count: planningUnitCountForIds(effectivePlayerIdsByCell.get(planningEventKey(day, time)) || []),
-  }))).sort((a, b) => b.count - a.count || a.timeIndex - b.timeIndex).slice(0, 4), [effectivePlayerIdsByCell, gameplayPlayers, staffProfiles, weekDays]);
+  }))).sort((a, b) => b.count - a.count || a.timeIndex - b.timeIndex).slice(0, 4), [effectivePlayerIdsByCell, roleSlots, staffPlanningPlayerId, weekDays]);
   const selectedFilledSlots = useMemo(() => weekDays.reduce((sum, [day]) => sum + (draftSlots[day] || []).length, 0), [draftSlots, weekDays]);
   const selectedFilledDays = useMemo(() => weekDays.filter(([day]) => (draftSlots[day] || []).length).length, [draftSlots, weekDays]);
-  const teamEvents = planningLookup.events;
-  const visibleSlotEvents = useMemo(() => ({ ...teamEvents, ...slotEvents }), [teamEvents, slotEvents]);
-  const selectedEventCount = useMemo(() => Object.keys(visibleSlotEvents).length, [visibleSlotEvents]);
+  const visibleSlotEvents = useMemo(() => aggregatePlanningEvents(availability, {
+    playerId: eventStorePlayer?.id, events: slotEvents,
+  }), [availability, eventStorePlayer?.id, slotEvents]);
+  const selectedEventCount = useMemo(() => Object.values(visibleSlotEvents).reduce((total, group) => total + group.events.length, 0), [visibleSlotEvents]);
   const fullTeamSlots = useMemo(() => {
-    const target = Math.min(5, gameplayPlayers.length);
+    const target = representedRoles;
     if (!target) return 0;
     return weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => {
       const availableIds = new Set(effectivePlayerIdsByCell.get(planningEventKey(day, time)) || []);
-      const playerCount = gameplayPlayers.filter((player) => availableIds.has(String(player.id))).length;
+      const playerCount = countAvailablePlanningRoles(roleSlots, availableIds);
       return sum + (playerCount >= target ? 1 : 0);
     }, 0), 0);
-  }, [effectivePlayerIdsByCell, gameplayPlayers, weekDays]);
+  }, [effectivePlayerIdsByCell, roleSlots, representedRoles, weekDays]);
   const staffAvailableSlots = useMemo(() => weekDays.reduce((total, [day]) => total + PLANNING_TIMES.reduce((sum, time) => {
     const availableIds = new Set(effectivePlayerIdsByCell.get(planningEventKey(day, time)) || []);
     return sum + (staffPlanningPlayerId && availableIds.has(staffPlanningPlayerId) ? 1 : 0);
   }, 0), 0), [effectivePlayerIdsByCell, staffPlanningPlayerId, weekDays]);
   const eventMenuCurrent = eventMenu ? slotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
+  const eventMenuGroup = eventMenu ? visibleSlotEvents[planningEventKey(eventMenu.day, eventMenu.time)] : null;
   const eventMenuDay = eventMenu ? weekDays.find(([day]) => day === eventMenu.day) : null;
-  const roleSlots = useMemo(() => COMP_ROLES.map((role) => ({ role, player: gameplayPlayers.find((player) => normalizeProfileRole(player.role) === role) })), [gameplayPlayersKey]);
-  const selectedRole = selectedIsStaff ? "" : normalizeProfileRole(selectedPlayer?.role);
   const frameTone = (slotEvent) => {
+    if (slotEvent?.conflict) return "bg-slate-500/10 text-slate-100 ring-1 ring-inset ring-slate-300/30";
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
     return "bg-[#050914] text-slate-500";
   };
@@ -323,7 +294,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
         staffLit ? "Encadrement" : null,
       ].filter(Boolean);
       const slotEvent = visibleSlotEvents[key];
-      const slotEventLabel = slotEvent ? SESSION_LABELS[slotEvent.type]?.label || planningEventMeta(slotEvent.type).label : "";
+      const slotEventLabel = sessionGroupLabel(slotEvent);
       return {
         day,
         dayIndex,
@@ -337,7 +308,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
           role,
           player,
           lit: Boolean(player && availableIds.has(String(player.id))),
-          selectedRoleHere: selectedRole === role && activeSlot,
+          selectedRoleHere: Boolean(player && selectedPlayerId && String(player.id) === selectedPlayerId && activeSlot),
         })),
         staffUnit: staffPlanningPlayerId ? {
           lit: staffLit,
@@ -346,7 +317,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
         } : null,
       };
     }),
-  })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedRole, staffPlanningPlayerId, visibleSlotEvents, weekDays]);
+  })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedPlayerId, staffPlanningPlayerId, visibleSlotEvents, weekDays]);
 
   if (!selectedTeamId || !players.length || !linkedPlayer) return <div className="space-y-4"><PageHeader eyebrow="Équipe" title="Planning" subtitle="Indique tes disponibilités pour organiser la prochaine séance." />{selectedTeamId && <DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} />}<Surface><EmptyState icon={selectedTeamId ? Users : CalendarDays} title={!selectedTeamId ? "Choisis ton équipe" : !players.length ? "Ajoutez les premiers joueurs" : "Relie ton compte à ton profil"} text={!selectedTeamId ? "Ouvre ton équipe pour retrouver son planning." : !players.length ? "Le responsable ou le staff doit ajouter les profils des joueurs et de l’encadrement avant de remplir le planning." : "Demande au responsable de l’équipe de relier ton compte à ton profil joueur. L’encadrement partage une seule ligne de disponibilité."} /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>{selectedTeamId ? "Voir mon équipe" : "Choisir une équipe"}</Button></div></Surface></div>;
 
@@ -367,6 +338,8 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
         <div className="px-2 pb-2 pt-1">
           <p className="text-sm font-semibold text-cyan-100">Ajouter une séance</p>
           <p className="mt-1 truncate text-xs font-bold text-slate-300">{eventMenuDay?.[1] || eventMenu.day} · {eventMenu.time}</p>
+          {eventMenuGroup && <p className="mt-2 text-sm text-slate-300">Déjà prévu : {sessionGroupLabel(eventMenuGroup)}.</p>}
+          <p className="mt-2 text-sm text-slate-300">{selectedIsStaff ? "Tu modifies la séance de l’encadrement." : selectedPlayer ? "Tu modifies ta séance." : `Tu modifies la séance de ${eventStorePlayer?.name || "ce joueur"}.`} Les séances des autres profils sont conservées.</p>
         </div>
         <div className="grid gap-1">
           {PLANNING_EVENT_TYPES.map((item) => <button key={item.id} type="button" onClick={() => applyPlanningEventType(item.id)} className="flex min-h-11 w-full items-center gap-2 rounded-[2px] border border-transparent px-2.5 py-2 text-left transition hover:border-cyan-200/20 hover:bg-white/[0.06]">
@@ -377,7 +350,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
         {eventMenuCurrent && <div className="mt-2 border-t border-white/10 pt-2">
           <button type="button" onClick={removePlanningEvent} className="flex min-h-11 w-full items-center gap-2 rounded-[2px] border border-rose-300/15 bg-rose-500/10 px-2.5 py-2 text-left text-rose-100 transition hover:border-rose-200/35 hover:bg-rose-500/16">
             <Trash2 className="h-3.5 w-3.5" />
-            <span className="text-sm font-semibold">Retirer cette séance</span>
+            <span className="text-sm font-semibold">Retirer cette séance · {sessionLabel(eventMenuCurrent)}</span>
           </button>
         </div>}
       </div>}
@@ -408,8 +381,15 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
               {canEditEvents && canEditSelected && <Button type="button" variant="ghost" icon={CalendarDays} aria-pressed={editingEvents} onClick={() => setEditingEvents((active) => !active)} className={editingEvents ? "border-cyan-200/45 bg-cyan-400/10 text-cyan-100" : ""}>{editingEvents ? "Revenir à mes disponibilités" : "Ajouter une séance"}</Button>}
               <p className="text-sm leading-6 text-slate-300">{selectedFilledSlots} créneaux renseignés sur {selectedFilledDays} jours · {selectedEventCount} séance{selectedEventCount > 1 ? "s" : ""}</p>
             </div>
-            {canEditSelected && !editingEvents && <details className="nxt5-planning-help"><summary>Remplir plusieurs créneaux à la fois</summary><p>Ces raccourcis remplacent tes disponibilités de la semaine affichée.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("evenings")}>Soirées · 20 h à 23 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("scrim")}>Entraînement · 19 h à 22 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("weekend")}>Week-end · 20 h à 23 h</Button><Button type="button" variant="danger" onClick={() => applyAvailabilityPreset("clear")}>Vider mes disponibilités</Button></div></details>}
-            <details className="nxt5-planning-help"><summary>Lire le planning et les présences de l’équipe</summary><p>Une icône claire signale une disponibilité ; une icône sombre, aucune disponibilité renseignée. Le livre représente l’encadrement, avec une disponibilité partagée.</p><p>Un clic sur un jour remplit ou vide cette journée. Un clic sur une heure fait la même chose pour toute la semaine. Un clic droit sur un créneau ouvre aussi les types de séance.</p><div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{SESSION_LABELS[item.id]?.label || item.label}</span>)}</div><div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">Présences maximum : {bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} créneaux avec {Math.min(5, gameplayPlayers.length)} joueurs</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} créneaux avec encadrement</Badge>}</div></details>
+            {canEditSelected && !editingEvents && <details className="nxt5-planning-help"><summary>Remplir plusieurs créneaux à la fois</summary><p>Ces raccourcis remplacent tes disponibilités de la semaine affichée. Les séances sont conservées.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("evenings")}>Soirées · 20 h à 23 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("scrim")}>Entraînement · 19 h à 22 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("weekend")}>Week-end · 20 h à 23 h</Button><Button type="button" variant="danger" onClick={() => applyAvailabilityPreset("clear")}>Vider mes disponibilités</Button></div></details>}
+            <details className="nxt5-planning-help">
+              <summary>Lire le planning et les présences de l’équipe</summary>
+              <p>Une icône claire signale une disponibilité ; une icône sombre, aucune disponibilité renseignée. Chaque poste représente son titulaire, ou un remplaçant actif si le poste n’a pas de titulaire. Le livre représente l’encadrement, avec une disponibilité partagée.</p>
+              <p>Un clic sur un jour remplit ou vide cette journée. Un clic sur une heure fait la même chose pour toute la semaine. Un clic droit sur un créneau ouvre aussi les types de séance.</p>
+              <p>Les séances différentes sur un même créneau sont affichées ensemble. Tu peux modifier ou retirer celle que tu as ajoutée ; les séances des autres membres sont conservées.</p>
+              <div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{SESSION_LABELS[item.id]?.label || item.label}</span>)}</div>
+              <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">Présences maximum : {bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} créneaux avec {representedRoles} joueurs</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} créneaux avec encadrement</Badge>}</div>
+            </details>
             <PlanningAvailabilityGrid rows={planningGridRows} weekDays={weekDays} canEditSelected={canEditSelected} canEditEvents={canEditEvents} editingEvents={editingEvents} draftSlots={draftSlots} onDay={setDaySlots} onTime={setTimeForWeek} onToggle={toggleSlot} onEvent={openPlanningEventMenu} frameTone={frameTone} />
             <div className="mt-5">
               <label htmlFor="planning-note" className="nxt5-field-label">Précisions sur tes disponibilités</label>
