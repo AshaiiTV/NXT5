@@ -11,7 +11,7 @@ export default async function handler(request: Request, context: Context): Promi
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
-    const user = await requireAuth(request, context);
+    const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
     const body = await readJson(request, 8192);
     const name = String(body.name || '').trim().replace(/\s+/g, ' ');
     const email = normalizeEmail(body.email);

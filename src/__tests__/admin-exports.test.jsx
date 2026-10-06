@@ -11,7 +11,6 @@ vi.mock("../pages/admin/export-examples.js", () => ({
   EXPORT_TEMPLATES: [
     { id: "game", category: "site", title: "Statistiques d’une game", source: "Games", format: "PNG", description: "La game complète." },
     { id: "audience", category: "site", title: "Rapport de fréquentation", source: "Administration", format: "CSV", description: "Les mesures du site." },
-    { id: "discord-game", category: "bot", title: "Synthèse Discord", source: "Bot Discord", format: "PNG", description: "Le visuel publié par le bot." },
   ],
 }));
 
@@ -108,7 +107,7 @@ describe("administration export previews", () => {
     await click("Réessayer", card("game"));
     expect(card("game").findAllByProps({ role: "alert" })).toHaveLength(0);
     expect(card("game").findAllByType("img")).toHaveLength(1);
-    expect(createExportExample.mock.calls.map(([id]) => id)).toEqual(["game", "audience", "discord-game", "game"]);
+    expect(createExportExample.mock.calls.map(([id]) => id)).toEqual(["game", "audience", "game"]);
     expect(revokeObjectURL).not.toHaveBeenCalled();
   });
 
@@ -143,6 +142,7 @@ describe("administration export previews", () => {
 
   it("filters formats without regenerating files and exposes the complete downloadable CSV", async () => {
     await mount();
+    expect(renderer.root.findAllByType("select")).toHaveLength(0);
     await click("Données CSV (1)");
     expect(card("game").props.hidden).toBe(true);
     expect(card("audience").props.hidden).toBe(false);
@@ -157,56 +157,10 @@ describe("administration export previews", () => {
     expect(response.headers.get("content-type")).toBe("text/csv;charset=utf-8");
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(new Uint8Array(await csvExample.blob.arrayBuffer()));
     await click("Fermer l’aperçu", dialog);
-    await click("Tous (3)");
+    await click("Tous (2)");
     expect(card("game").props.hidden).toBe(false);
-    expect(createExportExample).toHaveBeenCalledTimes(3);
-    expect(createObjectURL).toHaveBeenCalledTimes(3);
-  });
-
-  it("switches to bot exports from CSV, scopes formats and preserves generated previews", async () => {
-    await mount();
-    await click("Données CSV (1)");
-    const category = renderer.root.findByType("select");
-    await act(async () => category.props.onChange({ target: { value: "bot" } }));
-    expect(card("game").props.hidden).toBe(true);
-    expect(card("audience").props.hidden).toBe(true);
-    expect(card("discord-game").props.hidden).toBe(false);
-    expect(button("Tous (1)").props["aria-pressed"]).toBe(true);
-    expect(text(renderer.root.findByProps({ className: "exports-count" }))).toBe("1 modèle affiché");
-    expect(renderer.root.findAllByType("button").some(node => text(node).includes("Données CSV"))).toBe(false);
-    await click("Images PNG (1)");
-    await click("Voir le modèle", card("discord-game"));
-    expect(renderer.root.findByType("dialog").findByType("a").props.download).toBe(pngExample.filename);
-    await click("Fermer l’aperçu");
-    await act(async () => category.props.onChange({ target: { value: "site" } }));
-    expect(card("game").props.hidden).toBe(false);
-    expect(card("audience").props.hidden).toBe(false);
-    expect(card("discord-game").props.hidden).toBe(true);
-    expect(button("Tous (2)").props["aria-pressed"]).toBe(true);
-    await act(async () => category.props.onChange({ target: { value: "all" } }));
-    expect(card("discord-game").props.hidden).toBe(false);
-    expect(createExportExample).toHaveBeenCalledTimes(3);
-    expect(revokeObjectURL).not.toHaveBeenCalled();
-  });
-
-  it("offers the Discord summary separately and downloads its generated preview", async () => {
-    const bytes = await sharp({ create: { width: 960, height: 1200, channels: 4, background: "#020611" } }).png().toBuffer();
-    const discordExample = { blob: new Blob([bytes], { type: "image/png" }), filename: "nxt5-exemple-fictif-discord-game.png", width: 960, height: 1200 };
-    createExportExample.mockImplementation(async (id) => id === "discord-game" ? discordExample : id === "audience" ? csvExample : pngExample);
-    await mount();
-    await click("Images PNG (2)");
-    expect(card("game").props.hidden).toBe(false);
-    expect(card("discord-game").props.hidden).toBe(false);
-    await click("Agrandir : Synthèse Discord");
-    const dialog = renderer.root.findByType("dialog");
-    expect(text(dialog.findByProps({ id: "export-dialog-title" }))).toBe("Synthèse Discord");
-    expect(text(dialog.findByProps({ id: "export-dialog-description" }))).toContain("données fictives · 960 × 1200 px");
-    const download = dialog.findByType("a");
-    expect(download.props.download).toBe(discordExample.filename);
-    expect(download.props.href).toBe(card("discord-game").findByType("img").props.src);
-    const response = await fetch(download.props.href);
-    expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
-    expect(card("game").findByType("img").props.width).toBe(4);
+    expect(createExportExample).toHaveBeenCalledTimes(2);
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
   });
 
   it("releases ready URLs on departure and ignores unfinished generation after unmount", async () => {

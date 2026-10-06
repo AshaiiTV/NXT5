@@ -11,12 +11,12 @@ import { unlinkDiscordAccount } from './_lib/discord-bot-account';
 async function handler(request: Request, context: Context) {
   try {
     assertDiscordMethod(request, ['GET', 'POST', 'DELETE']);
-    const user = await requireAuth(request, context);
+    const user = await requireAuth(request, context, { allowUnverifiedEmail: request.method === 'DELETE' });
     await assertDiscordBotSchemaReady();
     await assertSubjectRateLimit('discord-account', user.id, { limit: 30, windowSeconds: 60 });
-    const [link] = await sql('select discord_user_id,discord_label,created_at from discord_user_links where user_id=$1', [user.id]);
+    const [link] = await sql('select id,discord_user_id,discord_label,created_at from discord_user_links where user_id=$1', [user.id]);
     if (request.method === 'DELETE') {
-      if (link) await unlinkDiscordAccount(link.discord_user_id);
+      if (link) await unlinkDiscordAccount(link.discord_user_id, link.id);
       return json({ ok: true });
     }
     const body = request.method === 'POST' ? await readJson(request, 2000) : null;

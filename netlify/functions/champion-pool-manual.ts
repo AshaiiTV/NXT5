@@ -42,6 +42,12 @@ export default async function handler(request: Request, context: Context): Promi
     `;
     if (!member[0]) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
     const canManageTeamPool = member[0]?.owner_id === user.id || TEAM_STAFF_ROLES.includes(String(member[0]?.role || '').toLowerCase());
+    const lockedTeamQueries = tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select user_id from team_members where team_id = ${teamId} and user_id = ${user.id} for share`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t where t.id = ${teamId}
+        and (t.owner_id = ${user.id} or exists (select 1 from team_members where team_id = t.id and user_id = ${user.id}))`
+    ];
 
     if (action === 'delete') {
       if (!poolId) throw Object.assign(new Error('Pick requis.'), { status: 400 });
@@ -58,18 +64,26 @@ export default async function handler(request: Request, context: Context): Promi
       if (!canManageTeamPool && String(target[0].player_user_id || '') !== String(user.id)) {
         throw Object.assign(new Error('Seul le staff autorisé ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
       }
-      const deleted = await sql`
+      const results = await sql.transaction(tx => [
+        ...lockedTeamQueries(tx),
+        tx`select id from champion_pool where id = ${poolId} and team_id = ${teamId} for update`,
+        tx`with changed as (
         delete from champion_pool
         where id = ${poolId}
           and team_id = ${teamId}
           and source in ('manual', 'riot_manual')
+          and (exists (select 1 from teams t where t.id = ${teamId} and (t.owner_id = ${user.id}
+            or exists (select 1 from team_members tm where tm.team_id = t.id and tm.user_id = ${user.id} and tm.role = any(${TEAM_STAFF_ROLES}))))
+            or exists (select 1 from players p where p.id = champion_pool.player_id and p.team_id = ${teamId} and p.user_id = ${user.id}))
         returning *
-      `;
-      if (!deleted[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
-      await sql`
+      ), logged as (
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'champion_pool.manual_delete', 'champion_pool', ${poolId}, ${JSON.stringify({ teamId, champion: deleted[0].champion })}::jsonb)
-      `;
+        select ${user.id}, 'champion_pool.manual_delete', 'champion_pool', id,
+          jsonb_build_object('teamId', ${teamId}::text, 'champion', champion) from changed
+      ) select * from changed`
+      ]);
+      const deleted = results[results.length - 1];
+      if (!deleted[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
       return json({ ok: true, pick: deleted[0] });
     }
 
@@ -91,6 +105,14 @@ export default async function handler(request: Request, context: Context): Promi
     if (!canManageTeamPool && String(player.user_id || '') !== String(user.id)) {
       throw Object.assign(new Error('Seul le staff autorisé ou le joueur lié à ce profil peut modifier ce champion pool.'), { status: 403 });
     }
+    const lockedPlayerQueries = tx => [
+      ...lockedTeamQueries(tx),
+      tx`select id from players where id = ${playerId} and team_id = ${teamId} for share`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from players p join teams t on t.id = p.team_id
+        where p.id = ${playerId} and p.team_id = ${teamId} and p.name = ${player.name} and p.role = ${player.role}
+          and (p.user_id = ${user.id} or t.owner_id = ${user.id} or exists (select 1 from team_members tm
+            where tm.team_id = t.id and tm.user_id = ${user.id} and tm.role = any(${TEAM_STAFF_ROLES})))`
+    ];
 
     const verdict = status === 'lock'
       ? 'Pick prioritaire.'
@@ -114,7 +136,10 @@ export default async function handler(request: Request, context: Context): Promi
           throw Object.assign(new Error('Tu ne peux modifier que ton propre Champion Pool.'), { status: 403 });
         }
       }
-      const rows = await sql`
+      const results = await sql.transaction(tx => [
+        ...lockedPlayerQueries(tx),
+        tx`select id from champion_pool where id = ${poolId} and team_id = ${teamId} for update`,
+        tx`with changed as (
         update champion_pool
         set player_id = ${playerId},
             player_name = ${player.name},
@@ -133,17 +158,24 @@ export default async function handler(request: Request, context: Context): Promi
             updated_at = now()
         where id = ${poolId}
           and team_id = ${teamId}
+          and (player_id = ${playerId} or exists (select 1 from teams t where t.id = ${teamId}
+            and (t.owner_id = ${user.id} or exists (select 1 from team_members tm where tm.team_id = t.id
+              and tm.user_id = ${user.id} and tm.role = any(${TEAM_STAFF_ROLES})))))
         returning *
-      `;
-      if (!rows[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
-      await sql`
+      ), logged as (
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'champion_pool.manual_update', 'champion_pool', ${rows[0].id}, ${JSON.stringify({ teamId, playerId, champion: rows[0].champion, status })}::jsonb)
-      `;
+        select ${user.id}, 'champion_pool.manual_update', 'champion_pool', id,
+          jsonb_build_object('teamId', ${teamId}::text, 'playerId', ${playerId}::text, 'champion', champion, 'status', ${status}::text) from changed
+      ) select * from changed`
+      ]);
+      const rows = results[results.length - 1];
+      if (!rows[0]) throw Object.assign(new Error('Pick introuvable.'), { status: 404 });
       return json({ pick: rows[0] });
     }
 
-    const rows = await sql`
+    const results = await sql.transaction(tx => [
+      ...lockedPlayerQueries(tx),
+      tx`with changed as (
       insert into champion_pool (team_id, player_id, player_name, champion, games, wins, losses, winrate, kda, cs_per_min, impact_grade, verdict, role, status, notes, source, updated_at)
       values (${teamId}, ${playerId}, ${player.name}, ${champion}, 0, 0, 0, 0, 0, 0, 'POOL', ${verdict}, ${player.role}, ${status}, ${notes}, 'manual', now())
       on conflict (team_id, player_id, champion)
@@ -163,15 +195,16 @@ export default async function handler(request: Request, context: Context): Promi
         verdict = excluded.verdict,
         updated_at = now()
       returning *
-    `;
-
-    await sql`
+    ), logged as (
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'champion_pool.manual_upsert', 'champion_pool', ${rows[0].id}, ${JSON.stringify({ teamId, playerId, champion, status })}::jsonb)
-    `;
+      select ${user.id}, 'champion_pool.manual_upsert', 'champion_pool', id, ${JSON.stringify({ teamId, playerId, champion, status })}::jsonb from changed
+    ) select * from changed`
+    ]);
+    const rows = results[results.length - 1];
 
     return json({ pick: rows[0] });
   } catch (err) {
+    if (err?.code === '22012' || err?.code === '23503') return json({ error: 'Le profil, l’équipe ou les accès ont changé. Recharge l’équipe puis réessaie.' }, 409);
     return handleError(err);
   }
 }

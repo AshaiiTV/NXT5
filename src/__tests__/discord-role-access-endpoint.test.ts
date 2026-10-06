@@ -3,26 +3,31 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), guild: vi.fn(), rate: vi.fn() }));
-vi.mock('../../netlify/functions/_lib/db', () => {
-  const query = (statement: string | TemplateStringsArray, params: any[] = []) => {
-    if (typeof statement !== 'string') {
-      const values = params;
-      const sql = statement.reduce((text, chunk, index) => text + (index ? `$${index}` : '') + chunk, '');
-      return state.pg.query(sql, values).then((result: any) => result.rows);
+vi.mock('../../netlify/functions/_lib/db', async () => {
+  const { neon, neonConfig } = await import('@neondatabase/serverless');
+  // Keep Neon lazy queries and transaction serialization backed by PostgreSQL.
+  neonConfig.fetchFunction = async (_url, options: any) => {
+    const body = JSON.parse(options.body);
+    async function execute(connection: any, statement: any) {
+      const result = await connection.query(statement.query, statement.params);
+      return { fields: result.fields, rows: result.rows.map((row: any) => result.fields.map((field: any) => {
+        const value = row[field.name];
+        if (value === null || value === undefined) return null;
+        if ([114, 3802].includes(field.dataTypeID)) return JSON.stringify(value);
+        if (Array.isArray(value)) return `{${value.join(',')}}`;
+        if (typeof value === 'boolean') return value ? 't' : 'f';
+        if (value instanceof Date) return value.toISOString().replace('T', ' ').replace('Z', '+00');
+        return String(value);
+      })), rowCount: result.affectedRows ?? result.rows.length };
     }
-    return state.pg.query(statement, params).then((result: any) => result.rows);
+    try {
+      if (body.queries) return new Response(JSON.stringify({ results: await state.pg.transaction(async (tx: any) => {
+        const results = []; for (const query of body.queries) results.push(await execute(tx, query)); return results;
+      }) }));
+      return new Response(JSON.stringify(await execute(state.pg, body)));
+    } catch (error: any) { return new Response(JSON.stringify({ message: error.message, code: error.code }), { status: 400 }); }
   };
-  // The schema guard uses a tagged template, while team access and settings
-  // use parameterized text queries. Keep both styles backed by real PostgreSQL.
-  const sql = (...args: any[]) => {
-    if (Array.isArray(args[0]) && 'raw' in args[0]) {
-      const strings = args[0] as TemplateStringsArray;
-      const text = strings.reduce((value, chunk, index) => value + (index ? `$${index}` : '') + chunk, '');
-      return state.pg.query(text, args.slice(1)).then((result: any) => result.rows);
-    }
-    return query(args[0], args[1]);
-  };
-  return { sql };
+  return { sql: neon('postgresql://test:test@endpoint-tests.invalid/nxt5') };
 });
 vi.mock('../../netlify/functions/_lib/auth', () => ({ requireAuth: state.auth }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: state.rate }));
@@ -75,6 +80,52 @@ afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 afterAll(async () => { await state.pg?.close(); });
 
 describe('Team-specific Discord role access settings', () => {
+  it.each(['save', 'remove'])('refuses %s after a captain is demoted during the request', async (action) => {
+    await rows("update team_members set role='captain' where team_id=$1 and user_id=$2", [teamA, coach]);
+    await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])', [teamA, guild, [roleB]]);
+    const before = await rows('select * from discord_bot_role_access');
+    state.auth.mockResolvedValue({ id: coach });
+    state.rate.mockImplementationOnce(async () => {
+      await rows("update team_members set role='player' where team_id=$1 and user_id=$2", [teamA, coach]);
+    });
+    expect((await roleAccess(post(action === 'save' ? [roleA] : []), context)).status).toBe(409);
+    expect(await rows('select * from discord_bot_role_access')).toEqual(before);
+    expect(await rows('select * from audit_logs')).toEqual([]);
+  });
+
+  it('refuses a captain removed during the remote role lookup', async () => {
+    await rows("update team_members set role='captain' where team_id=$1 and user_id=$2", [teamA, coach]);
+    state.auth.mockResolvedValue({ id: coach });
+    state.guild.mockImplementationOnce(async () => {
+      await rows('delete from team_members where team_id=$1 and user_id=$2', [teamA, coach]);
+      return { guild: { id: guild }, roles: [{ id: roleA }] };
+    });
+    expect((await roleAccess(post([roleA]), context)).status).toBe(409);
+    expect(await rows('select * from discord_bot_role_access')).toEqual([]);
+    expect(await rows('select * from audit_logs')).toEqual([]);
+  });
+
+  it('refuses a policy for a server unlinked during the remote role lookup', async () => {
+    state.guild.mockImplementationOnce(async () => {
+      await rows('update discord_connections set guild_id=$2 where team_id=$1', [teamA, otherGuild]);
+      return { guild: { id: guild }, roles: [{ id: roleA }] };
+    });
+    expect((await roleAccess(post([roleA]), context)).status).toBe(409);
+    expect(await rows('select * from discord_bot_role_access')).toEqual([]);
+    expect(await rows('select * from audit_logs')).toEqual([]);
+  });
+
+  it.each(['save', 'remove'])('rolls back %s when its audit cannot be persisted', async (action) => {
+    await rows('insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])', [teamA, guild, [roleB]]);
+    const before = await rows('select * from discord_bot_role_access');
+    await rows("alter table audit_logs add constraint reject_role_audit check(action not like 'discord.bot_role_access_%')");
+    try {
+      expect((await roleAccess(post(action === 'save' ? [roleA] : []), context)).status).toBe(500);
+      expect(await rows('select * from discord_bot_role_access')).toEqual(before);
+      expect(await rows('select * from audit_logs')).toEqual([]);
+    } finally { await rows('alter table audit_logs drop constraint reject_role_audit'); }
+  });
+
   it('keeps role policies separate even when two teams share one Discord server', async () => {
     expect((await roleAccess(post([roleA]), context)).status).toBe(200);
     expect(await (await roleAccess(get(), context)).json()).toEqual({ guildId: guild, configuredGuildId: guild, roleIds: [roleA], enabled: true });

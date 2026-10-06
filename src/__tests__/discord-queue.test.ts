@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll,afterEach,beforeAll,beforeEach,describe,expect,it,vi } from 'vitest';
 
-const database = vi.hoisted(() => ({pg:null as any,failQuery:null as null|string}));
+const database = vi.hoisted(() => ({pg:null as any,failQuery:null as null|string,beforeBatch:null as null|(() => Promise<unknown>)}));
 const transport = vi.hoisted(() => ({send:vi.fn(),find:vi.fn(),render:vi.fn(),asset:vi.fn(),getAsset:vi.fn(),deleteAsset:vi.fn(),assetCreatedAt:vi.fn(),blobs:[] as {key:string}[],enabled:true}));
 // Real Neon parameter encoding and transaction protocol; real local PostgreSQL
 // constraints, deferred triggers and state transitions. No hosted DB is touched.
@@ -25,6 +25,9 @@ vi.mock('../../netlify/functions/_lib/db',async () => {
     }
     try {
       if (body.queries) {
+        const beforeBatch = database.beforeBatch;
+        database.beforeBatch = null;
+        await beforeBatch?.();
         const results=await database.pg.transaction(async (tx:any) => {
           const rows=[];
           for (const query of body.queries) rows.push(await execute(tx,query));
@@ -40,6 +43,9 @@ vi.mock('../../netlify/functions/_lib/db',async () => {
 vi.mock('../../netlify/functions/_lib/discord-client',async original => ({...await original<any>(),discordRequest:transport.send,findDiscordMessage:transport.find,getDiscordBotUserId:async ()=>'100000000000000088',
   getDiscordGuild:async (id:string)=>({guild:{id,name:'Test'},channels:[{id:'100000000000000002',name:'Scrims',canSend:true}],roles:[]})}));
 vi.mock('../../netlify/functions/_lib/rate-limit',()=>({assertSubjectRateLimit:vi.fn().mockResolvedValue(undefined)}));
+vi.mock('../../netlify/functions/_lib/auth', async original => ({
+  ...await original<any>(), requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' })
+}));
 vi.mock('../../netlify/functions/_lib/discord-config',async original => {
   const actual=await original<any>();
   return {...actual,isDiscordEnabled:()=>transport.enabled,getDiscordConfig:()=>({...actual.getDiscordConfig(),siteUrl:'https://nxt5.test'}),signDiscordInternalRequest:()=>({'x-nxt5-discord-signature':'signed-test'})};
@@ -54,6 +60,7 @@ import { processPublicationJob,reconcilePublications,resolvePublicationJob,publi
 import { wakeDiscordPublications } from '../../netlify/functions/_lib/discord-wake';
 import { executeDiscordCommand } from '../../netlify/functions/discord-interactions';
 import { maintainDiscordPublications } from '../../netlify/functions/_lib/discord-maintenance';
+import retryEndpoint from '../../netlify/functions/team-discord-retry';
 
 const teamId='00000000-0000-4000-8000-000000000002';
 const routeId='00000000-0000-4000-8000-000000000003';
@@ -87,7 +94,7 @@ beforeAll(async () => {
   await database.pg.exec("create table app_schema_migrations(migration_key text primary key);insert into app_schema_migrations values('discord-publications-20260915-v1'),('discord-bot-identity-20260922-v1'),('discord-bot-workflows-20260922-v1'),('discord-bot-role-access-20260923-v1'),('discord-command-channel-20260924-v1')");
 },30_000);
 beforeEach(async () => {
-  database.failQuery=null;transport.enabled=true;
+  database.failQuery=null;database.beforeBatch=null;transport.enabled=true;
   transport.send.mockReset().mockImplementation(async (_path,options) => ({id:'100000000000000099',embeds:options?.body?.embeds || []}));
   transport.find.mockReset().mockResolvedValue(null);
   transport.render.mockReset().mockResolvedValue({bytes:Buffer.from('png'),mimeType:'image/png',width:100,height:100,filename:'game.png'});
@@ -99,13 +106,14 @@ beforeEach(async () => {
   await database.pg.exec('truncate users cascade');
   await database.pg.exec('truncate discord_interaction_receipts');
   await database.pg.query("insert into users(id,account_name,name,password_hash) values($1,'tester','Test','unused')",[userId]);
+  await database.pg.query("update users set email=account_name || '@example.test', email_verified=true");
   await database.pg.query("insert into teams(id,owner_id,name,tag) values($1,$2,'NXT5 test','NXT')",[teamId,userId]);
   await database.pg.query("insert into match_categories(id,team_id,name) values($1,$2,'Scrims')",[categoryId,teamId]);
   await database.pg.query("insert into discord_connections(team_id,guild_id,command_channel_id,status,enabled_at,created_by) values($1,'100000000000000001','100000000000000002','active',now()-interval '1 hour',$2)",[teamId,userId]);
   await database.pg.query("insert into discord_routes(id,team_id,guild_id,channel_id,channel_name,automatic) values($1,$2,'100000000000000001','100000000000000002','scrims',true)",[routeId,teamId]);
 });
 afterAll(async () => {await database.pg?.close();});
-afterEach(()=>vi.unstubAllGlobals());
+afterEach(()=>{ vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe('Discord durable queue against PostgreSQL',() => {
   it('waits for final participants and atomically creates one revision and one job per transaction',async () => {
@@ -151,21 +159,21 @@ describe('Discord durable queue against PostgreSQL',() => {
     await database.pg.query("update matches set opponent='Corrected old game' where id=$1",[matchId]);
     expect(await rows('select * from publication_jobs')).toEqual([]);
     const revision=(await rows('select publication_revision from matches'))[0].publication_revision;
-    expect(await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:revision})).toHaveLength(1);
+    expect(await enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:revision})).toHaveLength(1);
     expect(await rows('select trigger_kind from publication_jobs')).toEqual([{trigger_kind:'manual'}]);
   });
   it('permits manual-only routes and automatically keeps that explicit publication current',async () => {
     await database.pg.exec('update discord_routes set automatic=false');
     await importGame();
     expect(await rows('select * from publication_jobs')).toEqual([]);
-    await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    await enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:1});
     await database.pg.query("update matches set opponent='Corrected' where id=$1",[matchId]);
     expect(await rows('select source_revision from publication_jobs order by source_revision')).toEqual([{source_revision:1},{source_revision:2}]);
   });
   it('checks the expected preview revision inside the same DB operation and rejects foreign teams',async () => {
     await importGame();
-    await expect(enqueueManualPublication({teamId,matchId,routeId,expectedRevision:0})).rejects.toMatchObject({status:409,code:'DISCORD_PREVIEW_OUTDATED'});
-    await expect(enqueueManualPublication({teamId:userId,matchId,routeId})).rejects.toMatchObject({status:404});
+    await expect(enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:0})).rejects.toMatchObject({status:409,code:'DISCORD_PREVIEW_OUTDATED'});
+    await expect(enqueueManualPublication({userId,teamId:userId,matchId,routeId})).rejects.toMatchObject({status:404});
     expect(await rows('select * from publication_jobs')).toHaveLength(1);
   });
   it('respects category filters, supports several configured destinations and does not transfer after recategorization',async () => {
@@ -199,7 +207,7 @@ describe('Discord durable queue against PostgreSQL',() => {
     expect(await rows('select state from discord_publications')).toEqual([{state:'uncertain'}]);
     expect(await rows('select status from publication_jobs order by source_revision')).toEqual([{status:'uncertain'},{status:'queued'}]);
     expect(await claimPublicationJob()).toBeNull();
-    await expect(retryPublicationJob({teamId,jobId:job.id})).rejects.toMatchObject({status:409});
+    await expect(retryPublicationJob({userId,teamId,jobId:job.id})).rejects.toMatchObject({status:409});
   });
   it('cancels removed matches and retains the known message reference for explicit withdrawal',async () => {
     await importGame();
@@ -216,7 +224,7 @@ describe('Discord durable queue against PostgreSQL',() => {
     await database.pg.exec("update discord_connections set status='active',config_version=config_version+1");
     await recoverPublicationJobs();
     expect(await rows('select status from publication_jobs')).toEqual([{status:'cancelled'}]);
-    const jobs=await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    const jobs=await enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:1});
     expect(Number(jobs[0].source_revision)).toBe(2);
     expect(Number(jobs[0].config_version)).toBe(2);
   });
@@ -247,6 +255,18 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     expect(transport.send).toHaveBeenCalledTimes(2);
     expect(transport.render.mock.calls[0][1]).toEqual({includeHints:false});
     expect(await rows('select count(distinct asset_key)::int as assets from publication_snapshots')).toEqual([{assets:1}]);
+  });
+  it('does not reuse a cached compact image after the game PNG template changes',async () => {
+    await database.pg.query("insert into discord_routes(team_id,guild_id,channel_id,automatic) values($1,'100000000000000001','100000000000000003',true)",[teamId]);
+    transport.getAsset.mockResolvedValue(Buffer.from('old-compact-png'));
+    await importGame();
+    expect((await processNext()).outcome).toBe('succeeded');
+    await database.pg.exec(`update publication_snapshots set body=jsonb_set(body,'{templateVersion}','"nxt5-discord-3"')`);
+    expect((await processNext()).outcome).toBe('succeeded');
+    expect(transport.render).toHaveBeenCalledTimes(2);
+    expect(transport.render.mock.calls[1][0].templateVersion).toBe('nxt5-game-png-4');
+    expect(transport.getAsset).not.toHaveBeenCalled();
+    expect(transport.send.mock.calls[1][1].files[0].bytes).toEqual((await transport.render.mock.results[1].value).bytes);
   });
   it('falls back to factual text and the authenticated NXT5 link for an oversized PNG',async () => {
     transport.render.mockResolvedValue({bytes:Buffer.alloc(3*1024*1024+1),mimeType:'image/png',filename:'game.png'});
@@ -400,25 +420,115 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     const original=transport.send.mock.calls[0][1].body;
     const message={id:'100000000000000099',channel_id:'100000000000000002',author:{id:'100000000000000088'},embeds:original.embeds};
     transport.send.mockResolvedValueOnce({...message,author:{id:'100000000000000999'}});
-    await expect(resolvePublicationJob({teamId,jobId:job.id,messageId:message.id})).rejects.toMatchObject({status:409,code:'DISCORD_MESSAGE_MISMATCH'});
+    await expect(resolvePublicationJob({userId,teamId,jobId:job.id,messageId:message.id})).rejects.toMatchObject({status:409,code:'DISCORD_MESSAGE_MISMATCH'});
     expect(await rows('select state from discord_publications')).toEqual([{state:'uncertain'}]);
     transport.send.mockResolvedValueOnce(message);
-    await expect(resolvePublicationJob({teamId,jobId:job.id,messageId:message.id})).resolves.toMatchObject({ok:true});
+    await expect(resolvePublicationJob({userId,teamId,jobId:job.id,messageId:message.id})).resolves.toMatchObject({ok:true});
     expect(await rows('select state,message_id from discord_publications')).toEqual([{state:'published',message_id:message.id}]);
   });
   it('keeps attempts monotonic across a manual retry so delivery history cannot collide',async () => {
     await importGame();transport.send.mockRejectedValueOnce({status:403,code:'DISCORD_FORBIDDEN'});
     const {job}=await processNext();
     expect(await rows('select status from publication_jobs')).toEqual([{status:'blocked'}]);
-    await retryPublicationJob({teamId,jobId:job.id});
+    await retryPublicationJob({userId,teamId,jobId:job.id});
     expect(await rows('select attempts,retry_base_attempts from publication_jobs')).toEqual([{attempts:1,retry_base_attempts:1}]);
     expect((await processNext()).outcome).toBe('succeeded');
     expect(await rows('select attempt,status from discord_deliveries order by attempt')).toEqual([{attempt:1,status:'blocked'},{attempt:2,status:'succeeded'}]);
   });
+  async function useCaptain() {
+    const owner = '00000000-0000-4000-8000-000000000099';
+    await database.pg.query("insert into users(id,account_name,name,password_hash) values($1,'other-owner','Owner','unused')", [owner]);
+    await database.pg.query('update teams set owner_id=$1 where id=$2', [owner, teamId]);
+    await database.pg.query("insert into team_members(team_id,user_id,role) values($1,$2,'captain')", [teamId,userId]);
+  }
+  it.each(['enqueue', 'retry', 'resolve'])('rejects a revoked staff %s after validation and before the durable mutation', async operation => {
+    await useCaptain();
+    let job: any;
+    let message: any;
+    if (operation === 'enqueue') {
+      await database.pg.exec('update discord_routes set automatic=false');
+      await importGame();
+    } else {
+      await importGame();
+      transport.send.mockRejectedValueOnce(operation === 'resolve' ? {status:503,ambiguous:true} : {status:403,code:'DISCORD_FORBIDDEN'});
+      ({job} = await processNext());
+      if (operation === 'resolve') {
+        message = {id:'100000000000000099',channel_id:'100000000000000002',author:{id:'100000000000000088'},embeds:transport.send.mock.calls[0][1].body.embeds};
+        transport.send.mockResolvedValueOnce(message);
+      }
+    }
+    const publications = await rows('select * from discord_publications order by id');
+    const jobs = await rows('select * from publication_jobs order by id');
+    database.beforeBatch = () => database.pg.query("update team_members set role='player' where team_id=$1 and user_id=$2", [teamId,userId]);
+    const pending = operation === 'enqueue' ? enqueueManualPublication({teamId,userId,matchId,routeId,expectedRevision:1})
+      : operation === 'retry' ? retryPublicationJob({teamId,userId,jobId:job.id})
+        : resolvePublicationJob({teamId,userId,jobId:job.id,messageId:message.id});
+    await expect(pending).rejects.toMatchObject({status:409});
+    expect(await rows('select * from discord_publications order by id')).toEqual(publications);
+    expect(await rows('select * from publication_jobs order by id')).toEqual(jobs);
+    expect(await rows('select * from audit_logs')).toHaveLength(0);
+  });
+  it.each(['enqueue', 'retry', 'resolve'])('rolls back %s and its lease when its audit fails', async operation => {
+    let job: any;
+    let message: any;
+    if (operation === 'enqueue') {
+      await database.pg.exec('update discord_routes set automatic=false');
+      await importGame();
+    } else {
+      await importGame();
+      transport.send.mockRejectedValueOnce(operation === 'resolve' ? {status:503,ambiguous:true} : {status:403,code:'DISCORD_FORBIDDEN'});
+      ({job} = await processNext());
+      if (operation === 'resolve') {
+        message = {id:'100000000000000099',channel_id:'100000000000000002',author:{id:'100000000000000088'},embeds:transport.send.mock.calls[0][1].body.embeds};
+        transport.send.mockResolvedValueOnce(message);
+      }
+    }
+    const publications = await rows('select * from discord_publications order by id');
+    const jobs = await rows('select * from publication_jobs order by id');
+    await database.pg.exec('alter table audit_logs add constraint reject_discord_audit check(false)');
+    try {
+      const pending = operation === 'enqueue' ? enqueueManualPublication({teamId,userId,matchId,routeId,expectedRevision:1})
+        : operation === 'retry' ? retryPublicationJob({teamId,userId,jobId:job.id})
+          : resolvePublicationJob({teamId,userId,jobId:job.id,messageId:message.id});
+      await expect(pending).rejects.toMatchObject({code:'23514'});
+      expect(await rows('select * from discord_publications order by id')).toEqual(publications);
+      expect(await rows('select * from publication_jobs order by id')).toEqual(jobs);
+      expect(await rows('select * from audit_logs')).toHaveLength(0);
+    } finally { await database.pg.exec('alter table audit_logs drop constraint reject_discord_audit'); }
+  });
+  it.each(['success', 'revoked', 'audit-failure'])('withdrawal validates its durable claim before remote deletion: %s', async outcome => {
+    for (const [key,value] of Object.entries({ DISCORD_APPLICATION_ID:'100000000000000001',DISCORD_BOT_TOKEN:'local-test-token',
+      DISCORD_PUBLIC_KEY:'a'.repeat(64),DISCORD_WORKER_SECRET:'local-test-secret-long-enough-for-discord',PUBLIC_SITE_URL:'https://nxt5.test' })) vi.stubEnv(key,value);
+    await useCaptain();
+    await importGame();
+    const {job} = await processNext();
+    transport.send.mockClear().mockResolvedValue({});
+    const before = await rows('select * from discord_publications');
+    if (outcome === 'revoked') database.beforeBatch = () => database.pg.query("update team_members set role='player' where team_id=$1 and user_id=$2", [teamId,userId]);
+    if (outcome === 'audit-failure') await database.pg.exec('alter table audit_logs add constraint reject_withdraw_audit check(false)');
+    try {
+      const response = await retryEndpoint(new Request('https://nxt5.test/.netlify/functions/team-discord-retry', {
+        method:'POST',body:JSON.stringify({teamId,deliveryId:job.id,action:'remove'})
+      }), {deploy:{context:'production'}} as any);
+      expect(response.status).toBe(outcome === 'success' ? 200 : outcome === 'revoked' ? 409 : 500);
+      if (outcome === 'success') {
+        expect(transport.send).toHaveBeenCalledOnce();
+        expect(transport.send.mock.calls[0][1]).toMatchObject({method:'DELETE'});
+        expect((await rows('select state from discord_publications'))[0].state).toBe('withdrawn');
+        expect(await rows("select * from audit_logs where action='discord.publication_withdraw_requested'")).toHaveLength(1);
+      } else {
+        expect(transport.send).not.toHaveBeenCalled();
+        expect(await rows('select * from discord_publications')).toEqual(before);
+        expect(await rows('select * from audit_logs')).toHaveLength(0);
+      }
+    } finally {
+      if (outcome === 'audit-failure') await database.pg.exec('alter table audit_logs drop constraint reject_withdraw_audit');
+    }
+  });
   it('makes an explicit share immediately claimable and scopes targeted claims to its team and job',async () => {
     await database.pg.exec('update discord_routes set automatic=false');
     await importGame();
-    const [job]=await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    const [job]=await enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:1});
     expect(await claimPublicationJob({teamId:userId,jobId:job.id})).toBeNull();
     expect(await claimPublicationJob({teamId,jobId:userId})).toBeNull();
     const claimed=await claimPublicationJob({teamId,jobId:job.id});
@@ -430,7 +540,7 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     await importGame();transport.send.mockRejectedValueOnce({status:401,code:'DISCORD_UNAUTHORIZED'});
     const {job}=await processNext();
     expect((await rows('select last_error_code from publication_jobs'))[0].last_error_code).toBe('DISCORD_UNAUTHORIZED');
-    const [requeued]=await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    const [requeued]=await enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:1});
     expect(requeued).toMatchObject({id:job.id,status:'queued',last_error:null,last_error_code:null,attempts:1,retry_base_attempts:1});
     const claimed=await claimPublicationJob({teamId,jobId:job.id});
     expect(claimed).toMatchObject({id:job.id,attempts:2});
@@ -443,17 +553,17 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     const jobBefore=await rows('select status,attempts,retry_base_attempts,available_at,last_error_code,updated_at from publication_jobs');
     await database.pg.exec("alter table publication_jobs add constraint reject_retry_fixture check(status<>'queued')");
     try {
-      await expect(retryPublicationJob({teamId,jobId:job.id})).rejects.toMatchObject({code:'23514'});
+      await expect(retryPublicationJob({userId,teamId,jobId:job.id})).rejects.toMatchObject({code:'23514'});
       expect(await rows('select state,lease_token,lease_expires_at,updated_at from discord_publications')).toEqual(publicationBefore);
       expect(await rows('select status,attempts,retry_base_attempts,available_at,last_error_code,updated_at from publication_jobs')).toEqual(jobBefore);
     } finally {await database.pg.exec('alter table publication_jobs drop constraint reject_retry_fixture');}
-    await retryPublicationJob({teamId,jobId:job.id});
+    await retryPublicationJob({userId,teamId,jobId:job.id});
     expect((await processNext()).outcome).toBe('succeeded');
   });
   it('lets a fresh explicit share recover a blocked publication after its route configuration is fixed',async () => {
     await importGame();transport.send.mockRejectedValueOnce({status:403});await processNext();
     await database.pg.exec('update discord_connections set config_version=config_version+1');
-    const [job]=await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    const [job]=await enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:1});
     expect(job.status).toBe('queued');
     expect((await processNext()).outcome).toBe('succeeded');
     expect(await rows('select state from discord_publications')).toEqual([{state:'published'}]);
@@ -463,7 +573,7 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     await database.pg.query('delete from discord_routes where id=$1',[routeId]);
     await database.pg.exec('update discord_connections set config_version=config_version+1');
     const [route]=await rows("insert into discord_routes(team_id,guild_id,channel_id) values($1,'100000000000000001','100000000000000002') returning id",[teamId]);
-    await enqueueManualPublication({teamId,matchId,routeId:route.id,expectedRevision:1});
+    await enqueueManualPublication({userId,teamId,matchId,routeId:route.id,expectedRevision:1});
     expect((await processNext()).outcome).toBe('unchanged');
     expect(await rows('select route_id,message_id from discord_publications')).toEqual([{route_id:route.id,message_id:'100000000000000099'}]);
     expect(transport.send).toHaveBeenCalledTimes(1);
@@ -471,7 +581,7 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
   it('versions and renders new route policy even when the source game is unchanged',async () => {
     await importGame();await processNext();
     await database.pg.exec("update discord_routes set include_hints=true,mention_role_id='100000000000000077';update discord_connections set config_version=config_version+1");
-    const [job]=await enqueueManualPublication({teamId,matchId,routeId,expectedRevision:1});
+    const [job]=await enqueueManualPublication({userId,teamId,matchId,routeId,expectedRevision:1});
     expect(Number(job.source_revision)).toBe(2);
     expect((await processNext()).outcome).toBe('succeeded');
     const snapshots=await rows('select source_revision,content_hash,body from publication_snapshots order by source_revision');
@@ -517,7 +627,7 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     expect(await rows('select id from matches')).toEqual([]);
     expect(await claimPublicationJob()).toBeNull();
     transport.send.mockResolvedValueOnce(delivered);
-    await expect(resolvePublicationJob({teamId,jobId:job.id,messageId:delivered.id})).resolves.toMatchObject({ok:true});
+    await expect(resolvePublicationJob({userId,teamId,jobId:job.id,messageId:delivered.id})).resolves.toMatchObject({ok:true});
     expect(await rows('select state,message_id,source_deleted_at is not null as deleted from discord_publications'))
       .toEqual([{state:'deleted',message_id:delivered.id,deleted:true}]);
     expect(await rows('select status,last_error_code from publication_jobs')).toEqual([{status:'cancelled',last_error_code:'MATCH_DELETED'}]);

@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { sql } from './db';
-import { auditDiscord, discordError, uuid } from './discord-access';
+import { discordError, uuid, discordTeamWriteQueries, assertCurrentDiscordTeamWriteAccess } from './discord-access';
 import { cleanDiscordText, discordRequest, DiscordApiError, findDiscordMessage, getDiscordBotUserId, getDiscordGuild } from './discord-client';
 import { getDiscordConfig, isDiscordEnabled, isDiscordId } from './discord-config';
 import { assertSubjectRateLimit } from './rate-limit';
@@ -202,13 +202,20 @@ export async function publishDiscordGroup(input: { teamId: string; archiveId: st
     throw discordError('Le bot ne peut pas publier dans ce salon.', 409, 'DISCORD_GROUP_CHANNEL_FORBIDDEN');
   }
   // The receipt is the mutex; both uniqueness constraints fence concurrent UUIDs.
-  const [claimed] = await sql(`insert into discord_group_exports(team_id,request_id,archive_id,route_id,application_id,guild_id,channel_id,channel_name,config_version,source_hash,status,created_by)
+  const [, , claimedRows] = await sql.transaction([...discordTeamWriteQueries(teamId, userId, 'staff'), sql(`with inserted as (
+    insert into discord_group_exports(team_id,request_id,archive_id,route_id,application_id,guild_id,channel_id,channel_name,config_version,source_hash,status,created_by)
     select r.team_id,$3,$4,r.id,$5,r.guild_id,r.channel_id,r.channel_name,c.config_version,$6,'sending',$7
     from discord_routes r join discord_connections c on c.team_id=r.team_id join match_archives a on a.team_id=r.team_id and a.id=$4
     where r.team_id=$1 and r.id=$2 and r.enabled and c.status='active' and c.guild_id=r.guild_id
       and r.guild_id=$8 and r.channel_id=$9 and c.config_version=$10
-    on conflict do nothing returning *`, [teamId, routeId, requestId, archiveId, getDiscordConfig().applicationId, group.sourceHash, userId,
-    group.route.guild_id, group.route.channel_id, group.config_version]);
+    on conflict do nothing returning *
+    ), recorded as (
+      insert into audit_logs(user_id,action,entity_type,entity_id,metadata)
+      select $7,'discord.group_export_requested','team',$1,
+        jsonb_build_object('archiveId',archive_id,'routeId',route_id,'requestId',request_id,'sourceHash',source_hash) from inserted
+    ) select * from inserted`, [teamId, routeId, requestId, archiveId, getDiscordConfig().applicationId, group.sourceHash, userId,
+    group.route.guild_id, group.route.channel_id, group.config_version])]);
+  const claimed = claimedRows[0];
   if (!claimed) {
     const raced = await stored(teamId, requestId) || (await sql(`select * from discord_group_exports where team_id=$1 and archive_id=$2 and guild_id=$3 and channel_id=$4
       and (status in ('sending','uncertain') or (status='succeeded' and source_hash=$5)) order by created_at desc limit 1`,
@@ -221,13 +228,13 @@ export async function publishDiscordGroup(input: { teamId: string; archiveId: st
   }
   let attempted = false;
   try {
-    await auditDiscord(userId, teamId, 'discord.group_export_requested', { archiveId, routeId, requestId, sourceHash: group.sourceHash });
     // Rendering and live permission checks may take time. Re-read every source and
     // destination guard immediately before the one permitted Discord mutation.
     const current = await loadGroup(teamId, archiveId, routeId);
     verifyPreview(input.previewToken, { ...claims(userId, current), hasImage: Boolean(image) });
     if (!isDiscordEnabled() || current.connection_status !== 'active') throw previewInvalid();
     const message = buildGroupMessage(group.snapshot, reference(claimed), image);
+    await assertCurrentDiscordTeamWriteAccess(teamId, userId, 'staff');
     attempted = true;
     const result = await discordRequest(`/channels/${claimed.channel_id}/messages`, { method: 'POST', body: message,
       ...(image ? { files: [{ name: image.filename, bytes: image.bytes }] } : {}) });

@@ -18,7 +18,7 @@ export async function beginDiscordAccountLink(interaction: any) {
   ] }] };
 }
 export async function accountStatus(discordUserId: string) {
-  const link = await botIdentity(discordUserId);
+  const link = await botIdentity(discordUserId, { allowUnverifiedEmail: true });
   return botMessage('Ton compte Discord', 'Compte NXT5 : **' + botText(link.account_name, 100) + '**.\nPour consulter les données de ton équipe, lance `/nxt voir` dans son salon de commandes. Le salon détermine automatiquement l’équipe.\nTu peux délier ton compte depuis Bot Discord dans NXT5.');
 }
 export async function reviewDiscordAccountLink(token: string, discordUserId: string, guildId: string) {
@@ -46,8 +46,11 @@ export async function finishDiscordAccountLink(token: string, discordUserId: str
   if (!request.user_id) throw discordError('Confirme d’abord ton compte sur NXT5.');
   try {
     await sql.transaction([
+      sql('select id from users where id=$1 for share', [request.user_id]),
       sql('select token_hash from discord_account_link_requests where token_hash=$1 for update', [botTokenHash(token)]),
-      sql(`select 1/case when exists(select 1 from discord_account_link_requests where token_hash=$1 and discord_user_id=$2 and guild_id=$3 and user_id=$4 and used_at is null and expires_at>now()) then 1 else 0 end`, [botTokenHash(token), discordUserId, guildId, request.user_id]),
+      sql(`select 1/case when exists(select 1 from discord_account_link_requests r join users u on u.id=r.user_id
+        where r.token_hash=$1 and r.discord_user_id=$2 and r.guild_id=$3 and r.user_id=$4 and r.used_at is null and r.expires_at>now()
+          and u.email_verified is true and nullif(btrim(u.email),'') is not null) then 1 else 0 end`, [botTokenHash(token), discordUserId, guildId, request.user_id]),
       sql('insert into discord_user_links(discord_user_id,user_id,discord_label) values($1,$2,$3)', [discordUserId, request.user_id, request.discord_label]),
       sql('update discord_account_link_requests set used_at=now() where discord_user_id=$1 or user_id=$2', [discordUserId, request.user_id]),
     ]);
@@ -57,12 +60,15 @@ export async function finishDiscordAccountLink(token: string, discordUserId: str
   }
   return botMessage('Compte lié', 'Va dans le salon de commandes de ton équipe, puis utilise `/nxt voir`. Tes droits restent ceux de ton compte NXT5.');
 }
-export async function unlinkDiscordAccount(discordUserId: string) {
+export async function unlinkDiscordAccount(discordUserId: string, expectedIdentityId?: string) {
   assertDiscordArtifactEnvironment();
-  await sql.transaction([
-    sql('delete from discord_user_links where discord_user_id=$1', [discordUserId]),
-    sql('update discord_account_link_requests set used_at=now() where discord_user_id=$1 and used_at is null', [discordUserId]),
-  ]);
+  const identityId = expectedIdentityId || (await botIdentity(discordUserId, { allowUnverifiedEmail: true })).id;
+  // A confirmation for an older association must not revoke a replacement
+  // account linked to the same Discord identity while the request was pending.
+  await sql(`with removed as (
+    delete from discord_user_links where discord_user_id=$1 and id=$2 returning id
+  ) update discord_account_link_requests set used_at=now()
+    where discord_user_id=$1 and used_at is null and exists(select 1 from removed)`, [discordUserId, identityId]);
   return botMessage('Compte délié', 'Les accès Discord à ton compte et tes boutons en attente ont été révoqués.');
 }
 export async function executeDiscordAccount(interaction: any, command: string, options: Record<string, any>) {
@@ -71,7 +77,7 @@ export async function executeDiscordAccount(interaction: any, command: string, o
   if (command === 'lier' || command === 'compte lier') return beginDiscordAccountLink(interaction);
   if (command === 'profil' || command === 'compte profil') return accountStatus(discordUserId);
   if (command === 'compte delier') {
-    const identity = await botIdentity(discordUserId);
+    const identity = await botIdentity(discordUserId, { allowUnverifiedEmail: true });
     const token = await saveBotPending({ teamId: '', teamName: '', guildId, discordUserId, userId: identity.user_id,
       role: '', canStaff: false, canManage: false, playerIds: [], timezone: 'Europe/Paris', identityId: identity.id }, command, {}, 'confirm');
     return { ...botMessage('Délier ton compte', 'Confirme la révocation de la liaison avec **' + botText(identity.account_name, 100) + '**.'), components: [{ type: 1, components: [

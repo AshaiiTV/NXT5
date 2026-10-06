@@ -80,22 +80,34 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Tu peux modifier uniquement tes disponibilités, sauf staff autorisé.'), { status: 403 });
     }
 
-    const rows = await sql`
-      insert into player_availability (team_id, player_id, week_start, slots, notes, updated_by)
-      values (${teamId}, ${playerId}, ${weekStart}::date, ${JSON.stringify(slots)}::jsonb, ${notes}, ${user.id})
-      on conflict (team_id, player_id, week_start)
-      do update set
-        slots = excluded.slots,
-        notes = excluded.notes,
-        updated_by = excluded.updated_by,
-        updated_at = now()
-      returning *
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'player_availability.upsert', 'player', ${playerId}, ${JSON.stringify({ teamId, weekStart })}::jsonb)
-    `;
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select user_id from team_members where team_id = ${teamId} and user_id = ${user.id} for share`,
+      tx`select id from players where id = ${playerId} and team_id = ${teamId} for share`,
+      tx`with changed_availability as (
+        insert into player_availability (team_id, player_id, week_start, slots, notes, updated_by)
+        select teams.id, players.id, ${weekStart}::date, ${JSON.stringify(slots)}::jsonb, ${notes}, ${user.id}
+        from teams join players on players.team_id = teams.id
+        where teams.id = ${teamId} and players.id = ${playerId}
+          and (teams.owner_id = ${user.id} or exists (select 1 from team_members
+            where team_id = teams.id and user_id = ${user.id}
+              and (role = any(${TEAM_STAFF_ROLES}) or players.user_id = ${user.id})))
+        on conflict (team_id, player_id, week_start)
+        do update set
+          slots = excluded.slots,
+          notes = excluded.notes,
+          updated_by = excluded.updated_by,
+          updated_at = now()
+        returning *
+      ), logged as (
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        select ${user.id}, 'player_availability.upsert', 'player', player_id, ${JSON.stringify({ teamId, weekStart })}::jsonb
+        from changed_availability
+      )
+      select * from changed_availability`
+    ]);
+    const rows = results[3];
+    if (!rows[0]) throw Object.assign(new Error('Le profil ou les accès ont changé. Recharge l’équipe.'), { status: 403 });
 
     return json({ availability: rows[0] });
   } catch (err) {

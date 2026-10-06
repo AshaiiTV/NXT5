@@ -159,7 +159,7 @@ describe('Several NXT5 teams in one Discord server', () => {
     ]);
     expect(publications[0].id).not.toBe(publications[1].id);
     const jobsBefore = await rows('select * from publication_jobs where team_id=$1', [teamB]);
-    await expect(enqueueManualPublication({ teamId: teamA, matchId: matchA, routeId: routeB, expectedRevision: 1 })).rejects.toMatchObject({ status: 404 });
+    await expect(enqueueManualPublication({ userId: ownerA, teamId: teamA, matchId: matchA, routeId: routeB, expectedRevision: 1 })).rejects.toMatchObject({ status: 404 });
     await rows("update matches set opponent='Corrected A' where id=$1", [matchA]);
     expect((await rows('select source_revision from publication_jobs where team_id=$1 order by source_revision', [teamA]))).toEqual([{ source_revision: 1 }, { source_revision: 2 }]);
     expect(await rows('select * from publication_jobs where team_id=$1', [teamB])).toEqual(jobsBefore);

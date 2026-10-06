@@ -50,6 +50,10 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 | Date | Rapport |
 | --- | --- |
+| 2026-10-06 | [Démarrage guidé : accueil, premiers pas et aide contextuelle](demarrage-guide-2026-10-06.md) |
+| 2026-10-06 | [Audit général : sécurité, publication, performance et interface](audit-general-2026-10-06.md) |
+| 2026-10-06 | [Historique : correction de la pagination et mesures comparées](perf-historique-2026-10-06.md) |
+| 2026-10-06 | [Sécurité des entrées de compilation Tailwind](build-dependency-security-2026-10-06.md) |
 | 2026-09-06 | [Corrections complémentaires de l’audit](audit-followup-2026-09-06.md) |
 | 2026-09-08 | [Audit de cohérence visuelle](audit-da-2026-09-08.md) |
 | 2026-09-15 | [Livraison NXT5 → Discord](discord-delivery-2026-09-15.md) |

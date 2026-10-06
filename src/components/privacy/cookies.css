@@ -35,6 +35,12 @@
   .nxt5-cookie-icon { width: 36px; height: 36px; }
   .nxt5-cookie-actions { gap: 8px; }
   .nxt5-cookie-actions > button { flex-basis: 100%; }
+  .nxt5-cookie-banner { padding: 14px; }
+  .nxt5-cookie-banner .nxt5-cookie-heading { margin-bottom: 8px; }
+  .nxt5-cookie-banner > p { line-height: 1.5; margin: 10px 0; }
+  .nxt5-cookie-banner .nxt5-cookie-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; }
+  .nxt5-cookie-banner .nxt5-cookie-actions > button { min-height: 44px; padding-inline: 8px; }
+  .nxt5-cookie-banner .nxt5-cookie-actions > button:last-child { grid-column: 1 / -1; }
   .nxt5-cookie-backdrop { padding: 12px; }
   .nxt5-cookie-dialog { padding: 18px; max-height: calc(100dvh - 24px); border-radius: 14px; }
   .nxt5-cookie-category { padding: 12px; gap: 10px; }

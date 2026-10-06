@@ -1,5 +1,6 @@
 import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } from "../../utils/statistics.js";
 import { canonicalChampion as championAssetId, championNameKey as championKey, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
+import { DDRAGON_FALLBACK_VERSIONS, championPortraitUrls, itemIconUrls } from "../../../shared/riot-assets.js";
 import { normalizeRole as normalizeProfileRole } from "../../../shared/roles.js";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
@@ -14,7 +15,6 @@ function lazyNamed(importer, name) {
 
 const loadNextPhase = () => import("../../NextPhase.jsx");
 
-const DDRAGON_FALLBACK_VERSIONS = ["16.16.1", "16.15.1", "16.14.1", "16.13.1", "16.11.1", "15.24.1"];
 
 const CHAMPION_STYLE_TAGS = {
   Aatrox: ["bruiser", "teamfight"], Ahri: ["pick", "tempo"], Akali: ["assassin", "side"], Alistar: ["engage", "peel"], Amumu: ["engage", "teamfight"], Anivia: ["control", "scaling"], Annie: ["burst", "engage"], Aphelios: ["scaling", "front-to-back"], Ashe: ["utility", "pick"], AurelionSol: ["scaling", "control"], Azir: ["scaling", "front-to-back"],
@@ -147,14 +147,7 @@ function championSplashUrl(champion) {
 }
 
 function championPortraitSources(rowOrChampion, explicitChampion = "") {
-  const championId = rowOrChampion?.raw?.championId || rowOrChampion?.championId;
-  const champion = explicitChampion || (typeof rowOrChampion === "string" ? rowOrChampion : rowOrChampion?.champion);
-  const id = championAssetId(champion);
-  return [...new Set([
-    championId ? assetProxyUrl("https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/" + championId + ".png") : "",
-    ...DDRAGON_FALLBACK_VERSIONS.map((version) => id ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/" + version + "/img/champion/" + id + ".png") : ""),
-    id ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/img/champion/loading/" + id + "_0.jpg") : "",
-  ].filter(Boolean))];
+  return championPortraitUrls(rowOrChampion, explicitChampion).map(assetProxyUrl);
 }
 
 function ChampionPortrait({ champion, row, alt, className = "h-full w-full object-cover" }) {
@@ -484,13 +477,7 @@ function CategoryFilter({ categories, selectedCategoryId, onSelect, label = "Cat
 }
 
 function itemIconSources(itemId) {
-  const id = Number(itemId || 0);
-  if (!id) return [];
-  return [...new Set([
-    ...DDRAGON_FALLBACK_VERSIONS.map((version) => assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/img/item/${id}.png`)),
-    assetProxyUrl(`https://raw.communitydragon.org/latest/game/assets/items/icons2d/${id}.png`),
-    assetProxyUrl(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/assets/items/icons2d/${id}.png`),
-  ])];
+  return itemIconUrls(itemId).map(assetProxyUrl);
 }
 
 function safeJsonParse(value, fallback) {

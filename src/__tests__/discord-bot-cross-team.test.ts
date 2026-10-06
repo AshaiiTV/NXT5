@@ -71,6 +71,7 @@ beforeEach(async () => {
   vi.stubGlobal('fetch', state.fetch);
   await state.pg.exec('truncate users cascade; truncate discord_interaction_receipts');
   await rows(`insert into users(id,account_name,name,password_hash) values($1,'owner','Owner','unused'),($2,'coach','Coach','unused'),($3,'member','Member','unused')`, [owner, coach, member]);
+  await rows("update users set email=account_name || '@example.test', email_verified=true");
   await rows("insert into teams(id,owner_id,name,tag) values($1,$3,'Team A','AAA'),($2,$3,'PRIVATE_TEAM','BBB')", [team, otherTeam, owner]);
   await rows("insert into team_members(team_id,user_id,role) values($1,$2,'coach'),($1,$3,'player')", [team, coach, member]);
   await rows("insert into discord_connections(team_id,guild_id,command_channel_id,status) values($1,$3,$4,'active'),($2,$3,$5,'active')", [team, otherTeam, guild, channelA, channelB]);

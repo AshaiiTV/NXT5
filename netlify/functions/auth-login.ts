@@ -1,7 +1,7 @@
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, createSession, ensureEmailVerificationColumns, normalizeAccountName, normalizeEmail, safeUser, verifyPassword } from './_lib/auth';
+import { assertSessionSecret, createSession, ensureEmailVerificationColumns, normalizeAccountName, normalizeEmail, safeUser, verifyLoginPassword } from './_lib/auth';
 import { recordUserActivity } from './_lib/engagement';
 import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 import type { DbUser } from './_lib/types';
@@ -34,10 +34,8 @@ export default async function handler(request: Request, context: Context): Promi
     const subject = user ? `account:${user.id}` : `unknown:${identifier}`;
     await assertSubjectRateLimit('auth-login-account', subject, { limit: 8, windowSeconds: 300 });
     await assertSubjectRateLimit('auth-login-account-hour', subject, { limit: 20, windowSeconds: 3600 });
-    if (!user) throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
-
-    const ok = await verifyPassword(password, user.password_hash);
-    if (!ok) throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
+    const ok = await verifyLoginPassword(password, user?.password_hash);
+    if (!user || !ok) throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
 
     const activeUser = await recordUserActivity(user);
     await createSession({ userId: user.id, context, request, remember, expectedPasswordHash: user.password_hash });

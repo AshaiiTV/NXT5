@@ -32,23 +32,7 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
   const singleMatch = !group && Array.isArray(matches) && matches.filter(Boolean).length === 1 ? matches.filter(Boolean)[0] : null;
   if (singleMatch) {
     const { renderGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
-    const canvas = await renderGamePublicationPng(buildGamePublicationSnapshot({ team: team || { name: teamName }, match: singleMatch, categories }), {
-      async loadAssets(snapshot) {
-        const champions = new Map();
-        const items = new Map();
-        const load = async (sources) => {
-          for (const url of sources.slice(0, 2)) { const image = await pngLoadImage(url); if (image) return image; }
-          return null;
-        };
-        const championNames = [...new Set(snapshot.participants.map((row) => row.champion).filter(Boolean))];
-        const itemIds = [...new Set(snapshot.participants.flatMap((row) => [...row.items, row.trinket]).filter((id) => id > 0))];
-        await Promise.all([
-          ...championNames.map(async (name) => champions.set(name, await load(championPortraitSources(name, name)))),
-          ...itemIds.map(async (id) => items.set(id, await load(itemIconSources(id)))),
-        ]);
-        return { champions, items };
-      },
-    });
+    const canvas = await renderGamePublicationPng(buildGamePublicationSnapshot({ team: team || { name: teamName }, match: singleMatch, categories }));
     return [canvas];
   }
   const scoped = Array.isArray(matches) ? matches.filter(Boolean) : [];

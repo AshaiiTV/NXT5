@@ -11,12 +11,11 @@ import { ToastStack, Surface, Badge, Button, SkeletonRows, TextInput } from "./c
 import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, LegalLinks, SiteHeader } from "./pages/public/PublicPages.jsx";
 import { FeaturesPage } from "./pages/public/FeaturesPage.jsx";
 import { PublicGuidePage, PUBLIC_GUIDES } from "./pages/public/PublicGuides.jsx";
-import { DemoPage } from "./pages/public/DemoPage.jsx";
 import SocialPage from "./pages/public/SocialPage.jsx";
 import { SupportPage } from "./pages/public/SupportPage.jsx";
 import { applyDocumentMetadata } from "./seo/metadata.js";
 import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
-import { AmbientBackground, ApiBanner, BeginnerCompass, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
+import { AmbientBackground, ApiBanner, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { Nxt5Wordmark, ResponsiveImage } from "./components/brand/BrandAssets.jsx";
 import { cx, preciseErrorText } from "./app/helpers.js";
 import { createPlanningStore, upsertAvailability } from "./utils/planning-store.js";
@@ -26,10 +25,13 @@ import { useTeamData } from "./hooks/useTeamData.js";
 import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 import { matchDisplayName } from "./utils/matches.js";
 import { getOnboardingSteps } from "./utils/onboarding.js";
+import { useOnboarding } from "./hooks/useOnboarding.js";
+import HomeWorkspace from "./pages/workspace/HomeWorkspace.jsx";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
 import PassFeatureGate from "./components/subscriptions/PassFeatureGate.jsx";
 import { isPassFeatureLocked } from "./app/pass-access.js";
 const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
+const DemoPage = lazy(() => import("./pages/public/DemoPage.jsx").then((module) => ({ default: module.DemoPage })));
 const DiscordWorkspace = lazy(() => import("./pages/workspace/DiscordWorkspace.jsx"));
 const PlayerUltimateProfile = lazy(() => import("./pages/workspace/PlayerUltimateProfile.jsx").then((module) => ({ default: module.PlayerUltimateProfile })));
 const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((module) => ({ default: module.TrendsPage })));
@@ -59,7 +61,7 @@ function VerifiedPage({ navigate }) {
   const success = params.get("success") === "true";
   const error = params.get("error");
   const copy = success
-    ? ["Email vérifié !", "Tu peux maintenant recevoir les notifications.", "green"]
+    ? ["Email vérifié !", "Tu peux maintenant accéder à ton espace NXT5 et recevoir les notifications.", "green"]
     : error === "expired"
       ? ["Lien expiré", "Ce lien a expiré. Renvoie un email de vérification depuis tes paramètres.", "yellow"]
       : ["Lien invalide", "Lien invalide ou déjà utilisé.", "red"];
@@ -67,7 +69,7 @@ function VerifiedPage({ navigate }) {
   return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
 }
 
-export function MissingEmailModal({ user, onUserUpdate, pushToast }) {
+export function MissingEmailModal({ user, onUserUpdate, pushToast, onLogout }) {
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -100,6 +102,7 @@ export function MissingEmailModal({ user, onUserUpdate, pushToast }) {
           {error && <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
           <Button type="submit" disabled={saving || !email.trim() || !currentPassword} icon={saving ?Loader2 : Mail} className="w-full py-4">{saving ?"Enregistrement..." : "Enregistrer l’e-mail"}</Button>
         </form>
+        <Button type="button" variant="ghost" icon={LogOut} onClick={onLogout} disabled={saving} className="mt-4 w-full">Se déconnecter</Button>
     </ModalDialog>
   );
 }
@@ -184,10 +187,10 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
     <ModalDialog dismissable={false} busy={busy} aria-labelledby="verify-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
         <Badge tone="orange">Vérification obligatoire</Badge>
         <h2 id="verify-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton e-mail</h2>
-        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Ton compte utilise l'adresse <span className="break-all font-black text-white">{user?.email}</span>. Pour continuer à recevoir les notifications NXT5, confirme cette adresse avec le lien envoyé par e-mail.</p>
+        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Ton compte utilise l'adresse <span className="break-all font-black text-white">{user?.email}</span>. Confirme cette adresse avec le lien envoyé par e-mail pour accéder à ton espace NXT5.</p>
         <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
           <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Profil non vérifié</p>
-          <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications restent bloquées tant que l'e-mail n'est pas confirmé.</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">L’accès aux équipes et les notifications restent bloqués tant que l’e-mail n’est pas confirmé.</p>
         </div>
         {sent && <div role="status" className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.</div>}
         {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{error}</div>}
@@ -275,6 +278,17 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
 }
 
 export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+  if (!user?.email || user.email_verified !== true) return <EmailVerificationGate user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
+  return <VerifiedMainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+}
+
+function EmailVerificationGate({ user, onLogout, onUserUpdate, pushToast }) {
+  useAppLoading(null);
+  const Dialog = user?.email ? EmailVerificationRequiredModal : MissingEmailModal;
+  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><Dialog user={user} onLogout={() => onLogout()} onUserUpdate={onUserUpdate} pushToast={pushToast} /></div>;
+}
+
+function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
   const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
@@ -304,7 +318,6 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
-  const [hiddenGuides, setHiddenGuides] = useState({});
 
   function setActive(pageId) {
     startTransition(() => setActiveState(pageId));
@@ -313,7 +326,7 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
   }
 
   function openTeamCreation() {
-    navigate("/equipes?create=1");
+    navigate("/equipes?setup=1");
   }
 
   function openTeamManagement() {
@@ -323,11 +336,6 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
   function openAssistant(prompt = "") {
     setAssistantPrompt(typeof prompt === "string" ? prompt : "");
     setAssistantOpen(true);
-  }
-
-  function setBeginnerCompassHidden(hidden) {
-    setHiddenGuides((current) => ({ ...current, [guideStorageKey]: hidden }));
-    try { window.localStorage.setItem(guideStorageKey, hidden ? "1" : "0"); } catch {}
   }
 
   const logout = () => onLogout(() => planningStore.prepareLogout());
@@ -343,8 +351,10 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
   // The launch switch stays off. Team entitlements must come from the server at launch;
   // manual subscriptions on a personal profile are not team access rights.
   const workspaceLocked = Boolean(currentTeam) && isPassFeatureLocked("workspace");
-  const teamSetupOnly = active === "teams" && workspaceLocked && (new URLSearchParams(route.search).get("create") === "1" || new URLSearchParams(route.search).has("invite"));
-  const workspacePage = ["teams", "team-management", "bot-discord", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
+  const setupParams = new URLSearchParams(route.search);
+  const isTeamSetup = active === "teams" && (["create", "setup", "join"].some(key => setupParams.get(key) === "1") || setupParams.has("invite"));
+  const teamSetupOnly = workspaceLocked && isTeamSetup;
+  const workspacePage = ["home", "teams", "team-management", "bot-discord", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
 
   const page = useMemo(() => {
     if (active === "bot-discord") return <DiscordWorkspace data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
@@ -359,23 +369,20 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
   }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation]);
-  const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{page}</PassFeatureGate> : page;
-
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
-  const guideStorageKey = `nxt5_beginner_compass_hidden:${user.id}:${currentTeam?.id || ""}`;
-  const beginnerCompassHidden = hiddenGuides[guideStorageKey] ?? (() => {
-    try { return window.localStorage.getItem(guideStorageKey) === "1"; } catch { return false; }
-  })();
-  const onboardingSteps = getOnboardingSteps({ data, currentTeam, currentMember, user });
-  const guideAvailable = Boolean(currentTeam && data.selectedTeamId === currentTeam.id && !workspaceLocked && onboardingSteps.some((step) => !step.done));
-  const routeParams = new URLSearchParams(route.search);
-  const guidePage = ["teams", "matches", "reports", "trends"].includes(active) && !routeParams.has("create") && !routeParams.has("invite") && routeParams.get("import") !== "1" && routeParams.get("compose") !== "1";
-  const showBeginnerCompass = guideAvailable && guidePage && !beginnerCompassHidden;
+  const onboardingReady = Boolean(bootstrapReady && currentTeam && data.selectedTeamId === currentTeam.id && !workspaceLocked && !apiError);
+  const onboarding = useOnboarding({ user, currentTeam, data, route, ready: onboardingReady });
+  const onboardingSteps = getOnboardingSteps({ data, currentTeam, currentMember, user, discovered: onboarding.discovered });
+  const nextStep = onboardingSteps.find(step => !step.done && !step.disabled);
+  const showStartReturn = onboardingReady && !onboarding.dismissed && onboardingSteps.some(step => !step.done) && !isTeamSetup && ["teams", "team-management", "matches", "reports", "planning", "profile"].includes(active);
+  const helpSection = { home: "getting-started", teams: "teams-and-roster", "team-management": "teams-and-roster", matches: setupParams.get("import") === "1" ? "imports-and-games" : "statistics", reports: "reviews", profile: "player-profile", planning: "planning", trends: "trends", draft: "champion-pool" }[active] || "getting-started";
+  const currentPage = active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} /> : page;
+  const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{currentPage}</PassFeatureGate> : currentPage;
   const assistantWidget = !workspaceLocked && <>
-    <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>
+    {active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>
       <span aria-hidden="true">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
       <span className="hidden sm:inline">{assistantOpen ? "Fermer" : "Assistant"}</span>
-    </button>
+    </button>}
     <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
   </>;
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
@@ -411,8 +418,6 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
         </WorkspaceErrorBoundary>
       </main>
       <LegalLinks navigate={navigate} />
-      {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
-      {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
     </div>
     {assistantWidget}
     {inactivityReturnModal}
@@ -447,12 +452,12 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
           onSelectTeam={setSelectedTeamId}
           onCreateTeam={openTeamCreation}
           onManageTeam={openTeamManagement}
+          onHelp={() => navigate(`/guide?section=${helpSection}`)}
         />
         <main id="workspace-content" tabIndex={-1} className="nxt5-workspace-main">
           <WorkspaceErrorBoundary key={active}>
             <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-            {showBeginnerCompass && <BeginnerCompass steps={onboardingSteps} onNavigate={navigate} onClose={() => setBeginnerCompassHidden(true)} />}
-            {guideAvailable && guidePage && active === "teams" && beginnerCompassHidden && <div className="nxt5-compass-resume"><Button type="button" variant="ghost" onClick={() => setBeginnerCompassHidden(false)}>Reprendre le guide de démarrage</Button></div>}
+            {showStartReturn && <div className="nxt5-start-return"><button type="button" onClick={() => navigate("/accueil")}>← Mon accueil</button><span>{nextStep ? `Prochaine étape : ${nextStep.label.toLowerCase()}` : onboardingSteps.every(step => step.done) ? "Tes premiers repères sont en place" : "Ton équipe prépare la suite"}</span></div>}
             <div key={active} className="nxt5-fade-in min-w-0">
               <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? guardedPage : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
             </div>
@@ -462,8 +467,6 @@ export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, rou
       </div>
       {assistantWidget}
       {inactivityReturnModal}
-      {!user?.email && <MissingEmailModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />}
-      {user?.email && user.email_verified === false && <EmailVerificationRequiredModal user={user} pushToast={pushToast} onUserUpdate={onUserUpdate} onLogout={logout} />}
     </div>
   );
 }
@@ -485,8 +488,9 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
-  if (route.path === "/demo") return <DemoPage navigate={navigate} user={user} />;
+  if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">Chargement de la démo…</div>}><DemoPage navigate={navigate} user={user} /></Suspense>;
   if (PUBLIC_GUIDES[route.path]) return <PublicGuidePage path={route.path} navigate={navigate} user={user} />;
+  if (adminPage && user && (!user.email || user.email_verified !== true)) return <EmailVerificationGate user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
   if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label="Chargement de l’administration"><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
   if (route.path === "/reseaux") return <SocialPage navigate={navigate} user={user} />;
   if (route.path === "/soutenir") return <SupportPage navigate={navigate} user={user} />;
@@ -579,7 +583,7 @@ export default function NXT5() {
 
   useEffect(() => {
     if (!checkingSession && user && (route.path === "/" || authModeFromPath(route.path))) {
-      navigate("/equipes", { replace: true });
+      navigate("/accueil", { replace: true });
     }
   }, [checkingSession, user, route.path]);
 

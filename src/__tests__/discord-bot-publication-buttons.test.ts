@@ -67,6 +67,7 @@ beforeEach(async () => {
   state.rate.mockReset().mockResolvedValue(undefined);
   await state.pg.exec('truncate users cascade');
   await rows("insert into users(id,account_name,name,password_hash) values($1,'owner','Owner','unused'),($2,'player','Player','unused')", [owner, player]);
+  await rows("update users set email=account_name || '@example.test', email_verified=true");
   await rows("insert into teams(id,owner_id,name,tag) values($1,$3,'Team A','AAA'),($2,$3,'Team B','BBB')", [teamA, teamB, owner]);
   await rows("insert into team_members(team_id,user_id,role) values($1,$3,'player'),($2,$3,'player')", [teamA, teamB, player]);
   await rows("insert into discord_connections(team_id,guild_id,command_channel_id,status) values($1,$3,$4,'active'),($2,$3,$5,'active')",

@@ -30,7 +30,7 @@ const deferred = () => {
 };
 let renderer;
 const view = (path = '/equipes', search = '?create=1') => <Suspense fallback={null}><MainApp {...props} route={{ path, search }} /></Suspense>;
-const creationForm = () => renderer.root.findAllByType('form').find(form => form.findAllByType(Button).some(button => ['Créer l’équipe', 'Reprendre les joueurs manquants'].includes(button.props.children)));
+const creationForm = () => renderer.root.findAllByType('form').find(form => form.findAllByType(Button).some(button => ['Créer l’équipe', 'Reprendre les joueurs manquants', 'Création en cours…'].includes(button.props.children)));
 const text = () => JSON.stringify(renderer.toJSON());
 beforeEach(() => {
   crash.enabled = false;

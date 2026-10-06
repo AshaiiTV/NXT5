@@ -106,7 +106,7 @@ async function runBotComponent(interaction: any) {
     }
     if (pending.command === 'compte delier' && pending.kind === 'confirm' && customId.startsWith('nxt:confirm:')) {
       await loadBotPending(token, discordUserId, guildId, true);
-      return unlinkDiscordAccount(discordUserId);
+      return unlinkDiscordAccount(discordUserId, pending.link_id);
     }
     const ctx = await resolveBotContext(discordUserId, guildId, channelId, interaction.member.roles,
       pending.team_id, pendingPublishedButton(pending));

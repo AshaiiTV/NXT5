@@ -299,7 +299,7 @@ describe('NXT5 authentication and team action boundaries', () => {
     expect(mocks.enqueue).not.toHaveBeenCalled();
     const sent = await publish(request({ teamId: TEAM, matchId: MATCH, routeId: ROUTE, snapshotRevision: 3 }), {} as any);
     expect(sent.status).toBe(202);
-    expect(mocks.enqueue).toHaveBeenCalledWith({ teamId: TEAM, matchId: MATCH, routeId: ROUTE, expectedRevision: 3 });
+    expect(mocks.enqueue).toHaveBeenCalledWith({ teamId: TEAM, userId: USER, requestId: null, matchId: MATCH, routeId: ROUTE, expectedRevision: 3 });
     mocks.sql.mockResolvedValue([baseTeam('player')]);
     const deniedPreview = await preview(request(undefined, 'team-discord-preview'), {} as any);
     expect(deniedPreview.status).toBe(403);

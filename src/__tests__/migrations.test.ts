@@ -34,6 +34,8 @@ describe('controlled database migrations', { timeout: 30_000 }, () => {
     expect((await db.query('select migration_key from app_schema_migrations')).rows).toHaveLength(migrations.length);
     await db.query('select notif_inactivity, legal_version, email_verify_token from users');
     await db.query('select attempts, rate_key, updated_at from rate_limits');
+    await db.query('select team_id, token, expires_at from riot_sync_leases');
+    await db.query('select player_id, fingerprint, synced_at from player_riot_sync_state');
     await db.query('select team_id, player_id from player_coaching_notes');
     await db.query('select user_id, plan_code, starts_at, ends_at, revoked_at, note, revision from account_subscriptions');
     await db.query('select guild_id, channel_id, config_version from discord_community_settings');
@@ -394,7 +396,7 @@ describe('B2/B5 report source upgrade', { timeout: 30_000 }, () => {
     await db.query("insert into users(id,account_name,name,password_hash) values($1,'report-owner','Owner','unused')", [userId]);
     const team: any = (await db.query("insert into teams(owner_id,name,tag) values($1,'Audit','AUD') returning id", [userId])).rows[0];
     await db.query("insert into reports(team_id,title,content) values($1,'Review — Audit — EUW1_1','Notes humaines à conserver')", [team.id]);
-    expect(await applyMigrations(client, migrations)).toEqual(['report-source-20260929-v1', 'report-source-v3-20260929-v1', 'canonical-champions-20260929-v1', 'timeline-cs-rule-20260929-v2']);
+    expect(await applyMigrations(client, migrations)).toEqual(migrations.slice(prior.length).map(migration => migration.key));
     expect((await db.query('select source,content from reports')).rows).toEqual([{ source: 'manual', content: 'Notes humaines à conserver' }]);
     expect(await applyMigrations(client, migrations)).toEqual([]);
     await expect(db.query("insert into reports(team_id,title,content,source) values($1,'Title','Text','invalid')", [team.id])).rejects.toMatchObject({ code: '23514' });
@@ -441,7 +443,8 @@ it('N3-01 canonicalises historical champions and notebook keys without changing 
 
 it('T3-03 backfills only summaries with retained frames and is idempotent', async () => {
   const { db, client, migrations } = await fixture();
-  await applyMigrations(client, migrations.slice(0, -1));
+  const index = migrations.findIndex(m => m.key === 'timeline-cs-rule-20260929-v2');
+  await applyMigrations(client, migrations.slice(0, index));
   const user = (await db.query("insert into users(account_name,name,password_hash) values('cs','CS','hash') returning id")).rows[0].id;
   const team = (await db.query("insert into teams(owner_id,name,tag) values($1,'CS','CS') returning id", [user])).rows[0].id;
   const base = { info: { gameDuration: 1800, participants: [{ participantId: 1, championName: 'Wukong' }] }, nxt5: { timelineSummary: { csMilestones: { '1': { cs10: 80 } }, wards: [{ x: 1 }] } } };
@@ -453,7 +456,7 @@ it('T3-03 backfills only summaries with retained frames and is idempotent', asyn
   expect(rows[0].raw.timeline).toEqual(framed.timeline);
   expect(rows[1].raw).toEqual(base);
   await client.query('begin');
-  await migrations.at(-1)!.run!(client);
+  await migrations[index].run!(client);
   await client.query('commit');
   expect((await db.query('select game_id,raw from matches order by game_id')).rows).toEqual(rows);
 }, 30_000);

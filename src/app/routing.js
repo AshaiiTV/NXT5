@@ -9,6 +9,7 @@ export function normalizePath(pathname = "/") {
 
 export function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
+  if (path === "/") return "home";
   if (adminPageFromRoute({ path }) && !NAV.some(item => item.path === path)) return "admin";
   if (path === "/integration" || path === "/statistiques") return "matches";
   if (isTrendDetailPath(path)) return "trends";

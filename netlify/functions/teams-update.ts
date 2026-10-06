@@ -30,33 +30,31 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Avatar invalide.'), { status: 400 });
     }
 
-    const allowed = await sql`
-      select teams.id
-      from teams
-      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
-      where teams.id = ${teamId}
-        and (teams.owner_id = ${user.id} or team_members.role in ('captain', 'manager'))
-      limit 1
-    `;
-    if (!allowed[0]) throw Object.assign(new Error('Tu ne peux pas modifier cette team.'), { status: 403 });
-
-    const rows = await sql`
-      update teams
-      set name = ${name},
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select user_id from team_members where team_id = ${teamId} and user_id = ${user.id} for share`,
+      tx`with changed_team as (
+        update teams
+        set name = ${name},
           tag = ${tag},
           avatar_data_url = ${avatarDataUrl},
           avatar_zoom = ${avatarZoom},
           avatar_x = ${avatarX},
           avatar_y = ${avatarY},
           updated_at = now()
-      where id = ${teamId}
-      returning *
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'team.update', 'team', ${teamId}, ${JSON.stringify({ name, tag, avatar: Boolean(avatarDataUrl) })}::jsonb)
-    `;
+        where id = ${teamId}
+          and (owner_id = ${user.id} or exists (select 1 from team_members
+            where team_id = teams.id and user_id = ${user.id} and role in ('captain', 'manager')))
+        returning *
+      ), logged as (
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        select ${user.id}, 'team.update', 'team', id, ${JSON.stringify({ name, tag, avatar: Boolean(avatarDataUrl) })}::jsonb
+        from changed_team
+      )
+      select * from changed_team`
+    ]);
+    const rows = results[2];
+    if (!rows[0]) throw Object.assign(new Error('Tu ne peux pas modifier cette team.'), { status: 403 });
 
     return json({ team: safeTeam(rows[0]) });
   } catch (err) {

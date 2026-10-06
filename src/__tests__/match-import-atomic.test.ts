@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 const database = vi.hoisted(() => ({
   pg: null as any,
   statements: [] as string[],
+  matchQuery: null as null | { query: string; params: unknown[] },
   beforeBatch: null as null | (() => Promise<void>)
 }));
 
@@ -17,6 +18,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
     const body = JSON.parse(options.body);
     async function execute(connection: any, statement: any) {
       database.statements.push(statement.query);
+      if (statement.query.includes('to_jsonb(matches)')) database.matchQuery = statement;
       const result = await connection.query(statement.query, statement.params);
       return {
         fields: result.fields,
@@ -25,17 +27,21 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
           if (value === null || value === undefined) return null;
           if (field.dataTypeID === 114 || field.dataTypeID === 3802) return JSON.stringify(value);
           if (typeof value === 'boolean') return value ? 't' : 'f';
-          if (value instanceof Date) return value.toISOString();
+          if (value instanceof Date) return value.toISOString().replace('T', ' ').replace('Z', field.dataTypeID === 1184 ? '+00' : '');
           return String(value);
         })),
         rowCount: result.affectedRows ?? result.rows.length
       };
     }
     try {
-      if (body.queries) {
+      // Inject concurrent changes immediately before a mutation, whether the
+      // endpoint uses an atomic batch or the former standalone write.
+      if (body.queries || /update matches\s+set review_status|(?:insert into|update|delete from) match_archives/.test(body.query || '')) {
         const beforeBatch = database.beforeBatch;
         database.beforeBatch = null;
         await beforeBatch?.();
+      }
+      if (body.queries) {
         const results = await database.pg.transaction(async (tx: any) => {
           const rows = [];
           for (const statement of body.queries) rows.push(await execute(tx, statement));
@@ -59,6 +65,7 @@ import { fetchRiotMatch } from '../../netlify/functions/_lib/riot';
 import importFile from '../../netlify/functions/matches-import-file';
 import manageCategories from '../../netlify/functions/match-categories-manage';
 import manageMatches from '../../netlify/functions/matches-manage';
+import manageArchives from '../../netlify/functions/match-archives-manage';
 import linkAccount from '../../netlify/functions/players-link-account';
 import manageReports from '../../netlify/functions/reports-manage';
 import { canonicalChampion } from '../../shared/champions.js';
@@ -156,6 +163,7 @@ beforeEach(async () => {
     await database.pg.query('insert into match_categories(id, team_id, name) values ($1, $2, $3)', [id, team, name]);
   }
   database.statements = [];
+  database.matchQuery = null;
   vi.mocked(sendNotification).mockClear();
 });
 
@@ -724,6 +732,45 @@ describe('team scoped and paginated match loading', () => {
     }
   });
 
+  it('keeps complete summaries and stable ordering across pages sharing creation timestamps', async () => {
+    await seedHistory();
+    await database.pg.query("update matches set created_at = '2026-01-01' where team_id=$1", [teamId]);
+    const expectedIds = (await database.pg.query('select id from matches where team_id=$1 order by created_at desc,id desc', [teamId])).rows.map((row: any) => row.id);
+    const whole = await loadMatchPage(teamId, { limit: 100, offset: 0 });
+    const first = await loadMatchPage(teamId, { limit: 50, offset: 0 });
+    const last = await loadMatchPage(teamId, { limit: 50, offset: 50 });
+    expect(whole.matches.map(match => match.id)).toEqual(expectedIds);
+    expect([...first.matches, ...last.matches]).toEqual(whole.matches);
+    const empty = await loadMatchPage(teamId, { limit: 50, offset: 100 });
+    expect(empty.matches).toEqual([]);
+    expect(empty.totals).toEqual(whole.totals);
+    expect(empty.pagination).toEqual({ limit: 50, offset: 100, total: 62, hasMore: false, nextOffset: null });
+  });
+
+  it('projects JSON only for the returned deep page and preserves the previous SQL result', async () => {
+    await seedHistory();
+    await database.pg.exec('analyze matches');
+    const page = await loadMatchPage(teamId, { limit: 5, offset: 55 });
+    const statement = database.matchQuery!;
+    const actual = (await database.pg.query(statement.query, statement.params)).rows;
+    // Reconstruct the previous query with exactly the same projection. This
+    // checks every summary/raw field, not just the IDs used by pagination.
+    const legacyQuery = statement.query.slice(statement.query.indexOf('select to_jsonb(matches)'))
+      .replace('from match_page matches', 'from matches')
+      .replace('order by matches.created_at desc, matches.id desc',
+        'where matches.team_id = $1 order by matches.created_at desc, matches.id desc limit $2 offset $3');
+    const legacy = (await database.pg.query(legacyQuery, statement.params)).rows;
+    expect(actual).toEqual(legacy);
+    expect(page.matches).toHaveLength(5);
+    const explain = (await database.pg.query(`explain (analyze, format json) ${statement.query}`, statement.params)).rows[0]['QUERY PLAN'][0];
+    const nodes: any[] = [];
+    function visit(node: any) { nodes.push(node); for (const child of node.Plans || []) visit(child); }
+    visit(explain.Plan);
+    const objectiveProjection = nodes.find(node => node['Node Type'] === 'Aggregate' && node['Parent Relationship'] === 'SubPlan');
+    expect(objectiveProjection).toBeDefined();
+    expect(objectiveProjection['Actual Loops']).toBe(page.matches.length);
+  });
+
   it('applies composition/archive limits to the selected team and returns compact subsequent pages', async () => {
     await seedHistory();
     for (const id of [teamId, otherTeamId]) {
@@ -1149,6 +1196,121 @@ describe('cross audit backend regressions B1/B2/B5/B6/B7/B8/B9/N1', () => {
     expect(await query("select * from audit_logs where action='matches.update'")).toHaveLength(0);
   });
 });
+describe('review and history archive mutations', () => {
+  const query = async (sql: string, params: unknown[] = []) => (await database.pg.query(sql, params)).rows;
+  const submit = (handler: any, body: any) => handler(new Request('https://nxt5.example/test', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ teamId, ...body })
+  }), {} as any);
+  const otherUserId = '00000000-0000-4000-8000-000000000099';
+  async function transferOwnership() {
+    await query("insert into users(id,account_name,name,password_hash) values($1,'other','Other owner','unused')", [otherUserId]);
+    await query('update teams set owner_id=$1 where id=$2', [otherUserId, teamId]);
+  }
+  async function seedArchive(matchId: string) {
+    return (await query("insert into match_archives(team_id,created_by,name,match_ids) values($1,$2,'Existing',$3) returning *", [teamId, userId, JSON.stringify([matchId])]))[0];
+  }
+
+  it('sets and clears the review status with its audit atomically', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    for (const status of ['done', 'todo']) {
+      const response = await submit(manageMatches, { action: 'review-status', matchId: match.id, status });
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.match.review_status).toBe(status);
+      expect(body.match.reviewed_by).toBe(status === 'done' ? userId : null);
+      if (status === 'done') expect(body.match.reviewed_at).toBeTruthy();
+      else expect(body.match.reviewed_at).toBeNull();
+    }
+    expect(await query("select * from audit_logs where action='matches.review_status'")).toHaveLength(2);
+  });
+
+  it('rejects a review write when team access is revoked after validation', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await query('select review_status,reviewed_by,reviewed_at from matches where id=$1', [match.id]);
+    database.beforeBatch = transferOwnership;
+    expect((await submit(manageMatches, { action: 'review-status', matchId: match.id, status: 'done' })).status).toBe(409);
+    expect(await query('select review_status,reviewed_by,reviewed_at from matches where id=$1', [match.id])).toEqual(before);
+    expect(await query("select * from audit_logs where action='matches.review_status'")).toEqual([]);
+  });
+
+  it('rolls back a review status when its audit fails', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    await database.pg.exec("alter table audit_logs add constraint reject_history_audit check (action <> 'matches.review_status') not valid");
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect((await submit(manageMatches, { action: 'review-status', matchId: match.id, status: 'done' })).status).toBe(500);
+      expect(await storedMatch()).toEqual(before);
+    } finally {
+      await database.pg.exec('alter table audit_logs drop constraint reject_history_audit');
+      log.mockRestore();
+    }
+  });
+
+  it.each(['create', 'update', 'delete'])('lets a regular member %s their own archive', async action => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const archive = action === 'create' ? null : await seedArchive(match.id);
+    await transferOwnership();
+    await query("insert into team_members(team_id,user_id,role) values($1,$2,'player')", [teamId, userId]);
+    const response = await submit(manageArchives, { action, archiveId: archive?.id, name: 'Changed', matchIds: [match.id] });
+    expect(response.status).toBe(200);
+    const stored = await query('select * from match_archives where team_id=$1', [teamId]);
+    if (action === 'delete') expect(stored).toEqual([]);
+    else {
+      expect(stored).toHaveLength(1);
+      expect(stored[0]).toMatchObject({ name: 'Changed', match_ids: [match.id], created_by: userId });
+    }
+    expect(await query('select * from audit_logs where action=$1', [`match_archives.${action}`])).toHaveLength(1);
+  });
+
+  it.each(['create', 'update', 'delete'])('rejects archive %s when team access changes before committing', async action => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const archive = action === 'create' ? null : await seedArchive(match.id);
+    const before = await query('select * from match_archives order by id');
+    database.beforeBatch = transferOwnership;
+    expect((await submit(manageArchives, { action, archiveId: archive?.id, name: 'Changed', matchIds: [match.id] })).status).toBe(409);
+    expect(await query('select * from match_archives order by id')).toEqual(before);
+    expect(await query('select * from audit_logs where action=$1', [`match_archives.${action}`])).toEqual([]);
+  });
+
+  it.each(['create', 'update'])('rejects archive %s when a selected game is deleted before committing', async action => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const archive = action === 'create' ? null : await seedArchive(match.id);
+    const before = await query('select * from match_archives order by id');
+    database.beforeBatch = async () => { await query('delete from matches where id=$1', [match.id]); };
+    expect((await submit(manageArchives, { action, archiveId: archive?.id, name: 'Changed', matchIds: [match.id] })).status).toBe(409);
+    expect(await query('select * from match_archives order by id')).toEqual(before);
+    expect(await query('select * from audit_logs where action=$1', [`match_archives.${action}`])).toEqual([]);
+  });
+
+  it.each(['update', 'delete'])('rejects archive %s after a staff member is demoted', async action => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const archive = await seedArchive(match.id);
+    await transferOwnership();
+    await query('update match_archives set created_by=$1 where id=$2', [otherUserId, archive.id]);
+    await query("insert into team_members(team_id,user_id,role) values($1,$2,'coach')", [teamId, userId]);
+    const before = await query('select * from match_archives order by id');
+    database.beforeBatch = async () => { await query("update team_members set role='player' where team_id=$1 and user_id=$2", [teamId, userId]); };
+    expect((await submit(manageArchives, { action, archiveId: archive.id, name: 'Changed', matchIds: [match.id] })).status).toBe(409);
+    expect(await query('select * from match_archives order by id')).toEqual(before);
+  });
+
+  it.each(['create', 'update', 'delete'])('rolls back archive %s when its audit fails', async action => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const archive = action === 'create' ? null : await seedArchive(match.id);
+    const before = await query('select * from match_archives order by id');
+    await database.pg.exec("alter table audit_logs add constraint reject_history_audit check (action not like 'match_archives.%') not valid");
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect((await submit(manageArchives, { action, archiveId: archive?.id, name: 'Changed', matchIds: [match.id] })).status).toBe(500);
+      expect(await query('select * from match_archives order by id')).toEqual(before);
+    } finally {
+      await database.pg.exec('alter table audit_logs drop constraint reject_history_audit');
+      log.mockRestore();
+    }
+  });
+});
+
 describe('canonical champion names on import', () => {
   it('groups display names and Riot IDs in the champion pool without rewriting the raw file', async () => {
     for (const names of [['Wukong', 'Lee Sin'], ['MonkeyKing', 'LeeSin']]) {

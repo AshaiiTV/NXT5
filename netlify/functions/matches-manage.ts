@@ -144,20 +144,20 @@ export default async function handler(request: Request, context: Context): Promi
     if (action === 'review-status') {
       const reviewStatus = cleanText(body.status, 20).toLowerCase();
       if (!['todo', 'done'].includes(reviewStatus)) throw Object.assign(new Error('Statut de review invalide.'), { status: 400 });
-      const rows = await sql`
-        update matches
+      const results = await sql.transaction(tx => [
+        ...lockedMatchQueries(tx),
+        tx`update matches
         set review_status = ${reviewStatus},
             reviewed_at = case when ${reviewStatus} = 'done' then now() else null end,
-            reviewed_by = case when ${reviewStatus} = 'done' then ${user.id} else null end
+            reviewed_by = case when ${reviewStatus} = 'done' then ${user.id}::uuid else null end
         where id = ${matchId}
           and team_id = ${teamId}
-        returning *
-      `;
-      await sql`
-        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        returning *`,
+        tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'matches.review_status', 'match', ${matchId}, ${JSON.stringify({ teamId, reviewStatus })}::jsonb)
-      `;
-      return json({ match: rows[0] });
+        `
+      ]);
+      return json({ match: results[3][0] });
     }
 
     const validCategoryIds: string[] = [];

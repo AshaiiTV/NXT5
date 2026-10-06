@@ -4,8 +4,8 @@
 export const EXPORT_TEMPLATES = Object.freeze([
   {
     id: "game", category: "site", title: "Statistiques d’une game", source: "Parties · Statistiques", format: "PNG",
-    description: "Le bilan complet d’une game : les deux équipes, les dix joueurs et les objectifs.",
-    uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Bilan détaillé téléchargé depuis Parties"],
+    description: "Le PNG unique d’une game, téléchargé depuis Parties et publié sur Discord : les deux équipes, les dix joueurs et les objectifs.",
+    uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Même PNG dans Parties et sur Discord"],
   },
   {
     id: "group", category: "site", title: "Groupe de games", source: "Parties · Groupe de games", format: "PNG",
@@ -31,16 +31,6 @@ export const EXPORT_TEMPLATES = Object.freeze([
     id: "audience", category: "site", title: "Fréquentation du site", source: "Administration · Fréquentation", format: "CSV",
     description: "Le fichier de données du tableau de bord d’audience, prêt à ouvrir dans un tableur.",
     uses: ["Période, comparaison et filtres", "Pages, acquisition et campagnes UTM", "Appareils, navigateurs, pays et objectifs", "Évolution quotidienne, activité horaire et temps réel"],
-  },
-  {
-    id: "discord-game", category: "bot", title: "Synthèse Discord", source: "Bot Discord · Publications de games", format: "PNG",
-    description: "L’essentiel d’une game pour le salon Discord : résultat, écarts collectifs et cinq joueurs de l’équipe.",
-    uses: ["Résultat, adversaire et durée", "Kills et écart d’or final", "Tours, dragons et Nashors", "K/D/A, dégâts et participation des cinq joueurs"],
-  },
-  {
-    id: "discord-test", category: "bot", title: "Test de connexion", source: "Bot Discord · Test de connexion", format: "PNG",
-    description: "L’image de démonstration envoyée par le bot pour vérifier la connexion à un salon Discord.",
-    uses: ["Même exemple que le test de connexion", "Objectifs comparés et cinq joueurs fictifs", "Données de démonstration identifiées", "Aucune game réelle"],
   },
 ]);
 
@@ -178,19 +168,7 @@ export async function createExportExample(id) {
   const matches = MATCH_SETTINGS.map(demoMatch);
   const { pngPagesBlob } = await import("../../utils/png-report.js");
   let canvases;
-  if (id === "discord-game" || id === "discord-test") {
-    const { renderGamePublicationPng } = await import("../../../shared/publications/game-publication-browser.js");
-    let snapshot;
-    if (id === "discord-test") {
-      const { buildDiscordDemoSnapshot } = await import("../../../shared/publications/discord-demo.js");
-      snapshot = buildDiscordDemoSnapshot();
-    } else {
-      const { buildGamePublicationSnapshot } = await import("../../../shared/publications/game-publication.js");
-      snapshot = buildGamePublicationSnapshot({ team: TEAM, match: matches[0], categories: [CATEGORY] });
-    }
-    // Both bot examples use the exact compact layout sent to Discord.
-    canvases = [await renderGamePublicationPng(snapshot, { layout: "discord" })];
-  } else if (id === "game" || id === "group") {
+  if (id === "game" || id === "group") {
     const { renderStatsPng } = await import("../workspace/GameWorkspace.jsx");
     canvases = await renderStatsPng({
       title: "Bloc de scrims · exemple fictif", subtitle: CATEGORY.name,

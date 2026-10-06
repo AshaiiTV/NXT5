@@ -1,10 +1,20 @@
-import { describe, expect, it, vi } from 'vitest';
-import { createCanvas } from '@napi-rs/canvas';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { buildGamePublicationSnapshot } from '../../shared/publications/game-publication.js';
 import { publicationFixture } from '../../shared/publications/fixtures.js';
 import { renderGamePublicationCanvas } from '../../shared/publications/game-publication-canvas.js';
-import { renderDiscordPublicationCanvas } from '../../shared/publications/discord-publication-canvas.js';
+import { loadGamePublicationAssets } from '../../shared/publications/game-publication-assets.js';
 import { renderGamePublicationPng } from '../../netlify/functions/_lib/publication-render';
+
+const icon = createCanvas(32, 32);
+icon.getContext('2d').fillRect(0, 0, 32, 32);
+const iconBytes = icon.toBuffer('image/png');
+let fetchSpy;
+beforeEach(() => {
+  fetchSpy = vi.fn(async () => new Response(iconBytes, { headers: { 'content-type': 'image/png' } }));
+  vi.stubGlobal('fetch', fetchSpy);
+});
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 function traceCanvas() {
   const drawn: { text: string; x: number; y: number; width: number; align: string; color: string }[] = [];
@@ -23,158 +33,89 @@ function traceCanvas() {
   };
 }
 
-async function traceDiscord(snapshot) {
-  const trace = traceCanvas();
-  const image = await renderDiscordPublicationCanvas(snapshot, { createCanvas: trace.createCanvas, loadLogo: async () => null });
-  return { ...image, drawn: trace.drawn, text: trace.drawn.map((entry) => entry.text).join(' ') };
-}
-
-describe('compact Discord publication PNG', () => {
-  it('encodes a deterministic, self-contained PNG within the Discord attachment budget', async () => {
+describe('single game publication PNG for downloads and Discord', () => {
+  it('encodes the complete standard PNG within the Discord attachment budget', async () => {
     const snapshot = buildGamePublicationSnapshot(publicationFixture());
     const before = JSON.stringify(snapshot);
-    const fetchSpy = vi.fn(() => { throw new Error('Publication rendering must use bundled assets only.'); });
-    vi.stubGlobal('fetch', fetchSpy);
-    try {
-      const first = await renderGamePublicationPng(snapshot);
-      const second = await renderGamePublicationPng(snapshot, { includeHints: true });
-      const factual = await renderGamePublicationPng(snapshot, { includeHints: false });
-      expect(first.bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-      expect(first.bytes.equals(second.bytes)).toBe(true);
-      expect(first.bytes.equals(factual.bytes)).toBe(true);
-      expect(first.width).toBe(960);
-      expect(first.height).toBeLessThan(1400);
-      expect(first.bytes.readUInt32BE(16)).toBe(first.width);
-      expect(first.bytes.readUInt32BE(20)).toBe(first.height);
-      expect(first.bytes.byteLength).toBeLessThan(3 * 1024 * 1024);
-      expect(first.mimeType).toBe('image/png');
-      expect(fetchSpy).not.toHaveBeenCalled();
-      expect(JSON.stringify(snapshot)).toBe(before);
-    } finally {
-      vi.unstubAllGlobals();
+    const first = await renderGamePublicationPng(snapshot);
+    const second = await renderGamePublicationPng(snapshot, { includeHints: true });
+    const factual = await renderGamePublicationPng(snapshot, { includeHints: false });
+    expect(first.bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    expect(first.bytes.equals(second.bytes)).toBe(true);
+    expect(first.bytes.equals(factual.bytes)).toBe(true);
+    expect(first.width).toBe(1440);
+    expect(first.bytes.readUInt32BE(16)).toBe(first.width);
+    expect(first.bytes.readUInt32BE(20)).toBe(first.height);
+    expect(first.bytes.byteLength).toBeLessThan(3 * 1024 * 1024);
+    expect(first.mimeType).toBe('image/png');
+    expect(JSON.stringify(snapshot)).toBe(before);
+  });
+
+  it.each(['blue', 'red'])('renders identical pixels with the browser layout and icons on %s side', async side => {
+    const snapshot = buildGamePublicationSnapshot(publicationFixture({ side }));
+    const server = await renderGamePublicationPng(snapshot);
+    const browser = await renderGamePublicationCanvas(snapshot, {
+      createCanvas, loadLogo: () => loadImage('public/assets/nxt5-wordmark.png'),
+      loadAssets: data => loadGamePublicationAssets(data, async () => icon),
+    });
+    expect([server.width, server.height]).toEqual([browser.width, browser.height]);
+    expect(server.bytes.equals(browser.canvas.toBuffer('image/png'))).toBe(true);
+    const urls = fetchSpy.mock.calls.map(([url]) => url);
+    expect(urls.some(url => url.includes('/img/champion/'))).toBe(true);
+    expect(urls.some(url => url.includes('/img/item/'))).toBe(true);
+    expect(new Set(urls).size).toBe(urls.length);
+    for (const [url, options] of fetchSpy.mock.calls) {
+      expect(url).toMatch(/^https:\/\/ddragon\.leagueoflegends\.com\/cdn\/[\d.]+\/img\/(champion|item)\/[A-Za-z0-9]+\.png$/);
+      expect(options.redirect).toBe('error');
+      expect(options.signal).toBeInstanceOf(AbortSignal);
     }
   });
 
-  it('shows team essentials and five allied players without builds, spells, enemy rows or advice', async () => {
+  it('falls back to the next icon source and tolerates unavailable assets', async () => {
     const snapshot = buildGamePublicationSnapshot(publicationFixture());
-    const { text, drawn } = await traceDiscord(snapshot);
-    expect(text).toContain(snapshot.context.teamName);
-    expect(text).toContain(snapshot.context.opponentName);
-    expect(text).toContain(snapshot.context.duration);
-    expect(text).toMatch(/Kills/i);
-    expect(text).toMatch(/Or/i);
-    expect(text).toMatch(/Tours/i);
-    expect(text).toMatch(/Dragons/i);
-    expect(text).toMatch(/Nashors/i);
-    expect(text).toMatch(/Dégâts/i);
-    expect(text).toMatch(/Participation|KP/i);
-    for (const player of snapshot.participants.filter((row) => row.teamKey === 'ALLY')) {
+    fetchSpy.mockImplementation(async url => url.includes('/16.16.1/') ? new Response(null, { status: 404 }) : new Response(iconBytes, { headers: { 'content-type': 'image/png' } }));
+    const fallback = await renderGamePublicationPng(snapshot);
+    expect(fetchSpy.mock.calls.some(([url]) => url.includes('/16.15.1/'))).toBe(true);
+    fetchSpy.mockRejectedValue(new Error('Asset unavailable'));
+    const missing = await renderGamePublicationPng(snapshot);
+    expect([missing.width, missing.height]).toEqual([fallback.width, fallback.height]);
+    expect(missing.bytes.equals(fallback.bytes)).toBe(false);
+    expect(missing.bytes.byteLength).toBeLessThan(3 * 1024 * 1024);
+  });
+
+  it.each(['type', 'declared-size', 'streamed-size'])('ignores invalid icon responses (%s)', async failure => {
+    const snapshot = buildGamePublicationSnapshot(publicationFixture());
+    fetchSpy.mockImplementation(async () => new Response(failure === 'streamed-size' ? Buffer.alloc(2 * 1024 * 1024 + 1) : iconBytes, {
+      headers: { 'content-type': failure === 'type' ? 'text/html' : 'image/png', ...(failure === 'declared-size' ? { 'content-length': String(2 * 1024 * 1024 + 1) } : {}) },
+    }));
+    const image = await renderGamePublicationPng(snapshot);
+    fetchSpy.mockRejectedValue(new Error('Unavailable'));
+    const plain = await renderGamePublicationPng(snapshot);
+    expect(image.bytes.equals(plain.bytes)).toBe(true);
+  });
+
+  it('shows all ten players, spells and final statistics without review hints', async () => {
+    const snapshot = buildGamePublicationSnapshot(publicationFixture());
+    const before = JSON.stringify(snapshot);
+    const trace = traceCanvas();
+    await renderGamePublicationCanvas(snapshot, { createCanvas: trace.createCanvas, loadLogo: async () => null, includeHints: true });
+    const text = trace.drawn.map(entry => entry.text).join(' ');
+    for (const player of snapshot.participants) {
       expect(text).toContain(player.name);
       expect(text).toContain(player.champion);
       expect(text.replace(/\s/g, '')).toContain(`${player.kills}/${player.deaths}/${player.assists}`);
     }
-    for (const player of snapshot.participants.filter((row) => row.teamKey === 'ENEMY')) {
-      expect(text).not.toContain(player.name);
-      expect(drawn.map((entry) => entry.text)).not.toContain(player.champion);
-    }
-    expect(text).not.toMatch(/Lecture NXT5|Piste de review|setup reproductible|VOD|Téléportation|Sorts|Objets|3006|3031/);
-  });
-
-  it('keeps allied scores first on red side and colors victory independently of map side', async () => {
-    const red = await traceDiscord(buildGamePublicationSnapshot(publicationFixture({ side: 'red' })));
-    const blue = await traceDiscord(buildGamePublicationSnapshot(publicationFixture({ side: 'blue' })));
-    const textAfter = (label) => red.drawn[red.drawn.findIndex((entry) => entry.text === label) + 1]?.text;
-    expect(textAfter('Tours')).toBe('4 / 8');
-    expect(textAfter('Dragons')).toBe('1 / 3');
-    expect(textAfter('Nashors')).toBe('0 / 1');
-    expect(red.text).toContain('24 — 18');
-    expect(red.text).toContain('Côté rouge');
-    const victory = red.drawn.find((entry) => entry.text === 'Victoire');
-    expect(victory?.color).toBe(blue.drawn.find((entry) => entry.text === 'Victoire')?.color);
-    expect(victory?.color).not.toBe(red.drawn.find((entry) => entry.text === 'Côté rouge')?.color);
-  });
-
-  it.each(['damage', 'participation'])('distinguishes a real zero from absent player %s', async (metric) => {
-    const snapshot = buildGamePublicationSnapshot(publicationFixture({ incomplete: true, timeline: false }));
-    const player = snapshot.participants.find((row) => row.teamKey === 'ALLY');
-    player[metric] = 0;
-    const zero = await traceDiscord(snapshot);
-    player[metric] = null;
-    const missing = await traceDiscord(snapshot);
-    const removed = zero.drawn.map((entry) => entry.text).filter((value, index) => value !== missing.drawn[index]?.text);
-    const added = missing.drawn.map((entry) => entry.text).filter((value, index) => value !== zero.drawn[index]?.text);
-    expect(removed.join(' ')).toMatch(/0/);
-    expect(added.join(' ')).toContain('—');
-    expect(missing.text).not.toMatch(/NaN|undefined|null|Infinity/);
-  });
-
-  it('wraps maximum-length identities while keeping all text inside a compact image', async () => {
-    const fixture = publicationFixture({ longNames: true, incomplete: true, timeline: false });
-    const realistic = await traceDiscord(buildGamePublicationSnapshot(fixture));
-    expect(realistic.height).toBeLessThan(2200);
-    fixture.team.name = 'Équipe au nom extrêmement long '.repeat(8);
-    fixture.match.opponent = 'Adversaires au nom particulièrement long '.repeat(8);
-    fixture.match.participants[0].player_name = 'JoueurAuNomSansEspace'.repeat(12);
-    fixture.match.participants[1].player_name = 'Joueur au nom très long '.repeat(10);
-    const snapshot = buildGamePublicationSnapshot(fixture);
-    const image = await traceDiscord(snapshot);
-    expect(image.height).toBeLessThan(2800);
-    expect(image.canvas.toBuffer('image/png').byteLength).toBeLessThan(3 * 1024 * 1024);
-    expect(image.text).not.toMatch(/NaN|undefined|null|Infinity/);
-    for (const name of [snapshot.context.teamName, snapshot.context.opponentName, ...snapshot.participants.filter((row) => row.teamKey === 'ALLY').map((row) => row.name)]) {
-      expect(image.text.replace(/\s/g, '')).toContain(name.replace(/\s/g, ''));
-    }
-    for (const drawn of image.drawn) {
-      const left = drawn.x - (drawn.align === 'right' || drawn.align === 'end' ? drawn.width : drawn.align === 'center' ? drawn.width / 2 : 0);
-      expect(left, drawn.text).toBeGreaterThanOrEqual(0);
-      expect(left + drawn.width, drawn.text).toBeLessThanOrEqual(image.width + 1);
-      expect(drawn.y, drawn.text).toBeGreaterThan(0);
-      expect(drawn.y, drawn.text).toBeLessThan(image.height);
-    }
-  });
-});
-
-describe('full browser publication PNG', () => {
-  it('remains available explicitly on the server with the full browser geometry', async () => {
-    const snapshot = buildGamePublicationSnapshot(publicationFixture());
-    const browser = await renderGamePublicationCanvas(snapshot, { createCanvas, loadLogo: async () => null });
-    const server = await renderGamePublicationPng(snapshot, { layout: 'full' });
-    const discord = await renderGamePublicationPng(snapshot);
-    expect([server.width, server.height]).toEqual([browser.width, browser.height]);
-    expect(server.width).toBe(1440);
-    expect(discord.width * discord.height).toBeLessThan(server.width * server.height * 0.4);
-  });
-  it('always draws factual PNGs even when legacy payloads request review hints', async () => {
-    const snapshot = buildGamePublicationSnapshot(publicationFixture());
-    const before = JSON.stringify(snapshot);
-    const drawnText: string[] = [];
-    const tracedCanvas = (width, height) => {
-      const canvas = createCanvas(width, height);
-      const ctx = canvas.getContext('2d');
-      const original = ctx.fillText.bind(ctx);
-      vi.spyOn(ctx, 'fillText').mockImplementation((...args) => { drawnText.push(String(args[0])); return original(...args); });
-      return canvas;
-    };
-    await renderGamePublicationCanvas(snapshot, { createCanvas: tracedCanvas, loadLogo: async () => null, includeHints: false });
-    expect(drawnText.join(' ')).not.toMatch(/Lecture NXT5|Piste de review|setup reproductible|VOD/);
-    expect(drawnText.join(' ')).toContain('Kills');
-    expect(drawnText.join(' ')).toContain('Dégâts champions');
-    expect(drawnText.join(' ')).toContain('Participation');
-    expect(drawnText.join(' ')).toContain('Téléportation');
-    expect(drawnText.join(' ')).not.toContain('3006');
-    await renderGamePublicationCanvas(snapshot, { createCanvas: tracedCanvas, loadLogo: async () => null, includeHints: true });
-    expect(drawnText.join(' ')).not.toMatch(/Lecture NXT5|Piste de review|setup reproductible|VOD/);
+    expect(text).toContain('Dégâts champions');
+    expect(text).toContain('Participation');
+    expect(text).toContain('Téléportation');
+    expect(text).not.toMatch(/Lecture NXT5|Piste de review|setup reproductible|VOD|3006/);
     expect(JSON.stringify(snapshot)).toBe(before);
   });
-  it('enriches the same rows with browser-supplied icons without changing facts or geometry', async () => {
+
+  it('enriches the same rows with icons without changing facts or geometry', async () => {
     const snapshot = buildGamePublicationSnapshot(publicationFixture());
     const before = JSON.stringify(snapshot);
-    const icon = createCanvas(32, 32);
-    icon.getContext('2d').fillRect(0, 0, 32, 32);
-    const loadAssets = vi.fn(async () => ({
-      champions: new Map(snapshot.participants.map((row) => [row.champion, icon])),
-      items: new Map(snapshot.participants.flatMap((row) => [...row.items, row.trinket]).filter(Boolean).map((id) => [id, icon])),
-    }));
+    const loadAssets = vi.fn(data => loadGamePublicationAssets(data, async () => icon));
     const plain = await renderGamePublicationCanvas(snapshot, { createCanvas, loadLogo: async () => null });
     const illustrated = await renderGamePublicationCanvas(snapshot, { createCanvas, loadLogo: async () => null, loadAssets });
     expect(loadAssets).toHaveBeenCalledExactlyOnceWith(snapshot);
@@ -182,11 +123,13 @@ describe('full browser publication PNG', () => {
     expect(illustrated.canvas.toBuffer('image/png').equals(plain.canvas.toBuffer('image/png'))).toBe(false);
     expect(JSON.stringify(snapshot)).toBe(before);
   });
-  it('grows for long names, renders absent metrics and tolerates a missing optional logo', async () => {
-    const short = await renderGamePublicationCanvas(buildGamePublicationSnapshot(publicationFixture({ incomplete: true })), { createCanvas, loadLogo: async () => null });
-    const long = await renderGamePublicationCanvas(buildGamePublicationSnapshot(publicationFixture({ longNames: true, timeline: false, incomplete: true })), { createCanvas, loadLogo: async () => null });
+
+  it('grows for long names and renders missing metrics within the attachment budget', async () => {
+    const short = await renderGamePublicationPng(buildGamePublicationSnapshot(publicationFixture({ incomplete: true })));
+    const long = await renderGamePublicationPng(buildGamePublicationSnapshot(publicationFixture({ longNames: true, timeline: false, incomplete: true })));
     expect(long.height).toBeGreaterThan(short.height);
     expect(long.height).toBeLessThan(4000);
-    expect(long.canvas.toBuffer('image/png').length).toBeGreaterThan(10000);
+    expect(long.bytes.length).toBeGreaterThan(10000);
+    expect(long.bytes.length).toBeLessThan(3 * 1024 * 1024);
   });
 });

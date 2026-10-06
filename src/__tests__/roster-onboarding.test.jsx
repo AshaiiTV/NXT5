@@ -219,6 +219,7 @@ describe("temporary team invitations", () => {
 it('T3-G4 selects and refreshes the created team after a partial import, then retries only missing players', async () => {
   const settings = { ...props(), data: { teams: [], players: [], matches: [] }, selectedTeamId: '', setupOnly: true };
   const { renderer } = await render(settings);
+  act(() => renderer.root.findAllByType('button').find(node => node.props.className === 'team-entry-choice').props.onClick());
   field(renderer, 'Nom de l’équipe', 'Created team');
   field(renderer, 'Tag', 'CT');
   field(renderer, 'Joueurs à ajouter (facultatif)', 'First#EUW\nSecond#EUW\nThird#EUW');

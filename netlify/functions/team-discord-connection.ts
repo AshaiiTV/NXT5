@@ -4,7 +4,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
-import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord } from './_lib/discord-access';
+import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord, discordTeamWriteQueries } from './_lib/discord-access';
 import { isDiscordEnabled, isDiscordId, publicDiscordStatus } from './_lib/discord-config';
 import { getDiscordGuild } from './_lib/discord-client';
 
@@ -52,18 +52,19 @@ async function handler(request: Request, context: Context) {
       }
       try {
         await sql.transaction([
+          ...discordTeamWriteQueries(teamId, user.id),
           sql('select team_id from discord_connections where team_id=$1 for update', [teamId]),
           sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end", [teamId, connection.guild_id, connection.config_version]),
           // Command routing must not increment publication config_version: that
           // version also guards queued game and reminder deliveries.
           sql("update discord_connections set command_channel_id=$2,updated_at=now() where team_id=$1 and guild_id=$3 and status<>'disconnected' returning team_id", [teamId, body.channelId, connection.guild_id]),
+          auditDiscord(user.id, teamId, 'discord.command_channel_updated', { channelId: body.channelId }),
         ]);
       } catch (error: any) {
         if (error?.code === '23505') throw discordError('Ce salon est déjà réservé aux commandes d’une autre équipe.', 409, 'DISCORD_COMMAND_CHANNEL_TAKEN');
         if (error?.code === '22012') throw changed();
         throw error;
       }
-      await auditDiscord(user.id, teamId, 'discord.command_channel_updated', { channelId: body.channelId });
       return json({ ok: true });
     }
     if (body.action === 'create-link') {
@@ -73,11 +74,12 @@ async function handler(request: Request, context: Context) {
       const hash = createHash('sha256').update(code).digest('hex');
       const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
       await sql.transaction([
+        ...discordTeamWriteQueries(teamId, user.id),
         sql("insert into discord_connections(team_id,status,created_by) values($1,'pending',$2) on conflict(team_id) do nothing", [teamId, user.id]),
         sql("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
         sql("insert into discord_link_codes(code_hash,team_id,created_by,expires_at) values($1,$2,$3,$4)", [hash, teamId, user.id, expiresAt]),
+        auditDiscord(user.id, teamId, 'discord.link_requested'),
       ]);
-      await auditDiscord(user.id, teamId, 'discord.link_requested');
       return json({ code: code.match(/.{4}/g)!.join('-'), expiresAt, installUrl: status.installUrl });
     }
     if (!['pause', 'resume', 'disconnect'].includes(body.action)) throw discordError('Action inconnue.');
@@ -98,20 +100,33 @@ async function handler(request: Request, context: Context) {
       if (!isDiscordEnabled()) throw discordError('Les envois Discord sont suspendus sur cet environnement.', 409, 'DISCORD_PUBLISHING_DISABLED');
       // Route edits/relinks also change this row's version, so an edit committed
       // during the live Discord check cannot activate an unseen destination.
-      const resumed = await sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1 and guild_id=$2 and config_version=$3 and status in ('active','paused') returning team_id", [teamId, body.expectedGuildId, body.expectedConfigVersion]);
-      if (!resumed.length) throw changed();
+      await sql.transaction([
+        ...discordTeamWriteQueries(teamId, user.id),
+        sql('select team_id from discord_connections where team_id=$1 for update', [teamId]),
+        sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status in ('active','paused')) then 1 else 0 end", [teamId, body.expectedGuildId, body.expectedConfigVersion]),
+        sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1", [teamId]),
+        auditDiscord(user.id, teamId, 'discord.resume'),
+      ]);
     } else if (body.action === 'pause') {
-      await sql("update discord_connections set status='paused',updated_at=now() where team_id=$1", [teamId]);
+      await sql.transaction([
+        ...discordTeamWriteQueries(teamId, user.id),
+        sql("update discord_connections set status='paused',updated_at=now() where team_id=$1", [teamId]),
+        auditDiscord(user.id, teamId, 'discord.pause'),
+      ]);
     } else {
       await sql.transaction([
+        ...discordTeamWriteQueries(teamId, user.id),
         sql("update discord_connections set status='disconnected',command_channel_id=null,config_version=config_version+1,updated_at=now() where team_id=$1", [teamId]),
         sql("update publication_jobs set status='cancelled',last_error_code='DISCORD_DISCONNECTED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [teamId]),
         sql("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
+        auditDiscord(user.id, teamId, 'discord.disconnect'),
       ]);
     }
-    await auditDiscord(user.id, teamId, 'discord.' + body.action);
     return json({ ok: true });
-  } catch (error) { return discordResponseError(error); }
+  } catch (error: any) {
+    if (error?.code === '22012') return discordResponseError(discordError('La connexion ou tes accès ont changé. Actualise les réglages.', 409, 'DISCORD_CONFIG_CHANGED'));
+    return discordResponseError(error);
+  }
 }
 export default withDiscordRuntime(handler);
 export const config: Config = { method: ['GET', 'POST'] };

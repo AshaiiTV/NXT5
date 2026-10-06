@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), rate: vi.fn() }));
+const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), rate: vi.fn(), beforeQuery: null as null | ((query: string) => Promise<void>) }));
 vi.mock('../../netlify/functions/_lib/db', async () => {
   const { neon, neonConfig } = await import('@neondatabase/serverless');
   // Preserve Neon transaction semantics and real PostgreSQL constraints while
@@ -10,6 +10,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
   neonConfig.fetchFunction = async (_url, options: any) => {
     const body = JSON.parse(options.body);
     async function execute(connection: any, statement: any) {
+      await state.beforeQuery?.(statement.query);
       const result = await connection.query(statement.query, statement.params);
       return { fields: result.fields, rows: result.rows.map((row: any) => result.fields.map((field: any) => {
         const value = row[field.name];
@@ -81,9 +82,11 @@ beforeEach(async () => {
   for (const [key, value] of Object.entries({ CONTEXT: 'production', AWS_LAMBDA_FUNCTION_NAME: '', LAMBDA_TASK_ROOT: '', SITE_ID: '', PUBLIC_SITE_URL: 'https://nxt5.example', DISCORD_APPLICATION_ID: '100000000000000010', DISCORD_BOT_TOKEN: 'test-only', DISCORD_PUBLIC_KEY: 'a'.repeat(64), DISCORD_WORKER_SECRET: 'test-only-worker-secret-longer-than-32', DISCORD_ENVIRONMENT: 'production' })) vi.stubEnv(key, value);
   state.auth.mockReset().mockResolvedValue({ id: member, account_name: 'member-account' });
   state.rate.mockReset().mockResolvedValue(undefined);
+  state.beforeQuery = null;
   await state.pg.exec('truncate users cascade; truncate app_schema_migrations');
   for (const key of BOT_SCHEMA_VERSIONS) await rows('insert into app_schema_migrations(migration_key) values($1)', [key]);
   await rows("insert into users(id,account_name,name,password_hash) values($1,'owner-account','Owner','unused'),($2,'member-account','Member','unused'),($3,'other-account','Other','unused')", [owner, member, otherMember]);
+  await rows("update users set email=account_name || '@example.test', email_verified=true");
   for (const [team, name] of [[teamA, 'Alpha team'], [teamB, 'Beta team'], [outsideGuild, 'Other guild team'], [privateTeam, 'Private staff team'], [disconnectedTeam, 'Disconnected team']]) {
     await rows('insert into teams(id,owner_id,name,tag) values($1,$2,$3,$4)', [team, owner, name, team.slice(-3)]);
     await rows('insert into discord_connections(team_id,guild_id,status,created_by) values($1,$2,$3,$4)', [team, team === outsideGuild ? otherGuild : guild, team === disconnectedTeam ? 'disconnected' : 'paused', owner]);
@@ -135,6 +138,18 @@ describe('Personal identity linking requires both accounts', () => {
     }
     expect((await rows('select user_id from discord_account_link_requests'))[0].user_id).toBe(member);
     expect(await rows('select * from discord_user_links')).toHaveLength(0);
+  });
+
+  it.each([['unverified', 'changed@example.test', false], ['missing', null, true]])('rechecks the %s email at final Discord account confirmation', async (_reason, email, verified) => {
+    const { token } = await begin();
+    expect((await website('POST', token)).status).toBe(200);
+    await rows('update users set email=$2,email_verified=$3 where id=$1', [member, email, verified]);
+    await expect(finishDiscordAccountLink(token, actor, guild)).rejects.toMatchObject({ code: 'DISCORD_ACCOUNT_LINK_CONFLICT' });
+    expect(await rows('select * from discord_user_links')).toEqual([]);
+    expect((await rows('select used_at from discord_account_link_requests'))[0].used_at).toBeNull();
+    await rows("update users set email='verified@example.test',email_verified=true where id=$1", [member]);
+    await finishDiscordAccountLink(token, actor, guild);
+    expect(await botIdentity(actor)).toMatchObject({ user_id: member });
   });
 
   it('never links a forwarded website token until the initiating Discord user confirms it', async () => {
@@ -203,6 +218,29 @@ describe('Personal identity linking requires both accounts', () => {
     expect((await website('GET')).status).toBe(401);
   });
 
+  it('does not delete a replacement identity or consume its requests when the website unlinks a stale association', async () => {
+    await link();
+    state.beforeQuery = async query => {
+      if (!query.includes('with removed as')) return;
+      state.beforeQuery = null;
+      await rows('delete from discord_user_links where discord_user_id=$1', [actor]);
+      await link(actor, otherMember);
+      await rows(`insert into discord_account_link_requests(token_hash,discord_user_id,guild_id,discord_label,user_id,expires_at)
+        values($1,$2,$3,'Replacement request',$4,now()+interval '10 minutes')`, [botTokenHash('a'.repeat(48)), actor, guild, otherMember]);
+    };
+    expect((await website('DELETE')).status).toBe(200);
+    expect(await rows('select user_id from discord_user_links where discord_user_id=$1', [actor])).toEqual([{ user_id: otherMember }]);
+    expect((await rows('select used_at from discord_account_link_requests'))[0].used_at).toBeNull();
+  });
+
+  it('allows website unlink as an explicit account-security action even while email verification is pending', async () => {
+    await link();
+    await rows('update users set email_verified=false where id=$1', [member]);
+    expect((await website('DELETE')).status).toBe(200);
+    expect(state.auth).toHaveBeenLastCalledWith(expect.any(Request), expect.anything(), { allowUnverifiedEmail: true });
+    expect(await rows('select * from discord_user_links')).toEqual([]);
+  });
+
   it('rejects hostile origins, preview mutations, unsupported methods and an incomplete schema', async () => {
     const { token } = await begin();
     expect((await website('POST', token, { origin: 'https://hostile.example' })).status).toBe(403);
@@ -218,6 +256,26 @@ describe('Personal identity linking requires both accounts', () => {
 
 describe('Team context follows the dedicated Discord command channel', () => {
   beforeEach(async () => { await link(); });
+
+  it.each([['unverified', 'changed@example.test', false], ['missing', null, true], ['blank', '   ', true]])('blocks the linked account with a %s email from team reads and mutations', async (_reason, email, verified) => {
+    await rows('update users set email=$2,email_verified=$3 where id=$1', [member, email, verified]);
+    await expect(botIdentity(actor)).rejects.toMatchObject({ status: 403, code: 'DISCORD_EMAIL_VERIFICATION_REQUIRED' });
+    await expect(botTeams(actor, guild)).rejects.toMatchObject({ status: 403, code: 'DISCORD_EMAIL_VERIFICATION_REQUIRED' });
+    await expect(resolveBotContext(actor, guild, channelA)).rejects.toMatchObject({ status: 403, code: 'DISCORD_EMAIL_VERIFICATION_REQUIRED' });
+    await rows("update users set email='verified@example.test',email_verified=true where id=$1", [member]);
+    expect(await resolveBotContext(actor, guild, channelA)).toMatchObject({ userId: member, teamId: teamA });
+  });
+
+  it('preserves account status and explicit unlink while email verification is pending', async () => {
+    await rows('update users set email_verified=false where id=$1', [member]);
+    expect((await executeDiscordAccount(interaction(), 'profil', {}))?.embeds[0].title).toBe('Ton compte Discord');
+    const confirmation: any = await executeDiscordAccount(interaction(), 'compte delier', {});
+    const token = confirmation.components[0].components[0].custom_id.split(':')[2];
+    const pending = await loadBotPending(token, actor, guild);
+    expect(pending.command).toBe('compte delier');
+    await unlinkDiscordAccount(actor, pending.link_id);
+    expect(await rows('select * from discord_user_links')).toEqual([]);
+  });
 
   it('infers the team from the channel and keeps its own player and staff rights', async () => {
     expect(await resolveBotContext(actor, guild, channelA)).toMatchObject({

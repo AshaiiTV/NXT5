@@ -13,7 +13,7 @@ export default async function handler(request: Request, context: Context): Promi
     assertSessionSecret();
     await assertSocialSchemaReady();
     await assertRateLimit(request, 'auth-social-unlink');
-    const user = await requireAuth(request, context);
+    const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
     await assertSubjectRateLimit('auth-social-unlink', user.id, { limit: 5, windowSeconds: 60 });
     const body = await readJson(request, 2048);
     const provider = parseSocialProvider(body.provider);

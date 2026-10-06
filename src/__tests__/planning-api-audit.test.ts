@@ -3,12 +3,32 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn() }));
-vi.mock('../../netlify/functions/_lib/db', () => ({
-  sql: async (parts: TemplateStringsArray, ...params: unknown[]) => {
-    const statement = parts.reduce((text, part, index) => text + (index ? `$${index}` : '') + part, '');
-    return (await state.pg.query(statement, params)).rows;
-  },
-}));
+vi.mock('../../netlify/functions/_lib/db', async () => {
+  const { neon, neonConfig } = await import('@neondatabase/serverless');
+  // The audited endpoint now commits its authorization check, write and audit
+  // together. Exercise that real Neon transaction against local PostgreSQL.
+  neonConfig.fetchFunction = async (_url, options: any) => {
+    const body = JSON.parse(options.body);
+    async function execute(connection: any, statement: any) {
+      const result = await connection.query(statement.query, statement.params);
+      return { fields: result.fields, rows: result.rows.map((row: any) => result.fields.map((field: any) => {
+        const value = row[field.name];
+        if (value === null || value === undefined) return null;
+        if ([114, 3802].includes(field.dataTypeID)) return JSON.stringify(value);
+        if (typeof value === 'boolean') return value ? 't' : 'f';
+        if (value instanceof Date) return value.toISOString().replace('T', ' ').replace('Z', '+00');
+        return String(value);
+      })), rowCount: result.affectedRows ?? result.rows.length };
+    }
+    try {
+      if (body.queries) return new Response(JSON.stringify({ results: await state.pg.transaction(async (tx: any) => {
+        const results = []; for (const query of body.queries) results.push(await execute(tx, query)); return results;
+      }) }));
+      return new Response(JSON.stringify(await execute(state.pg, body)));
+    } catch (error: any) { return new Response(JSON.stringify({ message: error.message, code: error.code }), { status: 400 }); }
+  };
+  return { sql: neon('postgresql://test:test@planning-tests.invalid/nxt5') };
+});
 // Authentication is supplied per account. Authorization, validation and all SQL
 // execute in the real handler against the production PostgreSQL schema.
 vi.mock('../../netlify/functions/_lib/auth', () => ({ requireAuth: state.auth, assertSessionSecret: () => {} }));

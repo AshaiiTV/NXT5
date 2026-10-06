@@ -1,7 +1,7 @@
 import type { Config, Context } from '@netlify/functions';
 import { withDiscordRuntime } from './_lib/discord-runtime';
 import { json, readJson } from './_lib/http';
-import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, uuid, auditDiscord } from './_lib/discord-access';
+import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, uuid } from './_lib/discord-access';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { claimPublicationJob, enqueueManualPublication } from './_lib/discord-queue';
 import { isDiscordEnabled } from './_lib/discord-config';
@@ -18,11 +18,8 @@ async function handler(request: Request, context: Context) {
     if (!isDiscordEnabled()) throw discordError('Les envois Discord sont suspendus sur cet environnement.', 409, 'DISCORD_PUBLISHING_DISABLED');
     if (!Number.isSafeInteger(body.snapshotRevision) || body.snapshotRevision < 0) throw discordError('Affiche un aperçu avant de publier.', 409, 'DISCORD_PREVIEW_REQUIRED');
     const requestId = body.requestId == null ? null : uuid(body.requestId, 'Demande');
-    const jobs = await enqueueManualPublication({ teamId, matchId: uuid(body.matchId, 'Game'), routeId: uuid(body.routeId, 'Destination'), expectedRevision: body.snapshotRevision });
+    const jobs = await enqueueManualPublication({ teamId, userId: user.id, requestId, matchId: uuid(body.matchId, 'Game'), routeId: uuid(body.routeId, 'Destination'), expectedRevision: body.snapshotRevision });
     try {
-      await auditDiscord(user.id, teamId, 'discord.publish_requested', {
-        matchId: body.matchId, routeId: body.routeId, requestId, jobIds: jobs.map((job) => job.id),
-      });
       // Claim only this requested publication, sharing the same durable mutex
       // as background workers. A double click cannot create a second message.
       for (const requested of jobs) {

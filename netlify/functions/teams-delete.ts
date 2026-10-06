@@ -15,25 +15,21 @@ export default async function handler(request: Request, context: Context): Promi
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
-    const teams = await sql`
-      select teams.*
-      from teams
-      where teams.id = ${teamId}
-        and teams.owner_id = ${user.id}
-      limit 1
-    `;
-    const team = teams[0];
-    if (!team) throw Object.assign(new Error('Seul le propriétaire peut supprimer définitivement cette team.'), { status: 403 });
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'team.delete', 'team', ${teamId}, ${JSON.stringify({ name: team.name, tag: team.tag })}::jsonb)
-    `;
-
-    await sql`
-      delete from teams
-      where id = ${teamId}
-    `;
+    // Serialize against other team mutations, then re-read ownership in a fresh
+    // statement. Deletion, cascades and its audit record must commit together.
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`with deleted_team as (
+           delete from teams where id = ${teamId} and owner_id = ${user.id}
+           returning id, name, tag
+         ), logged as (
+           insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+           select ${user.id}, 'team.delete', 'team', id, jsonb_build_object('name', name, 'tag', tag)
+           from deleted_team
+         )
+         select id from deleted_team`
+    ]);
+    if (!results[1][0]) throw Object.assign(new Error('Seul le propriétaire peut supprimer définitivement cette team.'), { status: 403 });
 
     return json({ ok: true, teamId });
   } catch (err) {

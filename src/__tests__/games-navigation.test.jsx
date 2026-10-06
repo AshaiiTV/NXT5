@@ -55,8 +55,7 @@ describe("unified Games navigation", () => {
     expect(selected).toHaveLength(1);
     expect(selected[0].props["aria-label"]).toBe("Débriefs");
     const parties = renderer.root.findByProps({ "aria-label": "Parties" });
-    const purpose = renderer.root.findByProps({ id: parties.props["aria-describedby"] });
-    expect(purpose.children.join("")).toBe("Importer et revoir une partie");
+    expect(parties.props.title).toBe("Parties · Importer et revoir une partie");
     act(() => parties.props.onClick());
     expect(setActive).toHaveBeenCalledWith("matches");
     act(() => renderer.root.findByProps({ "aria-label": "Guide d’utilisation" }).props.onClick());
@@ -80,21 +79,29 @@ describe("unified Games navigation", () => {
     act(() => renderer.unmount());
   });
 
-  it("opens roster management from both the next action and the roster step", () => {
+  it("presents one next action, contextual help and a way to leave the guide", () => {
     const onNavigate = vi.fn(), onClose = vi.fn();
     const steps = getOnboardingSteps({ data: {}, currentTeam: { id: "team", owner_id: "owner" }, user: { id: "owner" } });
     let renderer;
     act(() => { renderer = TestRenderer.create(<BeginnerCompass steps={steps} onNavigate={onNavigate} onClose={onClose} />); });
     act(() => renderer.root.findByType(Button).props.onClick());
-    const roster = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Joueurs :"));
-    act(() => roster.props.onClick());
-    expect(onNavigate.mock.calls).toEqual([["/gestion-equipe?section=roster"], ["/gestion-equipe?section=roster"]]);
-    const review = renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith("Premier débrief :"));
-    expect(review.props.disabled).toBe(true);
-    act(() => review.props.onClick());
-    expect(onNavigate).toHaveBeenCalledTimes(2);
-    act(() => renderer.root.findByProps({ "aria-label": "Masquer le démarrage guidé" }).props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith("/games?import=1");
+    expect(renderer.root.findAllByType(Button)).toHaveLength(1);
+    const help = renderer.root.findAllByType("button").find(node => node.children.includes("Besoin d’aide pour cette étape ?"));
+    act(() => help.props.onClick());
+    expect(onNavigate).toHaveBeenLastCalledWith("/guide?section=imports-and-games");
+    act(() => renderer.root.findAllByType("button").find(node => node.children.includes("Explorer librement")).props.onClick());
     expect(onClose).toHaveBeenCalledOnce();
+    act(() => renderer.unmount());
+  });
+
+  it("gives a waiting player a useful destination instead of a disabled primary action", () => {
+    const onNavigate = vi.fn();
+    let renderer;
+    act(() => { renderer = TestRenderer.create(<BeginnerCompass steps={getOnboardingSteps({ currentTeam: { id: "team" }, user: { id: "player" } })} onNavigate={onNavigate} onClose={vi.fn()} manager={false} />); });
+    expect(renderer.root.findByType(Button).props.disabled).not.toBe(true);
+    act(() => renderer.root.findByType(Button).props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith("/equipes");
     act(() => renderer.unmount());
   });
 });

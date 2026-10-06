@@ -3,7 +3,7 @@ import { withDiscordRuntime } from './_lib/discord-runtime';
 import { sql } from './_lib/db';
 import { json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
-import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord, uuid } from './_lib/discord-access';
+import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord, uuid, discordTeamWriteQueries } from './_lib/discord-access';
 import { getDiscordGuild } from './_lib/discord-client';
 import { isDiscordId } from './_lib/discord-config';
 
@@ -52,6 +52,7 @@ async function handler(request: Request, context: Context) {
       return { channelId: channel.id, channelName: channel.name, categoryIds: selected, includeHints: route.includeHints === true, mentionRoleId: roleId, automatic: route.enabled === true };
     });
     await sql.transaction([
+      ...discordTeamWriteQueries(teamId, user.id),
       sql("select team_id from discord_connections where team_id=$1 for update", [teamId]),
       // Guard the server identity checked above against a concurrent relink.
       sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3) then 1 else 0 end", [teamId, connection.guild_id, connection.config_version]),
@@ -59,11 +60,11 @@ async function handler(request: Request, context: Context) {
       sql("update publication_jobs set status='cancelled',last_error_code='CONFIG_CHANGED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [teamId]),
       sql("delete from discord_routes where team_id=$1 and not(channel_id=any($2::text[]))", [teamId, routes.map((route) => route.channelId)]),
       ...routes.map((route) => sql("insert into discord_routes(team_id,guild_id,channel_id,channel_name,category_ids,include_hints,mention_role_id,enabled,automatic,created_by) values($1,$2,$3,$4,$5::jsonb,$6,$7,true,$8,$9) on conflict(team_id,channel_id,publication_kind) do update set guild_id=excluded.guild_id,channel_name=excluded.channel_name,category_ids=excluded.category_ids,include_hints=excluded.include_hints,mention_role_id=excluded.mention_role_id,enabled=true,automatic=excluded.automatic,updated_at=now()", [teamId, connection.guild_id, route.channelId, route.channelName, JSON.stringify(route.categoryIds), route.includeHints, route.mentionRoleId, route.automatic, user.id])),
+      auditDiscord(user.id, teamId, 'discord.routes_updated', { channels: routes.map((route) => route.channelId) }),
     ]);
-    await auditDiscord(user.id, teamId, 'discord.routes_updated', { channels: routes.map((route) => route.channelId) });
     return json({ ok: true });
   } catch (error: any) {
-    if (error?.code === '22012') return discordResponseError(discordError('La connexion a changé. Actualise les réglages.', 409));
+    if (error?.code === '22012') return discordResponseError(discordError('La connexion ou tes accès ont changé. Actualise les réglages.', 409));
     return discordResponseError(error);
   }
 }

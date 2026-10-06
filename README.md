@@ -6,7 +6,7 @@ La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitati
 
 ## Stack
 
-- React 18 + Vite + Tailwind CSS, pages publiques pré-rendues (`tools/prerender.mjs`)
+- React 19 + Vite + Tailwind CSS, pages publiques pré-rendues (`tools/prerender.mjs`)
 - Netlify Hosting et Netlify Functions (TypeScript)
 - Neon PostgreSQL, migrations versionnées dans `database/`
 - Auth par cookie HttpOnly + sessions en base, connexions Google, Discord et Apple optionnelles
@@ -45,7 +45,7 @@ Le front ne stocke aucune donnée métier en localStorage. Les données importan
 La production est publiée par Netlify à chaque fusion dans `main`. La configuration est dans `netlify.toml` (Node 24) :
 
 ```txt
-Build command (production): npm run verify && npm audit --audit-level=moderate && npm run db:migrate
+Build command (production): npm run verify && node tools/audit-dependencies.mjs && npm run db:migrate
 Publish directory: dist
 Functions directory: netlify/functions
 ```
@@ -100,7 +100,7 @@ L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[a
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.4** pour Windows, Mac Intel et Mac Apple Silicon.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.5** pour Windows, Mac Intel et Mac Apple Silicon.
 
 1. Lance le `.exe` Windows ou ouvre `NXT5 Importer.app` après extraction du zip Mac adapté à ton processeur.
 2. Colle le numéro de la partie ou un ID complet comme `EUW1_7861632138`. Vérifie la région.
@@ -127,7 +127,7 @@ pnpm start
 
 La fenêtre d’enregistrement reprend le dossier du dernier export réussi, même après réouverture de l’application. Si ce dossier n’existe plus, elle revient dans Téléchargements.
 
-Voir [les changements 0.3.4](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
+Voir [les changements de l’Importer](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
 
 ## Commandes du bot Discord
 
