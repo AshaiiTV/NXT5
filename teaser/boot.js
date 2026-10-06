@@ -4,6 +4,7 @@
   const capture = params.has('capture');
   if (params.get('only')) NX.only = params.get('only').split(',');
   if (capture) document.body.classList.add('capture');
+  NX.capture = capture;
 
   for (const name of window.NX_SCENES || []) {
     await new Promise(res => { const s = document.createElement('script'); s.src = `scenes/${name}.js`; s.onload = res; s.onerror = () => { console.warn('scène absente : ' + name); res(); }; document.body.appendChild(s); });

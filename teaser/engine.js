@@ -252,8 +252,9 @@
     if (Math.abs(P.saturate - 1) > 0.005) filters.push(`saturate(${P.saturate})`);
     els.shake.style.filter = filters.join(' ');
     els.vignette.style.opacity = P.vignette;
-    els.grain.style.opacity = P.grain;
-    grainCtx.putImageData(grainFrames[Math.floor(t * NX.FPS) % grainFrames.length], 0, 0);
+    // En capture, le grain est ajouté à l'encodage (moins coûteux, et propre à chaque image du film).
+    els.grain.style.opacity = NX.capture ? 0 : P.grain;
+    if (!NX.capture) grainCtx.putImageData(grainFrames[Math.floor(t * NX.FPS) % grainFrames.length], 0, 0);
     els.flash.style.opacity = clamp(P.flash);
     els.flash.style.background = P.flashColor;
     const lb = clamp(P.letterbox) * 132;

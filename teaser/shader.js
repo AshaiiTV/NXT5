@@ -111,7 +111,7 @@
     },
     draw(t, B) {
       if (!gl) return;
-      gl.uniform2f(loc.uRes, 1920, 1080);
+      gl.uniform2f(loc.uRes, gl.canvas.width, gl.canvas.height);
       gl.uniform1f(loc.uTime, t * B.speed);
       gl.uniform1f(loc.uIntensity, B.intensity); gl.uniform1f(loc.uNebula, B.nebula); gl.uniform1f(loc.uWarp, B.warp);
       gl.uniform1f(loc.uHue, B.hue); gl.uniform1f(loc.uRays, B.rays); gl.uniform1f(loc.uRayStrength, B.rayStrength);

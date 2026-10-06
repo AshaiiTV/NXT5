@@ -22,7 +22,7 @@ G=$(awk -v i="$I" 'BEGIN{printf "%.2f", -14 - i}')
 FADE=$(awk -v d="$DUR" 'BEGIN{printf "%.2f", d - 0.9}')
 echo "son : ${I} LUFS mesurés, gain ${G} dB, fondu à ${FADE} s"
 ffmpeg -v error -y -framerate $((30 * SUB)) -i "$SEQ/%07d.png" -i out/final/soundtrack.wav \
-  -filter_complex "[0:v]tmix=frames=${SUB},select='not(mod(n+1\,${SUB}))',setpts=N/30/TB,format=yuv420p[v];[1:a]volume=${G}dB,aresample=192000,alimiter=limit=0.8:attack=1:release=60:level=disabled,aresample=48000,afade=t=out:st=${FADE}:d=0.9[a]" \
+  -filter_complex "[0:v]tmix=frames=${SUB},select='not(mod(n+1\,${SUB}))',setpts=N/30/TB,noise=c0s=5:c0f=t,format=yuv420p[v];[1:a]volume=${G}dB,aresample=192000,alimiter=limit=0.8:attack=1:release=60:level=disabled,aresample=48000,afade=t=out:st=${FADE}:d=0.9[a]" \
   -map "[v]" -map "[a]" -r 30 -c:v libx264 -preset slow -crf 16 -profile:v high -pix_fmt yuv420p -movflags +faststart \
   -c:a aac -b:a 256k -t "$DUR" "$OUT"
 ls -la "$OUT"
