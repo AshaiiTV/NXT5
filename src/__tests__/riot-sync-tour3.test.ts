@@ -1,6 +1,11 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({ queries: [] as { sql: string; values: any[] }[], fetch: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret() {}, requireAuth: async () => ({ id: 'owner' }) }));
+vi.mock('../../netlify/functions/_lib/riot-sync', async importOriginal => ({
+  ...await importOriginal(),
+  acquireSyncLease: async () => 'lease', releaseSyncLease: async () => {},
+  assertProfileNotFresh: async () => {}, reserveSyncBudget: async () => {},
+}));
 vi.mock('../../netlify/functions/_lib/db', () => { const sql = async (parts: TemplateStringsArray, ...values: any[]) => {
   const sql = parts.join('?'); state.queries.push({ sql, values });
   if (sql.includes('select distinct teams')) return [{ id: 'team', region: 'EUW' }];

@@ -33,7 +33,7 @@ describe("joining and creating another team", () => {
   it("opens creation with an existing membership and selects the created team", async () => {
     const props = teamProps();
     const renderer = await render(<Teams {...props} routeSearch="?create=1" />);
-    expect(renderer.root.findAllByType("form")).toHaveLength(2);
+    expect(renderer.root.findAllByType("form")).toHaveLength(1);
     input(renderer, "Nom de l’équipe", "Deuxième équipe");
     input(renderer, "Tag", "TWO");
     apiFetch.mockResolvedValueOnce({ team: { id: "second" } });
@@ -47,7 +47,7 @@ describe("joining and creating another team", () => {
     const renderer = await render(<Teams {...props} routeSearch="?invite=NXT5-SECOND" />);
     expect(renderer.root.findByProps({ label: "Code d’invitation" }).props.value).toBe("NXT5-SECOND");
     apiFetch.mockResolvedValueOnce({ team: { id: "second" } });
-    await act(async () => renderer.root.findAllByType("form")[1].props.onSubmit({ preventDefault() {} }));
+    await act(async () => renderer.root.findAllByType("form")[0].props.onSubmit({ preventDefault() {} }));
     expect(apiFetch).toHaveBeenCalledWith("teams-join", expect.objectContaining({ body: JSON.stringify({ invite: "NXT5-SECOND" }) }));
     expect(props.setSelectedTeamId).toHaveBeenCalledWith("second");
     expect(props.refreshAll).toHaveBeenCalledWith({ teamId: "second" });
@@ -58,17 +58,42 @@ describe("joining and creating another team", () => {
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
     expect(renderer.root.findAllByType(Button).some((button) => button.props.children === "Créer ou rejoindre une équipe")).toBe(false);
     const showTeamAccessForms = async () => {
-      window.history.pushState({}, "", "/equipes?create=1");
+      window.history.pushState({}, "", "/equipes?setup=1");
       await act(async () => renderer.update(<Suspense fallback={<p>Chargement</p>}><Teams {...props} routeSearch={window.location.search} /></Suspense>));
     };
     await showTeamAccessForms();
-    expect(renderer.root.findAllByType("form")).toHaveLength(2);
-    expect(renderer.root.findByProps({ label: "Nom de l’équipe" })).toBeTruthy();
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    const choices = renderer.root.findAllByProps({ className: "team-entry-choice" });
+    expect(choices).toHaveLength(2);
+    act(() => choices[1].props.onClick());
+    expect(renderer.root.findAllByType("form")).toHaveLength(1);
     expect(renderer.root.findByProps({ label: "Code d’invitation" })).toBeTruthy();
+    expect(renderer.root.findAllByProps({ label: "Nom de l’équipe" })).toHaveLength(0);
     act(() => renderer.root.findAllByType(Button).find((button) => button.props.children === "Fermer les formulaires").props.onClick());
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
     expect(window.location.pathname).toBe("/equipes");
     expect(window.location.search).toBe("");
+  });
+
+  it("starts with a choice, preserves creation fields when going back and shows join errors in place", async () => {
+    const props = { ...teamProps(), data: { teams: [], players: [], matches: [] } };
+    const renderer = await render(<Teams {...props} />);
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    const choice = index => renderer.root.findAllByProps({ className: "team-entry-choice" })[index];
+    act(() => choice(0).props.onClick());
+    input(renderer, "Nom de l’équipe", "Ma nouvelle équipe");
+    const goBack = () => act(() => renderer.root.findByProps({ className: "team-entry-back" }).props.onClick());
+    goBack();
+    act(() => choice(0).props.onClick());
+    expect(renderer.root.findByProps({ label: "Nom de l’équipe" }).props.value).toBe("Ma nouvelle équipe");
+    goBack();
+    act(() => choice(1).props.onClick());
+    input(renderer, "Code d’invitation", "OLD-CODE");
+    apiFetch.mockRejectedValueOnce(new Error("Code expiré"));
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    expect(renderer.root.findByProps({ role: "alert" }).children).toContain("Code expiré");
+    expect(renderer.root.findByProps({ label: "Code d’invitation" }).props.value).toBe("OLD-CODE");
+    expect(renderer.root.findAllByType(Button).find(node => node.props.type === "submit").props.disabled).toBe(false);
   });
 });
 

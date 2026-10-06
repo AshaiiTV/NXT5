@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import sharp from "sharp";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { PNG_THEME, pngDownloadPages } from "../utils/png-report.js";
 
 const RED = [211, 27, 49, 255];
@@ -26,7 +26,12 @@ function sourceCanvas(width, height, colorAt, { failBlob = false, readError } = 
   canvas.readError = readError;
   canvas.toBlob = vi.fn(async (callback, type) => {
     if (failBlob) return callback(null);
-    const bytes = await sharp(Buffer.from(pixels(width, height, colorAt)), { raw: { width, height, channels: 4 } }).png().toBuffer();
+    const encoded = createCanvas(width, height);
+    const context = encoded.getContext("2d");
+    const image = context.createImageData(width, height);
+    image.data.set(pixels(width, height, colorAt));
+    context.putImageData(image, 0, 0);
+    const bytes = encoded.toBuffer("image/png");
     callback(new Blob([bytes], { type }));
   });
   return canvas;
@@ -102,8 +107,12 @@ async function decode(download) {
   expect(download.blob.type).toBe("image/png");
   const bytes = Buffer.from(await download.blob.arrayBuffer());
   expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-  const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  return { ...info, pixel: (x, y) => [...data.subarray((y * info.width + x) * 4, (y * info.width + x + 1) * 4)] };
+  const image = await loadImage(bytes);
+  const context = createCanvas(image.width, image.height).getContext("2d");
+  context.drawImage(image, 0, 0);
+  const { data } = context.getImageData(0, 0, image.width, image.height);
+  return { width: image.width, height: image.height,
+    pixel: (x, y) => [...data.subarray((y * image.width + x) * 4, (y * image.width + x + 1) * 4)] };
 }
 
 afterEach(() => {

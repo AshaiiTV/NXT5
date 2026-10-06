@@ -43,6 +43,7 @@ export async function requireDiscordTeam(request: Request, context: Context, tea
   return { user, team, teamId: id, canManage, canPublish };
 }
 export function discordResponseError(error: any): Response {
+  if (error?.code === '22012') error = discordError('Les accès ou la configuration ont changé. Actualise puis réessaie.', 409, 'DISCORD_CONFIG_CHANGED');
   const upstream = error?.name === 'DiscordApiError';
   const sourceStatus = Number(error?.status) || 500;
   const status = upstream && sourceStatus === 401 ? 503 : sourceStatus;
@@ -59,4 +60,26 @@ export function assertDiscordMethod(request: Request, allowed: string[]) {
 }
 export function auditDiscord(userId: string, teamId: string, action: string, metadata: object = {}) {
   return sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,$2,'team',$3,$4::jsonb)", [userId, action, teamId, JSON.stringify(metadata)]);
+}
+
+/** Prepend to the same transaction as a team mutation. Team membership changes
+ * use this lock too; a slow Discord check must not retain revoked privileges. */
+export function discordTeamWriteQueries(teamId: string, userId: string, access: 'manage' | 'staff' = 'manage') {
+  const roles = access === 'manage' ? ['owner', 'captain'] : ['owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
+  return [
+    sql('select id from teams where id=$1 for update', [teamId]),
+    sql(`select 1/case when exists(select 1 from teams t where t.id=$1 and
+      (t.owner_id=$2 or exists(select 1 from team_members tm where tm.team_id=t.id and tm.user_id=$2 and tm.role=any($3::text[]))))
+      then 1 else 0 end`, [teamId, userId, roles]),
+  ];
+}
+
+/** Recheck immediately before an external side effect, without holding a DB
+ * transaction open while waiting on the network. */
+export async function assertCurrentDiscordTeamWriteAccess(teamId: string, userId: string, access: 'manage' | 'staff' = 'manage') {
+  try { await sql.transaction(discordTeamWriteQueries(teamId, userId, access)); }
+  catch (error: any) {
+    if (error?.code === '22012') throw discordError('Tes accès à cette équipe ont changé. Actualise puis réessaie.', 403, 'DISCORD_ROLE_FORBIDDEN');
+    throw error;
+  }
 }

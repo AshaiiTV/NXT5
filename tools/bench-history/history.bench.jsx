@@ -29,7 +29,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
           if (value === null || value === undefined) return null;
           if (field.dataTypeID === 114 || field.dataTypeID === 3802) return JSON.stringify(value);
           if (typeof value === 'boolean') return value ? 't' : 'f';
-          if (value instanceof Date) return value.toISOString();
+          if (value instanceof Date) return value.toISOString().replace('T', ' ').replace('Z', field.dataTypeID === 1184 ? '+00' : '');
           return String(value);
         })),
         rowCount: result.affectedRows ?? result.rows.length,
@@ -183,20 +183,23 @@ async function seedRange(from, to) {
 // the Map and publishes only a complete snapshot. No reimplemented load loop.
 async function loadHistory(n) {
   pages = []; rawBodies = [];
-  let state, renderer, complete;
-  const done = new Promise((resolve) => { complete = resolve; });
+  let state, renderer;
   const store = { mergeAvailability: (rows) => rows };
   const snapshots = [];
   function Probe() {
     state = useTeamData(store, `?team=${teamId}`);
     snapshots.push(state.data.matches.length);
-    if (state.bootstrapped && !state.loading) complete();
     return null;
   }
   const start = performance.now();
   try {
     act(() => { renderer = TestRenderer.create(<Probe />); });
-    await act(async () => { await done; });
+    // React flushes state updates when each act ends. Waiting inside act for a
+    // promise resolved by a future render can deadlock with newer renderers.
+    while (!state.bootstrapped || state.loading) {
+      if (performance.now() - start > 300_000) throw new Error('History hook did not complete within five minutes');
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    }
     const elapsedMs = performance.now() - start;
     expect(state.apiError).toBe('');
     expect(state.bootstrapReady).toBe(true);
@@ -212,7 +215,7 @@ async function loadHistory(n) {
 // Fixed workspace-relative artifact: never consumes DATABASE_URL or writes elsewhere.
 function writeResults(output) {
   mkdirSync('docs/bench-history', { recursive: true });
-  writeFileSync('docs/bench-history/results-2026-09-29.json', JSON.stringify(output, null, 2) + '\n');
+  writeFileSync('docs/bench-history/results-2026-10-06.json', JSON.stringify(output, null, 2) + '\n');
 }
 
 function measureCpu(fn) {
@@ -224,7 +227,7 @@ function measureCpu(fn) {
 
 it('measures complete team history at 100, 500, 1000 and 3000 matches', async () => {
   const output = {
-    methodVersion: 1, transport: 'in-process Request/Response; no TCP, authentication or WAN latency', recordedAt: new Date().toISOString(),
+    methodVersion: 2, transport: 'in-process Request/Response; no TCP, authentication or WAN latency', recordedAt: new Date().toISOString(),
     environment: { node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model,
       postgres: (await database.pg.query('select version()')).rows[0].version, pglite: '0.5.8' },
     repetitions, migrations: migrations.map(({ key, checksum }) => ({ key, checksum })), records: [], explain: [],
@@ -284,12 +287,25 @@ it('measures complete team history at 100, 500, 1000 and 3000 matches', async ()
             // Diagnostic control, not a proposed production query: keep the
             // membership predicate, join, ordering, LIMIT and OFFSET, removing
             // only the JSON projection to isolate its cost from row selection.
-            const from = statement.query.indexOf('\n        from matches\n');
-            if (from < 0) throw new Error('Main query changed; review projection control');
-            const query = 'select matches.id, users.name, users.account_name' + statement.query.slice(from);
+            const projection = statement.query.indexOf('select to_jsonb(matches)');
+            const from = statement.query.indexOf('\n        from match_page matches\n');
+            if (projection < 0 || from < 0) throw new Error('Main query changed; review projection control');
+            const query = statement.query.slice(0, projection)
+              + 'select matches.id, users.name, users.account_name' + statement.query.slice(from);
             const controlPlans = [];
             for (let i = 0; i < 3; i++) controlPlans.push((await database.pg.query(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${query}`, statement.params)).rows[0]['QUERY PLAN'][0]);
             output.explain.push({ offset, kind: 'matchesIdentityOnly', query, params: statement.params, plans: controlPlans });
+            // Same-machine comparison with the pre-fix placement of LIMIT/OFFSET.
+            // The projection stays byte-for-byte the one used in production.
+            const previousQuery = statement.query.slice(projection)
+              .replace('from match_page matches', 'from matches')
+              .replace('order by matches.created_at desc, matches.id desc',
+                'where matches.team_id = $1 order by matches.created_at desc, matches.id desc limit $2 offset $3');
+            expect((await database.pg.query(previousQuery, statement.params)).rows)
+              .toEqual((await database.pg.query(statement.query, statement.params)).rows);
+            const previousPlans = [];
+            for (let i = 0; i < 3; i++) previousPlans.push((await database.pg.query(`EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${previousQuery}`, statement.params)).rows[0]['QUERY PLAN'][0]);
+            output.explain.push({ offset, kind: 'matchesBeforePaginationFix', query: previousQuery, params: statement.params, plans: previousPlans });
           }
         }
       }

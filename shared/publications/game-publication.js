@@ -3,7 +3,7 @@ import { normalizeRole } from '../roles.js';
 /** Browser/server publication model. Never loads secrets, React, remote assets or staff notes. */
 import { pngNumeric } from '../../src/utils/png-report.js';
 export const PUBLICATION_ANALYSIS_VERSION = 'nxt5-game-2';
-export const PUBLICATION_TEMPLATE_VERSION = 'nxt5-discord-3';
+export const PUBLICATION_TEMPLATE_VERSION = 'nxt5-game-png-4';
 const ROLES = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
 const ALIASES = { gold: 'goldEarned', damage: 'totalDamageDealtToChampions', vision: 'visionScore' };
 const OBJECTIVES = { dragons: ['dragon'], barons: ['baron', 'baronNashor'], towers: ['tower', 'towers'], heralds: ['riftHerald', 'riftHeralds', 'herald'], grubs: ['horde', 'voidgrub', 'voidGrubs', 'grub', 'grubs'] };

@@ -5,6 +5,7 @@ import { getOrRenderPublicationImage } from './publication-image';
 import { buildDiscordMessage, discordRequest, findDiscordMessage, getDiscordBotUserId } from './discord-client';
 import { isDiscordEnabled, signDiscordInternalRequest, getDiscordConfig } from './discord-config';
 import { assertDiscordSchemaReady, claimPublicationJob, classifyPublicationFailure, recoverPublicationJobs, retryDelaySeconds, PUBLICATION_LEASE_SECONDS } from './discord-queue';
+import { auditDiscord, discordTeamWriteQueries } from './discord-access';
 
 type Row = Record<string, any>;
 
@@ -59,10 +60,10 @@ async function stopPreparation(job: Row, status: string, code: string) {
   ]);
 }
 
-async function finishPublication(job: Row, snapshot: Row, messageId: string | null) {
+function finishPublication(job: Row, snapshot: Row, messageId: string | null) {
   // A deletion during the HTTP request must retain the returned message ID for
   // withdrawal, without resurrecting the game or the cancelled publication.
-  await sql`with completed_publication as (
+  return sql`with completed_publication as (
     update discord_publications set message_id=coalesce(${messageId},message_id),published_revision=${job.source_revision},
       published_hash=${snapshot.content_hash},state=case when state='withdrawn' then state when source_deleted_at is not null then 'deleted'
         when state='deleted' then state else 'published' end,
@@ -260,7 +261,7 @@ export async function reconcilePublications(limit = 1) {
   return {enabled:true,reconciled};
 }
 
-export async function resolvePublicationJob({teamId,jobId,messageId}: {teamId:string;jobId:string;messageId:string}) {
+export async function resolvePublicationJob({teamId,jobId,messageId,userId}: {teamId:string;jobId:string;messageId:string;userId:string}) {
   if (!/^\d{17,20}$/.test(messageId)) throw Object.assign(new Error('Identifiant du message Discord invalide.'),{status:400});
   const rows = await sql`select j.*,p.channel_id,p.state,p.uncertain_since,s.id as snapshot_id,s.content_hash
     from publication_jobs j join discord_publications p on p.id=j.publication_id
@@ -276,12 +277,22 @@ export async function resolvePublicationJob({teamId,jobId,messageId}: {teamId:st
     throw Object.assign(new Error('Ce message ne correspond pas à la publication NXT5 attendue dans ce salon.'),{status:409,code:'DISCORD_MESSAGE_MISMATCH'});
   }
   const token=randomUUID();
-  const locked=await sql`with publication as (
+  try {
+  await sql.transaction([
+    ...discordTeamWriteQueries(teamId, userId, 'staff'),
+    sql`with publication as (
     update discord_publications set lease_token=${token}::uuid,lease_expires_at=now()+${PUBLICATION_LEASE_SECONDS}*interval '1 second'
     where id=${job.publication_id} and state='uncertain' and (lease_token is null or lease_expires_at<now()) returning id
   ) update publication_jobs j set lease_token=${token}::uuid from publication p
-    where j.id=${jobId} and j.publication_id=p.id and j.status='uncertain' returning j.id`;
-  if (!locked.length) throw Object.assign(new Error('Un rapprochement est déjà en cours. Réessaie dans un instant.'),{status:409});
-  await finishPublication({...job,lease_token:token},{id:job.snapshot_id,content_hash:job.content_hash},messageId);
+    where j.id=${jobId} and j.publication_id=p.id and j.status='uncertain' returning j.id`,
+    sql`select 1 / case when count(*) = 1 then 1 else 0 end from publication_jobs
+      where id=${jobId} and team_id=${teamId} and lease_token=${token}::uuid and status='uncertain'`,
+    finishPublication({...job,lease_token:token},{id:job.snapshot_id,content_hash:job.content_hash},messageId),
+    auditDiscord(userId, teamId, 'discord.publication_reconciled', { jobId, messageId })
+  ]);
+  } catch (error: any) {
+    if (error?.code === '22012') throw Object.assign(new Error('Les accès ou la publication ont changé. Recharge l’équipe puis réessaie.'), { status: 409, code: 'DISCORD_PUBLICATION_CHANGED' });
+    throw error;
+  }
   return {ok:true,messageId,publicationId:job.publication_id};
 }

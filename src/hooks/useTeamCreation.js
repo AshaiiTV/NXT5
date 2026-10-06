@@ -9,11 +9,13 @@ export function useTeamCreation({ setSelectedTeamId, refreshAll, pushToast }) {
   const [pending, setPending] = useState(null);
   const [busy, setBusy] = useState(false);
   const [completed, setCompleted] = useState(0);
+  const [error, setError] = useState("");
 
   const create = useCallback(async (form, players) => {
     if (locked.current) return;
     locked.current = true;
     setBusy(true);
+    setError("");
     let current = operation.current;
     try {
       if (!current) {
@@ -37,9 +39,10 @@ export function useTeamCreation({ setSelectedTeamId, refreshAll, pushToast }) {
       operation.current = null;
       setPending(null);
       setCompleted(value => value + 1);
-      openAppPath("/equipes");
-      pushToast({ type: "green", title: "Team créée", text: current.next ? `${current.next} joueur(s) importé(s) depuis le multi OP.GG.` : "Tu peux maintenant ajouter le roster ou générer un code d’invitation." });
+      openAppPath("/accueil");
+      pushToast({ type: "green", title: "Équipe créée", text: current.next ? `${current.next} joueur(s) ajouté(s). Tu peux importer ta première partie.` : "Ton espace est prêt. Importe ta première partie pour commencer." });
     } catch (err) {
+      setError(err.message || "La création n’a pas abouti. Tu peux réessayer.");
       pushToast({ type: "red", title: current ? "Équipe créée, joueurs à compléter" : "Création impossible", text: current ? `${current.next} joueur(s) ajouté(s). Reprends uniquement les joueurs manquants. ${err.message}` : err.message });
     } finally {
       try {
@@ -57,8 +60,9 @@ export function useTeamCreation({ setSelectedTeamId, refreshAll, pushToast }) {
     if (locked.current) return false;
     operation.current = null;
     setPending(null);
+    setError("");
     return true;
   }, []);
 
-  return useMemo(() => ({ pending, busy, completed, create, abandon }), [pending, busy, completed, create, abandon]);
+  return useMemo(() => ({ pending, busy, completed, error, create, abandon }), [pending, busy, completed, error, create, abandon]);
 }

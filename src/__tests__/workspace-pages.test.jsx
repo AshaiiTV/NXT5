@@ -24,10 +24,10 @@ describe("extracted workspace pages", () => {
     const settings = props();
     settings.data.players = [{ id: "player", team_id: "a", name: "Roster privé", role: "MID" }];
     const renderer = await render(<Teams {...settings} setupOnly routeSearch="?create=1" />);
-    expect(renderer.root.findAllByType("form")).toHaveLength(2);
+    expect(renderer.root.findAllByType("form")).toHaveLength(1);
     const content = JSON.stringify(renderer.toJSON());
     expect(content).toContain("Créer une équipe");
-    expect(content).toContain("Rejoindre une équipe");
+    expect(content).not.toContain("Code d’invitation");
     expect(content).not.toContain("Roster privé");
     expect(content).not.toContain("Décisions staff de la semaine");
   });

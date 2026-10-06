@@ -1,125 +1,89 @@
 import { describe, expect, it } from "vitest";
-import { getOnboardingSteps } from "../utils/onboarding.js";
+import { canManageOnboarding, getOnboardingSteps, onboardingVisitsForRoute } from "../utils/onboarding.js";
 
-const team = { id: "team-a", owner_id: "owner-a" };
-const user = { id: "owner-a" };
-const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
-const roster = (teamId = team.id) => roles.map((role) => ({ id: `${teamId}-${role}`, team_id: teamId, role, roster_status: "MAIN" }));
+const team = { id: "team-a", owner_id: "owner" };
+const owner = { id: "owner" };
+const playerUser = { id: "player" };
+const player = { id: "profile", team_id: team.id, user_id: playerUser.id, role: "MID" };
 const match = (id, extra = {}) => ({ id, team_id: team.id, ...extra });
 const report = (id, extra = {}) => ({ id, team_id: team.id, ...extra });
-const steps = (data = {}, options = {}) => Object.fromEntries(getOnboardingSteps({ data, currentTeam: team, user, ...options }).map((step) => [step.id, step]));
+const steps = (data = {}, options = {}) => getOnboardingSteps({ data, currentTeam: team, user: owner, ...options });
+const next = rows => rows.find(row => !row.done && !row.disabled);
 
-describe("guided onboarding actions", () => {
-  it("leads an owner with an empty team to the actual roster form", () => {
+describe("a first useful session", () => {
+  it("lets an owner start directly with an import, including with an empty roster", () => {
     const result = steps();
-    expect(result.teams).toMatchObject({ done: false, disabled: false, detail: "0 / 5 postes renseignés", action: "Ajouter les joueurs", path: "/gestion-equipe?section=roster" });
-    expect(result.matches).toMatchObject({ disabled: false, path: "/gestion-equipe?section=roster", action: "Ajouter les joueurs" });
-    expect(result.matches.reason).toContain("5 profils joueurs distincts");
-    expect(result.reports).toMatchObject({ done: false, disabled: true, path: "", reason: "Importe une partie pour préparer le débrief." });
+    expect(result).toHaveLength(3);
+    expect(next(result)).toMatchObject({ id: "matches", path: "/games?import=1", disabled: false });
+    expect(result.slice(1).every(step => step.disabled)).toBe(true);
   });
-
-  it("counts unique Main Team lanes, excluding staff, substitutes and inactive profiles", () => {
-    const players = [
-      ...roster().slice(0, 2),
-      { id: "duplicate-top", team_id: team.id, role: "TOP", roster_status: "MAIN" },
-      { id: "coach", team_id: team.id, role: "COACH", roster_status: "MAIN" },
-      { id: "mid-sub", team_id: team.id, role: "MID", roster_status: "SUB" },
-      { id: "adc-inactive", team_id: team.id, role: "ADC", roster_status: "INACTIVE" },
-      { id: "sub", team_id: team.id, role: "SUB", roster_status: "MAIN" },
-    ];
-    expect(steps({ players }).teams).toMatchObject({ detail: "2 / 5 postes renseignés", done: false });
-    expect(steps({ players: roster() }).teams).toMatchObject({ detail: "5 / 5 postes renseignés", done: true, action: "Voir les joueurs", path: "/equipes" });
+  it.each(["captain", "coach", "assistant", "analyst", "manager", "board"])("offers importing to %s in this team", role => {
+    expect(next(steps({}, { user: playerUser, currentMember: { team_id: team.id, user_id: playerUser.id, role } })).id).toBe("matches");
   });
-
-  it("permits import with five distinct gameplay profiles even without five Main Team lanes", () => {
-    const players = roster().map((player, index) => ({ ...player, roster_status: index % 2 ? "SUB" : "INACTIVE" }));
-    expect(steps({ players }).teams.done).toBe(false);
-    expect(steps({ players }).matches).toMatchObject({ path: "/games?import=1", action: "Importer une partie", disabled: false });
-    const duplicated = [...players.slice(0, 4), players[0], { id: "coach", team_id: team.id, role: "COACH" }];
-    expect(steps({ players: duplicated }).matches.path).toBe("/gestion-equipe?section=roster");
-  });
-
-  it.each(["captain", "coach", "assistant", "analyst", "manager", "board"])("allows %s to manage the active team", (role) => {
-    const memberUser = { id: "staff" };
-    const currentMember = { team_id: team.id, user_id: memberUser.id, role };
-    expect(steps({ players: roster() }, { user: memberUser, currentMember }).matches.path).toBe("/games?import=1");
-  });
-
-  it.each(["member", "player"])("does not propose writes forbidden to a %s", (role) => {
-    const memberUser = { id: "player-a" };
-    const options = { user: memberUser, currentMember: { team_id: team.id, user_id: memberUser.id, role } };
-    const empty = steps({}, options);
-    expect(empty.teams).toMatchObject({ disabled: true, path: "/equipes" });
-    expect(empty.matches).toMatchObject({ disabled: true, path: "" });
-    expect(empty.matches.reason).toContain("staff");
-    const populated = steps({ players: roster(), matches: [match("game")] }, options);
-    expect(populated.teams).toMatchObject({ disabled: false, action: "Voir les joueurs", path: "/equipes" });
-    expect(populated.matches).toMatchObject({ disabled: false, path: "/games" });
-    expect(populated.trends).toMatchObject({ disabled: true, path: "" });
-    expect(populated.reports).toMatchObject({ disabled: false, path: "/rapports?match=game&compose=1" });
-  });
-
-  it("lets a member continue to Review when the staff must complete the roster and imports", () => {
-    const memberUser = { id: "member" };
-    const result = steps({ players: roster().slice(0, 3), matches: [match("first"), match("second")] }, {
-      user: memberUser,
-      currentMember: { team_id: team.id, user_id: memberUser.id, role: "member" },
-    });
-    expect(result.teams).toMatchObject({ done: false, disabled: true, path: "/equipes" });
-    expect(result.teams.reason).toContain("staff");
-    expect(result.trends).toMatchObject({ done: false, disabled: true, path: "" });
-    expect(result.trends.reason).toContain("staff");
-    expect(Object.values(result).find((step) => !step.done && !step.disabled)?.id).toBe("reports");
-  });
-
-  it("does not reuse a staff role from another account or another team", () => {
-    const data = { players: roster(), matches: [match("game")] };
-    const otherUser = { id: "new-account" };
-    for (const currentMember of [
-      { user_id: user.id, team_id: team.id, role: "captain" },
-      { user_id: otherUser.id, team_id: "team-b", role: "captain" },
-    ]) {
-      const result = steps(data, { user: otherUser, currentMember });
-      expect(result.matches.path).toBe("/games");
-      expect(result.teams.path).toBe("/equipes");
-      expect(result.reports.disabled).toBe(true);
+  it("never reuses a staff role from another account or team", () => {
+    for (const currentMember of [{ team_id: "other", user_id: playerUser.id, role: "coach" }, { team_id: team.id, user_id: "someone-else", role: "coach" }]) {
+      expect(canManageOnboarding({ currentTeam: team, user: playerUser, currentMember })).toBe(false);
+      expect(steps({}, { user: playerUser, currentMember }).some(step => step.path.includes("import=1"))).toBe(false);
     }
   });
-
-  it("keeps importing toward three games then opens trends", () => {
-    const data = { players: roster(), matches: [match("one"), match("two")] };
-    expect(steps(data).matches).toMatchObject({ done: true, action: "Voir les parties", path: "/games" });
-    expect(steps(data).trends).toMatchObject({ done: false, detail: "2 / 3 parties importées", action: "Importer une partie", path: "/games?import=1" });
-    expect(steps({ ...data, matches: [...data.matches, match("three")] }).trends).toMatchObject({ done: true, detail: "3 / 3 parties importées", action: "Voir les analyses", path: "/tendances" });
+  it("moves from a single imported match to its summary, then the first debrief", () => {
+    const data = { matches: [match("one /?")] };
+    expect(next(steps(data))).toMatchObject({ id: "reading", path: "/games?match=one%20%2F%3F" });
+    expect(next(steps(data, { discovered: ["reading"] }))).toMatchObject({ id: "reports", path: "/rapports?match=one%20%2F%3F&compose=1" });
+    expect(steps({ ...data, reports: [report("first")] }, { discovered: ["reading"] }).every(step => step.done)).toBe(true);
   });
-
-  it("starts the first review on the latest game without modifying the source order", () => {
-    const matches = [match("old", { game_date: "2026-08-01" }), match("latest /?", { game_date: "2026-09-22" }), match("unknown")];
-    expect(steps({ matches }).reports).toMatchObject({ done: false, disabled: false, action: "Créer un débrief", path: "/rapports?match=latest%20%2F%3F&compose=1" });
-    expect(matches.map((item) => item.id)).toEqual(["old", "latest /?", "unknown"]);
+  it("selects the newest game without sorting source data in place", () => {
+    const matches = [match("old", { game_date: "2026-08-01" }), match("new", { game_date: "2026-09-22" })];
+    expect(next(steps({ matches })).path).toBe("/games?match=new");
+    expect(matches[0].id).toBe("old");
   });
-
-  it("opens an existing review even when it has no linked game", () => {
-    expect(steps({ reports: [report("review /?")] }).reports).toMatchObject({ done: true, disabled: false, path: "/rapports?report=review%20%2F%3F", action: "Voir le débrief" });
+  it("gives new players personal steps even in a fully populated team", () => {
+    const data = { players: [player], matches: [match("one")], reports: [report("review")] };
+    const result = steps(data, { user: playerUser });
+    expect(result.map(step => step.id)).toEqual(["profile", "planning", "team-review"]);
+    expect(result.every(step => !step.done)).toBe(true);
+    expect(next(result).path).toBe("/mon-profil?player=profile");
+    expect(result[2].path).toBe("/rapports?report=review");
   });
-
-  it("keeps onboarding incomplete after five games until the first review exists", () => {
-    const data = { players: roster(), matches: Array.from({ length: 5 }, (_, id) => match(String(id + 1))) };
-    const unfinished = Object.values(steps(data));
-    expect(unfinished.filter((step) => step.done)).toHaveLength(3);
-    expect(unfinished.find((step) => !step.done)?.id).toBe("reports");
-    expect(Object.values(steps({ ...data, reports: [report("first-review")] })).every((step) => step.done)).toBe(true);
+  it("lets an unlinked player view team work without proposing forbidden setup", () => {
+    const result = steps({ matches: [match("one")] }, { user: playerUser });
+    expect(result[0]).toMatchObject({ disabled: true, path: "" });
+    expect(result[0].reason).toContain("responsable");
+    expect(result[1].disabled).toBe(true);
+    expect(next(result)).toMatchObject({ id: "team-review", path: "/games?match=one" });
+    expect(next(steps({}, { user: playerUser }))).toBeUndefined();
   });
+  it("counts saved personal availability, including an explicit note of unavailability", () => {
+    const data = { players: [player], availability: [{ team_id: team.id, player_id: player.id, slots: JSON.stringify({ MON: ["20:00"] }) }] };
+    expect(steps(data, { user: playerUser })[1].done).toBe(true);
+    data.availability[0].slots = {};
+    expect(steps(data, { user: playerUser })[1].done).toBe(false);
+    data.availability[0].notes = "Absent cette semaine";
+    expect(steps(data, { user: playerUser })[1].done).toBe(true);
+    data.availability[0].player_id = "another-player";
+    expect(steps(data, { user: playerUser })[1].done).toBe(false);
+  });
+  it("isolates milestones from another team and needs real data despite saved visits", () => {
+    const data = { players: [{ ...player, team_id: "other" }], matches: [match("other", { team_id: "other" })], reports: [report("other", { team_id: "other" })] };
+    expect(steps(data, { discovered: ["reading"] }).every(step => !step.done)).toBe(true);
+    expect(steps(data, { user: playerUser, discovered: ["profile", "team-review"] }).every(step => !step.done)).toBe(true);
+    expect(getOnboardingSteps({ data, user: owner })).toEqual([]);
+  });
+});
 
-  it("isolates progress and destinations to the active team", () => {
-    const data = {
-      players: roster("team-b"),
-      matches: [1, 2, 3, 4, 5].map((id) => match(String(id), { team_id: "team-b" })),
-      reports: [report("other-review", { team_id: "team-b" })],
-    };
-    expect(Object.values(steps(data)).every((step) => !step.done)).toBe(true);
-    const otherTeam = { id: "team-b", owner_id: user.id };
-    expect(Object.values(steps(data, { currentTeam: otherTeam })).every((step) => step.done)).toBe(true);
-    expect(getOnboardingSteps({ data, user })).toEqual([]);
+describe("personal discovery", () => {
+  const data = { players: [player], matches: [match("game")], reports: [report("review")] };
+  const visits = (path, search = "") => onboardingVisitsForRoute({ route: { path, search }, currentTeam: team, user: playerUser, data });
+  it("does not complete steps from menus, missing objects or another player's profile", () => {
+    expect(visits("/games")).toEqual([]);
+    expect(visits("/games", "?match=foreign")).toEqual([]);
+    expect(visits("/rapports", "?report=review&compose=1")).toEqual([]);
+    expect(visits("/mon-profil", "?player=other")).toEqual([]);
+    expect(visits("/planning")).toEqual([]);
+  });
+  it("recognizes the linked profile and actual team game/report destinations", () => {
+    expect(visits("/mon-profil", "?player=profile")).toEqual(["profile"]);
+    expect(visits("/games", "?match=game")).toEqual(["reading", "team-review"]);
+    expect(visits("/rapports", "?report=review")).toEqual(["team-review"]);
   });
 });

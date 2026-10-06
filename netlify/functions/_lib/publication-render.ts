@@ -2,7 +2,7 @@ import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { renderGamePublicationCanvas } from '../../../shared/publications/game-publication-canvas.js';
-import { renderDiscordPublicationCanvas } from '../../../shared/publications/discord-publication-canvas.js';
+import { loadGamePublicationAssets } from '../../../shared/publications/game-publication-assets.js';
 import { renderGroupPublicationCanvas } from '../../../shared/publications/group-publication-canvas.js';
 
 let registered = false;
@@ -24,10 +24,40 @@ async function bundledLogo() {
   }
   return logoPromise;
 }
-export async function renderGamePublicationPng(snapshot, { includeHints = true, layout = 'discord' }: { includeHints?: boolean; layout?: 'discord' | 'full' } = {}) {
+async function publicationIcon(url: string) {
+  // Only URLs built from sanitized champion names / numeric item IDs are used.
+  // Bound both time and bytes; an unavailable icon must not block publication.
+  if (!/^https:\/\/ddragon\.leagueoflegends\.com\/cdn\/\d+\.\d+\.\d+\/img\/(champion\/[A-Za-z0-9]+|item\/\d+)\.png$/.test(url)) return null;
+  const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(4000) });
+  const limit = 2 * 1024 * 1024;
+  if (!response.ok || response.headers.get('content-type')?.split(';')[0] !== 'image/png' || Number(response.headers.get('content-length')) > limit) {
+    await response.body?.cancel();
+    return null;
+  }
+  if (!response.body) return null;
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > limit) { await reader.cancel(); return null; }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return size ? loadImage(Buffer.concat(chunks, size)) : null;
+}
+
+export async function renderGamePublicationPng(snapshot, { includeHints = true }: { includeHints?: boolean } = {}) {
   prepareFont();
-  const renderer = layout === 'full' ? renderGamePublicationCanvas : renderDiscordPublicationCanvas;
-  const { canvas, width, height } = await renderer(snapshot, { createCanvas, loadLogo: bundledLogo, includeHints });
+  const { canvas, width, height } = await renderGamePublicationCanvas(snapshot, {
+    createCanvas, loadLogo: bundledLogo, includeHints,
+    loadAssets: data => loadGamePublicationAssets(data, publicationIcon),
+  });
   const bytes = await canvas.encode('png');
   return { bytes, mimeType: 'image/png' as const, width, height, filename: `nxt5-game-${String(snapshot.entityId || 'export').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}.png` };
 }

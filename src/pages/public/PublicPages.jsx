@@ -555,7 +555,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
       ? serverDestination
       : returnContext.invite
         ? `/equipes?invite=${encodeURIComponent(returnContext.invite)}`
-        : returnContext.next || (isRegister ? "/equipes?create=1" : "/equipes");
+        : returnContext.next || "/accueil";
     navigate(destination, { replace: true });
     onAuth(nextUser);
   }

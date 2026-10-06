@@ -20,7 +20,16 @@ export async function loadMatchPage(teamId: string, { limit, offset }: MatchPage
                count(*) filter (where result = 'Victoire')::int as wins,
                count(*) filter (where result = 'Défaite')::int as losses
         from matches where team_id = ${teamId}`,
-    sql`select to_jsonb(matches) - 'raw' as summary,
+    // A materialized page keeps PostgreSQL from evaluating the expensive JSON
+    // projection (including timeline extraction) for rows discarded by OFFSET.
+    // Keep the whole row so existing/future summary columns remain unchanged.
+    sql`with match_page as materialized (
+          select * from matches
+          where team_id = ${teamId}
+          order by created_at desc, id desc
+          limit ${limit} offset ${offset}
+        )
+        select to_jsonb(matches) - 'raw' as summary,
           jsonb_strip_nulls(jsonb_build_object(
             'nxt5Label', matches.raw -> 'nxt5Label',
             'nxt5', jsonb_build_object(
@@ -54,11 +63,9 @@ export async function loadMatchPage(teamId: string, { limit, offset }: MatchPage
             )
           )) as raw,
           users.name as created_by_name, users.account_name as created_by_account
-        from matches
+        from match_page matches
         left join users on users.id = matches.created_by
-        where matches.team_id = ${teamId}
-        order by matches.created_at desc, matches.id desc
-        limit ${limit} offset ${offset}`
+        order by matches.created_at desc, matches.id desc`
   ]);
   const matches = matchSummaries.map((row) => ({
     ...(row.summary || {}), raw: row.raw || {},

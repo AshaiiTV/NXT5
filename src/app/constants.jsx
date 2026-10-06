@@ -5,6 +5,7 @@ import {
   Bot,
   CalendarDays,
   FileText,
+  House,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -19,6 +20,7 @@ export const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac
 export const NXT5_IMPORTER_MAC_INTEL_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac&arch=x64`;
 
 export const NAV = [
+  { id: "home", label: "Accueil", hint: "Ton prochain pas", icon: House, path: "/accueil" },
   { id: "teams", label: "Équipe", hint: "Retrouver tes joueurs", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Parties", hint: "Importer et revoir une partie", icon: Swords, shortcut: "G", path: "/games" },
   { id: "bot-discord", label: "Bot Discord", hint: "Connexion et publications", icon: Bot, path: "/bot-discord" },
@@ -36,7 +38,7 @@ export const NAV = [
   { id: "account-subscriptions", label: "Comptes et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
 ];
 
-export const PRIMARY_NAV_IDS = ["teams", "matches", "planning", "profile"];
+export const PRIMARY_NAV_IDS = ["home", "teams", "matches", "planning", "profile"];
 export const MORE_NAV_IDS = ["reports", "trends", "draft", "bot-discord"];
 
 export const DRAFT_VIEW_ROUTES = [

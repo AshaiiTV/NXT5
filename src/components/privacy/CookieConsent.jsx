@@ -68,14 +68,14 @@ export default function CookieConsent({ route, ready, excluded = false }) {
     </button>}
     <p className="sr-only" role="status">{notice}</p>
     {showBanner && <section className="nxt5-cookie-banner" aria-labelledby="cookie-banner-title" aria-describedby="cookie-banner-description">
-      <div className="nxt5-cookie-heading"><span className="nxt5-cookie-icon"><ShieldCheck size={23} aria-hidden="true" /></span><div><p className="nxt5-cookie-eyebrow">Ta confidentialité</p><h2 id="cookie-banner-title">Les cookies, c’est toi qui choisis.</h2></div></div>
-      <p id="cookie-banner-description">Avec ton accord, NXT5 utilise des cookies pour comprendre les visites, les pages utiles et les actions réalisées. Aucun suivi publicitaire. Tu peux refuser et utiliser le site normalement.</p>
+      <div className="nxt5-cookie-heading"><span className="nxt5-cookie-icon"><ShieldCheck size={23} aria-hidden="true" /></span><div><p className="nxt5-cookie-eyebrow">Ta confidentialité</p><h2 id="cookie-banner-title">Tes choix de cookies</h2></div></div>
+      <p id="cookie-banner-description">Avec ton accord, NXT5 mesure les visites et les actions pour améliorer le site. Aucun suivi publicitaire. Refuser ne limite aucune fonctionnalité.</p>
       <p className="nxt5-cookie-detail">Les cookies de connexion restent nécessaires. Ton choix est conservé 180 jours et modifiable à tout moment. <a href="/cookies">En savoir plus</a></p>
       {state.error && <p className="nxt5-cookie-error" role="alert">{state.error}</p>}
       <div className="nxt5-cookie-actions">
         <Button type="button" variant="ghost" disabled={state.saving} onClick={() => choose(false)}>Tout refuser</Button>
-        <Button type="button" variant="ghost" disabled={state.saving} onClick={openSettings}>Personnaliser</Button>
         <Button type="button" variant="ghost" disabled={state.saving} onClick={() => choose(true)}>Tout accepter</Button>
+        <Button type="button" variant="ghost" disabled={state.saving} onClick={openSettings}>Personnaliser</Button>
       </div>
       {state.saving && <p role="status" className="nxt5-cookie-detail">Enregistrement de ton choix…</p>}
     </section>}

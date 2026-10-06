@@ -1,4 +1,5 @@
 import type { RiotMatch } from './types';
+import { RIOT_UPSTREAM_TIMEOUT_MS } from '../../../shared/riot-sync-policy.js';
 
 type ChampionData = {
   id: string;
@@ -83,66 +84,95 @@ function requireRiotKey() {
   }
 }
 
+// Keep the timer alive through response.json(): a stalled response body must also
+// be bounded. Cancelling a profile stops all of its active upstream requests.
+async function boundedRequest<T>(parent: AbortSignal | null | undefined, run: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  const controller = new AbortController();
+  const cancel = () => controller.abort(parent?.reason);
+  parent?.addEventListener('abort', cancel, { once: true });
+  if (parent?.aborted) cancel();
+  const timeout = Object.assign(new Error('Riot met trop de temps à répondre.'), {
+    status: 504, code: 'RIOT_UPSTREAM_TIMEOUT', publicMessage: 'Riot met trop de temps à répondre. Réessaie plus tard.'
+  });
+  const timer = setTimeout(() => controller.abort(timeout), RIOT_UPSTREAM_TIMEOUT_MS);
+  timer.unref?.();
+  try {
+    controller.signal.throwIfAborted();
+    const result = await run(controller.signal);
+    controller.signal.throwIfAborted();
+    return result;
+  } catch (error) {
+    if (controller.signal.aborted) throw controller.signal.reason;
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    parent?.removeEventListener('abort', cancel);
+  }
+}
+
 export async function riotFetch(url: string, notFoundMessage?: string, options: RequestInit = {}): Promise<any> {
   requireRiotKey();
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'X-Riot-Token': process.env.RIOT_API_KEY || '',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(options.headers || {})
+  return boundedRequest(options.signal, async signal => {
+    const response = await fetch(url, {
+      ...options,
+      signal,
+      headers: {
+        'X-Riot-Token': process.env.RIOT_API_KEY || '',
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(options.headers || {})
+      }
+    });
+    let payload: any = null;
+    const contentType = response.headers.get('content-type') || '';
+    if (!response.ok && contentType.includes('application/json')) {
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
+      }
     }
+    const riotMessage = payload?.status?.message || payload?.message || null;
+
+    if (response.status === 401 || response.status === 403) {
+      throw Object.assign(new Error(riotMessage || 'Clé Riot refusée. Vérifie RIOT_API_KEY dans Netlify et sa validité.'), {
+        status: 502,
+        code: 'RIOT_KEY_REJECTED',
+        riotStatus: response.status
+      });
+    }
+    if (response.status === 404) {
+      throw Object.assign(new Error(notFoundMessage || 'Ressource Riot introuvable.'), { status: 404 });
+    }
+    if (response.status === 429) {
+      const retryAfter = Number(response.headers.get('retry-after') || 0);
+      throw Object.assign(new Error('Rate limit Riot atteint. Réessaie plus tard.'), {
+        status: 429,
+        code: 'RIOT_RATE_LIMIT',
+        retryAfter: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null
+      });
+    }
+    if (!response.ok) {
+      throw Object.assign(new Error(riotMessage || `Erreur Riot API ${response.status}.`), {
+        status: 502,
+        code: 'RIOT_API_ERROR',
+        riotStatus: response.status
+      });
+    }
+
+    return response.json();
   });
-  let payload: any = null;
-  const contentType = response.headers.get('content-type') || '';
-  if (!response.ok && contentType.includes('application/json')) {
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
-  }
-  const riotMessage = payload?.status?.message || payload?.message || null;
-
-  if (response.status === 401 || response.status === 403) {
-    throw Object.assign(new Error(riotMessage || 'Clé Riot refusée. Vérifie RIOT_API_KEY dans Netlify et sa validité.'), {
-      status: 502,
-      code: 'RIOT_KEY_REJECTED',
-      riotStatus: response.status
-    });
-  }
-  if (response.status === 404) {
-    throw Object.assign(new Error(notFoundMessage || 'Ressource Riot introuvable.'), { status: 404 });
-  }
-  if (response.status === 429) {
-    const retryAfter = Number(response.headers.get('retry-after') || 0);
-    throw Object.assign(new Error('Rate limit Riot atteint. Réessaie plus tard.'), {
-      status: 429,
-      code: 'RIOT_RATE_LIMIT',
-      retryAfter: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null
-    });
-  }
-  if (!response.ok) {
-    throw Object.assign(new Error(riotMessage || `Erreur Riot API ${response.status}.`), {
-      status: 502,
-      code: 'RIOT_API_ERROR',
-      riotStatus: response.status
-    });
-  }
-
-  return response.json();
 }
 
-export async function fetchRiotMatch(gameId: string): Promise<RiotMatch> {
+export async function fetchRiotMatch(gameId: string, options: RequestInit = {}): Promise<RiotMatch> {
   const regional = regionFromGameId(gameId).toLowerCase();
   const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(gameId)}`;
-  return riotFetch(url, 'Game ID introuvable côté Riot.');
+  return riotFetch(url, 'Game ID introuvable côté Riot.', options);
 }
 
-export async function fetchRiotMatchTimeline(gameId) {
+export async function fetchRiotMatchTimeline(gameId, options: RequestInit = {}) {
   const regional = regionFromGameId(gameId).toLowerCase();
   const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(gameId)}/timeline`;
-  return riotFetch(url, 'Timeline de match introuvable côté Riot.');
+  return riotFetch(url, 'Timeline de match introuvable côté Riot.', options);
 }
 
 export async function fetchMatchIdsByPuuid(puuid, platform = 'EUW1', options: any = {}) {
@@ -153,16 +183,16 @@ export async function fetchMatchIdsByPuuid(puuid, platform = 'EUW1', options: an
   params.set('start', String(options.start || 0));
   params.set('count', String(options.count || 20));
   const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/by-puuid/${encodeURIComponent(puuid)}/ids?${params.toString()}`;
-  return riotFetch(url, 'Historique de matchs introuvable côté Riot.');
+  return riotFetch(url, 'Historique de matchs introuvable côté Riot.', { signal: options.signal });
 }
 
-export async function fetchRiotMatchById(matchId: string, platform = 'EUW1'): Promise<RiotMatch> {
+export async function fetchRiotMatchById(matchId: string, platform = 'EUW1', options: RequestInit = {}): Promise<RiotMatch> {
   const regional = accountRegionFromPlatform(platform).toLowerCase();
   const url = `https://${regional}.api.riotgames.com/lol/match/v5/matches/${encodeURIComponent(matchId)}`;
-  return riotFetch(url, 'Match Riot introuvable.');
+  return riotFetch(url, 'Match Riot introuvable.', options);
 }
 
-export async function fetchAccountByRiotId(riotId, platform = 'EUW1') {
+export async function fetchAccountByRiotId(riotId, platform = 'EUW1', options: RequestInit = {}) {
   const [gameName, tagLine] = String(riotId || '').split('#').map((part) => part?.trim());
   if (!gameName || !tagLine) {
     throw Object.assign(new Error(`Riot ID invalide : ${riotId}`), { status: 400 });
@@ -170,23 +200,24 @@ export async function fetchAccountByRiotId(riotId, platform = 'EUW1') {
 
   const regional = accountRegionFromPlatform(platform).toLowerCase();
   const url = `https://${regional}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
-  return riotFetch(url, `Compte Riot introuvable : ${riotId}`);
+  return riotFetch(url, `Compte Riot introuvable : ${riotId}`, options);
 }
 
-export async function getChampionDataMap() {
+export async function getChampionDataMap(options: RequestInit = {}) {
+  options.signal?.throwIfAborted();
   if (championDataCache) return championDataCache;
 
-  const versionsResponse = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
-  if (!versionsResponse.ok) {
-    throw Object.assign(new Error('Impossible de charger Data Dragon.'), { status: versionsResponse.status });
-  }
-  const [version] = await versionsResponse.json();
+  const [version] = await boundedRequest(options.signal, async signal => {
+    const response = await fetch('https://ddragon.leagueoflegends.com/api/versions.json', { signal });
+    if (!response.ok) throw Object.assign(new Error('Impossible de charger Data Dragon.'), { status: 502 });
+    return response.json();
+  });
 
-  const championResponse = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/champion.json`);
-  if (!championResponse.ok) {
-    throw Object.assign(new Error('Impossible de charger la liste des champions.'), { status: championResponse.status });
-  }
-  const payload: any = await championResponse.json();
+  const payload: any = await boundedRequest(options.signal, async signal => {
+    const response = await fetch(`https://ddragon.leagueoflegends.com/cdn/${encodeURIComponent(version)}/data/fr_FR/champion.json`, { signal });
+    if (!response.ok) throw Object.assign(new Error('Impossible de charger la liste des champions.'), { status: 502 });
+    return response.json();
+  });
 
   championDataCache = new Map(
     Object.values(payload.data || {}).map((champion: any) => [Number(champion.key), {

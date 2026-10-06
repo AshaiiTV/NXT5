@@ -85,6 +85,18 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   }
 }
 
+let loginFallbackHash: Promise<string> | undefined;
+
+export async function verifyLoginPassword(password: string, hash: string | null | undefined): Promise<boolean> {
+  // Missing and social-only accounts must still perform the configured password
+  // work. Initialize the fallback on both successful and failed login paths so
+  // a cold start does not introduce a separate account-existence fast path.
+  loginFallbackHash ||= hashPassword(crypto.randomBytes(32).toString('base64url'));
+  const fallback = await loginFallbackHash;
+  const valid = await verifyPassword(password, hash || fallback);
+  return Boolean(hash) && valid;
+}
+
 export function normalizeAccountName(accountName: unknown): string {
   return String(accountName || '').trim().toLowerCase();
 }
@@ -258,7 +270,7 @@ export function readSessionCookie(context: Context): string | null {
   return value.value || null;
 }
 
-export async function requireAuth(request: Request, context: Context): Promise<DbUser> {
+export async function requireAuth(request: Request, context: Context, options: { allowUnverifiedEmail?: boolean } = {}): Promise<DbUser> {
   await ensureEmailVerificationColumns();
 
   const token = readSessionCookie(context);
@@ -298,6 +310,15 @@ export async function requireAuth(request: Request, context: Context): Promise<D
   if (!authenticated) {
     context.cookies.set({ name: COOKIE_NAME, value: '', ...sessionCookieOptions(request), maxAge: 0 });
     throw Object.assign(new Error('Session invalide ou expirée.'), { status: 401 });
+  }
+
+  // A valid session is still needed to finish account verification. Business
+  // APIs require a verified address by default; only explicit account-recovery
+  // endpoints may opt out. Never exempt legacy accounts with no email address.
+  if (!options.allowUnverifiedEmail && (!normalizeEmail(authenticated.email) || authenticated.email_verified !== true)) {
+    throw Object.assign(new Error('Vérifie ton adresse e-mail pour accéder à NXT5.'), {
+      status: 403, code: 'EMAIL_VERIFICATION_REQUIRED'
+    });
   }
 
   const { session_activity_due, user_activity_due, ...user } = authenticated;

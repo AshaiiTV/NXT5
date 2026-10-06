@@ -2,12 +2,13 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, hashPassword, readSessionCookie, requireAuth, sha256, verifyPassword } from './_lib/auth';
+import { assertSubjectRateLimit } from './_lib/rate-limit';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
-    const user = await requireAuth(request, context);
+    const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
     const body = await readJson(request, 4096);
     const currentPassword = String(body.currentPassword || '');
     const nextPassword = String(body.nextPassword || '');
@@ -25,6 +26,7 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Le nouveau mot de passe doit être différent de l’ancien.'), { status: 400 });
     }
 
+    await assertSubjectRateLimit('password-change-reauth', user.id, { limit: 5, windowSeconds: 60 });
     const rows = await sql`select password_hash, xmin::text as account_version from users where id = ${user.id} limit 1`;
     const passwordHash = rows[0]?.password_hash;
     const passwordOk = passwordHash ? await verifyPassword(currentPassword, passwordHash) : false;

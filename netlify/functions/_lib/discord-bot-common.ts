@@ -46,9 +46,12 @@ export function assertBotStaff(ctx: BotContext, manage = false) {
 }
 export const botTokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
 export function validBotToken(token: unknown): token is string { return typeof token === 'string' && /^[a-f0-9]{48}$/.test(token); }
-export async function botIdentity(discordUserId: string) {
-  const [link] = await sql('select l.*,u.account_name,u.name from discord_user_links l join users u on u.id=l.user_id where l.discord_user_id=$1', [discordUserId]);
+export async function botIdentity(discordUserId: string, options: { allowUnverifiedEmail?: boolean } = {}) {
+  const [link] = await sql('select l.*,u.account_name,u.name,u.email,u.email_verified from discord_user_links l join users u on u.id=l.user_id where l.discord_user_id=$1', [discordUserId]);
   if (!link) throw discordError('Lie ton compte avec /nxt lier, puis utilise le salon de commandes de ton équipe.', 403, 'DISCORD_ACCOUNT_REQUIRED');
+  if (!options.allowUnverifiedEmail && (!String(link.email || '').trim() || link.email_verified !== true)) {
+    throw discordError('Vérifie ton adresse e-mail dans NXT5 avant d’utiliser les commandes de ton équipe.', 403, 'DISCORD_EMAIL_VERIFICATION_REQUIRED');
+  }
   return link;
 }
 export function botMemberRoleIds(memberRoles: unknown): string[] {
@@ -110,7 +113,8 @@ export async function resolveBotContext(discordUserId: string, guildId: string, 
 }
 export async function saveBotPending(ctx: BotContext, command: string, options: Record<string, any>, kind: 'confirm' | 'modal', form?: any) {
   assertDiscordArtifactEnvironment();
-  const identity = await botIdentity(ctx.discordUserId);
+  // Revoking the account link remains available while verification is pending.
+  const identity = await botIdentity(ctx.discordUserId, { allowUnverifiedEmail: command === 'compte delier' && !ctx.teamId });
   if (identity.user_id !== ctx.userId || (ctx.identityId && identity.id !== ctx.identityId)) throw discordError('La liaison du compte a changé. Relance la commande.', 409, 'DISCORD_ACCOUNT_CHANGED');
   const token = randomBytes(24).toString('hex');
   await sql(`insert into discord_bot_pending(token_hash,link_id,guild_id,team_id,command,options,kind,form,expires_at)

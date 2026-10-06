@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const seo = resolveSeoConfig({ ...env, ...process.env });
   return {
   define: { "import.meta.env.NXT5_NOINDEX": JSON.stringify(seo.noindex) },
+  optimizeDeps: { entries: ["index.html"] },
   plugins: [react(), {
     name: "nxt5-public-site-metadata",
     transformIndexHtml(html) { return withMetadata(html, "/", seo); },

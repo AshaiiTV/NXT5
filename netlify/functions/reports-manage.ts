@@ -1,4 +1,5 @@
 import type { Context } from "@netlify/functions";
+import { randomUUID } from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth, sha256 } from './_lib/auth';
@@ -11,15 +12,14 @@ import { cleanText, escapeHtml } from './_lib/text';
 const MAX_REPORT_CONTENT_LENGTH = 256000;
 const MAX_REPORT_MATCHES = 20;
 
-async function recordReviewAudit(userId: string, teamId: string, reportId: string, action: string, title: string, matchIds: string[]): Promise<boolean> {
-  // An atomic conditional update serializes concurrent first saves. Keeping
-  // the milestone on the team avoids depending on retained personal audit logs.
-  const results = await sql.transaction([
-    sql`update teams set first_review_at = now() where id = ${teamId} and first_review_at is null returning id`,
-    sql`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+function reviewAuditQueries(tx, userId: string, teamId: string, reportId: string, action: string, title: string, matchIds: string[]) {
+  // Part of the same transaction as the review itself: an audit failure must
+  // roll back the content and first-review milestone together.
+  return [
+    tx`update teams set first_review_at = now() where id = ${teamId} and first_review_at is null returning id`,
+    tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
       values (${userId}, ${action}, 'reports', ${reportId}, ${JSON.stringify({ teamId, title, matchIds })}::jsonb)`
-  ]);
-  return results[0].length === 1;
+  ];
 }
 
 async function notifyReportCreate({ request, teamId, userId, reportTitle, fingerprint }) {
@@ -81,6 +81,20 @@ export default async function handler(request: Request, context: Context): Promi
     const member = membership[0];
     if (!member) throw Object.assign(new Error('Accès team refusé.'), { status: 403 });
     const isCaptain = member.owner_id === user.id || ['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(String(member.role || '').toLowerCase());
+    const lockedReviewQueries = (tx, existingReportId: string | null = null) => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select user_id from team_members where team_id = ${teamId} and user_id = ${user.id} for share`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t where t.id = ${teamId}
+        and (t.owner_id = ${user.id} or exists (select 1 from team_members where team_id = t.id and user_id = ${user.id}))`,
+      ...(existingReportId ? [
+        tx`select id from reports where id = ${existingReportId} and team_id = ${teamId} for update`,
+        tx`select 1 / case when count(*) = 1 then 1 else 0 end from reports r join teams t on t.id = r.team_id
+          where r.id = ${existingReportId} and r.team_id = ${teamId}
+            and ((r.created_by = ${user.id} and (to_jsonb(r)->>'discord_status') is distinct from 'draft')
+              or t.owner_id = ${user.id} or exists (select 1 from team_members tm where tm.team_id = t.id
+                and tm.user_id = ${user.id} and tm.role in ('captain','coach','assistant','analyst','manager','board')))`
+      ] : [])
+    ];
 
     if (action === 'delete') {
       if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
@@ -90,11 +104,13 @@ export default async function handler(request: Request, context: Context): Promi
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
         throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le supprimer.'), { status: 403 });
       }
-      await sql`delete from reports where id = ${reportId} and team_id = ${teamId}`;
-      await sql`
+      await sql.transaction(tx => [
+        ...lockedReviewQueries(tx, reportId),
+        tx`delete from reports where id = ${reportId} and team_id = ${teamId}`,
+        tx`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'reports.delete', 'reports', ${reportId}, ${JSON.stringify({ teamId, title: report.title })}::jsonb)
-      `;
+      `]);
       return json({ ok: true });
     }
 
@@ -118,6 +134,8 @@ export default async function handler(request: Request, context: Context): Promi
     ` : [];
     const validMatchIds = validMatches.map((match) => match.id);
     const primaryMatchId = validMatchIds[0] || null;
+    const lockedMatchesQuery = tx => tx`select 1 / case when count(*) = ${validMatchIds.length} then 1 else 0 end from (
+      select id from matches where team_id = ${teamId} and id = any(${validMatchIds}::uuid[]) for key share) linked_matches`;
 
     if (action === 'update') {
       if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
@@ -127,7 +145,9 @@ export default async function handler(request: Request, context: Context): Promi
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
         throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le modifier.'), { status: 403 });
       }
-      const rows = await sql`
+      const results = await sql.transaction(tx => [
+        ...lockedReviewQueries(tx, reportId), lockedMatchesQuery(tx),
+        tx`
         update reports
         set match_id = ${primaryMatchId},
             match_ids = ${JSON.stringify(validMatchIds)}::jsonb,
@@ -138,18 +158,23 @@ export default async function handler(request: Request, context: Context): Promi
         where id = ${reportId}
           and team_id = ${teamId}
         returning *
-      `;
-      const firstReview = await recordReviewAudit(user.id, teamId, reportId, 'reports.update', title, validMatchIds);
-      return json({ report: rows[0], firstReview });
+      `,
+        ...reviewAuditQueries(tx, user.id, teamId, reportId, 'reports.update', title, validMatchIds)
+      ]);
+      return json({ report: results[results.length - 3][0], firstReview: results[results.length - 2].length === 1 });
     }
 
-    const rows = await sql`
-      insert into reports (team_id, match_id, match_ids, created_by, title, content)
-      values (${teamId}, ${primaryMatchId}, ${JSON.stringify(validMatchIds)}::jsonb, ${user.id}, ${title}, ${content})
+    const newReportId = randomUUID();
+    const results = await sql.transaction(tx => [
+      ...lockedReviewQueries(tx), lockedMatchesQuery(tx),
+      tx`insert into reports (team_id, match_id, match_ids, created_by, title, content, id)
+      values (${teamId}, ${primaryMatchId}, ${JSON.stringify(validMatchIds)}::jsonb, ${user.id}, ${title}, ${content}, ${newReportId})
       returning *
-    `;
-
-    const firstReview = await recordReviewAudit(user.id, teamId, rows[0].id, 'reports.create', title, validMatchIds);
+    `,
+      ...reviewAuditQueries(tx, user.id, teamId, newReportId, 'reports.create', title, validMatchIds)
+    ]);
+    const rows = results[results.length - 3];
+    const firstReview = results[results.length - 2].length === 1;
 
     const notificationTask = notifyReportCreate({ request, teamId, userId: user.id, reportTitle: rows[0].title,
       fingerprint: sha256(JSON.stringify([title, content, [...validMatchIds].sort()])) });
@@ -158,6 +183,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     return json({ report: rows[0], firstReview });
   } catch (err) {
+    if (err?.code === '22012' || err?.code === '23503') return json({ error: 'La review, les parties liées ou les accès ont changé. Recharge l’équipe puis réessaie.' }, 409);
     return handleError(err);
   }
 }

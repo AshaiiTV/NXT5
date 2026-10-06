@@ -1,5 +1,6 @@
 import { renderGamePublicationCanvas } from './game-publication-canvas.js';
-import { renderDiscordPublicationCanvas } from './discord-publication-canvas.js';
+import { loadGamePublicationAssets } from './game-publication-assets.js';
+import { assetProxyUrl } from '../../src/utils/matches.js';
 import { pngLoadImage } from '../../src/utils/png-report.js';
 
 const fontSources = [
@@ -16,10 +17,9 @@ async function prepareFonts() {
   })).catch((error) => { fontsReady = undefined; throw error; });
   return fontsReady;
 }
-export async function renderGamePublicationPng(snapshot, { loadAssets, layout = 'full' } = {}) {
+export async function renderGamePublicationPng(snapshot, { loadAssets = (data) => loadGamePublicationAssets(data, url => pngLoadImage(assetProxyUrl(url))) } = {}) {
   await prepareFonts();
-  const render = layout === 'discord' ? renderDiscordPublicationCanvas : renderGamePublicationCanvas;
-  const { canvas } = await render(snapshot, {
+  const { canvas } = await renderGamePublicationCanvas(snapshot, {
     createCanvas(width, height) { const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; return canvas; },
     loadLogo: () => pngLoadImage('/assets/nxt5-wordmark.png'),
     loadAssets,

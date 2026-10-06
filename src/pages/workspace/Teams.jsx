@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { RIOT_SYNC_CLIENT_TIMEOUT_MS } from "../../../shared/riot-sync-policy.js";
 import { openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
@@ -104,6 +105,9 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const pendingCreation = teamCreation.pending;
   const [playerForm, setPlayerForm] = useState(() => emptyPlayerForm());
   const [joinCode, setJoinCode] = useState("");
+  const [setupIntent, setSetupIntent] = useState("choose");
+  const [joinError, setJoinError] = useState("");
+  const intentFocus = useRef(false);
   const [localSaving, setSaving] = useState(false);
   const saving = localSaving || teamCreation.busy;
   const [syncingPlayerId, setSyncingPlayerId] = useState("");
@@ -142,9 +146,25 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   useEffect(() => {
     const params = new URLSearchParams(routeSearch || window.location.search);
-    setTeamSetupOpen(params.get("create") === "1" || params.has("invite"));
+    setTeamSetupOpen(["create", "setup", "join"].some(key => params.get(key) === "1") || params.has("invite"));
+    setSetupIntent(params.has("invite") || params.get("join") === "1" ? "join" : params.get("create") === "1" ? "create" : "choose");
+    setJoinError("");
     if (params.has("invite")) setJoinCode(params.get("invite") || "");
   }, [routeSearch]);
+
+  useEffect(() => {
+    if (!intentFocus.current) return;
+    intentFocus.current = false;
+    const target = setupIntent === "choose" ? pageRef.current?.querySelector(".team-entry-choice") : setupRef.current?.querySelector("input");
+    target?.focus({ preventScroll: true });
+  }, [setupIntent]);
+
+  function chooseSetup(intent) {
+    if (saving) return;
+    intentFocus.current = true;
+    setJoinError("");
+    setSetupIntent(intent);
+  }
 
   useEffect(() => {
     if (!riotCooldownUntil) return undefined;
@@ -206,16 +226,19 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   async function joinTeam(event) {
     event.preventDefault();
+    if (saving) return;
+    setJoinError("");
     setSaving(true);
     try {
       const result = await apiFetch("teams-join", { method: "POST", body: JSON.stringify({ invite: joinCode }) });
       setSelectedTeamId(result.team.id);
       setJoinCode("");
       setTeamSetupOpen(false);
-      openAppPath("/equipes");
       await refreshAll({ teamId: result.team.id });
+      openAppPath("/accueil");
       pushToast({ type: "green", title: "Team rejointe", text: "Tu as maintenant accès à cette structure." });
     } catch (err) {
+      setJoinError(err.message || "Impossible de rejoindre l’équipe. Vérifie ton code et réessaie.");
       pushToast({ type: "red", title: "Invitation invalide", text: err.message });
     } finally {
       setSaving(false);
@@ -433,10 +456,10 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     }
     setSyncingPlayerId(player.id);
     try {
-      const result = await apiFetch("players-sync-most-played", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, playerId: player.id }) });
+      const result = await apiFetch("players-sync-most-played", { method: "POST", timeoutMs: RIOT_SYNC_CLIENT_TIMEOUT_MS, body: JSON.stringify({ teamId: selectedTeam.id, playerId: player.id }) });
       await refreshAll();
       const firstFailed = result.results?.find((item) => !item.ok);
-      if (firstFailed?.code === "RIOT_RATE_LIMIT") {
+      if (firstFailed?.retryAfter && firstFailed.code !== "RIOT_SYNC_FRESH") {
         const retryAfter = Number(firstFailed.retryAfter || 120);
         setRiotCooldownUntil(Date.now() + Math.max(30, retryAfter) * 1000);
       }
@@ -491,57 +514,58 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div ref={pageRef} className="nxt5-teams-page"><PageHeader eyebrow="Équipe" title={hasTeams && !setupOnly ? selectedTeam.name : "Créer ou rejoindre une équipe"} subtitle={hasTeams && !setupOnly ?"Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques." : "Crée l’espace de ton équipe, ou rejoins ton équipe avec un code d’invitation."}>{hasTeams && <>
-      {canManageRoster && !setupOnly && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
+  return <div ref={pageRef} className="nxt5-teams-page" data-entry={showSetup ? "true" : undefined}><PageHeader eyebrow={showSetup ? "Bienvenue dans NXT5" : "Équipe"} title={showSetup ? pendingCreation ? "Ton équipe est créée. On continue." : setupIntent === "create" ? "Créons ton espace d’équipe." : setupIntent === "join" ? "Retrouve ton équipe." : "Comment veux-tu commencer ?" : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? "Choisis ta situation. On te guide pour la suite." : undefined : "Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques."}>{hasTeams && <>
+      {canManageRoster && !showSetup && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
       {showSetup && <Button type="button" variant="ghost" icon={X} disabled={saving} onClick={closeSetup}>Fermer les formulaires</Button>}
       {pendingCreation && !showSetup && <Button type="button" variant="ghost" onClick={() => { focusSetup.current = true; setTeamSetupOpen(true); }}>Reprendre l’import de joueurs</Button>}
     </>}</PageHeader>
-    {!hasTeams && <Surface className="mb-5 p-4">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <Badge tone="cyan">Démarrage</Badge>
-          <h3 className="mt-2 text-xl font-black text-white">Le plus simple pour commencer</h3>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Si tu organises l’équipe, crée son espace. Si tu as reçu un code, utilise le formulaire Rejoindre. Tu pourras ensuite ajouter les joueurs et les parties.</p>
-        </div>
-      </div>
-      <div className="team-start-steps">
-        {[["1", "Créer ou rejoindre", "Tu choisis l'entrée adaptée à ta situation."], ["2", "Ajouter les joueurs", "TOP, JGL, MID, ADC, SUP et staff."], ["3", "Importer une partie", "Retrouve son résultat, ses statistiques et les points à discuter."]].map(([number, title, text]) => <div key={title} className="team-start-step"><p className="text-sm font-semibold text-cyan-100">{number}</p><p className="mt-1 text-sm font-black text-white">{title}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{text}</p></div>)}
-      </div>
-    </Surface>}
-    <div className={cx("teams-workspace-layout", hasTeams && showSetup && !setupOnly && "has-roster-setup")}>
-      {showSetup && <div ref={setupRef} className="team-setup-forms">
-        <Surface>
+    {showSetup && setupIntent === "choose" && !pendingCreation && <div className="team-entry-choices">
+      <button type="button" className="team-entry-choice" onClick={() => chooseSetup("create")}>
+        <Shield size={28} aria-hidden="true" /><span className="team-entry-audience">Je suis responsable de l’équipe</span><strong>Créer mon équipe</strong><span>Un espace commun pour vos parties, vos débriefs et vos entraînements.</span><span className="team-entry-action">Créer mon espace <ArrowRight size={18} aria-hidden="true" /></span>
+      </button>
+      <button type="button" className="team-entry-choice" onClick={() => chooseSetup("join")}>
+        <Users size={28} aria-hidden="true" /><span className="team-entry-audience">Mon équipe est déjà sur NXT5</span><strong>Rejoindre mon équipe</strong><span>Utilise l’invitation de ton responsable pour retrouver ton équipe.</span><span className="team-entry-action">J’ai une invitation <ArrowRight size={18} aria-hidden="true" /></span>
+      </button>
+    </div>}
+    <div className="teams-workspace-layout">
+      {showSetup && (setupIntent !== "choose" || pendingCreation) && <div ref={setupRef} className="team-setup-forms">
+        {!pendingCreation && <button type="button" className="team-entry-back" disabled={saving} onClick={() => chooseSetup("choose")}><ArrowLeft size={16} aria-hidden="true" />Changer de choix</button>}
+        {(setupIntent === "create" || pendingCreation) && <Surface>
           <h3 className="text-xl font-black text-white">Créer une équipe</h3>
           <p className="mt-1 text-sm text-slate-300">Pour organiser les joueurs et retrouver les parties de ton équipe.</p>
           <form onSubmit={createTeam} className="mt-5 space-y-4">
             {!pendingCreation && <>
-            <TextInput label="Nom de l’équipe" value={teamForm.name} onChange={(name) => setTeamForm({ ...teamForm, name })} placeholder="Nom de l'équipe" required icon={Trophy} />
-            <TextInput label="Tag" value={teamForm.tag} onChange={(tag) => setTeamForm({ ...teamForm, tag })} placeholder="TAG" required icon={Shield} />
-            <SelectInput label="Région" value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })}><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option><option>BR</option><option>LAN</option><option>LAS</option><option>JP</option><option>OCE</option><option>TR</option></SelectInput>
-            <TextAreaInput label="Joueurs à ajouter (facultatif)" value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} placeholder={"Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW"} icon={Clipboard} />
+            <TextInput label="Nom de l’équipe" value={teamForm.name} onChange={(name) => setTeamForm({ ...teamForm, name })} placeholder="Ex. Les Renards" required disabled={saving} icon={Trophy} />
+            <div className="team-entry-fields"><TextInput label="Tag" value={teamForm.tag} onChange={(tag) => setTeamForm({ ...teamForm, tag })} placeholder="Ex. REN" required disabled={saving} icon={Shield} />
+            <SelectInput label="Région" value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })} disabled={saving}><option>EUW</option><option>EUNE</option><option>NA</option><option>KR</option><option>BR</option><option>LAN</option><option>LAS</option><option>JP</option><option>OCE</option><option>TR</option></SelectInput></div>
+            <details className="team-entry-optional"><summary>Ajouter aussi mes joueurs <span>Facultatif</span></summary><p>Tu pourras aussi créer les profils pendant l’import de ta première partie.</p>
+            <TextAreaInput label="Joueurs à ajouter (facultatif)" value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} disabled={saving} placeholder={"Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW"} icon={Clipboard} />
             {multiPlayers.length > 0 && <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{multiPlayers.length} joueur{multiPlayers.length > 1 ?"s" : ""} détecté{multiPlayers.length > 1 ?"s" : ""}</p><div className="mt-2 flex flex-wrap gap-2">{multiPlayers.map((player, index) => <Badge key={player.riotId} tone={index < 5 ?"cyan" : "slate"}>{ROSTER_ROLE_ORDER[index] || "SUB"} · {player.riotId}</Badge>)}</div></div>}
-            </>}
+            </details></>}
             {pendingCreation && <p role="status" className="break-words text-sm text-slate-300">L’équipe {pendingCreation.team.name} est créée. Joueurs restant à ajouter : {pendingCreation.players.slice(pendingCreation.next).map(player => player.riotId).join(", ")}.</p>}
-            <Button type="submit" disabled={saving} icon={saving ? Loader2 : Plus} className="w-full">{pendingCreation ? "Reprendre les joueurs manquants" : "Créer l’équipe"}</Button>
+            {teamCreation.error && <p role="alert" className="team-entry-error">{teamCreation.error}</p>}
+            <Button type="submit" disabled={saving} icon={saving ? Loader2 : Plus} className="w-full">{saving ? "Création en cours…" : pendingCreation ? "Reprendre les joueurs manquants" : "Créer l’équipe"}</Button>
             {pendingCreation && <>
               <p className="text-sm text-slate-300">L’abandon conserve l’équipe et les joueurs déjà ajoutés.</p>
               <Button type="button" variant="ghost" disabled={saving} onClick={abandonCreation} className="w-full">Abandonner l’import restant</Button>
             </>}
           </form>
-        </Surface>
+        </Surface>}
 
-        <Surface>
+        {setupIntent === "join" && !pendingCreation && <Surface>
           <h3 className="text-xl font-black text-white">Rejoindre une équipe</h3>
-          <p className="mt-1 text-sm text-slate-300">Demande au coach, manager ou capitaine un code temporaire. Il expire après 1h.</p>
+          <p className="mt-1 text-sm text-slate-300">Colle le code transmis par ton responsable. Si tu as ouvert son lien d’invitation, il est déjà renseigné.</p>
           <form onSubmit={joinTeam} className="mt-5 space-y-4">
-            <TextInput label="Code d’invitation" value={joinCode} onChange={setJoinCode} placeholder="NXT5-ABC123" required icon={UserPlus} />
-            <Button type="submit" disabled={saving || !joinCode.trim()} icon={saving ?Loader2 : ArrowRight} className="w-full">Rejoindre l’équipe</Button>
+            <TextInput label="Code d’invitation" value={joinCode} onChange={setJoinCode} placeholder="NXT5-ABC123" disabled={saving} required icon={UserPlus} autoComplete="off" />
+            {joinError && <p role="alert" className="team-entry-error">{joinError}</p>}
+            <Button type="submit" disabled={saving || !joinCode.trim()} icon={saving ?Loader2 : ArrowRight} className="w-full">{saving ? "Connexion à l’équipe…" : "Rejoindre l’équipe"}</Button>
           </form>
-        </Surface>
+          <details className="team-entry-optional"><summary>Je n’ai pas de code, ou il a expiré</summary><p>Demande une invitation au coach, manager ou capitaine. Le code est valable une heure ; une nouvelle invitation remplace la précédente.</p></details>
+        </Surface>}
 
       </div>}
 
-      {selectedTeam && !setupOnly && <div className="space-y-5">
+      {selectedTeam && !showSetup && <div className="space-y-5">
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex items-center gap-3"><h3 className="text-xl font-black text-white">Joueurs et encadrement</h3><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
@@ -556,6 +580,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
         </Surface>
       </div>}
     </div>
+    {showSetup && <p className="team-entry-help">Un doute ? <a href="/guide?section=getting-started">Consulter les premiers pas</a></p>}
   </div>;
 }
 

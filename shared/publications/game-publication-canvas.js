@@ -24,7 +24,11 @@ function dateLabel(value) {
   const date = value ? new Date(value) : null;
   return date && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('fr-FR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Paris' }).format(date) : 'Date de partie indisponible';
 }
-/** Shared factual layout. includeHints is accepted for stored v1 payloads; hints are text-message only. */
+/**
+ * Shared factual layout. includeHints is accepted for stored v1 payloads; hints are text-message only.
+ * @param {any} snapshot
+ * @param {{ createCanvas: Function, loadLogo?: Function, loadAssets?: Function, includeHints?: boolean }} options
+ */
 export async function renderGamePublicationCanvas(snapshot, { createCanvas, loadLogo, loadAssets = undefined, includeHints: _includeHints = false }) {
   if (snapshot?.schemaVersion !== 1) throw new Error('Version de publication PNG non prise en charge.');
   const width = PUBLICATION_PNG_WIDTH;
@@ -83,7 +87,7 @@ export async function renderGamePublicationCanvas(snapshot, { createCanvas, load
   ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, 5);
   const [logo, assets] = await Promise.all([loadLogo?.(), loadAssets?.(snapshot)]);
   if (logo) pngImageContain(ctx, logo, width - M - 220, 28, 220, 70);
-  // Assets are supplied by the browser adapter; the native renderer never retrieves snapshot URLs.
+  // Both adapters supply icons from the shared asset sources, never snapshot URLs.
   const asset = (type, id) => assets?.[type]?.get?.(id);
   text(ctx, 'GAME', M, 75, contentW - 260, 24, P.cyan, 600);
   let y = 138;

@@ -3,7 +3,7 @@ import { withDiscordRuntime } from './_lib/discord-runtime';
 import { sql } from './_lib/db';
 import { json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
-import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord } from './_lib/discord-access';
+import { requireDiscordTeam, assertDiscordMethod, discordResponseError, discordError, auditDiscord, discordTeamWriteQueries } from './_lib/discord-access';
 import { isDiscordId } from './_lib/discord-config';
 import { getDiscordGuild } from './_lib/discord-client';
 
@@ -57,6 +57,11 @@ async function handler(request: Request, context: Context) {
     const roleIds = parseRoleIds(body.roleIds, guildId);
     const connections = await sql("select guild_id from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')", [teamId, guildId]);
     if (!connections.length) throw discordError('La liaison de cette équipe a changé. Actualise la page.', 409, 'DISCORD_CONNECTION_CHANGED');
+    const lockedConnectionQueries = () => [
+      ...discordTeamWriteQueries(teamId, user.id),
+      sql('select team_id from discord_connections where team_id=$1 for update', [teamId]),
+      sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')) then 1 else 0 end", [teamId, guildId]),
+    ];
 
     if (roleIds.length) {
       const live = await getDiscordGuild(guildId);
@@ -64,28 +69,27 @@ async function handler(request: Request, context: Context) {
       if (live.guild.id !== guildId || roleIds.some((id) => !availableRoles.has(id))) {
         throw discordError('Un rôle choisi n’est plus disponible sur ce serveur. Actualise les rôles.', 409, 'DISCORD_ROLE_ACCESS_ROLE_UNAVAILABLE');
       }
-      const saved = await sql(`with linked as materialized (
-          select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused') for update
-        ) insert into discord_bot_role_access(team_id,guild_id,role_ids)
-        select $1,$2,$3::text[] from linked
-        on conflict(team_id) do update set guild_id=excluded.guild_id,role_ids=excluded.role_ids,updated_at=now()
-        returning guild_id,role_ids`, [teamId, guildId, roleIds]);
-      if (!saved.length) throw discordError('La liaison de cette équipe a changé. Actualise la page.', 409, 'DISCORD_CONNECTION_CHANGED');
-      await auditDiscord(user.id, teamId, 'discord.bot_role_access_updated', { guildId, roleIds });
-      return json({ guildId, configuredGuildId: guildId, roleIds: saved[0].role_ids, enabled: true });
+      await sql.transaction([
+        ...lockedConnectionQueries(),
+        sql(`insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])
+          on conflict(team_id) do update set guild_id=excluded.guild_id,role_ids=excluded.role_ids,updated_at=now()`, [teamId, guildId, roleIds]),
+        auditDiscord(user.id, teamId, 'discord.bot_role_access_updated', { guildId, roleIds }),
+      ]);
+      return json({ guildId, configuredGuildId: guildId, roleIds, enabled: true });
     }
 
     // Removing the policy is a separate, explicit UI action. NXT5 team
     // membership and command-specific permissions still apply afterward.
-    const removed = await sql(`with linked as materialized (
-        select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused') for update
-      ), removed as (
-        delete from discord_bot_role_access where team_id=$1 and exists(select 1 from linked) returning team_id
-      ) select exists(select 1 from linked) as linked`, [teamId, guildId]);
-    if (!removed[0]?.linked) throw discordError('La liaison de cette équipe a changé. Actualise la page.', 409, 'DISCORD_CONNECTION_CHANGED');
-    await auditDiscord(user.id, teamId, 'discord.bot_role_access_removed', { guildId });
+    await sql.transaction([
+      ...lockedConnectionQueries(),
+      sql('delete from discord_bot_role_access where team_id=$1', [teamId]),
+      auditDiscord(user.id, teamId, 'discord.bot_role_access_removed', { guildId }),
+    ]);
     return json({ guildId, configuredGuildId: null, roleIds: [], enabled: false });
-  } catch (error) { return discordResponseError(error); }
+  } catch (error: any) {
+    if (error?.code === '22012') return discordResponseError(discordError('La liaison ou tes accès ont changé. Actualise la page.', 409, 'DISCORD_CONNECTION_CHANGED'));
+    return discordResponseError(error);
+  }
 }
 
 export default withDiscordRuntime(handler);

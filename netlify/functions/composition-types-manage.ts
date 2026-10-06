@@ -54,79 +54,93 @@ export default async function handler(request: Request, context: Context): Promi
       limit 1
     `;
     if (!allowed[0]) throw Object.assign(new Error('Tu dois être membre de la team pour gérer les compositions types.'), { status: 403 });
-    const role = String(allowed[0].role || '').toLowerCase();
-    const canManageAll = allowed[0].owner_id === user.id || ['owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board'].includes(role);
+    const lockedTeamQueries = tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select user_id from team_members where team_id = ${teamId} and user_id = ${user.id} for share`,
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end from teams t where t.id = ${teamId}
+        and (t.owner_id = ${user.id} or exists (select 1 from team_members where team_id = t.id and user_id = ${user.id}))`
+    ];
 
     if (action === 'delete') {
       if (!compositionId) throw Object.assign(new Error('Composition requise.'), { status: 400 });
-      const deleted = await sql`
+      const results = await sql.transaction(tx => [
+        ...lockedTeamQueries(tx),
+        tx`with changed as (
         delete from composition_types
         where id = ${compositionId}
           and team_id = ${teamId}
-          and (${canManageAll} or created_by = ${user.id})
+          and (created_by = ${user.id} or exists (select 1 from teams t where t.id = ${teamId}
+            and (t.owner_id = ${user.id} or exists (select 1 from team_members tm where tm.team_id = t.id
+              and tm.user_id = ${user.id} and tm.role in ('owner','captain','coach','assistant','analyst','manager','board')))))
         returning *
-      `;
-      if (!deleted[0]) throw Object.assign(new Error('Composition introuvable ou non autorisée.'), { status: 404 });
-      await sql`
+      ), logged as (
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'composition_types.delete', 'composition_types', ${compositionId}, ${JSON.stringify({ teamId, title: deleted[0].title })}::jsonb)
-      `;
+        select ${user.id}, 'composition_types.delete', 'composition_types', id,
+          jsonb_build_object('teamId', ${teamId}::text, 'title', title) from changed
+      ) select * from changed`
+      ]);
+      const deleted = results[results.length - 1];
+      if (!deleted[0]) throw Object.assign(new Error('Composition introuvable ou non autorisée.'), { status: 404 });
       return json({ ok: true });
     }
 
     if (!title) throw Object.assign(new Error('Titre requis.'), { status: 400 });
     const slots = normalizeSlots(body.slots);
-    const playerIds = [...new Set(Object.values(slots).map(slot => slot.playerId).filter(Boolean))];
-    const poolIds = [...new Set(Object.values(slots).map(slot => slot.poolId).filter(Boolean))];
-    // References outside this team are never stored. A pick or profile deleted since the
-    // composition was saved simply empties its slot instead of blocking every later edit.
-    const teamPlayerIds = new Set(playerIds.length
-      ? (await sql`select id from players where team_id = ${teamId} and id = any(${playerIds}::uuid[])`).map(row => String(row.id).toLowerCase())
-      : []);
-    const teamPoolIds = new Set(poolIds.length
-      ? (await sql`select id from champion_pool where team_id = ${teamId} and id = any(${poolIds}::uuid[])`).map(row => String(row.id).toLowerCase())
-      : []);
-    for (const slot of Object.values(slots)) {
-      if (slot.playerId && !teamPlayerIds.has(slot.playerId)) slot.playerId = '';
-      if (slot.poolId && !teamPoolIds.has(slot.poolId)) slot.poolId = '';
-    }
-
-
+    // Sanitize references after acquiring the team lock. A profile or pick
+    // deleted during request validation must not be written back into JSON.
     if (action === 'update') {
       if (!compositionId) throw Object.assign(new Error('Composition requise.'), { status: 400 });
-      const rows = await sql`
+      const results = await sql.transaction(tx => [
+        ...lockedTeamQueries(tx),
+        tx`with valid_slots as (
+          select coalesce(jsonb_object_agg(slot.key, jsonb_build_object('playerId', coalesce(p.id::text, ''), 'poolId', coalesce(cp.id::text, ''))), '{}'::jsonb) as slots
+          from jsonb_each(${JSON.stringify(slots)}::jsonb) slot
+          left join players p on p.id = nullif(slot.value->>'playerId', '')::uuid and p.team_id = ${teamId}
+          left join champion_pool cp on cp.id = nullif(slot.value->>'poolId', '')::uuid and cp.team_id = ${teamId}
+        ), changed as (
         update composition_types
         set title = ${title},
             notes = ${notes},
             tags = ${JSON.stringify(tags)}::jsonb,
-            slots = ${JSON.stringify(slots)}::jsonb,
+            slots = (select slots from valid_slots),
             updated_at = now()
         where id = ${compositionId}
           and team_id = ${teamId}
-          and (${canManageAll} or created_by = ${user.id})
+          and (created_by = ${user.id} or exists (select 1 from teams t where t.id = ${teamId}
+            and (t.owner_id = ${user.id} or exists (select 1 from team_members tm where tm.team_id = t.id
+              and tm.user_id = ${user.id} and tm.role in ('owner','captain','coach','assistant','analyst','manager','board')))))
         returning *
-      `;
-      if (!rows[0]) throw Object.assign(new Error('Composition introuvable ou non autorisée.'), { status: 404 });
-      await sql`
+      ), logged as (
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'composition_types.update', 'composition_types', ${compositionId}, ${JSON.stringify({ teamId, title })}::jsonb)
-      `;
+        select ${user.id}, 'composition_types.update', 'composition_types', id, ${JSON.stringify({ teamId, title })}::jsonb from changed
+      ) select * from changed`
+      ]);
+      const rows = results[results.length - 1];
+      if (!rows[0]) throw Object.assign(new Error('Composition introuvable ou non autorisée.'), { status: 404 });
       return json({ composition: rows[0] });
     }
 
-    const rows = await sql`
+    const results = await sql.transaction(tx => [
+      ...lockedTeamQueries(tx),
+      tx`with valid_slots as (
+        select coalesce(jsonb_object_agg(slot.key, jsonb_build_object('playerId', coalesce(p.id::text, ''), 'poolId', coalesce(cp.id::text, ''))), '{}'::jsonb) as slots
+        from jsonb_each(${JSON.stringify(slots)}::jsonb) slot
+        left join players p on p.id = nullif(slot.value->>'playerId', '')::uuid and p.team_id = ${teamId}
+        left join champion_pool cp on cp.id = nullif(slot.value->>'poolId', '')::uuid and cp.team_id = ${teamId}
+      ), changed as (
       insert into composition_types (team_id, created_by, title, notes, tags, slots)
-      values (${teamId}, ${user.id}, ${title}, ${notes}, ${JSON.stringify(tags)}::jsonb, ${JSON.stringify(slots)}::jsonb)
+      select ${teamId}, ${user.id}, ${title}, ${notes}, ${JSON.stringify(tags)}::jsonb, slots from valid_slots
       returning *
-    `;
-
-    await sql`
+    ), logged as (
       insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'composition_types.create', 'composition_types', ${rows[0].id}, ${JSON.stringify({ teamId, title })}::jsonb)
-    `;
+      select ${user.id}, 'composition_types.create', 'composition_types', id, ${JSON.stringify({ teamId, title })}::jsonb from changed
+    ) select * from changed`
+    ]);
+    const rows = results[results.length - 1];
 
     return json({ composition: rows[0] });
   } catch (err) {
+    if (err?.code === '22012' || err?.code === '23503') return json({ error: 'L’équipe ou les accès ont changé. Recharge l’équipe puis réessaie.' }, 409);
     return handleError(err);
   }
 }

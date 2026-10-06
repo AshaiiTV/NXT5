@@ -1,5 +1,5 @@
 import { sql } from './db';
-import { discordError, auditDiscord } from './discord-access';
+import { discordError, discordTeamWriteQueries, assertCurrentDiscordTeamWriteAccess } from './discord-access';
 import { assertSubjectRateLimit } from './rate-limit';
 import { buildDiscordMessage, discordRequest, DiscordApiError, findDiscordMessage, getDiscordGuild } from './discord-client';
 import { getDiscordConfig, isDiscordEnabled, isDiscordId } from './discord-config';
@@ -93,12 +93,18 @@ export async function sendDiscordConnectionTest({ teamId, routeId, requestId, us
     throw discordError('Le bot doit pouvoir envoyer les messages et images et lire ce salon.', 409, 'DISCORD_TEST_CHANNEL_FORBIDDEN');
   }
   // One atomic insert is both the idempotency receipt and the destination fence.
-  const claimed = await sql(`insert into discord_connection_tests(team_id,request_id,route_id,guild_id,channel_id,config_version,status,created_by)
+  const [, , claimed] = await sql.transaction([...discordTeamWriteQueries(teamId, userId, 'manage'), sql(`with inserted as (
+    insert into discord_connection_tests(team_id,request_id,route_id,guild_id,channel_id,config_version,status,created_by)
     select r.team_id,$3,r.id,r.guild_id,r.channel_id,c.config_version,'sending',$4
     from discord_routes r join discord_connections c on c.team_id=r.team_id
     where r.team_id=$1 and r.id=$2 and r.enabled and c.status in ('active','paused') and c.guild_id=r.guild_id
       and c.guild_id=$5 and r.channel_id=$6 and c.config_version=$7
-    on conflict do nothing returning *`, [teamId, routeId, requestId, userId, route.guild_id, route.channel_id, route.config_version]);
+    on conflict do nothing returning *
+    ), recorded as (
+      insert into audit_logs(user_id,action,entity_type,entity_id,metadata)
+      select $4,'discord.connection_test_requested','team',$1,
+        jsonb_build_object('routeId',route_id,'requestId',request_id,'channelId',channel_id) from inserted
+    ) select * from inserted`, [teamId, routeId, requestId, userId, route.guild_id, route.channel_id, route.config_version])]);
   if (!claimed.length) {
     const raced = await stored(teamId, requestId);
     if (raced) {
@@ -111,13 +117,13 @@ export async function sendDiscordConnectionTest({ teamId, routeId, requestId, us
   }
   let attempted = false;
   try {
-    await auditDiscord(userId, teamId, 'discord.connection_test_requested', { routeId, requestId, channelId: route.channel_id });
     const rendered = await image();
     // Rendering must not send to a destination removed or relinked meanwhile.
     const current = await sql(`select r.id from discord_routes r join discord_connections c on c.team_id=r.team_id
       where r.team_id=$1 and r.id=$2 and r.enabled and c.status in ('active','paused') and c.guild_id=r.guild_id
         and c.guild_id=$3 and r.channel_id=$4 and c.config_version=$5`, [teamId, routeId, route.guild_id, route.channel_id, route.config_version]);
     if (!current.length || !isDiscordEnabled()) throw discordError('La configuration a changé. Actualise le dashboard.', 409, 'DISCORD_TEST_CONFIG_CHANGED');
+    await assertCurrentDiscordTeamWriteAccess(teamId, userId, 'manage');
     attempted = true;
     const result = await discordRequest('/channels/' + route.channel_id + '/messages', { method: 'POST',
       body: message(reference(teamId, requestId), rendered.filename), files: [{ name: rendered.filename, bytes: rendered.bytes }] });

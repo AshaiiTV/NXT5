@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { sql } from './db';
+import { discordTeamWriteQueries } from './discord-access';
 
 export const DISCORD_SCHEMA_VERSION = 'discord-publications-20260915-v1';
 export const PUBLICATION_LEASE_SECONDS = 180;
@@ -13,13 +14,27 @@ export async function assertDiscordSchemaReady() {
   throw Object.assign(new Error('La migration Discord doit être appliquée avant cette opération.'), {status: 503, code: 'DISCORD_SCHEMA_REQUIRED'});
 }
 
-export async function enqueueManualPublication({teamId, matchId, routeId, expectedRevision}: {teamId: string; matchId: string; routeId: string; expectedRevision?: number}) {
+export async function enqueueManualPublication({teamId, matchId, routeId, expectedRevision, userId, requestId = null}: {teamId: string; matchId: string; routeId: string; expectedRevision?: number; userId: string; requestId?: string | null}) {
   const rows = await sql`select m.id from matches m join discord_routes r on r.team_id = m.team_id
     where m.team_id = ${teamId} and m.id = ${matchId} and r.id = ${routeId}`;
   if (!rows.length) throw Object.assign(new Error('Game ou destination introuvable pour cette équipe.'), {status: 404});
   let jobs;
-  try { jobs = await sql`select * from nxt5_enqueue_discord_match(${matchId}::uuid,${routeId}::uuid,${expectedRevision ?? null}::bigint)`; }
+  try {
+    const results = await sql.transaction([
+      ...discordTeamWriteQueries(teamId, userId, 'staff'),
+      sql`with requested as materialized (
+        select * from nxt5_enqueue_discord_match(${matchId}::uuid,${routeId}::uuid,${expectedRevision ?? null}::bigint)
+      ), logged as (
+        insert into audit_logs(user_id,action,entity_type,entity_id,metadata)
+        select ${userId}, 'discord.publish_requested', 'team', ${teamId},
+          jsonb_build_object('matchId', ${matchId}::text, 'routeId', ${routeId}::text, 'requestId', ${requestId}::text, 'jobIds', jsonb_agg(id))
+        from requested having count(*) > 0
+      ) select * from requested`
+    ]);
+    jobs = results[2];
+  }
   catch (error: any) {
+    if (error?.code === '22012') throw Object.assign(new Error('Ton rôle a changé. Recharge l’équipe avant de publier.'), { status: 409, code: 'DISCORD_ROLE_CHANGED' });
     if (String(error?.message).includes('DISCORD_PREVIEW_OUTDATED')) {
       throw Object.assign(new Error('La game a changé depuis cet aperçu. Affiche un nouvel aperçu avant de publier.'),{status:409,code:'DISCORD_PREVIEW_OUTDATED'});
     }
@@ -37,10 +52,14 @@ export async function enqueueManualPublication({teamId, matchId, routeId, expect
   return jobs.map((job) => ready.find((updated) => updated.id === job.id) || job);
 }
 
-export async function retryPublicationJob({teamId, jobId}: {teamId: string; jobId: string}) {
+export async function retryPublicationJob({teamId, jobId, userId}: {teamId: string; jobId: string; userId: string}) {
   // Resume the publication mutex and its job in one PostgreSQL statement. A
   // failure cannot leave a queued job stranded behind a blocked publication.
-  const rows = await sql`with eligible as (
+  let rows;
+  try {
+  const results = await sql.transaction([
+    ...discordTeamWriteQueries(teamId, userId, 'staff'),
+    sql`with eligible as (
     select p.id from discord_publications p join publication_jobs j on j.publication_id=p.id
       join discord_connections c on c.team_id=j.team_id join discord_routes r on r.id=p.route_id
     where j.id=${jobId} and j.team_id=${teamId}
@@ -53,8 +72,19 @@ export async function retryPublicationJob({teamId, jobId}: {teamId: string; jobI
   ), resumed as (
     update discord_publications p set state=case when message_id is null then 'pending' else 'published' end,
       lease_token=null,lease_expires_at=null,updated_at=now() from eligible e where p.id=e.id returning p.id
-  ) update publication_jobs j set status='queued',retry_base_attempts=attempts,available_at=now(),last_error=null,last_error_code=null,updated_at=now()
-    from resumed p where j.id=${jobId} and j.publication_id=p.id returning j.*`;
+  ), changed as (
+    update publication_jobs j set status='queued',retry_base_attempts=attempts,available_at=now(),last_error=null,last_error_code=null,updated_at=now()
+    from resumed p where j.id=${jobId} and j.publication_id=p.id returning j.*
+  ), logged as (
+    insert into audit_logs(user_id,action,entity_type,entity_id,metadata)
+    select ${userId}, 'discord.retry_requested', 'team', ${teamId}, jsonb_build_object('jobId', id) from changed
+  ) select * from changed`
+  ]);
+  rows = results[2];
+  } catch (error: any) {
+    if (error?.code === '22012') throw Object.assign(new Error('Ton rôle a changé. Recharge l’équipe avant de relancer cet envoi.'), { status: 409, code: 'DISCORD_ROLE_CHANGED' });
+    throw error;
+  }
   if (!rows.length) throw Object.assign(new Error('Cet envoi ne peut pas être relancé. Vérifie sa destination ou rapproche son état incertain.'), {status: 409});
   return rows;
 }

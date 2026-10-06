@@ -3,6 +3,8 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - electron@44.2.0
 overrides:
+  # @electron/get v5 uses native fetch and removes the vulnerable got/global-agent chains.
+  '@electron/get@3': 5.0.0
   # GHSA-3wwx-pv8p-q78v (electron-builder > node-gyp > undici); drop once node-gyp resolves >=6.28.1 itself.
   undici@6: ^6.28.1
   # Build-only advisories on brace-expansion (GHSA-qhr7-859c-m2p7 and follow-ups) and fast-uri,

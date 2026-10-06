@@ -14,7 +14,7 @@ export default async function handler(request: Request, context: Context): Promi
     }
     assertSessionSecret();
     await ensureEmailVerificationColumns();
-    const user = await requireAuth(request, context);
+    const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
     await ensureUserNotificationColumns(sql);
     const rows = await sql`
       select notif_match, notif_report, notif_inactivity, inactivity_notice_pending

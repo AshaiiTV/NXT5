@@ -187,7 +187,7 @@ describe('provider discovery and request initiation', () => {
     const target = browser();
     const value = await begin(target, { next: 'https://attacker.example' });
     const [flow] = await rows('select * from social_auth_flows');
-    expect(flow).toMatchObject({ state_hash: sha256(value), browser_hash: sha256(target.jar.get(SOCIAL_BROWSER_COOKIE)!), remember: true, destination: '/equipes', flow: 'login', user_id: null });
+    expect(flow).toMatchObject({ state_hash: sha256(value), browser_hash: sha256(target.jar.get(SOCIAL_BROWSER_COOKIE)!), remember: true, destination: '/accueil', flow: 'login', user_id: null });
     expect(flow.nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(flow.code_verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(target.set).toHaveBeenCalledWith(expect.objectContaining({ name: SOCIAL_BROWSER_COOKIE, httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 300 }));
@@ -268,7 +268,7 @@ describe('signup completion and ownership', () => {
     enabled();
     const target = await prepareSignup();
     const pending = await pendingHandler(get('pending'), target.context);
-    expect(await pending.json()).toEqual({ provider: 'google', email: identity.email, emailVerified: true, name: 'External Player', destination: '/equipes?create=1' });
+    expect(await pending.json()).toEqual({ provider: 'google', email: identity.email, emailVerified: true, name: 'External Player', destination: '/accueil' });
     for (const body of [{ acceptLegal: false }, { legalVersion: 'old-version' }]) {
       const response = await complete(target, body);
       expect(response.status).toBe(400);
@@ -279,7 +279,7 @@ describe('signup completion and ownership', () => {
     const replay = copyBrowser(target);
     const result = await complete(target);
     expect(result.status).toBe(200);
-    expect(await result.json()).toMatchObject({ user: { email: identity.email, email_verified: true, name: 'New Player' }, destination: '/equipes?create=1', verificationEmailSent: true });
+    expect(await result.json()).toMatchObject({ user: { email: identity.email, email_verified: true, name: 'New Player' }, destination: '/accueil', verificationEmailSent: true });
     const [account] = await rows('select * from users');
     expect(account).toMatchObject({ email: identity.email, email_verified: true, password_hash: '', legal_version: LEGAL_VERSION, email_verify_token: null });
     expect(account.legal_accepted_at).not.toBeNull();
@@ -352,7 +352,7 @@ describe('signup completion and ownership', () => {
     const replay = copyBrowser(target);
     const response = await complete(target, { emailToken: token });
     expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ user: { email: chosenEmail, email_verified: true }, destination: '/equipes?create=1' });
+    expect(await response.json()).toMatchObject({ user: { email: chosenEmail, email_verified: true }, destination: '/accueil' });
     expect(await rows('select * from social_identities')).toMatchObject([{ provider: identity.provider, subject: identity.subject }]);
     expect(await rows('select * from sessions')).toHaveLength(1);
     expect(await rows('select * from social_signup_emails')).toHaveLength(0);

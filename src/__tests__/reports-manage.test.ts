@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const database = vi.hoisted(() => ({
-  sql: Object.assign(vi.fn(), { transaction: async (queries: any[]) => Promise.all(queries) }),
+  sql: Object.assign(vi.fn(), { transaction: async (queries: any) => Promise.all(typeof queries === 'function' ? queries(database.sql) : queries) }),
   report: { id: 'review', team_id: 'team', created_by: 'user', title: 'Review', content: 'Notes initiales' } as Record<string, unknown>
 }));
 
@@ -20,6 +20,7 @@ beforeEach(() => {
   database.sql.mockImplementation(async (parts: TemplateStringsArray, ...values: unknown[]) => {
     const query = parts.join('?').replace(/\s+/g, ' ').trim();
     if (query.startsWith('update teams set first_review_at')) return [{ id: 'team' }];
+    if (query.startsWith('select 1 / case') || query.startsWith('select user_id from team_members') || query.startsWith('select id from reports')) return [];
     if (query.includes('from teams')) return [{ owner_id: 'user', role: 'captain' }];
     if (query.startsWith('select id from matches')) return (values[1] as string[]).map((id) => ({ id }));
     if (query.startsWith('select * from reports')) return [{ ...database.report }];

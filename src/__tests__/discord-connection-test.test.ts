@@ -92,6 +92,7 @@ beforeEach(async () => {
   ], roles: [] });
   await state.pg.exec('truncate users cascade');
   for (const user of [owner, otherOwner, coach, player, captain]) await rows("insert into users(id,account_name,name,password_hash) values($1,$2,$2,'unused')", [user, `test-${user}`]);
+  await rows("update users set email=account_name || '@example.test', email_verified=true");
   await rows("insert into teams(id,owner_id,name,tag) values($1,$2,'Private real team','AAA'),($3,$4,'Other team','BBB')", [team, owner, otherTeam, otherOwner]);
   await rows("insert into team_members(team_id,user_id,role) values($1,$2,'coach'),($1,$3,'player'),($1,$4,'captain')", [team, coach, player, captain]);
   await rows("insert into discord_user_links(discord_user_id,user_id,discord_label) values($1,$2,'Test captain')", [captainDiscordId, captain]);
@@ -103,6 +104,24 @@ afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 afterAll(async () => { await state.pg?.close(); });
 
 describe('Explicit fictitious Discord connection tests', () => {
+  it('refuses a captain revoked during the live Discord permission check', async () => {
+    state.auth.mockResolvedValue({ id: captain });
+    state.guild.mockImplementationOnce(async () => {
+      await rows('delete from team_members where team_id=$1 and user_id=$2', [team, captain]);
+      return { guild: { id: guild }, channels: [{ id: channel, canSend: true }] };
+    });
+    expect((await send()).status).toBe(409);
+    expect(await receipts()).toEqual([]);
+    expect(state.send).not.toHaveBeenCalled();
+  });
+  it('rolls back the sending receipt when its audit cannot be saved', async () => {
+    await rows("alter table audit_logs add constraint reject_test_audit check (action <> 'discord.connection_test_requested')");
+    try {
+      expect((await send()).status).toBe(500);
+      expect(await receipts()).toEqual([]);
+      expect(state.send).not.toHaveBeenCalled();
+    } finally { await rows('alter table audit_logs drop constraint reject_test_audit'); }
+  });
   it('sends a synthetic PNG and message to a saved paused connection without mentions or game links', async () => {
     const response = await send();
     expect(response.status).toBe(200);
@@ -330,6 +349,52 @@ describe('Connection test permissions and environment boundaries', () => {
     expect((await receipts())[0].route_id).toBe(route);
     await rows('delete from teams where id=$1', [team]);
     expect(await receipts()).toEqual([]);
+  });
+});
+
+describe('Discord configuration authorization remains current through the write', () => {
+  const actions = ['command-channel', 'create-link', 'resume', 'pause', 'disconnect', 'routes'];
+  const configure = (action: string) => action === 'routes'
+    ? routesEndpoint(post({ routes: [{ channelId: channel, categoryIds: [], includeHints: false, enabled: true, mentionRoleId: null }] }), context)
+    : connection(postConnection({ action, channelId: channel }), context);
+  const snapshot = async () => ({
+    connections: await rows('select * from discord_connections order by team_id'),
+    routes: await rows('select * from discord_routes order by id'),
+    links: await rows('select * from discord_link_codes order by code_hash'),
+    jobs: await rows('select * from publication_jobs order by id'),
+    audits: await rows('select * from audit_logs order by id'),
+  });
+
+  it.each(actions)('rejects %s after the captain has been removed', async (action) => {
+    state.auth.mockResolvedValue({ id: captain });
+    const before = await snapshot();
+    state.rate.mockImplementationOnce(async () => {
+      await rows('delete from team_members where team_id=$1 and user_id=$2', [team, captain]);
+    });
+    expect((await configure(action)).status).toBe(409);
+    expect(await snapshot()).toEqual(before);
+    expect(state.send).not.toHaveBeenCalled();
+  });
+
+  it.each(['command-channel', 'resume', 'routes'])('rejects %s after a demotion during the live Discord check', async (action) => {
+    state.auth.mockResolvedValue({ id: captain });
+    const before = await snapshot();
+    state.guild.mockImplementationOnce(async () => {
+      await rows("update team_members set role='player' where team_id=$1 and user_id=$2", [team, captain]);
+      return { guild: { id: guild }, channels: [{ id: channel, name: 'scrims', canSend: true }], roles: [] };
+    });
+    expect((await configure(action)).status).toBe(409);
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it.each(actions)('rolls back %s if its audit write fails', async (action) => {
+    const before = await snapshot();
+    await rows("alter table audit_logs add constraint reject_config_audit check(action not like 'discord.%')");
+    try {
+      expect((await configure(action)).status).toBe(500);
+      expect(await snapshot()).toEqual(before);
+      expect(state.send).not.toHaveBeenCalled();
+    } finally { await rows('alter table audit_logs drop constraint reject_config_audit'); }
   });
 });
 

@@ -1,10 +1,10 @@
 import React from "react";
-import { Activity, AlertTriangle, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
+import { Activity, ArrowRight, AlertTriangle, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
 import { draftViewFromPath, draftViewLabel, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
 import { cx, profileStatusLabel } from "../../app/helpers.js";
 import { Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
-import { Button } from "../ui/Core.jsx";
+import { Button, Surface } from "../ui/Core.jsx";
 import AccountSubscription from "../account/AccountSubscription.jsx";
 import "./app-chrome.css";
 
@@ -12,31 +12,35 @@ export function AmbientBackground() {
   return <div className="nxt5-ambient-bg nxt5-ambient-calm" aria-hidden="true"><div className="nxt5-ambient-light" /></div>;
 }
 
-const COMPASS_ICONS = { teams: Users, matches: Upload, trends: Activity, reports: FileText };
+const COMPASS_ICONS = { profile: Users, matches: Upload, reading: Activity, reports: FileText, planning: CalendarDays, "team-review": FileText };
 
-export function BeginnerCompass({ steps = [], onNavigate, onClose }) {
+export function BeginnerCompass({ steps = [], onNavigate, onClose, manager = true }) {
   const doneCount = steps.filter((step) => step.done).length;
   const nextStep = steps.find((step) => !step.done && !step.disabled) || steps.find((step) => !step.done);
   if (!nextStep) return null;
-  const goToStep = (step) => { if (!step.disabled && step.path) onNavigate(step.path); };
-  return <section className="nxt5-compass" aria-labelledby="nxt5-compass-title">
-    <div className="nxt5-compass-heading">
-      <div><h2 id="nxt5-compass-title">Les premières étapes</h2><p>{doneCount} sur {steps.length} terminées · À ton rythme, avec ton équipe.</p></div>
-      <button type="button" className="nxt5-chrome-icon-button" aria-label="Masquer le démarrage guidé" title="Masquer le démarrage guidé" onClick={onClose}><X size={18} aria-hidden="true" /></button>
-    </div>
-    <div className="nxt5-compass-next">
-      <div><p className="nxt5-compass-next-title">{nextStep.label} <span>· {nextStep.detail}</span></p><p id="nxt5-compass-help">{nextStep.reason || "Choisis une étape pour avancer. Ta progression se met à jour automatiquement."}</p></div>
-      <Button type="button" icon={COMPASS_ICONS[nextStep.id]} onClick={() => goToStep(nextStep)} disabled={nextStep.disabled} aria-describedby="nxt5-compass-help">{nextStep.action}</Button>
-    </div>
-    <ol className="nxt5-compass-steps">
-      {steps.map((step, index) => <li key={step.id}>
-        <button type="button" onClick={() => goToStep(step)} disabled={step.disabled} aria-label={`${step.label} : ${step.action}${step.done ? " · Étape terminée" : ""}`} aria-describedby={`nxt5-compass-${step.id}-detail`} className={cx("nxt5-compass-step", nextStep.id === step.id && "is-current", step.done && "is-done")}>
-          <span className="nxt5-compass-number" aria-hidden="true">{step.done ? <Check size={16} /> : index + 1}</span>
-          <span className="nxt5-compass-step-copy"><span className="nxt5-compass-label">{step.label}</span><span id={`nxt5-compass-${step.id}-detail`} className="nxt5-compass-detail">{step.disabled ? step.reason : step.detail}</span></span>
-          {!step.disabled && <ChevronRight size={16} className="nxt5-compass-arrow" aria-hidden="true" />}
-        </button>
-      </li>)}
-    </ol>
+  const Icon = COMPASS_ICONS[nextStep.id] || Users;
+  return <section className="nxt5-start" aria-labelledby="nxt5-start-title">
+    <Surface glow className="nxt5-start-surface">
+      <div className="nxt5-start-meta"><span>{manager ? "Ton premier débrief" : "Tes premiers repères"}</span><span aria-live="polite">{doneCount} / {steps.length} terminées</span></div>
+      <ol className="nxt5-start-progress" aria-label="Progression du démarrage">
+        {steps.map((step, index) => <li key={step.id} className={cx(step.done && "is-done", nextStep.id === step.id && "is-current")} aria-current={nextStep.id === step.id ? "step" : undefined}>
+          <span aria-hidden="true">{step.done ? <Check size={16} /> : `0${index + 1}`}</span><span>{step.label}<span className="sr-only">{step.done ? " : terminée" : step.disabled ? " : en attente" : " : à découvrir"}</span></span>
+        </li>)}
+      </ol>
+      <div className="nxt5-start-focus">
+        <span className="nxt5-start-icon" aria-hidden="true"><Icon size={30} /></span>
+        <p className="nxt5-start-eyebrow">{nextStep.disabled ? "En attendant ton équipe" : "Ta prochaine action"}</p>
+        <h2 id="nxt5-start-title">{nextStep.disabled ? "Ton espace se prépare" : nextStep.title}</h2>
+        <p id="nxt5-start-description">{nextStep.disabled ? nextStep.reason : nextStep.description}</p>
+        <Button type="button" icon={ArrowRight} aria-describedby="nxt5-start-description" onClick={() => onNavigate(nextStep.disabled ? "/equipes" : nextStep.path)}>{nextStep.disabled ? "Voir mon équipe" : nextStep.action}</Button>
+        {!nextStep.disabled && <p className="nxt5-start-detail">{nextStep.detail}</p>}
+      </div>
+      <div className="nxt5-start-footer">
+        <button type="button" onClick={() => onNavigate(`/guide?section=${nextStep.help}`)}><BookOpen size={16} aria-hidden="true" />Besoin d’aide pour cette étape ?</button>
+        <button type="button" onClick={onClose}>Explorer librement<ArrowRight size={16} aria-hidden="true" /></button>
+      </div>
+    </Surface>
+    <p className="nxt5-start-reassurance">Retrouve ce parcours à tout moment dans Accueil. Tu avances à ton rythme.</p>
   </section>;
 }
 
@@ -114,8 +118,8 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
         <button ref={closeRef} type="button" aria-label="Fermer le menu" onClick={() => setOpen(false)} className="nxt5-chrome-icon-button nxt5-sidebar-close"><X size={20} aria-hidden="true" /></button>
       </div>
       <nav className="nxt5-sidebar-navigation" aria-label="Espace équipe">
-        <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Au quotidien</p>{navItems.map((item) => renderNavItem(item))}</div>
-        {!!moreItems.length && <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Préparation et partage</p>{moreItems.map((item) => renderNavItem(item))}</div>}
+        <div className="nxt5-sidebar-group"><p className="nxt5-sidebar-group-label">Au quotidien</p>{navItems.map((item) => renderNavItem(item, false))}</div>
+        {!!moreItems.length && <details className="nxt5-sidebar-group nxt5-sidebar-more" open={MORE_NAV_IDS.includes(active) ? true : undefined}><summary title="Préparation et partage"><ChevronDown size={17} aria-hidden="true" /><span className="nxt5-sidebar-label">Préparation et partage</span></summary>{moreItems.map((item) => renderNavItem(item, false))}</details>}
       </nav>
       <div className="nxt5-sidebar-footer">
         {renderNavItem(NAV.find((item) => item.id === "guide"), false)}
@@ -132,7 +136,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
   </>;
 }
 
-export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam }) {
+export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam, onHelp }) {
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const detailLabel = active === "profile" ? profileViewLabel(profileViewFromPath(window.location.pathname)) : active === "draft" ? draftViewLabel(draftViewFromPath(window.location.pathname)) : "";
   const [teamMenuOpen, setTeamMenuOpen] = React.useState(false);
@@ -167,7 +171,8 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
           <button type="button" onClick={() => { onCreateTeam(); setTeamMenuOpen(false); }} className="nxt5-team-create"><Plus size={17} aria-hidden="true" />Créer ou rejoindre une équipe</button>
         </div>}
       </div>
-      {currentTeam && active !== "team-management" && <button type="button" onClick={onManageTeam} aria-label="Gestion de l’équipe" title="Gestion de l’équipe" className="nxt5-chrome-icon-button"><Settings size={18} aria-hidden="true" /></button>}
+      {onHelp && <button type="button" onClick={onHelp} className="nxt5-topbar-help" aria-label="Besoin d’aide ?"><BookOpen size={18} aria-hidden="true" /><span>Aide</span></button>}
+      {currentTeam && !["home", "team-management"].includes(active) && <button type="button" onClick={onManageTeam} aria-label="Gestion de l’équipe" title="Gestion de l’équipe" className="nxt5-chrome-icon-button"><Settings size={18} aria-hidden="true" /></button>}
     </div>}
   </header>;
 }

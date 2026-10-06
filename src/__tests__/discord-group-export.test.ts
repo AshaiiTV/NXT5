@@ -3,11 +3,32 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), send: vi.fn(), guild: vi.fn(), find: vi.fn(), render: vi.fn(), rate: vi.fn(), failReceipt: false }));
-vi.mock('../../netlify/functions/_lib/db', () => ({ sql: async (query: string | TemplateStringsArray, ...args: any[]) => {
-  const statement = typeof query === 'string' ? query : query.reduce((value, part, index) => value + (index ? '$' + index : '') + part, '');
-  if (state.failReceipt && statement.includes("set status='succeeded'")) { state.failReceipt = false; throw new Error('Receipt storage unavailable'); }
-  return (await state.pg.query(statement, typeof query === 'string' ? args[0] || [] : args)).rows;
-} }));
+vi.mock('../../netlify/functions/_lib/db', async () => {
+  const { neon, neonConfig } = await import('@neondatabase/serverless');
+  neonConfig.fetchFunction = async (_url, options: any) => {
+    const body = JSON.parse(options.body);
+    async function execute(connection: any, statement: any) {
+      if (state.failReceipt && statement.query.includes("set status='succeeded'")) { state.failReceipt = false; throw new Error('Receipt storage unavailable'); }
+      const result = await connection.query(statement.query, statement.params);
+      return { fields: result.fields, rows: result.rows.map((row: any) => result.fields.map((field: any) => {
+        const value = row[field.name];
+        if (value === null || value === undefined) return null;
+        if ([114, 3802].includes(field.dataTypeID)) return JSON.stringify(value);
+        if (typeof value === 'boolean') return value ? 't' : 'f';
+        if (value instanceof Date) return value.toISOString().replace('T', ' ').replace('Z', '+00');
+        if (Array.isArray(value)) return '{' + value.map(entry => JSON.stringify(String(entry))).join(',') + '}';
+        return String(value);
+      })), rowCount: result.affectedRows ?? result.rows.length };
+    }
+    try {
+      if (body.queries) return new Response(JSON.stringify({ results: await state.pg.transaction(async (tx: any) => {
+        const results = []; for (const query of body.queries) results.push(await execute(tx, query)); return results;
+      }) }));
+      return new Response(JSON.stringify(await execute(state.pg, body)));
+    } catch (error: any) { return new Response(JSON.stringify({ message: error.message, code: error.code }), { status: 400 }); }
+  };
+  return { sql: neon('postgresql://test:test@endpoint-tests.invalid/nxt5') };
+});
 vi.mock('../../netlify/functions/_lib/auth', () => ({ requireAuth: state.auth }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: state.rate }));
 vi.mock('../../netlify/functions/_lib/discord-client', async original => ({ ...await original<any>(), discordRequest: state.send, getDiscordGuild: state.guild, findDiscordMessage: state.find, getDiscordBotUserId: async () => '100000000000000088' }));
@@ -75,6 +96,26 @@ beforeEach(async () => {
 });
 
 describe('group export endpoints: real PostgreSQL, mocked Discord and PNG', () => {
+  it('refuses a staff member revoked during the live Discord check', async () => {
+    state.auth.mockResolvedValue({ id: coach });
+    const prepared = await preview();
+    state.guild.mockImplementationOnce(async () => {
+      await rows('delete from team_members where team_id=$1 and user_id=$2', [team, coach]);
+      return { guild: { id: guild }, channels: [{ id: channel, canSend: true }] };
+    });
+    expect((await send(prepared)).status).toBe(409);
+    expect(await receipts()).toEqual([]);
+    expect(state.send).not.toHaveBeenCalled();
+  });
+  it('rolls back the group receipt when the audit insert fails', async () => {
+    const prepared = await preview();
+    await rows("alter table audit_logs add constraint reject_group_audit check (action <> 'discord.group_export_requested')");
+    try {
+      expect((await send(prepared)).status).toBe(500);
+      expect(await receipts()).toEqual([]);
+      expect(state.send).not.toHaveBeenCalled();
+    } finally { await rows('alter table audit_logs drop constraint reject_group_audit'); }
+  });
   it('previews and publishes one factual PNG for the entire group with no mentions or private notes', async () => {
     const prepared = await preview();
     expect(prepared).toMatchObject({ imageDataUrl: 'data:image/png;base64,iVBORw==', sourceHash: expect.stringMatching(/^[a-f0-9]{64}$/), previewToken: expect.any(String), message: { embeds: [{ title: 'Arcane · Bloc scrims', description: '2 games · 1 victoire · 1 défaite' }] } });

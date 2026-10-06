@@ -56,14 +56,20 @@ const actor = vi.hoisted(() => ({ id: '00000000-0000-4000-8000-000000000001' }))
 const riot = vi.hoisted(() => ({ account: vi.fn(), match: vi.fn(), ids: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret() {}, requireAuth: async () => actor }));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendNotification: vi.fn() }));
+vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ getTeamMemberEmails: async () => [] }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({
   fetchAccountByRiotId: riot.account, fetchRiotMatchById: riot.match,
   fetchMatchIdsByPuuid: riot.ids, getChampionDataMap: async () => new Map(), platformFromRegion: () => 'euw1',
 }));
 import sync from '../../netlify/functions/players-sync-most-played';
+import { acquireSyncLease, releaseSyncLease, reserveSyncBudget } from '../../netlify/functions/_lib/riot-sync';
+import { RIOT_SYNC_DEADLINE_MS } from '../../shared/riot-sync-policy.js';
 import update from '../../netlify/functions/players-update';
 import memberRole from '../../netlify/functions/team-member-role';
 import compositions from '../../netlify/functions/composition-types-manage';
+import reports from '../../netlify/functions/reports-manage';
+import manualPool from '../../netlify/functions/champion-pool-manual';
 
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const owner = uuid(1), captain = uuid(2), teamId = uuid(3), playerId = uuid(4), poolId = uuid(5), foreignTeam = uuid(6);
@@ -77,12 +83,15 @@ beforeAll(async () => {
   await database.pg.exec(readFileSync(new URL('../../database/schema.sql', import.meta.url), 'utf8')
     .replace('create extension if not exists pgcrypto;', '').replaceAll('gen_random_bytes(5)', "decode('0000000000', 'hex')"));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20261006_riot_sync.sql', import.meta.url), 'utf8'));
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
+  await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_report_source.sql', import.meta.url), 'utf8'));
 }, 20_000);
 afterAll(async () => { await database.pg?.close(); });
 beforeEach(async () => {
   database.beforeBatch = null;
   actor.id = owner;
-  await database.pg.exec('alter table audit_logs drop constraint if exists reject_audit; truncate users cascade');
+  await database.pg.exec('alter table audit_logs drop constraint if exists reject_audit; truncate users cascade; truncate rate_limits');
   await database.pg.query("insert into users(id,account_name,name,password_hash) values($1,'owner','Owner','hash'),($2,'captain','Captain','hash')", [owner, captain]);
   await database.pg.query("insert into teams(id,owner_id,name,tag,region) values($1,$2,'Team','TM','EUW'),($3,$2,'Foreign','FR','EUW')", [teamId, owner, foreignTeam]);
   await database.pg.query("insert into team_members(team_id,user_id,role) values($1,$2,'captain')", [teamId, captain]);
@@ -133,9 +142,128 @@ it('T5-03 saves current results and cleans the pool atomically', async () => {
   } finally {
     await database.pg.exec('drop trigger reject_pool_delete on champion_pool; drop function reject_pool_delete()');
   }
+  // Failed attempts keep their upstream reservation, so the retry must wait
+  // for the next budget window even when its database writes were rolled back.
+  await database.pg.exec("update rate_limits set window_start=now()-interval '11 minutes'");
   expect((await (await call(sync, { playerId })).json()).results[0].ok).toBe(true);
   expect((await player()).performance_score).toBe('1');
   expect(await pool()).toHaveLength(0);
+});
+
+it('admits one concurrent team synchronization and rejects a fresh retry before Riot IO', async () => {
+  let reachedAccount!: () => void;
+  const entered = new Promise<void>(resolve => { reachedAccount = resolve; });
+  let finishAccount!: () => void;
+  riot.account.mockImplementationOnce(async () => {
+    reachedAccount();
+    await new Promise<void>(resolve => { finishAccount = resolve; });
+    return { puuid: 'old-puuid' };
+  });
+  const first = call(sync, { playerId });
+  await entered;
+  const duplicate = await call(sync, { playerId });
+  expect(duplicate.status).toBe(429);
+  expect(await duplicate.json()).toMatchObject({ code: 'RIOT_SYNC_BUSY', retryAfter: 45 });
+  expect(riot.account).toHaveBeenCalledTimes(1);
+  finishAccount();
+  expect((await (await first).json()).results[0].ok).toBe(true);
+  const fresh = await call(sync, { playerId });
+  expect((await fresh.json()).results[0]).toMatchObject({ ok: false, code: 'RIOT_SYNC_FRESH' });
+  expect(riot.account).toHaveBeenCalledTimes(1);
+  expect((await database.pg.query('select * from riot_sync_leases')).rows).toHaveLength(0);
+});
+
+it('reserves the shared key budget atomically across concurrent callers and retains rejected attempts', async () => {
+  const outcomes = await Promise.allSettled([reserveSyncBudget(80), reserveSyncBudget(80)]);
+  expect(outcomes.filter(outcome => outcome.status === 'fulfilled')).toHaveLength(1);
+  expect(outcomes.find(outcome => outcome.status === 'rejected')).toMatchObject({ reason: { status: 429, code: 'RIOT_SYNC_BUDGET' } });
+  const rows = (await database.pg.query("select attempts from rate_limits where endpoint='riot-profile-sync-budget'")).rows;
+  expect(rows).toEqual([{ attempts: 82 }]);
+  await database.pg.exec("update rate_limits set window_start=now()-interval '121 seconds'");
+  await expect(reserveSyncBudget(80)).resolves.toBeUndefined();
+});
+
+it('continues a bulk retry past fresh profiles so later teammates can synchronize', async () => {
+  expect((await (await call(sync, { playerId })).json()).results[0].ok).toBe(true);
+  const nextPlayer = uuid(88);
+  await database.pg.query("insert into players(id,team_id,name,riot_id,role) values($1,$2,'Next','Next#EUW','TOP')", [nextPlayer, teamId]);
+  // The global budget has recovered, while the already synchronized profile
+  // remains fresh. Retrying the roster must reach the next unsynchronized one.
+  await database.pg.exec("update rate_limits set window_start=now()-interval '121 seconds' where endpoint='riot-profile-sync-budget'");
+  const response = await call(sync, {});
+  expect(response.status).toBe(200);
+  const result = await response.json();
+  expect(result.results).toHaveLength(2);
+  expect(result.results[0]).toMatchObject({ playerId, ok: false, code: 'RIOT_SYNC_FRESH' });
+  expect(result.results[1]).toMatchObject({ playerId: nextPlayer, ok: true });
+  expect(riot.account).toHaveBeenCalledTimes(2);
+  expect(riot.account.mock.calls[1][0]).toBe('Next#EUW');
+});
+
+it('recovers an expired lease and prevents its old worker from releasing the replacement', async () => {
+  const oldToken = await acquireSyncLease(teamId, owner);
+  await database.pg.query("update riot_sync_leases set expires_at=now()-interval '1 second' where team_id=$1", [teamId]);
+  const replacement = await acquireSyncLease(teamId, owner);
+  expect(replacement).not.toBe(oldToken);
+  await releaseSyncLease(teamId, oldToken);
+  expect((await database.pg.query('select token from riot_sync_leases')).rows).toEqual([{ token: replacement }]);
+  await releaseSyncLease(teamId, replacement);
+  expect((await database.pg.query('select * from riot_sync_leases')).rows).toHaveLength(0);
+});
+
+it('fences a stale worker before any profile or champion pool write', async () => {
+  const before = await player();
+  riot.account.mockImplementationOnce(async () => {
+    await database.pg.query('update riot_sync_leases set token=$1 where team_id=$2', [uuid(99), teamId]);
+    return { puuid: 'old-puuid' };
+  });
+  const response = await call(sync, { playerId });
+  expect((await response.json()).results[0]).toMatchObject({ ok: false, code: 'PLAYER_CHANGED' });
+  expect(await player()).toEqual(before);
+  expect(await pool()).toHaveLength(1);
+  expect(await audits()).toHaveLength(0);
+  expect((await database.pg.query('select token from riot_sync_leases')).rows).toEqual([{ token: uuid(99) }]);
+});
+
+it('propagates caller cancellation and never writes a late success or failure status', async () => {
+  const before = await player();
+  const controller = new AbortController();
+  let started!: () => void;
+  const entered = new Promise<void>(resolve => { started = resolve; });
+  riot.match.mockImplementationOnce((_id, _platform, { signal }) => new Promise((_resolve, reject) => {
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    started();
+  }));
+  const pending = sync(new Request('https://nxt5.test/api', {
+    method: 'POST', body: JSON.stringify({ teamId, playerId }), signal: controller.signal
+  }), {} as any);
+  await entered;
+  controller.abort();
+  const response = await pending;
+  expect(response.status).toBe(408);
+  expect(await response.json()).toMatchObject({ code: 'RIOT_SYNC_CANCELLED' });
+  expect(await player()).toEqual(before);
+  expect(await pool()).toHaveLength(1);
+  expect(await audits()).toHaveLength(0);
+  expect((await database.pg.query('select * from riot_sync_leases')).rows).toHaveLength(0);
+});
+
+it('rejects results collected past the global deadline without changing stored data', async () => {
+  const before = await player();
+  const start = Date.now();
+  let now: ReturnType<typeof vi.spyOn> | undefined;
+  riot.match.mockImplementationOnce(async () => {
+    now = vi.spyOn(Date, 'now').mockReturnValue(start + RIOT_SYNC_DEADLINE_MS + 1000);
+    return { info: { participants: [{ puuid: 'old-puuid', championId: 103, win: true }] } };
+  });
+  try {
+    const response = await call(sync, { playerId });
+    expect(response.status).toBe(504);
+    expect(await response.json()).toMatchObject({ code: 'RIOT_SYNC_TIMEOUT' });
+    expect(await player()).toEqual(before);
+    expect(await pool()).toHaveLength(1);
+    expect(await audits()).toHaveLength(0);
+  } finally { now?.mockRestore(); }
 });
 
 it.each([
@@ -159,7 +287,7 @@ it.each([
     code: stage === 'match' ? 'RIOT_SYNC_INCOMPLETE' : code,
     retryAfter: code === 'RIOT_RATE_LIMIT' ? 90 : null,
   }]);
-  expect(await player()).toMatchObject({ most_played: before.most_played, performance_score: before.performance_score, status: expectedMessage });
+  expect(await player()).toMatchObject({ most_played: before.most_played, performance_score: before.performance_score, status: code === 'RIOT_RATE_LIMIT' ? before.status : expectedMessage });
   expect(await pool()).toEqual(beforePool);
 });
 
@@ -216,6 +344,71 @@ it('T7-01 a composition whose pick was deleted stays editable and the stale pick
   const updated = await call(compositions, { action: 'update', compositionId: composition.id, title: 'After', slots: { MID: { playerId, poolId } } });
   expect(updated.status).toBe(200);
   expect((await updated.json()).composition).toMatchObject({ title: 'After', slots: { MID: { playerId, poolId: '' } } });
+});
+
+const reportId = uuid(50), compositionId = uuid(51);
+async function seedStaffMutation(action: string, kind: 'report' | 'composition' | 'pool') {
+  if (kind === 'report') {
+    await database.pg.query("insert into reports(id,team_id,created_by,title,content) values($1,$2,$3,'Before','Original notes')", [reportId, teamId, owner]);
+    return { handler: reports, table: 'reports', body: { action, reportId, title: 'After', content: 'Changed notes', matchIds: [] } };
+  }
+  if (kind === 'composition') {
+    await database.pg.query("insert into composition_types(id,team_id,created_by,title) values($1,$2,$3,'Before')", [compositionId, teamId, owner]);
+    return { handler: compositions, table: 'composition_types', body: { action, compositionId, title: 'After', slots: { MID: { playerId, poolId } } } };
+  }
+  await database.pg.query("update champion_pool set source='manual' where id=$1", [poolId]);
+  return { handler: manualPool, table: 'champion_pool', body: { action, playerId, champion: 'Ahri', notes: 'Changed notes', ...(action !== 'upsert' ? { poolId } : {}) } };
+}
+const mutationCases = [
+  ...['create', 'update', 'delete'].map(action => ({ kind: 'report' as const, action })),
+  ...['create', 'update', 'delete'].map(action => ({ kind: 'composition' as const, action })),
+  ...['upsert', 'update', 'delete'].map(action => ({ kind: 'pool' as const, action })),
+];
+
+it.each(mutationCases)('rechecks $kind $action rights after a concurrent staff demotion/removal', async ({ kind, action }) => {
+  const { handler, table, body } = await seedStaffMutation(action, kind);
+  actor.id = captain;
+  const before = (await database.pg.query(`select * from ${table} order by id`)).rows;
+  database.beforeBatch = () => action === 'create'
+    ? database.pg.query('delete from team_members where team_id=$1 and user_id=$2', [teamId, captain])
+    : database.pg.query("update team_members set role='player' where team_id=$1 and user_id=$2", [teamId, captain]);
+  const response = await call(handler, body);
+  expect([403, 404, 409]).toContain(response.status);
+  expect((await database.pg.query(`select * from ${table} order by id`)).rows).toEqual(before);
+  expect(await audits()).toHaveLength(0);
+});
+
+it.each(mutationCases)('rolls back $kind $action when audit insertion fails', async ({ kind, action }) => {
+  const { handler, table, body } = await seedStaffMutation(action, kind);
+  const before = (await database.pg.query(`select * from ${table} order by id`)).rows;
+  await database.pg.exec('alter table audit_logs add constraint reject_audit check(false)');
+  const response = await call(handler, body);
+  expect(response.status).toBe(500);
+  expect((await database.pg.query(`select * from ${table} order by id`)).rows).toEqual(before);
+  expect((await database.pg.query('select first_review_at from teams where id=$1', [teamId])).rows[0].first_review_at).toBeNull();
+  expect(await audits()).toHaveLength(0);
+});
+
+it.each(['create', 'update'])('sanitizes composition references deleted before its %s transaction', async action => {
+  const { handler, body } = await seedStaffMutation(action, 'composition');
+  database.beforeBatch = () => database.pg.query('delete from players where id=$1', [playerId]);
+  const response = await call(handler, body);
+  expect(response.status).toBe(200);
+  expect((await response.json()).composition.slots).toEqual({ MID: { playerId: '', poolId: '' } });
+  expect(await audits()).toHaveLength(1);
+});
+
+it.each(['upsert', 'update', 'delete'])('refuses a linked-player pool %s after the profile is relinked', async action => {
+  const { handler, body } = await seedStaffMutation(action, 'pool');
+  actor.id = captain;
+  await database.pg.query("update team_members set role='player' where team_id=$1 and user_id=$2", [teamId, captain]);
+  await database.pg.query('update players set user_id=$1 where id=$2', [captain, playerId]);
+  const before = await pool();
+  database.beforeBatch = () => database.pg.query('update players set user_id=$1 where id=$2', [owner, playerId]);
+  const response = await call(handler, body);
+  expect([403, 404, 409]).toContain(response.status);
+  expect(await pool()).toEqual(before);
+  expect(await audits()).toHaveLength(0);
 });
 
 it('N5-02 changing Riot ID invalidates derived stats; a name-only update keeps them', async () => {

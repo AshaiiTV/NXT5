@@ -45,20 +45,31 @@ export default async function handler(request: Request, context: Context): Promi
     `;
     if (!players[0]) throw Object.assign(new Error('Profil joueur introuvable dans cette équipe.'), { status: 404 });
 
-    const rows = await sql`
-      insert into player_coaching_notes (team_id, player_id, content, updated_by)
-      values (${teamId}, ${playerId}, ${content}, ${user.id})
-      on conflict (team_id, player_id) do update
-        set content = excluded.content,
-            updated_by = excluded.updated_by,
-            updated_at = now()
-      returning *
-    `;
-
-    await sql`
-      insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-      values (${user.id}, 'profile.coaching_note.update', 'players', ${playerId}, ${JSON.stringify({ teamId, length: content.length })}::jsonb)
-    `;
+    const results = await sql.transaction(tx => [
+      tx`select id from teams where id = ${teamId} for update`,
+      tx`select user_id from team_members where team_id = ${teamId} and user_id = ${user.id} for share`,
+      tx`select id from players where id = ${playerId} and team_id = ${teamId} for share`,
+      tx`with changed_note as (
+        insert into player_coaching_notes (team_id, player_id, content, updated_by)
+        select teams.id, players.id, ${content}, ${user.id}
+        from teams join players on players.team_id = teams.id
+        where teams.id = ${teamId} and players.id = ${playerId}
+          and (teams.owner_id = ${user.id} or exists (select 1 from team_members
+            where team_id = teams.id and user_id = ${user.id} and role = any(${COACHING_ROLES})))
+        on conflict (team_id, player_id) do update
+          set content = excluded.content,
+              updated_by = excluded.updated_by,
+              updated_at = now()
+        returning *
+      ), logged as (
+        insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+        select ${user.id}, 'profile.coaching_note.update', 'players', player_id, ${JSON.stringify({ teamId, length: content.length })}::jsonb
+        from changed_note
+      )
+      select * from changed_note`
+    ]);
+    const rows = results[3];
+    if (!rows[0]) throw Object.assign(new Error('Le profil ou les accès ont changé. Recharge l’équipe.'), { status: 403 });
 
     return json({ note: rows[0] });
   } catch (err) {
