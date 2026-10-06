@@ -141,7 +141,7 @@
   NX.scene = def => { scenes.push(Object.assign({ pre: 0, post: 0, z: 0 }, def)); };
 
   /* ---------- Paramètres partagés par image (remis à zéro à chaque image) ---------- */
-  const BG_DEFAULT = { intensity: 1, nebula: 0.55, warp: 0.6, hue: 0, rays: 0, rayX: 0, rayY: 0.1, rayStrength: 1, grid: 0, gridSpeed: 0.6, gridHorizon: -0.08, tunnel: 0, tunnelSpeed: 1, stars: 0.25, zoom: 1, cx: 0, cy: 0, flash: 0, speed: 1, pulse: 0 };
+  const BG_DEFAULT = { intensity: 1, nebula: 0.55, warp: 0.6, hue: 0, rays: 0, rayX: 0, rayY: 0.1, rayStrength: 1, grid: 0, gridSpeed: 0.6, gridHorizon: -0.08, tunnel: 0, tunnelSpeed: 1, stars: 0.25, zoom: 1, cx: 0, cy: 0, flash: 0, speed: 1, pulse: 0, waveX: 0, waveY: 0, waveR: 0, waveS: 0, rayFocus: 0, front: 0, frontY: 0 };
   const POST_DEFAULT = { grain: 0.16, vignette: 0.85, chroma: 0, glitch: 0, flash: 0, flashColor: '#A5F3FC', exposure: 1, saturate: 1, blur: 0, letterbox: 0, fade: 0, shake: 0, shakeFreq: 18, leak: 0, leakX: 0.78, leakY: 0.22, leakHue: 0.5 };
   NX.bg = {}; NX.post = {};
   const mixer = obj => (params, w = 1) => { for (const k in params) { const v = params[k]; obj[k] = typeof v === 'number' && typeof obj[k] === 'number' ? obj[k] + (v - obj[k]) * w : (w >= 0.5 ? v : obj[k]); } };
@@ -174,6 +174,7 @@
   NX.init = () => {
     els = { stage: $('stage'), shake: $('shake'), world: $('world'), vignette: $('vignette'), grain: $('grain'), flash: $('flash'), lbT: $('lb-top'), lbB: $('lb-bot'), fade: $('fade'), leak: $('leak'), turb: $('nx-turb'), disp: $('nx-disp'), fr: $('nx-r'), fb: $('nx-b') };
     fxCtx = NX.fx.ctx = $('fx').getContext('2d');
+    NX.fxBack = { ctx: $('fxback').getContext('2d') };
     grainCtx = els.grain.getContext('2d');
     const r = NX.rng(99);
     for (let f = 0; f < 8; f++) {
@@ -185,6 +186,8 @@
     for (const s of scenes) {
       s.root = NX.el(`<div class="nx-scene" data-scene="${s.id}"></div>`, els.world);
       s.root.style.zIndex = s.z;
+      // Avec la caméra, les scènes partagent un même espace 3D : un léger écart en z garde l'ordre d'empilement.
+      if (NX.cam && NX.cam.active) s.root.style.transform = `translateZ(${(s.z * 0.5).toFixed(2)}px)`;
       if (s.build) s.build(s.root, s);
     }
     NX.shader && NX.shader.init($('bg'));
@@ -202,6 +205,7 @@
         if (c.classList.contains('nx-word') && c.querySelector('.nx-char')) { c.style.background = 'none'; continue; }
         const r = c.getBoundingClientRect();
         NX.set(c, { backgroundImage: 'var(--spectrum-text)', backgroundSize: `${box.width}px ${box.height}px`, backgroundPosition: `${box.left - r.left}px ${box.top - r.top}px`, webkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' });
+        Object.assign(c.dataset, { bw: box.width.toFixed(2), bh: box.height.toFixed(2), dx: (box.left - r.left).toFixed(2), dy: (box.top - r.top).toFixed(2) });
       }
       spec.style.background = 'none';
     }
@@ -215,6 +219,8 @@
     NX.t = t;
     fxCtx.setTransform(1, 0, 0, 1, 0, 0); fxCtx.globalCompositeOperation = 'source-over'; fxCtx.globalAlpha = 1;
     fxCtx.clearRect(0, 0, NX.W, NX.H);
+    const bctx = NX.fxBack.ctx; bctx.setTransform(1, 0, 0, 1, 0, 0); bctx.globalCompositeOperation = 'source-over'; bctx.globalAlpha = 1; bctx.clearRect(0, 0, NX.W, NX.H);
+    if (NX.cam && NX.cam.active) { NX.camState = NX.cam.at(t); els.world.style.transform = NX.cam.css(NX.camState); }
     for (const s of scenes) {
       const on = (!NX.only || NX.only.includes(s.id)) && t >= s.start - s.pre && t < s.end + s.post;
       s.root.style.display = on ? 'block' : 'none';

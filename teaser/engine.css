@@ -20,8 +20,11 @@ html,body{background:#000;height:100%;overflow:hidden}
 body{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:var(--text);-webkit-font-smoothing:antialiased}
 #viewport{position:fixed;inset:0;display:grid;place-items:center}
 #stage{position:relative;width:1920px;height:1080px;background:var(--bg);overflow:hidden;flex:none}
-#bg,#fx,#grain{position:absolute;inset:0;width:1920px;height:1080px}
+#bg,#fx,#fxback,#grain{position:absolute;inset:0;width:1920px;height:1080px}
 #shake,#world{position:absolute;inset:0}
+/* Caméra : perspective de l'œil à 2000 px, centrée ; le monde pivote autour du centre de l'image. */
+#shake{perspective:2000px;perspective-origin:960px 540px}
+#world{transform-origin:960px 540px}
 #world{transform-style:preserve-3d}
 #post>*{position:absolute;inset:0;pointer-events:none}
 #vignette{background:radial-gradient(ellipse at 50% 50%,transparent 45%,rgba(0,0,0,.72) 100%)}
