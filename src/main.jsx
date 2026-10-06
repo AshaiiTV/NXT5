@@ -1,5 +1,5 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, hydrateRoot } from 'react-dom/client';
 import './index.css';
 // Public styles must load with the first HTML, before the application module.
 import './components/ui/core.css';
@@ -19,16 +19,28 @@ import { installChunkRecovery } from './app/chunk-recovery.js';
 const stopChunkRecovery = installChunkRecovery();
 if (import.meta.hot) import.meta.hot.dispose(stopChunkRecovery);
 
-function mount(initialApp) {
-  createRoot(document.getElementById('root')).render(
+const root = document.getElementById('root');
+const prerenderPath = root.dataset.prerendered === 'true' ? root.dataset.prerenderPath : null;
+
+function mount(initialApp, initialDemoPage, hydrate = Boolean(prerenderPath)) {
+  const application = (
     <React.StrictMode>
-      <NXT5 initialApp={initialApp} />
+      <NXT5 initialApp={initialApp} initialRoute={prerenderPath ? { path: prerenderPath, search: '' } : undefined} initialDemoPage={initialDemoPage} />
     </React.StrictMode>
   );
+  if (hydrate) hydrateRoot(root, application);
+  else createRoot(root).render(application);
 }
 
 // Private routes retain the shared loading screen during the app download.
-// Public pages stay visible until the exact same components can mount, avoiding
-// an empty Suspense fallback replacing the prerendered content.
+// Public pages keep their existing DOM as React attaches interactions. The demo
+// is preloaded only for its own initial page, matching its rendered Suspense tree.
 if (isAppPath(window.location.pathname)) mount();
-else preloadApp().then(({ default: InitialApp }) => mount(InitialApp));
+else Promise.all([
+  preloadApp(),
+  prerenderPath === '/demo' ? import('./pages/public/DemoPage.jsx') : null,
+]).then(([{ default: InitialApp }, demo]) => mount(InitialApp, demo?.DemoPage)).catch(error => {
+  // If automatic chunk recovery cannot reload, mount the existing error UI.
+  // An error screen intentionally replaces the snapshot and is not hydratable.
+  mount(function FailedDownload() { throw error; }, undefined, false);
+});

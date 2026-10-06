@@ -8,8 +8,6 @@ import { filterImportedGames, importedGameDurationSeconds, importedGameImportTim
 import "./imported-games.css";
 
 const initialFilters = { query: "", result: "", review: "", side: "", category: "", sort: "newest", page: 1, pageSize: 10 };
-const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
-const timeFormat = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
 function gameDate(match, history) {
   const timestamp = history ? importedGameImportTimestamp(match) : trendMatchTimestamp(match);
@@ -22,7 +20,11 @@ function gameDuration(match) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
-export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false, showSelection = true, showCategoryFilter = history, allowImportSort = history, title, description, emptyAction }) {
+export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, dateTimeZone, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false, showSelection = true, showCategoryFilter = history, allowImportSort = history, title, description, emptyAction }) {
+  const { dateFormat, timeFormat } = useMemo(() => ({
+    dateFormat: new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: dateTimeZone }),
+    timeFormat: new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: dateTimeZone }),
+  }), [dateTimeZone]);
   const [filters, setFilters] = useState(() => ({ ...initialFilters, sort: history ? "import-newest" : "newest" }));
   const titleId = useId();
   const searchId = useId();

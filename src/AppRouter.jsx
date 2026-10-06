@@ -54,13 +54,14 @@ function VerifiedPage({ navigate }) {
   return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
 }
 
-const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate }) {
+const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate, initialDemoPage }) {
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
   const unknownRoute = !isKnownPath(route.path);
   const forbiddenAdminRoute = isAdminPath(route.path) && (!user || user.is_platform_admin !== true);
   const adminPage = adminPageFromRoute(route);
+  const DemoComponent = initialDemoPage || DemoPage;
 
   const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !["/fonctionnalites", "/demo", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   // Once authorized, the private module (including its download fallback)
@@ -73,7 +74,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
-  if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">Chargement de la démo…</div>}><DemoPage navigate={navigate} user={user} /></Suspense>;
+  if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">Chargement de la démo…</div>}><DemoComponent navigate={navigate} user={user} /></Suspense>;
   if (PUBLIC_GUIDES[route.path]) return <PublicGuidePage path={route.path} navigate={navigate} user={user} />;
   if (adminPage) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
   if (route.path === "/reseaux") return <SocialPage navigate={navigate} user={user} />;
@@ -89,12 +90,20 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   return <HomeScreen navigate={navigate} />;
 });
 
-export default function NXT5() {
+export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   const authGeneration = useRef(0);
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
   const [toasts, setToasts] = useState([]);
-  const [route, setRoute] = useState(readRoute);
+  const [route, setRoute] = useState(() => initialRoute || readRoute());
+
+  // Hydrate the exact build-time route first, then apply browser-only query
+  // parameters (invitations, campaigns) and the requested path of a real 404.
+  useEffect(() => {
+    if (!initialRoute) return;
+    const current = readRoute();
+    if (current.path !== initialRoute.path || current.search !== initialRoute.search) setRoute(current);
+  }, []);
 
   const navigate = useCallback((path, options = {}) => {
     const method = options.replace ?"replaceState" : "pushState";
@@ -181,5 +190,5 @@ export default function NXT5() {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} /><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} initialDemoPage={initialDemoPage} /><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

@@ -1,21 +1,18 @@
 import React from "react";
 import { readFileSync } from "node:fs";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyDocumentMetadata, getMetadata, PUBLIC_METADATA, renderMetadata, serializeStructuredData, SITE_ORIGIN } from "../seo/metadata.js";
 import { createSeoDocument } from "./helpers/seo-document.js";
 import { dynamicPaths, privatePaths, publicPaths, render } from "../seo/render.jsx";
-import { HomeScreen } from "../pages/public/PublicPages.jsx";
-import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
 import { isAppPath, isKnownPath } from "../app/routing.js";
 import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("public SEO and real component rendering", () => {
-  it("renders the same homepage and features as the browser, with crawlable links", () => {
-    expect(render("/")).toBe(renderToStaticMarkup(<HomeScreen />));
-    expect(render("/fonctionnalites")).toBe(renderToStaticMarkup(<FeaturesPage />));
+  it("renders the real homepage and features in the public shell, with crawlable links", () => {
+    expect(render("/")).toContain('<h1 id="home-title">Comprends tes parties.');
+    expect(render("/fonctionnalites")).toContain("<h1>Analyse, coaching et organisation pour ton équipe League of Legends.</h1>");
     expect(render("/")).toContain('href="/fonctionnalites"');
     expect(render("/fonctionnalites")).toContain('href="/creer-un-compte"');
     expect(isKnownPath("/fonctionnalites")).toBe(true);

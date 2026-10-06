@@ -6,9 +6,9 @@ const AppLoadingContext = createContext(null);
 
 // Keep the visual outside Suspense: resolving the application module or the
 // session only updates this one screen instead of mounting another loader.
-export function AppLoadingProvider({ children }) {
+export function AppLoadingProvider({ children, initialPath }) {
   const [loading, setLoading] = useState(() => ({
-    phase: isAppPath(window.location.pathname) ? "app" : null,
+    phase: isAppPath(initialPath ?? window.location.pathname) ? "app" : null,
     progress: null,
   }));
 

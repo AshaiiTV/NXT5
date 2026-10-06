@@ -35,7 +35,7 @@ beforeAll(async () => {
   const assets = new Set();
   for (const path of [...publicPaths, "/404"]) {
     const html = withMetadata(template, path, config)
-      .replace('<div id="root"></div>', `<div id="root" data-prerendered="true">${render(path)}</div>`);
+      .replace('<div id="root"></div>', `<div id="root" data-prerendered="true" data-prerender-path="${path}">${render(path)}</div>`);
     await save(path === "/" ? "index.html" : `${path.slice(1)}.html`, html);
     for (const [, asset] of html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+)(?:[?#][^"]*)?"/g)) assets.add(asset);
   }
@@ -108,6 +108,11 @@ describe("SEO checks against generated HTML artifacts", () => {
     const description = escapeHtml(getMetadata("/").description);
     await mutate("index.html", html => html.replace(descriptionTag, `<META CONTENT='${description}' NAME='description'>`));
     await expect(verify()).resolves.toBeUndefined();
+  });
+
+  it.each(["", 'data-prerender-path="/fonctionnalites"'])("rejects a missing or incorrect initial hydration route (%s)", async replacement => {
+    await mutate("index.html", html => html.replace('data-prerender-path="/"', replacement));
+    await expect(verify()).rejects.toThrow("matching initial hydration route");
   });
 
   it.each([

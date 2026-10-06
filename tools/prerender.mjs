@@ -13,7 +13,7 @@ try {
   for (const path of [...publicPaths, "/404"]) {
     const body = render(path);
     if (!body.includes("<h1")) throw new Error(`No visible h1 in prerendered page ${path}`);
-    const html = withMetadata(template, path, config).replace('<div id="root"></div>', () => `<div id="root" data-prerendered="true">${body}</div>`);
+    const html = withMetadata(template, path, config).replace('<div id="root"></div>', () => `<div id="root" data-prerendered="true" data-prerender-path="${path}">${body}</div>`);
     // HTML files use Netlify Pretty URLs, including nested public guide paths.
     const file = path === "/" ? "index.html" : `${path.slice(1)}.html`;
     await mkdir(dirname(resolve(outputDir, file)), { recursive: true });
