@@ -390,7 +390,8 @@
         const e = ease(NX.seg(t, start + i * stagger, start + i * stagger + dur));
         if (e <= 0) return;
         w.style.transform = `translateY(${(-e * 112).toFixed(2)}%)`;
-        w.style.opacity = 1 - NX.smooth(0.5, 1, e);
+        // Le mot s'efface avant le dernier tiers, le plus rapide, de sa course : aucun reste de jambage.
+        w.style.opacity = 1 - NX.smooth(0.3, 0.7, e);
       });
     },
     /** Interlettrage qui se resserre pendant la tenue (em). */

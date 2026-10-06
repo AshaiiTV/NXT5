@@ -38,16 +38,21 @@ NX.scene({
     B.rayStrength += 0.25 * E.inQuad(seg(t, 3.6, 4.75)) * (1 - E.outCubic(seg(t, 4.8, 5.4)));
     // Éclat des rayons sur les quatre temps forts (jamais de voile uniforme).
     let flash = 0;
-    for (const h of T.hits) if (t >= h) flash += Math.exp(-4 * (t - h));
-    B.rays += 1.1 * flash; B.intensity += 0.25 * flash; B.flash = 0.02 * flash;
+    // Au drop, les rayons sont encore resserrés et renforcés : son éclat est réduit pour garder la même ampleur.
+    for (const h of T.hits) if (t >= h) flash += (h === T.tools ? 0.3 : 1) * Math.exp(-4 * (t - h));
+    // Éclat mesuré pour rester dans la règle de continuité (|ΔY| ≤ 9 sur la fenêtre d'un impact).
+    B.rays += 0.65 * flash; B.intensity += 0.14 * flash; B.flash = 0.02 * flash;
     // S3 : le passage des rôles, le plus sombre de la v6, est éclairé.
     const lift = sm(6.6, 7.4, t) * (1 - sm(10.2, 11.4, t));
     B.rays += 0.45 * lift; B.nebula += 0.24 * lift; B.intensity += 0.08 * lift;
     // S5 : les rayons se resserrent en faisceau (plafonné à 0,45 pour ne jamais assombrir), puis s'ouvrent au drop.
     const open = E.sine(seg(t, 18.0, 18.3)), focus = E.sine(seg(t, 14.6, 15.6)) * (1 - open);
     B.rayFocus = 0.45 * focus;
-    B.rayStrength += 0.25 * focus + 0.25 * E.sine(seg(t, 17.2, 17.98)) * (1 - open);
-    B.rays += 0.4 * sm(17.9, 18.0, t) * (1 - sm(18.0, 18.4, t));
+    // Le resserrement concentre la lumière sans assombrir : il retire environ un tiers de la luminosité du ciel,
+    // compensé ici (mesuré : ciel seul ≈ 12–13 de luminance au lieu de 8–10).
+    B.rayStrength += 0.8 * focus + 0.25 * E.sine(seg(t, 17.2, 17.98)) * (1 - open);
+    B.intensity += 0.12 * focus;
+    B.rays += 0.2 * sm(17.9, 18.0, t) * (1 - sm(18.0, 18.4, t));
     // S8 → S9 : la lumière se prépare au retour de l'emblème.
     B.rayStrength += 0.3 * sm(28.0, 28.75, t) * (1 - sm(28.8, 29.8, t));
     // Ondes de lumière dans les rayons, à la hauteur des fronts qui écrivent les logos.
