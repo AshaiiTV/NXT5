@@ -1,4 +1,4 @@
-/* Bande-son du teaser v6, synthétisée et déterministe : NX.audio.render(sampleRate) → Promise<AudioBuffer>.
+/* Bande-son du teaser (v6, recalée pour la v7.1), synthétisée et déterministe : NX.audio.render(sampleRate) → Promise<AudioBuffer>.
  * 100 BPM en ré mineur, calée sur la frise NX.T. Les cinq notes de la marque (ré, fa, la, do, mi)
  * accompagnent l'arrivée des cinq rôles, puis reviennent en majeur sur la carte finale.
  * Le volume final est réglé à l'encodage par un gain fixe (tools/encode.sh), qui garde les écarts entre les parties. */
@@ -23,19 +23,15 @@
       S.pad(T.hookEnd, BAR, ['Bb2', 'D3', 'F3', 'A3'], { gain: 0.1, attack: 0.4, release: 1.4, cutoff: 1400, cutoffEnd: 2200 });
       for (let k = 0; k < 4; k++) S.hat(T.hookEnd + B + k * B, { gain: 0.06 });
 
-      /* Les cinq rôles : une note de la marque par rôle posé ; chaque souffle part du centre vers son icône. */
+      /* Les cinq rôles (v7.1, une transition) : une note de la marque par rôle, une croche chacun ;
+       * chaque souffle part du centre vers son icône. Des charlestons en croches portent l'élan jusqu'à la fusion. */
       ['D5', 'F5', 'A5', 'C6', 'E6'].forEach((n, i) => {
-        const tt = T.roles + i * B;
+        const tt = T.roles + i * E;
         S.bell(tt, n, { gain: 0.12 + 0.02 * i, decay: 1.4, pan: (i - 2) * 0.3, echo: 0.1 });
-        S.whoosh(tt - 0.55, 0.6, { gain: 0.12, from: 900, to: 6000, panFrom: 0, panTo: (i - 2) * 0.35 });
+        S.whoosh(tt - 0.28, 0.32, { gain: 0.1, from: 900, to: 6000, panFrom: 0, panTo: (i - 2) * 0.35 });
       });
-      S.pad(T.roles, T.fuse - T.roles, ['D3', 'F3', 'A3', 'C4'], { gain: 0.09, attack: 0.8, release: 0.6, cutoff: 1500, cutoffEnd: 3000 });
-      // « Toute ton équipe. » : un pouls léger, qui laisse sonner le cinquième rôle puis porte la fusion.
-      const pulse = T.team;
-      S.kick(pulse + 2 * B, { gain: 0.55, decay: 0.35 });
-      S.kick(pulse + 6 * B, { gain: 0.5, decay: 0.35 });
-      for (let k = 0; k < (T.fuse - pulse) / E - 0.01; k++) S.hat(pulse + k * E, { gain: k % 2 ? 0.07 : 0.04, pan: 0.25 });
-      for (let k = 0; pulse + B + k * E < T.fuse + 0.6; k++) S.bass(pulse + B + k * E, E * 0.8, 'D2', { gain: 0.12, cutoff: 400, env: 700 });
+      S.pad(T.roles, T.fuse - T.roles, ['D3', 'F3', 'A3', 'C4'], { gain: 0.09, attack: 0.3, release: 0.6, cutoff: 1500, cutoffEnd: 3000 });
+      for (let k = 0; T.roles + k * E < T.emblem - 0.01; k++) S.hat(T.roles + k * E, { gain: 0.04 + 0.005 * k, pan: 0.25 });
 
       /* Fusion : aspiration vers l'emblème, sans trou de son. */
       S.pad(T.fuse, T.emblem - T.fuse, ['C3', 'E3', 'G3', 'D4'], { gain: 0.2, attack: 0.1, release: 0.3, cutoff: 1200, cutoffEnd: 4000 });
@@ -51,12 +47,13 @@
       S.riser(T.emblem + 1.2, T.tools - T.emblem - 1.2, { gain: 0.26, from: 300, to: 9000 });
       [0, 0.3, 0.45, 0.6, 0.75, 0.825, 0.9, 0.975, 1.05].forEach((o, i) => S.snare(T.tools - 1.2 + o, { gain: 0.08 + 0.012 * i, decay: 0.12 }));
 
-      /* Les trois outils : le groove complet, 4,5 mesures, audible aussi sur un haut-parleur de téléphone. */
-      const chords = [['D', ['D3', 'F3', 'A3', 'C4']], ['Bb', ['Bb2', 'D3', 'F3', 'A3']], ['F', ['F2', 'A2', 'C3', 'E3']], ['C', ['C3', 'E3', 'G3', 'D4']], ['D', ['D3', 'F3', 'A3', 'C4']]];
+      /* Les quatre outils : le groove complet, 6 mesures, audible aussi sur un haut-parleur de téléphone. */
+      // Quatre outils = six mesures. Les deux dernières (si bémol, do) mènent au ré majeur de la carte finale.
+      const chords = [['D', ['D3', 'F3', 'A3', 'C4']], ['Bb', ['Bb2', 'D3', 'F3', 'A3']], ['F', ['F2', 'A2', 'C3', 'E3']], ['C', ['C3', 'E3', 'G3', 'D4']], ['Bb', ['Bb2', 'D3', 'F3', 'A3']], ['C', ['C3', 'E3', 'G3', 'D4']]];
       const roots = { D: 'D2', Bb: 'Bb1', F: 'F2', C: 'C2' };
       const arps = { D: ['D5', 'F5', 'A5', 'C6', 'E6', 'C6', 'A5', 'F5'], Bb: ['Bb4', 'D5', 'F5', 'A5', 'C6', 'A5', 'F5', 'D5'], F: ['F4', 'A4', 'C5', 'E5', 'G5', 'E5', 'C5', 'A4'], C: ['C5', 'E5', 'G5', 'D6', 'E6', 'D6', 'G5', 'E5'] };
       chords.forEach(([name, notes], j) => {
-        const t0 = T.tools + j * BAR, barLen = j === 4 ? BAR / 2 : BAR;
+        const t0 = T.tools + j * BAR, barLen = BAR;
         S.pad(t0, barLen, notes, { gain: 0.16, attack: 0.05, release: 0.3, cutoff: 3500 });
         for (let k = 0; k < barLen / E - 0.01; k++) {
           const tt = t0 + k * E;
@@ -70,10 +67,10 @@
       S.impact(T.tools, { gain: 0.9, bright: 0.8 });
       S.bell(T.tools, 'D5', { gain: 0.15, decay: 2 }); S.bell(T.tools, 'A5', { gain: 0.09, decay: 2 }); S.bell(T.tools, 'D6', { gain: 0.07, decay: 2 });
       // Changements d'outil : souffle et cloche.
-      [1, 2].forEach(k => {
+      [1, 2, 3].forEach(k => {
         const tt = T.tools + k * T.tool;
         S.whoosh(tt - 0.35, 0.6, { gain: 0.26, dir: -1, from: 600, to: 7000 });
-        S.bell(tt, k === 1 ? 'A5' : 'C6', { gain: 0.1, decay: 1.6 });
+        S.bell(tt, ['A5', 'C6', 'E6'][k - 1], { gain: 0.1, decay: 1.6 });
       });
       S.riser(T.end - 1.2, 1.2, { gain: 0.28, from: 400, to: 10000 });
       S.reverse(T.end - 0.9, 0.9, { gain: 0.34 });

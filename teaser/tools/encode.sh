@@ -8,7 +8,11 @@ OUT=${1:-out/final/nxt5-teaser.mp4}
 SUB=${2:-6}
 FR=out/final/frames
 SEQ=out/final/seq
-DUR=$(node -e "const s=require('fs').readFileSync('engine.js','utf8'); console.log(/NX\.DURATION = ([\d.]+)/.exec(s)[1])")
+# Durée prise sur les images rendues (dernier numéro + 1) / 30 : un changement de NX.DURATION pendant un rendu
+# ne fausse pas son encodage.
+DUR=$(node -e "
+const fs=require('fs'); let m=-1; for (const f of fs.readdirSync(process.argv[1])) { const r=/^f(\d+)_0\.png$/.exec(f); if (r) m=Math.max(m,+r[1]); }
+console.log(((m+1)/30).toFixed(4))" "$FR")
 rm -rf "$SEQ"; mkdir -p "$SEQ" "$(dirname "$OUT")"
 node -e "
 const fs=require('fs'); const [fr,seq,sub]=process.argv.slice(1);

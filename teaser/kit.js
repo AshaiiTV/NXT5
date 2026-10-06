@@ -79,13 +79,14 @@
   let beatsCache = null;
   Object.defineProperty(NX, 'beats', { configurable: true, get() { return beatsCache || (beatsCache = buildBeats()); } });
   function buildBeats() {
-    const T = NX.T, B = NX.BEAT, BAR = NX.BAR, bars = [0, 1, 2, 3, 4].map(j => T.tools + j * BAR);
+    // v7.1 : les cinq rôles tombent sur des croches ; quatre outils, soit six mesures de groove complètes.
+    const T = NX.T, B = NX.BEAT, BAR = NX.BAR, nBars = Math.round((T.end - T.tools) / BAR), bars = Array.from({ length: nBars }, (_, j) => T.tools + j * BAR);
     return {
       hits: T.hits.slice(),
-      bells: [0, 1, 2, 3, 4].map(i => T.roles + i * B).concat([T.tools + T.tool, T.tools + 2 * T.tool]),
-      lightKicks: [T.team + 2 * B, T.team + 6 * B, T.emblem + 2 * B, T.emblem + 4 * B],
-      dropKicks: bars.flatMap((b, j) => [0, 1.2, 1.5].filter(o => j < 4 || o < BAR / 2).map(o => b + o)),
-      dropSnares: bars.flatMap((b, j) => [0.6, 1.8].filter(o => j < 4 || o < BAR / 2).map(o => b + o)),
+      bells: [0, 1, 2, 3, 4].map(i => T.roles + i * B / 2).concat([1, 2, 3].map(k => T.tools + k * T.tool)),
+      lightKicks: [T.emblem + 2 * B, T.emblem + 4 * B],
+      dropKicks: bars.flatMap(b => [0, 1.2, 1.5].map(o => b + o)),
+      dropSnares: bars.flatMap(b => [0.6, 1.8].map(o => b + o)),
       chimes: [0, 1, 2, 3, 4].map(i => T.end + 0.6 + i * B / 2).concat([T.end + 3.0]),
     };
   }

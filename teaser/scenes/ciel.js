@@ -1,23 +1,25 @@
 /* Ciel de la v7 : nébuleuse, rayons venus du haut et poussière en profondeur, dans chaque image.
  * Seule scène qui écrit NX.bg et NX.post, et seule à appeler NX.dust.draw (bible §3.2, §3.6).
  * Elle porte aussi : le couplage ciel-caméra, les montées avant les impacts, l'éclat des rayons sur les
- * quatre temps forts, l'éclairage du passage des rôles, le faisceau resserré de « Une même direction. »,
+ * quatre temps forts, l'éclairage des rôles, le faisceau resserré de « Une même direction. »,
  * les deux ondes de lumière dans les rayons (fronts) et l'unique onde de choc du film (14,4 s). */
 NX.scene({
   id: 'ciel', start: 0, end: NX.DURATION, z: -10,
   prepare() {
     // Points d'impact en px écran, calculés une fois avec la caméra de leur instant (fonctions pures de t).
     const at = (t, X, Y, Z = 0) => { const p = NX.cam.project(X, Y, Z, NX.cam.at(t)); return { x: p.x, y: p.y }; };
+    const T = NX.T;
     this.gusts = [
-      { t0: 4.8, ...at(4.8, 958.7, 452.1), amp: 30 },
-      { t0: 13.8, ...at(13.8, 960, 441.7), amp: -20 },
-      { t0: 14.4, ...at(14.4, 960, 441.7), amp: 30 },
-      { t0: 18.0, ...at(18.0, 975, 300, -60), amp: 24 },
-      { t0: 28.8, ...at(28.8, 959.1, 246.0), amp: 30 },
+      { t0: T.hookEnd, ...at(T.hookEnd, 958.7, 452.1), amp: 30 },
+      { t0: T.emblem - 0.6, ...at(T.emblem - 0.6, 960, 441.7), amp: -20 },
+      { t0: T.emblem, ...at(T.emblem, 960, 441.7), amp: 30 },
+      { t0: T.tools, ...at(T.tools, 975, 300, -60), amp: 24 },
+      { t0: T.end, ...at(T.end, 959.1, 246.0), amp: 30 },
     ];
-    this.C = at(14.4, 960, 441.7);
+    this.C = at(T.emblem, 960, 441.7);
     // Temps de dérive de la poussière intégré une fois (pas de 5 ms) : l'accélération des montées reste continue.
-    const swell = t => Math.max(NX.env(t, 3.6, 3.8, 4.6, 4.8), NX.env(t, 16.8, 17.0, 17.78, 17.98), NX.env(t, 27.6, 27.8, 28.6, 28.8));
+    const swell = t => Math.max(NX.env(t, 3.6, 3.8, 4.6, 4.8), NX.env(t, T.tools - 1.2, T.tools - 1.0, T.tools - 0.22, T.tools - 0.02),
+      NX.env(t, T.end - 1.2, T.end - 1.0, T.end - 0.2, T.end));
     const dt = 0.005, n = Math.ceil((NX.DURATION + 1) / dt), acc = new Float64Array(n + 1);
     for (let i = 0; i < n; i++) acc[i + 1] = acc[i] + (1 + 0.6 * swell((i + 0.5) * dt)) * dt;
     this.driftTime = t => { const f = NX.clamp(t / dt, 0, n), i = Math.min(n - 1, Math.floor(f)); return acc[i] + (acc[i + 1] - acc[i]) * (f - i); };
@@ -47,29 +49,29 @@ NX.scene({
     // puis se calment jusqu'à 7,8 ; sans ce relais, la luminance chutait de 4,7 en une image.
     const take = sm(7.11, 7.17, t) * (1 - sm(7.17, 7.8, t));
     B.rays += 0.7 * take; B.intensity += 0.14 * take;
-    // S3 : le passage des rôles, le plus sombre de la v6, est éclairé.
-    const lift = sm(6.6, 7.4, t) * (1 - sm(10.2, 11.4, t));
+    // Rôles (7,2–9,6) : le ciel reste éclairé pendant la transition, puis rend la main au faisceau de « direction ».
+    const lift = sm(6.6, 7.4, t) * (1 - sm(T.emblem - 0.4, T.emblem + 0.6, t));
     B.rays += 0.45 * lift; B.nebula += 0.24 * lift; B.intensity += 0.08 * lift;
     // S5 : les rayons se resserrent en faisceau (plafonné à 0,45 pour ne jamais assombrir), puis s'ouvrent au drop.
-    const open = E.sine(seg(t, 18.0, 18.3)), focus = E.sine(seg(t, 14.6, 15.6)) * (1 - open);
+    const open = E.sine(seg(t, T.tools, T.tools + 0.3)), focus = E.sine(seg(t, T.emblem + 0.2, T.emblem + 1.2)) * (1 - open);
     B.rayFocus = 0.45 * focus;
     // Le resserrement concentre la lumière sans assombrir : il retire environ un tiers de la luminosité du ciel,
     // compensé ici (mesuré : ciel seul ≈ 12–13 de luminance au lieu de 8–10).
-    B.rayStrength += 0.8 * focus + 0.25 * E.sine(seg(t, 17.2, 17.98)) * (1 - open);
+    B.rayStrength += 0.8 * focus + 0.25 * E.sine(seg(t, T.tools - 0.8, T.tools - 0.02)) * (1 - open);
     B.intensity += 0.12 * focus;
     // La flèche entre dans la source : la source s'embrase juste avant le drop au lieu de laisser l'image s'assombrir
     // (le titre et la flèche s'effacent), puis s'éteint en 0,12 s quand la lumière redescend sur la carte.
-    const swell = sm(17.72, 17.97, t) * (1 - sm(18.0, 18.12, t));
+    const swell = sm(T.tools - 0.28, T.tools - 0.03, t) * (1 - sm(T.tools, T.tools + 0.12, t));
     B.rays += 0.45 * swell; B.intensity += 0.06 * swell;
     // S8 → S9 : la lumière se prépare au retour de l'emblème.
-    B.rayStrength += 0.3 * sm(28.0, 28.75, t) * (1 - sm(28.8, 29.8, t));
+    B.rayStrength += 0.3 * sm(T.end - 0.8, T.end - 0.05, t) * (1 - sm(T.end, T.end + 1.0, t));
     // S9 : les rayons gardent leur éclat pendant que la carte brûle, puis se posent quand la carte finale arrive
     // (sans ce relais, la luminance perdait 10,4 entre deux échantillons après l'impact).
-    const hold = sm(28.85, 29.0, t) * (1 - sm(29.15, 29.7, t));
+    const hold = sm(T.end + 0.05, T.end + 0.2, t) * (1 - sm(T.end + 0.35, T.end + 0.9, t));
     B.rays += 0.5 * hold; B.intensity += 0.1 * hold;
     // Ondes de lumière dans les rayons, à la hauteur des fronts qui écrivent les logos.
     if (t > 4.2 && t < 5.6) { B.front = NX.env(t, 4.2, 4.3, 5.3, 5.6); B.frontR = NX.FRONT.hook(t) / 1080 / sky.zoom; }
-    else if (t > 28.3 && t < 29.9) { B.front = NX.env(t, 28.3, 28.4, 29.6, 29.9); B.frontR = NX.FRONT.end(t) / 1080 / sky.zoom; }
+    else if (t > T.end - 0.5 && t < T.end + 1.1) { B.front = NX.env(t, T.end - 0.5, T.end - 0.4, T.end + 0.8, T.end + 1.1); B.frontR = NX.FRONT.end(t) / 1080 / sky.zoom; }
     // L'unique onde de choc du film : naissance de l'emblème (réfraction de la nébuleuse et anneau de poussière).
     let wave = null;
     const tw = t - T.emblem;
@@ -82,7 +84,7 @@ NX.scene({
     // Post : pas de secousse (la caméra porte l'impact), vignette légère.
     NX.post.shake = 0; NX.post.vignette = 0.8;
     // Poussière : un peu plus discrète autour de l'interface, accélérée pendant les montées.
-    const gain = t < 28.4 ? NX.lerp(1, 0.75, sm(18.3, 18.8, t)) : NX.lerp(0.75, 0.9, sm(28.4, 28.8, t));
+    const gain = t < T.end - 0.4 ? NX.lerp(1, 0.75, sm(T.tools + 0.3, T.tools + 0.8, t)) : NX.lerp(0.75, 0.9, sm(T.end - 0.4, T.end, t));
     NX.dust.draw(t, { gain, time: this.driftTime ? this.driftTime(t) : t, gusts: this.gusts || [], wave });
   },
 });

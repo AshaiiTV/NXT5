@@ -1,7 +1,7 @@
 /* Outil de capture du teaser.
  *   node tools/capture.mjs sheet  --from 0 --to 4 --n 12 [--cols 4] [--only id1,id2] --out out/x.png
  *   node tools/capture.mjs stills --times 1.5,2,3.25 [--only id] --out out/dir
- *   node tools/capture.mjs frames --fps 30 --sub 4 --workers 4 [--from 0 --to 32] --out out/frames
+ *   node tools/capture.mjs frames --fps 30 --sub 4 --workers 4 [--from 0 --to 32.4] [--resume 1] --out out/frames
  *   node tools/capture.mjs audio  --out out/soundtrack.wav
  * Les erreurs console de la page sont affichées (préfixe [page]). */
 import { chromium } from 'playwright-core';
@@ -63,7 +63,7 @@ if (mode === 'stills' || mode === 'sheet') {
   await browser.close();
 } else if (mode === 'frames') {
   const fps = +(opt.fps || 30), sub = +(opt.sub || 1), workers = +(opt.workers || 4);
-  const from = +(opt.from || 0), to = +(opt.to || 33.6), shutter = +(opt.shutter || 0.5);
+  const from = +(opt.from || 0), to = +(opt.to || 32.4), shutter = +(opt.shutter || 0.5);
   const first = Math.round(from * fps), last = Math.round(to * fps);
   mkdirSync(opt.out, { recursive: true });
   // --resume 1 : saute les images dont toutes les sous-images existent déjà (reprise d'un rendu par tranches).

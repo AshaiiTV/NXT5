@@ -20,6 +20,80 @@ Wherever a value is given here, it is the value to implement. "≈" marks a meas
 
 ---
 
+## v7.1 amendment (6 Oct, owner feedback on the v7 preview): read this first
+
+This section supersedes every time, copy and camera value of §2–§6 that it changes. Everything else in the bible still applies (motion language, easing, speed limits, brand rules, light rules, glass, type kit, determinism, verification method).
+
+**Owner feedback:**
+1. The opening question must say it is about League of Legends.
+2. The roles passage is « super belle » but its relevance is unclear. The owner chose to make it a **simple transition of about 2 s, with no title**: the five roles appear quickly and fuse straight into the emblem.
+3. The tools act is « top »: add a **fourth tool**.
+
+**New timeline (`NX.T`, `scenes/style.js`):**
+
+| Anchor | v7 | v7.1 |
+|---|---|---|
+| `hookEnd` (logo hit) | 4.8 | 4.8 |
+| `roles` (first role) | 7.2 | 7.2 |
+| `team` / `fuse` | 9.6 / 12.6 | 8.4 / 8.4 (fifth role, the fusion starts) |
+| `emblem` (hit) | 14.4 | **9.6** |
+| `tools` (drop) | 18.0 | **13.2** |
+| `tool` | 3.6 | 3.6 (four tools) |
+| `end` (hit) | 28.8 | **27.6** |
+| `NX.DURATION` | 33.6 | **32.4** |
+
+`NX.T.hits` = 4.8, 9.6, 13.2, 27.6. Light fronts: `NX.FRONT.hook` unchanged; `NX.FRONT.end` keys all −1.2 s (27.10 … 28.60).
+
+**Shot mapping (apply exactly):**
+
+| Shot | v7 window | v7.1 window | Rule |
+|---|---|---|---|
+| S1 Accroche | 0–4.8 | 0–4.8 | Same timing grammar. Copy now three lines: « Envie d’analyser tes games » / « et de comprendre ton équipe » / « sur League of Legends ? » (non-breaking space before « ? »). Line 3 in plain text colour (the spectral accent stays on « comprendre ton équipe »). All three lines must be complete and readable by about 3.4 s, burnt line by line by `NX.FRONT.hook` (lead 0), and gone before the lockup's letters need the space. |
+| S2 Logo | 4.8–7.2 | 4.8–7.2 | Unchanged, except the camera no longer drifts left at the end (x stays 0, yaw goes 0.2 → 0 by 7.2): the exit is centred. |
+| S3 + S4 Rôles, équipe, fusion | 7.2–14.4 | **7.2–9.6, new S3′ below** | « Toute ton équipe. », the row of tiles, the labels and the link line are removed. |
+| S5 Direction | 14.4–18.0 | 9.6–13.2 | Every S5 time −4.8 s, unchanged otherwise. The camera is identical, shifted by −4.8 s. |
+| S6 Outil 1 « 01 · ANALYSER » | 18.0–21.6 | 13.2–16.8 | Every time −4.8 s. Camera identical through the reveal (13.2–14.6); the orbit is slower afterwards. |
+| S7 Outil 2 « 02 · DÉBRIEFER » | 21.6–25.2 | 16.8–20.4 | Every time −4.8 s. |
+| **S7b Outil 3 « 03 · DRAFTER »** | — | **20.4–24.0** | New, spec below. |
+| S8 Outil 4 « 04 · PLANIFIER » | 25.2–28.8 | 24.0–27.6 | Every S8 time −1.2 s (its burn by `NX.FRONT.end`, lead 100, included). Kicker digit 04. |
+| S9 Fin | 28.8–33.6 | 27.6–32.4 | Every S9 time −1.2 s (emblem return 26.8–27.6, dock, hit 27.6, chimes, rest at 32.4). The camera is identical, shifted by −1.2 s. |
+
+**S3′ Rôles, a transition (7.2–9.6, `equipe.js`, window about 7.0–9.75):**
+- The logo is absorbed into its ring centre at 7.09–7.15 (S2) and the sky takes its light (relay, `ciel`). The five roles are born **from that light**, one per eighth note: Top 7.2, Jungle 7.5, Mid 7.8, ADC 8.1, Support 8.4 (`NX.beats.bells`), each with its brand bell.
+- They appear directly at their places on the emblem's pentagon (`NX.G.pent`: centre (960, 441.7), r 200, angles 126/198/270/342/54°, scale 0.62), as the small glass tiles of v7 (same material, role icons, role colours). No labels, no title, no long travel: the tiles must not cross the frame. Speeds stay within §2.6 (objects ≤ 1,000 px/s).
+- The fusion of §3.9 follows at once: tiles dissolve into particles of their colour that stream into their own sector of the emblem (ring first, then the rest), a pointillist emblem reads briefly, and E's PNG resolves on the 9.6 hit (E fades its emblem in over 9.48–9.62 under D's particles; D owns its particles until 9.95). Particle speeds: p99.5 ≤ 900 px/s, max ≤ 1,400 px/s.
+- It must read on a phone as « five players become one team », in about 2.4 s, beautiful and calm: no strobe, no flash beyond the bible's hit, nothing faster than v6.
+- Camera (keys below): nearly still and centred, z 118 → 110, crane up 14 px, tilt 0.1° → 0.4°.
+
+**S7b Outil 3 « 03 · DRAFTER » (20.4–24.0, `outils.js`):**
+- Same choreography grammar as S7: the card advances in the stack on 20.4 (ADVANCE) while card 2 is taken up into the light; rows rise as it advances; micro-events land on drop kicks and snares; rows sink just before the card is taken up at about 23.9; the planning card advances on 24.0.
+- Title column: kicker « 03 · DRAFTER » (the odometer rolls 02 → 03, the verb sinks and the next rises), title « Compose ta / draft. » with « draft. » spectral, like the other titles.
+- Card copy, from the product's draft workspace (`src/pages/workspace/DraftWorkspace.jsx`, `workspace-shared.jsx`) and the public demo team (`src/pages/public/demo-data.js`): header « Composition principale », badge « Très maîtrisée » (product mastery label, green tone like « Victoire »), sub-line « Équipe Horizon · démo fictive », counter « 5/5 champions ». Five rows, one per role, with the same role icons as S3′: TOP Gnar « Confiance », JGL Vi « Confiance », MID Ahri « Situationnel », ADC Jinx « Confiance », SUP Braum « Confiance » (product tier labels). That set scores « Très maîtrisée » in the product's own formula. Never use champion images or any Riot artwork: text and our role icons only.
+- Micro-events: the five picks land one per drum hit (counter 1/5 → 5/5, frame-quantised), then the badge pops (SPRING). Each row must stay readable at phone size (row text at least about 26 px on screen).
+- The stack now holds four cards; only three are visible at a time (the fourth enters the back slot when the first leaves). Card 3 lifts into the light like cards 1 and 2. The last card (planning) is still the one burned by the end front.
+
+**Camera keys v7.1 (`scenes/camera.js`):**
+```js
+z:     [[-1,-126],[0,-90],[3.6,54],[4.8,90],[6.6,126],[7.2,118],[9.6,110],[11.4,128],[13.2,50],[14.6,-30],[16.8,-12],[20.4,4],[24.0,22],[27.2,40],[27.6,40],[28.8,24],[32.4,70],[33.2,70]]
+x:     [[-1,0],[13.2,0],[14.8,-50],[27.2,50],[28.8,0],[33.2,0]]
+y:     [[-1,30],[0,24],[4.5,-4],[4.8,-6],[7.2,-16],[9.6,-30],[12.4,-40],[13.2,-44],[14.6,-24],[27.2,-20],[27.6,-20],[28.8,-10],[32.4,-16],[33.2,-16]]
+yaw:   [[-1,-1.6],[0,-1.4],[4.5,0.15],[4.8,0.2],[7.2,0],[9.6,0.2],[13.2,0],[14.8,1.4],[27.2,-1.4],[28.8,0],[33.2,0]]
+pitch: [[-1,-0.5],[0,-0.4],[4.5,0],[7.2,0.1],[9.6,0.4],[12.4,0.6],[13.2,1.0],[14.6,0.3],[27.2,0.2],[28.8,0],[33.2,0]]
+punch: 4.8: 24, 9.6: 24, 13.2: 16, 27.6: 24
+```
+Reveal window for the dolly limit (≤ 150 px/s): 13.2–14.6. Orbit (≤ 1.6°/s): 13.2–28.8. Rest on the last frame (32.4).
+
+**Music (`audio.js`, all anchored on `NX.T`):** role bells on eighth notes from 7.2 with short whooshes and eighth-note hats up to the fusion; the team pulse is gone; fusion pad, riser and reverse into the 9.6 impact as before. The groove runs six full bars (D, B♭, F, C, B♭, C: the last two lead into the D major of the end card); tool-change whooshes and bells on 16.8, 20.4 and 24.0 (A5, C6, E6).
+
+**Beats (`NX.beats`):** `bells` = 7.2, 7.5, 7.8, 8.1, 8.4 (roles) then 16.8, 20.4, 24.0 (tool changes); `lightKicks` = 10.8, 12.0 (S5 beam draws, beam pulse); `dropKicks` / `dropSnares` over six full bars from 13.2; `chimes` from 27.6.
+
+**Verification windows v7.1 (§6):**
+- §6.5 metrics: hits 4.8, 9.6, 13.2, 27.6. Roles 7.0–9.5 mean Y ≥ 15. Darkening guard of S5 over 10.45–12.7 ≥ 17.1. Hand-over dips (≥ 15): 16.45–16.7, 19.95–20.45 and 23.55–24.05.
+- §6.8 determinism times: 4.8, 4.95, 7.2, 8.4, 9.6, 13.2, 16.8, 27.6.
+- Readability: S5 title as in v7 shifted −4.8 s; tools titles at least 2.4 s each once complete; the hook's three lines complete by about 3.4 s and readable until the burn.
+
+---
+
 ## 1. Concept and signature moments
 
 **Concept.** One continuous camera drifts through the luminous nebula. The light from above is the film's only actor and follows four rules:

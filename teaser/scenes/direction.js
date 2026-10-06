@@ -41,7 +41,7 @@
   const TITLE_OUT = 17.60, OUT_STEP = 0.05, OUT_DUR = 0.30;
   const TITLE_GONE = +(TITLE_OUT + 2 * OUT_STEP + OUT_DUR).toFixed(3);  // 18,00 : dernier mot sorti
   const BREATH = [14.60, 17.40];                 // respiration : y −10 px, échelle 1 → 1,025 (SINE)
-  const KICKS = NX.beats.lightKicks.slice(2);    // 15,6 et 16,8 : halo +20 % (décroissance 2,5)
+  const KICKS = NX.beats.lightKicks.slice();     // emblème + 2 et + 4 temps : halo +20 % (décroissance 2,5)
   const SHEEN_T = [15.30, 16.10];                // reflet du mot « direction. »
   const DRAW = [15.60, 16.50];                   // tracé du faisceau, de la pointe vers la source (SINE)
   const GLINT = [16.15, 16.85];                  // reflet unique de la tenue (SHEEN)

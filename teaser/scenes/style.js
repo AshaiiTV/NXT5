@@ -3,16 +3,17 @@
  * ou alignés à gauche, accent en dégradé de marque, panneaux arrondis. */
 (function () {
   const B = NX.BEAT, BAR = NX.BAR;
-  /* Temps forts en secondes de film (grille de 0,6 s). La musique et l'image lisent la même frise. */
+  /* Temps forts en secondes de film (grille de 0,6 s). La musique et l'image lisent la même frise.
+   * v7.1 : les rôles deviennent une transition (une croche chacun, puis la fusion), et quatre outils. */
   NX.T = {
     hookEnd: 2 * BAR,            // 4,8 : fin de l'accroche, apparition du logo
-    roles: 3 * BAR,              // 7,2 : premier rôle posé, puis un rôle par temps
-    team: 4 * BAR,               // 9,6 : « Toute ton équipe. », tenu pendant la fusion
-    fuse: 5 * BAR + B,           // 12,6 : début de la fusion (1,8 s)
-    emblem: 6 * BAR,             // 14,4 : l'emblème naît de la fusion, « Une même direction. »
-    tools: 7.5 * BAR,            // 18,0 : premier outil, la batterie entre
-    tool: 1.5 * BAR,             // 3,6 s par outil
-    end: 12 * BAR,               // 28,8 : carte finale
+    roles: 3 * BAR,              // 7,2 : les cinq rôles jaillissent de la lumière du logo, un par croche
+    team: 3 * BAR + 2 * B,       // 8,4 : cinquième rôle posé
+    fuse: 3 * BAR + 2 * B,       // 8,4 : la fusion commence (1,2 s)
+    emblem: 4 * BAR,             // 9,6 : l'emblème naît de la fusion, « Une même direction. »
+    tools: 5.5 * BAR,            // 13,2 : premier outil, la batterie entre
+    tool: 1.5 * BAR,             // 3,6 s par outil, quatre outils
+    end: 11.5 * BAR,             // 27,6 : carte finale
   };
   /* Impacts partagés par l'image et le son. */
   NX.T.hits = [NX.T.hookEnd, NX.T.emblem, NX.T.tools, NX.T.end];
@@ -61,11 +62,11 @@
                       slots: [[0, 0, 0], [0, -46, -150], [0, -92, -300]], fog: [0, 0.42, 0.84] } },
     end: { buttonTop: 600, line1Top: 770, line2Top: 850 },
   };
-  /* Fronts de lumière (rayon vertical en px écran) : l'écriture du logo à 4,8 s et le retour à 28,8 s.
+  /* Fronts de lumière (rayon vertical en px écran) : l'écriture du logo à 4,8 s et le retour à 27,6 s.
    * L'onde de l'accroche part à 4,18 s (bible : 4,20) pour rester sous 1 600 px/s (pointe 1 498 au lieu de 1 653). */
   NX.FRONT = {
     hook: NX.track([[4.18, 40], [4.42, 392], [4.52, 520], [4.80, 735], [5.02, 960], [5.30, 1090], [5.55, 1115]]),
-    end: NX.track([[28.30, 120], [28.55, 330], [28.80, 560], [29.10, 880], [29.45, 1200], [29.80, 1300]]),
+    end: NX.track([[27.10, 120], [27.35, 330], [27.60, 560], [27.90, 880], [28.25, 1200], [28.60, 1300]]),
   };
   /** Format français des milliers avec espace fine insécable. */
   NX.fmt = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
