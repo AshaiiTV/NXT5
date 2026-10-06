@@ -32,8 +32,9 @@
    * sur un trajet droit commun, Top et Support passaient sur Jungle et ADC (jusqu'à 62 px de recouvrement,
    * 12,93–13,13 : deux paires empilées au lieu de cinq tuiles qui glissent en cercle). Top et Support descendent
    * d'abord (y 12,50–13,10) puis glissent sous Jungle et ADC (x 12,55–13,55) ; Jungle et ADC rentrent d'abord vers
-   * le centre (x 12,50–13,10) pour leur laisser la place. Aucun recouvrement (écart minimal ≈ 12 px entre plaques),
-   * pointe 782 px/s mesurée sur les plaques (bible ≈ 787), bord bas 687 px monde (haut des capitales du titre ≈ 716).
+   * le centre (x 12,50–13,10) pour leur laisser la place. Aucun recouvrement : écart minimal ≈ 12 px entre plaques
+   * (6,3 px entre leurs boîtes écran à 13,01, inclinaison résiduelle comprise) ; pointe 782 px/s mesurée sur les plaques
+   * (bible ≈ 787) ; bord bas le plus bas 709 px écran à 13,08, sous lequel commence la boîte des mots du titre (718 px).
    * Mid suit la courbe commune. */
   const GX = [[12.55, 13.55], [12.5, 13.1], GATHER, [12.5, 13.1], [12.55, 13.55]];
   const GY = [[12.5, 13.1], GATHER, GATHER, GATHER, [12.5, 13.1]];

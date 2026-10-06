@@ -1,15 +1,21 @@
 /* Fin (S9, bible §4) — fenêtre 27,95–33,6, z 3.
  * 28,0–28,8 : l'emblème ressort de la lumière, descend l'axe et se pose sur celui du logo final.
- *   Dans le même passage, le front NX.FRONT.end (avance 0) écrit NXT5 dessous, derrière la porte : les lignes de
- *   l'emblème et l'empreinte de son bas (ellipse autour de la lance et des pales) restent fermées jusqu'à 28,80.
+ *   Dans le même passage, le front NX.FRONT.end (avance 0) écrit le logo final, comme en S2. Les traits de l'emblème
+ *   du logo (lignes de l'emblème, et sous la ligne de coupe l'empreinte de l'emblème qui se pose) restent derrière la
+ *   porte jusqu'à 28,80 : l'emblème qui vole les tient. Sa plaque sombre, écrite par le même front, apparaît avec la
+ *   pose (28,64–28,80) : elle est complète à l'impact, jamais en une image.
  *   Les outils (S8) sont brûlés par « outils » avec 100 px d'avance. C'est le bouclage du moment 1.
- * 28,8 : impact. L'échange emblème → logo se fait sous l'éclair (repli de la bible §5.3, voir plus bas).
+ * 28,8 : impact. L'échange des traits emblème → logo se fait sous l'éclair (repli de la bible §5.3, voir plus bas).
  * 29,4–31,8 : la carte finale arrive sur les carillons. La caméra se pose à 33,6.
- * Fonction pure de t : étincelles, instants d'émission et instant de l'étoile du reflet sont calculés une fois
- * dans prepare(). Les logos ne sont jamais tournés en 3D ni filtrés : masques, profondeur et feuilles de lumière.
- * Vérification (bible §6.9, §6.10) : NX.finDebug = { dock } force les lignes de l'emblème du logo et masque
- * l'emblème qui se pose ; { noLockup } retire le logo final ; { leavesOff } coupe toute lumière ajoutée. Sans
- * drapeau, l'image de 28,80 − 1/180 est le rendu « emblème seul » du contrôle (la porte est fermée jusqu'à 28,80). */
+ * Fonction pure de t : porte, empreinte, étincelles, instants d'émission et instant de l'étoile du reflet sont calculés
+ * une fois dans prepare(). Les logos ne sont jamais tournés en 3D ni filtrés : masques, profondeur et feuilles de lumière.
+ * Vérification (bible §6.9, §6.10), drapeaux NX.finDebug :
+ *   { dock }      porte ouverte (traits de l'emblème du logo visibles) et emblème qui se pose masqué ;
+ *   { noLockup }  logo final retiré ;
+ *   { leavesOff } toute lumière ajoutée coupée ;
+ *   { plateOff }  la plaque sombre des lignes de l'emblème et de l'empreinte n'est jamais écrite : rendu de
+ *                 référence pour mesurer l'arrivée de la plaque image par image.
+ * Sans drapeau, l'image de 28,80 − 1/180 est le rendu « emblème seul » du contrôle (traits fermés jusqu'à 28,80). */
 (function () {
   const SRC_LOGO = '../public/assets/nxt5-logo.png', SRC_FAV = '../public/assets/nxt5-loader-favicon.png';
   const G = NX.G, L9 = G.L9, DK = G.dock, FAV = G.FAV, LOGO = G.LOGO;
@@ -21,17 +27,25 @@
   const HIT = NX.T.end;                                            // 28,8
   const FLY = [28.0, HIT], Y0 = -850, Z0 = -4000;                  // retour : (959,1 ; −850 ; −4000) → posé
   const FRONT_OFF = 29.45;                                         // au-delà, la bande est passée sous tout le logo
-  /* Échange sous l'éclair (repli §5.3, ouvert à l'impact plutôt qu'à 28,78 : rien ne change avant 28,80).
-   * Les deux PNG n'ont pas les mêmes pixels (plaque sombre, lueurs peintes et arcs prolongés jusqu'aux rails dans le
-   * logo) : le contrôle §6.9 échoue sans défaut d'alignement. La porte s'ouvre d'abord (la plaque arrive sous le pic
-   * de l'éclair, derrière l'emblème opaque), puis l'emblème s'efface sur le logo : aucun creux vers le fond. */
+  /* Échange des traits sous l'éclair (repli §5.3, ouvert à l'impact plutôt qu'à 28,78 : rien ne change avant 28,80).
+   * Les deux PNG n'ont pas les mêmes traits (texture de la lance, arcs prolongés jusqu'aux rails, lueurs) : le contrôle
+   * §6.9 échoue sans défaut d'alignement. La plaque est déjà écrite par le front ; à l'impact, les traits du logo
+   * s'ouvrent derrière l'emblème opaque, puis l'emblème s'efface sur eux : aucun creux vers le fond. */
   const SWAP_GATE = [HIT, HIT + 0.03], SWAP_FAV = [HIT + 0.01, HIT + 0.06];
   const LIFT = 2;                                                  // l'emblème vole 2 px devant le plan du logo (§2.7)
   const BIRTH_LUM = 0.22;                                          // lumière de naissance sur les traits clairs (≤ 0,30)
-  /* Empreinte du bas de l'emblème sous la ligne de coupe (lance, pales, pointes des arcs, départ des rails) : ellipse
-   * autour du centre de l'anneau, en px monde, bord adouci. Rien du logo n'y est écrit avant l'échange : ni plaque,
-   * ni bande blanche, ni doublon de pale quand l'emblème est encore à quelques px de sa place. */
-  const HOLE = { rx: 115, ry: 95, f: 12 };
+  /* Empreinte de l'emblème posé dans le logo (px monde) : ses pixels d'alpha ≥ thr, élargis de grow puis adoucis sur
+   * feather. Sous la ligne de coupe, seuls les traits du logo couverts par l'emblème qui se pose attendent
+   * l'échange ; les rails et le haut des lettres autour de la lance sont écrits par le front et sa bande. */
+  const FOOT = { thr: 0.3, grow: 4, feather: 4 };
+  /* Traits retenus par la porte : alpha × smoothstep(0,25 ; 0,5 ; max(r, g, b)), comme la silhouette de S2. La loi de
+   * luminance du kit classe les moitiés bleue, violette et fuchsia des traits avec la plaque : écrites au repos pendant
+   * que l'emblème se pose encore, elles le doublaient. Reste écrite par le front la seule plaque sombre (canal max < 0,25). */
+  const STROKE = [0.25, 0.5];
+  /* La plaque des lignes de l'emblème et de l'empreinte est écrite par le front et apparaît avec la pose (SINE) : ses
+   * contours sombres, peints autour des traits au repos, ne doublent pas l'emblème quand il est encore à 8–20 px de sa
+   * place (28,60–28,67) ; complète à l'impact. 0,16 s : au plus ~4 de luma par image dans l'anneau autour de l'emblème. */
+  const PLATE_IN = [28.64, HIT];
   const RAMP = 10;                                                 // demi-largeur (px monde) du fondu de la ligne de coupe
   const HALO = { left: 310, top: -130, w: 1300, h: 900, z: -4 };   // halo v6 (centre 960 ; 320), un peu en retrait
   // Plafond de marque (bible §2.3) : au plus 0,30 de lumière ajoutée sur le chrome. Le cœur du reflet vaut 0,95,
@@ -56,15 +70,19 @@
   .fin-l2{top:${G.end.line2Top}px;font-weight:600;font-size:40px;color:var(--text2)}
   `);
 
-  /** Masque à plusieurs couches, en intersection (même convention que le kit). */
-  const finMask = (el, layers) => {
-    const v = layers.join(','), many = layers.length > 1;
+  /** Masque à plusieurs couches (même convention que le kit). ops : opérateur de chaque couche avec celles qui sont
+   *  dessous, 'intersect' (défaut) ou 'add' ; la première couche est celle du dessus. */
+  const FIN_WK = { intersect: 'source-in', add: 'source-over' };
+  const finMask = (el, layers, ops = null) => {
+    const v = layers.join(','), many = layers.length > 1, op = layers.map((_, i) => (ops && ops[i]) || 'intersect');
     el.style.maskImage = v; el.style.webkitMaskImage = v;
     el.style.maskSize = layers.map(() => '100% 100%').join(','); el.style.webkitMaskSize = el.style.maskSize;
     el.style.maskRepeat = 'no-repeat'; el.style.webkitMaskRepeat = 'no-repeat';
-    el.style.maskComposite = many ? layers.map(() => 'intersect').join(',') : '';
-    el.style.webkitMaskComposite = many ? layers.map(() => 'source-in').join(',') : '';
+    el.style.maskComposite = many ? op.join(',') : '';
+    el.style.webkitMaskComposite = many ? op.map(o => FIN_WK[o]).join(',') : '';
   };
+  /** Couche de masque uniforme d'opacité a. */
+  const finUni = a => `linear-gradient(rgba(0,0,0,${a.toFixed(4)}),rgba(0,0,0,${a.toFixed(4)}))`;
   /* Front de lumière dans une boîte à SS px locaux par px monde : mêmes dégradés que le kit (bible §3.3, RM = 3000,
    * ellipse K·RM × RM), toutes les largeurs en px multipliées par SS pour garder à l'écran la plume de 70 px et le
    * profil de la bande blanche. */
@@ -76,17 +94,31 @@
   const finWrite = L => `radial-gradient(${finShape(L)},#000 ${finPc(L.r - 70 * SS)},transparent ${finPc(L.r + 10 * SS)})`;
   /** Bande blanche qui suit le front (profil de NX.light.band). */
   const finBand = L => `radial-gradient(${finShape(L)},transparent ${finPc(L.r - 170 * SS)},rgba(150,215,255,.28) ${finPc(L.r - 70 * SS)},rgba(200,240,255,.75) ${finPc(L.r - 18 * SS)},#fff ${finPc(L.r - 3 * SS)},transparent ${finPc(L.r + 12 * SS)})`;
-  /* Porte du logo final (px locaux 2×) : la bande du mot-symbole et du slogan, ouverte en fondu sur 20 px monde
-   * autour de la ligne de coupe (jamais de marche dans la plaque), moins l'empreinte du bas de l'emblème.
-   * Fermée, elle est cuite une fois en image (prepare) ; pendant l'échange, chaque facteur laisse passer √open côté
-   * fermé, si bien que les lignes de l'emblème (fermées deux fois) s'ouvrent exactement à « open », sans union de
-   * masques (mask-composite: add doublait le coût de l'image). */
-  const GATE_Y0 = (CUT9 - RAMP) * SS, GATE_Y1 = (CUT9 + RAMP) * SS;
-  const HOLE_C = [(RING[0] - L9.left) * SS, (RING[1] - L9.top) * SS], HOLE_F = HOLE.f / HOLE.rx;
-  const finRamp = a => `linear-gradient(to bottom,rgba(0,0,0,${a}) ${GATE_Y0.toFixed(2)}px,#000 ${GATE_Y1.toFixed(2)}px)`;
-  const finHole = a => `radial-gradient(ellipse ${(HOLE.rx * SS).toFixed(1)}px ${(HOLE.ry * SS).toFixed(1)}px at ${HOLE_C[0].toFixed(2)}px ${HOLE_C[1].toFixed(2)}px,rgba(0,0,0,${a}) 100%,#000 ${(100 * (1 + HOLE_F)).toFixed(2)}%)`;
-  /** Valeur de la porte fermée au px local 2× (x, y) : mêmes interpolations linéaires que les deux dégradés. */
-  const finGateAt = (x, y) => NX.clamp((y - GATE_Y0) / (GATE_Y1 - GATE_Y0)) * NX.clamp((Math.hypot((x - HOLE_C[0]) / (HOLE.rx * SS), (y - HOLE_C[1]) / (HOLE.ry * SS)) - 1) / HOLE_F);
+  /* Porte du logo final, cuite une fois en image dans prepare() (aux px du PNG). g = part toujours ouverte : la bande du
+   * mot-symbole et du slogan, ouverte en fondu sur 20 px monde autour de la ligne de coupe, moins l'empreinte de
+   * l'emblème posé. Ailleurs (lignes de l'emblème, empreinte), seuls les traits st (loi STROKE) sont retenus :
+   * fermée = 1 − (1 − g)·st. La plaque sombre y est donc écrite par le front comme partout ailleurs. À l'échange, une
+   * couche uniforme « open » ajoutée (mask-composite: add) ouvre les traits : 1 − (1 − g)·st·(1 − open). */
+  const finRampAt = yMonde => NX.clamp((yMonde - (YCUT - RAMP)) / (2 * RAMP));
+  /** Distances euclidiennes au carré (px) au pixel marqué le plus proche (Felzenszwalb–Huttenlocher, exacte). */
+  const finEdt2 = (mark, w, h) => {
+    const INF = 1e20, n = Math.max(w, h), f = new Float64Array(n), v = new Int32Array(n), z = new Float64Array(n + 1);
+    const D = new Float64Array(w * h); for (let i = 0; i < w * h; i++) D[i] = mark[i] ? 0 : INF;
+    const pass = (len, base, step) => {
+      for (let q = 0; q < len; q++) f[q] = D[base + q * step];
+      let k = 0; v[0] = 0; z[0] = -INF; z[1] = INF;
+      for (let q = 1; q < len; q++) {
+        let s = (f[q] + q * q - f[v[k]] - v[k] * v[k]) / (2 * q - 2 * v[k]);
+        while (s <= z[k]) { k--; s = (f[q] + q * q - f[v[k]] - v[k] * v[k]) / (2 * q - 2 * v[k]); }
+        k++; v[k] = q; z[k] = s; z[k + 1] = INF;
+      }
+      k = 0;
+      for (let q = 0; q < len; q++) { while (z[k + 1] < q) k++; D[base + q * step] = (q - v[k]) * (q - v[k]) + f[v[k]]; }
+    };
+    for (let x = 0; x < w; x++) pass(h, x, w);
+    for (let y = 0; y < h; y++) pass(w, y * w, 1);
+    return D;
+  };
   /** Position du retour de l'emblème (centre de l'anneau en Y monde, profondeur Z). */
   const finFlight = t => { const e = E.glide(seg(t, FLY[0], FLY[1])); return { Y: Y0 + (RING[1] - Y0) * e, Z: Z0 * (1 - e) }; };
   /* Pose de l'emblème : dessiné LIFT px plus près de la caméra, et ramené par une homothétie centrée au pied de l'œil
@@ -136,29 +168,46 @@
       const m = /translateZ\(([-\d.]+)px\)/.exec(root.style.transform || '');
       this.rz = m ? +m[1] : 0;                                    // décalage en z de la racine (ordre des scènes)
       await Promise.all([this.L.prepare(), this.FL.prepare()]);
-      // Porte fermée cuite en une image, et masque de la bande blanche = traits clairs (même loi que le kit) × porte :
-      // la bande ne court que sur le chrome clair du mot-symbole et du slogan, jamais sur l'emblème (ni ses lignes,
-      // ni l'empreinte de son bas). Une couche fixe au lieu de trois : moins de calques de masque à chaque image.
+      // Porte cuite (voir finRampAt), masque de la bande blanche = chrome clair (loi du kit) × g : elle ne court que sur
+      // le chrome ouvert du mot-symbole et du slogan, rails et haut des lettres autour de la lance compris, jamais sur un
+      // trait retenu. g seul et la plaque seule (1 − st) pour l'arrivée de la plaque ; les traits seuls pour le rendu de
+      // référence { plateOff }. Tout aux px du PNG du logo.
+      let gOpen;
       {
         const img = this.L.img, w = img.naturalWidth, h = img.naturalHeight, cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
-        const c = cv.getContext('2d', { willReadFrequently: true }); c.drawImage(img, 0, 0);
-        const d = c.getImageData(0, 0, w, h).data, gate = c.createImageData(w, h), hot = c.createImageData(w, h);
-        const kx = L9.w * SS / w, ky = H9 * SS / h;               // px locaux 2× par px de l'image
-        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-          const o = (y * w + x) * 4, k = finGateAt((x + 0.5) * kx, (y + 0.5) * ky);
-          const l = (0.2126 * d[o] + 0.7152 * d[o + 1] + 0.0722 * d[o + 2]) / 255, br = NX.smooth(0.35, 0.65, l) * d[o + 3] / 255;
-          gate.data[o] = gate.data[o + 1] = gate.data[o + 2] = hot.data[o] = hot.data[o + 1] = hot.data[o + 2] = 255;
-          gate.data[o + 3] = Math.round(255 * k); hot.data[o + 3] = Math.round(255 * k * br);
+        const c = cv.getContext('2d', { willReadFrequently: true });
+        // Empreinte : l'emblème tel qu'il est posé (NX.G.dock) dessiné dans le repère du PNG du logo.
+        const kPng = w / L9.w, sF = DK.size / FAV.W * kPng;      // px du PNG par px monde ; px du PNG par px de l'emblème
+        c.setTransform(sF, 0, 0, sF, (DK.left - L9.left) * kPng, (DK.top - L9.top) * kPng);
+        c.drawImage(this.FL.img, 0, 0); c.setTransform(1, 0, 0, 1, 0, 0);
+        const fa = c.getImageData(0, 0, w, h).data, mark = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) mark[i] = fa[i * 4 + 3] >= 255 * FOOT.thr ? 1 : 0;
+        const D2 = finEdt2(mark, w, h), r0 = FOOT.grow * kPng, r1 = (FOOT.grow + FOOT.feather) * kPng;
+        c.clearRect(0, 0, w, h); c.drawImage(img, 0, 0);
+        const d = c.getImageData(0, 0, w, h).data, ims = [0, 1, 2, 3, 4].map(() => c.createImageData(w, h));
+        const [gate, hot, gim, pim, sim] = ims;
+        gOpen = new Float32Array(w * h);
+        for (let y = 0; y < h; y++) {
+          const ramp = finRampAt(L9.top + (y + 0.5) / kPng);
+          for (let x = 0; x < w; x++) {
+            const i = y * w + x, o = i * 4, a = d[o + 3] / 255, g = ramp > 0 ? ramp * NX.smooth(r0, r1, Math.sqrt(D2[i])) : 0;
+            const br = NX.smooth(0.35, 0.65, (0.2126 * d[o] + 0.7152 * d[o + 1] + 0.0722 * d[o + 2]) / 255) * a;
+            const st = NX.smooth(STROKE[0], STROKE[1], Math.max(d[o], d[o + 1], d[o + 2]) / 255) * a;
+            for (const im of ims) im.data[o] = im.data[o + 1] = im.data[o + 2] = 255;
+            gate.data[o + 3] = Math.round(255 * (1 - (1 - g) * st)); hot.data[o + 3] = Math.round(255 * g * br);
+            gim.data[o + 3] = Math.round(255 * g); pim.data[o + 3] = Math.round(255 * (1 - st)); sim.data[o + 3] = Math.round(255 * st);
+            gOpen[i] = g;
+          }
         }
-        c.putImageData(gate, 0, 0); this.gateUrl = `url(${cv.toDataURL('image/png')})`;
-        c.putImageData(hot, 0, 0); finMask(this.L.hot, [`url(${cv.toDataURL('image/png')})`]);
+        const url = im => { c.putImageData(im, 0, 0); return `url(${cv.toDataURL('image/png')})`; };
+        this.gateUrl = url(gate); finMask(this.L.hot, [url(hot)]); this.gOnlyUrl = url(gim); this.plateUrl = url(pim); this.strokeUrl = url(sim);
+        this.gAt = (u, v) => gOpen[Math.min(h - 1, Math.floor(v * h)) * w + Math.min(w - 1, Math.floor(u * w))];
       }
       // 200 étincelles prises sur les pixels clairs du mot-symbole et du slogan (lignes ≥ 440), émises au passage du front,
-      // hors de l'empreinte du bas de l'emblème (rien n'y est écrit par le front : elle s'ouvre à l'échange).
-      const v0 = LOGO.rows.wordmark[0] / LOGO.H, hk = (HOLE.rx + HOLE.f) / HOLE.rx;
-      const outHole = p => Math.hypot((L9.left + p.u * L9.w - RING[0]) / HOLE.rx, (L9.top + p.v * H9 - RING[1]) / HOLE.ry) >= hk;
-      const pts = NX.sample(this.L.img, 900, 2888, 400, 0.45).filter(p => p.v >= v0 && outHole(p)).slice(0, 200);
+      // là où il écrit vraiment le chrome (hors de l'empreinte de l'emblème posé, qui s'ouvre à l'échange).
+      const v0 = LOGO.rows.wordmark[0] / LOGO.H;
+      const pts = NX.sample(this.L.img, 900, 2888, 400, 0.45).filter(p => p.v >= v0 && this.gAt(p.u, p.v) >= 0.5).slice(0, 200);
       this.nSparks = pts.length;
       this.sparks = pts.map((p, k) => {
         const r = NX.rng(28800 + k), X = L9.left + p.u * L9.w, Y = L9.top + p.v * H9;
@@ -182,8 +231,8 @@
     render(S) {
       const t = S.t, rz = this.rz || 0, dbg = NX.finDebug || {}, fx = NX.fx.ctx;
       const tau = t - HIT, R = NX.FRONT.end(t), frontOn = t < FRONT_OFF, lightsOn = !dbg.leavesOff;
-      // Échange (première sous-image ≥ 28,80) : la porte s'ouvre en 0,03 s, puis l'emblème s'efface en 0,05 s.
-      const open = dbg.dock ? 1 : dbg.xInstant ? (t >= HIT ? 1 : 0) : sm(SWAP_GATE[0], SWAP_GATE[1], t) * (t >= HIT ? 1 : 0);
+      // Échange (première sous-image ≥ 28,80) : les traits du logo s'ouvrent en 0,03 s, puis l'emblème s'efface en 0,05 s.
+      const open = dbg.dock ? 1 : sm(SWAP_GATE[0], SWAP_GATE[1], t) * (t >= HIT ? 1 : 0);
       const hitLum = lightsOn && tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0;   // surexposition de l'impact (≤ 0,30)
       // Emblème : son chrome apparaît en smooth(28,00 ; 28,20) ; sa lumière (feuille lum, traits clairs, ≤ 0,30) naît
       // avec le cœur et s'éteint en 0,3 s : il sort de la source comme un dessin de lumière qui prend matière.
@@ -193,7 +242,7 @@
       const favOn = favBox > 0 && (favImg > 0 || favLum > 0.002) && t < SWAP_FAV[1];
 
       // ---- Retour de l'emblème (28,00–28,80), puis effacement sous l'éclair (28,81–28,86) ----
-      // Jamais masqué : en dessous de la ligne de coupe, le logo n'écrit rien dans son empreinte avant l'échange.
+      // Jamais masqué : sous la ligne de coupe, le logo ne montre aucun trait clair dans son empreinte avant l'échange.
       if (favOn) {
         const P = finFavPose(finFlight(t), rz, dbg.lift ?? LIFT);
         this.fav.style.display = '';
@@ -225,21 +274,29 @@
       const L = this.L, Lc = frontOn ? finLocal(L9.left, L9.top, rz, R, t) : null;
       this.box.style.display = dbg.noLockup ? 'none' : '';
       const written = Lc ? finWrite(Lc) : null;
-      // Porte : fermée (image cuite) jusqu'à 28,80, puis ouverte en 0,03 s ; entièrement ouverte, elle disparaît.
-      const ga = Math.sqrt(open).toFixed(4);
-      const gate = open >= 1 ? [] : open > 0 ? [finHole(ga), finRamp(ga)] : [this.gateUrl];
-      const imgLayers = written ? [written, ...gate] : gate;
-      finMask(L.img, imgLayers);
+      // Porte : avant 28,80, g ∪ (plaque ∩ pPlate) — la plaque arrive avec la pose, les traits de l'emblème sont retenus ;
+      // à partir de 28,80, l'image cuite 1 − (1 − g)·st, les traits s'ouvrant en 0,03 s par une couche uniforme ajoutée ;
+      // entièrement ouverte, elle disparaît. { plateOff } : la plaque n'est jamais écrite.
+      const pPlate = dbg.dock ? 1 : E.sine(seg(t, PLATE_IN[0], PLATE_IN[1]));
+      let gate, gOps = ['add'];
+      if (dbg.plateOff) { gate = open > 0 ? [this.gOnlyUrl, this.strokeUrl, finUni(open)] : [this.gOnlyUrl]; gOps = ['add', 'intersect']; }
+      else if (open > 0 || pPlate >= 1) gate = open >= 1 ? [] : open > 0 ? [this.gateUrl, finUni(open)] : [this.gateUrl];
+      else if (pPlate > 0) { gate = [this.gOnlyUrl, this.plateUrl, finUni(pPlate)]; gOps = ['add', 'intersect']; }
+      else gate = [this.gOnlyUrl];
+      if (written) { gate = [written, ...gate]; gOps = ['intersect', ...gOps]; }
+      finMask(L.img, gate, gOps);
       // Bande blanche sur le chrome clair, au front d'écriture (masque fixe posé dans prepare).
       const hotOn = lightsOn && !!Lc;
       L.hot.style.opacity = hotOn ? 1 : 0;
       L.hot.style.display = hotOn ? '' : 'none';
       L.hot.style.background = hotOn ? finBand(Lc) : 'none';
-      // Surexposition de l'impact (≤ 0,30, e^(−6τ)), seulement sur ce qui est déjà écrit et ouvert.
+      // Surexposition de l'impact (≤ 0,30, e^(−6τ)) sur le chrome clair déjà écrit. Pendant l'échange (deux images),
+      // elle touche aussi les traits de l'emblème du logo qui s'ouvrent derrière l'emblème opaque : la lumière les
+      // montre une image avant leur chrome, sous l'éclair. Un seul masque de plus que le masque clair.
       const lum = hitLum > 0.002 ? hitLum : 0;
       L.lum.style.opacity = lum.toFixed(4);
       L.lum.style.display = lum ? '' : 'none';
-      finMask(L.lum, lum ? (dbg.xLumOpen && t >= HIT ? [L.url, ...(written ? [written] : [])] : [L.url, ...imgLayers]) : [L.url]);
+      finMask(L.lum, lum && written ? [L.url, written] : [L.url]);
       // Reflet unique de la tenue (carillon 4, 30,30–30,95, SHEEN).
       const gp = seg(t, 30.30, 30.95), sweepP = lightsOn ? E.sheen(gp) : -1, sweepOn = sweepP > 0 && sweepP < 1;
       L.sweep.style.opacity = sweepOn ? SWEEP_A.toFixed(4) : 0;
