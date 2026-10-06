@@ -88,7 +88,7 @@ export function normalizeSeoPath(path = "/") {
   return (path.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/");
 }
 
-export function getMetadata(path = "/", { noindex = false, title } = {}) {
+export function getMetadata(path = "/", { noindex = false, title, socialLinks = getSocialLinks() } = {}) {
   path = normalizeSeoPath(path);
   const entry = PUBLIC_METADATA[path];
   const metadata = {
@@ -108,7 +108,7 @@ export function getMetadata(path = "/", { noindex = false, title } = {}) {
           "@type": "Organization", "@id": `${SITE_ORIGIN}/#organization`, name: "NXT5", url: `${SITE_ORIGIN}/`,
           description: "Projet indépendant d’analyse et de préparation pour les équipes League of Legends.",
           logo: { "@type": "ImageObject", url: `${SITE_ORIGIN}/assets/nxt5-logo.png` },
-          sameAs: getSocialLinks({}).map(({ href }) => href),
+          sameAs: socialLinks.map(({ href }) => href),
         },
         {
           "@type": "WebSite", "@id": `${SITE_ORIGIN}/#website`, name: "NXT5", url: `${SITE_ORIGIN}/`, inLanguage: "fr-FR",

@@ -2,7 +2,7 @@ import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import AppContent from "../AppContent.jsx";
+import AppContent from "../AppRouter.jsx";
 import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";

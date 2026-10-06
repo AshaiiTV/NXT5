@@ -2,7 +2,7 @@ import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import NXT5 from "../AppContent.jsx";
+import NXT5 from "../AppRouter.jsx";
 import { apiFetch } from "../api/client.js";
 import { isAdminPath, isAppPath, isKnownPath } from "../app/routing.js";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";

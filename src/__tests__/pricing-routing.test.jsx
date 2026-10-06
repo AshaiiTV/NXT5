@@ -3,7 +3,7 @@ import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import NXT5 from "../AppContent.jsx";
+import NXT5 from "../AppRouter.jsx";
 import { apiFetch } from "../api/client.js";
 import { isAdminPath, isAppPath, isKnownPath, pageFromPath, pathFromPage } from "../app/routing.js";
 import { HomeScreen, LegalLinks } from "../pages/public/PublicPages.jsx";

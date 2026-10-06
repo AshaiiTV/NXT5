@@ -48,7 +48,7 @@ export function SiteHeader({ children, navigate, simple = false }) {
 
   return (
     <header className="nxt5-entry-header">
-      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90"><Nxt5Wordmark className="nxt5-entry-wordmark" /></a>
+      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90"><Nxt5Wordmark className="nxt5-entry-wordmark" sizes="(max-width: 767px) 120px, 136px" loading="eager" /></a>
       {children && <div className="nxt5-entry-header-actions">{children}</div>}
     </header>
   );
@@ -90,12 +90,20 @@ export function LegalLinks({ navigate }) {
           <p className="nxt5-footer-signature">Cinq rôles. Une même direction.</p>
           {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-footer-support"><Heart aria-hidden="true" size={16} />Soutenir NXT5</PublicTextLink>}
         </div>
-        <nav aria-label="Informations et contact">
-          {INFORMATION_GROUPS.map(({ href, label }) => (
-            <PublicTextLink key={href} href={href} navigate={navigate}>{label}</PublicTextLink>
-          ))}
-          <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="inline-flex min-h-11 items-center text-left text-xs font-semibold text-[#edf5ff] hover:text-cyan-200 hover:underline hover:underline-offset-[5px] sm:text-[0.8125rem]">Gérer mes cookies</button>
-        </nav>
+        <div className="min-w-0">
+          <nav aria-label="Découvrir NXT5">
+            <PublicTextLink href="/fonctionnalites" navigate={navigate}>Fonctionnalités</PublicTextLink>
+            <PublicTextLink href="/demo" navigate={navigate}>Démonstration</PublicTextLink>
+            <PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate}>Guide d’import</PublicTextLink>
+            <PublicTextLink href="/guides/preparer-debrief" navigate={navigate}>Guide de débrief</PublicTextLink>
+          </nav>
+          <nav aria-label="Informations et contact">
+            {INFORMATION_GROUPS.map(({ href, label }) => (
+              <PublicTextLink key={href} href={href} navigate={navigate}>{label}</PublicTextLink>
+            ))}
+            <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="inline-flex min-h-11 items-center text-left text-xs font-semibold text-[#edf5ff] hover:text-cyan-200 hover:underline hover:underline-offset-[5px] sm:text-[0.8125rem]">Gérer mes cookies</button>
+          </nav>
+        </div>
       </div>
       <p className="nxt5-footer-disclaimer">NXT5 n’est pas affilié à Riot Games.</p>
     </footer>
