@@ -18,7 +18,8 @@
   NX.T.hits = [NX.T.hookEnd, NX.T.emblem, NX.T.tools, NX.T.end];
 
   NX.css(`
-  .tz-title{font-weight:800;font-size:96px;line-height:1.06;letter-spacing:-.032em;color:var(--text);white-space:nowrap}
+  .tz-title{font-weight:800;font-size:96px;line-height:1.06;letter-spacing:-.032em;color:var(--text);white-space:nowrap;display:flow-root}
+  /* flow-root : les marges négatives des masques .tz-line ne fusionnent plus d'une ligne à l'autre (interligne 1,06). */
   .tz-kicker{font-weight:700;font-size:32px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan)}
   .tz-center{position:absolute;left:0;right:0;text-align:center}
   `);

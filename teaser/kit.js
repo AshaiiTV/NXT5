@@ -397,18 +397,18 @@
     track(el, t, a, b, from = -0.012, to = -0.032) {
       el.style.letterSpacing = `${NX.lerp(from, to, NX.ease.outCubic(NX.seg(t, a, b))).toFixed(4)}em`;
     },
-    /** Reflet qui traverse les mots en dégradé (.nx-spec) entre a et b. Appeler à chaque image. */
+    /** Reflet qui traverse les mots en dégradé (.nx-spec) de gauche à droite entre a et b (SHEEN).
+     *  La bande parcourt −0,62 → +0,62 de la boîte du mot : environ 0,8 s par passage, sans scintillement. */
     sheen(specEl, t, a, b, strength = 0.35) {
       const p = NX.seg(t, a, b), on = p > 0 && p < 1;
       for (const w of specEl.querySelectorAll('.nx-word, .nx-char')) {
         const d = w.dataset; if (!d.bw) continue;
-        if (!on) { if (d.sh === '1') { w.style.backgroundImage = 'var(--spectrum-text)'; w.style.backgroundSize = `${d.bw}px ${d.bh}px`; w.style.backgroundPosition = `${d.dx}px ${d.dy}px`; d.sh = '0'; } continue; }
-        const bw = +d.bw, sx = +d.dx + NX.lerp(1.6, -1.6, NX.ease.inOutCubic(p)) * bw;
+        if (!on) { w.style.backgroundImage = 'var(--spectrum-text)'; w.style.backgroundSize = `${d.bw}px ${d.bh}px`; w.style.backgroundPosition = `${d.dx}px ${d.dy}px`; w.style.backgroundRepeat = ''; continue; }
+        const bw = +d.bw, sx = +d.dx + NX.lerp(-0.62, 0.62, NX.ease.sheen(p)) * bw;
         w.style.backgroundImage = `linear-gradient(100deg,transparent 40%,rgba(255,255,255,${strength}) 50%,transparent 60%),var(--spectrum-text)`;
         w.style.backgroundSize = `${bw}px ${d.bh}px,${bw}px ${d.bh}px`;
-        w.style.backgroundPosition = `${sx}px ${d.dy}px,${d.dx}px ${d.dy}px`;
+        w.style.backgroundPosition = `${sx.toFixed(2)}px ${d.dy}px,${d.dx}px ${d.dy}px`;
         w.style.backgroundRepeat = 'no-repeat,no-repeat';
-        d.sh = '1';
       }
     },
   };
@@ -530,7 +530,7 @@
     };
     /** front : repère local du front (NX.light.local…) ou null ; written : PNG visible sans front ;
      *  forge, hot, lum : intensités 0..1 ; sweepP ∈ (0,1) position du reflet ; gate : couche de masque en plus sur le PNG. */
-    L.frame = ({ front = null, written = true, forge: fA = 0, hot: hA = 0, lum: lA = 0, sweepP = -1, sweepA = 1, gate = null, lead = 0 } = {}) => {
+    L.frame = ({ front = null, written = true, forge: fA = 0, hot: hA = 0, lum: lA = 0, sweepP = -1, sweepA = 0.316, gate = null, lead = 0 } = {}) => {
       if (front) {
         setMask(img, [NX.light.mask(front, 'write', { feather: 70 }), gate]);
         img.style.opacity = 1;
