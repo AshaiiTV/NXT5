@@ -9,7 +9,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EXE = process.env.CHROME_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', process.env.HOME + '/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell'].find(p => existsSync(p));
 const ai = process.argv.indexOf('--times');
 const times = ai > 0 ? process.argv[ai + 1].split(',').map(Number) : [4.8, 4.95, 7.2, 13.9, 14.4, 18.0, 21.6, 28.8];
-const b = await chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files'] });
+const b = await chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files', '--disable-gpu-rasterization'] });
 async function run(order) {
   const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } }), p = await ctx.newPage();
   p.on('pageerror', e => console.log('[page error]', e.message));

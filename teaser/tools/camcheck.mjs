@@ -9,7 +9,7 @@ import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const EXE = process.env.CHROME_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', process.env.HOME + '/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell'].find(p => existsSync(p));
-const b = await chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files'] });
+const b = await chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files', '--disable-gpu-rasterization'] });
 const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
 await p.goto(`file://${ROOT}/index.html?capture=1&only=ciel`);
 await p.waitForFunction(() => window.NXready === true, null, { timeout: 60000 });

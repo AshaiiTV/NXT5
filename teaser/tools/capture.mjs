@@ -36,7 +36,9 @@ async function openPage(browser) {
   };
   return page;
 }
-const launch = () => chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files'] });
+// Rastérisation logicielle : avec celle du GPU (SwiftShader), le dessin des textes et des images dépendait des
+// images rendues avant (±1 niveau sur quelques dizaines de pixels). Même coût mesuré, rendu indépendant de l'ordre.
+const launch = () => chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files', '--disable-gpu-rasterization'] });
 const renderAt = (page, t) => page.evaluate(t => { window.NXrender(t); return new Promise(r => requestAnimationFrame(() => r())); }, t);
 
 if (mode === 'stills' || mode === 'sheet') {
