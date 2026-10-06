@@ -2,7 +2,7 @@ import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import NXT5 from "../AppContent.jsx";
+import NXT5 from "../AppRouter.jsx";
 import { apiFetch } from "../api/client.js";
 import { ADMIN_GROUPS, ADMIN_PAGES, adminPageFromRoute } from "../app/admin-navigation.js";
 import { isAdminPath, isAppPath, isKnownPath } from "../app/routing.js";
@@ -98,6 +98,8 @@ async function open(path, account = admin, pending = false) {
     return Promise.reject(new Error(`Unexpected request: ${endpoint}`));
   });
   await act(async () => { renderer = TestRenderer.create(<AppLoadingProvider><Suspense fallback={<p>Chargement</p>}><NXT5 /></Suspense></AppLoadingProvider>); });
+  await act(async () => { await vi.dynamicImportSettled(); });
+  // The private module opens before the administration page's own lazy module.
   await act(async () => { await vi.dynamicImportSettled(); });
 }
 

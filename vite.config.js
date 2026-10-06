@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 import { resolveSeoConfig, withMetadata } from "./tools/seo-build.mjs";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "PUBLIC_");
+  const env = loadEnv(mode, process.cwd(), ["PUBLIC_", "VITE_SOCIAL_"]);
   const seo = resolveSeoConfig({ ...env, ...process.env });
   return {
   define: { "import.meta.env.NXT5_NOINDEX": JSON.stringify(seo.noindex) },

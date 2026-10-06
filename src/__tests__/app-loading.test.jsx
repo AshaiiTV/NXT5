@@ -2,7 +2,7 @@ import { createSeoDocument } from "./helpers/seo-document.js";
 import React, { Suspense, lazy, useEffect, useRef } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import AppContent from "../AppContent.jsx";
+import AppContent from "../AppRouter.jsx";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";
 import { apiFetch } from "../api/client.js";
 
@@ -95,7 +95,13 @@ function mount(path = "/equipes") {
     get loaders() { return renderer.root.findAll((node) => node.type === "section" && node.props["data-loader"]); },
     get pages() { return renderer.root.findAll((node) => node.type === "main" && node.props["data-page"]); },
     async loadModule() { await act(async () => module.resolve({ default: AppContent })); },
-    async resolve(index, data) { expect(requests[index]).toBeDefined(); await act(async () => requests[index].resolve(data)); },
+    async resolve(index, data) {
+      expect(requests[index]).toBeDefined();
+      await act(async () => requests[index].resolve(data));
+      // Session completion can now open the separately downloaded workspace.
+      await act(async () => { await vi.dynamicImportSettled(); });
+      await act(async () => { await vi.dynamicImportSettled(); });
+    },
     async reject(index) { expect(requests[index]).toBeDefined(); await act(async () => requests[index].reject(new Error("Réseau indisponible"))); },
   };
 }

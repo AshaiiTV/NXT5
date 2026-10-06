@@ -4,7 +4,7 @@ import { AppErrorBoundary } from "./components/ui/AppErrorBoundary.jsx";
 
 let appModule;
 export function preloadApp() {
-  appModule ||= import("./AppContent.jsx");
+  appModule ||= import("./AppRouter.jsx");
   return appModule;
 }
 const LazyApp = lazy(preloadApp);

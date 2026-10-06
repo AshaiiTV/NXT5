@@ -1,10 +1,10 @@
 import React from "react";
 import { NXT5_CONTACT_EMAIL } from "../../../shared/legal.js";
-import { ArrowUpRight, ChevronDown, LifeBuoy, MessageCircle, Radio, Shield, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, LifeBuoy, MessageCircle, Radio, Shield, Users } from "lucide-react";
 import { getSocialLinks } from "../../app/social-links.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, PageHeader, Surface } from "../../components/ui/Core.jsx";
-import { LEGAL_PAGES, LegalLinks, LinkButton, PublicInformationNav, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
+import { LegalLinks, LinkButton, PublicInformationNav, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
 
 const COMMUNITY_USES = [
   [Users, "Rencontre la communauté", "Échange avec les joueurs et les encadrants."],
@@ -16,7 +16,6 @@ export default function SocialPage({ navigate, user }) {
   const links = getSocialLinks();
   const discord = links.find((network) => network.id === "discord");
   const otherNetworks = links.filter((network) => network.id !== "discord");
-  const supportSections = LEGAL_PAGES["/contact"].sections.filter(([title]) => title !== "Discord NXT5");
   return (
     <div className="nxt5-information-page">
       <AmbientBackground />
@@ -29,7 +28,7 @@ export default function SocialPage({ navigate, user }) {
         <PublicInformationNav navigate={navigate} activePath="/reseaux" />
         <header className="nxt5-information-hero nxt5-enter">
           <Badge tone="cyan">La communauté NXT5</Badge>
-          <h1 className="nxt5-metal-text">Réseaux & contact</h1>
+          <h1 className="nxt5-metal-text">La communauté et les réseaux NXT5</h1>
           <p>Rejoins le Discord NXT5 pour poser une question ou partager une idée. Pour ton compte et tes données personnelles, contacte l’équipe en privé.</p>
         </header>
 
@@ -68,10 +67,12 @@ export default function SocialPage({ navigate, user }) {
               <PublicTextLink href="/confidentialite" navigate={navigate}>Consulter la confidentialité<ArrowUpRight aria-hidden="true" size={16} /></PublicTextLink>
             </div>
             <Surface className="nxt5-support-surface">
-              {supportSections.map(([title, text]) => <details key={title} className="nxt5-support-item">
-                <summary>{title}<ChevronDown aria-hidden="true" size={18} /></summary>
-                <p>{text}</p>
-              </details>)}
+              <div className="nxt5-contact-privacy">
+                <LifeBuoy aria-hidden="true" size={24} />
+                <h3>Retrouve l’aide adaptée à ta demande.</h3>
+                <p>Problème technique, gestion de ton compte, données personnelles ou publication Discord : la page Contact rassemble les démarches et les informations utiles pour expliquer ta situation.</p>
+                <PublicTextLink href="/contact" navigate={navigate}>Consulter les contacts et les démarches<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>
+              </div>
             </Surface>
           </div>
           <p className="nxt5-community-rules">Un espace pour échanger dans le respect de chacun. <PublicTextLink href="/reglement" navigate={navigate}>Lire le règlement NXT5</PublicTextLink></p>

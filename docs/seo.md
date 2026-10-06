@@ -18,13 +18,18 @@ node tools/generate-social-card.mjs
 
 Le navigateur conserve ce contenu jusqu’au chargement de l’application publique. Les routes de travail privées gardent l’écran de chargement partagé. Les pages publiques Réseaux et Soutien restent publiques pour les comptes connectés.
 
+`src/AppRouter.jsx` porte la session, la navigation, les métadonnées et le consentement, puis charge `AppContent.jsx` à la demande sur les routes privées autorisées. La démonstration conserve son propre chargement différé. Les contrôles administrateur et de vérification d’e-mail restent applicables ; la séparation des fichiers ne modifie pas les permissions serveur. Le wordmark du header déclare sa largeur d’affichage afin que le navigateur choisisse la bonne variante responsive.
+
 `src/seo/metadata.js` centralise les titres, descriptions, canonical, aperçus sociaux et données structurées. Les paramètres d’URL ne sont jamais ajoutés aux canonical. L’origine de référence est `https://nxt5.org` ; une valeur `PUBLIC_SITE_URL` différente fait échouer la construction plutôt que publier une mauvaise canonical. La balise de vérification Google existante est conservée.
 
 Le JSON-LD décrit le projet NXT5, le site et les pages avec leur fil d’Ariane. Il ne contient pas de prix, d’avis, de note ou d’affiliation commerciale. La politique de sécurité CSP reste stricte, sans JavaScript inline exécutable.
 
+Les profils `Organization.sameAs` utilisent la même configuration `VITE_SOCIAL_*` que les liens visibles, au build et dans le navigateur. Les guides montrent les étapes réelles d’import et de débrief, avec responsabilité éditoriale, date de révision, capture d’interface et exemples explicitement fictifs. Le footer comporte une navigation de découverte distincte des accès informatifs ; Réseaux renvoie vers Contact pour les motifs de support détaillés.
+
 ## Routage et indexation
 
 - Les fichiers HTML publics utilisent les Pretty URLs de Netlify, sans extension dans les liens et canonical.
+- L’alias de production exact `nxt5.netlify.app` redirige en 301 forcée vers `https://nxt5.org`, en conservant chemin et paramètres. Les deux règles HTTP/HTTPS précèdent les règles de fichiers et d’application. Elles ne ciblent ni les Deploy Previews ni les domaines de branches.
 - Le build crée un véritable `robots.txt` texte et un `sitemap.xml` contenant toutes les URL publiques de `PUBLIC_METADATA`.
 - Les pages d’authentification, les liens à jeton et les routes de travail sont dirigés vers `app-shell.html`, marqué `noindex`. Leur protection effective reste l’authentification serveur ; `noindex` n’est pas un contrôle d’accès.
 - Les routes absentes reçoivent une réponse 404 avec la vraie page « Page introuvable ». Les fichiers statiques et Netlify Functions conservent leur routage.
@@ -47,7 +52,7 @@ Cette commande force `CONTEXT=deploy-preview`. Un build local ordinaire sans `CO
 
 ## Validation et mise en ligne
 
-La commande du dépôt reste `npm run verify` : TypeScript, tests et build. La construction vérifie automatiquement les artefacts finaux avec `tools/verify-seo.mjs` : contenu HTML, titres/descriptions distincts, canonical, JSON-LD, règles d’indexation, ressources présentes, image 1200 × 630, sitemap, robots et règles des routes privées/404.
+La commande du dépôt reste `npm run verify` : TypeScript, tests et build. La construction vérifie automatiquement les artefacts finaux avec `tools/verify-seo.mjs` : contenu HTML, titres/descriptions distincts, canonical, JSON-LD, règles d’indexation, ressources présentes, image 1200 × 630, sitemap, robots et règles des routes privées/404. Les titres et descriptions sont extraits du `<head>` réellement émis, puis comparés aux valeurs attendues ; une balise absente, doublonnée ou incorrecte fait échouer le build, y compris dans les shells privés et 404. Les tests de mutation vérifient ce refus, sans se limiter au registre des métadonnées.
 
 Contrôler aussi dans le navigateur l’accueil et les fonctionnalités à 360, 390, 768, 1024 et 1440 px, les questions au clavier, les liens après navigation interne et les démarrages public/privé. Vérifier le HTML et les styles sans JavaScript. Les tests locaux ne certifient pas les Core Web Vitals réels.
 

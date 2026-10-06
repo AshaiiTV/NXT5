@@ -10,7 +10,7 @@ import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
 import { isAppPath, isKnownPath } from "../app/routing.js";
 import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe("public SEO and real component rendering", () => {
   it("renders the same homepage and features as the browser, with crawlable links", () => {
@@ -43,6 +43,22 @@ describe("public SEO and real component rendering", () => {
     ]);
     for (const href of organization.sameAs) expect(render("/reseaux")).toContain(`href="${href}"`);
     expect(renderMetadata(metadata)).toContain(JSON.stringify(organization.sameAs));
+  });
+
+  it("keeps configured community profiles identical in rendered pages, browser metadata and build metadata", () => {
+    const env = {
+      VITE_SOCIAL_YOUTUBE_URL: "https://www.youtube.com/@NXT5-ORG",
+      VITE_SOCIAL_INSTAGRAM_URL: "https://www.instagram.com/nxt5org/",
+      VITE_SOCIAL_TWITCH_URL: "https://untrusted.example/nxt5org",
+    };
+    for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+    const browser = getMetadata("/reseaux").structuredData["@graph"][0].sameAs;
+    const config = resolveSeoConfig({ CONTEXT: "production", ...env, SESSION_SECRET: "not-a-public-setting" });
+    const built = getMetadata("/reseaux", config).structuredData["@graph"][0].sameAs;
+    expect(built).toEqual(browser);
+    expect(browser).toEqual(["https://discord.gg/esPcQAeNWu", env.VITE_SOCIAL_INSTAGRAM_URL, env.VITE_SOCIAL_YOUTUBE_URL]);
+    for (const href of browser) expect(render("/reseaux")).toContain(`href="${href}"`);
+    expect(JSON.stringify(config)).not.toContain("not-a-public-setting");
   });
 
   it("keeps the French manifest aligned with the homepage and existing install icons", () => {
@@ -144,6 +160,27 @@ describe("public SEO and real component rendering", () => {
     expect(isKnownPath("/guides/nonexistent")).toBe(false);
     expect(getMetadata("/guides/nonexistent").robots).toBe("noindex, follow");
     expect(robotsTxt({ noindex: false })).toContain(`Sitemap: ${SITE_ORIGIN}/sitemap.xml`);
+  });
+
+  it("redirects only the exact production Netlify host before any page rule", () => {
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n").filter(line => line && !line.startsWith("#"));
+    const domainRules = rules.filter(line => /^https?:\/\//.test(line));
+    expect(domainRules).toEqual([
+      "https://nxt5.netlify.app/* https://nxt5.org/:splat 301!",
+      "http://nxt5.netlify.app/* https://nxt5.org/:splat 301!",
+    ]);
+    expect(rules.slice(0, 2)).toEqual(domainRules);
+    // A bare splat target leaves all query parameters to Netlify's documented
+    // pass-through; no wildcard hostname can capture branch/deploy previews.
+    for (const rule of domainRules) {
+      const [source, target, status, ...conditions] = rule.split(/\s+/);
+      expect(new URL(source).hostname).toBe("nxt5.netlify.app");
+      expect(new URL(target).search).toBe("");
+      expect(new URL(target).pathname).toBe("/:splat");
+      expect(status).toBe("301!");
+      expect(conditions).toEqual([]);
+    }
+    expect(robotsHeaders({ noindex: true }, privatePaths, dynamicPaths)).toBe("/*\n  X-Robots-Tag: noindex, follow\n");
   });
 
   it("escapes metadata and inert structured data without weakening CSP", () => {

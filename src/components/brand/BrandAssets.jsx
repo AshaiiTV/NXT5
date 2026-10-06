@@ -3,12 +3,12 @@ import { BarChart3, Crown, Settings, ShieldCheck, UserPlus, Users } from "lucide
 import { cx } from "../../app/helpers.js";
 import "./brand.css";
 
-export function ResponsiveImage({ src, sources = [], alt, className = "", fetchPriority, ...props }) {
+export function ResponsiveImage({ src, sources = [], alt, className = "", fetchPriority, sizes, ...props }) {
   const priorityProps = fetchPriority ? { fetchpriority: fetchPriority } : {};
   return (
     <picture>
-      {sources.map((source) => <source key={source.srcSet} type={source.type || "image/webp"} media={source.media} srcSet={source.srcSet} />)}
-      <img src={src} alt={alt} className={className} {...priorityProps} {...props} />
+      {sources.map((source) => <source key={source.srcSet} type={source.type || "image/webp"} media={source.media} srcSet={source.srcSet} sizes={source.sizes || sizes} />)}
+      <img src={src} alt={alt} className={className} sizes={sizes} {...priorityProps} {...props} />
     </picture>
   );
 }
@@ -35,8 +35,8 @@ export function BrandLogo({ compact = false, className = "" }) {
   );
 }
 
-export function Nxt5Wordmark({ className = "" }) {
-  return <ResponsiveImage src="/assets/nxt5-wordmark.png?v=3" sources={[{ srcSet: "/assets/nxt5-wordmark-640.webp 640w, /assets/nxt5-wordmark-320.webp 320w" }]} alt="NXT5" width="1115" height="350" loading="lazy" decoding="async" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
+export function Nxt5Wordmark({ className = "", sizes, loading = "lazy" }) {
+  return <ResponsiveImage src="/assets/nxt5-wordmark.png?v=3" sources={[{ srcSet: "/assets/nxt5-wordmark-640.webp 640w, /assets/nxt5-wordmark-320.webp 320w" }]} alt="NXT5" width="1115" height="350" sizes={sizes} loading={loading} decoding="async" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
 }
 
 export function TeamAvatar({ team, className = "h-12 w-12" }) {

@@ -4,7 +4,7 @@ import { createServer, loadEnv } from "vite";
 import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "./seo-build.mjs";
 import { verifySeoArtifacts } from "./verify-seo.mjs";
 
-const config = resolveSeoConfig({ ...loadEnv("production", process.cwd(), "PUBLIC_"), ...process.env });
+const config = resolveSeoConfig({ ...loadEnv("production", process.cwd(), ["PUBLIC_", "VITE_SOCIAL_"]), ...process.env });
 const outputDir = resolve(process.argv[2] || "dist");
 const template = await readFile(resolve(outputDir, "index.html"), "utf8");
 const server = await createServer({ mode: "production", server: { middlewareMode: true, hmr: false }, appType: "custom" });

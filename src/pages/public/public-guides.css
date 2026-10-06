@@ -1,5 +1,7 @@
 .nxt5-public-guide .nxt5-entry-eyebrow { display: flex; align-items: center; gap: .5rem; }
+.public-guide-byline { margin-top: 1.25rem; color: var(--nxt5-muted); font-size: .875rem; line-height: 1.8; }
 .public-guide-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; gap: clamp(2rem, 5vw, 4rem); padding-bottom: 3rem; }
+.public-guide-layout > *, .public-guide-steps > li > div { min-width: 0; }
 .public-guide-prerequisite { padding: 1.25rem 0 1.25rem 1.25rem; border-left: 2px solid var(--nxt5-accent-2); }
 .public-guide-prerequisite h2 { font-size: 1.125rem; font-weight: 650; }
 .public-guide-prerequisite p, .public-guide-steps p, .public-guide-example > p { margin-top: .75rem; color: var(--nxt5-text-secondary); font-size: 1rem; line-height: 1.85; }
@@ -9,6 +11,25 @@
 .public-guide-steps h2 { font-size: 1.35rem; font-weight: 650; line-height: 1.5; }
 .public-guide-example > a { margin-top: 1rem; }
 .public-guide-example > p { font-size: .875rem; }
+.public-guide-screenshot { margin: 0; }
+.public-guide-screenshot img { display: block; width: 100%; height: auto; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); }
+.public-guide-screenshot figcaption { margin-top: .75rem; color: var(--nxt5-text-secondary); font-size: .875rem; line-height: 1.8; }
+.public-guide-screenshot > a { margin-top: .75rem; flex-wrap: wrap; }
+.public-guide-image-note { font-weight: 400; }
+.public-guide-help, .public-guide-case { margin-block: 1rem 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--nxt5-border); }
+.public-guide-help > h2, .public-guide-case h2 { font-size: 1.35rem; font-weight: 650; line-height: 1.5; }
+.public-guide-help details { border-bottom: 1px solid var(--nxt5-border); }
+.public-guide-help summary { min-height: 44px; padding-block: 1rem; cursor: pointer; font-size: 1rem; font-weight: 600; line-height: 1.65; }
+.public-guide-help summary::marker { color: var(--nxt5-accent-2); }
+.public-guide-help details p, .public-guide-case > p:not(.nxt5-entry-eyebrow), .public-guide-case dd { color: var(--nxt5-text-secondary); font-size: 1rem; line-height: 1.85; }
+.public-guide-help details p { padding-bottom: 1.25rem; }
+.public-guide-case h2, .public-guide-case > p:not(.nxt5-entry-eyebrow) { margin-top: .75rem; }
+.public-guide-case dl { margin-top: 1.5rem; }
+.public-guide-case dl > div { padding-block: 1rem; border-top: 1px solid var(--nxt5-border); }
+.public-guide-case dt { color: var(--nxt5-accent); font-weight: 600; }
+.public-guide-case dd { margin: .5rem 0 0; }
+.public-guide-feature-link { margin-top: 1.5rem; }
+.nxt5-public-guide :where(a, summary):focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 4px; }
 .public-guide-next { display: flex; align-items: center; gap: .8rem; padding-block: 1rem 2rem; color: var(--nxt5-accent); }
 .public-guide-next > svg { flex-shrink: 0; }
 .public-guide-next a { display: inline-flex; align-items: center; gap: .8rem; min-height: 44px; font-size: 1rem; }
