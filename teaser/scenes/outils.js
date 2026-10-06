@@ -432,10 +432,11 @@
           c2.burnBand.style.display = '';
           c2.burnBand.style.background = ouBurnBand(Lc, LEAD);
           // Alpha 0,85 (bible : 0,6) : à 0,6 le cœur blanc, posé en plus-lighter sur le verre sombre, plafonnait vers
-          // 130/255, un gris neutre (règle de scanner, mesurée #828691). La bande s'éteint quand le bord quitte le
-          // dernier coin de la carte.
+          // 130/255, un gris neutre (règle de scanner, mesurée #828691). La bande s'éteint sur les 100 derniers px de
+          // sa course (≈ 29,11–29,18) : elle a fini son travail en quittant le bas des colonnes et ne glisse plus, pleine,
+          // sur la bande de verre vide pendant que le logo est complet.
           const far = Math.hypot((ST.w - Lc.cx) / NX.light.K, ST.h - Lc.cy) - (Lc.r + LEAD);
-          c2.burnBand.style.opacity = (0.85 * NX.smooth(-10, 50, far)).toFixed(3);
+          c2.burnBand.style.opacity = (0.85 * NX.smooth(-10, 90, far)).toFixed(3);
           // La lumière décroît avec la distance à la source (px locaux : coin proche ≈ 505, coin opposé ≈ 1325) : pleine
           // près de l'axe des rayons, aux trois quarts au bout de la carte. Uniforme sur 830 px, la bande se lisait
           // comme le trait d'un scanner.
