@@ -42,6 +42,10 @@ NX.scene({
     for (const h of T.hits) if (t >= h) flash += (h === T.tools ? 0.3 : 1) * Math.exp(-4 * (t - h));
     // Éclat mesuré pour rester dans la règle de continuité (|ΔY| ≤ 9 sur la fenêtre d'un impact).
     B.rays += 0.65 * flash; B.intensity += 0.14 * flash; B.flash = 0.02 * flash;
+    // S2 → S3 : la lumière recueille le logo. Quand il disparaît (7,13–7,17), les rayons prennent sa lumière
+    // puis se calment jusqu'à 7,8 ; sans ce relais, la luminance chutait de 4,7 en une image.
+    const take = sm(7.11, 7.17, t) * (1 - sm(7.17, 7.8, t));
+    B.rays += 0.7 * take; B.intensity += 0.14 * take;
     // S3 : le passage des rôles, le plus sombre de la v6, est éclairé.
     const lift = sm(6.6, 7.4, t) * (1 - sm(10.2, 11.4, t));
     B.rays += 0.45 * lift; B.nebula += 0.24 * lift; B.intensity += 0.08 * lift;
