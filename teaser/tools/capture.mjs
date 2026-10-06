@@ -5,7 +5,7 @@
  *   node tools/capture.mjs audio  --out out/soundtrack.wav
  * Les erreurs console de la page sont affichées (préfixe [page]). */
 import { chromium } from 'playwright-core';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -64,7 +64,9 @@ if (mode === 'stills' || mode === 'sheet') {
   const from = +(opt.from || 0), to = +(opt.to || 33.6), shutter = +(opt.shutter || 0.5);
   const first = Math.round(from * fps), last = Math.round(to * fps);
   mkdirSync(opt.out, { recursive: true });
-  const jobs = []; for (let f = first; f < last; f++) jobs.push(f);
+  // --resume 1 : saute les images dont toutes les sous-images existent déjà (reprise d'un rendu par tranches).
+  const have = f => Array.from({ length: sub }, (_, s) => `${opt.out}/f${String(f).padStart(5, '0')}_${s}.png`).every(p => existsSync(p) && statSync(p).size > 0);
+  const jobs = []; for (let f = first; f < last; f++) if (!(opt.resume === '1' && have(f))) jobs.push(f);
   let done = 0; const t0 = Date.now();
   await Promise.all(Array.from({ length: workers }, async (_, w) => {
     const browser = await launch(); const page = await openPage(browser);
