@@ -1,0 +1,78 @@
+/* Contrôle de la caméra (bible §6.7) avec les vraies clés et la vraie projection du kit.
+ *   node tools/camcheck.mjs
+ * Marges : chaque boîte de contenu reste à ≥ 154 px des côtés et ≥ 86 px du haut et du bas dans sa fenêtre.
+ * Échelle des titres ≥ 0,945 ; avancée ≤ 75 px/s (≤ 150 entre 18,0 et 19,4) ; panoramique et bascule ≤ 0,8 °/s
+ * (orbite ≤ 1,6 °/s) ; dérive des sujets ≤ 60 px/s pendant les tenues ; vitesse nulle à 33,6 s. */
+import { chromium } from 'playwright-core';
+import { existsSync } from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const EXE = process.env.CHROME_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', process.env.HOME + '/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell'].find(p => existsSync(p));
+const b = await chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files'] });
+const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
+await p.goto(`file://${ROOT}/index.html?capture=1&only=ciel`);
+await p.waitForFunction(() => window.NXready === true, null, { timeout: 60000 });
+const out = await p.evaluate(() => {
+  const G = NX.G, fails = [], info = [];
+  const art = L => { const k = L.w / 1254; return [L.left + 90 * k, L.top + 106 * k, L.left + 1165 * k, L.top + 802 * k, 0]; };
+  // Boîtes de contenu (monde) et leurs fenêtres d'affichage.
+  const boxes = [
+    ['question', 0, 4.8, [960 - 673, G.hook.top, 960 + 673, G.hook.top + 210, 0], true],
+    ['logo S2', 5.0, 6.9, art(G.L2)],
+    ['rangée des rôles', 7.2, 12.5, [G.roles.x(0) - 108, G.roles.y - 108, G.roles.x(4) + 108, G.roles.labelTop + 45, 0]],
+    ['« Toute ton équipe. »', 10.3, 13.9, [960 - 389, 700, 960 + 389, 805, 0], true],
+    ['emblème S5', 14.4, 17.4, [G.E5.left, G.E5.top, G.E5.left + G.E5.size, G.E5.top + G.E5.size, 0]],
+    ['« Une même direction. »', 15.0, 17.7, [960 - 462, 700, 960 + 462, 805, 0], true],
+    ['colonne des titres', 18.25, 28.7, [G.tools.col.left, G.tools.col.top, G.tools.col.left + 686, G.tools.col.top + 260, G.tools.col.z], true],
+    ['pile de cartes', 18.1, 28.7, 'stack'],
+    ['logo final', 29.0, 33.6, art(G.L9)],
+    ['lignes finales', 30.2, 33.6, [960 - 532, G.end.line1Top, 960 + 532, G.end.line2Top + 50, 0], true],
+  ];
+  const S = G.tools.stack, r = S.rotY * Math.PI / 180;
+  const stackPts = c => [[0, 0], [S.w, 0], [0, S.h], [S.w, S.h]].map(([u, v]) => NX.cam.project(S.left + u * Math.cos(r), S.top + v, S.z - u * Math.sin(r), c));
+  for (const [name, a, z, box, isText] of boxes) {
+    const [x0, y0, x1, y1, Z] = box === 'stack' ? [S.left, S.top, S.left + S.w, S.top + S.h, S.z] : box;
+    let worst = Infinity, wt = a, minS = Infinity;
+    for (let t = a; t <= z + 1e-6; t += 0.05) {
+      const c = NX.cam.at(t), pts = box === 'stack' ? stackPts(c) : [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([X, Y]) => NX.cam.project(X, Y, Z, c));
+      for (const q of pts) {
+        const m = Math.min(q.x - 154, 1920 - 154 - q.x, q.y - 86, 1080 - 86 - q.y);
+        if (m < worst) { worst = m; wt = t; }
+      }
+      minS = Math.min(minS, NX.cam.project((x0 + x1) / 2, (y0 + y1) / 2, Z, c).s);
+    }
+    info.push(`${name.padEnd(24)} marge minimale ${worst.toFixed(0)} px (à ${wt.toFixed(2)} s), échelle min ${minS.toFixed(3)}`);
+    if (worst < 0) fails.push(`${name} sort du cadre de sécurité de ${(-worst).toFixed(0)} px à ${wt.toFixed(2)} s`);
+    if (isText && minS < 0.945) fails.push(`${name} : échelle ${minS.toFixed(3)} < 0,945`);
+  }
+  // Vitesses de la caméra.
+  const dt = 0.01; let worstDolly = 0, wd = 0, worstPan = 0, wp = 0;
+  for (let t = 0; t < 33.6; t += dt) {
+    const a = NX.cam.at(t), b = NX.cam.at(t + dt);
+    const vz = Math.abs(b.z - a.z) / dt, lim = t >= 18.0 && t <= 19.4 ? 150 : 75;
+    // l'accent d'impact n'est pas compté comme une avancée
+    const pun = h => NX.punch(t + dt, h, 24) - NX.punch(t, h, 24); let vp = 0; for (const h of NX.T.hits) vp += Math.abs(pun(h)) / dt;
+    if (vz - vp > lim && vz - vp > worstDolly) { worstDolly = vz - vp; wd = t; }
+    const vyaw = Math.abs(b.yaw - a.yaw) / dt, vpitch = Math.abs(b.pitch - a.pitch) / dt, orbit = t >= 18.0 && t <= 30.0;
+    const v = Math.max(vyaw, vpitch); if (v > (orbit ? 1.6 : 0.8) && v > worstPan) { worstPan = v; wp = t; }
+  }
+  if (worstDolly) fails.push(`avancée ${worstDolly.toFixed(0)} px/s à ${wd.toFixed(2)} s`);
+  if (worstPan) fails.push(`panoramique ou bascule ${worstPan.toFixed(2)} °/s à ${wp.toFixed(2)} s`);
+  const e0 = NX.cam.at(33.59), e1 = NX.cam.at(33.6), vEnd = Math.hypot(e1.x - e0.x, e1.y - e0.y, e1.z - e0.z) / 0.01;
+  info.push(`vitesse finale ${vEnd.toFixed(2)} px/s`);
+  if (vEnd > 0.5) fails.push(`la caméra bouge encore à 33,6 s (${vEnd.toFixed(2)} px/s)`);
+  // Dérive des sujets pendant les tenues (centre de la boîte projeté).
+  const holds = [['question', 2.9, 4.4, 960, 505, 0], ['logo S2', 5.1, 6.6, 958.7, 452.1, 0], ['« Toute ton équipe. »', 10.8, 12.2, 960, 752, 0], ['emblème S5', 14.6, 17.3, 960, 441.7, 0], ['logo final', 29.5, 33.5, 959.1, 246, 0]];
+  for (const [name, a, z, X, Y, Z] of holds) {
+    let worst = 0, wt = a;
+    for (let t = a; t < z; t += 0.02) { const p0 = NX.cam.project(X, Y, Z, NX.cam.at(t)), p1 = NX.cam.project(X, Y, Z, NX.cam.at(t + 0.02)); const v = Math.hypot(p1.x - p0.x, p1.y - p0.y) / 0.02; if (v > worst) { worst = v; wt = t; } }
+    info.push(`${name.padEnd(24)} dérive maximale ${worst.toFixed(0)} px/s (à ${wt.toFixed(2)} s)`);
+    if (worst > 60) fails.push(`${name} dérive à ${worst.toFixed(0)} px/s à ${wt.toFixed(2)} s`);
+  }
+  return { info, fails };
+});
+console.log(out.info.join('\n'));
+console.log(out.fails.length ? `ÉCHECS (${out.fails.length}) :\n- ` + out.fails.join('\n- ') : 'Caméra conforme.');
+await b.close();
+process.exit(out.fails.length ? 2 : 0);

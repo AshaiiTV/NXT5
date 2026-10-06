@@ -1147,3 +1147,12 @@ That is about 1.0–1.4× v6 per moment, roughly 1.15–1.25× for the whole fil
 - Holds are 2.4–4.7.
 
 **Render cost per sub-frame:** 448–1,190 ms by moment (Appendix A). The full v6 film takes about 60 min at 6 sub-frames.
+
+---
+
+## Deviations recorded by the lead
+
+| Date | Section | Change | Reason |
+|---|---|---|---|
+| 6 Oct | §3.2 camera keys | `z` key at 18.0 is 50 (was 72); impact accent at 18.0 is 16 px (was 20) | `tools/camcheck.mjs` found the tools title column 17 px inside the 154 px safe margin at 18.1–18.25 (the bible's estimate ignored the accent). Now 0 px or more everywhere; dolly peak stays under 75 px/s outside the reveal window. |
+| 6 Oct | §6.5 metrics | Continuity rule tolerates up to 9 luma in either direction within −0.1 to +0.75 s of a hit | A flash's natural decay right after the hit was flagged as a jump. |
