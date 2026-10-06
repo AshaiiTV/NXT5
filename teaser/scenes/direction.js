@@ -2,10 +2,11 @@
  * 14,28–14,42 : l'emblème (PNG) apparaît sous les particules d'equipe.js ; 14,4 : impact sobre au centre de l'anneau.
  * 14,55 : le titre monte. 14,6–17,4 : l'emblème respire (−10 px, ×1,025). 15,6 : un faisceau part de la pointe de la
  * lance vers la source (tracé 15,6–16,5), il pulse sur 16,8. 16,15–16,85 : un seul reflet passe sur le chrome.
- * 17,40–17,75 : l'emblème se condense en sa flèche : le masque horizontal doux se referme sur l'axe et éteint l'anneau
- * et les ailes, la flèche (pointe, ailerons, hampe) reste entière et s'éclaire. 17,50–17,98 : elle monte le long du
- * faisceau et s'efface dans la lumière ; le titre sort par le haut (17,62). 18,0 : le faisceau s'éteint, la lumière
- * redescend sur la première carte (outils.js).
+ * 17,40–17,75 : l'emblème se condense en sa flèche : le masque horizontal doux se referme sur l'axe et efface l'anneau
+ * et les ailes de l'extérieur vers l'intérieur, la flèche (pointe, ailerons, hampe) reste entière et s'éclaire.
+ * 17,50–17,98 : elle monte le long du faisceau et s'efface dans la lumière ; le titre sort par le haut (17,56, sorti à
+ * 17,98, avant que la première carte ne s'allume). 18,0 : le faisceau s'éteint, la lumière redescend sur la première
+ * carte (outils.js).
  * Interfaces : equipe.js possède les particules et ne dessine jamais le PNG ; cette scène possède l'emblème et
  * NX.hit(14,4) ; « ciel » possède l'onde de choc, le resserrement des rayons, la montée et la poussière.
  * Le logo n'est jamais tourné ni filtré : masques doux, translation, échelle uniforme, feuilles de lumière.
@@ -31,15 +32,18 @@
   const BIRTH = [14.28, 14.42];                  // opacité de l'emblème sous les particules
   const HALO_IN = [14.42, 15.00];                // le halo s'épanouit pendant que l'éclair de l'impact retombe (SINE)
   const TITLE_IN = 14.55, TITLE_STEP = 0.12, TITLE_DUR = 0.8;      // 14,55 / 14,67 / 14,79 (ENTER) : complet 15,59
-  const TITLE_OUT = 17.62, OUT_STEP = 0.05, OUT_DUR = 0.32;         // 17,62 / 17,67 / 17,72 (EXIT)
-  const TITLE_GONE = TITLE_OUT + 2 * OUT_STEP + OUT_DUR;            // 18,04 : dernier mot sorti
+  // Sortie 17,56 / 17,61 / 17,66 (EXIT 0,32, écart de la bible 17,62 → 17,56) : le dernier mot est sorti à 17,98,
+  // avant que la carte 1 ne s'allume au drop (18,00–18,10) ; à 17,62 la bible le laissait sur le contenu de la carte
+  // jusqu'à 18,04 (double exposition, §2.7). L'EXIT part si lentement que le titre reste entier jusqu'à 17,66.
+  const TITLE_OUT = 17.56, OUT_STEP = 0.05, OUT_DUR = 0.32;
+  const TITLE_GONE = TITLE_OUT + 2 * OUT_STEP + OUT_DUR;            // 17,98 : dernier mot sorti
   const BREATH = [14.60, 17.40];                 // respiration : y −10 px, échelle 1 → 1,025 (SINE)
   const KICKS = NX.beats.lightKicks.slice(2);    // 15,6 et 16,8 : halo +20 % (décroissance 2,5)
   const SHEEN_T = [15.30, 16.10];                // reflet du mot « direction. »
   const DRAW = [15.60, 16.50];                   // tracé du faisceau, de la pointe vers la source (SINE)
   const GLINT = [16.15, 16.85];                  // reflet unique de la tenue (SHEEN)
-  const COND = [17.40, 17.75];                   // condensation en flèche (GLIDE)
-  const DIM = [17.42, 17.62];                    // l'anneau et les ailes s'éteignent : à 17,60 seule la flèche reste
+  const COND = [17.40, 17.75];                   // condensation en flèche (GLIDE) : la bande se referme à pleine force
+  const DIM = [17.62, 17.72];                    // ce que la bande laisse dans les colonnes finales (bouts de l'anneau)
   const SPEAR_LUM = [17.45, 17.80];              // lumière froide sur la flèche 0 → 0,5
   const RISE = [17.50, 17.98];                   // montée de 260 px le long du faisceau (LIFT)
   const FADE = [17.75, 17.98];                   // la flèche s'efface dans la lumière
@@ -51,6 +55,7 @@
   // Bande du reflet : la même que S2 et S9 (cœur spéculaire net, épaules douces), pour que les trois logos se répondent.
   const SWEEP_BAND = 'linear-gradient(105deg,transparent 0%,rgba(150,215,255,.10) 28%,rgba(185,232,255,.38) 43%,rgba(255,255,255,.95) 48.5%,rgba(255,255,255,.95) 51.5%,rgba(205,192,255,.38) 57%,rgba(196,181,253,.10) 72%,transparent 100%)';
   const BEAM_CORE = [200, 240, 255], BEAM_GLOW = [167, 200, 255];
+  const VOL_W = 180, VOL_A = 0.16, VOL_F0 = 180, HEAD_FADE = 120;   // volume du faisceau, fondu de la tête (px)
   const TAN15 = Math.tan(15 * Math.PI / 180);
   // Halo (bible : radial rgba(129,140,248,.35) → transparent, 900 px). Profil 1 − smoothstep, pic 0,42 = 0,35 × 1,2 :
   // l'opacité de repos 1/1,2 donne 0,35, les temps 15,6 et 16,8 montent à +20 %. Ni pointe au centre, ni bord visible.
@@ -76,6 +81,12 @@
   /** Centre de la bande de reflet (gradient 105°, 34 % de large, translateX −110 % → 300 %) à mi-hauteur, en u. */
   const sweepAt = p => (NX.lerp(-110, 300, p) / 100) * 0.34 + 0.17;
   const sheenInv = y => { let a = 0, b = 1; for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (E.sheen(m) < y) a = m; else b = m; } return (a + b) / 2; };
+  /** Instant où le bord gauche de la bande (34 % de large, translateX −110 % → 300 %, SHEEN) est en u. */
+  const sweepTime = u => GLINT[0] + (GLINT[1] - GLINT[0]) * sheenInv((u / 0.34 * 100 + 110) / 410);
+  // Feuille du reflet allumée de l'arrivée de la bande sur le dessin (≈ 16,29, sa lumière entre sur l'arc gauche dans
+  // la même image) jusqu'au temps 16,8 (la bande a quitté le dessin à ≈ 16,62) : le retour à la netteté tombe sur la
+  // pulsation du halo et du faisceau au lieu d'une image de tenue immobile.
+  const SWEEP_ON = sweepTime(ART[0] - 0.34), SWEEP_OFF = Math.max(KICKS[1], sweepTime(ART[1]));
 
   /** Masque à plusieurs couches (même convention que le kit) : intersection par défaut, union avec 'add'. */
   function dirMask(el, layers, op = 'intersect') {
@@ -129,29 +140,41 @@
     return `url(${cv.toDataURL('image/png')})`;
   }
 
-  /** Faisceau du kit (NX.lk.beam, couches [w0, w1, alpha, rgb]) tracé sur une toile annexe, fondu à ses deux bouts
-   *  (f0 px au pied, f1 px à la tête), puis ajouté en lumière sur dst : la tête qui monte se lit comme de la lumière,
-   *  jamais comme une barre coupée. */
-  function dirBeam(dst, oc, x0, y0, x1, y1, layers, f0, f1) {
+  /** Une passe de faisceau : draw(o) trace la couche sur la toile annexe o (demi-largeur au plus half), qui est fondue à
+   *  ses deux bouts (f0 px au pied, f1 px à la tête, rampes en smoothstep : ni arête ni barre coupée), puis ajoutée en
+   *  lumière sur dst. La tête qui monte se lit ainsi comme de la lumière. */
+  function dirBeamPass(dst, oc, x0, y0, x1, y1, half, f0, f1, draw) {
     const len = Math.hypot(x1 - x0, y1 - y0);
     if (len < 1) return;
-    const W = oc.width, H = oc.height, pad = 24;
+    const W = oc.width, H = oc.height, pad = half + 2;
     const bx = Math.max(0, Math.floor(Math.min(x0, x1) - pad)), by = Math.max(0, Math.floor(Math.min(y0, y1) - pad));
     const bw = Math.min(W, Math.ceil(Math.max(x0, x1) + pad)) - bx, bh = Math.min(H, Math.ceil(Math.max(y0, y1) + pad)) - by;
     if (bw <= 0 || bh <= 0) return;
     const o = oc.getContext('2d');
     o.setTransform(1, 0, 0, 1, 0, 0); o.globalAlpha = 1; o.globalCompositeOperation = 'source-over';
     o.clearRect(bx, by, bw, bh);
-    for (const [w0, w1, a, rgb] of layers) NX.lk.beam(x0, y0, x1, y1, w0, w1, a, rgb, o);
+    draw(o);
     let a0 = f0 / len, a1 = f1 / len;
     if (a0 + a1 > 1) { const q = 1 / (a0 + a1); a0 *= q; a1 *= q; }
-    const g = o.createLinearGradient(x0, y0, x1, y1);
-    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(a0, '#000'); g.addColorStop(Math.max(a0, 1 - a1), '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    const g = o.createLinearGradient(x0, y0, x1, y1), ss = u => (u * u * (3 - 2 * u)).toFixed(4);
+    for (const u of [0, 0.25, 0.5, 0.75]) g.addColorStop(a0 * u, `rgba(0,0,0,${ss(u)})`);
+    g.addColorStop(a0, '#000'); g.addColorStop(Math.max(a0, 1 - a1), '#000');
+    for (const u of [0.75, 0.5, 0.25, 0]) g.addColorStop(1 - a1 * u, `rgba(0,0,0,${ss(u)})`);
     o.globalCompositeOperation = 'destination-in'; o.fillStyle = g; o.fillRect(bx, by, bw, bh);
     o.globalCompositeOperation = 'source-over';
     dst.save(); dst.setTransform(1, 0, 0, 1, 0, 0); dst.globalCompositeOperation = 'lighter'; dst.globalAlpha = 1;
     dst.drawImage(oc, bx, by, bw, bh, bx, by, bw, bh);
     dst.restore();
+  }
+  /** Volume du faisceau : bande de largeur constante w, profil transversal gaussien (σ ≈ w/6), alpha a au centre. */
+  const VOL_PROFILE = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1].map(u => [u, u === 0 || u === 1 ? 0 : Math.exp(-0.5 * Math.pow((u - 0.5) / 0.16, 2))]);
+  function dirVolume(o, x0, y0, x1, y1, w, a, rgb) {
+    if (a <= 0.002) return;
+    o.save(); o.globalCompositeOperation = 'lighter'; o.translate(x0, y0); o.rotate(Math.atan2(y1 - y0, x1 - x0));
+    const g = o.createLinearGradient(0, -w / 2, 0, w / 2);
+    for (const [u, k] of VOL_PROFILE) g.addColorStop(u, `rgba(${rgb},${(a * k).toFixed(4)})`);
+    o.fillStyle = g; o.fillRect(0, -w / 2, Math.hypot(x1 - x0, y1 - y0), w);
+    o.restore();
   }
 
   NX.scene({
@@ -190,20 +213,28 @@
         // Boîte 2× réduite de moitié, l'échelle de respiration autour de C : le centre de l'anneau reste en (CX, CY + dy).
         const k = P.s / SS, tx = OX * (1 - P.s), ty = OY * (1 - P.s) + P.dy;
         box.style.transform = `translate3d(${tx.toFixed(3)}px,${ty.toFixed(3)}px,${ZB}px) scale(${k.toFixed(5)})`;
-        // Condensation : bande horizontale douce (bible) qui se referme sur l'axe, unie au masque de la flèche ;
-        // tout ce qui n'est pas la flèche s'éteint en même temps (DIM), la flèche n'est jamais coupée.
-        if (cond > 0 && !dbg.noMask) {
-          const l = COLS[0] * cond, r = 100 - (100 - COLS[1]) * cond;
-          const a = this.spear ? 1 - sm(DIM[0], DIM[1], t) : 1, c = `rgba(0,0,0,${a.toFixed(4)})`;
+        // Condensation (bible) : la bande horizontale douce se referme sur l'axe à pleine force et efface l'anneau et
+        // les ailes de l'extérieur vers l'intérieur ; elle est unie au masque de la flèche, qui n'est donc jamais coupée.
+        // Ce que la bande laisse dans les colonnes finales (les bouts de l'anneau près de la pointe) s'éteint ensuite (DIM).
+        // Le masque n'est posé que lorsqu'il mord sur le dessin : avant, il ne change aucun pixel, et le poser plus tôt
+        // ferait passer la boîte par une surface intermédiaire (léger adoucissement) en pleine tenue.
+        const l = COLS[0] * cond, r = 100 - (100 - COLS[1]) * cond, a = this.spear ? 1 - sm(DIM[0], DIM[1], t) : 1;
+        if (cond > 0 && (l > ART[0] * 100 || r < ART[1] * 100 || a < 1) && !dbg.noMask) {
+          const c = `rgba(0,0,0,${a.toFixed(4)})`;
           const band = `linear-gradient(to right,transparent ${(l - 3).toFixed(3)}%,${c} ${l.toFixed(3)}%,${c} ${r.toFixed(3)}%,transparent ${(r + 3).toFixed(3)}%)`;
           dirMask(box, [this.spear, band], 'add');
         } else dirMask(box, []);
         // Toute feuille plus-lighter allumée oblige Chrome à passer la boîte par une surface intermédiaire, ce qui adoucit
-        // l'emblème (≈ 6 % de détail en moins). La queue invisible de e^(−6τ) (< 0,01, soit 2,5/255 au plus) est donc
-        // coupée (14,97 s, pendant que le titre monte), et le reflet n'allume sa feuille que quand sa bande couvre le logo.
-        const lumRaw = (tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.5 * sm(SPEAR_LUM[0], SPEAR_LUM[1], t), lum = lumRaw > 0.01 ? lumRaw : 0;
-        const gp = seg(t, GLINT[0], GLINT[1]), sp = gp > 0 && gp < 1 ? E.sheen(gp) : -1, bl = NX.lerp(-1.10, 3.00, sp) * 0.34;
-        const sweepP = sp > 0 && bl + 0.34 > ART[0] && bl < ART[1] ? sp : -1;   // bande [bl, bl + 0,34] sur le logo
+        // l'emblème (≈ 5 % de détail en moins). Chaque bascule est donc placée sous un mouvement :
+        //  – l'éclair de l'impact (0,30·e^(−6τ)) s'éteint en douceur entre τ 0,30 et 0,45, pendant que la traînée
+        //    traverse encore l'emblème et que le dernier mot monte (feuille éteinte vers 14,80) ;
+        //  – la feuille du reflet s'allume quand la lumière de la bande atteint les traits clairs et reste allumée
+        //    jusqu'au temps 16,8, où le halo et le faisceau pulsent ;
+        //  – la lumière froide de la flèche s'allume avec le masque, quand la bande commence à mordre (17,48).
+        const hitLum = tau >= 0 ? 0.30 * Math.exp(-6 * tau) * (1 - sm(0.30, 0.45, tau)) : 0;
+        const lumRaw = hitLum + 0.5 * sm(SPEAR_LUM[0], SPEAR_LUM[1], t), lum = lumRaw > 0.01 ? lumRaw : 0;
+        const gp = seg(t, GLINT[0], GLINT[1]), sp = gp > 0 && gp < 1 ? E.sheen(gp) : -1;
+        const sweepP = sp > 0 && t >= SWEEP_ON && t < SWEEP_OFF ? sp : -1;
         if (dbg.leavesOff) this.L.frame({ front: null, written: true });
         else this.L.frame({ front: null, written: true, lum, sweepP, sweepA: SWEEP_A });
       }
@@ -240,7 +271,14 @@
         // pointe respirait ; la flèche monte le long de lui.
         const tip = dirProj(P, OX, TIPV, false), foot = dirProj(P, OX, TIPV + 10, false), s = NX.light.src(t);
         const hx = tip.x + (s.x - tip.x) * d, hy = tip.y + (s.y - tip.y) * d;
-        dirBeam(bk, this.oc, foot.x, foot.y, hx, hy, [[24, 24 + 6 * d, 0.16 * k, BEAM_GLOW], [3, 3, 0.6 * k, BEAM_CORE]], 26 * tip.s, 60);
+        // Volume (écart de la bible, qui ne donne que le cœur et le halo) : bande douce de 180 px à 0,16k (profil gaussien),
+        // fondue sur 180 px au-dessus de la pointe : la lumière vient de la source et ne touche la pointe que par le cœur.
+        // Sans elle, le faisceau n'est qu'un fil, surtout sur un téléphone.
+        dirBeamPass(bk, this.oc, foot.x, foot.y, hx, hy, VOL_W / 2, VOL_F0, HEAD_FADE, o => dirVolume(o, foot.x, foot.y, hx, hy, VOL_W, VOL_A * k, BEAM_GLOW));
+        dirBeamPass(bk, this.oc, foot.x, foot.y, hx, hy, 15, 26 * tip.s, HEAD_FADE, o => {
+          NX.lk.beam(foot.x, foot.y, hx, hy, 24, 24 + 6 * d, 0.16 * k, BEAM_GLOW, o);
+          NX.lk.beam(foot.x, foot.y, hx, hy, 3, 3, 0.6 * k, BEAM_CORE, o);
+        });
       }
 
       /* ---------------- Reflet : débord doux qui suit la bande, une étoile sur la pointe de la lance ---------------- */

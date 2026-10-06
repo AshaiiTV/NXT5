@@ -214,9 +214,6 @@
       this.titles = [...this.col.querySelectorAll('.ou-title')].map(el => {
         const { lines, words } = NX.type.prepare(el);
         const spec = el.querySelector('.nx-spec');
-        // NX.type.sheen laisse background-repeat à « no-repeat,no-repeat » après son passage : on le fixe dès le départ
-        // pour que le rendu d'un mot dégradé ne dépende pas d'un reflet rendu auparavant.
-        for (const w of spec.querySelectorAll('.nx-word')) w.style.backgroundRepeat = 'no-repeat';
         return { el, lines, words, spec, lineEls: [...el.querySelectorAll('.tz-line')] };
       });
       // Pile de trois cartes de verre (bible §3.7, NX.G.tools.stack).
@@ -310,9 +307,10 @@
           if (k === 0) wash = (tau >= 0 ? Math.exp(-5 * tau) : 0) + LW * sine(seg(t, LIFT[0], LIFT[0] + 0.25));
           else wash = (tB >= 0 ? 0.4 * Math.exp(-5 * tB) : 0) + (k === 1 ? LW * sine(seg(t, LIFT[1], LIFT[1] + 0.25)) : 0);
           // La lumière passe à la carte qui avance : même voile que la carte prise dans la lumière au moment où elles se
-          // croisent en profondeur (21,52 et 25,12), puis il s'éteint avant la lecture. Sans lui, l'échange des plaques clignote.
+          // croisent en profondeur (21,51–21,56 et 25,11–25,16), puis il s'éteint en 0,24 s, avant la lecture. Sans lui,
+          // l'échange des plaques clignote ; plus long, il faisait sauter la luminance de 5,5 entre 21,5 et 21,75 (seuil 4,5).
           const A0 = k === 1 ? 21.38 : k === 2 ? 24.98 : null;
-          if (A0 != null) wash += 0.45 * sine(seg(t, A0 + 0.02, A0 + 0.14)) * (1 - sine(seg(t, A0 + 0.18, A0 + 0.48)));
+          if (A0 != null) wash += 0.45 * sine(seg(t, A0 + 0.02, A0 + 0.14)) * (1 - sine(seg(t, A0 + 0.18, A0 + 0.42)));
           const front = 1 - Math.min(1, pd);
           const glow = front * (0.10 + (k === 0 && tau >= 0 ? 0.45 * Math.exp(-3 * tau) : 0));
           const lit = Math.min(1, 0.5 * (1 - 0.3 * pd) + (k === 0 && tau >= 0 ? 0.5 * Math.exp(-3 * tau) : 0));
@@ -462,7 +460,9 @@
       // Titres : montée par les masques de ligne (ENTER 0,8, décalage 0,14), sortie par lignes (EXIT 0,30).
       // « Prépare tes / débriefs. » monte à 21,40 (bible : 21,45) : à 21,50 la carte 1 est vide (acceptation) et
       // l'image n'avait plus assez de contenu (énergie de contours E 0,90 < 1,0, bible §6.5) ; avec 21,40, E = 1,18.
-      const TW = [[18.12, 21.10, 21.16, 19.30], [21.40, 24.70, 24.76, 22.60], [25.05, null, null, 26.40]];
+      // Même geste au second passage : « Organise tes / entraînements. » monte à 25,00 (bible : 25,05) ; le creux de
+      // 25,07 remonte de Y 15,4 à 16,3 (seuil 15) et l'image garde du contenu pendant que la carte 2 part.
+      const TW = [[18.12, 21.10, 21.16, 19.30], [21.40, 24.70, 24.76, 22.60], [25.00, null, null, 26.40]];
       this.titles.forEach((T, k) => {
         const [r0, s1, s2, sh] = TW[k], end = s2 == null ? 99 : s2 + 0.36;
         const on = t >= r0 && t < end;

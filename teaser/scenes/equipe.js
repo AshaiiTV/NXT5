@@ -27,7 +27,16 @@
   const BELL = i => NX.T.roles + i * NX.BEAT;            // Tᵢ = 7,2 + 0,6 i
   const REL = [13.45, 13.40, 13.35, 13.40, 13.45];       // libération : Mid, puis Jungle et ADC, puis Top et Support
   const HEAD = [12.2, 11.5, 10.8, 11.5, 12.2];           // la tête de la ligne atteint le centre de la tuile
-  const GATHER = [12.5, 13.55];                          // rassemblement en pentagone (SINE)
+  const GATHER = [12.5, 13.55];                          // rassemblement en pentagone (SINE), échelle 1 → 0,62
+  /* Rassemblement par axe, toujours SINE dans la fenêtre 12,50–13,55 (mêmes extrémités, même échelle) :
+   * sur un trajet droit commun, Top et Support passaient sur Jungle et ADC (jusqu'à 62 px de recouvrement,
+   * 12,93–13,13 : deux paires empilées au lieu de cinq tuiles qui glissent en cercle). Top et Support descendent
+   * d'abord (y 12,50–13,10) puis glissent sous Jungle et ADC (x 12,55–13,55) ; Jungle et ADC rentrent d'abord vers
+   * le centre (x 12,50–13,10) pour leur laisser la place. Aucun recouvrement (écart minimal ≈ 12 px entre plaques),
+   * pointe 782 px/s mesurée sur les plaques (bible ≈ 787), bord bas 687 px monde (haut des capitales du titre ≈ 716).
+   * Mid suit la courbe commune. */
+  const GX = [[12.55, 13.55], [12.5, 13.1], GATHER, [12.5, 13.1], [12.55, 13.55]];
+  const GY = [[12.5, 13.1], GATHER, GATHER, GATHER, [12.5, 13.1]];
   const E = NX.ease, seg = NX.seg, sm = NX.smooth, clamp = NX.clamp;
   const SINE = E.sine, GLIDE = E.glide, ENTER = E.enter, IOC = E.inOutCubic;
   const SPRING = p => E.spring(p, 1.0, 6.2);
@@ -47,10 +56,11 @@
   .eq-lab{position:absolute;top:${ROW.labelTop}px;width:400px;text-align:center;font-weight:700;font-size:34px;line-height:1.2;text-transform:uppercase;color:var(--text2);white-space:nowrap;transform-origin:200px ${ROW.y + HALF - ROW.labelTop}px}
   `);
 
+  /** Progression du rassemblement de la tuile i : x, y (par axe) et échelle s, chacune SINE. */
+  const gather = (i, t) => ({ x: SINE(seg(t, GX[i][0], GX[i][1])), y: SINE(seg(t, GY[i][0], GY[i][1])), s: SINE(seg(t, GATHER[0], GATHER[1])) });
+
   /** Pose monde de la tuile i : centre de sa place (x, y), montée depuis la profondeur (dy, z), échelle s,
-   *  rotateX th (lever sur ressort), inclinaison lean (anticipation), en degrés.
-   *  zb : Top et Support croisent Jungle et ADC pendant le rassemblement (12,88–13,17) ; ils passent devant
-   *  par un arc en profondeur (50 px au plus, nul avant 12,7 et dès 13,44) au lieu de s'interpénétrer. */
+   *  rotateX th (lever sur ressort), inclinaison lean (anticipation), en degrés. */
   function pose(i, t) {
     const T = BELL(i);
     const m = GLIDE(seg(t, T - 0.30, T + 0.20));
@@ -58,13 +68,12 @@
     const amp = 4 * SINE(seg(t, 9.6, 10.0)) * (1 - SINE(seg(t, 11.9, 12.3)));
     const br = amp > 0 ? amp * Math.sin(TAU * (t - 9.6) / 2.4 - 0.6 * i) : 0;
     const an = SINE(seg(t, 12.3, 12.5));
-    const gp = SINE(seg(t, GATHER[0], GATHER[1]));
+    const g = gather(i, t);
     const sx = X0[i] + 6 * an * DIR[i][0], sy = ROW.y + br + 6 * an * DIR[i][1];
-    const zb = i === 0 || i === 4 ? 50 * Math.pow(Math.sin(Math.PI * seg(t, 12.7, 13.44)), 2) : 0;
     return {
-      x: sx + (PX[i] - sx) * gp, y: sy + (PY[i] - sy) * gp,
-      dy: 18 * (1 - m), z: -120 * (1 - m) + zb, zb, s: 1 - (1 - PENT.scale) * gp,
-      th: u >= 1 ? 0 : 55 * (1 - SPRING(u)), an, gp,
+      x: sx + (PX[i] - sx) * g.x, y: sy + (PY[i] - sy) * g.y,
+      dy: 18 * (1 - m), z: -120 * (1 - m), s: 1 - (1 - PENT.scale) * g.s,
+      th: u >= 1 ? 0 : 55 * (1 - SPRING(u)), an,
       lean: 4 * an * LEAN[i] * (1 - SINE(seg(t, 12.8, 13.3))),
     };
   }
@@ -199,8 +208,8 @@
       }
       if (t >= q.ta) return [q.tx, q.ty, 0];
       // Vol : la source suit sa tuile jusqu'à la fin du rassemblement (pas d'écart entre l'icône qui s'efface et ses particules).
-      const k = q.k, gp = SINE((Math.min(t, GATHER[1]) - GATHER[0]) / (GATHER[1] - GATHER[0])), s = 1 - (1 - PENT.scale) * gp;
-      const sx = SX[k] + (PX[k] - SX[k]) * gp + s * q.lx - CX, sy = SY[k] + (PY[k] - SY[k]) * gp + s * q.ly - CY;
+      const k = q.k, g = gather(k, Math.min(t, GATHER[1])), s = 1 - (1 - PENT.scale) * g.s;
+      const sx = SX[k] + (PX[k] - SX[k]) * g.x + s * q.lx - CX, sy = SY[k] + (PY[k] - SY[k]) * g.y + s * q.ly - CY;
       const rs = Math.hypot(sx, sy), ps = Math.atan2(sy, sx), dp = Math.atan2(Math.sin(q.pe - ps), Math.cos(q.pe - ps));
       const u = (t - q.te) / (q.ta - q.te), er = IOC(u), ea = SINE(u);
       const r = rs + (q.re - rs) * er, a = ps + dp * ea;
@@ -231,7 +240,7 @@
         // Lumière d'attente : orbe douce sur la place, suit le rassemblement, s'éteint 13,45–13,75.
         const d = Math.abs(i - 2), onL = sm(6.80 + 0.08 * d, 7.10 + 0.08 * d, t) * (1 - sm(13.45, 13.75, t));
         if (onL > 0.002) {
-          const q = pj(P.x, P.y, P.zb);
+          const q = pj(P.x, P.y);
           NX.lk.glow(q.x, q.y, 210 * q.s, RGB[i], (0.22 + 0.24 * flash) * (1 + 0.4 * P.an) * onL, bctx);
         }
         // Faisceau de cloche : de la source au centre de la tuile + 60·s, derrière la tuile ; fin fondue sous la tuile.
@@ -344,14 +353,22 @@
       };
       const H = NX.T.emblem, tau = t - H, lit = 1 + 0.35 * sm(14.12, 14.36, t);
       const burstOut = 1 - sm(14.6, 14.75, t), emberOut = 1 - sm(15.9, 16.5, t);
+      const fb = tau >= 0 ? (1 - Math.exp(-3 * tau)) / 3 : 0;   // déplacement d'éclatement (px) par px/s de vitesse initiale
       NX.px.begin();
       for (const q of this.P) {
         if (t < q.te) continue;
-        let a, m = 1, tail = false;
+        let a, m = 1, tail = false, locked = false;
         if (tau >= 0) {
-          a = q.ember ? Math.exp(-1.2 * tau) * emberOut : 1.4 * Math.exp(-6 * tau) * burstOut;
+          // Éclatement : chaque point ne s'allume qu'en quittant son trait (déplacement d = bv·(1 − e^(−3τ))/3, 1,5 → 6 px).
+          // Sur l'image de l'impact le PNG de « direction » est seul, complet et net ; l'éclatement naît des traits.
+          a = (q.ember ? Math.exp(-1.2 * tau) * emberOut : 1.4 * Math.exp(-6 * tau) * burstOut) * sm(1.5, 6, q.bv * fb);
         } else if (t >= q.ta) {
-          a = (0.85 + 0.15 * Math.sin(q.ph + 14 * t)) * lit + 0.8 * Math.exp(-12 * (t - q.ta));
+          // Verrouillage : la traînée du vol (2 des 3,67 unités d'énergie du point) ne disparaît plus d'un coup ; elle est
+          // rendue au point et s'éteint en e^(−4τ), sous l'étincelle de la bible (0,8·e^(−12τ)) : l'émail pointilliste
+          // garde son éclat jusqu'à la montée ×1,35 au lieu de s'assombrir pendant la montée vers l'impact.
+          const dl = t - q.ta;
+          a = (0.85 + 0.15 * Math.sin(q.ph + 14 * t)) * lit + 0.8 * Math.exp(-12 * dl) + 1.3 * Math.exp(-4 * dl);
+          locked = true;
         } else {
           const u = (t - q.te) / (q.ta - q.te);
           a = sm(q.te, q.te + 0.08, t); m = sm(0.7, 1, u); tail = u > 0.02;
@@ -360,13 +377,20 @@
         const w = this.world(q, t);
         proj(w[0], w[1], w[2]);
         const X = qx, Y = qy, k = a * 1.3 / 255;
-        const R = (q.r0 + (q.r1 - q.r0) * m) * k, Gc = (q.g0 + (q.g1 - q.g0) * m) * k, B = (q.b0 + (q.b1 - q.b0) * m) * k;
+        const r = q.r0 + (q.r1 - q.r0) * m, g = q.g0 + (q.g1 - q.g0) * m, b = q.b0 + (q.b1 - q.b0) * m;
+        const R = r * k, Gc = g * k, B = b * k;
+        // Cœur surexposé (points verrouillés) : NX.px écrête chaque pixel en gardant la teinte, donc l'énergie au-delà de
+        // la saturation (étincelle, énergie rendue de la traînée, montée ×1,35) serait perdue. L'excès (au plus 1,5) devient
+        // un cœur blanc d'un pixel au centre du point, comme une lumière surexposée ; la frange garde la couleur du PNG.
+        const ex = locked ? a * 1.3 * Math.max(r, g, b) / 255 : 0;
+        const hot = ex > 1 ? Math.min(1.5, ex - 1) : 0;
         if (tail) {                                      // traînée depuis u − 0,02, effilée vers la queue (comète, pas un trait)
           const w0 = this.world(q, t - 0.02 * (q.ta - q.te));
           proj(w0[0], w0[1], w0[2]);
           eqTail(qx, qy, X, Y, R, Gc, B);
         }
-        NX.px.blob(X, Y, 1.3, R * 0.9, Gc * 0.9, B * 0.9);
+        NX.px.blob(X, Y, 1.3, R, Gc, B);                 // énergie k = 1,3/255 · alpha, telle quelle (bible §3.9)
+        if (hot > 0) NX.px.dot(X, Y, hot, hot, hot);
       }
       NX.px.end(ctx);
     },
