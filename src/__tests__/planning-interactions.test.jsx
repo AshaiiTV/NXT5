@@ -28,7 +28,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function mountPlanning() {
+function mountPlanning(overrides = {}) {
   const save = vi.fn(async (body) => ({
     id: "saved-row", team_id: body.teamId, player_id: body.playerId,
     week_start: body.weekStart, slots: body.slots, notes: body.notes,
@@ -39,10 +39,10 @@ function mountPlanning() {
   const focus = vi.fn();
   act(() => {
     renderer = TestRenderer.create(<Planning
-      data={{ players: [{ id: "player", team_id: "team", user_id: "user", name: "Joueur", role: "TOP", roster_status: "MAIN" }], availability: [] }}
+      data={overrides.data || { players: [{ id: "player", team_id: "team", user_id: "user", name: "Joueur", role: "TOP", roster_status: "MAIN" }], availability: [] }}
       selectedTeamId="team"
-      user={{ id: "user" }}
-      currentMember={{ role: "owner" }}
+      user={overrides.user || { id: "user" }}
+      currentMember={overrides.currentMember || { role: "owner" }}
       planningStore={store}
     />, { createNodeMock: () => ({ querySelector: () => ({ focus }) }) });
   });
@@ -132,6 +132,55 @@ it("N2 hides event creation for an unlinked ordinary team member", () => {
   const buttons = renderer.root.findAllByType("button");
   expect(buttons.some(node => node.props.children?.includes?.("Ajouter une séance"))).toBe(false);
   expect(buttons.filter(node => node.props["aria-label"]?.startsWith("Lun 10:00")).every(node => node.props.disabled)).toBe(true);
+});
+
+it("does not select vacant positions for an unlinked member viewing another player's availability", () => {
+  const app = mountPlanning({
+    user: { id: "viewer" },
+    currentMember: { role: "player" },
+    data: {
+      players: [{ id: "top", team_id: "team", user_id: "other", name: "Top", role: "TOP", roster_status: "MAIN" }],
+      availability: [{ id: "row-top", team_id: "team", player_id: "top", week_start: "2026-09-07", slots: { MON: ["10:00"] } }],
+    },
+  });
+  const grid = renderer.root.findByType(PlanningAvailabilityGrid);
+  const monday = grid.props.rows.find(row => row.time === "10:00").cells[0];
+  expect(monday.activeSlot).toBe(true); // The read-only fallback contains TOP's saved availability.
+  expect(monday.roles.find(item => item.role === "TOP").lit).toBe(true);
+  const vacant = monday.roles.filter(item => !item.player);
+  expect(vacant.map(item => item.role)).toEqual(["JGL", "MID", "ADC", "SUP"]);
+  expect(vacant.every(item => item.selectedRoleHere === false)).toBe(true);
+  expect(monday.roles.every(item => !item.selectedRoleHere)).toBe(true);
+  expect(app.cell().props.disabled).toBe(true);
+  expect(app.save).not.toHaveBeenCalled();
+});
+
+it("names the actual edited profile for unlinked staff when no staff profile exists", async () => {
+  const app = mountPlanning({
+    user: { id: "unlinked-coach" },
+    currentMember: { role: "coach" },
+    data: {
+      players: [
+        { id: "top", team_id: "team", user_id: "top-user", name: "A Top", role: "TOP", roster_status: "MAIN" },
+        { id: "mid", team_id: "team", user_id: "mid-user", name: "Zoé Mid", role: "MID", roster_status: "MAIN" },
+      ],
+      availability: [{
+        id: "row-mid", team_id: "team", player_id: "mid", week_start: "2026-09-07",
+        slots: { MON: ["10:00"], _events: { "MON|10:00": { label: "Scrim", type: "scrim" } } },
+      }],
+    },
+  });
+  act(() => app.cell().props.onClick(app.event()));
+  const menu = renderer.root.findByProps({ "aria-label": "Type de séance" });
+  const copy = menu.findAllByType("p").map(node => node.children.filter(child => typeof child === "string").join("")).join(" ");
+  expect(copy).toContain("Tu modifies la séance de Zoé Mid.");
+  expect(copy).not.toContain("Tu modifies ta séance.");
+  const remove = menu.findAllByType("button").find(button => button.findAllByType("span").some(span => span.children.some(child => typeof child === "string" && child.startsWith("Retirer cette séance"))));
+  act(() => remove.props.onClick());
+  await act(async () => { await vi.advanceTimersByTimeAsync(650); });
+  expect(app.save).toHaveBeenCalledOnce();
+  expect(app.save.mock.calls[0][0]).toMatchObject({ playerId: "mid", slots: { MON: ["10:00"] } });
+  expect(app.save.mock.calls[0][0].slots._events).toBeUndefined();
 });
 
 
