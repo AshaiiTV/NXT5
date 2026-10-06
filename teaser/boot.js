@@ -11,6 +11,9 @@
   }
   NX.init();
   await document.fonts.ready;
+  // Les scènes sont masquées au chargement : sans ce préchargement explicite, Inter n'est pas encore
+  // chargée quand NX.layout mesure les mots, et les dégradés sont calés sur la police de secours.
+  await Promise.all([400, 600, 700, 800, 900].map(w => document.fonts.load(`${w} 100px Inter`)));
   NX.layout();
   await Promise.all([...document.images].map(img => img.decode().catch(() => console.warn('image non décodée', img.src))));
   NX.render(0);

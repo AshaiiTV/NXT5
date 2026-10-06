@@ -359,7 +359,6 @@
    * ==================================================================================== */
   NX.css(`
   .tz-line{display:block;overflow:hidden;padding:.14em .08em .24em;margin:-.14em -.08em -.24em}
-  .tz-line .nx-word{will-change:transform}
   `);
   const ENTER = NX.bezier(0.16, 1, 0.3, 1), EXIT = NX.bezier(0.7, 0, 0.84, 0);
   NX.ease.enter = ENTER; NX.ease.exit = EXIT;
@@ -463,7 +462,7 @@
   }
   NX.logoLight = (box, src) => {
     const img = NX.el(`<img src="${src}" alt="" style="position:absolute;inset:0;width:100%;height:100%">`, box);
-    const mk = () => NX.el(`<div style="position:absolute;inset:0;overflow:hidden;opacity:0;mask-size:100% 100%;-webkit-mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat"></div>`, box);
+    const mk = () => NX.el(`<div style="position:absolute;inset:0;overflow:hidden;opacity:0;mix-blend-mode:plus-lighter;transform:translateZ(1px);mask-size:100% 100%;-webkit-mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat"></div>`, box);
     const forge = mk(); forge.style.background = 'rgb(205,245,255)';
     const sweep = mk();
     const band = NX.el(`<div style="position:absolute;top:-10%;bottom:-10%;left:0;width:34%;background:linear-gradient(105deg,transparent,rgba(165,243,252,.35) 35%,rgba(255,255,255,.95) 50%,rgba(196,181,253,.35) 65%,transparent)"></div>`, sweep);
