@@ -3,8 +3,8 @@
  * elliptique NX.FRONT.hook l'écrit ensuite de la pointe de la lance jusqu'à la devise (fondu 70 px), une bande blanche
  * court sur le chrome au bord du front et libère 240 étincelles. Impact sobre sur 4,8 s, halo qui respire,
  * un seul reflet diagonal (5,95–6,65) avec son halo de lumière et deux étoiles, puis le logo est pris dans
- * la lumière (LIFT 6,65–7,15) : il blanchit, la lumière de son cœur grandit et l'absorbe pendant que les cinq
- * lumières des rôles s'allument (equipe.js).
+ * la lumière (LIFT 6,65–7,15) : il blanchit, son chrome redevient la silhouette de lumière froide du début, et cette
+ * lumière se resserre dans la lumière de son cœur pendant que les cinq lumières des rôles s'allument (equipe.js).
  * Le logo n'est jamais tourné ni filtré : masques, profondeur, échelle uniforme et feuilles de lumière seulement. */
 (function () {
   const SRC = '../public/assets/nxt5-logo.png';
@@ -13,8 +13,11 @@
   const RING = [G.left + LG.ringC[0] * K, G.top + LG.ringC[1] * K];     // centre de l'anneau, monde (958.7, 452.1)
   const HIT = NX.T.hookEnd;                                              // 4,8
   const GLINT = [5.95, 6.65], EXIT = [6.65, 7.15], FADE = [6.90, 7.15];
-  const VANISH = [7.09, 7.15];           // le chrome et sa lumière s'effacent ensemble (inCubic), dans la fenêtre 6,90–7,15
-  const XPEAK = 7.12;                    // la lumière du cœur culmine pendant qu'il s'efface ; éteinte à 7,18
+  // Sortie « prise dans la lumière » (bible §2.3, recede and brighten), tout éteint dans la fenêtre 6,90–7,15 :
+  const TOLIGHT = [7.00, 7.10];          // le chrome (img) passe de 1 à 0 (smoothstep)…
+  const FORGE_X = [6.97, 7.07, 0.85];    // … pendant que sa silhouette de lumière froide (forge) monte à 0,85 sous lui
+  const ABSORB = [7.085, 7.15];          // puis cette lumière se resserre dans le cœur de l'anneau (masque radial, inQuad)
+  const XPEAK = 7.13;                    // la lumière du cœur culmine pendant l'absorption ; éteinte à 7,18
   const SWEEP_A = 0.30 / 0.95;           // pic du reflet = 0,30 de lumière ajoutée sur le chrome (plafond de marque)
   const STARS = [{ uv: LG.stars.spear, g: 0.7, size: 0.75 }, { uv: LG.stars.five, g: 0.55, size: 0.6 }];
   const MW = Math.ceil(LG.W / 4), MH = Math.ceil(LG.H / 4);             // masque basse définition (cellules de 4 px)
@@ -110,33 +113,44 @@
     render(S) {
       const t = S.t, E = NX.ease, sm = NX.smooth, seg = NX.seg, tau = t - HIT, ctx = NX.fx.ctx, c = NX.camState;
       // Sortie : pris dans la lumière (LIFT : monte de 120 px et recule de 700 px). Le logo blanchit (lum +0,45 sur tout
-      // le logo, 6,65–6,95) et reste plein pendant qu'il s'éloigne ; le chrome et sa lumière s'effacent ensemble
-      // (1 − inCubic, 7,09–7,15) au moment où la lumière de son cœur culmine : il est absorbé encore lumineux, sans
-      // image grise intermédiaire. Jamais d'opacité de groupe ; le halo, derrière (translateZ −2 px), s'éteint 6,90–7,15.
+      // le logo, 6,65–6,95), puis son chrome passe à sa silhouette de lumière froide (la feuille forge du début, 0,85,
+      // sous le lum) : sa luminance ne baisse jamais, il n'y a pas d'image grise. Cette lumière se resserre ensuite dans
+      // le cœur de l'anneau au pic de la lumière du cœur ; tout est éteint à 7,15. Jamais d'opacité de groupe ; le halo,
+      // derrière (translateZ −2 px), s'éteint 6,90–7,15.
       const q = E.lift(seg(t, EXIT[0], EXIT[1])), dy = -120 * q, dz = -700 * q;
       this.box.style.transform = q > 0 ? `translate3d(0,${dy.toFixed(2)}px,${dz.toFixed(2)}px)` : '';
       this.halo.style.transform = `translate3d(0,${dy.toFixed(2)}px,${(dz - 2).toFixed(2)}px)`;
-      const fade = 1 - sm(FADE[0], FADE[1], t), vanish = 1 - E.inCubic(seg(t, VANISH[0], VANISH[1]));
+      const fade = 1 - sm(FADE[0], FADE[1], t), out = t >= ABSORB[1];
+      const chrome = out ? 0 : 1 - sm(TOLIGHT[0], TOLIGHT[1], t);
       // Écriture : front local dans la boîte ; silhouette forge 0 → 0,24 (inQuad, 4,0–4,5) puis → 0,30 (4,5–4,8) par une
       // approche exponentielle qui part avec la pente de fin de l'inQuad (0,96 /s) : une seule courbe, sans cassure ni
       // segment linéaire. Elle est effacée par le front.
       const full = this.tFull ?? Infinity, writing = t >= 4.2 && t < full;
       const front = writing ? NX.light.local(G.left, G.top, ZL, NX.FRONT.hook(t), t) : null;
-      const forge = t >= full ? 0 : t < 4.5 ? 0.24 * E.inQuad(seg(t, 4.0, 4.5)) : 0.24 + 0.06 * (1 - Math.exp(-4.8 * seg(t, 4.5, 4.8))) / (1 - Math.exp(-4.8));
-      const lumRaw = ((tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.45 * sm(EXIT[0], 6.95, t)) * vanish;
+      const forge = t >= full ? (out ? 0 : FORGE_X[2] * sm(FORGE_X[0], FORGE_X[1], t))
+        : t < 4.5 ? 0.24 * E.inQuad(seg(t, 4.0, 4.5)) : 0.24 + 0.06 * (1 - Math.exp(-4.8 * seg(t, 4.5, 4.8))) / (1 - Math.exp(-4.8));
+      const lumRaw = out ? 0 : (tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.45 * sm(EXIT[0], 6.95, t);
       const lum = lumRaw < 0.002 ? 0 : lumRaw;                       // éteinte : son masque n'a plus d'effet
       const gp = seg(t, GLINT[0], GLINT[1]), sweepP = gp > 0 && gp < 1 ? E.sheen(gp) : -1;
       this.L.frame({ front, written: t >= full, forge, hot: t >= 4.3 && t < 5.4 ? 1 : 0, lum, sweepP, sweepA: SWEEP_A, lead: 0 });
-      if (vanish < 1) this.L.img.style.opacity = vanish.toFixed(4);
+      if (chrome < 1) this.L.img.style.opacity = chrome.toFixed(4);
       // Masques locaux, posés seulement quand la feuille est visible (une feuille à opacité 0 n'en dépend pas).
       if (this.maxUrl && forge > 0) {
-        // forge : tout le logo, effacé là où le front a déjà écrit le chrome.
+        // forge : tout le logo ; pendant l'écriture, effacé là où le front a déjà écrit le chrome ; à la sortie, la
+        // silhouette de lumière qui remplace le chrome.
         logoSetMask(this.L.forge, front ? [this.maxUrl, NX.light.mask(front, 'burn', { feather: 60, lead: 0 })] : [this.maxUrl]);
       }
       if (this.maxUrl && lum > 0) {
         // lum : la surexposition de l'impact (masque de luminance du kit) ne touche que le chrome déjà écrit ;
         // la sortie blanchit tout le logo.
         logoSetMask(this.L.lum, t >= EXIT[0] ? [this.maxUrl] : front ? [this.L.url, NX.light.mask(front, 'write', { feather: 70 })] : [this.L.url]);
+      }
+      // Absorption : une ellipse douce centrée sur le cœur de l'anneau (opaque jusqu'à 35 % de son rayon) se resserre
+      // sur les trois feuilles visibles ; à son début elle couvre tout le logo, à 7,15 elle est nulle.
+      if (this.maxUrl && t > ABSORB[0] && !out) {
+        const k = 1 - E.inQuad(seg(t, ABSORB[0], ABSORB[1])), rx = Math.max(1, 1.7 * W * k), ry = Math.max(1, 1.36 * H * k);
+        const rg = `radial-gradient(ellipse ${rx.toFixed(1)}px ${ry.toFixed(1)}px at ${(RING[0] - G.left).toFixed(1)}px ${(RING[1] - G.top).toFixed(1)}px,#000 35%,transparent)`;
+        logoSetMask(this.L.img, [rg]); logoSetMask(this.L.forge, [this.maxUrl, rg]); logoSetMask(this.L.lum, [this.maxUrl, rg]);
       }
       // Halo (dégradé de la v6) : entre 4,6–5,0 et respire après l'impact.
       this.halo.style.opacity = (sm(4.6, 5.0, t) * (0.6 + 0.4 * (tau >= 0 ? Math.exp(-3 * tau) : 1)) * fade).toFixed(4);
@@ -175,8 +189,8 @@
           ctx.fillStyle = g; ctx.fillRect(-1, -1, 2, 2); ctx.restore();
         }
       }
-      // Sortie : la lumière du cœur grandit, culmine à 7,12 quand le logo disparaît en elle (pendant de l'éclair de
-      // 4,8), puis se dissipe en s'élargissant ; éteinte à 7,18.
+      // Sortie : la lumière du cœur grandit, culmine à 7,13 pendant que la silhouette se resserre en elle (pendant de
+      // l'éclair de 4,8), puis se dissipe en s'élargissant ; éteinte à 7,18.
       const xg = E.sine(seg(t, 6.72, XPEAK)) * (1 - E.sine(seg(t, XPEAK, 7.18)));
       if (xg > 0.002) {
         const pr = NX.cam.project(RING[0], RING[1] + dy, ZL + dz, c);
