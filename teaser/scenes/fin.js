@@ -27,10 +27,11 @@
   const HIT = NX.T.end;                                            // 28,8
   const FLY = [28.0, HIT], Y0 = -850, Z0 = -4000;                  // retour : (959,1 ; −850 ; −4000) → posé
   const FRONT_OFF = 29.45;                                         // au-delà, la bande est passée sous tout le logo
-  /* Échange des traits sous l'éclair (repli §5.3, ouvert à l'impact plutôt qu'à 28,78 : rien ne change avant 28,80).
-   * Les deux PNG n'ont pas les mêmes traits (texture de la lance, arcs prolongés jusqu'aux rails, lueurs) : le contrôle
-   * §6.9 échoue sans défaut d'alignement. La plaque est déjà écrite par le front ; à l'impact, les traits du logo
-   * s'ouvrent derrière l'emblème opaque, puis l'emblème s'efface sur eux : aucun creux vers le fond. */
+  /* Échange des traits sous l'éclair (repli §5.3 en forme, ouvert à l'impact plutôt qu'à 28,78 : rien ne change avant
+   * 28,80). Posés sur la même plaque, les deux PNG ne diffèrent qu'au bord des traits (contrôle §6.9 : moyenne 0,8/255,
+   * maximum 5/255 hors de la frange de 2 px) ; sur cette frange, jusqu'à 215/255 (deux PNG rastérisés à deux échelles,
+   * rails prolongés depuis les pointes des arcs). Plutôt qu'une coupe franche, les traits du logo s'ouvrent derrière
+   * l'emblème opaque, puis l'emblème s'efface sur eux en deux images : aucun bord ne saute, aucun creux vers le fond. */
   const SWAP_GATE = [HIT, HIT + 0.03], SWAP_FAV = [HIT + 0.01, HIT + 0.06];
   const LIFT = 2;                                                  // l'emblème vole 2 px devant le plan du logo (§2.7)
   const BIRTH_LUM = 0.22;                                          // lumière de naissance sur les traits clairs (≤ 0,30)
@@ -150,9 +151,6 @@
       // Feuilles jamais utilisées ici (pas de silhouette en S9, pas de bande ni de reflet sur l'emblème) : retirées
       // du rendu une fois pour toutes ; les autres ne sont affichées que pendant leur fenêtre (voir render).
       for (const el of [this.L.forge, this.FL.forge, this.FL.hot, this.FL.sweep]) el.style.display = 'none';
-      // Masque neutre sur l'image de l'emblème : sans masque, Chrome la traite en « image composée directement » et
-      // réutilise une rastérisation dont l'échelle dépend des images rendues avant (écart de 1/255 selon l'ordre).
-      finMask(this.FL.img, ['linear-gradient(#000,#000)']);
       // Carte finale.
       this.ctaw = NX.el(`<div class="fin-ctaw"><span class="fin-cta">nxt5.org<i></i></span></div>`, root);
       this.cta = this.ctaw.firstElementChild; this.glint = this.cta.querySelector('i');
@@ -244,7 +242,7 @@
       // ---- Retour de l'emblème (28,00–28,80), puis effacement sous l'éclair (28,81–28,86) ----
       // Jamais masqué : sous la ligne de coupe, le logo ne montre aucun trait clair dans son empreinte avant l'échange.
       if (favOn) {
-        const P = finFavPose(finFlight(t), rz, dbg.lift ?? LIFT);
+        const P = finFavPose(finFlight(t), rz);
         this.fav.style.display = '';
         this.fav.style.transform = `translate3d(${P.x.toFixed(3)}px,${P.y.toFixed(3)}px,${P.z.toFixed(3)}px) scale(${(P.k / SS).toFixed(6)})`;
         this.fav.style.opacity = favBox.toFixed(4);
@@ -360,6 +358,13 @@
       // Carillons 2 et 3 : les deux lignes montent à travers leur masque.
       NX.type.rise(this.w1, t, 29.70, 0.04, 0.6);
       NX.type.rise(this.w2, t, 30.00, 0.04, 0.6);
+      // Une ligne dont aucun mot n'est encore entré, et le bouton tant qu'il est fermé, sont retirés du rendu : chaque
+      // élément de la racine 3D a son propre calque, et un calque devenu vide n'était plus rastérisé. Rendu juste après
+      // la carte complète (31,0 puis 29,0), Chrome y affichait une tuile périmée prise au bouton (tache magenta).
+      const shown = ws => ws.some(w => +w.style.opacity > 0);
+      this.l1.style.display = shown(this.w1) ? '' : 'none';
+      this.l2.style.display = shown(this.w2) ? '' : 'none';
+      this.ctaw.style.display = pc > 0 ? '' : 'none';
     },
   });
 })();
