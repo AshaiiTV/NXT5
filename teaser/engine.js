@@ -188,7 +188,8 @@
       s.root.style.zIndex = s.z;
       // Avec la caméra, les scènes partagent un même espace 3D : un léger écart en z garde l'ordre d'empilement.
       if (NX.cam && NX.cam.active) s.root.style.transform = `translateZ(${(s.z * 0.5).toFixed(2)}px)`;
-      if (s.build) s.build(s.root, s);
+      // Une scène en cours d'écriture qui plante ne bloque pas les autres.
+      if (s.build) { try { s.build(s.root, s); } catch (e) { console.error(`[build ${s.id}]`, e); } }
     }
     NX.shader && NX.shader.init($('bg'));
   };
@@ -209,7 +210,7 @@
       }
       spec.style.background = 'none';
     }
-    for (const s of scenes) if (s.layout) s.layout(s.root, s);
+    for (const s of scenes) if (s.layout) { try { s.layout(s.root, s); } catch (e) { console.error(`[layout ${s.id}]`, e); } }
     for (const s of scenes) s.root.style.display = 'none';
   };
 
