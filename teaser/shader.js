@@ -16,7 +16,7 @@
   uniform vec2 uRes; uniform float uTime;
   uniform float uIntensity,uNebula,uWarp,uHue,uRays,uRayStrength,uGrid,uGridSpeed,uGridHorizon,uTunnel,uTunnelSpeed,uStars,uZoom,uFlash,uPulse;
   uniform vec2 uRayPos,uCenter;
-  uniform vec4 uWave; uniform float uRayFocus, uFront, uFrontY;
+  uniform vec4 uWave; uniform float uRayFocus, uFront, uFrontR;
   out vec4 o;
   float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
   float hash1(float n){ return fract(sin(n*127.1)*43758.5453); }
@@ -57,8 +57,8 @@
       float fallr=exp(-r*1.15);
       col+=spectrum(tri(.25+dir.x*.22+uHue*.5))*s*fallr*uRays*.75*uRayStrength;
       col+=vec3(.75,.85,1.)*exp(-r*r*22.)*uRays*.35*uRayStrength;
-      // Front de lumière : l'air s'éclaire à la hauteur du front qui descend
-      if(uFront>0.001) col+=spectrum(tri(.25+dir.x*.22+uHue*.5))*s*fallr*exp(-pow((q.y-uFrontY)/.09,2.))*uFront*.9;
+      // Front de lumière elliptique (demi-axe horizontal 2,5 fois le vertical) : une onde descend le long des rayons
+      if(uFront>0.001) col+=spectrum(tri(.25+dir.x*.22+uHue*.5))*s*fallr*exp(-pow((length(d*vec2(.4,1.))-uFrontR)/.09,2.))*uFront*.9;
     }
     // Sol quadrillé en perspective
     if(uGrid>0.001 && q.y<uGridHorizon){
@@ -98,7 +98,7 @@
     o=vec4(col,1.);
   }`;
   let gl, prog, loc = {};
-  const names = ['uRes', 'uTime', 'uIntensity', 'uNebula', 'uWarp', 'uHue', 'uRays', 'uRayStrength', 'uGrid', 'uGridSpeed', 'uGridHorizon', 'uTunnel', 'uTunnelSpeed', 'uStars', 'uZoom', 'uFlash', 'uPulse', 'uRayPos', 'uCenter', 'uWave', 'uRayFocus', 'uFront', 'uFrontY'];
+  const names = ['uRes', 'uTime', 'uIntensity', 'uNebula', 'uWarp', 'uHue', 'uRays', 'uRayStrength', 'uGrid', 'uGridSpeed', 'uGridHorizon', 'uTunnel', 'uTunnelSpeed', 'uStars', 'uZoom', 'uFlash', 'uPulse', 'uRayPos', 'uCenter', 'uWave', 'uRayFocus', 'uFront', 'uFrontR'];
   function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
   NX.shader = {
     init(canvas) {
@@ -125,7 +125,7 @@
       gl.uniform1f(loc.uZoom, B.zoom); gl.uniform1f(loc.uFlash, B.flash); gl.uniform1f(loc.uPulse, B.pulse);
       gl.uniform2f(loc.uRayPos, B.rayX, B.rayY); gl.uniform2f(loc.uCenter, B.cx, B.cy);
       gl.uniform4f(loc.uWave, B.waveX, B.waveY, B.waveR, B.waveS); gl.uniform1f(loc.uRayFocus, B.rayFocus);
-      gl.uniform1f(loc.uFront, B.front); gl.uniform1f(loc.uFrontY, B.frontY);
+      gl.uniform1f(loc.uFront, B.front); gl.uniform1f(loc.uFrontR, B.frontR);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
   };

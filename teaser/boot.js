@@ -14,8 +14,11 @@
   // Les scènes sont masquées au chargement : sans ce préchargement explicite, Inter n'est pas encore
   // chargée quand NX.layout mesure les mots, et les dégradés sont calés sur la police de secours.
   await Promise.all([400, 600, 700, 800, 900].map(w => document.fonts.load(`${w} 100px Inter`)));
+  // Toutes les images (DOM et registre NX.image) décodées avant toute mesure ou tout échantillonnage.
+  await Promise.all([...document.images, ...(NX.imageRegistry ? NX.imageRegistry() : [])].map(img => img.decode().catch(() => console.warn('image non décodée', img.src))));
   NX.layout();
-  await Promise.all([...document.images].map(img => img.decode().catch(() => console.warn('image non décodée', img.src))));
+  // Préparation unique de chaque scène (échantillons, masques, tables) : jamais dans render().
+  for (const s of NX.scenes) if (s.prepare) { try { await s.prepare(s.root, s); } catch (e) { console.error(`[prepare ${s.id}]`, e); } }
   NX.render(0);
   window.NXrender = t => NX.render(t);
   window.NXready = true;

@@ -40,6 +40,31 @@
     el.style.transform = `translateY(${-q * rise}px) scale(${1 + (scale - 1) * q})`;
     return q;
   };
+  /* Géométrie partagée de la v7 (bible §3.10), mesurée sur les PNG. Gelée : toute scène lit ces valeurs. */
+  NX.G = {
+    hook: { top: 400 },
+    LOGO: { W: 1254, H: 989, axisX: 625, ringC: [625, 356], spearTip: [625, 106],
+            rows: { emblem: [106, 439], wordmark: [440, 759], tagline: [760, 802] },
+            stars: { spear: [0.498, 0.107], five: [0.86, 0.46] } },
+    FAV: { W: 512, ringC: [253.5, 269.0], ringR: 176, ringBand: [168, 186], innerBand: [144, 158],
+           arcDeg: [148, 392], spearCols: [0.445, 0.547], spearTip: [253, 52], spearBottom: [254, 415],
+           toLockup: { s: 1.1425, x: 335.5, y: 48.5 }, star: [0.494, 0.102] },
+    L2: { left: 560, top: 225, w: 800 },           // logo de S2, h 631, centre de l'anneau monde (958.7, 452.1)
+    L9: { left: 650, top: 70, w: 620 },            // logo de S9, h 489, centre de l'anneau monde (959.1, 246.0)
+    dock: { left: 815.9, top: 94.0, size: 289.2 }, // emblème posé exactement sur celui du logo final
+    E5: { left: 732.25, top: 200, size: 460 },     // emblème de S5 ; centre C = (960, 441.7), rayon de l'anneau 158.1
+    roles: { y: 430, x: i => 960 + (i - 2) * 300, tile: 216, icon: 132, labelTop: 562 },
+    pent: { c: [960, 441.7], r: 200, deg: [126, 198, 270, 342, 54], scale: 0.62 },
+    tools: { col: { left: 190, top: 360, z: 40 },
+             stack: { left: 975, top: 300, w: 830, h: 540, z: -60, rotY: 10, rotX: 2, origin: '0 0',
+                      slots: [[0, 0, 0], [0, -46, -150], [0, -92, -300]], fog: [0, 0.42, 0.84] } },
+    end: { buttonTop: 600, line1Top: 770, line2Top: 850 },
+  };
+  /* Fronts de lumière (rayon vertical en px écran) : l'écriture du logo à 4,8 s et le retour à 28,8 s. */
+  NX.FRONT = {
+    hook: NX.track([[4.20, 40], [4.42, 392], [4.52, 520], [4.80, 735], [5.02, 960], [5.30, 1090], [5.55, 1115]]),
+    end: NX.track([[28.30, 120], [28.55, 330], [28.80, 560], [29.10, 880], [29.45, 1200], [29.80, 1300]]),
+  };
   /** Format français des milliers avec espace fine insécable. */
   NX.fmt = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 })();

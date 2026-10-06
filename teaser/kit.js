@@ -32,8 +32,8 @@
       return (2 * s3 - 3 * s2 + 1) * vs[i] + (s3 - 2 * s2 + s) * h * m[i] + (-2 * s3 + 3 * s2) * vs[i + 1] + (s3 - s2) * h * m[i + 1];
     };
   };
-  /** Impulsion d'impact : monte en deux images environ, retombe en 0,5 s. */
-  NX.punch = (t, h, amp, k = 7) => (t < h ? 0 : amp * Math.exp(-k * (t - h)) * (1 - Math.exp(-40 * (t - h))));
+  /** Accent d'impact : avancée douce amp·(τ/tp)·e^(1−τ/tp), maximale 0,12 s après le temps fort, éteinte vers 0,8 s. */
+  NX.punch = (t, h, amp, tp = 0.12) => (t < h ? 0 : amp * ((t - h) / tp) * Math.exp(1 - (t - h) / tp));
 
   /* ====================================================================================
    * Caméra continue. Inactive tant que NX.cam.set() n'a pas été appelé : la v6 se rend à l'identique.
@@ -63,7 +63,7 @@
       return `translateZ(${D}px) rotateZ(${c.roll.toFixed(4)}deg) rotateX(${c.pitch.toFixed(4)}deg) rotateY(${c.yaw.toFixed(4)}deg) translateZ(${-D}px) translate3d(${(-c.x).toFixed(3)}px,${(-c.y).toFixed(3)}px,${c.z.toFixed(3)}px)`;
     },
     /** Point du monde → écran : { x, y, s (échelle), depth (distance à l'œil) }. Mêmes calculs que css(). */
-    project(X, Y, Z = 0, c = memoC) {
+    project(X, Y, Z = 0, c = NX.camState || memoC) {
       let x = X - OX - c.x, y = Y - OY - c.y, z = Z + c.z - D, cs, sn;
       cs = Math.cos(c.yaw * RAD); sn = Math.sin(c.yaw * RAD); [x, z] = [x * cs + z * sn, -x * sn + z * cs];
       cs = Math.cos(c.pitch * RAD); sn = Math.sin(c.pitch * RAD); [y, z] = [y * cs - z * sn, y * sn + z * cs];
@@ -113,7 +113,8 @@
       c.fillStyle = gr; c.fillRect(0, 0, 128, 128); return cv;
     });
     function draw(t, o = {}) {
-      const { gain = 1, drift = 1, beam: beamK = 1, gusts = [], wave = null, near = 1 } = o;
+      // time : temps de dérive intégré (continu même quand la vitesse change) ; par défaut t × drift.
+      const { gain = 1, drift = 1, beam: beamK = 1, gusts = [], wave = null, near = 1, time = t * drift } = o;
       const c = NX.cam.at(t), b = NX.fxBack.ctx, f = NX.fx.ctx;
       b.save(); b.globalCompositeOperation = 'lighter';
       const WW = 4700, HH = 2900;
@@ -122,7 +123,7 @@
         b.fillStyle = COLORS[pass];
         for (const p of FAR) {
           const band = p.h < 0.55 ? 0 : p.h < 0.8 ? 1 : 2; if (band !== pass) continue;
-          let x = -1400 + ((p.x + 1400 + p.vx * t * drift) % WW + WW) % WW, y = -900 + ((p.y + 900 + p.vy * t * drift) % HH + HH) % HH;
+          let x = -1400 + ((p.x + 1400 + p.vx * time) % WW + WW) % WW, y = -900 + ((p.y + 900 + p.vy * time) % HH + HH) % HH;
           let { x: sx, y: sy, s } = NX.cam.project(x, y, p.z, c);
           for (const g of gusts) {
             if (t < g.t0) continue; const k = t - g.t0, dx = sx - g.x, dy = sy - g.y, r = Math.hypot(dx, dy) || 1;
@@ -172,7 +173,7 @@
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); ctx.restore();
     },
     /** Reflet anamorphique : traînée large et douce, ligne chaude fine, cœur, deux fantômes. k = intensité 0..1. */
-    flare(x, y, k, { width = 1, tint = [103, 232, 249], ghosts = true } = {}) {
+    flare(x, y, k, { width = 1, tint = [103, 232, 249], ghosts = false } = {}) {
       if (k <= 0.003) return;
       const c = fx(); c.save(); c.globalCompositeOperation = 'lighter';
       const ell = (sx, sy, stops) => {
@@ -233,9 +234,9 @@
       NX.lk.glow(x, y, 26 * size, [235, 252, 255], 0.8 * g);
     },
     /** Faisceau trapézoïdal de (x0,y0) à (x1,y1), largeurs w0 → w1, dégradé transversal. */
-    beam(x0, y0, x1, y1, w0, w1, a, rgb = [165, 243, 252]) {
+    beam(x0, y0, x1, y1, w0, w1, a, rgb = [165, 243, 252], ctx = fx()) {
       if (a <= 0.003) return;
-      const c = fx(), ang = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0);
+      const c = ctx, ang = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0);
       c.save(); c.globalCompositeOperation = 'lighter'; c.translate(x0, y0); c.rotate(ang);
       const wm = Math.max(w0, w1), gr = c.createLinearGradient(0, -wm / 2, 0, wm / 2);
       gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.3, `rgba(${rgb},${a * 0.5})`); gr.addColorStop(0.5, `rgba(255,255,255,${a})`);
@@ -294,6 +295,7 @@
   /** Image décodée prête à échantillonner (charge une fois, partage les instances). */
   const imgs = {};
   NX.image = src => { if (!imgs[src]) { const i = new Image(); i.src = src; imgs[src] = i; } return imgs[src]; };
+  NX.imageRegistry = () => Object.values(imgs);
 
   /* ====================================================================================
    * Tampon de particules additif : des milliers de points pour un seul drawImage.
@@ -362,6 +364,11 @@
   `);
   const ENTER = NX.bezier(0.16, 1, 0.3, 1), EXIT = NX.bezier(0.7, 0, 0.84, 0);
   NX.ease.enter = ENTER; NX.ease.exit = EXIT;
+  NX.ease.glide = NX.bezier(0.33, 0, 0.2, 1);       // objets qui changent de place
+  NX.ease.advance = NX.bezier(0.2, 0.9, 0.25, 1.06); // cartes qui avancent dans la pile (~2 % de dépassement)
+  NX.ease.lift = NX.bezier(0.45, 0, 0.75, 0.6);      // ce qui est pris dans la lumière
+  NX.ease.sheen = NX.bezier(0.45, 0, 0.25, 1);       // reflets et balayages
+  NX.ease.sine = p => 0.5 - 0.5 * Math.cos(Math.PI * NX.clamp(p));
   NX.type = {
     /** Découpe chaque .tz-line du bloc en mots ; retourne { lines: [[mots]], words: [mots] }. */
     prepare(block) {
@@ -408,8 +415,9 @@
 
   /* ====================================================================================
    * Matière « verre » commune aux cartes (rôles, outils) : plaque, liseré éclairé d'en haut, reflet, ombre.
-   * NX.glass(html, { w, h, color }) crée la carte ; .gl-content reçoit le contenu.
-   * Ne jamais mettre opacity, filter, overflow ou mask sur un conteneur preserve-3d : fondre les feuilles.
+   * NX.glass(html, { w, h, color, wash }) crée la carte ; .gl-content reçoit le contenu.
+   * Ne jamais mettre opacity, filter, overflow ou mask sur un conteneur preserve-3d :
+   * fondre avec NX.glassFade, éclairer avec NX.glassLight (dans cet ordre, à chaque image).
    * ==================================================================================== */
   NX.css(`
   .gl{position:absolute;transform-style:preserve-3d}
@@ -421,30 +429,66 @@
   .gl-sheen{overflow:hidden;mix-blend-mode:plus-lighter;transform:translateZ(2px)}
   .gl-sheen i{position:absolute;inset:0;width:260%;left:-80%;background:linear-gradient(112deg,transparent 30%,rgba(170,215,255,.06) 42%,rgba(225,242,255,.20) 50%,rgba(170,215,255,.06) 58%,transparent 70%)}
   .gl-rim{padding:1.5px;transform:translateZ(2px);background:linear-gradient(var(--rim,180deg),rgba(186,240,255,.75),rgba(129,140,248,.22) 30%,rgba(154,182,218,.10) 65%,rgba(232,121,249,.30));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+  .gl-wash{mix-blend-mode:plus-lighter;opacity:0;transform:translateZ(4px);background:linear-gradient(170deg,rgba(170,220,255,.38),rgba(170,220,255,.10) 45%,transparent 75%)}
   .gl-fog{background:rgb(5,11,24);opacity:0;transform:translateZ(3px)}
   `);
-  NX.glass = (html, { w, h, color } = {}) => {
+  NX.glass = (html, { w, h, color, wash = false } = {}) => {
     const el = NX.el(`<div class="gl" style="width:${w}px;height:${h}px;${color ? `--gl-color:${color}` : ''}">
       <div class="gl-shadow"></div><div class="gl-glow"></div><div class="gl-plate"></div>
-      <div class="gl-content">${html}</div><div class="gl-sheen"><i></i></div><div class="gl-rim"></div><div class="gl-fog"></div></div>`);
+      <div class="gl-content">${html}</div><div class="gl-sheen"><i></i></div><div class="gl-rim"></div>${wash ? '<div class="gl-wash"></div>' : ''}<div class="gl-fog"></div></div>`);
     const q = s => el.querySelector(s);
-    return { el, shadow: q('.gl-shadow'), glow: q('.gl-glow'), plate: q('.gl-plate'), content: q('.gl-content'), sheen: q('.gl-sheen'), band: q('.gl-sheen i'), rim: q('.gl-rim'), fog: q('.gl-fog') };
+    return { el, a: 1, shadow: q('.gl-shadow'), glow: q('.gl-glow'), plate: q('.gl-plate'), content: q('.gl-content'), sheen: q('.gl-sheen'), band: q('.gl-sheen i'), rim: q('.gl-rim'), wash: q('.gl-wash'), fog: q('.gl-fog') };
   };
-  /** Reflet de la carte : pos ∈ [-1, 1] fait glisser la bande d'un bord à l'autre ; lit = gain. */
-  NX.glassLight = (g, { pos = 0, lit = 1, rimAngle = 180, rimGain = 1, fog = 0, glow = 0 } = {}) => {
+  /** Seule façon de fondre une carte de verre : chaque feuille reçoit l'opacité, jamais le conteneur 3D. */
+  NX.glassFade = (g, a) => {
+    g.a = NX.clamp(a);
+    for (const k of ['shadow', 'plate', 'content']) g[k].style.opacity = g.a;
+  };
+  /** Lumière de la carte. pos ∈ [-1, 1] fait glisser le reflet ; lit, rimGain, glow, wash, fog : gains ;
+   *  rimAngle en degrés (180 = éclairée d'en haut) ; vis multiplie tout (et l'opacité posée par glassFade). */
+  NX.glassLight = (g, { pos = 0, lit = 1, rimAngle = 180, rimGain = 1, fog = 0, glow = 0, wash = 0, vis = 1 } = {}) => {
+    const k = vis * (g.a ?? 1);
     g.band.style.transform = `translateX(${(pos * 30).toFixed(2)}%)`;
-    g.sheen.style.opacity = NX.clamp(lit);
+    g.sheen.style.opacity = NX.clamp(lit * k);
     g.rim.style.setProperty('--rim', `${rimAngle.toFixed(1)}deg`);
-    g.rim.style.opacity = NX.clamp(rimGain);
-    g.fog.style.opacity = NX.clamp(fog);
-    g.glow.style.opacity = NX.clamp(glow);
+    g.rim.style.opacity = NX.clamp(rimGain * k);
+    g.fog.style.opacity = NX.clamp(fog * k);
+    g.glow.style.opacity = NX.clamp(glow * k);
+    if (g.wash) g.wash.style.opacity = NX.clamp(wash * k);
   };
 
   /* ====================================================================================
-   * Lumière sur les logos (images matricielles jamais redessinées) : calques masqués par la luminance.
-   * NX.logoLight(box, src) ajoute dans box (position relative/absolue) : l'image, un calque « forge »
-   * (lumière uniforme sur les traits clairs) et un calque « balayage » (bande qui traverse).
-   * Le masque est calculé une fois : alpha × smoothstep(0,35 ; 0,65 ; luminance), la plaque sombre reste sombre.
+   * Ciel couplé à la caméra : la seule formule qui relie le ciel WebGL et la caméra (bible §3.2).
+   * NX.sky.at(t) → { zoom, cx, cy } pour NX.bg ; NX.sky.src(t) → source des rayons en px écran.
+   * ==================================================================================== */
+  NX.sky = {
+    at(t) {
+      const c = NX.cam.at(t);
+      return {
+        zoom: (1 + 0.10 * NX.smooth(0, NX.DURATION, t)) * (1 + 0.00008 * c.z),
+        cx: -1.85 * Math.tan(c.yaw * RAD) - 0.18 * c.x / 1080,
+        cy: -1.85 * Math.tan(c.pitch * RAD) + 0.18 * c.y / 1080,
+      };
+    },
+    src(t) { const s = NX.sky.at(t); return { x: OX + 1080 * s.cx, y: OY - 1080 * (s.cy + 0.6 * s.zoom), zoom: s.zoom }; },
+  };
+
+  /* ====================================================================================
+   * Accent d'impact sobre (bible §3.5) : un halo de cœur et une seule traînée anamorphique.
+   * x, y : coordonnées écran du cœur du héros. Les rayons, l'avancée et la poussière sont dans « ciel ».
+   * ==================================================================================== */
+  NX.hit = (t, h, x, y, { flare = 0.6, core = 420, coreA = 0.4, tint = [103, 232, 249], width = 1, s = 1 } = {}) => {
+    const tau = t - h; if (tau < 0 || tau >= 1.5) return;
+    NX.lk.glow(x, y, core * s, [200, 240, 255], coreA * Math.exp(-5 * tau));
+    NX.lk.flare(x, y, flare * Math.exp(-3 * tau), { tint, width });
+  };
+
+  /* ====================================================================================
+   * Lumière sur les logos (images matricielles jamais redessinées) — v2 (bible §3.4).
+   * Feuilles dans une boîte plate positionnée : forge (silhouette de lumière, effacée par le front),
+   * img (le PNG, écrit par le front), hot (bande blanche qui suit le front), lum (surexposition légère),
+   * sweep (le reflet unique de la tenue). Toutes en plus-lighter, masquées par les traits clairs.
+   * À appeler : L.prepare() une fois (dans prepare), puis L.frame({...}) à chaque image.
    * ==================================================================================== */
   const maskCache = {};
   function brightMask(img) {
@@ -460,23 +504,46 @@
     c.putImageData(im, 0, 0);
     return (maskCache[img.src] = cv.toDataURL('image/png'));
   }
+  const setMask = (el, layers, composite) => {
+    const m = layers.filter(Boolean);
+    const v = m.length ? m.join(',') : '';
+    el.style.maskImage = v; el.style.webkitMaskImage = v;
+    el.style.maskSize = m.map(() => '100% 100%').join(','); el.style.webkitMaskSize = el.style.maskSize;
+    el.style.maskRepeat = 'no-repeat'; el.style.webkitMaskRepeat = 'no-repeat';
+    el.style.maskComposite = m.length > 1 ? (composite || 'intersect') : '';
+    el.style.webkitMaskComposite = m.length > 1 ? 'source-in' : '';
+  };
   NX.logoLight = (box, src) => {
-    const img = NX.el(`<img src="${src}" alt="" style="position:absolute;inset:0;width:100%;height:100%">`, box);
-    const mk = () => NX.el(`<div style="position:absolute;inset:0;overflow:hidden;opacity:0;mix-blend-mode:plus-lighter;transform:translateZ(1px);mask-size:100% 100%;-webkit-mask-size:100% 100%;mask-repeat:no-repeat;-webkit-mask-repeat:no-repeat"></div>`, box);
-    const forge = mk(); forge.style.background = 'rgb(205,245,255)';
-    const sweep = mk();
+    const leaf = (z, extra = '') => NX.el(`<div style="position:absolute;inset:0;opacity:0;mix-blend-mode:plus-lighter;transform:translateZ(${z}px);${extra}"></div>`, box);
+    const forge = leaf(1, 'background:rgb(205,245,255)');
+    const img = NX.el(`<img src="${src}" alt="" style="position:absolute;inset:0;width:100%;height:100%;transform:translateZ(2px)">`, box);
+    const hot = leaf(3);
+    const lum = leaf(3.5, 'background:rgb(200,240,255)');
+    const sweep = leaf(4, 'overflow:hidden');
     const band = NX.el(`<div style="position:absolute;top:-10%;bottom:-10%;left:0;width:34%;background:linear-gradient(105deg,transparent,rgba(165,243,252,.35) 35%,rgba(255,255,255,.95) 50%,rgba(196,181,253,.35) 65%,transparent)"></div>`, sweep);
-    const L = { img, forge, sweep, band, ready: false };
-    L.layout = () => {
-      if (L.ready || !img.complete || !img.naturalWidth) return;
-      const url = `url(${brightMask(img)})`;
-      for (const el of [forge, sweep]) { el.style.maskImage = url; el.style.webkitMaskImage = url; }
-      L.ready = true;
+    const L = { box, img, forge, hot, lum, sweep, band, url: null };
+    L.prepare = async () => {
+      await img.decode().catch(() => {});
+      L.url = `url(${brightMask(img)})`;
+      for (const el of [hot, lum, sweep]) setMask(el, [L.url]);
+      setMask(forge, [L.url]);
     };
-    /** forge 0..1 ; sweep p ∈ [0,1] position de la bande (0 = avant le bord gauche, 1 = après le bord droit), a = intensité. */
-    L.set = ({ forgeA = 0, sweepP = -1, sweepA = 1 } = {}) => {
-      L.layout();
-      forge.style.opacity = NX.clamp(forgeA);
+    /** front : repère local du front (NX.light.local…) ou null ; written : PNG visible sans front ;
+     *  forge, hot, lum : intensités 0..1 ; sweepP ∈ (0,1) position du reflet ; gate : couche de masque en plus sur le PNG. */
+    L.frame = ({ front = null, written = true, forge: fA = 0, hot: hA = 0, lum: lA = 0, sweepP = -1, sweepA = 1, gate = null, lead = 0 } = {}) => {
+      if (front) {
+        setMask(img, [NX.light.mask(front, 'write', { feather: 70 }), gate]);
+        img.style.opacity = 1;
+        setMask(forge, [L.url, NX.light.mask(front, 'burn', { feather: 60, lead })]);
+        hot.style.background = NX.light.band(front);
+      } else {
+        setMask(img, [gate]);
+        img.style.opacity = written ? 1 : 0;
+        setMask(forge, [L.url]);
+      }
+      forge.style.opacity = NX.clamp(fA);
+      hot.style.opacity = front ? NX.clamp(hA) : 0;
+      lum.style.opacity = NX.clamp(lA);
       const on = sweepP > 0 && sweepP < 1;
       sweep.style.opacity = on ? NX.clamp(sweepA) : 0;
       if (on) band.style.transform = `translateX(${NX.lerp(-110, 300, sweepP).toFixed(2)}%)`;
@@ -485,23 +552,69 @@
   };
 
   /* ====================================================================================
-   * Front de lumière qui descend : il efface ce qui est au-dessus et écrit ce qui vient.
-   * NX.light.front(t, t0, yTop, yBot, dur) → Y monde courant (ou null avant/après).
-   * NX.light.write(el, Y, top, feather) : el visible au-dessus du front (masque).
-   * NX.light.burn(el, Y, top, feather) : el effacé au-dessus du front.
+   * Front de lumière elliptique (bible §3.3) : centré sur la source des rayons, demi-axe horizontal
+   * K = 2,5 fois le vertical. R(t) = rayon vertical en px écran (pistes NX.FRONT).
+   * Un repère local L = { cx, cy, r } décrit le front dans l'espace d'un élément plat.
    * ==================================================================================== */
-  const FRONT = NX.bezier(0.3, 0, 0.12, 1);
-  NX.ease.front = FRONT;
+  const K = 2.5, RM = 3000;
+  const px = v => v.toFixed(1) + 'px', pc = v => (100 * v / RM).toFixed(3) + '%';
+  const shape = L => `ellipse ${px(K * RM)} ${px(RM)} at ${px(L.cx)} ${px(L.cy)}`;
   NX.light = {
-    front(t, t0, yTop, yBot, dur = 0.75) { return NX.lerp(yTop, yBot, FRONT(NX.seg(t, t0, t0 + dur))); },
-    write(el, Y, top, feather = 80) {
-      const y = Y - top, m = `linear-gradient(to bottom,#000 ${(y - feather).toFixed(1)}px,transparent ${(y + 10).toFixed(1)}px)`;
-      el.style.maskImage = m; el.style.webkitMaskImage = m;
+    K,
+    src: t => NX.sky.src(t),
+    /** Distance elliptique en px écran d'un point écran à la source s. */
+    dist: (x, y, s) => Math.hypot((x - s.x) / K, y - s.y),
+    /** Front dans l'espace local d'un élément plat dont le coin haut-gauche est au point monde (X, Y, Z). */
+    local(X, Y, Z, R, t) { const o = NX.cam.project(X, Y, Z), s = NX.light.src(t); return { cx: (s.x - o.x) / o.s, cy: (s.y - o.y) / o.s, r: R / o.s }; },
+    /** Carte tournée : o = origine locale projetée, sC = échelle projetée au centre de la carte. */
+    localCard(o, sC, R, t) { const s = NX.light.src(t); return { cx: (s.x - o.x) / sC, cy: (s.y - o.y) / sC, r: R / sC }; },
+    /** Chaîne de dégradé de masque : 'write' visible à l'intérieur du front, 'burn' effacé à l'intérieur. */
+    mask(L, mode, { feather = mode === 'write' ? 70 : 60, lead = 0 } = {}) {
+      return mode === 'write'
+        ? `radial-gradient(${shape(L)},#000 ${pc(L.r - feather)},transparent ${pc(L.r + 10)})`
+        : `radial-gradient(${shape(L)},transparent ${pc(L.r + lead - 10)},#000 ${pc(L.r + lead + feather)})`;
     },
-    burn(el, Y, top, feather = 60) {
-      const y = Y - top, m = `linear-gradient(to bottom,transparent ${(y + 10).toFixed(1)}px,#000 ${(y + feather).toFixed(1)}px)`;
-      el.style.maskImage = m; el.style.webkitMaskImage = m;
+    write(el, L, { feather = 70, extra = null } = {}) { setMask(el, [NX.light.mask(L, 'write', { feather }), extra]); },
+    burn(el, L, { feather = 60, lead = 0 } = {}) { setMask(el, [NX.light.mask(L, 'burn', { feather, lead })]); },
+    clear(el) { setMask(el, []); },
+    /** Fond de la bande blanche qui suit le front. */
+    band(L, lead = 0) {
+      const r = L.r + lead;
+      return `radial-gradient(${shape(L)},transparent ${pc(r - 170)},rgba(150,215,255,.28) ${pc(r - 70)},rgba(200,240,255,.75) ${pc(r - 18)},#fff ${pc(r - 3)},transparent ${pc(r + 12)})`;
     },
-    clear(el) { el.style.maskImage = ''; el.style.webkitMaskImage = ''; },
+    /** Premier t (pas de 5 ms) où le front atteint le point monde (X, Y, Z). À n'appeler que dans prepare(). */
+    when(track, X, Y, Z = 0, { off = 0, t0 = 0, t1 = NX.DURATION } = {}) {
+      for (let t = t0; t <= t1; t += 0.005) {
+        const c = NX.cam.at(t), p = NX.cam.project(X, Y, Z, c), s = NX.light.src(t);
+        if (track(t) + off >= NX.light.dist(p.x, p.y, s)) return t;
+      }
+      return t1;
+    },
+    /** Lueur des glyphes au passage du front. centres : points monde [X, Y, Z] de chaque mot. */
+    wordGlow(words, centres, R, t, lead = 0) {
+      const s = NX.light.src(t);
+      words.forEach((w, i) => {
+        const [X, Y, Z = 0] = centres[i], p = NX.cam.project(X, Y, Z), d = NX.light.dist(p.x, p.y, s);
+        const g = Math.exp(-Math.pow((R + lead - d) / 70, 2));
+        w.style.textShadow = g < 0.03 ? '' : `0 0 ${(10 + 26 * g).toFixed(1)}px rgba(165,243,252,${(0.85 * g).toFixed(3)})`;
+      });
+    },
+    /** Ancienne API (front horizontal), conservée pour compatibilité. */
+    front(t, t0, yTop, yBot, dur = 0.75) { return NX.lerp(yTop, yBot, NX.ease.front(NX.seg(t, t0, t0 + dur))); },
+  };
+  NX.ease.front = NX.bezier(0.3, 0, 0.12, 1);
+
+  /* ====================================================================================
+   * Typographie : compteur à rouleau (« 01 » → « 02 »). col = .tz-odo contenant 1, 2, 3 empilés.
+   * ==================================================================================== */
+  NX.css(`
+  .tz-hair{display:inline-block;width:48px;height:2px;background:var(--primary);vertical-align:middle;margin-right:18px;transform-origin:0 50%}
+  .tz-odo{display:inline-block;height:1.15em;overflow:hidden;vertical-align:top}
+  .tz-odo b{display:block;height:1.15em;font-weight:inherit}
+  `);
+  NX.type.odometer = (col, t, a, from, to, dur = 0.45) => {
+    const d = NX.lerp(from, to, NX.ease.sine(NX.seg(t, a, a + dur)));
+    col.firstElementChild.style.transform = `translateY(${(-(d - 1) * 100).toFixed(2)}%)`;
+    for (const b of [...col.children].slice(1)) b.style.transform = col.firstElementChild.style.transform;
   };
 })();

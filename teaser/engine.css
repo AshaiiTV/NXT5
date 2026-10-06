@@ -40,7 +40,7 @@ body{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:var(--text);-web
 .nx-scene{position:absolute;inset:0;transform-style:preserve-3d;display:none}
 .nx-abs{position:absolute}
 .nx-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
-.nx-char,.nx-word{display:inline-block;white-space:pre;will-change:transform,opacity}
+.nx-char,.nx-word{display:inline-block;white-space:pre}
 .nx-line{display:block;overflow:hidden;padding-bottom:.08em}
 
 /* Typographie commune */

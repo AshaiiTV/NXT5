@@ -141,7 +141,7 @@
   NX.scene = def => { scenes.push(Object.assign({ pre: 0, post: 0, z: 0 }, def)); };
 
   /* ---------- Paramètres partagés par image (remis à zéro à chaque image) ---------- */
-  const BG_DEFAULT = { intensity: 1, nebula: 0.55, warp: 0.6, hue: 0, rays: 0, rayX: 0, rayY: 0.1, rayStrength: 1, grid: 0, gridSpeed: 0.6, gridHorizon: -0.08, tunnel: 0, tunnelSpeed: 1, stars: 0.25, zoom: 1, cx: 0, cy: 0, flash: 0, speed: 1, pulse: 0, waveX: 0, waveY: 0, waveR: 0, waveS: 0, rayFocus: 0, front: 0, frontY: 0 };
+  const BG_DEFAULT = { intensity: 1, nebula: 0.55, warp: 0.6, hue: 0, rays: 0, rayX: 0, rayY: 0.1, rayStrength: 1, grid: 0, gridSpeed: 0.6, gridHorizon: -0.08, tunnel: 0, tunnelSpeed: 1, stars: 0.25, zoom: 1, cx: 0, cy: 0, flash: 0, speed: 1, pulse: 0, waveX: 0, waveY: 0, waveR: 0, waveS: 0, rayFocus: 0, front: 0, frontR: 0 };
   const POST_DEFAULT = { grain: 0.16, vignette: 0.85, chroma: 0, glitch: 0, flash: 0, flashColor: '#A5F3FC', exposure: 1, saturate: 1, blur: 0, letterbox: 0, fade: 0, shake: 0, shakeFreq: 18, leak: 0, leakX: 0.78, leakY: 0.22, leakHue: 0.5 };
   NX.bg = {}; NX.post = {};
   const mixer = obj => (params, w = 1) => { for (const k in params) { const v = params[k]; obj[k] = typeof v === 'number' && typeof obj[k] === 'number' ? obj[k] + (v - obj[k]) * w : (w >= 0.5 ? v : obj[k]); } };
