@@ -59,3 +59,37 @@ From this folder, after `npm install` (Chromium path: `CHROME_PATH`, or auto-det
 - `--only` accepts a comma list to preview your transition with a neighbour scene if it exists.
 - Page JS errors are printed as `[page …]` lines — there must be none.
 Only write inside `scenes/` and `out/<your id>/`. Do not modify engine files; if you need an engine feature, implement it locally in your scene and mention it in your report.
+
+## v7 kit (`kit.js`) — read this before writing a v7 scene
+
+The v7 brief is `MOTION-BIBLE.md` (follow it to the letter). Shared constants: `NX.T` (timeline), `NX.G` (measured geometry), `NX.FRONT` (light-front tracks) in `scenes/style.js`. The camera keys live only in `scenes/camera.js`. Only `scenes/ciel.js` writes `NX.bg` / `NX.post` and calls `NX.dust.draw`.
+
+**Scene lifecycle.** `NX.scene({ id, start, end, z, build(root, self), layout(root, self), prepare(root, self), render(S) })`.
+- `build`: create DOM once. `layout`: runs after fonts load while scenes are temporarily visible — measure DOM here.
+- `prepare` (may be async, runs once after layout and image decoding, scenes hidden again): all sampling, bright masks, particle tables, `NX.light.when()` emission times, gust positions. May call `NX.cam.at(any t)`.
+- `render(S)`: pure function of `S.t`; never builds caches; never calls `NX.cam.at(other t)`. `NX.camState` is the current frame's camera (set by the engine before scenes render).
+- Scene roots share one 3D space under the camera; the engine offsets roots by `z × 0.5 px` so stacking follows `z`.
+
+**Camera.** `NX.cam.at(t)` → `{x, y, z, yaw, pitch, roll}`; `NX.cam.project(X, Y, Z = 0, c = NX.camState)` → `{x, y, s, depth}` screen px — use it so canvas light lands exactly on DOM objects. World = layout px, z toward the viewer.
+
+**Sky.** `NX.sky.at(t)` → `{zoom, cx, cy}`; `NX.sky.src(t)` → ray source in screen px.
+
+**Light kit `NX.lk`** (screen coords, additive): `glow(x,y,r,rgb,a,ctx?)`, `flare(x,y,k,{width,tint,ghosts=false})`, `sparks(seed,n,x0,y0,tau,o)`, `star(x,y,g,{size,rot,rgb})`, `beam(x0,y0,x1,y1,w0,w1,a,rgb,ctx=NX.fx.ctx)` (pass `NX.fxBack.ctx` to draw behind DOM objects), `rgb(x)` brand spectrum. `ring` exists but is FORBIDDEN in the film. `NX.hit(t, h, x, y, {flare, core, coreA, tint, width, s})` = the one restrained impact accent.
+
+**Canvases.** `NX.fx.ctx` (in front of the DOM world) and `NX.fxBack.ctx` (behind the DOM, above the sky). Both cleared every frame.
+
+**Depth dust.** `NX.dust.draw(t, {gain, time, gusts, wave, near})` — called by `ciel` only.
+
+**Particles.** `NX.sample(img, n, seed, res, thr)` / `NX.sampleSvg(svg, n, seed)` → `[{u, v, rgb?}]` (call in `prepare`). `NX.image(src)` shared decoded images. `NX.px.begin()`, `NX.px.dot/blob/line(…, r, g, b)` (energies add; ~1.3/255·alpha per particle), `NX.px.end(ctx)` — mandatory above 500 particles.
+
+**Glass.** `g = NX.glass(html, {w, h, color, wash})` → leaves `{el, shadow, glow, plate, content, sheen, band, rim, wash, fog}`. Each frame: `NX.glassFade(g, a)` then `NX.glassLight(g, {pos, lit, rimAngle, rimGain, fog, glow, wash, vis})`. Never put opacity/filter/overflow/mask/clip-path on a preserve-3d container (`.gl`, `.gl-content`): fade leaves only. Lift coplanar overlays with `translateZ(1–4px)`.
+
+**Logo light.** `L = NX.logoLight(box, src)` adds leaves `forge`, `img`, `hot`, `lum`, `sweep` (plus-lighter, masked to the bright strokes). `await L.prepare()` in `prepare`; each frame `L.frame({front, written, forge, hot, lum, sweepP, sweepA, gate, lead})` where `front` is a local front from `NX.light.local(...)` or null. Logos: never rotate in 3D, never CSS `filter`.
+
+**Light front.** `NX.light.local(X, Y, Z, R, t)` → local front `{cx, cy, r}` for a flat element whose top-left is world (X,Y,Z); `NX.light.localCard(o, sC, R, t)` for a rotated card; `NX.light.mask(L, 'write'|'burn', {feather, lead})` → CSS mask string; `NX.light.write(el, L, {feather, extra})`, `NX.light.burn(el, L, {feather, lead})`, `NX.light.clear(el)`; `NX.light.band(L, lead)` → background of the white-hot band leaf; `NX.light.when(track, X, Y, Z, {off, t0, t1})` (prepare only); `NX.light.wordGlow(words, centres, R, t, lead)`.
+
+**Type.** Titles: `.tz-title` blocks containing one `.tz-line` per line; `const {lines, words} = NX.type.prepare(block)` in build; `NX.type.rise(words, t, start, stagger, dur, ease)`, `NX.type.sink(words, t, start, stagger, dur)`, `NX.type.track(el, t, a, b, from, to)`, `NX.type.sheen(specEl, t, a, b, strength)`, `NX.type.odometer(col, t, a, from, to, dur)`. Kicker parts: `.tz-hair`, `.tz-odo`.
+
+**Easing (only these):** `NX.ease.enter`, `exit`, `glide`, `advance`, `lift`, `sheen`, `sine`, `front`, `NX.ease.spring(p, 1.0, 6.2)`, and `NX.track` for keyframed channels. **Beats:** `NX.beats.{hits, bells, lightKicks, dropKicks, dropSnares, chimes}`, `NX.beatPulse(t, list, decay)`.
+
+**Determinism.** No `Math.random`, `Date`, CSS transitions/animations, or caches that depend on render order; values that would smear across motion-blur sub-frames (counters) are quantised to film frames: `Math.round(t * NX.FPS) / NX.FPS`.
