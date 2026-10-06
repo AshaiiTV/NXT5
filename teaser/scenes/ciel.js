@@ -39,7 +39,8 @@ NX.scene({
     // Éclat des rayons sur les quatre temps forts (jamais de voile uniforme).
     let flash = 0;
     // Au drop, les rayons sont encore resserrés et renforcés : son éclat est réduit pour garder la même ampleur.
-    for (const h of T.hits) if (t >= h) flash += (h === T.tools ? 0.3 : 1) * Math.exp(-4 * (t - h));
+    // Au retour du logo, la carte brûle et le logo s'allume en même temps : l'éclat du ciel y est réduit de moitié.
+    for (const h of T.hits) if (t >= h) flash += (h === T.tools ? 0.3 : h === T.end ? 0.5 : 1) * Math.exp(-4 * (t - h));
     // Éclat mesuré pour rester dans la règle de continuité (|ΔY| ≤ 9 sur la fenêtre d'un impact).
     B.rays += 0.65 * flash; B.intensity += 0.14 * flash; B.flash = 0.02 * flash;
     // S2 → S3 : la lumière recueille le logo. Quand il disparaît (7,13–7,17), les rayons prennent sa lumière
@@ -56,9 +57,16 @@ NX.scene({
     // compensé ici (mesuré : ciel seul ≈ 12–13 de luminance au lieu de 8–10).
     B.rayStrength += 0.8 * focus + 0.25 * E.sine(seg(t, 17.2, 17.98)) * (1 - open);
     B.intensity += 0.12 * focus;
-    B.rays += 0.2 * sm(17.9, 18.0, t) * (1 - sm(18.0, 18.4, t));
+    // La flèche entre dans la source : la source s'embrase juste avant le drop au lieu de laisser l'image s'assombrir
+    // (le titre et la flèche s'effacent), puis s'éteint en 0,12 s quand la lumière redescend sur la carte.
+    const swell = sm(17.72, 17.97, t) * (1 - sm(18.0, 18.12, t));
+    B.rays += 0.45 * swell; B.intensity += 0.06 * swell;
     // S8 → S9 : la lumière se prépare au retour de l'emblème.
     B.rayStrength += 0.3 * sm(28.0, 28.75, t) * (1 - sm(28.8, 29.8, t));
+    // S9 : les rayons gardent leur éclat pendant que la carte brûle, puis se posent quand la carte finale arrive
+    // (sans ce relais, la luminance perdait 10,4 entre deux échantillons après l'impact).
+    const hold = sm(28.85, 29.0, t) * (1 - sm(29.15, 29.7, t));
+    B.rays += 0.5 * hold; B.intensity += 0.1 * hold;
     // Ondes de lumière dans les rayons, à la hauteur des fronts qui écrivent les logos.
     if (t > 4.2 && t < 5.6) { B.front = NX.env(t, 4.2, 4.3, 5.3, 5.6); B.frontR = NX.FRONT.hook(t) / 1080 / sky.zoom; }
     else if (t > 28.3 && t < 29.9) { B.front = NX.env(t, 28.3, 28.4, 29.6, 29.9); B.frontR = NX.FRONT.end(t) / 1080 / sky.zoom; }
