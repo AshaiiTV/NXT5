@@ -1,161 +1,246 @@
-/* S5 Direction (bible v7 §4 S5), 14,25–18,1 s : « Une même direction. »
- * 14,4 : l'emblème naît de la fusion (opacité 14,28–14,42 sous les particules d'equipe.js), impact sobre
- * au centre de l'anneau. Le titre monte, l'emblème respire, un faisceau part de la pointe de la lance vers la
- * source (15,6), un seul reflet passe sur le chrome (16,15–16,85). Puis l'emblème se condense en sa lance
- * (masque doux 17,40–17,75), la lance monte le long du faisceau et entre dans la lumière (17,50–17,98).
- * 18,0 : le faisceau s'éteint, la lumière redescend sur la première carte (outils.js).
+/* S5 Direction (bible v7 §4 S5), fenêtre 14,25–18,1 s, z 1,2 : « Une même direction. »
+ * 14,28–14,42 : l'emblème (PNG) apparaît sous les particules d'equipe.js ; 14,4 : impact sobre au centre de l'anneau.
+ * 14,55 : le titre monte. 14,6–17,4 : l'emblème respire (−10 px, ×1,025). 15,6 : un faisceau part de la pointe de la
+ * lance vers la source (tracé 15,6–16,5), il pulse sur 16,8. 16,15–16,85 : un seul reflet passe sur le chrome.
+ * 17,40–17,75 : l'emblème se condense en sa flèche : le masque horizontal doux se referme sur l'axe et éteint l'anneau
+ * et les ailes, la flèche (pointe, ailerons, hampe) reste entière et s'éclaire. 17,50–17,98 : elle monte le long du
+ * faisceau et s'efface dans la lumière ; le titre sort par le haut (17,62). 18,0 : le faisceau s'éteint, la lumière
+ * redescend sur la première carte (outils.js).
  * Interfaces : equipe.js possède les particules et ne dessine jamais le PNG ; cette scène possède l'emblème et
  * NX.hit(14,4) ; « ciel » possède l'onde de choc, le resserrement des rayons, la montée et la poussière.
- * Le logo n'est jamais tourné ni filtré : masque doux, translation, échelle uniforme, feuilles de lumière.
- * Fonction pure de t : masques, instants d'étoile et toile annexe sont préparés une fois. */
+ * Le logo n'est jamais tourné ni filtré : masques doux, translation, échelle uniforme, feuilles de lumière.
+ * Fonction pure de t : masque de la flèche, instant de l'étoile et toile annexe sont préparés une fois.
+ * Vérification (bible §6.8, §6.10) : NX.dirDebug = { leavesOff } coupe toute lumière ajoutée sur l'emblème,
+ * { noHalo } retire le halo, { noMask } désactive le masque de condensation. */
 (function () {
   const SRC = '../public/assets/nxt5-loader-favicon.png';
-  const G5 = NX.G.E5, FV = NX.G.FAV, BOX = G5.size, K = BOX / FV.W;   // 460 px pour 512 px d'image
-  const E = NX.ease, seg = NX.seg, sm = NX.smooth, clamp = NX.clamp, SINE = E.sine;
+  const G5 = NX.G.E5, FV = NX.G.FAV, BOX = G5.size, K = BOX / FV.W;   // 460 px monde pour 512 px d'image
+  // Boîte de l'emblème écrite à 2× puis réduite de moitié (échelle uniforme, comme fin.js) : sous la caméra tournée,
+  // une boîte à 1× est agrandie de 6 % après rastérisation et s'adoucit ; à 2× elle n'est que réduite (traits nets).
+  const SS = 2;
+  const E = NX.ease, seg = NX.seg, sm = NX.smooth, SINE = E.sine;
   const ZR = 1.2 * 0.5;                          // le moteur décale la racine de la scène (z 1,2) de 0,6 px
-  const ZH = 0, ZB = 2, ZT = 3;                  // halo, emblème, titre : calques relevés (jamais coplanaires)
+  const ZH = 0, ZB = 2, ZT = 3;                  // plan du halo (toile), emblème et titre relevés (jamais coplanaires)
   const OX = FV.ringC[0] * K, OY = FV.ringC[1] * K;     // centre de l'anneau dans la boîte (227,75 ; 241,68)
   const CX = G5.left + OX, CY = G5.top + OY;     // C = (960 ; 441,7), centre de l'anneau en monde
   const TIPV = FV.spearTip[1] * K;               // pointe de la lance : y 46,7 dans la boîte (monde 246,7)
-  const AXIS = 960 - G5.left;                    // axe de la lance dans la boîte (monde x 960)
-  const HALO = 900;                              // halo : dégradé radial de 900 px centré sur C
+  const HALO = 900;                              // halo : disque radial de 900 px centré sur C
 
   /* Frise (bible §4 S5). */
   const HIT = NX.T.emblem;                       // 14,4 : naissance de l'emblème
   const BIRTH = [14.28, 14.42];                  // opacité de l'emblème sous les particules
-  const TITLE_IN = 14.55, TITLE_OUT = 17.62;     // montée (pas 0,12, ENTER 0,8) ; sortie (pas 0,05, EXIT 0,32)
-  const TITLE_GONE = TITLE_OUT + 2 * 0.05 + 0.32;  // 18,04 : dernier mot sorti
+  const HALO_IN = [14.42, 15.00];                // le halo s'épanouit pendant que l'éclair de l'impact retombe (SINE)
+  const TITLE_IN = 14.55, TITLE_STEP = 0.12, TITLE_DUR = 0.8;      // 14,55 / 14,67 / 14,79 (ENTER) : complet 15,59
+  const TITLE_OUT = 17.62, OUT_STEP = 0.05, OUT_DUR = 0.32;         // 17,62 / 17,67 / 17,72 (EXIT)
+  const TITLE_GONE = TITLE_OUT + 2 * OUT_STEP + OUT_DUR;            // 18,04 : dernier mot sorti
   const BREATH = [14.60, 17.40];                 // respiration : y −10 px, échelle 1 → 1,025 (SINE)
+  const KICKS = NX.beats.lightKicks.slice(2);    // 15,6 et 16,8 : halo +20 % (décroissance 2,5)
   const SHEEN_T = [15.30, 16.10];                // reflet du mot « direction. »
   const DRAW = [15.60, 16.50];                   // tracé du faisceau, de la pointe vers la source (SINE)
-  const KICKS = [NX.beats.lightKicks[2], NX.beats.lightKicks[3]];   // 15,6 et 16,8
   const GLINT = [16.15, 16.85];                  // reflet unique de la tenue (SHEEN)
-  const COND = [17.40, 17.75];                   // condensation en lance (GLIDE)
-  const SPEAR_LUM = [17.45, 17.80];              // lumière froide sur la lance 0 → 0,5
+  const COND = [17.40, 17.75];                   // condensation en flèche (GLIDE)
+  const DIM = [17.42, 17.62];                    // l'anneau et les ailes s'éteignent : à 17,60 seule la flèche reste
+  const SPEAR_LUM = [17.45, 17.80];              // lumière froide sur la flèche 0 → 0,5
   const RISE = [17.50, 17.98];                   // montée de 260 px le long du faisceau (LIFT)
-  const FADE = [17.75, 17.98];                   // la lance s'efface dans la lumière
+  const FADE = [17.75, 17.98];                   // la flèche s'efface dans la lumière
   const OFF = NX.T.tools;                        // 18,0 : faisceau éteint, relais au faisceau du drop
-  const SPEAR = [44.5, 54.7];                    // colonnes de la lance (en % de la boîte), bords doux de 3 %
-  const SWEEP_A = 0.30 / 0.95;                   // pic du reflet = 0,30 de lumière ajoutée (plafond de marque)
+  const COLS = [44.5, 54.7];                     // colonnes de la lance (en % de la boîte), bords doux de 3 %
+  const ART = [48 / 512, 457 / 512];            // étendue horizontale du dessin (boîte alpha du PNG, bible annexe B)
+  // Plafond de marque (bible §2.3) : au plus 0,30 de lumière ajoutée ; le cœur du reflet vaut 0,95.
+  const SWEEP_A = 0.30 / 0.95;
+  // Bande du reflet : la même que S2 et S9 (cœur spéculaire net, épaules douces), pour que les trois logos se répondent.
+  const SWEEP_BAND = 'linear-gradient(105deg,transparent 0%,rgba(150,215,255,.10) 28%,rgba(185,232,255,.38) 43%,rgba(255,255,255,.95) 48.5%,rgba(255,255,255,.95) 51.5%,rgba(205,192,255,.38) 57%,rgba(196,181,253,.10) 72%,transparent 100%)';
   const BEAM_CORE = [200, 240, 255], BEAM_GLOW = [167, 200, 255];
   const TAN15 = Math.tan(15 * Math.PI / 180);
+  // Halo (bible : radial rgba(129,140,248,.35) → transparent, 900 px). Profil 1 − smoothstep, pic 0,42 = 0,35 × 1,2 :
+  // l'opacité de repos 1/1,2 donne 0,35, les temps 15,6 et 16,8 montent à +20 %. Ni pointe au centre, ni bord visible.
+  // Le halo est tracé sur #fxback (derrière tout le DOM, donc derrière l'emblème et le titre) et non par un div :
+  // le dégradé d'un grand div est rastérisé par Chrome à une échelle qui dépend des images rendues avant (±1 niveau
+  // selon l'ordre de rendu, bible §6.8). Sur la toile, il est retracé à chaque image : pixels identiques dans tout ordre.
+  const HALO_PEAK = 0.42;
+  const HALO_STOPS = Array.from({ length: 11 }, (_, i) => { const u = i / 10; return [u, HALO_PEAK * (1 - u * u * (3 - 2 * u))]; });
 
   NX.css(`
-  .dir-halo{position:absolute;left:${CX - HALO / 2}px;top:${(CY - HALO / 2).toFixed(2)}px;width:${HALO}px;height:${HALO}px;opacity:0;transform-origin:50% 50%;background:radial-gradient(closest-side,rgba(129,140,248,.35),rgba(129,140,248,.25) 22%,rgba(129,140,248,.12) 48%,rgba(129,140,248,.04) 74%,rgba(129,140,248,0))}
-  .dir-box{position:absolute;left:${G5.left}px;top:${G5.top}px;width:${BOX}px;height:${BOX}px;isolation:isolate;opacity:0;transform-origin:${OX.toFixed(2)}px ${OY.toFixed(2)}px}
+  .dir-box{position:absolute;left:${G5.left}px;top:${G5.top}px;width:${BOX * SS}px;height:${BOX * SS}px;transform-origin:0 0;isolation:isolate;opacity:0}
   .dir-title{top:700px;transform:translateZ(${ZT}px)}
   `);
 
-  /** Pose de l'emblème : respiration (−10 px, ×1,025, SINE) puis montée de 260 px (LIFT) ; échelle autour de C. */
-  const pose = t => {
+  /** Pose de l'emblème : respiration (−10 px, ×1,025, SINE) puis montée de 260 px (LIFT) ; échelle autour de C.
+   *  dyB : la seule respiration (le pied du faisceau reste là où la pointe respirait, la flèche monte le long de lui). */
+  const dirPose = t => {
     const br = SINE(seg(t, BREATH[0], BREATH[1])), up = E.lift(seg(t, RISE[0], RISE[1]));
-    return { s: 1 + 0.025 * br, dy: -10 * br - 260 * up };
+    return { s: 1 + 0.025 * br, dyB: -10 * br, dy: -10 * br - 260 * up };
   };
-  /** Point (u, v) de la boîte, en px de la boîte → point monde [X, Y, Z]. */
-  const dirWorld = (P, u, v) => [CX + (u - OX) * P.s, CY + (v - OY) * P.s + P.dy, ZR + ZB];
-  const dirProj = (P, u, v) => { const w = dirWorld(P, u, v); return NX.cam.project(w[0], w[1], w[2]); };
+  /** Point (u, v) de la boîte en px monde (1×) → point écran ; rise = false : sans la montée. */
+  const dirProj = (P, u, v, rise = true) => NX.cam.project(CX + (u - OX) * P.s, CY + (v - OY) * P.s + (rise ? P.dy : P.dyB), ZR + ZB);
   /** Centre de la bande de reflet (gradient 105°, 34 % de large, translateX −110 % → 300 %) à mi-hauteur, en u. */
   const sweepAt = p => (NX.lerp(-110, 300, p) / 100) * 0.34 + 0.17;
   const sheenInv = y => { let a = 0, b = 1; for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (E.sheen(m) < y) a = m; else b = m; } return (a + b) / 2; };
 
-  /** Faisceau additif au profil transversal de NX.lk.beam, fondu aux deux bouts (f0 au pied, f1 à la tête) :
-   *  la tête qui monte se lit comme de la lumière, jamais comme une barre coupée. Toile annexe oc (préparée). */
-  function dirBeam(ctx, oc, x0, y0, x1, y1, w0, w1, a, rgb, f0, f1) {
+  /** Masque à plusieurs couches (même convention que le kit) : intersection par défaut, union avec 'add'. */
+  function dirMask(el, layers, op = 'intersect') {
+    const m = layers.filter(Boolean), v = m.join(','), many = m.length > 1;
+    el.style.maskImage = v; el.style.webkitMaskImage = v;
+    el.style.maskSize = m.map(() => '100% 100%').join(','); el.style.webkitMaskSize = el.style.maskSize;
+    el.style.maskRepeat = 'no-repeat'; el.style.webkitMaskRepeat = 'no-repeat';
+    el.style.maskComposite = many ? op : ''; el.style.webkitMaskComposite = many ? (op === 'add' ? 'source-over' : 'source-in') : '';
+  }
+
+  /** Masque doux de la flèche seule (pointe, ailerons, hampe, empennage), bâti une fois depuis l'alpha du PNG :
+   *  composante connexe de l'axe (alpha > 100/255) dans la colonne de la lance, élargie de 2 px puis adoucie (≈ 4 px).
+   *  Les bouts de l'anneau (à 5–9 px de la pointe) et les ailes n'en font pas partie : la condensation ne laisse
+   *  aucune marque coupée, et la flèche n'est jamais tranchée. Retourne une couche de masque CSS, ou null. */
+  function dirSpearMask(img) {
+    const N = FV.W, THR = 100, DIL = 2, BL = 2;
+    if (!img.naturalWidth) return null;
+    const cv = document.createElement('canvas'); cv.width = cv.height = N;
+    const c = cv.getContext('2d', { willReadFrequently: true }); c.drawImage(img, 0, 0, N, N);
+    const im = c.getImageData(0, 0, N, N), d = im.data;
+    // Colonne de la lance (px de l'image) : la tête et ses ailerons au-dessus de y 238, la hampe en dessous,
+    // l'empennage (où les ailes rejoignent la hampe) au-delà de y 372.
+    const inCol = (x, y) => y >= 40 && y <= 432 && (y <= 238 ? x >= 192 && x <= 316 : y < 372 ? x >= 226 && x <= 280 : x >= 224 && x <= 286);
+    const m = new Uint8Array(N * N), st = [];
+    for (let y = 70; y <= 400; y += 2) { const i = y * N + 254; if (d[i * 4 + 3] > THR && !m[i]) { m[i] = 1; st.push(i); } }
+    while (st.length) {
+      const i = st.pop(), x = i % N, y = (i / N) | 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const X = x + dx, Y = y + dy, j = Y * N + X;
+        if (X < 0 || Y < 0 || X >= N || Y >= N || m[j] || !inCol(X, Y) || d[j * 4 + 3] <= THR) continue;
+        m[j] = 1; st.push(j);
+      }
+    }
+    let n = 0; for (let i = 0; i < N * N; i++) n += m[i];
+    if (n < 8000 || n > 30000) { console.warn('direction : masque de la flèche hors gabarit', n); return null; }
+    let a = new Float32Array(N * N), b = new Float32Array(N * N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      if (!m[y * N + x]) continue;
+      for (let j = -DIL; j <= DIL; j++) for (let i = -DIL; i <= DIL; i++) {
+        const X = x + i, Y = y + j;
+        if (i * i + j * j <= DIL * DIL + 0.5 && X >= 0 && Y >= 0 && X < N && Y < N) a[Y * N + X] = 1;
+      }
+    }
+    // Deux flous boîte séparables de rayon 2 (profil en tente) : bord doux d'environ 4 px.
+    for (let pass = 0; pass < 2; pass++) {
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let s = 0, k = 0; for (let o = -BL; o <= BL; o++) { const X = x + o; if (X >= 0 && X < N) { s += a[y * N + X]; k++; } } b[y * N + x] = s / k; }
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { let s = 0, k = 0; for (let o = -BL; o <= BL; o++) { const Y = y + o; if (Y >= 0 && Y < N) { s += b[Y * N + x]; k++; } } a[y * N + x] = s / k; }
+    }
+    for (let i = 0; i < N * N; i++) { d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = 255; d[i * 4 + 3] = Math.round(255 * a[i]); }
+    c.putImageData(im, 0, 0);
+    return `url(${cv.toDataURL('image/png')})`;
+  }
+
+  /** Faisceau du kit (NX.lk.beam, couches [w0, w1, alpha, rgb]) tracé sur une toile annexe, fondu à ses deux bouts
+   *  (f0 px au pied, f1 px à la tête), puis ajouté en lumière sur dst : la tête qui monte se lit comme de la lumière,
+   *  jamais comme une barre coupée. */
+  function dirBeam(dst, oc, x0, y0, x1, y1, layers, f0, f1) {
     const len = Math.hypot(x1 - x0, y1 - y0);
-    if (a <= 0.003 || len < 1) return;
-    const o = oc.getContext('2d'), L = Math.min(len, oc.width - 4), wm = Math.max(w0, w1), H = Math.min(oc.height, Math.ceil(wm) + 4), cy = H / 2;
-    o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-over'; o.globalAlpha = 1;
-    o.clearRect(0, 0, L + 4, H);
-    const gr = o.createLinearGradient(0, cy - wm / 2, 0, cy + wm / 2);
-    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.3, `rgba(${rgb},${(a * 0.5).toFixed(4)})`); gr.addColorStop(0.5, `rgba(255,255,255,${a.toFixed(4)})`);
-    gr.addColorStop(0.7, `rgba(${rgb},${(a * 0.5).toFixed(4)})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    o.fillStyle = gr; o.beginPath(); o.moveTo(0, cy - w0 / 2); o.lineTo(L, cy - w1 / 2); o.lineTo(L, cy + w1 / 2); o.lineTo(0, cy + w0 / 2); o.closePath(); o.fill();
-    let a0 = f0, a1 = f1; if (a0 + a1 > L) { const q = L / (a0 + a1); a0 *= q; a1 *= q; }
-    const lg = o.createLinearGradient(0, 0, L, 0);
-    lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(a0 / L, '#000'); lg.addColorStop(1 - a1 / L, '#000'); lg.addColorStop(1, 'rgba(0,0,0,0)');
-    o.globalCompositeOperation = 'destination-in'; o.fillStyle = lg; o.fillRect(0, 0, L + 4, H);
+    if (len < 1) return;
+    const W = oc.width, H = oc.height, pad = 24;
+    const bx = Math.max(0, Math.floor(Math.min(x0, x1) - pad)), by = Math.max(0, Math.floor(Math.min(y0, y1) - pad));
+    const bw = Math.min(W, Math.ceil(Math.max(x0, x1) + pad)) - bx, bh = Math.min(H, Math.ceil(Math.max(y0, y1) + pad)) - by;
+    if (bw <= 0 || bh <= 0) return;
+    const o = oc.getContext('2d');
+    o.setTransform(1, 0, 0, 1, 0, 0); o.globalAlpha = 1; o.globalCompositeOperation = 'source-over';
+    o.clearRect(bx, by, bw, bh);
+    for (const [w0, w1, a, rgb] of layers) NX.lk.beam(x0, y0, x1, y1, w0, w1, a, rgb, o);
+    let a0 = f0 / len, a1 = f1 / len;
+    if (a0 + a1 > 1) { const q = 1 / (a0 + a1); a0 *= q; a1 *= q; }
+    const g = o.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(a0, '#000'); g.addColorStop(Math.max(a0, 1 - a1), '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    o.globalCompositeOperation = 'destination-in'; o.fillStyle = g; o.fillRect(bx, by, bw, bh);
     o.globalCompositeOperation = 'source-over';
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1;
-    ctx.translate(x0, y0); ctx.rotate(Math.atan2(y1 - y0, x1 - x0));
-    ctx.drawImage(oc, 0, 0, L + 4, H, 0, -cy, L + 4, H);
-    ctx.restore();
+    dst.save(); dst.setTransform(1, 0, 0, 1, 0, 0); dst.globalCompositeOperation = 'lighter'; dst.globalAlpha = 1;
+    dst.drawImage(oc, bx, by, bw, bh, bx, by, bw, bh);
+    dst.restore();
   }
 
   NX.scene({
     id: 'direction', start: 14.25, end: 18.1, z: 1.2,
     build(root) {
-      this.halo = NX.el('<div class="dir-halo"></div>', root);
       this.box = NX.el('<div class="dir-box"></div>', root);
       this.L = NX.logoLight(this.box, SRC);
+      this.L.band.style.background = SWEEP_BAND;
       this.title = NX.el(`<div class="tz-center dir-title"><div class="tz-title"><span class="tz-line">Une même <span class="nx-spec">direction.</span></span></div></div>`, root);
       this.words = NX.type.prepare(this.title).words;
       this.spec = this.title.querySelector('.nx-spec');
-      this.oc = document.createElement('canvas'); this.oc.width = 1400; this.oc.height = 48;
+      this.oc = document.createElement('canvas'); this.oc.width = NX.W; this.oc.height = NX.H;
+      // Halo : dégradé radial unitaire (rayon 1), mis à l'échelle par la transformation de la toile à chaque image.
+      this.haloGrad = NX.fxBack.ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      for (const [u, a] of HALO_STOPS) this.haloGrad.addColorStop(u, `rgba(129,140,248,${a.toFixed(4)})`);
     },
     async prepare() {
       await this.L.prepare();
-      // Étoile du reflet : instant où le centre de la bande croise la pointe de la lance (ancre u .494, v .102).
+      this.spear = dirSpearMask(this.L.img);
+      // Étoile du reflet : instant où la ligne claire (penchée de 15°) croise la pointe de la lance (ancre u .494, v .102).
       const [u, v] = FV.star, uc = u + (v - 0.5) * TAN15, p = ((uc - 0.17) / 0.34 * 100 + 110) / 410;
       this.starT = GLINT[0] + (GLINT[1] - GLINT[0]) * sheenInv(p);
     },
     render(S) {
-      const t = S.t, fx = NX.fx.ctx, bk = NX.fxBack.ctx, tau = t - HIT;
-      const P = pose(t);
+      const t = S.t, fx = NX.fx.ctx, bk = NX.fxBack.ctx, tau = t - HIT, dbg = NX.dirDebug || {};
+      const P = dirPose(t);
 
       /* ---------------- Emblème : naissance, respiration, condensation, montée ---------------- */
-      const birth = sm(BIRTH[0], BIRTH[1], t), fade = 1 - sm(FADE[0], FADE[1], t), vis = birth * fade;
+      const out = 1 - sm(FADE[0], FADE[1], t), vis = sm(BIRTH[0], BIRTH[1], t) * out;
       const cond = E.glide(seg(t, COND[0], COND[1]));
       const box = this.box;
-      if (vis <= 0) box.style.display = 'none';
+      if (vis <= 0.001) box.style.display = 'none';
       else {
         box.style.display = '';
         box.style.opacity = vis.toFixed(4);
-        box.style.transform = `translate3d(0px,${P.dy.toFixed(3)}px,${ZB}px) scale(${P.s.toFixed(5)})`;
-        // Condensation : masque horizontal doux sur la boîte plate (jamais de clip-path, qui laisse des coupes nettes).
-        if (cond > 0) {
-          const l = SPEAR[0] * cond, r = 100 - (100 - SPEAR[1]) * cond;
-          const m = `linear-gradient(to right,transparent ${(l - 3).toFixed(3)}%,#000 ${l.toFixed(3)}%,#000 ${r.toFixed(3)}%,transparent ${(r + 3).toFixed(3)}%)`;
-          box.style.maskImage = m; box.style.webkitMaskImage = m;
-          box.style.maskRepeat = box.style.webkitMaskRepeat = 'no-repeat';
-        } else { box.style.maskImage = ''; box.style.webkitMaskImage = ''; }
-        const lum = (tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.5 * sm(SPEAR_LUM[0], SPEAR_LUM[1], t);
-        const gp = seg(t, GLINT[0], GLINT[1]), sweepP = gp > 0 && gp < 1 ? E.sheen(gp) : -1;
-        this.L.frame({ front: null, written: true, lum, sweepP, sweepA: SWEEP_A });
+        // Boîte 2× réduite de moitié, l'échelle de respiration autour de C : le centre de l'anneau reste en (CX, CY + dy).
+        const k = P.s / SS, tx = OX * (1 - P.s), ty = OY * (1 - P.s) + P.dy;
+        box.style.transform = `translate3d(${tx.toFixed(3)}px,${ty.toFixed(3)}px,${ZB}px) scale(${k.toFixed(5)})`;
+        // Condensation : bande horizontale douce (bible) qui se referme sur l'axe, unie au masque de la flèche ;
+        // tout ce qui n'est pas la flèche s'éteint en même temps (DIM), la flèche n'est jamais coupée.
+        if (cond > 0 && !dbg.noMask) {
+          const l = COLS[0] * cond, r = 100 - (100 - COLS[1]) * cond;
+          const a = this.spear ? 1 - sm(DIM[0], DIM[1], t) : 1, c = `rgba(0,0,0,${a.toFixed(4)})`;
+          const band = `linear-gradient(to right,transparent ${(l - 3).toFixed(3)}%,${c} ${l.toFixed(3)}%,${c} ${r.toFixed(3)}%,transparent ${(r + 3).toFixed(3)}%)`;
+          dirMask(box, [this.spear, band], 'add');
+        } else dirMask(box, []);
+        // Toute feuille plus-lighter allumée oblige Chrome à passer la boîte par une surface intermédiaire, ce qui adoucit
+        // l'emblème (≈ 6 % de détail en moins). La queue invisible de e^(−6τ) (< 0,01, soit 2,5/255 au plus) est donc
+        // coupée (14,97 s, pendant que le titre monte), et le reflet n'allume sa feuille que quand sa bande couvre le logo.
+        const lumRaw = (tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.5 * sm(SPEAR_LUM[0], SPEAR_LUM[1], t), lum = lumRaw > 0.01 ? lumRaw : 0;
+        const gp = seg(t, GLINT[0], GLINT[1]), sp = gp > 0 && gp < 1 ? E.sheen(gp) : -1, bl = NX.lerp(-1.10, 3.00, sp) * 0.34;
+        const sweepP = sp > 0 && bl + 0.34 > ART[0] && bl < ART[1] ? sp : -1;   // bande [bl, bl + 0,34] sur le logo
+        if (dbg.leavesOff) this.L.frame({ front: null, written: true });
+        else this.L.frame({ front: null, written: true, lum, sweepP, sweepA: SWEEP_A });
       }
 
-      /* ---------------- Halo : apparaît avec l'emblème, +20 % sur les temps 15,6 et 16,8, se resserre sur la lance ---------------- */
-      const hA = sm(14.30, 14.62, t) * (1 + 0.2 * NX.beatPulse(t, KICKS, 2.5)) / 1.2 * (1 - 0.35 * cond) * fade;
-      if (hA <= 0.001) this.halo.style.display = 'none';
-      else {
-        this.halo.style.display = '';
-        this.halo.style.opacity = hA.toFixed(4);
-        this.halo.style.transform = `translate3d(0px,${P.dy.toFixed(3)}px,${ZH}px) scale(${(P.s * (1 - 0.7 * cond)).toFixed(5)},${(P.s * (1 - 0.15 * cond)).toFixed(5)})`;
+      /* ---------------- Halo : monte avec l'emblème, +20 % sur 15,6 et 16,8, se resserre sur la flèche ---------------- */
+      const hA = SINE(seg(t, HALO_IN[0], HALO_IN[1])) * (1 + 0.2 * NX.beatPulse(t, KICKS, 2.5)) / 1.2 * out;
+      if (hA > 0.002 && !dbg.noHalo) {
+        const q = NX.cam.project(CX, CY + P.dy, ZR + ZH), r = HALO / 2 * q.s * P.s;
+        bk.save(); bk.globalCompositeOperation = 'lighter'; bk.globalAlpha = Math.min(1, hA);
+        bk.setTransform(r * (1 - 0.6 * cond), 0, 0, r * (1 - 0.1 * cond), q.x, q.y);
+        bk.fillStyle = this.haloGrad; bk.fillRect(-1, -1, 2, 2);
+        bk.restore();
       }
 
       /* ---------------- Titre « Une même direction. » ---------------- */
       if (t >= TITLE_IN && t < TITLE_GONE) {
         this.title.style.display = '';
-        NX.type.rise(this.words, t, TITLE_IN, 0.12, 0.8);
-        NX.type.sink(this.words, t, TITLE_OUT, 0.05, 0.32);
+        NX.type.rise(this.words, t, TITLE_IN, TITLE_STEP, TITLE_DUR);
+        NX.type.sink(this.words, t, TITLE_OUT, OUT_STEP, OUT_DUR);
         NX.type.sheen(this.spec, t, SHEEN_T[0], SHEEN_T[1], 0.35);
       } else this.title.style.display = 'none';
 
-      /* ---------------- Impact de 14,4 au centre de l'anneau (cœur, une traînée violette) ---------------- */
+      /* ---------------- Impact de 14,4 au centre de l'anneau : cœur et une traînée violette ---------------- */
       if (tau >= 0 && tau < 1.5) {
         const q = dirProj(P, OX, OY);
-        NX.hit(t, HIT, q.x, q.y, { core: 400, coreA: 0.40, flare: 0.6, tint: [167, 139, 250], s: q.s });
+        NX.hit(t, HIT, q.x, q.y, { core: 400, coreA: 0.40, flare: 0.6, tint: [167, 139, 250] });
       }
 
       /* ---------------- Faisceau « direction » (#fxback, derrière l'emblème), de la pointe vers la source ---------------- */
       if (t >= DRAW[0] && t < OFF) {
         const d = SINE(seg(t, DRAW[0], DRAW[1]));
-        const k = (0.5 + 0.3 * NX.beatPulse(t, [KICKS[1]], 3) + 0.4 * sm(17.4, 17.95, t)) * (1 + 0.4 * SINE(seg(t, RISE[0], RISE[0] + 0.3)));
-        // Pied 10 px sous la pointe (dans la lance) et fondu sur 26 px : le faisceau sort de la pointe.
-        const foot = dirProj(P, AXIS, TIPV + 10), tip = dirProj(P, AXIS, TIPV), s = NX.light.src(t);
+        const k = (0.5 + 0.3 * NX.beatPulse(t, [KICKS[1]], 3) + 0.4 * sm(17.4, 17.95, t)) * (1 + 0.4 * sm(RISE[0], RISE[0] + 0.3, t));
+        // Pied 10 px sous la pointe (dans la lance), fondu sur 26 px : le faisceau sort de la pointe. Il reste là où la
+        // pointe respirait ; la flèche monte le long de lui.
+        const tip = dirProj(P, OX, TIPV, false), foot = dirProj(P, OX, TIPV + 10, false), s = NX.light.src(t);
         const hx = tip.x + (s.x - tip.x) * d, hy = tip.y + (s.y - tip.y) * d;
-        const f0 = 26 * tip.s, f1 = 60;
-        dirBeam(bk, this.oc, foot.x, foot.y, hx, hy, 24, 24 + 6 * d, 0.16 * k, BEAM_GLOW, f0, f1);
-        dirBeam(bk, this.oc, foot.x, foot.y, hx, hy, 3, 3, 0.6 * k, BEAM_CORE, f0, f1);
+        dirBeam(bk, this.oc, foot.x, foot.y, hx, hy, [[24, 24 + 6 * d, 0.16 * k, BEAM_GLOW], [3, 3, 0.6 * k, BEAM_CORE]], 26 * tip.s, 60);
       }
 
       /* ---------------- Reflet : débord doux qui suit la bande, une étoile sur la pointe de la lance ---------------- */
@@ -170,7 +255,7 @@
           fx.fillStyle = g; fx.fillRect(-1, -1, 2, 2); fx.restore();
         }
       }
-      if (this.starT && Math.abs(t - this.starT) < 0.45) {
+      if (this.starT && t > this.starT - 0.07 && t < this.starT + 1) {
         const g = 0.7 * (t < this.starT ? sm(this.starT - 0.07, this.starT, t) : Math.exp(-6 * (t - this.starT)));
         if (g > 0.004) { const q = dirProj(P, FV.star[0] * BOX, FV.star[1] * BOX); NX.lk.star(q.x, q.y, g, { size: 0.7 * q.s }); }
       }

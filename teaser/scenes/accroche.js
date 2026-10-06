@@ -5,26 +5,9 @@
  * Fonction pure de t : la géométrie est mesurée dans layout(), les fenêtres de brûlure dans prepare(). */
 (function () {
   const TOP = NX.G.hook.top, FEATHER = 60, LEAD = 0;
-  /** Reflet des mots en dégradé (version locale de NX.type.sheen) : courbe SHEEN et course limitée à la largeur
-   *  des mots (centre de bande −0,12 → 1,12 de la boîte), de gauche à droite. La version du kit (inOutCubic,
-   *  course de 3,2 largeurs) ne passe que 0,11 s sur les mots et se lit comme un clignement. */
-  const accrocheSheen = (spec, t, a, b, strength) => {
-    const p = NX.seg(t, a, b), on = p > 0 && p < 1;
-    for (const w of spec.querySelectorAll('.nx-word')) {
-      const d = w.dataset; if (!d.bw) continue;
-      if (!on) { w.style.backgroundImage = 'var(--spectrum-text)'; w.style.backgroundSize = `${d.bw}px ${d.bh}px`; w.style.backgroundPosition = `${d.dx}px ${d.dy}px`; w.style.backgroundRepeat = ''; continue; }
-      const bw = +d.bw, sx = +d.dx + NX.lerp(-0.62, 0.62, NX.ease.sheen(p)) * bw;
-      w.style.backgroundImage = `linear-gradient(100deg,transparent 40%,rgba(255,255,255,${strength}) 50%,transparent 60%),var(--spectrum-text)`;
-      w.style.backgroundSize = `${bw}px ${d.bh}px,${bw}px ${d.bh}px`;
-      w.style.backgroundPosition = `${sx.toFixed(2)}px ${d.dy}px,${d.dx}px ${d.dy}px`;
-      w.style.backgroundRepeat = 'no-repeat,no-repeat';
-    }
-  };
-  // flow-root : les marges négatives du masque .tz-line ne traversent plus la ligne de titre, sinon elles
-  // fusionnent d'une ligne à l'autre et l'interligne passe de 1,06 (101,8 px, comme la v6) à 115 px.
+  // Interligne 1,06, interlettrage −0,032em et flow-root viennent de .tz-title (style.js) ; seule la position est locale.
   NX.css(`
   .accroche-q{top:${TOP}px}
-  .accroche-q .tz-title{letter-spacing:-.032em;display:flow-root}
   `);
 
   NX.scene({
@@ -69,7 +52,7 @@
       NX.type.rise(this.lines[1], t, 1.50, 0.14, 0.8);
       // Tenue : interlettrage −0,012em → −0,032em (outCubic) sur chaque ligne, un seul reflet sur les mots en dégradé.
       for (const el of this.titles) NX.type.track(el, t, 0.20, 3.60, -0.012, -0.032);
-      accrocheSheen(this.spec, t, 2.70, 3.50, 0.35);
+      NX.type.sheen(this.spec, t, 2.70, 3.50, 0.35);
       // Sortie : le front elliptique brûle chaque ligne ; chaque mot s'allume quand le front le traverse.
       const R = NX.FRONT.hook(t);
       this.lineEls.forEach((el, k) => {

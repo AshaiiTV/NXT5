@@ -29,6 +29,37 @@
     return [ST.left + x2, ST.top + y1, ST.z + z2 + ROOTZ];     // translateZ(−60 px), origine 0 0
   };
   const ouProj = (x, y, z = 0) => { const w = ouWorld(x, y, z); return NX.cam.project(w[0], w[1], w[2]); };
+  /** Point local d'une carte → écran, avec sa pose : translate3d(0, ty, tz) rotateX(rx°) autour de son centre
+   *  (transform-origin 50 % 50 %), mêmes calculs que le CSS de .ou-card. */
+  const ouCardProj = (x, y, z, ty, tz, rx) => {
+    const a = rx * RAD, dy = y - ST.h / 2;
+    return ouProj(x, ST.h / 2 + dy * Math.cos(a) - z * Math.sin(a) + ty, dy * Math.sin(a) + z * Math.cos(a) + tz);
+  };
+  /* Ombre de la carte, dessinée sur #fxback (derrière le DOM) avec la géométrie exacte de la feuille .gl-shadow du kit :
+   * boîte (−83 ; 421,2)–(913 ; 637,2) à translateZ(−30), dégradé radial « closest-side » rgba(0,0,0,.55) → transparent.
+   * La feuille DOM est masquée dans cette scène : sous la caméra 3D, son dégradé sombre se rastérisait à 1/255 près
+   * selon les images rendues avant (déterminisme, bible §6.8) ; le canvas 2D est une fonction pure de t. */
+  const SH = { cx: ST.w / 2, cy: ST.h * 1.18 - ST.h * 0.2, rx: ST.w * 0.6, ry: ST.h * 0.2, z: -30, a: 0.55 };
+  function ouShadow(ctx, a, ty, tz, rx) {
+    if (a <= 0.002) return;
+    const c = ouCardProj(SH.cx, SH.cy, SH.z, ty, tz, rx), u = ouCardProj(SH.cx + SH.rx, SH.cy, SH.z, ty, tz, rx), v = ouCardProj(SH.cx, SH.cy + SH.ry, SH.z, ty, tz, rx);
+    ctx.save();
+    ctx.setTransform(u.x - c.x, u.y - c.y, v.x - c.x, v.y - c.y, c.x, c.y);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    g.addColorStop(0, `rgba(0,0,0,${(SH.a * a).toFixed(4)})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(-1, -1, 2, 2);
+    ctx.restore();
+  }
+
+  /** Halo de couleur d'un créneau qui se pose (#fx, additif) : ellipse douce de 105 × 78 px à l'échelle s. */
+  function ouSlotGlow(ctx, x, y, s, rgb, a) {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.setTransform(105 * s, 0, 0, 78 * s, x, y);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1), c = rgb.join(',');
+    g.addColorStop(0, `rgba(${c},${(0.20 * a).toFixed(4)})`); g.addColorStop(0.6, `rgba(${c},${(0.13 * a).toFixed(4)})`); g.addColorStop(1, `rgba(${c},0)`);
+    ctx.fillStyle = g; ctx.fillRect(-1, -1, 2, 2);
+    ctx.restore();
+  }
 
   /* ---------- Masque d'anneau du liseré (copie du CSS du kit) avec, en option, la brûlure par-dessus ---------- */
   const RING = 'linear-gradient(#000 0 0)';
@@ -68,7 +99,7 @@
   ];
   const CARDS = [
     `<div class="ou-in ou-in0">
-      <div class="ou-h ou-row">Scrim 3 · Aurore<span class="ou-badge">Victoire</span></div>
+      <div class="ou-h ou-row">Scrim 3 · Aurore<span class="ou-bwrap"><i class="ou-bglow"></i><span class="ou-badge">Victoire</span></span></div>
       <div class="ou-sub ou-row">Équipe Horizon · démo fictive</div>
       <div class="ou-stats">
         <div class="ou-stat ou-row"><div class="k">Écart d’or</div><div class="v">+0</div><i class="ou-tglow"></i></div>
@@ -86,7 +117,7 @@
     `<div class="ou-in ou-in2">
       <div class="ou-h ou-row">Planning de l’équipe</div>
       <div class="ou-week">${DAYS.map(([d, c, name, hour, top]) => `<div class="ou-day"><div class="ou-dl">${d}</div><div class="ou-dc"><i class="ou-dbg"></i>${c
-        ? `<div class="ou-slot" style="top:${top}px;background:${c}29;box-shadow:inset 4px 0 0 ${c}">${name}<small>${hour}</small><i class="ou-sglow" style="box-shadow:0 0 22px ${c}99,inset 0 0 0 1.5px ${c}cc"></i></div>` : ''}</div></div>`).join('')}</div>
+        ? `<div class="ou-slot" style="top:${top}px;background:${c}29;box-shadow:inset 4px 0 0 ${c}">${name}<small>${hour}</small><i class="ou-sglow" style="box-shadow:inset 0 0 0 1.5px ${c}cc"></i></div>` : ''}</div></div>`).join('')}</div>
     </div>`,
   ];
 
@@ -100,14 +131,17 @@
   .ou-title{position:absolute;left:0;top:0}
   .ou-stack{position:absolute;left:${ST.left}px;top:${ST.top}px;width:${ST.w}px;height:${ST.h}px;transform-style:preserve-3d;transform-origin:${ST.origin};transform:translateZ(${ST.z}px) rotateY(${ST.rotY}deg) rotateX(${ST.rotX}deg)}
   .ou-card{left:0;top:0}
+  .ou-card>.gl-shadow{display:none}
   .ou-rule{background:var(--primary) top/100% 4px no-repeat;transform:translateZ(3px)}
   .ou-sw{overflow:hidden;mix-blend-mode:plus-lighter;transform:translateZ(2.5px);opacity:0}
   .ou-sw i{position:absolute;top:-25%;bottom:-25%;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(160,215,255,.05) 25%,rgba(232,247,255,.22) 50%,rgba(196,181,253,.05) 75%,transparent)}
   .ou-band{mix-blend-mode:plus-lighter;transform:translateZ(3.5px);opacity:0}
   .ou-in{position:absolute;inset:0;padding:48px 44px;display:flex;flex-direction:column;transform-style:preserve-3d}
-  .ou-row{position:relative}
+  .ou-row{position:relative;-webkit-mask:linear-gradient(#000,#000) no-clip;mask:linear-gradient(#000,#000) no-clip}
   .ou-h{font-weight:700;font-size:44px;line-height:1.2;letter-spacing:-.01em;color:var(--text);white-space:nowrap}
-  .ou-badge{display:inline-block;margin-left:18px;padding:6px 14px;border-radius:6px;font-size:22px;line-height:1.2;font-weight:700;color:#6EE7B7;background:rgba(110,231,183,.14);vertical-align:middle}
+  .ou-bwrap{position:relative;display:inline-block;margin-left:18px;vertical-align:middle}
+  .ou-badge{position:relative;display:block;padding:6px 14px;border-radius:6px;font-size:22px;line-height:1.2;font-weight:700;color:#6EE7B7;background:rgba(110,231,183,.14);vertical-align:middle}
+  .ou-bglow{position:absolute;inset:0;border-radius:6px;box-shadow:0 0 18px rgba(110,231,183,.55);opacity:0}
   .ou-sub{margin-top:8px;font-size:28px;line-height:1.3;color:var(--text2)}
   .ou-stats{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:auto;transform-style:preserve-3d}
   .ou-stat{padding:32px 31px 34px;border-radius:12px;background:linear-gradient(180deg,#13233B,#0D1A2D);border:1px solid rgba(154,182,218,.16);box-shadow:0 22px 34px -16px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06)}
@@ -147,6 +181,16 @@
     return { y, a };
   }
   const tr3 = (y, z) => `translate3d(0px,${y.toFixed(2)}px,${z.toFixed(2)}px)`;
+  /** Bande blanche de la brûlure sur le verre (bible : NX.light.band). Même cœur que le kit (blanc à r − 3, 0,75 à
+   *  r − 18, r = rayon + avance), mais profil de brûlure : la lueur déborde sur le verre qui reste et la traîne côté
+   *  brûlé est courte. La traîne de 170 px du kit, faite pour l'écriture des logos (elle n'y éclaire que les traits
+   *  écrits), éclairait ici la partie déjà brûlée sur toute la largeur : un fantôme lumineux de la carte. */
+  function ouBurnBand(L, lead) {
+    const r = L.r + lead, pc = v => (v / 30).toFixed(3) + '%';
+    const sh = `ellipse ${(NX.light.K * 3000).toFixed(1)}px 3000px at ${L.cx.toFixed(1)}px ${L.cy.toFixed(1)}px`;
+    return `radial-gradient(${sh},transparent ${pc(r - 48)},rgba(150,215,255,.24) ${pc(r - 30)},rgba(200,240,255,.75) ${pc(r - 18)},#fff ${pc(r - 3)},`
+      + `rgba(200,240,255,.5) ${pc(r + 12)},rgba(150,215,255,.16) ${pc(r + 40)},transparent ${pc(r + 80)})`;
+  }
   /** Balayage événementiel (bible §3.7) : centre de la bande de 1,1 à −0,1 (largeur de carte), SHEEN. */
   function ouSweep(t, a, b) {
     const p = seg(t, a, b); if (p <= 0 || p >= 1) return null;
@@ -190,7 +234,7 @@
         return g;
       });
       const [c0, c1, c2] = this.cards;
-      c0.badge = c0.el.querySelector('.ou-badge');
+      c0.badge = c0.el.querySelector('.ou-badge'); c0.bglow = c0.el.querySelector('.ou-bglow');
       c0.tiles = [...c0.el.querySelectorAll('.ou-stat')];
       c0.vals = c0.tiles.map(x => x.querySelector('.v'));
       c0.tglow = c0.tiles.map(x => x.querySelector('.ou-tglow'));
@@ -198,13 +242,13 @@
       c1.sep = c1.el.querySelector('.ou-sep');
       c1.items = [...c1.el.querySelectorAll('.ou-item')].map(el => ({ el, fill: el.querySelector('.ou-dfill'), n1: el.querySelector('.ou-n1'), glint: el.querySelector('.ou-glint'), gband: el.querySelector('.ou-glint i') }));
       c2.head = c2.el.querySelector('.ou-h');
-      c2.days = [...c2.el.querySelectorAll('.ou-day')].map((el, i) => ({ el, lab: el.querySelector('.ou-dl'), bg: el.querySelector('.ou-dbg'), slot: el.querySelector('.ou-slot'), glow: el.querySelector('.ou-sglow'), drop: DAYS[i][5] }));
+      c2.days = [...c2.el.querySelectorAll('.ou-day')].map((el, i) => ({ el, lab: el.querySelector('.ou-dl'), bg: el.querySelector('.ou-dbg'), slot: el.querySelector('.ou-slot'), glow: el.querySelector('.ou-sglow'), drop: DAYS[i][5], rgb: DAYS[i][1] ? [1, 3, 5].map(k => parseInt(DAYS[i][1].slice(k, k + 2), 16)) : null }));
     },
     layout() {
       // Décalages (px locaux, sans transformation) : feuilles de la carte 3 pour la brûlure, mots pour la lueur.
       const off = (el, anc) => { let x = 0, y = 0; for (let e = el; e && e !== anc; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; } return [x, y]; };
       const c2 = this.cards[2];
-      const leaves = [c2.shadow, c2.glow, c2.plate, c2.sheen, c2.wash, c2.rule, c2.sw, c2.head, ...c2.days.flatMap(d => [d.lab, d.bg, d.slot].filter(Boolean))];
+      const leaves = [c2.glow, c2.plate, c2.sheen, c2.wash, c2.rule, c2.sw, c2.head, ...c2.days.flatMap(d => [d.lab, d.bg, d.slot].filter(Boolean))];
       this.burnLeaves = leaves.map(el => { const [x, y] = off(el, c2.el); return { el, x, y }; });
       this.glowEls = [this.kick, ...this.titles[2].words];
       this.glowC = this.glowEls.map(el => { const [x, y] = off(el, this.col); return [COL.left - PAD + x + el.offsetWidth / 2, COL.top - PAD + y + el.offsetHeight / 2, COL.z + ROOTZ]; });
@@ -212,6 +256,8 @@
       const cardText = [[c2.head, 1], ...c2.days.map(d => [d.lab, 19]), ...c2.days.filter(d => d.slot).map(d => [d.slot, 21])];
       this.cardGlowEls = cardText.map(([el]) => el);
       this.cardGlowC = cardText.map(([el, z]) => { const [x, y] = off(el, c2.el); return ouWorld(x + el.offsetWidth / 2, y + el.offsetHeight / 2, z); });
+      // Centres des créneaux (px locaux de la carte 3, sans transformation) pour leur halo.
+      this.slotC = c2.days.map(d => { if (!d.slot) return null; const [x, y] = off(d.slot, c2.el); return [x + d.slot.offsetWidth / 2, y + d.slot.offsetHeight / 2]; });
     },
     prepare() {
       this.snares = NX.beats.dropSnares.slice();
@@ -235,7 +281,9 @@
       if (showStack) {
         const rimAngle = 180 + 6 * cam.yaw, pos = -0.43 * cam.yaw;
         const snare = t >= DROP ? 1 + 0.25 * NX.beatPulse(t, this.snares, 7) : 1;
-        const pre = 0.25 * sine(seg(t, 17.80, 17.98));                 // contours d'anticipation (bible : 0,25)
+        // Contours d'anticipation (bible : 0,25), seuls, sans plaque ni contenu. ENTER : ils se lisent dès 17,85,
+        // pendant que la lance monte encore (acceptation S5 à 17,85).
+        const pre = 0.25 * E.enter(seg(t, 17.80, 17.98));
         const onF = E.enter(seg(t, DROP, DROP + 0.10));                   // mise sous tension de la carte avant
         const onB = E.enter(seg(t, DROP + 0.05, DROP + 0.25));            // cartes du fond, sous la brume
         const tB = t - (DROP + 0.05);
@@ -247,8 +295,8 @@
           const visible = t >= 17.8 && (k === 2 ? t < 29.3 : t < L0 + 0.6);
           g.el.style.display = visible ? '' : 'none';
           if (!visible) return;
-          const p = depth[k], pd = Math.max(0, p);
-          g.el.style.transform = `translate3d(0px,${(SDY * p - 300 * e).toFixed(2)}px,${(SDZ * p - 360 * e).toFixed(2)}px)${e > 0 ? ` rotateX(${(-18 * e).toFixed(3)}deg)` : ''}`;
+          const p = depth[k], pd = Math.max(0, p), ty = SDY * p - 300 * e, tz = SDZ * p - 360 * e;
+          g.el.style.transform = `translate3d(0px,${ty.toFixed(2)}px,${tz.toFixed(2)}px)${e > 0 ? ` rotateX(${(-18 * e).toFixed(3)}deg)` : ''}`;
           const on = k === 0 ? onF : onB;
           let gain = snare * (k === 0 ? (tau >= 0 ? 1 + 1.5 * Math.exp(-3 * tau) : 1) : (tB >= 0 ? 1 + 0.6 * Math.exp(-3 * tB) : 1));
           if (k > 0 && t >= BELL[k - 1]) gain *= 1 + 0.6 * Math.exp(-4 * (t - BELL[k - 1]));
@@ -264,26 +312,36 @@
           // La lumière passe à la carte qui avance : même voile que la carte prise dans la lumière au moment où elles se
           // croisent en profondeur (21,52 et 25,12), puis il s'éteint avant la lecture. Sans lui, l'échange des plaques clignote.
           const A0 = k === 1 ? 21.38 : k === 2 ? 24.98 : null;
-          if (A0 != null) wash += 0.45 * sine(seg(t, A0 + 0.02, A0 + 0.14)) * (1 - sine(seg(t, A0 + 0.30, A0 + 0.80)));
+          if (A0 != null) wash += 0.45 * sine(seg(t, A0 + 0.02, A0 + 0.14)) * (1 - sine(seg(t, A0 + 0.18, A0 + 0.48)));
           const front = 1 - Math.min(1, pd);
           const glow = front * (0.10 + (k === 0 && tau >= 0 ? 0.45 * Math.exp(-3 * tau) : 0));
           const lit = Math.min(1, 0.5 * (1 - 0.3 * pd) + (k === 0 && tau >= 0 ? 0.5 * Math.exp(-3 * tau) : 0));
           NX.glassFade(g, on * vis);
           NX.glassLight(g, { pos, lit, rimAngle, rimGain: 1, fog: 0.42 * pd, glow, wash });
+          // Ombre (canvas arrière) : même opacité que la feuille du kit ; celle de la carte 3 part avec la brûlure.
+          let shA = g.a;
+          if (k === 2 && burning) {
+            const R = NX.FRONT.end(t), src = NX.light.src(t), d = (x, y) => { const q = ouProj(x, y, SH.z); return NX.light.dist(q.x, q.y, src); };
+            shA *= 1 - NX.smooth(d(SH.cx, SH.cy - SH.ry) - 10, d(SH.cx, SH.cy + SH.ry) + 60, R + LEAD);
+          }
+          ouShadow(NX.fxBack.ctx, shA, ty, tz, -18 * e);
           g.content.style.opacity = '';                                      // preserve-3d : jamais d'opacité ici
           g.rim.style.opacity = (rim * vis).toFixed(3);
           g.rule.style.opacity = (rule * vis).toFixed(3);
           const sw = sweeps[k];
           g.sw.style.opacity = sw ? (sw.a * on * vis).toFixed(3) : 0;
-          if (sw) g.swBand.style.transform = `translateX(${((sw.u - 0.2) / 0.4 * 100).toFixed(2)}%) skewX(-20deg)`;
+          // Toujours posé (hors balayage : bande garée hors de la carte) : aucun style ne dépend des images rendues avant.
+          const su = sw ? sw.u : -0.3;
+          g.swBand.style.transform = `translateX(${((su - 0.2) / 0.4 * 100).toFixed(2)}%) skewX(-20deg)`;
         });
 
         /* --- Carte 1 « Analyser » : allumée au drop, compteurs, badge, mise au point, puis sortie --- */
         if (t < LIFT[0] + 0.6) {
-          // Sorties 21,20 + 0,03 i, la tuile vision en dernier. Elle part à 21,29 et non 21,40 (bible) : la carte 2,
-          // qui avance plus vite que la carte 1 ne recule, la dépasse en profondeur à 21,52 (tuile : 21,57) ; partie
-          // plus tard, la tuile serait coupée net par la plaque de la carte 2 et resterait visible à travers elle.
-          const SINK = [21.20, 21.23, 21.26, 21.29];
+          // Sorties en cascade de 0,03 s, la tuile vision en dernier (bible : 21,20 + 0,03 i, tuile à 21,40). La cascade
+          // part à 21,15 et la tuile à 21,24 : la plaque de la carte 2, qui avance plus vite que la carte 1 ne recule,
+          // passe devant la face de la carte 1 à 21,51 (tuile : 21,56) ; une rangée encore là serait coupée net par elle.
+          // Ainsi la carte 1 est vide à 21,50 (acceptation) et la tuile vision reste lisible jusqu'à 21,40.
+          const SINK = [21.15, 21.18, 21.21, 21.24];
           const zT = [26 * E.glide(seg(t, 18.30, 18.80)), 26 * E.glide(seg(t, 18.42, 18.92)) + 20 * E.glide(seg(t, 21.00, 21.35))];
           c0.rows.forEach((el, i) => {
             const r = ouRow(t, null, SINK[i]);
@@ -292,14 +350,18 @@
           });
           const bs = SPRING(seg(t, 18.60, 19.10)), bg = t >= 18.60 ? 0.55 * Math.exp(-3.5 * (t - 18.60)) : 0;
           c0.badge.style.opacity = sine(seg(t, 18.60, 18.68)).toFixed(3);
+          // La lueur est une feuille fixe (taille finale du badge, flou constant) dont seule l'opacité varie : un
+          // box-shadow redessiné à chaque image sous l'échelle du ressort se rastérisait à 4/255 près selon les images
+          // rendues avant (déterminisme, bible §6.8).
           c0.badge.style.transform = `scale(${(0.85 + 0.15 * bs).toFixed(4)})`;
-          c0.badge.style.boxShadow = bg > 0.01 ? `0 0 18px rgba(110,231,183,${bg.toFixed(3)})` : '';
+          c0.bglow.style.opacity = (bg / 0.55 * sine(seg(t, 18.60, 18.68))).toFixed(3);
           const tf = tq(t);
           c0.vals[0].textContent = '+' + NX.fmt(4000 * E.outCubic(seg(tf, 18.75, 19.80)));
           c0.vals[1].textContent = '+' + NX.fmt(20 * E.outCubic(seg(tf, 19.30, 20.40)));
           c0.tglow[0].style.opacity = t >= 19.80 ? Math.exp(-4 * (t - 19.80)).toFixed(3) : 0;
           c0.tglow[1].style.opacity = t >= 20.40 ? Math.exp(-4 * (t - 20.40)).toFixed(3) : 0;
-          c0.focus.style.opacity = sine(seg(t, 21.00, 21.20)).toFixed(3);
+          // Mise au point sur la caisse claire de 21,0 : liseré cyan de 2 px et lueur de 24 px en 0,2 s (ENTER, lisible à 21,05).
+          c0.focus.style.opacity = E.enter(seg(t, 21.00, 21.20)).toFixed(3);
         }
 
         /* --- Carte 2 « Débriefer » : rangées qui montent pendant qu'elle avance, pastilles numérotées --- */
@@ -342,8 +404,14 @@
             const p = seg(t, d.drop, d.drop + 0.30), q = DROPIN(p);
             d.slot.style.opacity = sine(seg(t, d.drop, d.drop + 0.10)).toFixed(3);
             d.slot.style.transform = tr3(-16 * (1 - q), 2 + 60 * (1 - q));
-            const gp = seg(t, d.drop, d.drop + 0.5);
-            d.glow.style.opacity = gp > 0 && gp < 1 ? Math.pow(Math.sin(Math.PI * gp), 1.5).toFixed(3) : 0;
+            // Lueur de couleur une fois (0,5 s) : liseré intérieur (DOM, sans flou) et halo doux sur #fx, centré sur le
+            // créneau projeté (un box-shadow flou sur un calque qui descend en z se rastérisait selon l'historique).
+            const gp = seg(t, d.drop, d.drop + 0.5), ga = gp > 0 && gp < 1 ? Math.pow(Math.sin(Math.PI * gp), 1.5) : 0;
+            d.glow.style.opacity = ga.toFixed(3);
+            if (ga > 0.004) {
+              const [sx, sy] = this.slotC[i], P = ouProj(sx, sy - 16 * (1 - q), 21 + 60 * (1 - q));
+              ouSlotGlow(NX.fx.ctx, P.x, P.y, P.s, d.rgb, ga);
+            }
           });
         }
 
@@ -354,21 +422,22 @@
           for (const lf of this.burnLeaves) NX.light.burn(lf.el, { cx: Lc.cx - lf.x, cy: Lc.cy - lf.y, r: Lc.r }, { feather: 60, lead: LEAD });
           ouRimMask(c2.rim, NX.light.mask(Lc, 'burn', { feather: 60, lead: LEAD }));
           c2.burnBand.style.display = '';
-          c2.burnBand.style.background = NX.light.band(Lc, LEAD);
-          // Alpha 0,6 (bible) ; la bande s'éteint quand le bord quitte le bas de la carte : pas de barre de lumière seule.
-          const rem = Math.hypot((ST.w / 2 - Lc.cx) / NX.light.K, ST.h - Lc.cy) - (Lc.r + LEAD);
-          c2.burnBand.style.opacity = (0.6 * NX.smooth(0, 160, rem)).toFixed(3);
-          // Sur une carte plate (sans masque de traits clairs comme les logos), la traîne de la bande est raccourcie :
-          // un bord chaud et une lueur courte au lieu d'un voile de 170 px sur toute la silhouette.
-          const sh = `ellipse ${(NX.light.K * 3000).toFixed(1)}px 3000px at ${Lc.cx.toFixed(1)}px ${Lc.cy.toFixed(1)}px`, pc = v => (v / 30).toFixed(3) + '%';
-          const bm = `radial-gradient(${sh},transparent ${pc(Lc.r + LEAD - 125)},#000 ${pc(Lc.r + LEAD - 40)})`;
-          c2.burnBand.style.maskImage = c2.burnBand.style.webkitMaskImage = bm;
+          c2.burnBand.style.background = ouBurnBand(Lc, LEAD);
+          // Alpha 0,6 (bible) ; la bande s'éteint quand le bord quitte le dernier coin de la carte.
+          const far = Math.hypot((ST.w - Lc.cx) / NX.light.K, ST.h - Lc.cy) - (Lc.r + LEAD);
+          c2.burnBand.style.opacity = (0.6 * NX.smooth(-10, 130, far)).toFixed(3);
+          // La lumière décroît avec la distance à la source (px locaux : coin proche ≈ 505, coin opposé ≈ 1325) : pleine
+          // près de l'axe des rayons, moitié au bout de la carte. Uniforme sur 830 px, la bande se lisait
+          // comme le trait d'un scanner.
+          const fall = `radial-gradient(circle at ${Lc.cx.toFixed(1)}px ${Lc.cy.toFixed(1)}px,#000 600px,rgba(0,0,0,.5) 1330px)`;
+          c2.burnBand.style.maskImage = c2.burnBand.style.webkitMaskImage = fall;
           NX.light.wordGlow(this.cardGlowEls, this.cardGlowC, R, t, LEAD);
         } else {
           for (const lf of this.burnLeaves) ouMaskOff(lf.el);
           ouRimMask(c2.rim, null);
           c2.burnBand.style.opacity = 0;
           c2.burnBand.style.display = 'none';
+          c2.burnBand.style.background = c2.burnBand.style.maskImage = c2.burnBand.style.webkitMaskImage = '';
           for (const el of this.cardGlowEls) el.style.textShadow = '';
         }
       }
@@ -381,19 +450,24 @@
       const kp = E.enter(seg(t, 18.10, 18.60));
       this.kick.style.letterSpacing = `${lerp(0.6, 0.28, kp).toFixed(4)}em`;
       for (const el of this.kparts) el.style.opacity = kp.toFixed(3);
-      NX.type.odometer(this.odo, t, t < 25.0 ? 21.40 : 25.00, t < 25.0 ? 1 : 2, t < 25.0 ? 2 : 3, 0.45);
+      // Compteur à rouleau (SINE 0,45) : 1 → 2 à 21,40 ; 2 → 3 à 24,95 (bible : 25,00) pour que « 03 » soit roulé à
+      // 25,30 (acceptation), à 92 % au lieu de 75 %.
+      const odo = t < 24.9 ? [21.40, 1, 2] : [24.95, 2, 3];
+      NX.type.odometer(this.odo, t, odo[0], odo[1], odo[2], 0.45);
       const [v0, v1, v2] = this.verbs;
       v0.style.transform = ''; v0.style.opacity = 1;
       NX.type.sink([v0], t, 21.35, 0, 0.25);
       NX.type.rise([v1], t, 21.55, 0, 0.5); NX.type.sink([v1], t, 24.95, 0, 0.25);
       NX.type.rise([v2], t, 25.15, 0, 0.5);
       // Titres : montée par les masques de ligne (ENTER 0,8, décalage 0,14), sortie par lignes (EXIT 0,30).
-      const TW = [[18.12, 21.10, 21.16, 19.30], [21.45, 24.70, 24.76, 22.60], [25.05, null, null, 26.40]];
+      // « Prépare tes / débriefs. » monte à 21,40 (bible : 21,45) : à 21,50 la carte 1 est vide (acceptation) et
+      // l'image n'avait plus assez de contenu (énergie de contours E 0,90 < 1,0, bible §6.5) ; avec 21,40, E = 1,18.
+      const TW = [[18.12, 21.10, 21.16, 19.30], [21.40, 24.70, 24.76, 22.60], [25.05, null, null, 26.40]];
       this.titles.forEach((T, k) => {
         const [r0, s1, s2, sh] = TW[k], end = s2 == null ? 99 : s2 + 0.36;
         const on = t >= r0 && t < end;
         T.el.style.display = on ? '' : 'none';
-        if (!on) return;
+        // Mots posés même cachés : aucun style ne dépend des images rendues avant (déterminisme).
         NX.type.rise(T.words, t, r0, 0.14, 0.8);
         if (s1 != null) { NX.type.sink(T.lines[0], t, s1, 0.05, 0.30); NX.type.sink(T.lines[1], t, s2, 0.05, 0.30); }
         NX.type.sheen(T.spec, t, sh, sh + 0.8, 0.35);
