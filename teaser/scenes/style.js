@@ -61,9 +61,10 @@
                       slots: [[0, 0, 0], [0, -46, -150], [0, -92, -300]], fog: [0, 0.42, 0.84] } },
     end: { buttonTop: 600, line1Top: 770, line2Top: 850 },
   };
-  /* Fronts de lumière (rayon vertical en px écran) : l'écriture du logo à 4,8 s et le retour à 28,8 s. */
+  /* Fronts de lumière (rayon vertical en px écran) : l'écriture du logo à 4,8 s et le retour à 28,8 s.
+   * L'onde de l'accroche part à 4,18 s (bible : 4,20) pour rester sous 1 600 px/s (pointe 1 498 au lieu de 1 653). */
   NX.FRONT = {
-    hook: NX.track([[4.20, 40], [4.42, 392], [4.52, 520], [4.80, 735], [5.02, 960], [5.30, 1090], [5.55, 1115]]),
+    hook: NX.track([[4.18, 40], [4.42, 392], [4.52, 520], [4.80, 735], [5.02, 960], [5.30, 1090], [5.55, 1115]]),
     end: NX.track([[28.30, 120], [28.55, 330], [28.80, 560], [29.10, 880], [29.45, 1200], [29.80, 1300]]),
   };
   /** Format français des milliers avec espace fine insécable. */
