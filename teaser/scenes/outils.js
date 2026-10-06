@@ -125,6 +125,8 @@
   .ou-col{position:absolute;left:${COL.left - PAD}px;top:${COL.top - PAD}px;width:${760 + 2 * PAD}px;padding:${PAD}px;transform:translateZ(${COL.z}px)}
   .ou-col .tz-kicker{margin-bottom:30px;white-space:nowrap}
   .ou-kt{display:inline-block}
+  .ou-ksep{white-space:pre}
+  /* pre : un inline-block retire les espaces de bord ; le séparateur garde les siennes (« 01 · ANALYSER », copie v6) */
   .ou-verbs{display:inline-grid;vertical-align:top;overflow:hidden;padding:.14em .08em .24em;margin:-.14em -.08em -.24em}
   .ou-verbs>span{grid-area:1/1;display:block}
   .ou-titles{position:relative;height:${(2 * 96 * 1.06).toFixed(2)}px}
@@ -181,15 +183,15 @@
     return { y, a };
   }
   const tr3 = (y, z) => `translate3d(0px,${y.toFixed(2)}px,${z.toFixed(2)}px)`;
-  /** Bande blanche de la brûlure sur le verre (bible : NX.light.band). Même cœur que le kit (blanc à r − 3, 0,75 à
-   *  r − 18, r = rayon + avance), mais profil de brûlure : la lueur déborde sur le verre qui reste et la traîne côté
-   *  brûlé est courte. La traîne de 170 px du kit, faite pour l'écriture des logos (elle n'y éclaire que les traits
-   *  écrits), éclairait ici la partie déjà brûlée sur toute la largeur : un fantôme lumineux de la carte. */
+  /** Bande de la brûlure sur le verre (bible : NX.light.band) : un bord chauffé à blanc, étroit (r − 3 à r + 1,
+   *  r = rayon + avance), dans un halo cyan qui mord le verre restant, et une traîne courte côté brûlé. La traîne de
+   *  170 px du kit, faite pour l'écriture des logos (elle n'y éclaire que les traits écrits), éclairait ici la partie
+   *  déjà brûlée sur toute la largeur : un fantôme lumineux de la carte. Un cœur large et neutre se lisait en gris. */
   function ouBurnBand(L, lead) {
     const r = L.r + lead, pc = v => (v / 30).toFixed(3) + '%';
     const sh = `ellipse ${(NX.light.K * 3000).toFixed(1)}px 3000px at ${L.cx.toFixed(1)}px ${L.cy.toFixed(1)}px`;
-    return `radial-gradient(${sh},transparent ${pc(r - 48)},rgba(150,215,255,.24) ${pc(r - 30)},rgba(200,240,255,.75) ${pc(r - 18)},#fff ${pc(r - 3)},`
-      + `rgba(200,240,255,.5) ${pc(r + 12)},rgba(150,215,255,.16) ${pc(r + 40)},transparent ${pc(r + 80)})`;
+    return `radial-gradient(${sh},transparent ${pc(r - 26)},rgba(103,232,249,.30) ${pc(r - 14)},#fff ${pc(r - 3)},#fff ${pc(r + 1)},`
+      + `rgba(165,243,252,.70) ${pc(r + 9)},rgba(103,232,249,.22) ${pc(r + 30)},rgba(129,140,248,.08) ${pc(r + 52)},transparent ${pc(r + 72)})`;
   }
   /** Balayage événementiel (bible §3.7) : centre de la bande de 1,1 à −0,1 (largeur de carte), SHEEN. */
   function ouSweep(t, a, b) {
@@ -202,7 +204,7 @@
     build(root) {
       // Colonne de titre : filet, surtitre (compteur à rouleau, verbes empilés), trois titres empilés.
       this.col = NX.el(`<div class="ou-col">
-        <div class="tz-kicker ou-kick"><i class="tz-hair"></i><span class="ou-kt">0</span><span class="tz-odo ou-kt"><b>1</b><b>2</b><b>3</b></span><span class="ou-kt"> · </span><span class="ou-verbs ou-kt">${VERBS.map(v => `<span>${v}</span>`).join('')}</span></div>
+        <div class="tz-kicker ou-kick"><i class="tz-hair"></i><span class="ou-kt">0</span><span class="tz-odo ou-kt"><b>1</b><b>2</b><b>3</b></span><span class="ou-kt ou-ksep"> · </span><span class="ou-verbs ou-kt">${VERBS.map(v => `<span>${v}</span>`).join('')}</span></div>
         <div class="ou-titles">${TITLES.map(([a, b]) => `<div class="tz-title ou-title"><span class="tz-line">${a}</span><span class="tz-line"><span class="nx-spec">${b}</span></span></div>`).join('')}</div>
       </div>`, root);
       this.dbg = { ouWorld, PAD };                     // pour les sondes de vérification (aucun état)
@@ -243,9 +245,12 @@
     },
     layout() {
       // Décalages (px locaux, sans transformation) : feuilles de la carte 3 pour la brûlure, mots pour la lueur.
+      // Le halo (.gl-glow) n'est pas brûlé mais éteint en opacité avant le passage du front (voir render) : masqué
+      // pendant la brûlure, ce grand calque faisait réapparaître, selon les images rendues avant, une texture périmée
+      // (une rangée de la carte 2 et des traînées blanches sous la carte 3 à 28,70).
       const off = (el, anc) => { let x = 0, y = 0; for (let e = el; e && e !== anc; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; } return [x, y]; };
       const c2 = this.cards[2];
-      const leaves = [c2.glow, c2.plate, c2.sheen, c2.wash, c2.rule, c2.sw, c2.head, ...c2.days.flatMap(d => [d.lab, d.bg, d.slot].filter(Boolean))];
+      const leaves = [c2.plate, c2.sheen, c2.wash, c2.rule, c2.sw, c2.head, ...c2.days.flatMap(d => [d.lab, d.bg, d.slot].filter(Boolean))];
       this.burnLeaves = leaves.map(el => { const [x, y] = off(el, c2.el); return { el, x, y }; });
       this.glowEls = [this.kick, ...this.titles[2].words];
       this.glowC = this.glowEls.map(el => { const [x, y] = off(el, this.col); return [COL.left - PAD + x + el.offsetWidth / 2, COL.top - PAD + y + el.offsetHeight / 2, COL.z + ROOTZ]; });
@@ -281,7 +286,10 @@
         // Contours d'anticipation (bible : 0,25), seuls, sans plaque ni contenu. ENTER : ils se lisent dès 17,85,
         // pendant que la lance monte encore (acceptation S5 à 17,85).
         const pre = 0.25 * E.enter(seg(t, 17.80, 17.98));
-        const onF = E.enter(seg(t, DROP, DROP + 0.10));                   // mise sous tension de la carte avant
+        // Mise sous tension de la carte avant (0,10 s, ENTER) avancée d'une demi-image (bible : 18,00–18,10) : l'obturateur
+        // de l'image du temps fort (17,992–18,008) ne voyait la carte qu'à 15 % et le pic de lumière tombait sur l'image
+        // suivante. Le faisceau et NX.hit restent à 18,00.
+        const onF = E.enter(seg(t, DROP - 0.015, DROP + 0.085));
         const onB = E.enter(seg(t, DROP + 0.05, DROP + 0.25));            // cartes du fond, sous la brume
         const tB = t - (DROP + 0.05);
         const depth = [0, 1 - E.advance(seg(t, 21.38, 22.12)), 2 - E.advance(seg(t, 21.46, 22.20)) - E.advance(seg(t, 24.98, 25.72))];
@@ -316,6 +324,8 @@
           const lit = Math.min(1, 0.5 * (1 - 0.3 * pd) + (k === 0 && tau >= 0 ? 0.5 * Math.exp(-3 * tau) : 0));
           NX.glassFade(g, on * vis);
           NX.glassLight(g, { pos, lit, rimAngle, rimGain: 1, fog: 0.42 * pd, glow, wash });
+          // Halo de la carte 3 (alpha effectif ≈ 0,035) éteint sur 28,40–28,60, avant que le front n'atteigne la carte.
+          if (k === 2) g.glow.style.opacity = (clamp(glow * g.a) * (1 - NX.smooth(28.40, 28.60, t))).toFixed(3);
           // Ombre (canvas arrière) : même opacité que la feuille du kit ; celle de la carte 3 part avec la brûlure.
           let shA = g.a;
           if (k === 2 && burning) {
@@ -421,13 +431,15 @@
           ouRimMask(c2.rim, NX.light.mask(Lc, 'burn', { feather: 60, lead: LEAD }));
           c2.burnBand.style.display = '';
           c2.burnBand.style.background = ouBurnBand(Lc, LEAD);
-          // Alpha 0,6 (bible) ; la bande s'éteint quand le bord quitte le dernier coin de la carte.
+          // Alpha 0,85 (bible : 0,6) : à 0,6 le cœur blanc, posé en plus-lighter sur le verre sombre, plafonnait vers
+          // 130/255, un gris neutre (règle de scanner, mesurée #828691). La bande s'éteint quand le bord quitte le
+          // dernier coin de la carte.
           const far = Math.hypot((ST.w - Lc.cx) / NX.light.K, ST.h - Lc.cy) - (Lc.r + LEAD);
-          c2.burnBand.style.opacity = (0.6 * NX.smooth(-10, 130, far)).toFixed(3);
+          c2.burnBand.style.opacity = (0.85 * NX.smooth(-10, 50, far)).toFixed(3);
           // La lumière décroît avec la distance à la source (px locaux : coin proche ≈ 505, coin opposé ≈ 1325) : pleine
-          // près de l'axe des rayons, moitié au bout de la carte. Uniforme sur 830 px, la bande se lisait
+          // près de l'axe des rayons, aux trois quarts au bout de la carte. Uniforme sur 830 px, la bande se lisait
           // comme le trait d'un scanner.
-          const fall = `radial-gradient(circle at ${Lc.cx.toFixed(1)}px ${Lc.cy.toFixed(1)}px,#000 600px,rgba(0,0,0,.5) 1330px)`;
+          const fall = `radial-gradient(circle at ${Lc.cx.toFixed(1)}px ${Lc.cy.toFixed(1)}px,#000 600px,rgba(0,0,0,.75) 1330px)`;
           c2.burnBand.style.maskImage = c2.burnBand.style.webkitMaskImage = fall;
           NX.light.wordGlow(this.cardGlowEls, this.cardGlowC, R, t, LEAD);
         } else {
