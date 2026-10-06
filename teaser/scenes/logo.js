@@ -125,14 +125,17 @@
       // Écriture : front local dans la boîte ; silhouette forge 0 → 0,24 (inQuad, 4,0–4,5) puis → 0,30 (4,5–4,8) par une
       // approche exponentielle qui part avec la pente de fin de l'inQuad (0,96 /s) : une seule courbe, sans cassure ni
       // segment linéaire. Elle est effacée par le front.
+      // Sans masques (prepare() en échec), les feuilles de lumière resteraient des rectangles pleins : elles s'éteignent
+      // et seul le chrome, écrit par le front, apparaît.
+      const lit = this.maxUrl ? 1 : 0;
       const full = this.tFull ?? Infinity, writing = t >= 4.2 && t < full;
       const front = writing ? NX.light.local(G.left, G.top, ZL, NX.FRONT.hook(t), t) : null;
-      const forge = t >= full ? (out ? 0 : FORGE_X[2] * sm(FORGE_X[0], FORGE_X[1], t))
-        : t < 4.5 ? 0.24 * E.inQuad(seg(t, 4.0, 4.5)) : 0.24 + 0.06 * (1 - Math.exp(-4.8 * seg(t, 4.5, 4.8))) / (1 - Math.exp(-4.8));
-      const lumRaw = out ? 0 : (tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.45 * sm(EXIT[0], 6.95, t);
+      const forge = lit * (t >= full ? (out ? 0 : FORGE_X[2] * sm(FORGE_X[0], FORGE_X[1], t))
+        : t < 4.5 ? 0.24 * E.inQuad(seg(t, 4.0, 4.5)) : 0.24 + 0.06 * (1 - Math.exp(-4.8 * seg(t, 4.5, 4.8))) / (1 - Math.exp(-4.8)));
+      const lumRaw = out ? 0 : lit * ((tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.45 * sm(EXIT[0], 6.95, t));
       const lum = lumRaw < 0.002 ? 0 : lumRaw;                       // éteinte : son masque n'a plus d'effet
-      const gp = seg(t, GLINT[0], GLINT[1]), sweepP = gp > 0 && gp < 1 ? E.sheen(gp) : -1;
-      this.L.frame({ front, written: t >= full, forge, hot: t >= 4.3 && t < 5.4 ? 1 : 0, lum, sweepP, sweepA: SWEEP_A, lead: 0 });
+      const gp = seg(t, GLINT[0], GLINT[1]), sweepP = lit && gp > 0 && gp < 1 ? E.sheen(gp) : -1;
+      this.L.frame({ front, written: t >= full, forge, hot: lit && t >= 4.3 && t < 5.4 ? 1 : 0, lum, sweepP, sweepA: SWEEP_A, lead: 0 });
       if (chrome < 1) this.L.img.style.opacity = chrome.toFixed(4);
       // Masques locaux, posés seulement quand la feuille est visible (une feuille à opacité 0 n'en dépend pas).
       if (this.maxUrl && forge > 0) {
