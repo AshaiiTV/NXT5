@@ -78,13 +78,19 @@ export function socialRedirect(path: string): Response {
 }
 
 export function socialNotice(flow: string, status: string, provider?: SocialProvider): Response {
-  const params = new URLSearchParams({ social: status });
+  // A reauthentication result belongs to the account deletion step, not to the connections list.
+  const params = new URLSearchParams({ [flow === 'reauth' ? 'reauth' : 'social']: status });
   if (provider) params.set('provider', provider);
-  return socialRedirect(`${flow === 'link' ? '/parametres' : '/connexion'}?${params}`);
+  return socialRedirect(`${flow === 'link' || flow === 'reauth' ? '/parametres' : '/connexion'}?${params}`);
+}
+
+/** Flows bound to the signed-in account, its session and its connection revision. */
+export function isAccountBoundFlow(flow: unknown): flow is 'link' | 'reauth' {
+  return flow === 'link' || flow === 'reauth';
 }
 
 export type SocialFlow = {
-  provider: SocialProvider; flow: 'login' | 'register' | 'link'; user_id: string | null;
+  provider: SocialProvider; flow: 'login' | 'register' | 'link' | 'reauth'; user_id: string | null;
   session_hash: string | null; link_revision: number | string | null;
   nonce: string; code_verifier: string; remember: boolean; destination: string;
 };
@@ -118,6 +124,36 @@ export async function socialTicket(context: Context, purpose: 'callback' | 'sign
     : await sql`select * from social_auth_tickets where token_hash = ${sha256(token)} and browser_hash = ${sha256(browser)}
         and purpose = ${purpose} and expires_at > clock_timestamp()`;
   return rows[0] as SocialTicket || null;
+}
+
+/** Records a fresh proof that the signed-in person controls an identity linked
+ * to this account before the current session was opened. It is valid for ten minutes and for this session only. */
+export async function recordSocialReauthentication(pending: SocialTicket): Promise<boolean> {
+  const rows = await sql`
+    with authorized_user as materialized (
+      select id from users where id = ${pending.user_id} and social_link_revision = ${pending.link_revision}
+        and deleted_at is null for update
+    ), verified as materialized (
+      select sessions.user_id from sessions
+      join authorized_user on authorized_user.id = sessions.user_id
+      join social_identities on social_identities.user_id = sessions.user_id
+        and social_identities.provider = ${pending.provider} and social_identities.subject = ${pending.subject}
+        -- Seule une identité associée avant l'ouverture de la session prouve quelque chose.
+        and social_identities.linked_at < sessions.created_at
+      where sessions.token_hash = ${pending.session_hash} and sessions.revoked_at is null
+        and sessions.expires_at > clock_timestamp()
+    ), recorded as (
+      insert into account_reauthentications (session_hash, user_id, provider)
+      select ${pending.session_hash}, user_id, ${pending.provider} from verified
+      on conflict (session_hash) do update set provider = excluded.provider,
+        verified_at = now(), expires_at = now() + interval '10 minutes'
+        where account_reauthentications.user_id = excluded.user_id
+      returning user_id
+    )
+    select user_id from recorded
+  `;
+  await sql`delete from account_reauthentications where expires_at <= now()`;
+  return rows.length > 0;
 }
 
 export async function linkSocialIdentity(pending: SocialTicket): Promise<boolean> {

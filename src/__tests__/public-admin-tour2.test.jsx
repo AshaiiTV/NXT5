@@ -112,12 +112,21 @@ it('T3-04 distinguishes OAuth and social email confirmation lifetimes in both po
 it('R4-S3 legal revision is dated globally and keeps the audience consent version', async () => {
   const { LEGAL_VERSION, LEGAL_UPDATED_LABEL } = await import('../../shared/legal.js');
   const { AUDIENCE_CONSENT_VERSION } = await import('../app/audience-client.js');
-  // #91 bumped the legal version for the whole rewrite; section titles no longer carry dates.
-  expect(LEGAL_VERSION).toBe('2026-09-30');
+  // #91 a publié « 2026-09-30 » ; la suppression de compte en libre-service change
+  // les CGU le même jour, d'où une révision distincte. Les titres ne portent plus de date.
+  expect(LEGAL_VERSION).toBe('2026-09-30.2');
   expect(LEGAL_UPDATED_LABEL).toBe('30 septembre 2026');
   expect(AUDIENCE_CONSENT_VERSION).toBe('2026-09-14');
   for (const route of ['/confidentialite', '/cookies']) {
     expect(LEGAL_PAGES[route].sections.every(([title]) => !/mise à jour du/.test(title))).toBe(true);
   }
+  // Self-service account deletion (30 September) is described without dated titles.
+  const titles = (route) => LEGAL_PAGES[route].sections.map(([title]) => title);
+  expect(titles('/confidentialite')).toEqual(expect.arrayContaining(['Suppression de ton compte', 'Traces de la suppression']));
+  expect(titles('/conditions')).toEqual(expect.arrayContaining(['Fin d’utilisation', 'Données après suppression du compte']));
+  expect(JSON.stringify(LEGAL_PAGES['/conditions'])).toContain('section « Supprimer mon compte »');
+  // Linked player profiles are kept, anonymised, with the team data attached to them.
+  expect(JSON.stringify(LEGAL_PAGES['/confidentialite'])).toContain('ils ne sont pas supprimés mais détachés de ton compte');
+  expect(JSON.stringify(LEGAL_PAGES['/confidentialite'])).toContain('copies techniques de ces publications');
   expect(JSON.stringify(LEGAL_PAGES['/confidentialite'])).toContain('conservées jusqu’à l’exécution de cette correction');
 });

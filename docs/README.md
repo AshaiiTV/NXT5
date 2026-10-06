@@ -24,6 +24,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 - [Inscription et connexions externes](social-auth.md)
 - [Configuration des fournisseurs Google, Discord, Apple et Riot](social-provider-configuration.md)
 - [Interface et vérifications des connexions externes](social-auth-ui-qa.md)
+- [Suppression de compte : parcours et décisions par clé étrangère](suppression-compte-2026-09-30.md)
 
 ### Produit
 
@@ -77,5 +78,6 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 | 2026-09-30 | [Correctifs repris de feat/pricing-validation](pricing-validation-restes-2026-09-30.md) |
 | 2026-09-30 | [Importer 0.3.5 : Electron et actions GitHub](importer-0-3-5-2026-09-30.md) |
 | 2026-09-30 | [Passage à React 19](react-19-2026-09-30.md) |
+| 2026-09-30 | [Suppression de compte en libre-service](suppression-compte-2026-09-30.md) |
 
 Ajouter chaque nouveau rapport daté à ce tableau dans la même pull request.

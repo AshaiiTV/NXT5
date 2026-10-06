@@ -317,6 +317,11 @@ export async function requireAuth(request: Request, context: Context): Promise<D
   return user_activity_due === false ? user : recordUserActivity(user);
 }
 
+/** Removes the browser cookie only; the server-side session must already be gone. */
+export function clearSessionCookie(context: Context, request: Request | null = null): void {
+  context.cookies.set({ name: COOKIE_NAME, value: '', ...sessionCookieOptions(request), maxAge: 0 });
+}
+
 export async function revokeSession(context: Context, request: Request | null = null): Promise<void> {
   const token = readSessionCookie(context);
   if (token) {

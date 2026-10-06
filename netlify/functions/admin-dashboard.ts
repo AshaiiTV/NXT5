@@ -20,7 +20,7 @@ async function loadDashboard() {
     sql`
       select
         (select count(*) from teams) as teams,
-        (select count(*) from users) as users,
+        (select count(*) from users where deleted_at is null) as users,
         (select count(*) from players) as players,
         (select count(*) from matches) as matches,
         (select count(*) from teams where created_at >= now() - interval '7 days') as teams_7d,
@@ -31,8 +31,8 @@ async function loadDashboard() {
         (select count(*) from players where created_at >= now() - interval '30 days') as players_30d,
         (select count(*) from matches where created_at >= now() - interval '7 days') as matches_7d,
         (select count(*) from matches where created_at >= now() - interval '30 days') as matches_30d,
-        (select count(*) from users where last_active_at >= now() - interval '7 days') as active_users_7d,
-        (select count(*) from users where last_active_at >= now() - interval '30 days') as active_users_30d,
+        (select count(*) from users where deleted_at is null and last_active_at >= now() - interval '7 days') as active_users_7d,
+        (select count(*) from users where deleted_at is null and last_active_at >= now() - interval '30 days') as active_users_30d,
         (select count(distinct team_id) from matches where created_at >= now() - interval '7 days') as active_teams_7d,
         (select count(distinct team_id) from matches where created_at >= now() - interval '30 days') as active_teams_30d,
         (select count(*) from users where coalesce(email_verified, false)) as verified_users
@@ -64,6 +64,7 @@ async function loadDashboard() {
         (select count(*) from team_members where team_members.user_id = users.id) as team_count,
         users.last_active_at as last_seen_at
       from users
+      where users.deleted_at is null
       order by users.created_at desc
       limit ${RECENT_LIMIT}
     `,
@@ -136,10 +137,10 @@ async function loadDashboard() {
         (select count(distinct user_id) from team_members) as users_in_team,
         (select count(distinct user_id) from players where user_id is not null) as users_linked_to_player,
         (select count(*) from users where coalesce(email_verified, false)) as verified,
-        (select count(*) from users where last_active_at >= now() - interval '30 days') as seen_30d,
+        (select count(*) from users where deleted_at is null and last_active_at >= now() - interval '30 days') as seen_30d,
         (select count(*)
           from users
-          where users.created_at < now() - interval '30 days'
+          where users.deleted_at is null and users.created_at < now() - interval '30 days'
             and users.last_active_at >= now() - interval '30 days') as returning_30d
     `,
     sql`

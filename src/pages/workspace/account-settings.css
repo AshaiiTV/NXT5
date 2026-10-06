@@ -14,3 +14,21 @@
 .nxt5-account-notifications > button > span:first-child > span:first-child { font-size: .875rem; font-weight: 600; }
 .nxt5-account-notifications > button > span:first-child > span:last-child { font-size: .8125rem; font-weight: 400; line-height: 1.6; }
 @media (max-width: 639px) { .nxt5-account-visual-options { grid-template-columns: minmax(0, 1fr); } }
+
+/* Suppression du compte : zone sensible en fin de page, même surface que les autres sections. */
+.nxt5-account-deletion { scroll-margin-top: 5rem; }
+.nxt5-account-deletion-message { margin-top: 1rem; overflow-wrap: anywhere; border: 1px solid; border-radius: var(--nxt5-radius-control); padding: .75rem; font-size: .875rem; line-height: 1.5rem; }
+.nxt5-account-deletion-message.is-error { border-color: rgba(253, 164, 175, .3); background: rgba(244, 63, 94, .1); color: #ffe4e6; }
+.nxt5-account-deletion-message.is-success { border-color: rgba(110, 231, 183, .3); background: rgba(16, 185, 129, .1); color: #d1fae5; }
+.nxt5-account-deletion-step { margin-top: 1.25rem; border-top: 1px solid var(--nxt5-border); padding-top: 1.25rem; }
+.nxt5-account-deletion-heading { color: var(--nxt5-text); font-size: 1rem; font-weight: 600; outline: none; }
+.nxt5-account-deletion-heading:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 4px; border-radius: var(--nxt5-radius-button); }
+.nxt5-account-deletion-team { border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); padding: .75rem; }
+.nxt5-account-deletion-check { display: flex; min-height: 44px; align-items: flex-start; gap: .75rem; color: var(--nxt5-text); font-size: .875rem; line-height: 1.5rem; cursor: pointer; }
+.nxt5-account-deletion-check.is-danger { border: 1px solid rgba(253, 164, 175, .3); border-radius: var(--nxt5-radius-control); padding: .75rem; color: #ffe4e6; }
+.nxt5-account-deletion-check input { margin-top: .125rem; width: 1.25rem; height: 1.25rem; flex-shrink: 0; accent-color: #67e8f9; }
+.nxt5-account-deletion-check.is-danger input { accent-color: var(--nxt5-danger); }
+.nxt5-account-deletion-check input:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
+.nxt5-account-deletion-check input:disabled { cursor: not-allowed; opacity: .6; }
+.nxt5-account-deletion-receipt { position: relative; z-index: 10; margin: 0 auto; min-height: 100vh; width: 100%; max-width: 42rem; padding: 2.5rem 1rem; }
+@media (min-width: 640px) { .nxt5-account-deletion-receipt { padding: 5rem 1.5rem; } }
