@@ -2,7 +2,7 @@ import { getTopDialog } from "../components/ui/dialog-registry.js";
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import sharp from "sharp";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import ExportsPage from "../pages/admin/ExportsPage.jsx";
 import { createExportExample } from "../pages/admin/export-examples.js";
 
@@ -22,7 +22,11 @@ let revokeObjectURL;
 const dialogNodes = [];
 
 beforeEach(async () => {
-  const bytes = await sharp({ create: { width: 4, height: 6, channels: 4, background: "#123456" } }).png().toBuffer();
+  const canvas = createCanvas(4, 6);
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#123456";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const bytes = canvas.toBuffer("image/png");
   pngExample = { blob: new Blob([bytes], { type: "image/png" }), filename: "nxt5-game-exemple.png", width: 4, height: 6 };
   const csvText = '"date";"visites"\r\n"2026-09-23";"12"\r\n';
   csvExample = { blob: new Blob(["\uFEFF", csvText], { type: "text/csv;charset=utf-8" }), filename: "nxt5-frequentation-exemple.csv", csvText };
@@ -126,7 +130,12 @@ describe("administration export previews", () => {
     expect(response.headers.get("content-type")).toBe("image/png");
     const bytes = Buffer.from(await response.arrayBuffer());
     expect(bytes).toEqual(Buffer.from(await pngExample.blob.arrayBuffer()));
-    expect(await sharp(bytes).metadata()).toMatchObject({ format: "png", width: 4, height: 6 });
+    expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+    const image = await loadImage(bytes);
+    expect([image.width, image.height]).toEqual([4, 6]);
+    const decoded = createCanvas(image.width, image.height).getContext("2d");
+    decoded.drawImage(image, 0, 0);
+    expect([...decoded.getImageData(3, 5, 1, 1).data]).toEqual([18, 52, 86, 255]);
     await click("Taille réelle", dialog);
     expect(button("Adapter à l’écran", dialog).props["aria-pressed"]).toBe(true);
     expect(dialog.findByType("img").props.style).toEqual({ width: 4 });

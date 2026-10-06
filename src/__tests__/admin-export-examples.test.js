@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createCanvas } from "@napi-rs/canvas";
-import sharp from "sharp";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { createExportExample, EXPORT_TEMPLATES } from "../pages/admin/export-examples.js";
 import { renderGamePublicationPng } from "../../shared/publications/game-publication-browser.js";
 import { buildGamePublicationSnapshot } from "../../shared/publications/game-publication.js";
@@ -50,7 +49,9 @@ describe("site export catalogue integration", () => {
     const bytes = Buffer.from(await example.blob.arrayBuffer());
     expect(example.filename).toBe("nxt5-exemple-fictif-game.png");
     expect(example.width).toBe(1440);
-    expect(await sharp(bytes).metadata()).toMatchObject({ format: "png", width: example.width, height: example.height });
+    expect([...bytes.subarray(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+    const image = await loadImage(bytes);
+    expect([image.width, image.height]).toEqual([example.width, example.height]);
     expect(drawnText.join(" ")).toContain("données fictives");
     for (const role of ["TOP", "JGL", "MID", "ADC", "SUP"]) expect(drawnText).toContain(`Demo ${role}`);
     for (const role of ["TOP", "JGL", "MID", "ADC", "SUP"]) expect(drawnText).toContain(`Rival ${role}`);
