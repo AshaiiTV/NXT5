@@ -93,3 +93,5 @@ The v7 brief is `MOTION-BIBLE.md` (follow it to the letter). Shared constants: `
 **Easing (only these):** `NX.ease.enter`, `exit`, `glide`, `advance`, `lift`, `sheen`, `sine`, `front`, `NX.ease.spring(p, 1.0, 6.2)`, and `NX.track` for keyframed channels. **Beats:** `NX.beats.{hits, bells, lightKicks, dropKicks, dropSnares, chimes}`, `NX.beatPulse(t, list, decay)`.
 
 **Determinism.** No `Math.random`, `Date`, CSS transitions/animations, or caches that depend on render order; values that would smear across motion-blur sub-frames (counters) are quantised to film frames: `Math.round(t * NX.FPS) / NX.FPS`.
+- An element under the preserve-3d root that has become empty or fully transparent gets `display:none`, not only `opacity:0`: Chromium can keep the stale texture of an emptied layer and show it again later (a 40 × 68 px patch of an end-card line reappeared at 29.0 after rendering 33.5 then 31.0).
+- Capture tools launch Chromium with `--disable-gpu-rasterization`: with SwiftShader's GPU rasterization, text and image tiles varied by ±1 level with the render history.
