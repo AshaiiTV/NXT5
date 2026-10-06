@@ -43,6 +43,7 @@ export async function verifySeoArtifacts(outputDir, { config, publicPaths, priva
     const { title, description } = verifyHtmlMetadata(html, metadata, path);
     assert.equal((html.match(/<h1(?:\s|>)/g) || []).length, 1, `${path}: one real visible heading`);
     assert.ok(html.includes('data-prerendered="true"'), `${path}: populated initial HTML`);
+    assert.ok(html.includes(`data-prerender-path="${path}"`), `${path}: matching initial hydration route`);
     assert.ok(html.includes(`<link data-nxt5-seo rel="canonical" href="${SITE_ORIGIN}${path}"`), `${path}: production canonical`);
     assert.ok(html.includes(`name="robots" content="${metadata.robots}"`), `${path}: indexing policy`);
     assert.ok(html.includes('name="google-site-verification" content="1IQU_9EGP_xoNKTPPPDrNRWHcsSzqQXZlWZOUgIY_TM"'), "Search Console verification preserved");
@@ -66,6 +67,8 @@ export async function verifySeoArtifacts(outputDir, { config, publicPaths, priva
   }
   for (const file of ["app-shell.html", "404.html"]) {
     const html = await readFile(resolve(outputDir, file), "utf8");
+    if (file === "404.html") assert.ok(html.includes('data-prerender-path="/404"'), "404: matching initial hydration route");
+    else assert.ok(!html.includes('data-prerender-path='), "private shell has no public hydration route");
     verifyHtmlMetadata(html, getMetadata(file === "404.html" ? "/404" : "/connexion", config), file);
     assert.ok(html.includes('name="robots" content="noindex, follow"'), `${file}: noindex in initial HTML`);
     assert.ok(!html.includes('rel="canonical"'), `${file}: no false public canonical`);

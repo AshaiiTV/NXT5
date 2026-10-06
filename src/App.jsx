@@ -9,11 +9,11 @@ export function preloadApp() {
 }
 const LazyApp = lazy(preloadApp);
 
-export default function NXT5({ initialApp: InitialApp }) {
+export default function NXT5({ initialApp: InitialApp, initialRoute, initialDemoPage }) {
   return (
     <AppErrorBoundary>
-      <AppLoadingProvider>
-        {InitialApp ? <InitialApp /> : <Suspense fallback={null}><LazyApp /></Suspense>}
+      <AppLoadingProvider initialPath={initialRoute?.path}>
+        {InitialApp ? <InitialApp initialRoute={initialRoute} initialDemoPage={initialDemoPage} /> : <Suspense fallback={null}><LazyApp /></Suspense>}
       </AppLoadingProvider>
     </AppErrorBoundary>
   );

@@ -50,6 +50,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 | Date | Rapport |
 | --- | --- |
+| 2026-10-06 | [Affichage public : hydratation et performance mobile](performance-affichage-public-2026-10-06.md) |
 | 2026-10-06 | [Corrections SEO : chargement public, guides et métadonnées](corrections-seo-2026-10-06.md) |
 | 2026-10-06 | [Audit SEO de la production et mesures mobiles](audit-seo-2026-10-06.md) |
 | 2026-10-06 | [Démarrage guidé : accueil, premiers pas et aide contextuelle](demarrage-guide-2026-10-06.md) |
