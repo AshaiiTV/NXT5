@@ -10,6 +10,7 @@ import "./profile-showcase.css";
 
 const VIEWS = [{ id: "card", label: "La carte", icon: IdCard }, { id: "story", label: "Le Wrapped", icon: GalleryHorizontalEnd }];
 const CHAPTERS = ["Le bilan", "Le champion signature", "La partie marquante", "L’évolution", "L’équipe"];
+const CHAPTER_LABELS = ["Bilan", "Signature", "Moment", "Évolution", "Équipe"];
 const METRICS = [
   ["kda", "Ratio KDA", 1, ""], ["csPerMin", "CS par minute", 1, ""], ["kp", "Participation aux éliminations", 0, " %"],
   ["damagePerMin", "Dégâts aux champions par minute", 0, ""], ["vision", "Score de vision par partie", 1, ""],
@@ -25,11 +26,60 @@ function evolutionDelta(progression) {
 
 function chapterCopy(report, chapter) {
   const { results, signature, highlight, progression } = report;
-  if (chapter === 1) return { title: signature ? `${championDisplayName(signature.champion)}. La signature.` : "La signature reste à découvrir.", description: signature ? `${signature.games} partie${signature.games > 1 ? "s" : ""} sur le champion le plus joué dans cette sélection. ${signature.wins} victoire${signature.wins > 1 ? "s" : ""}, ${signature.losses} défaite${signature.losses > 1 ? "s" : ""}${signature.unknown ? ` et ${signature.unknown} résultat${signature.unknown > 1 ? "s" : ""} inconnu${signature.unknown > 1 ? "s" : ""}` : ""}.` : "Aucun champion renseigné dans les parties sélectionnées." };
-  if (chapter === 2) return { title: highlight ? "Une partie à retrouver." : "Le moment reste à écrire.", description: highlight ? `${highlight.kills} éliminations, ${highlight.deaths} mort${highlight.deaths > 1 ? "s" : ""}, ${highlight.assists} assistance${highlight.assists > 1 ? "s" : ""} sur ${championDisplayName(highlight.champion)}. ${highlight.selectionReason}` : "Aucune partie avec éliminations, morts et assistances toutes renseignées dans cette sélection." };
-  if (chapter === 3) return { title: "L’évolution, partie après partie.", description: progression ? `${number(progression.early.value, evolutionDigits(progression))} à ${number(progression.recent.value, evolutionDigits(progression))} ${progression.unit} entre le premier et le second bloc de ${progression.early.count} et ${progression.recent.count} parties datées. Une comparaison descriptive, à relire dans son contexte.` : "L’évolution demande au moins six mesures datées et deux blocs d’au moins trois parties dont l’ordre peut être établi." };
-  if (chapter === 4) return { title: report.teamName ? `Avec ${report.teamName}.` : "Une histoire d’équipe.", description: "Les chiffres du joueur, les souvenirs de l’équipe. Cette édition rassemble les parties de la sélection actuelle." };
-  return { title: "Les parties. Les souvenirs.", description: `${report.games} partie${report.games > 1 ? "s" : ""} réunie${report.games > 1 ? "s" : ""} dans une édition personnelle : ${results.wins} victoire${results.wins > 1 ? "s" : ""}, ${results.losses} défaite${results.losses > 1 ? "s" : ""}${results.unknown ? ` et ${results.unknown} résultat${results.unknown > 1 ? "s" : ""} inconnu${results.unknown > 1 ? "s" : ""}` : ""}.` };
+  if (chapter === 1) return { title: signature ? `${championDisplayName(signature.champion)}. La signature.` : "La signature reste à découvrir.", description: signature ? `${signature.games} partie${signature.games > 1 ? "s" : ""} sur ${report.games} : c’est le champion le plus joué de cette sélection. ${signature.wins} victoire${signature.wins > 1 ? "s" : ""}, ${signature.losses} défaite${signature.losses > 1 ? "s" : ""}${signature.unknown ? ` et ${signature.unknown} résultat${signature.unknown > 1 ? "s" : ""} inconnu${signature.unknown > 1 ? "s" : ""}` : ""}.` : "Aucun champion renseigné dans les parties sélectionnées." };
+  if (chapter === 2) return { title: highlight ? "Une partie à revivre." : "Le moment reste à écrire.", description: highlight ? `${highlight.kills} éliminations, ${highlight.deaths} mort${highlight.deaths > 1 ? "s" : ""}, ${highlight.assists} assistance${highlight.assists > 1 ? "s" : ""}${highlight.champion ? ` sur ${championDisplayName(highlight.champion)}` : ""}. ${highlight.selectionReason}.` : "Aucune partie avec éliminations, morts et assistances toutes renseignées dans cette sélection." };
+  if (chapter === 3) return { title: progression ? `De ${number(progression.early.value, evolutionDigits(progression))} à ${number(progression.recent.value, evolutionDigits(progression))} ${progression.unit}.` : "La courbe se construit.", description: progression ? `Moyenne des ${progression.early.count} premières parties comparée aux ${progression.recent.count} suivantes, parmi les ${progression.count} mesures datées. L’écart décrit cette sélection ; il ne constitue pas une note de niveau.` : "L’évolution demande au moins six mesures datées et deux blocs d’au moins trois parties dont l’ordre peut être établi." };
+  if (chapter === 4) return { title: report.teamName ? `Avec ${report.teamName}.` : "Une histoire d’équipe.", description: `${report.playerName}${report.role ? ` · ${report.role}` : ""}. Cette édition réunit ses ${report.games} partie${report.games > 1 ? "s" : ""} dans la sélection « ${report.contextLabel} ». L’effectif présenté est celui de l’équipe actuelle.` };
+  return { title: `${report.games} partie${report.games > 1 ? "s" : ""}. Une histoire.`, description: `${results.wins} victoire${results.wins > 1 ? "s" : ""}, ${results.losses} défaite${results.losses > 1 ? "s" : ""}${results.unknown ? ` et ${results.unknown} résultat${results.unknown > 1 ? "s" : ""} inconnu${results.unknown > 1 ? "s" : ""}` : ""}. Du bilan au collectif, cinq chapitres pour retrouver ce qui a marqué cette sélection.` };
+}
+
+function WrappedNavigation({ chapter, onChange }) {
+  const chapterButtons = useRef([]);
+  function move(event, index) {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const next = event.key === "ArrowRight" ? (index + 1) % CHAPTERS.length
+      : event.key === "ArrowLeft" ? (index + CHAPTERS.length - 1) % CHAPTERS.length
+        : event.key === "Home" ? 0 : event.key === "End" ? CHAPTERS.length - 1 : null;
+    if (next === null) return;
+    event.preventDefault();
+    onChange(next);
+    chapterButtons.current[next]?.focus();
+  }
+  return <div className="profile-showcase-reader">
+    <div className="profile-showcase-step">
+      <Button type="button" variant="ghost" icon={ArrowLeft} aria-label="Précédent" onClick={() => onChange(chapter - 1)} disabled={chapter === 0}><span className="profile-showcase-step-label">Précédent</span></Button>
+      <span className="profile-showcase-position" aria-label={`Chapitre ${chapter + 1} sur ${CHAPTERS.length} : ${CHAPTERS[chapter]}`}><span className="profile-showcase-position-count">{String(chapter + 1).padStart(2, "0")} <span>/ {String(CHAPTERS.length).padStart(2, "0")}</span></span><span className="profile-showcase-position-label">{CHAPTER_LABELS[chapter]}</span></span>
+      <Button type="button" variant="ghost" icon={chapter === 4 ? RotateCcw : ArrowRight} aria-label={chapter === 4 ? "Revoir le bilan" : "Suivant"} onClick={() => onChange((chapter + 1) % CHAPTERS.length)}><span className="profile-showcase-step-label">{chapter === 4 ? "Revoir le bilan" : "Suivant"}</span></Button>
+    </div>
+    <nav className="profile-showcase-chapters" aria-label="Chapitres du Wrapped">{CHAPTERS.map((label, index) => <button type="button" key={label} ref={(node) => { chapterButtons.current[index] = node; }} aria-label={`Chapitre ${index + 1} : ${label}`} aria-current={chapter === index ? "step" : undefined} tabIndex={chapter === index ? 0 : -1} onKeyDown={(event) => move(event, index)} onClick={() => onChange(index)}><span className="profile-showcase-chapter-index">{String(index + 1).padStart(2, "0")}</span><span className="profile-showcase-chapter-label">{CHAPTER_LABELS[index]}</span></button>)}</nav>
+  </div>;
+}
+
+function WrappedContext({ report, chapter }) {
+  if (chapter === 1) return report.champions.length > 0 && <div className="profile-showcase-context">
+    <h4>Les champions de cette édition</h4>
+    <ol className="profile-showcase-champion-list">{report.champions.slice(0, 3).map((entry, index) => <li key={entry.champion}><span className="profile-showcase-rank">{String(index + 1).padStart(2, "0")}</span><span><strong>{championDisplayName(entry.champion)}</strong><span>{entry.games} partie{entry.games > 1 ? "s" : ""}</span></span><span>{pngPercent(entry.rate)}<small>de victoires</small></span></li>)}</ol>
+    <p className="profile-showcase-meta">{report.champions.length > 3 ? `Les 3 plus joués parmi ${report.champions.length} champions. ` : ""}Taux calculés sur les résultats connus.</p>
+  </div>;
+  if (chapter === 2) return report.highlight && <div className="profile-showcase-context">
+    <h4>{report.highlight.title}</h4><p className="profile-showcase-meta">{report.highlight.dateLabel} · {report.highlight.result === "win" ? "Victoire" : report.highlight.result === "loss" ? "Défaite" : "Résultat inconnu"}</p>
+    <dl className="profile-showcase-facts"><div><dt>Ratio KDA</dt><dd>{number(report.highlight.kda, 1)}</dd></div><div><dt>Participation aux éliminations</dt><dd>{number(report.highlight.kp, 0, " %")}</dd></div></dl>
+  </div>;
+  if (chapter === 3) return report.progression && <div className="profile-showcase-context">
+    <h4>{report.progression.label}</h4>
+    <dl className="profile-showcase-periods">{[["Première période", report.progression.early], ["Seconde période", report.progression.recent]].map(([label, period]) => <div key={label}><dt>{label}<span>{period.startDateLabel} – {period.endDateLabel}</span></dt><dd>{number(period.value, evolutionDigits(report.progression))}<span>{period.count} parties</span></dd></div>)}</dl>
+    <p className="profile-showcase-meta">Écart entre les deux moyennes : <strong>{evolutionDelta(report.progression)}</strong>.</p>
+  </div>;
+  if (chapter === 4) return <div className="profile-showcase-context">
+    <h4>L’effectif actuel</h4>
+    {report.teammates.length ? <ul className="profile-showcase-roster">{report.teammates.map((member) => <li key={member.id || `${member.name}|${member.role}`}><span>{member.role || "—"}</span><strong>{member.name}</strong>{report.playerId && member.id === report.playerId && <span className="profile-showcase-roster-selected">Ce profil</span>}</li>)}</ul> : <p className="profile-showcase-meta">Aucun autre profil renseigné dans l’effectif.</p>}
+    <p className="profile-showcase-meta">L’effectif actuel ne permet pas d’établir qui a joué chaque partie.</p>
+  </div>;
+  return <div className="profile-showcase-context">
+    <h4>Les repères de la sélection</h4>
+    <dl className="profile-showcase-facts"><div><dt>Taux de victoire</dt><dd>{pngPercent(report.results.rate)}</dd><p>{report.results.known} résultat{report.results.known > 1 ? "s" : ""} connu{report.results.known > 1 ? "s" : ""}</p></div><div><dt>Ratio KDA</dt><dd>{number(report.metrics.kda.value, 1)}</dd><p>{report.metrics.kda.count} partie{report.metrics.kda.count > 1 ? "s" : ""} renseignée{report.metrics.kda.count > 1 ? "s" : ""}</p></div></dl>
+    <p className="profile-showcase-meta">{report.dateLabel}{report.datedGames < report.games ? ` · ${report.datedGames} parties datées sur ${report.games}` : ""}</p>
+  </div>;
 }
 
 function accessibleDescription(report, view, chapter) {
@@ -44,7 +94,7 @@ function ShowcaseCanvas({ canvasRef, report, assets, view, chapter, onError }) {
   useEffect(() => {
     if (!ref.current) return;
     try {
-      drawProfileShowcase(ref.current, report, { view, chapter, assets, artFocus: assets.artFocus });
+      drawProfileShowcase(ref.current, report, { view, chapter, assets });
     } catch (error) { onError(error); }
   }, [report, assets, view, chapter, onError, ref]);
   return <canvas ref={ref} width={1080} height={1620} role="img" aria-label={accessibleDescription(report, view, chapter)} className="profile-showcase-canvas" />;
@@ -88,10 +138,10 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
     return () => { cancelled = true; };
   }, [champion, assetKey, onRenderError, report.games]);
 
-  function openChapter(index) {
-    setMode("story"); setChapter(index); setExportStatus("");
-    // Keep the new chapter in sight when its navigation is below the image.
-    if (figureRef.current && rootRef.current?.getBoundingClientRect().width <= 720) figureRef.current.scrollIntoView?.({ behavior: "instant", block: "start" });
+  function openChapter(index, reveal = false) {
+    setMode("story"); setChapter(Math.max(0, Math.min(CHAPTERS.length - 1, index))); setExportStatus("");
+    // Navigation stays beside the image; only a card teaser needs to reveal it.
+    if (reveal && figureRef.current && rootRef.current?.getBoundingClientRect().width <= 720) figureRef.current.scrollIntoView?.({ behavior: "instant", block: "start" });
   }
   function changeMode(next) { setMode(next); setExportStatus(""); }
   async function download() {
@@ -119,9 +169,9 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
       <TabNav items={VIEWS} activeId={mode} onChange={changeMode} label="Format du souvenir" idPrefix="showcase" panelId="showcase-panel" />
       <Badge tone="purple">{report.contextLabel}</Badge>
     </div>
-    <div id="showcase-panel" role="tabpanel" aria-labelledby={`showcase-tab-${mode}`} className="profile-showcase-layout">
+    <div id="showcase-panel" role="tabpanel" aria-labelledby={`showcase-tab-${mode}`} className={`profile-showcase-layout${mode === "story" ? " is-story" : ""}`}>
       <figure ref={figureRef} className="profile-showcase-figure" aria-label={currentLabel}>
-        {mode === "story" && <div className="profile-showcase-progress" aria-hidden="true">{CHAPTERS.map((label, index) => <span key={label} className={index <= chapter ? "is-read" : ""} />)}</div>}
+        {mode === "story" && <WrappedNavigation chapter={chapter} onChange={openChapter} />}
         <div className="profile-showcase-art" aria-busy={!ready}>
           <ShowcaseCanvas canvasRef={canvasRef} report={report} assets={assets} view={view} chapter={chapter} onError={onRenderError} />
         </div>
@@ -144,14 +194,13 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
           <div className="profile-showcase-results" aria-label="Résultats des parties affichées">{report.recentResults.map((result, index) => <span key={`${result.matchId}-${index}`} className={`result-${result.result}`} aria-label={`${result.dateLabel} : ${result.result === "win" ? "victoire" : result.result === "loss" ? "défaite" : "résultat inconnu"}`}>{result.result === "win" ? "V" : result.result === "loss" ? "D" : "?"}</span>)}</div>
           <p className="profile-showcase-meta">{report.datedGames === report.games ? `${report.recentResultsCount} dernière${report.recentResultsCount > 1 ? "s" : ""} partie${report.recentResultsCount > 1 ? "s" : ""} · de la plus ancienne à la plus récente` : `${report.recentResultsCount} parties affichées · ordre des dates connues`}</p>
           <div className="profile-showcase-teasers">
-            <button type="button" onClick={() => openChapter(1)}><span>Champion signature</span><strong>{report.signature ? championDisplayName(report.signature.champion) : "À découvrir"}</strong><ArrowRight aria-hidden="true" /></button>
-            <button type="button" onClick={() => openChapter(2)}><span>Partie marquante</span><strong>{report.highlight ? `${report.highlight.kills} / ${report.highlight.deaths} / ${report.highlight.assists}` : "À découvrir"}</strong><ArrowRight aria-hidden="true" /></button>
-            <button type="button" onClick={() => openChapter(3)}><span>Évolution</span><strong>{evolutionDelta(report.progression)}</strong><ArrowRight aria-hidden="true" /></button>
+            <button type="button" onClick={() => openChapter(1, true)}><span>Champion signature</span><strong>{report.signature ? championDisplayName(report.signature.champion) : "À découvrir"}</strong><ArrowRight aria-hidden="true" /></button>
+            <button type="button" onClick={() => openChapter(2, true)}><span>Partie marquante</span><strong>{report.highlight ? `${report.highlight.kills} / ${report.highlight.deaths} / ${report.highlight.assists}` : "À découvrir"}</strong><ArrowRight aria-hidden="true" /></button>
+            <button type="button" onClick={() => openChapter(3, true)}><span>Évolution</span><strong>{evolutionDelta(report.progression)}</strong><ArrowRight aria-hidden="true" /></button>
           </div>
-          <Button type="button" icon={ArrowRight} onClick={() => openChapter(0)}>Découvrir le Wrapped</Button>
+          <Button type="button" icon={ArrowRight} onClick={() => openChapter(0, true)}>Découvrir le Wrapped</Button>
         </> : <>
-          <nav className="profile-showcase-chapters" aria-label="Chapitres du Wrapped">{CHAPTERS.map((label, index) => <button type="button" key={label} aria-current={chapter === index ? "step" : undefined} onClick={() => openChapter(index)}><span>{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong><ArrowRight aria-hidden="true" /></button>)}</nav>
-          <div className="profile-showcase-step"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => openChapter(chapter - 1)} disabled={chapter === 0}>Précédent</Button><Button type="button" icon={chapter === 4 ? RotateCcw : ArrowRight} onClick={() => openChapter((chapter + 1) % 5)}>{chapter === 4 ? "Revoir le bilan" : "Suivant"}</Button></div>
+          <WrappedContext report={report} chapter={chapter} />
           {chapter === 2 && report.highlight?.matchId && <a className="profile-text-action" href={`/games?match=${encodeURIComponent(report.highlight.matchId)}`} onClick={(event) => { if (!navigate || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigate(`/games?match=${encodeURIComponent(report.highlight.matchId)}`); }}>Ouvrir la partie source <ArrowRight aria-hidden="true" /></a>}
           {chapter === 3 && report.progression?.excludedCount > 0 && <p className="profile-showcase-meta">{report.progression.excludedCount} partie{report.progression.excludedCount > 1 ? "s" : ""} exclue{report.progression.excludedCount > 1 ? "s" : ""} de cette comparaison : date ou mesure indisponible.</p>}
         </>}
@@ -168,6 +217,7 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
     <span className="sr-only" role="status" aria-live="polite">{currentLabel}</span>
     {expanded && <ModalDialog className="profile-showcase-dialog" aria-labelledby="showcase-dialog-title" onClose={() => setExpanded(false)} returnFocusRef={expandTrigger} handleHistory>
       <header><h3 id="showcase-dialog-title">{report.playerName} · {currentLabel}</h3><Button type="button" variant="ghost" icon={X} onClick={() => setExpanded(false)}>Fermer</Button></header>
+      {mode === "story" && <WrappedNavigation chapter={chapter} onChange={openChapter} />}
       <ShowcaseCanvas report={report} assets={assets} view={view} chapter={chapter} onError={onRenderError} />
       <p>{report.contextLabel} · {report.dateLabel}</p>
     </ModalDialog>}

@@ -19,7 +19,8 @@ const player = { id: "p1", name: "Nova", role: "ADC" };
 const rows = Array.from({ length: 6 }, (_, i) => ({ champion: i === 5 ? "KaiSa" : "Jhin", kills: i === 5 ? 15 : 3, deaths: 1, assists: 5, cs_per_min: 7 + i / 5, kill_participation: 0.7, match: { id: `m${i}`, result: i === 1 ? "Défaite" : "Victoire", game_date: `2026-10-0${i + 1}T12:00:00Z`, duration_seconds: 1800 } }));
 const props = { player, rows, teamName: "Astral", category: "Tournoi", teammates: [player] };
 const canvas = { width: 1080, height: 1620, getContext: () => ({ drawImage: vi.fn() }) };
-const mount = async (element = <ProfileShowcase {...props} />) => act(async () => { renderer = TestRenderer.create(element, { createNodeMock: (node) => node.type === "canvas" ? canvas : null }); });
+const focusControl = vi.fn();
+const mount = async (element = <ProfileShowcase {...props} />) => act(async () => { renderer = TestRenderer.create(element, { createNodeMock: (node) => node.type === "canvas" ? canvas : node.type === "button" ? { focus: () => focusControl(node.props["aria-label"]) } : null }); });
 
 beforeEach(() => {
   vi.stubGlobal("document", { fonts: { ready: Promise.resolve() }, createElement: vi.fn(() => ({ width: 0, height: 0, getContext: () => ({ drawImage: vi.fn() }) })) });
@@ -85,6 +86,51 @@ describe("player card and Wrapped", () => {
     expect(text(renderer.toJSON())).toContain("Avec Astral.");
     await act(async () => button("Revoir le bilan").props.onClick());
     expect(button("Précédent").props.disabled).toBe(true);
+  });
+
+  it("keeps chapter controls with the artwork and moves their keyboard focus without global shortcuts", async () => {
+    await mount();
+    await act(async () => button("Découvrir le Wrapped").props.onClick());
+    const chapterButton = (index) => renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith(`Chapitre ${index + 1} :`));
+    const figure = renderer.root.findByType("figure");
+    expect(figure.findByProps({ "aria-label": "Chapitres du Wrapped" })).toBeTruthy();
+    expect(figure.props.onKeyDown).toBeUndefined();
+    expect(figure.findAllByType("button").some((node) => text(node) === "Suivant")).toBe(true);
+    const preventDefault = vi.fn();
+    await act(async () => chapterButton(0).props.onKeyDown({ key: "ArrowRight", preventDefault }));
+    expect(chapterButton(1).props["aria-current"]).toBe("step");
+    expect(chapterButton(1).props.tabIndex).toBe(0);
+    expect(chapterButton(0).props.tabIndex).toBe(-1);
+    expect(focusControl).toHaveBeenLastCalledWith("Chapitre 2 : Le champion signature");
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    await act(async () => chapterButton(1).props.onKeyDown({ key: "ArrowRight", altKey: true, preventDefault }));
+    expect(chapterButton(1).props["aria-current"]).toBe("step");
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    await act(async () => chapterButton(1).props.onKeyDown({ key: "End", preventDefault }));
+    expect(chapterButton(4).props["aria-current"]).toBe("step");
+    await act(async () => chapterButton(4).props.onKeyDown({ key: "Home", preventDefault }));
+    expect(chapterButton(0).props["aria-current"]).toBe("step");
+    await act(async () => chapterButton(0).props.onKeyDown({ key: "ArrowLeft", preventDefault }));
+    expect(chapterButton(4).props["aria-current"]).toBe("step");
+  });
+
+  it("keeps enlarged chapter navigation synchronized and exposes dated comparison context", async () => {
+    await mount();
+    await act(async () => button("Découvrir le Wrapped").props.onClick());
+    await act(async () => button("Agrandir").props.onClick());
+    const dialog = () => renderer.root.findByType("dialog");
+    const choose = (index) => dialog().findAllByType("button").find((node) => node.props["aria-label"]?.startsWith(`Chapitre ${index + 1} :`));
+    await act(async () => choose(3).props.onClick());
+    expect(text(renderer.toJSON())).toContain("01/10/2026 – 03/10/2026");
+    expect(text(renderer.toJSON())).toContain("04/10/2026 – 06/10/2026");
+    expect(renderer.root.findAllByType("canvas")).toHaveLength(2);
+    for (const visual of renderer.root.findAllByType("canvas")) expect(visual.props["aria-label"]).toContain("Moyenne des 3 premières parties");
+    await act(async () => choose(4).props.onClick());
+    expect(text(renderer.toJSON())).toContain("L’effectif actuel ne permet pas d’établir qui a joué chaque partie.");
+    await act(async () => dialog().props.onClose());
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    await act(async () => button("Exporter ce chapitre").props.onClick());
+    expect(vi.mocked(pngDownloadPages).mock.calls[0][1]).toBe("nxt5-nova-wrapped-5.png");
   });
 
   it("shows empty and unavailable data without presenting a fictional edition", async () => {

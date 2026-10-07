@@ -165,10 +165,15 @@ function evolution(observations, role) {
   if (first[first.length - 1].timestamp >= last[0].timestamp) return null;
   const early = average(first.map((entry) => entry[key]));
   const recent = average(last.map((entry) => entry[key]));
+  const period = (entries) => ({
+    startDateLabel: entries[0].dateLabel,
+    endDateLabel: entries[entries.length - 1].dateLabel,
+  });
   return {
     key, label: role === "SUP" ? "Vision par minute" : "Sbires par minute",
     unit: role === "SUP" ? "vision / min" : "CS / min",
-    early, recent, delta: recent.value - early.value,
+    early: { ...early, ...period(first) }, recent: { ...recent, ...period(last) }, delta: recent.value - early.value,
+    series: eligible.map((entry) => ({ value: entry[key], dateLabel: entry.dateLabel, timestamp: entry.timestamp, matchId: entry.matchId })),
     count: eligible.length, excludedCount: observations.length - eligible.length,
     title: "Évolution sur la sélection",
   };
@@ -220,6 +225,7 @@ export function buildProfileShowcase({ player = {}, rows = [], teamName = "", ca
     return [{ id, name, role: memberRole }];
   });
   return {
+    playerId: player?.id == null ? "" : String(player.id),
     playerName: String(player?.name || player?.riot_id || "Joueur"), role,
     teamName: String(teamName || "Équipe"), contextLabel: String(category || "Tous les contextes"),
     dateLabel, datedGames: dates.length, games,

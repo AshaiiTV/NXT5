@@ -113,10 +113,13 @@ describe("profile showcase data", () => {
   it("compares chronological halves of at least three measured games, retains an odd middle observation, and does not claim improvement after a decline", () => {
     const rows = Array.from({ length: 7 }, (_, index) => row(index, { cs_per_min: [9, 9, 9, 5, 6, 6, 7][index] })).reverse();
     const report = buildProfileShowcase({ rows });
-    expect(report.progression).toEqual({
+    expect(report.progression).toMatchObject({
       key: "csPerMin", label: "Sbires par minute", unit: "CS / min", early: { value: 9, count: 3 }, recent: { value: 6, count: 4 },
       delta: -3, count: 7, excludedCount: 0, title: "Évolution sur la sélection",
     });
+    expect(report.progression.early).toMatchObject({ startDateLabel: "01/09/2026", endDateLabel: "03/09/2026" });
+    expect(report.progression.recent).toMatchObject({ startDateLabel: "04/09/2026", endDateLabel: "07/09/2026" });
+    expect(report.progression.series.map(({ value, matchId }) => [value, matchId])).toEqual([9, 9, 9, 5, 6, 6, 7].map((value, index) => [value, `match-${index}`]));
     expect(buildProfileShowcase({ rows: rows.slice(0, 5) }).progression).toBeNull();
     expect(rows[0].match.id).toBe("match-6");
   });
@@ -127,6 +130,10 @@ describe("profile showcase data", () => {
     rows[7].cs_per_min = null;
     const report = buildProfileShowcase({ rows });
     expect(report.progression).toMatchObject({ early: { value: 7, count: 3 }, recent: { value: 9, count: 3 }, count: 6, excludedCount: 2, delta: 2 });
+    expect(report.progression.series).toHaveLength(6);
+    expect(report.progression.series.every(({ timestamp }) => Number.isFinite(timestamp))).toBe(true);
+    expect(report.progression.series.map(({ matchId }) => matchId)).not.toContain("match-6");
+    expect(report.progression.series.map(({ matchId }) => matchId)).not.toContain("match-7");
     rows[5].match.game_date = null;
     expect(buildProfileShowcase({ rows }).progression).toBeNull();
   });
@@ -159,6 +166,7 @@ describe("profile showcase data", () => {
     const rows = Object.freeze([Object.freeze(row(0))]);
     const report = buildProfileShowcase({ player, rows, teammates: Object.freeze([player, teammate, teammate]) });
     expect(report.teammates).toEqual([{ id: "p1", name: "Nova", role: "ADC" }, { id: "p2", name: "Lune", role: "SUP" }]);
+    expect(report.playerId).toBe("p1");
     expect(report).not.toHaveProperty("gamesTogether");
     expect(rows[0].champion).toBe("Ahri");
   });
