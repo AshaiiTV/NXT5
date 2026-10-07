@@ -19,6 +19,8 @@ import "./profile-champions.css";
 import { ChampionSectionTabs, MatchupNotebook } from "../../components/profile/MatchupNotebook.jsx";
 import { ParticipantRunes } from "../../components/profile/ParticipantRunes.jsx";
 
+const ProfileShowcase = React.lazy(() => import("../../components/profile/ProfileShowcase.jsx").then((module) => ({ default: module.ProfileShowcase })));
+
 const PROFILE_PNG_CHAMPIONS_PER_PAGE = 14;
 
 function playerProfilePngData(rows = []) {
@@ -497,6 +499,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} selectedCategoryId={selectedCategoryId} teamId={selectedTeamId} userId={user?.id} navigate={navigate} bootstrapRevision={data.bootstrapRevision} />}
       {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} exportRows={rows} category={activeProfileCategory?.name || "Toutes les catégories"} />}
       {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
+      {profileView === "showcase" && <React.Suspense fallback={<p role="status" className="profile-notice">Chargement de la carte et du Wrapped…</p>}><ProfileShowcase player={selectedPlayer} rows={rows} teamName={selectedTeam?.name} category={activeProfileCategory?.name || "Toutes les parties"} teammates={players} navigate={navigate || openAppPath} /></React.Suspense>}
       {profileView === "coaching" && <>
         <div className="profile-followup-intro"><h3>Objectifs et notes</h3><p>Les objectifs suivent les parties du contexte sélectionné. Les notes restent communes à tous les contextes du joueur.</p></div>
         <DiscordProgressionGoals goals={data.botGoals} teamId={selectedTeamId} playerId={selectedPlayer.id} />

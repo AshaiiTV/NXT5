@@ -7,6 +7,7 @@ export const PROFILE_SECTIONS = [
   { id: "pool", label: "Champions déclarés", description: "Options préparées par l’équipe" },
   { id: "history", label: "Historique", description: "Retrouver une partie" },
   { id: "coaching", label: "Suivi", description: "Objectifs et notes" },
+  { id: "showcase", label: "Carte & Wrapped", description: "Ton édition personnelle" },
 ];
 
 export function ProfileNavigation({ activeId, onChange }) {
