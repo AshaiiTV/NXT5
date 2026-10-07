@@ -6,8 +6,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT=${1:-out/final/nxt5-teaser.mp4}
 SUB=${2:-6}
-FR=out/final/frames
-SEQ=out/final/seq
+# Dossier des images : NX_FRAMES (par défaut out/final/frames ; la version verticale utilise out/final-v/frames).
+FR=${NX_FRAMES:-out/final/frames}
+SEQ=$(dirname "$FR")/seq
 # Durée prise sur les images rendues (dernier numéro + 1) / 30 : un changement de NX.DURATION pendant un rendu
 # ne fausse pas son encodage.
 DUR=$(node -e "

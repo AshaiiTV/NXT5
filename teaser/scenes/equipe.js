@@ -487,11 +487,12 @@
       const cyw = Math.cos(c.yaw * RAD), syw = Math.sin(c.yaw * RAD), cp = Math.cos(c.pitch * RAD), sp = Math.sin(c.pitch * RAD);
       const cr = Math.cos(c.roll * RAD), sr = Math.sin(c.roll * RAD);
       let qx = 0, qy = 0;
+      const EX = NX.W / 2, EY = NX.H / 2;                 // centre de l'image (œil de la caméra)
       const proj = (X, Y, Z) => {                        // mêmes calculs que NX.cam.project, sans allocation
-        const x = X - 960 - c.x, y = Y - 540 - c.y, z = Z + ZR + c.z - D;
+        const x = X - EX - c.x, y = Y - EY - c.y, z = Z + ZR + c.z - D;
         const x2 = x * cyw + z * syw, z2 = -x * syw + z * cyw, y2 = y * cp - z2 * sp, z3 = y * sp + z2 * cp;
         const s = D / Math.max(1, -z3);
-        qx = 960 + (x2 * cr - y2 * sr) * s; qy = 540 + (x2 * sr + y2 * cr) * s;
+        qx = EX + (x2 * cr - y2 * sr) * s; qy = EY + (x2 * sr + y2 * cr) * s;
       };
       const tau = t - HIT;
       if (tau >= 0) {

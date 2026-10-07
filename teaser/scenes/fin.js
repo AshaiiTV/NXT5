@@ -139,7 +139,7 @@
   const finFavPose = (f, rz, lift = LIFT) => {
     const c = NX.camState, X = DK.left, Y = DK.top + f.Y - RING[1];
     if (!c) return { x: 0, y: Y - DK.top, z: f.Z + lift, k: 1 };
-    const ex = 960 + c.x, ey = 540 + c.y, pz = NX.cam.D - c.z;
+    const ex = NX.W / 2 + c.x, ey = NX.H / 2 + c.y, pz = NX.cam.D - c.z;
     const k = (pz - (rz + f.Z + lift)) / (pz - (rz + f.Z));
     return { x: ex + (X - ex) * k - DK.left, y: ey + (Y - ey) * k - DK.top, z: f.Z + lift, k };
   };

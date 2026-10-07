@@ -2,7 +2,12 @@
  * Aucune scène ne doit garder d'état entre deux appels de render : même t → même image. */
 (function () {
   const NX = (window.NX = {});
-  NX.W = 1920; NX.H = 1080; NX.FPS = 30; NX.DURATION = 32.4;
+  /* Format : 16:9 en 1920×1080 par défaut, vertical 9:16 en 1080×1920 avec ?format=v (TikTok, Reels, Shorts).
+   * NX.U = petit côté : unité du ciel et des fronts de lumière, identique dans les deux formats. */
+  NX.FORMAT = new URLSearchParams(location.search).get('format') === 'v' ? 'v' : 'h';
+  NX.V = NX.FORMAT === 'v';
+  NX.W = NX.V ? 1080 : 1920; NX.H = NX.V ? 1920 : 1080; NX.U = Math.min(NX.W, NX.H);
+  NX.FPS = 30; NX.DURATION = 32.4;
   /* v6 : 100 BPM, un temps = 0,6 s, une mesure = 2,4 s. Le film dure 14 mesures. */
   NX.BPM = 100; NX.BEAT = 0.6; NX.BAR = 2.4;
   NX.beat = n => n * NX.BEAT;
@@ -172,13 +177,24 @@
   /* ---------- Rendu d'une image ---------- */
   let grainFrames = [], grainCtx, fxCtx, els = {};
   NX.init = () => {
+    // Format vertical : la scène, les canvas et le centre de la perspective suivent le cadre (le 16:9 garde le HTML et le CSS).
+    if (NX.V) {
+      NX.set($('stage'), { width: NX.W + 'px', height: NX.H + 'px' });
+      for (const id of ['bg', 'fxback', 'fx', 'grain']) {
+        const cv = $(id), half = id === 'bg' || id === 'grain';
+        cv.width = half ? NX.W / 2 : NX.W; cv.height = half ? NX.H / 2 : NX.H;
+        NX.set(cv, { width: NX.W + 'px', height: NX.H + 'px' });
+      }
+      $('shake').style.perspectiveOrigin = `${NX.W / 2}px ${NX.H / 2}px`;
+      $('world').style.transformOrigin = `${NX.W / 2}px ${NX.H / 2}px`;
+    }
     els = { stage: $('stage'), shake: $('shake'), world: $('world'), vignette: $('vignette'), grain: $('grain'), flash: $('flash'), lbT: $('lb-top'), lbB: $('lb-bot'), fade: $('fade'), leak: $('leak'), turb: $('nx-turb'), disp: $('nx-disp'), fr: $('nx-r'), fb: $('nx-b') };
     fxCtx = NX.fx.ctx = $('fx').getContext('2d');
     NX.fxBack = { ctx: $('fxback').getContext('2d') };
     grainCtx = els.grain.getContext('2d');
     const r = NX.rng(99);
     for (let f = 0; f < 8; f++) {
-      const img = grainCtx.createImageData(960, 540);
+      const img = grainCtx.createImageData(NX.W / 2, NX.H / 2);
       for (let i = 0; i < img.data.length; i += 4) { const v = 128 + (r() + r() + r() - 1.5) * 150; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
       grainFrames.push(img);
     }

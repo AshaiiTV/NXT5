@@ -8,10 +8,11 @@ import { existsSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const fi = process.argv.indexOf('--format'), V = (fi > 0 ? process.argv[fi + 1] : process.env.NX_FORMAT || 'h') === 'v', VW = V ? 1080 : 1920, VH = V ? 1920 : 1080;
 const EXE = process.env.CHROME_PATH || ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', process.env.HOME + '/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell'].find(p => existsSync(p));
 const b = await chromium.launch({ executablePath: EXE, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-web-security', '--allow-file-access-from-files', '--disable-gpu-rasterization'] });
-const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
-await p.goto(`file://${ROOT}/index.html?capture=1&only=ciel`);
+const p = await b.newPage({ viewport: { width: VW, height: VH } });
+await p.goto(`file://${ROOT}/index.html?capture=1&only=ciel${V ? '&format=v' : ''}`);
 await p.waitForFunction(() => window.NXready === true, null, { timeout: 60000 });
 const out = await p.evaluate(() => {
   const G = NX.G, fails = [], info = [];
@@ -44,7 +45,7 @@ const out = await p.evaluate(() => {
       const c = NX.cam.at(t), m = NX.M72.pose(t), F = NX.G.FAV, E0 = [m.cx - F.ringC[0] * m.s, m.cy - F.ringC[1] * m.s];
       const pts = box === 'stack' ? stackPts(c) : box === 'm72' ? [[0, 0], [512, 0], [0, 512], [512, 512]].map(([u, v]) => NX.cam.project(E0[0] + u * m.s, E0[1] + v * m.s, m.z, c)) : [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([X, Y]) => NX.cam.project(X, Y, Z, c));
       for (const q of pts) {
-        const m = Math.min(q.x - 154, 1920 - 154 - q.x, q.y - 86, 1080 - 86 - q.y);
+        const m = Math.min(q.x - 154, NX.W - 154 - q.x, q.y - 86, NX.H - 86 - q.y);
         if (m < worst) { worst = m; wt = t; }
       }
       minS = Math.min(minS, NX.cam.project((x0 + x1) / 2, (y0 + y1) / 2, Z, c).s);

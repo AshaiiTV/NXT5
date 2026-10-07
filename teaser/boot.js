@@ -23,7 +23,7 @@
   window.NXrender = t => NX.render(t);
   window.NXready = true;
 
-  const fit = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); document.getElementById('stage').style.transform = capture ? '' : `scale(${s})`; };
+  const fit = () => { const s = Math.min(innerWidth / NX.W, innerHeight / NX.H); document.getElementById('stage').style.transform = capture ? '' : `scale(${s})`; };
   fit(); addEventListener('resize', fit);
   if (capture) return;
 

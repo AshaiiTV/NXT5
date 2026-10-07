@@ -36,7 +36,7 @@ NX.scene({
     // Base : identique à la v6, couplée à la caméra. La teinte suit la même horloge, sur la durée de la v7 (33,6 s),
     // pour que chaque plan garde la couleur validée de la v7 ; elle atteint le fuchsia de la fin à 28,8 s.
     NX.bgMix({
-      nebula: 0.58, warp: 0.6, rays: 0.9, rayX: 0, rayY: 0.6, rayStrength: 1, stars: 0.32,
+      nebula: 0.58, warp: 0.6, rays: 0.9, rayX: 0, rayY: NX.SKY.rayY, rayStrength: 1, stars: 0.32,
       hue: 0.12 + 0.55 * sm(0, 33.6, skyT), speed: t > 0 ? skyT / t : 1, intensity: 1,
       zoom: sky.zoom, cx: sky.cx, cy: sky.cy,
     }, 1);
@@ -87,14 +87,14 @@ NX.scene({
     const hold = sm(T.end + 0.05, T.end + 0.2, t) * (1 - sm(T.end + 0.35, T.end + 0.9, t));
     B.rays += 0.5 * hold; B.intensity += 0.1 * hold;
     // Ondes de lumière dans les rayons, à la hauteur des fronts qui écrivent les logos.
-    if (t > 4.2 && t < 5.6) { B.front = NX.env(t, 4.2, 4.3, 5.3, 5.6); B.frontR = NX.FRONT.hook(t) / 1080 / sky.zoom; }
-    else if (t > T.end - 0.5 && t < T.end + 1.1) { B.front = NX.env(t, T.end - 0.5, T.end - 0.4, T.end + 0.8, T.end + 1.1); B.frontR = NX.FRONT.end(t) / 1080 / sky.zoom; }
+    if (t > 4.2 && t < 5.6) { B.front = NX.env(t, 4.2, 4.3, 5.3, 5.6); B.frontR = NX.FRONT.hook(t) / NX.U / sky.zoom; }
+    else if (t > T.end - 0.5 && t < T.end + 1.1) { B.front = NX.env(t, T.end - 0.5, T.end - 0.4, T.end + 0.8, T.end + 1.1); B.frontR = NX.FRONT.end(t) / NX.U / sky.zoom; }
     // L'unique onde de choc du film : naissance de l'emblème (réfraction de la nébuleuse et anneau de poussière).
     let wave = null;
     const tw = t - T.emblem;
     if (tw >= 0 && tw <= 1.1 && this.C) {
       const p = seg(tw, 0, 1.1);
-      B.waveX = (this.C.x - 960) / 1080; B.waveY = (540 - this.C.y) / 1080;
+      B.waveX = (this.C.x - NX.W / 2) / NX.U; B.waveY = (NX.H / 2 - this.C.y) / NX.U;
       B.waveR = 0.05 + 0.95 * E.outCubic(p); B.waveS = 0.025 * (1 - p) * (1 - p);
       wave = { x: this.C.x, y: this.C.y, R: 60 + 1100 * E.outCubic(p), w: 40, gain: 2.5 };
     }

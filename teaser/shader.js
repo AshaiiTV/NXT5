@@ -30,7 +30,7 @@
   }
   float tri(float x){ return abs(fract(x)*2.-1.); } // replie le spectre sans saut
   void main(){
-    vec2 uv=(gl_FragCoord.xy-.5*uRes)/uRes.y;
+    vec2 uv=(gl_FragCoord.xy-.5*uRes)/min(uRes.x,uRes.y); // unité = petit côté : même échelle en 16:9 et en 9:16
     // Onde de choc : un anneau de réfraction déplace la nébuleuse et les rayons (unités écran centrées).
     if(uWave.w>0.0001){ vec2 dw=uv-uWave.xy; float rw=length(dw); uv+=dw/max(rw,1e-4)*exp(-pow((rw-uWave.z)/.05,2.))*uWave.w; }
     vec2 q=(uv-uCenter)/uZoom;

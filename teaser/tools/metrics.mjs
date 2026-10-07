@@ -7,7 +7,9 @@ import { execFileSync } from 'child_process';
 import { writeFileSync } from 'fs';
 const [video, ...rest] = process.argv.slice(2);
 if (!video) { console.log('usage : node tools/metrics.mjs VIDEO [--csv fichier]'); process.exit(1); }
-const W = 480, H = 270, FPS = 4;
+// Format lu sur la vidéo : 480×270 en 16:9, 270×480 en vertical (même nombre de points).
+const [vw, vh] = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', video]).toString().trim().split(',').map(Number);
+const W = vh > vw ? 270 : 480, H = vh > vw ? 480 : 270, FPS = 4;
 const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', video, '-vf', `fps=${FPS},scale=${W}:${H},format=gray`, '-f', 'rawvideo', '-pix_fmt', 'gray', '-'], { maxBuffer: 1 << 30 });
 const n = Math.floor(raw.length / (W * H)), rows = [];
 for (let k = 0; k < n; k++) {

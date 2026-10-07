@@ -306,7 +306,7 @@
         let k = P.s / SS, tx = FXL + OX * (1 - P.s) + P.dx, ty = FXT + OY * (1 - P.s) + P.dy, zb = P.zb;
         const lift = M72.LIFT * (1 - M72.grow(t)), cam = NX.camState;
         if (lift > 0 && cam) {
-          const ex = 960 + cam.x, ey = 540 + cam.y, pz = NX.cam.D - cam.z, Zw = ZR + P.zb, ke = (pz - Zw - lift) / (pz - Zw);
+          const ex = NX.W / 2 + cam.x, ey = NX.H / 2 + cam.y, pz = NX.cam.D - cam.z, Zw = ZR + P.zb, ke = (pz - Zw - lift) / (pz - Zw);
           tx = ex + (BL + tx - ex) * ke - BL; ty = ey + (BT + ty - ey) * ke - BT; k *= ke; zb += lift;
         }
         box.style.transform = `translate3d(${tx.toFixed(3)}px,${ty.toFixed(3)}px,${zb.toFixed(3)}px) scale(${k.toFixed(5)})`;

@@ -2,11 +2,14 @@
  * Chargé après engine.js et shader.js, avant les scènes. Tout est une fonction pure de t :
  * les seuls caches dépendent des images et de graines fixes, jamais du temps.
  *
- * Conventions de l'espace monde : x et y en px CSS comme la mise en page 1920×1080 (y vers le bas),
+ * Conventions de l'espace monde : x et y en px CSS comme la mise en page NX.W×NX.H (1920×1080, ou 1080×1920 en vertical ; y vers le bas),
  * z vers le spectateur (translateZ positif = plus près). La caméra regarde le plan z = 0 depuis D = 2000 px.
  * Résumé des API en fin de fichier et dans ENGINE.md. */
 (function () {
-  const W = 1920, H = 1080, OX = 960, OY = 540, D = 2000, RAD = Math.PI / 180;
+  const W = NX.W, H = NX.H, OX = W / 2, OY = H / 2, U = NX.U, D = 2000, RAD = Math.PI / 180;
+  /* Ciel : hauteur de la source des rayons, en unités U au-dessus du centre (16:9 : 0,6, soit 108 px au-dessus du bord haut).
+   * Lue par « ciel » (NX.bg.rayY) et par NX.sky.src. */
+  NX.SKY = { rayY: NX.V ? 0.99 : 0.6 };
 
   /* ====================================================================================
    * Pistes d'animation : Hermite cubique monotone (Fritsch–Carlson).
@@ -102,6 +105,9 @@
    * ==================================================================================== */
   NX.dust = (() => {
     const R = NX.rng(2024), FAR = [], NEAR = [];
+    // Le champ (dessiné pour 1920×1080) suit le cadre : en vertical il s'étire en hauteur et se resserre en largeur,
+    // même densité à l'écran et mêmes vitesses en px/s. En 16:9, KX = KY = 1 : calculs identiques.
+    const KX = W / 1920, KY = H / 1080;
     for (let i = 0; i < 900; i++) FAR.push({ x: -1400 + R() * 4700, y: -900 + R() * 2900, z: -2600 + R() * 2400, s: 0.8 + R() * 1.6, a: 0.25 + R() * 0.6, h: R(), ph: R() * 6.283, vx: (R() - 0.5) * 10, vy: -6 - R() * 12 });
     for (let i = 0; i < 12; i++) NEAR.push({ x: -300 + R() * 2500, y: -200 + R() * 1500, z: 900 + R() * 600, r: 30 + R() * 70, a: 0.025 + R() * 0.04, h: R(), vx: (R() - 0.5) * 16, vy: -4 - R() * 8 });
     const COLORS = ['#A5F3FC', '#C4B5FD', '#F0ABFC'];
@@ -118,13 +124,13 @@
       const { gain = 1, drift = 1, beam: beamK = 1, gusts = [], wave = null, near = 1, time = t * drift } = o;
       const c = NX.cam.at(t), b = NX.fxBack.ctx, f = NX.fx.ctx;
       b.save(); b.globalCompositeOperation = 'lighter';
-      const WW = 4700, HH = 2900;
+      const WW = 4700 * KX, HH = 2900 * KY, X0 = -1400 * KX, Y0 = -900 * KY;
       // Trois passes de couleur : peu de changements d'état, coût négligeable.
       for (let pass = 0; pass < 3; pass++) {
         b.fillStyle = COLORS[pass];
         for (const p of FAR) {
           const band = p.h < 0.55 ? 0 : p.h < 0.8 ? 1 : 2; if (band !== pass) continue;
-          let x = -1400 + ((p.x + 1400 + p.vx * time) % WW + WW) % WW, y = -900 + ((p.y + 900 + p.vy * time) % HH + HH) % HH;
+          let x = X0 + ((p.x * KX - X0 + p.vx * time) % WW + WW) % WW, y = Y0 + ((p.y * KY - Y0 + p.vy * time) % HH + HH) % HH;
           let { x: sx, y: sy, s } = NX.cam.project(x, y, p.z, c);
           for (const g of gusts) {
             if (t < g.t0) continue; const k = t - g.t0, dx = sx - g.x, dy = sy - g.y, r = Math.hypot(dx, dy) || 1;
@@ -145,7 +151,7 @@
       if (!sprites) sprites = makeSprites();
       f.save(); f.globalCompositeOperation = 'lighter';
       for (const p of NEAR) {
-        const { x: sx, y: sy, s } = NX.cam.project(p.x + p.vx * t, p.y + p.vy * t, p.z, c), r = p.r * s;
+        const { x: sx, y: sy, s } = NX.cam.project(p.x * KX + p.vx * t, p.y * KY + p.vy * t, p.z, c), r = p.r * s;
         if (sx + r < 0 || sx - r > W || sy + r < 0 || sy - r > H) continue;
         f.globalAlpha = Math.min(0.065, p.a) * near;
         f.drawImage(sprites[Math.min(3, Math.floor(p.h * 4))], sx - r, sy - r, 2 * r, 2 * r);
@@ -182,8 +188,8 @@
         const g = c.createRadialGradient(0, 0, 0, 0, 0, 1); for (const [o, col] of stops) g.addColorStop(o, col);
         c.fillStyle = g; c.fillRect(-1, -1, 2, 2);
       };
-      ell(W * 0.55 * width, 34, [[0, `rgba(170,240,255,${0.42 * k})`], [0.3, `rgba(${tint},${0.16 * k})`], [1, 'rgba(0,0,0,0)']]);
-      ell(W * 0.85 * width, 2.4, [[0, `rgba(255,255,255,${0.95 * k})`], [0.12, `rgba(190,245,255,${0.75 * k})`], [0.45, `rgba(129,140,248,${0.28 * k})`], [1, 'rgba(0,0,0,0)']]);
+      ell(1920 * 0.55 * width, 34, [[0, `rgba(170,240,255,${0.42 * k})`], [0.3, `rgba(${tint},${0.16 * k})`], [1, 'rgba(0,0,0,0)']]);
+      ell(1920 * 0.85 * width, 2.4, [[0, `rgba(255,255,255,${0.95 * k})`], [0.12, `rgba(190,245,255,${0.75 * k})`], [0.45, `rgba(129,140,248,${0.28 * k})`], [1, 'rgba(0,0,0,0)']]);
       c.restore();
       NX.lk.glow(x, y, 120, [235, 252, 255], 0.75 * k);
       if (ghosts) {
@@ -468,11 +474,11 @@
       const c = NX.cam.at(t);
       return {
         zoom: (1 + 0.10 * NX.smooth(0, NX.DURATION, t)) * (1 + 0.00008 * c.z),
-        cx: -1.85 * Math.tan(c.yaw * RAD) - 0.18 * c.x / 1080,
-        cy: -1.85 * Math.tan(c.pitch * RAD) + 0.18 * c.y / 1080,
+        cx: -1.85 * Math.tan(c.yaw * RAD) - 0.18 * c.x / U,
+        cy: -1.85 * Math.tan(c.pitch * RAD) + 0.18 * c.y / U,
       };
     },
-    src(t) { const s = NX.sky.at(t); return { x: OX + 1080 * s.cx, y: OY - 1080 * (s.cy + 0.6 * s.zoom), zoom: s.zoom }; },
+    src(t) { const s = NX.sky.at(t); return { x: OX + U * s.cx, y: OY - U * (s.cy + NX.SKY.rayY * s.zoom), zoom: s.zoom }; },
   };
 
   /* ====================================================================================

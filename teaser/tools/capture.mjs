@@ -3,6 +3,7 @@
  *   node tools/capture.mjs stills --times 1.5,2,3.25 [--only id] --out out/dir
  *   node tools/capture.mjs frames --fps 30 --sub 4 --workers 4 [--from 0 --to 32.4] [--resume 1] --out out/frames
  *   node tools/capture.mjs audio  --out out/soundtrack.wav
+ * Format vertical 9:16 (1080×1920) : --format v, ou la variable NX_FORMAT=v (pratique pour render.sh et clip.sh).
  * Les erreurs console de la page sont affichées (préfixe [page]). */
 import { chromium } from 'playwright-core';
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs';
@@ -17,13 +18,14 @@ const EXE = process.env.CHROME_PATH || [
 ].find(p => existsSync(p));
 const [, , mode, ...rest] = process.argv;
 const opt = {}; for (let i = 0; i < rest.length; i += 2) opt[rest[i].replace(/^--/, '')] = rest[i + 1];
+const V = (opt.format || process.env.NX_FORMAT || 'h') === 'v', VW = V ? 1080 : 1920, VH = V ? 1920 : 1080;
 
 async function openPage(browser) {
-  const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
+  const context = await browser.newContext({ viewport: { width: VW, height: VH } });
   const page = await context.newPage();
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log('[page]', m.text()); });
   page.on('pageerror', e => console.log('[page error]', e.message));
-  const q = new URLSearchParams({ capture: '1' }); if (opt.only) q.set('only', opt.only);
+  const q = new URLSearchParams({ capture: '1' }); if (opt.only) q.set('only', opt.only); if (V) q.set('format', 'v');
   await page.goto(`file://${ROOT}/index.html?${q}`);
   await page.waitForFunction(() => window.NXready === true, null, { timeout: 60000 });
   // Capture directe par le protocole de Chrome : pixels identiques à page.screenshot, environ 2,7 fois plus rapide.
@@ -53,7 +55,7 @@ if (mode === 'stills' || mode === 'sheet') {
   } else {
     const shots = [];
     for (const t of times) { await renderAt(page, t); shots.push({ t, b64: (await page.grab(null, 'jpeg')).toString('base64') }); }
-    const cols = +(opt.cols || 4), w = 480, h = 270, rows = Math.ceil(shots.length / cols);
+    const cols = +(opt.cols || 4), w = V ? 270 : 480, h = V ? 480 : 270, rows = Math.ceil(shots.length / cols);
     const sheet = await browser.newPage({ viewport: { width: cols * w + (cols + 1) * 6, height: rows * (h + 26) + 6 } });
     await sheet.setContent(`<body style="margin:0;background:#111;display:grid;grid-template-columns:repeat(${cols},${w}px);gap:6px;padding:6px;font:600 14px sans-serif;color:#ddd">${shots.map(s => `<div><img src="data:image/jpeg;base64,${s.b64}" width="${w}" height="${h}" style="display:block"><div style="height:20px;padding-top:2px">t = ${s.t.toFixed(2)} s</div></div>`).join('')}</body>`);
     mkdirSync(dirname(opt.out), { recursive: true });
