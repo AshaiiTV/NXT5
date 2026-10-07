@@ -81,14 +81,11 @@ describe("progressive game reading", () => {
     expect(renderer.root.findAllByType(GameSummaryPanel)).toHaveLength(0);
   });
 
-  it("keeps the next action available without opening details and retains the linked review routes", () => {
+  it("keeps the game review action available without opening details", () => {
     const renderer = render();
     const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Préparer le débrief");
     act(() => prepare.props.onClick());
     expect(openAppPath).toHaveBeenCalledWith("/rapports?match=game%2F1&compose=1");
-    const all = renderer.root.findAllByType(Button).find((node) => node.props.children === "Tous les débriefs");
-    act(() => all.props.onClick());
-    expect(openAppPath).toHaveBeenLastCalledWith("/rapports");
     const onReview = vi.fn();
     act(() => renderer.update(<MatchDataPanel match={game()} onReview={onReview} hasReview />));
     const existing = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ouvrir le débrief");

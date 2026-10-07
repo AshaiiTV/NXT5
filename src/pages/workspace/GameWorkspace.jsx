@@ -1230,7 +1230,6 @@ function MatchCoachBrief({ match, onReview, hasReview = false }) {
     <div className="games-brief-followup">
       <div><p>Le débrief d’équipe (review) rassemble tes notes et les décisions pour la prochaine session.</p></div>
       <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? "Ouvrir le débrief" : "Préparer le débrief"}</Button>
-      <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath("/rapports")}>Tous les débriefs</Button>
     </div>
   </section>;
 }
