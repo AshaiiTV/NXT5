@@ -1,5 +1,5 @@
 import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } from "../../utils/statistics.js";
-import { canonicalChampion as championAssetId, championNameKey as championKey, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
+import { canonicalChampion as championAssetId, championNameKey as championKey, championDisplayName, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
 import { DDRAGON_FALLBACK_VERSIONS, championPortraitUrls, itemIconUrls } from "../../../shared/riot-assets.js";
 import { normalizeRole as normalizeProfileRole } from "../../../shared/roles.js";
 import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
@@ -46,34 +46,6 @@ const ALL_CHAMPION_STYLE_TAGS = {
   ...ADDITIONAL_CHAMPION_STYLE_TAGS,
 };
 
-
-function championDisplayName(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  const names = {
-    AurelionSol: "Aurelion Sol",
-    Chogath: "Cho'Gath",
-    DrMundo: "Dr. Mundo",
-    JarvanIV: "Jarvan IV",
-    Kaisa: "Kai'Sa",
-    Khazix: "Kha'Zix",
-    KogMaw: "Kog'Maw",
-    KSante: "K'Sante",
-    Leblanc: "LeBlanc",
-    LeeSin: "Lee Sin",
-    MasterYi: "Master Yi",
-    MissFortune: "Miss Fortune",
-    MonkeyKing: "Wukong",
-    Nunu: "Nunu & Willump",
-    RekSai: "Rek'Sai",
-    TahmKench: "Tahm Kench",
-    TwistedFate: "Twisted Fate",
-    Velkoz: "Vel'Koz",
-    XinZhao: "Xin Zhao",
-  };
-  const asset = championAssetId(raw);
-  return names[asset] || raw.replace(/([a-z])([A-Z])/g, "$1 $2");
-}
 
 function compositionIdentity(picks) {
   const tagCounts = new Map();
