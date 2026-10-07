@@ -3,7 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
-import { Button } from "../components/ui/Core.jsx";
+import { Button, ReadingDetails } from "../components/ui/Core.jsx";
 import { reviewDrafts } from "../utils/review-drafts.js";
 import { Reports, ReportPreview, buildRetroactiveCoachContent, buildGameReviewContent, stripGeneratedReportContent, REPORT_REWRITE_MARKER, matchPlayerCoachReads } from "../pages/workspace/GameWorkspace.jsx";
 
@@ -24,8 +24,8 @@ beforeEach(() => {
   vi.stubGlobal("document", { body: { style: {} }, documentElement: { style: {} }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
 });
 afterEach(() => { cleanups.splice(0).forEach((fn) => fn()); reviewDrafts.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
-async function mount({ reports = [], matches = [] } = {}) {
-  const props = { data: { reports, matches }, selectedTeamId: "team", currentMember: { role: "player" }, user: { id: "user" }, refreshAll: vi.fn(), pushToast: vi.fn() };
+async function mount({ reports = [], matches = [], matchArchives = [] } = {}) {
+  const props = { data: { reports, matches, matchArchives }, selectedTeamId: "team", currentMember: { role: "player" }, user: { id: "user" }, refreshAll: vi.fn(), pushToast: vi.fn() };
   let renderer;
   await act(async () => { renderer = TestRenderer.create(<Reports {...props} />); });
   cleanups.push(() => act(() => renderer.unmount()));
@@ -79,11 +79,36 @@ describe("complete automatic coaching", () => {
   it("hides the internal generated marker in the rendered review", () => {
     const html = renderToStaticMarkup(<ReportPreview content={buildGameReviewContent(game("one"))} rows={[]} />);
     expect(html).not.toContain(REPORT_REWRITE_MARKER);
-    expect(html).toContain("Notes staff");
+    expect(html).toContain("Notes de l’équipe");
+    expect(html).toContain("Aucune observation enregistrée");
+    expect(html).toContain("Analyse automatique des parties");
+  });
+  it("puts staff decisions before generated analysis without hiding legacy corrections", () => {
+    const content = buildRetroactiveCoachContent({ content: "Décision collective à conserver", match_ids: ["one"] }, [game("one")]);
+    const html = renderToStaticMarkup(<ReportPreview content={content} rows={[]} />);
+    expect(html.indexOf("Décision collective à conserver")).toBeLessThan(html.indexOf("<details"));
+    expect(html.indexOf("VERDICT COACH")).toBeGreaterThan(html.indexOf("<details"));
+    expect(html).not.toContain("open=\"\"");
+    const legacy = renderToStaticMarkup(<ReportPreview content={"VERDICT COACH\nCorrection du staff\n[NXT5_REPORT_V2]\nNotes staff\nSuite des notes"} rows={[]} />);
+    expect(legacy).not.toContain("<details");
+    expect(legacy).toContain("Correction du staff");
+    expect(legacy).toContain("Suite des notes");
   });
 });
 
 describe("automatic reviews in the workspace", () => {
+  it("keeps the library open through an empty group filter and closes only on report selection", async () => {
+    const renderer = await mount({ reports: [{ id: "saved", team_id: "team", title: "Décisions", content: "Notes", match_ids: [] }], matchArchives: [{ id: "empty", team_id: "team", name: "Sans débrief", match_ids: ["missing"] }] });
+    const library = () => renderer.root.findAllByType(ReadingDetails).find((node) => node.props.title === "Choisir un débrief");
+    expect(library().props.open).toBe(false);
+    act(() => library().props.onToggle({ currentTarget: { open: true } }));
+    act(() => renderer.root.findByType("select").props.onChange({ target: { value: "empty" } }));
+    expect(library().props.open).toBe(true);
+    act(() => renderer.root.findByType("select").props.onChange({ target: { value: "" } }));
+    expect(library().props.open).toBe(true);
+    act(() => renderer.root.findAllByType("button").find((node) => node.props["aria-current"] === "true").props.onClick());
+    expect(library().props.open).toBe(false);
+  });
   it("loads old reviews outside the match page and enriches them for a read-only member without writing", async () => {
     const requests = [];
     apiFetch.mockImplementation((_path, options) => new Promise((resolve) => requests.push({ resolve, ids: JSON.parse(options.body).matchIds })));

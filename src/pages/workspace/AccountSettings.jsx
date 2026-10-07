@@ -142,9 +142,9 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
 
   return <div className="nxt5-account-settings nxt5-data-dense min-w-0">
     <PageHeader eyebrow="Ton compte" title="Paramètres" subtitle="Gère tes informations, tes moyens de connexion et les e-mails que tu reçois." />
-    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,.95fr)_minmax(0,1.05fr)]">
+    <div className="nxt5-account-sections">
       <Surface className="p-5">
-        <div className="flex items-start justify-between gap-3"><div><Badge tone="cyan">Identité</Badge><h3 className="mt-3 text-xl font-semibold text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
+        <div className="flex items-start justify-between gap-3"><div><h3 className="text-xl font-semibold text-white">Pseudo et e-mail</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
         {user?.email && (user?.email_verified ? <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100"><Check className="h-4 w-4" />E-mail vérifié</div> : <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Ton e-mail n’est pas vérifié.</p><p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">Les notifications sont désactivées jusqu'à validation de ton adresse.</p></div><Button type="button" variant="ghost" icon={resendingVerify ? Loader2 : Mail} onClick={resendVerificationEmail} disabled={resendingVerify}>{resendingVerify ? "Envoi..." : "Renvoyer l'email de vérification"}</Button></div></div>)}
         <form onSubmit={saveProfile} className="mt-5 space-y-4">
           <TextInput label="Pseudo" value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder="Ton pseudo NXT5" required icon={UserPlus} />
@@ -156,12 +156,12 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
       </Surface>
 
       <Surface className="p-5">
-        <div className="flex items-start justify-between gap-3"><div><Badge tone="purple">Sécurité</Badge><h3 className="mt-3 text-xl font-semibold text-white">Mot de passe</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">{hasPassword === false ? "Ajoute un mot de passe pour te connecter aussi avec ton e-mail et gérer les informations sensibles de ton compte." : "Le mot de passe utilisé pour te connecter avec ton e-mail NXT5."}</p></div><Shield className="h-5 w-5 shrink-0 text-violet-200" /></div>
+        {hasPassword !== true && <div className="flex items-start justify-between gap-3"><div><h3 className="text-xl font-semibold text-white">Sécurité du compte</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">{hasPassword === false ? "Ajoute un mot de passe pour te connecter aussi avec ton e-mail et gérer les informations sensibles de ton compte." : "Le mot de passe utilisé pour te connecter avec ton e-mail NXT5."}</p></div><Shield className="h-5 w-5 shrink-0 text-violet-200" /></div>}
         {hasPassword === null ? <p className="mt-5 text-sm text-slate-300" role="status">{securityUnavailable ? "Options de sécurité indisponibles. Réessaie depuis la section Connexions associées ci-dessous." : "Chargement des options de sécurité…"}</p> : hasPassword === false ? <div className="mt-5 space-y-4">
           <p className="text-sm leading-6 text-slate-300">Le lien reçu par e-mail permet de définir ton mot de passe. Tu devras ensuite te reconnecter et associer à nouveau tes comptes externes.</p>
           {passwordLinkSent && <p className="text-sm leading-6 text-cyan-100" role="status">La demande a été envoyée. Consulte ta boîte e-mail, y compris les indésirables.</p>}
           <Button type="button" onClick={requestFirstPassword} disabled={savingPassword || !user?.email} icon={savingPassword ? Loader2 : Mail}>{savingPassword ? "Envoi…" : passwordLinkSent ? "Renvoyer le lien" : "Recevoir un lien pour créer mon mot de passe"}</Button>
-        </div> : <details className="nxt5-account-disclosure mt-5">
+        </div> : <details className="nxt5-account-disclosure">
           <summary><span>Changer mon mot de passe</span><ChevronDown aria-hidden="true" size={18} /></summary>
           <form onSubmit={savePassword} className="mt-4 space-y-4">
           <p className="text-sm leading-6 text-slate-300">Choisis un mot de passe différent de l’actuel, avec au moins 8 caractères.</p>
@@ -175,7 +175,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
 
       <SocialAccounts key={user?.id} onStatus={(status) => { setHasPassword(status.hasPassword); setSecurityUnavailable(Boolean(status.error)); }} />
 
-      <Surface className="p-5 xl:col-span-2">
+      <Surface className="p-5">
         <details className="nxt5-account-disclosure">
           <summary><span><span className="nxt5-account-disclosure-title">Affichage sur cet appareil</span><span className="nxt5-account-disclosure-hint">{visualMode === "low" ? "Mode performance activé" : "Rendu complet activé"}</span></span><ChevronDown aria-hidden="true" size={18} /></summary>
           <p className="mt-3 text-sm leading-6 text-slate-300">Si le site manque de fluidité, réduis les effets visuels. Ce choix s’applique uniquement à cet appareil.</p>
@@ -191,11 +191,10 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
         </details>
       </Surface>
 
-      <Surface className="p-5 xl:col-span-2">
+      <Surface className="p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <Badge tone="purple">Notifications</Badge>
-            <h3 className="mt-3 text-xl font-semibold text-white">E-mails NXT5</h3>
+            <h3 className="text-xl font-semibold text-white">E-mails NXT5</h3>
             <p className="mt-2 text-sm font-normal leading-6 text-slate-300">Choisis les alertes envoyées sur ton adresse vérifiée.</p>
           </div>
           {savingNotifications && <Badge tone="cyan">Enregistrement...</Badge>}

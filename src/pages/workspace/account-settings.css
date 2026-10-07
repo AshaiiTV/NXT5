@@ -1,5 +1,9 @@
-.nxt5-account-settings { display: grid; gap: 1.25rem; }
+.nxt5-account-settings { display: grid; gap: 1.25rem; max-width: 960px; margin-inline: auto; }
 .nxt5-account-settings > .nxt5-page-header { margin-bottom: 0; }
+.nxt5-account-sections { display: flex; flex-direction: column; gap: 1.25rem; }
+.nxt5-account-sections > * { min-width: 0; }
+.nxt5-account-sections p { max-width: 68ch; }
+.nxt5-account-sections form { max-width: 680px; }
 .nxt5-account-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 44px; cursor: pointer; list-style: none; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-weight: 600; }
 .nxt5-account-disclosure > summary::-webkit-details-marker { display: none; }
 .nxt5-account-disclosure > summary > svg { flex-shrink: 0; }

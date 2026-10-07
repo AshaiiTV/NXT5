@@ -17,6 +17,7 @@ async function render(element = <AudiencePage />) {
   return renderer;
 }
 const text = (renderer) => JSON.stringify(renderer.toJSON());
+const nodeText = (node) => typeof node === "string" ? node : (node?.children || []).map(nodeText).join("");
 const button = (renderer, label) => renderer.root.findAllByType(Button).find((node) => node.props.children === label || node.props["aria-label"] === label);
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 
@@ -33,6 +34,26 @@ describe("audience dashboard", () => {
     expect(text(renderer)).toContain("Un navigateur n’est pas une personne");
     expect(text(renderer)).toContain("Compte créé");
     expect(text(renderer)).toContain("UTC");
+    expect(button(renderer, "Exporter CSV").props.disabled).toBe(false);
+  });
+
+  it("keeps the overview readable while retaining every optional report section", async () => {
+    apiFetch.mockResolvedValueOnce(result());
+    const renderer = await render();
+    const details = renderer.root.findAllByType("details").filter((node) => node.props.className.includes("audience-reading-details"));
+    expect(details).toHaveLength(3);
+    expect(details.every((node) => node.props.open === undefined)).toBe(true);
+    expect(details.map((node) => nodeText(node.findByType("summary")))).toEqual(expect.arrayContaining([
+      expect.stringContaining("L’engagement et les conversions"),
+      expect.stringContaining("Les sources des visites"),
+      expect.stringContaining("Les appareils, lieux et horaires"),
+    ]));
+    expect(details[0].findAllByProps({ className: "audience-engagement" })).toHaveLength(1);
+    expect(details[1].findAllByProps({ className: "audience-ranking" })).toHaveLength(1);
+    expect(details[2].findAllByProps({ className: "audience-heatmap" })).toHaveLength(1);
+    expect(details.flatMap((node) => node.findAllByType(AudienceChart))).toHaveLength(0);
+    expect(details.flatMap((node) => node.findAllByProps({ "aria-label": "Classement des pages" }))).toHaveLength(0);
+    expect(details.flatMap((node) => node.findAllByProps({ role: "alert" }))).toHaveLength(0);
     expect(button(renderer, "Exporter CSV").props.disabled).toBe(false);
   });
 

@@ -44,6 +44,14 @@ export function Button({ children, icon: Icon, variant = "primary", className = 
   );
 }
 
+// Native disclosure keeps forms and their state mounted when secondary content is closed.
+export function ReadingDetails({ title, description, children, className = "", ...props }) {
+  return <details {...props} className={cx("nxt5-reading-details", className)}>
+    <summary><span><strong>{title}</strong>{description && <span>{description}</span>}</span><ChevronDown aria-hidden="true" /></summary>
+    <div className="nxt5-reading-details-body">{children}</div>
+  </details>;
+}
+
 export function TabNav({ items, activeId, onChange, label = "Sous-navigation", className = "", columns = "", idPrefix, panelId }) {
   const generatedId = useId();
   const prefix = idPrefix || generatedId;

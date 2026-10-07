@@ -497,7 +497,7 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
     <div className="mt-3"><SelectInput label={`Champion · ${role}`} value={availableRows.some((row) => row.id === slot.poolId) ? slot.poolId : ""} disabled={!availableRows.length} onChange={(poolId) => { const row = availableRows.find((item) => item.id === poolId); onChange(role, { playerId: row?.player_id || player?.id || "", poolId }); }}><option value="">{availableRows.length ? "Choisir un champion" : "Aucun champion déclaré"}</option>{CHAMPION_TIERS.map((tier) => { const items = availableRows.filter((row) => championPoolStatus(row) === tier.id); return items.length ? <optgroup key={tier.id} label={POOL_TIER_LABELS[tier.id]}>{items.map((row) => <option key={row.id} value={row.id}>{championDisplayName(row.champion)}</option>)}</optgroup> : null; })}</SelectInput></div>
     <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("nxt5-composition-drop relative mt-3 rounded-[10px] border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "is-empty border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
       <div className={cx("relative flex h-full min-h-[136px] flex-col", pick ? "justify-end" : "justify-center")}>
-        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="break-words text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 break-words text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="nxt5-composition-choice mt-3 border border-white/10 bg-black/35 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Retirer le champion</button></div> : <div className="flex h-full flex-col items-center justify-center text-center"><Sparkles className="h-5 w-5 text-cyan-100/70" /><p className="mt-3 text-sm font-semibold text-white">{availableRows.length ? "Un champion à choisir" : "Liste de champions à préparer"}</p><p className="mt-1 text-sm leading-6 text-slate-300">{availableRows.length ? "Utilise la liste au-dessus ou les portraits plus bas." : `Ajoute les champions de ${player?.name || "ce joueur"} dans l’onglet Champions des joueurs.`}</p></div>}
+        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="break-words text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 break-words text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => tagLabel(tag)).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="nxt5-composition-choice mt-3 border border-white/10 bg-black/35 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">Retirer le champion</button></div> : <p className="nxt5-composition-help">{availableRows.length ? "Ou glisse un champion ici depuis les portraits." : `Prépare les champions de ${player?.name || "ce joueur"} dans l’onglet Champions des joueurs.`}</p>}
       </div>
     </div>
   </div>;
@@ -657,7 +657,7 @@ function CompositionSummaryStrip({ players, rows, compositions, formPicks }) {
     ["Compositions", compositions.length, "Enregistrées"],
     ["Composition en cours", `${formPicks.length}/5`, "Champions choisis"],
   ];
-  return <div className="nxt5-composition-summary">{items.map(([label, value, detail]) => <div key={label}><p className="text-xs font-semibold text-slate-400">{label}</p><div className="mt-1 flex items-end justify-between gap-3"><span className="text-xl font-black text-white">{value}</span><span className="break-words text-xs font-semibold text-cyan-100/75">{detail}</span></div></div>)}</div>;
+  return <dl className="nxt5-composition-summary" aria-label="Repères de préparation">{items.map(([label, value, detail]) => <div key={label}><dt>{label}</dt><dd><strong>{value}</strong><span>{detail}</span></dd></div>)}</dl>;
 }
 
 function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
@@ -741,19 +741,9 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
   const formIdentity = compositionIdentity(formPicks);
   return (
     <div className="nxt5-data-dense nxt5-compositions-page min-w-0 overflow-hidden">
-      <PageHeader eyebrow="Draft · Choisir les champions" title="Préparer une composition" subtitle="Associe un champion à chaque rôle, puis garde votre plan de jeu. Les choix proposés viennent des listes de champions des joueurs.">
+      <PageHeader eyebrow="Draft · Choisir les champions" title="Préparer une composition" subtitle="Nomme la composition, choisis les cinq champions, puis enregistre votre plan de jeu.">
         {compositions.length > 0 && <a href="#nxt5-saved-compositions" className="nxt5-composition-jump">Voir les compositions enregistrées</a>}
-        <Button type="button" variant="ghost" icon={BookOpen} aria-expanded={showTagLexicon} onClick={() => setShowTagLexicon((open) => !open)}>
-          Comprendre les styles de jeu
-          <ChevronDown className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} />
-        </Button>
       </PageHeader>
-
-      <CompositionSummaryStrip players={players} rows={rows} compositions={compositions} formPicks={formPicks} />
-
-      <React.Fragment>
-        <CompositionTagLexicon open={showTagLexicon} />
-      </React.Fragment>
 
       {players.length ? (
         <form onSubmit={saveComposition} className="mt-4">
@@ -761,11 +751,10 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-semibold text-cyan-100">Cinq rôles</span>
                   <Badge tone={mastery.tone}>{mastery.label}</Badge>
                 </div>
                 <h3 className="mt-3 text-2xl font-black text-white">{form.id ? "Modifier la composition" : "Nouvelle composition"}</h3>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Nomme la composition, puis choisis un champion dans la liste de chaque rôle. Tu peux aussi parcourir les portraits plus bas.</p>
+                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Les choix proposés viennent des champions déclarés par les joueurs.</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 {form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>Annuler</Button>}
@@ -813,6 +802,16 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
           </Surface>
         </form>
       ) : <Surface><EmptyState icon={Users} title="Ajoutez d’abord les joueurs" text="Les profils TOP, JGL, MID, ADC et SUP permettent d’attribuer les champions à chaque rôle." /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>Voir mon équipe</Button></div></Surface>}
+
+      <CompositionSummaryStrip players={players} rows={rows} compositions={compositions} formPicks={formPicks} />
+
+      <div className="nxt5-composition-reading-help">
+        <Button type="button" variant="ghost" icon={BookOpen} aria-expanded={showTagLexicon} aria-controls="composition-style-lexicon" onClick={() => setShowTagLexicon((open) => !open)}>
+          Comprendre les styles de jeu
+          <ChevronDown aria-hidden="true" className={cx("h-4 w-4 transition", showTagLexicon && "rotate-180")} />
+        </Button>
+        <div id="composition-style-lexicon"><CompositionTagLexicon open={showTagLexicon} /></div>
+      </div>
 
       <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>

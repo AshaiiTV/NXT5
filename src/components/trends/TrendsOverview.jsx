@@ -30,11 +30,9 @@ export function TrendNavigation({ items, activeId, onChange }) {
 export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenSources, onObjectives }) {
   const open = (item) => onOpenSources({ title: item.label || item.title, subtitle: item.title, games: item.sourceGames });
   return <div className="trends-overview">
-    <header className="trends-overview-intro"><h3>Le point de départ du débrief</h3><p>Commence par une piste, vérifie les parties concernées, puis choisis une consigne pour la prochaine session.</p></header>
-
     <Surface className="trends-priority-surface"><section className="trends-priority" aria-labelledby="trend-priority-title">
-      <div><p className="trends-eyebrow"><Target aria-hidden="true" /> Piste proposée · à confirmer</p><h3 id="trend-priority-title">{analysisCopy(objective.title)}</h3><p className="trends-copy">{analysisCopy(objective.why)}</p><button type="button" className="trends-text-action" onClick={() => onOpenSources({ title: "Parties liées à cet objectif", subtitle: objective.title, games: objective.sourceGames })}><FileText aria-hidden="true" /> Vérifier les parties concernées</button></div>
-      <div className="trends-priority-target"><p className="trends-eyebrow">Préparer la suite</p><strong>Transformer ce constat en consignes</strong><p>Retrouve les cibles de l’équipe et de chaque joueur dans Objectifs.</p><Button type="button" variant="ghost" icon={ArrowRight} onClick={onObjectives}>Voir les objectifs par rôle</Button></div>
+      <div><p className="trends-eyebrow"><Target aria-hidden="true" /> À vérifier en débrief</p><h3 id="trend-priority-title">{analysisCopy(objective.title)}</h3><p className="trends-copy">{analysisCopy(objective.why)}</p><Button type="button" className="trends-priority-action" icon={FileText} onClick={() => onOpenSources({ title: "Parties liées à cet objectif", subtitle: objective.title, games: objective.sourceGames })}>Vérifier les parties concernées</Button></div>
+      <div className="trends-priority-target"><p>Après vérification, choisis une consigne pour la prochaine session.</p><button type="button" className="trends-text-action" onClick={onObjectives}>Voir les objectifs par rôle <ArrowRight aria-hidden="true" /></button></div>
     </section></Surface>
 
     <Surface className="trends-plan-surface"><details className="trends-secondary-disclosure">
@@ -56,7 +54,7 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
       </div>
     </details></Surface>
 
-    <Surface className="trends-review-surface"><section aria-labelledby="trend-review-title"><div className="trends-section-heading"><div><h3 id="trend-review-title">Approfondir un point du débrief</h3><p>Ouvre seulement les sujets utiles à la discussion. Chaque constat renvoie aux parties concernées.</p></div></div>
+    <Surface className="trends-review-surface"><section aria-labelledby="trend-review-title"><div className="trends-section-heading"><h3 id="trend-review-title">Autres pistes pour le débrief</h3></div>
       <div className="trends-review-list">{briefs.filter((brief) => !["Bilan", "Plan de jeu"].includes(brief.label)).map((brief) => <details key={brief.label}><summary><span className="trends-eyebrow">{analysisCopy(brief.label)}</span><strong>{analysisCopy(brief.title)}</strong><span>{brief.sourceGames?.length || 0} parties</span></summary><div className="trends-review-content"><p>{analysisCopy(brief.text, { csComparison: true })}</p>{brief.evidence?.length > 0 && <ul>{[...new Set(brief.evidence)].map((item) => <li key={item}>{analysisCopy(item, { csComparison: true })}</li>)}</ul>}<button type="button" className="trends-text-action" onClick={() => open(brief)}><FileText aria-hidden="true" /> Voir les parties sources</button></div></details>)}</div>
       {alerts.length > 0 && <details className="trends-alerts trends-secondary-disclosure"><summary><strong>Autres points de vigilance</strong><span>{Math.min(alerts.length, 3)}</span></summary>{alerts.slice(0, 3).map((alert) => <article key={alert.title}><alert.icon aria-hidden="true" /><div><h5>{analysisCopy(alert.title)}</h5><p>{analysisCopy(alert.text)}</p><p>{analysisCopy(alert.action)}</p></div></article>)}</details>}
     </section></Surface>

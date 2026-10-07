@@ -6,6 +6,9 @@
 .nxt5-guide-mobile-label { display: none; }
 .nxt5-guide-content { max-width: var(--nxt5-reading-width); margin-inline: auto; }
 .nxt5-guide-content p { font-size: var(--nxt5-font-body); line-height: 1.8; overflow-wrap: anywhere; }
+.nxt5-guide-section-heading { display: flex; align-items: baseline; gap: .75rem; line-height: 1.4; }
+.nxt5-guide-section-heading span { min-width: 0; overflow-wrap: anywhere; }
+.nxt5-guide-actions { align-items: stretch; }
 .nxt5-guide-vocabulary { margin-top: 2rem; border-top: 1px solid var(--nxt5-border); }
 .nxt5-guide-vocabulary summary { min-height: 48px; padding-block: .875rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); font-weight: 600; line-height: 1.6; cursor: pointer; }
 .nxt5-guide-vocabulary dl { display: grid; gap: 1rem; margin-top: .5rem; }
@@ -17,4 +20,7 @@
  .nxt5-guide-menu { display: none; }
  .nxt5-guide-mobile-label { display: grid; gap: .5rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); font-weight: 600; }
  .nxt5-guide-mobile-label select { width: 100%; min-height: 48px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-bg); color: var(--nxt5-text); padding: .625rem .75rem; font-size: 1rem; }
+}
+@media (max-width: 480px) {
+ .nxt5-guide-actions button { width: 100%; }
 }

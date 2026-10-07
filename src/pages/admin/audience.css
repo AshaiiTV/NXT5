@@ -4,6 +4,7 @@
 .audience-dashboard :where(p, h3, h4) { margin: 0; }
 .audience-dashboard :where(.audience-content, .audience-section, .audience-section > div, .audience-main-grid > *, .audience-two-columns > *, .audience-breakdown) { min-width: 0; }
 .audience-dashboard .audience-content { display: flex; flex-direction: column; gap: 1.25rem; }
+.audience-dashboard .audience-reading-details .audience-section + .audience-section { margin-top: 1.25rem; }
 .audience-dashboard .audience-section.nxt5-panel { padding: 1.25rem; background: var(--nxt5-surface); border-color: var(--nxt5-border); }
 .audience-dashboard .audience-section::before, .audience-dashboard .audience-section::after { display: none; }
 .audience-dashboard .audience-section-heading { display: flex; align-items: start; justify-content: space-between; gap: 1rem; margin-bottom: 1.3rem; }

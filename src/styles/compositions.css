@@ -38,7 +38,7 @@
 }
 
 .nxt5-composition-summary {
-  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
   padding: 1rem 0;
   border-block: 1px solid var(--nxt5-border);
   font-variant-numeric: tabular-nums;
@@ -48,15 +48,17 @@
   min-width: 0;
 }
 
+.nxt5-composition-summary dt,
+.nxt5-composition-summary dd span { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
+.nxt5-composition-summary dd { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; margin-top: .25rem; }
+.nxt5-composition-summary dd strong { color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 650; }
+.nxt5-composition-reading-help { margin-top: 1rem; }
+
 @container compositions (max-width: 600px) {
   .nxt5-composition-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .nxt5-composition-summary > div > div {
-    flex-wrap: wrap;
-    gap: 0.25rem 0.5rem;
-  }
 }
 
 .nxt5-composition-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 5.5rem), 1fr)); gap: 10px; }
