@@ -19,10 +19,10 @@ const out = await p.evaluate(() => {
   // Boîtes de contenu (monde) et leurs fenêtres d'affichage.
   // v7.1 : fenêtres lues sur NX.T (rôles en transition, quatre outils).
   const T = NX.T, D = NX.DURATION, P = G.pent, sq = G.roles.tile * P.scale / 2;
-  const pentBox = (() => { const xs = [], ys = []; P.deg.forEach(a => { const r = a * Math.PI / 180; xs.push(P.c[0] + P.r * Math.cos(r)); ys.push(P.c[1] - P.r * Math.sin(r)); });
+  const pentBox = (() => { const xs = [], ys = []; P.deg.forEach(a => { const r = a * Math.PI / 180; xs.push(P.c[0] + P.r * Math.cos(r)); ys.push(P.c[1] + P.r * Math.sin(r)); });  // y vers le bas, Mid en haut (equipe.js)
     return [Math.min(...xs) - sq, Math.min(...ys) - sq, Math.max(...xs) + sq, Math.max(...ys) + sq, 0]; })();
   const boxes = [
-    ['question', 0, T.hookEnd, [960 - 673, G.hook.top, 960 + 673, G.hook.top + 310, 0], true],
+    ['question', 0, T.hookEnd, [960 - 664, 350, 960 + 664, 662, 0], true],   // trois lignes, haut monde 350 (accroche.js)
     ['logo S2', 5.0, 6.9, art(G.L2)],
     ['rôles (pentagone)', T.roles, T.emblem - 0.3, pentBox],
     ['emblème S5', T.emblem, T.tools - 0.6, [G.E5.left, G.E5.top, G.E5.left + G.E5.size, G.E5.top + G.E5.size, 0]],
@@ -66,7 +66,7 @@ const out = await p.evaluate(() => {
   info.push(`vitesse finale ${vEnd.toFixed(2)} px/s`);
   if (vEnd > 0.5) fails.push(`la caméra bouge encore à ${D} s (${vEnd.toFixed(2)} px/s)`);
   // Dérive des sujets pendant les tenues (centre de la boîte projeté).
-  const holds = [['question', 3.4, 4.4, 960, 555, 0], ['logo S2', 5.1, 6.6, 958.7, 452.1, 0], ['emblème S5', T.emblem + 0.2, T.tools - 0.7, 960, 441.7, 0], ['logo final', T.end + 0.7, D - 0.1, 959.1, 246, 0]];
+  const holds = [['question', 3.4, 4.4, 960, 503, 0], ['logo S2', 5.1, 6.6, 958.7, 452.1, 0], ['emblème S5', T.emblem + 0.2, T.tools - 0.7, 960, 441.7, 0], ['logo final', T.end + 0.7, D - 0.1, 959.1, 246, 0]];
   for (const [name, a, z, X, Y, Z] of holds) {
     let worst = 0, wt = a;
     for (let t = a; t < z; t += 0.02) { const p0 = NX.cam.project(X, Y, Z, NX.cam.at(t)), p1 = NX.cam.project(X, Y, Z, NX.cam.at(t + 0.02)); const v = Math.hypot(p1.x - p0.x, p1.y - p0.y) / 0.02; if (v > worst) { worst = v; wt = t; } }
