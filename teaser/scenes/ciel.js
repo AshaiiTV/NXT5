@@ -26,16 +26,28 @@ NX.scene({
   },
   render(S) {
     const t = S.t, T = NX.T, E = NX.ease, sky = NX.sky.at(t), seg = NX.seg, sm = NX.smooth;
-    // Base : identique à la v6, couplée à la caméra.
+    // Horloge du ciel (v7.1, revue E) : le bruit des rayons et de la nébuleuse suit le temps du shader (uTime = t·speed).
+    // Avancer S5 de 4,8 s l'avait posé sur une portion clairsemée de ce bruit : le faisceau de rayons de la v7 avait
+    // disparu de « Une même direction. ». Le ciel rattrape la phase de la v7 (son emblème naissait à 14,4) pendant la
+    // transition des rôles, τ = t + SKY_SHIFT·smooth(SKY_RAMP, T.emblem, t), puis la garde jusqu'à la fin : S1–S2
+    // inchangés, ciel de la v7 dès l'impact de 9,6 (S5, drop, S6–S7). Ne pas ramener le décalage plus loin : l'horloge
+    // du ciel reculerait. Mesuré : pendant la fusion, le ciel change au plus deux fois plus vite d'une image à l'autre.
+    const SKY_SHIFT = 14.4 - T.emblem, SKY_RAMP = T.roles, skyT = t + SKY_SHIFT * sm(SKY_RAMP, T.emblem, t);
+    // Base : identique à la v6, couplée à la caméra. La teinte suit la même horloge, sur la durée de la v7 (33,6 s),
+    // pour que chaque plan garde la couleur validée de la v7 ; elle atteint le fuchsia de la fin à 28,8 s.
     NX.bgMix({
       nebula: 0.58, warp: 0.6, rays: 0.9, rayX: 0, rayY: 0.6, rayStrength: 1, stars: 0.32,
-      hue: 0.12 + 0.55 * sm(0, NX.DURATION, t), speed: 1, intensity: 1,
+      hue: 0.12 + 0.55 * sm(0, 33.6, skyT), speed: t > 0 ? skyT / t : 1, intensity: 1,
       zoom: sky.zoom, cx: sky.cx, cy: sky.cy,
     }, 1);
     const B = NX.bg;
-    // Groove de la v6 (approuvé) : le ciel respire au tempo pendant les outils.
+    // Groove de la v6 (approuvé) : le ciel respire au tempo pendant les outils. Phase du temps calculée sans résidu
+    // flottant : 13,2 % 0,6 vaut 0,5999…, ce qui éteignait la pulsation sur l'image même du drop et sur 16,2, 17,4,
+    // 20,4, 23,4, 26,4 et 29,4 dans les rendus à une sous-image (aperçus, planches ; le rendu final n'a aucune
+    // sous-image exactement sur un temps).
     const groove = sm(T.tools - 0.2, T.tools, t) * (1 - sm(T.end + 1.9, T.end + 2.4, t));
-    B.pulse = groove * NX.pulse(t, NX.BEAT, 7, 0);
+    const ph = t / NX.BEAT, beatX = (ph - Math.floor(ph + 1e-9)) * NX.BEAT;
+    B.pulse = groove * Math.exp(-7 * beatX);
     // S1 : montée avant la première écriture, relâchée après l'impact.
     B.rayStrength += 0.25 * E.inQuad(seg(t, 3.6, 4.75)) * (1 - E.outCubic(seg(t, 4.8, 5.4)));
     // Éclat des rayons sur les quatre temps forts (jamais de voile uniforme).
