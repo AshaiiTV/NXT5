@@ -103,6 +103,7 @@ npm install
 ./tools/render.sh out/final/nxt5-teaser-v7.2.mp4    # 6 sous-images par image, environ 1 h sur 4 cœurs sans GPU
 ./tools/encode.sh out/final/nxt5-teaser-v7.2.mp4 6  # réencode seul, si les images sont déjà rendues
 ./tools/mobile.sh out/final/nxt5-teaser-v7.2.mp4 out/final/nxt5-teaser-v7.2-mobile.mp4
+./tools/hd.sh out/final/nxt5-teaser-v7.2.mp4 out/final/nxt5-teaser-v7.2-hd.mp4   # 1080p de diffusion, environ 27 Mo
 ```
 
 - Rendu par tranches, pour rester sous la durée maximale d’une commande : `node tools/capture.mjs audio --out out/final/soundtrack.wav`, puis `node tools/capture.mjs frames --fps 30 --sub 6 --workers 4 --from 0 --to 12 --out out/final/frames --resume 1` (et ainsi de suite jusqu’à 32,4), puis `./tools/encode.sh`. `--resume 1` saute les images déjà complètes.
