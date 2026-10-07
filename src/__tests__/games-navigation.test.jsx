@@ -46,7 +46,7 @@ describe("unified Games navigation", () => {
     expect(visible.some((item) => item.id === "trends")).toBe(true);
   });
 
-  it("selects Débriefs, opens Parties and keeps the guide directly accessible", () => {
+  it("selects Débriefs and opens Parties without a guide button in the sidebar", () => {
     const setActive = vi.fn();
     const setOpen = vi.fn();
     let renderer;
@@ -58,8 +58,7 @@ describe("unified Games navigation", () => {
     expect(parties.props.title).toBe("Parties · Importer et revoir une partie");
     act(() => parties.props.onClick());
     expect(setActive).toHaveBeenCalledWith("matches");
-    act(() => renderer.root.findByProps({ "aria-label": "Guide d’utilisation" }).props.onClick());
-    expect(setActive).toHaveBeenLastCalledWith("guide");
+    expect(renderer.root.findAllByProps({ "aria-label": "Guide d’utilisation" })).toHaveLength(0);
     expect(setOpen).toHaveBeenLastCalledWith(false);
     act(() => renderer.unmount());
   });
