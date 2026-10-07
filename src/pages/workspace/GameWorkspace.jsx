@@ -5,7 +5,7 @@ import { buildGamePublicationSnapshot } from "../../../shared/publications/game-
 import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumeric, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
-import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput } from "../../components/ui/Core.jsx";
+import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
@@ -1728,7 +1728,19 @@ function ReviewAnalysisStatus({ details }) {
 }
 
 function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
-  return <div className="games-report-preview">{String(content || "").trim() ? renderReportContent(content, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}</div>;
+  const text = String(content || "");
+  const boundary = /^\[NXT5_REPORT_V3\]\r?$/m.exec(text);
+  // Only V3 separates generated analysis from staff writing. Legacy text stays together.
+  const notes = boundary ? stripGeneratedReportContent(text) : text;
+  return <div className="games-report-preview">
+    {boundary ? <>
+      <h4 className="games-section-heading">Notes de l’équipe</h4>
+      {notes.trim() ? renderReportContent(notes, rows) : <p>Aucune observation enregistrée. Ouvre l’analyse des parties pour préparer le débrief, puis ajoute les décisions de l’équipe.</p>}
+      <ReadingDetails className="mt-6" title="Analyse automatique des parties" description="Constats et pistes à confronter à la vidéo.">
+        {renderReportContent(text.slice(0, boundary.index), rows)}
+      </ReadingDetails>
+    </> : text.trim() ? renderReportContent(text, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}
+  </div>;
 }
 
 // V2 was fully editable: preserve its text, including corrections in the coaching block.
@@ -1908,6 +1920,8 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   const [composerOpen, setComposerOpen] = useState(false);
   const [workspaceView, setWorkspaceView] = useState("library");
   const [saving, setSaving] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(!reports.length);
+  const reportHeadingRef = useRef(null);
 
   useEffect(() => {
     reviewDrafts.write(user?.id, selectedTeamId, form, formBaseline);
@@ -1922,6 +1936,9 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedReports = selectedArchive ? reports.filter((report) => reportMatchIds(report).some((id) => archiveMatchIds(selectedArchive).includes(id))) : reports;
   const selected = scopedReports.find((report) => report.id === selectedReportId) || scopedReports[0] || null;
+  useEffect(() => {
+    if (!selected) setLibraryOpen(true);
+  }, [selected?.id]);
   const activeReviewIds = composerOpen ? form.matchIds : selected ? reportMatchIds(selected) : [];
   const reviewDetails = useReviewMatchDetails(selectedTeamId, activeReviewIds, data.bootstrapRevision || "");
   const matches = [...new Map([...baseMatches, ...(requestedMatch ? [requestedMatch] : []), ...reviewDetails.matches].map((match) => [match.id, match])).values()];
@@ -1970,6 +1987,8 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   function selectReport(report) {
     setSelectedReportId(report.id);
     window.history.replaceState({}, "", "/rapports?report=" + report.id);
+    setLibraryOpen(false);
+    reportHeadingRef.current?.focus();
   }
 
   function openQueuedReview(report) {
@@ -2099,12 +2118,10 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   return (
     <div className="nxt5-data-dense nxt5-reviews-page min-w-0">
       <PageHeader
-        eyebrow="Débrief d’équipe (review)"
         title="Débriefs"
-        subtitle="Relis les parties, ajoute tes observations et décide avec l’équipe ce que vous travaillerez ensuite."
+        subtitle="Les observations et décisions pour la prochaine session."
       >
         <Button icon={Plus} onClick={startBlankReview}>{draftAvailable ? "Reprendre le brouillon" : "Préparer un débrief"}</Button>
-        <Button variant="ghost" icon={BarChart3} onClick={() => openAppPath("/games")}>Voir les parties</Button>
       </PageHeader>
 
       {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la partie pour préparer le débrief…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
@@ -2114,8 +2131,9 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
       ]} activeId={workspaceView} onChange={setWorkspaceView} columns="sm:grid-cols-2" />
 
       <div id="reports-panel" role="tabpanel" aria-labelledby={`reports-tab-${workspaceView}`} tabIndex={0}>
-      {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="grid gap-5 2xl:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
-        <aside className="games-review-library 2xl:sticky 2xl:top-4 2xl:self-start">
+      {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="space-y-5">
+        <ReadingDetails title="Choisir un débrief" description={`${reports.length} débrief${reports.length > 1 ? "s" : ""} · Recherche et filtres`} open={libraryOpen} onToggle={(event) => setLibraryOpen(event.currentTarget.open)}>
+        <aside className="games-review-library" aria-label="Bibliothèque des débriefs">
           <div className="border-b border-white/10 px-4 py-4 sm:px-5">
             <div className="flex min-w-0 items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-100"><FileText className="h-5 w-5" /></span>
@@ -2166,33 +2184,34 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
             }) : <div className="p-4"><EmptyState icon={FileText} title="Aucun débrief" text="Modifie la recherche ou prépare un premier débrief." /></div>}
           </div>
         </aside>
+        </ReadingDetails>
 
         <Surface glow={Boolean(selected)} className="p-5">
           {selected ? <>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                <Badge tone={selected.discord_status === "draft" ? "amber" : "purple"}>{selected.discord_status === "draft" ? "Brouillon · staff uniquement" : "Débrief enregistré"}</Badge>
+                {selected.discord_status === "draft" && <Badge tone="amber">Brouillon · staff uniquement</Badge>}
                 {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">Pour le partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.</p>}
-                <h3 className="mt-3 break-words text-3xl font-black text-white">{reportDisplayName(selected, matches)}</h3>
-                <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"} · {selectedMatchIds.length} partie{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</p>
+                <h3 ref={reportHeadingRef} tabIndex={-1} className={cx("games-review-title break-words font-bold text-white", selected.discord_status === "draft" && "mt-3")}>{reportDisplayName(selected, matches)}</h3>
+                <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"}{selectedMatchIds.length > 0 && <> · {selectedMatchIds.length} partie{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</>}</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-                <Button variant="ghost" icon={ArrowRight} onClick={() => selectedStatsMatchId && openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)} disabled={!selectedStatsMatchId}>Voir la partie</Button>
-                <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
-                {canEditSelected && <Button variant="ghost" icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
-                {canEditSelected && <Button variant="ghost" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}
+                {selectedStatsMatchId && <Button variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)}>Voir la partie</Button>}
+                {canEditSelected && <Button icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
               </div>
             </div>
-            <div className="mt-5 grid gap-2 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Parties</p><p className="mt-1 text-lg font-black text-white">{selectedMatchIds.length}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Résultats</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${selectedWins} V · ${selectedMatches.length - selectedWins} D` : "--"}</p></div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2"><p className="text-xs font-semibold text-slate-400">Taux de victoire</p><p className="mt-1 text-lg font-black text-white">{selectedGamesComplete && selectedMatches.length ? `${Math.round((selectedWins / Math.max(1, selectedMatches.length)) * 100)}%` : "--"}</p></div>
-            </div>
+            {selectedMatchIds.length > 0 && <p className="games-review-results">{selectedGamesComplete && selectedMatches.length ? `${selectedWins} V · ${selectedMatches.length - selectedWins} D · ${Math.round((selectedWins / selectedMatches.length) * 100)} % de victoires` : "Résultats indisponibles"}</p>}
             {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} parties liées chargées. Les parties restantes sont chargées automatiquement pour compléter l’analyse.</p>}
             <div className="mt-5">
               <ReviewAnalysisStatus details={reviewDetails} />
               <ReportPreview content={selectedContent} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
             </div>
+            <ReadingDetails className="mt-6" title="Gérer ce débrief" description={canEditSelected ? "Dupliquer ou supprimer." : "Créer une copie."}>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
+                {canEditSelected && <Button variant="danger" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}
+              </div>
+            </ReadingDetails>
           </> : <EmptyState icon={FileText} title="Aucun débrief sélectionné" text="Choisis un débrief dans la bibliothèque ou prépare-en un nouveau." />}
         </Surface>
       </div>}
@@ -2225,7 +2244,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
 
               <div className="min-w-0 space-y-4">
                 <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre (si aucune partie n’est liée)" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex. : Débrief de l’entraînement" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">Parties sélectionnées</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Sélectionne des parties"}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><label className="block"><span className="mb-2 block text-xs font-semibold text-slate-300">Observations et décisions de l’équipe</span><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></label><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">Aperçu du débrief</p><Badge tone="slate">Mis à jour en direct</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><div className="block"><label htmlFor="review-staff-notes" className="mb-2 block text-xs font-semibold text-slate-300">Observations et décisions de l’équipe</label><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea id="review-staff-notes" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></div><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">Aperçu du débrief</p><Badge tone="slate">Mis à jour en direct</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
                 </div>
               </div>

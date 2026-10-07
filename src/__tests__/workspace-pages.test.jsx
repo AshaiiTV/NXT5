@@ -57,7 +57,7 @@ describe("extracted workspace pages", () => {
     const renderer = await render(<Reports {...settings} />);
     expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("1 partie liée"))).toBe(true);
     const stats = renderer.root.findAllByType(Button).find((button) => button.props.children === "Voir la partie");
-    expect(stats.props.disabled).toBe(false);
+    expect(stats.findByType("button").props.disabled).toBe(false);
     expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("0 sur 1 parties liées chargées"))).toBe(true);
   });
   it("loads purchase events only when a champion game opens and refreshes them with bootstrap", async () => {

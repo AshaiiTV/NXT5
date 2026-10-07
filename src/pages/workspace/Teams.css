@@ -96,12 +96,15 @@
   .team-entry-choice strong + span { margin-block: 10px 16px; font-size: var(--nxt5-font-ui); line-height: 1.5; }
 }
 .team-management-panel { min-width: 0; }
-.team-management-name { margin-top: 10px; font-size: 24px; line-height: 1.35; font-weight: 700; color: var(--nxt5-text); overflow-wrap: anywhere; }
-.team-management-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; min-width: min(320px,100%); }
-.team-management-summary dt { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); line-height: 1.5; }
-.team-management-summary dd { margin-top: 6px; font-size: 26px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
-.team-management-summary dd span { font-size: var(--nxt5-font-body); color: var(--nxt5-muted); font-weight: 500; }
-.team-management-basics { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: start; gap: 32px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--nxt5-border); }
+.team-management-name { font-size: 24px; line-height: 1.35; font-weight: 700; color: var(--nxt5-text); overflow-wrap: anywhere; }
+.team-management-summary { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.team-management-summary > div { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+.team-management-summary dt { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
+.team-management-summary dd { font-size: var(--nxt5-font-small); font-weight: 600; font-variant-numeric: tabular-nums; }
+.team-management-summary dd span { color: var(--nxt5-muted); font-weight: 400; }
+.team-management-panel p { max-width: 68ch; }
+.team-identity-details, .team-roster-links { margin-top: 24px; }
+.team-identity-details .team-identity-form { max-width: 680px; }
 .team-identity-form, .team-invitations { min-width: 0; }
 .team-identity-fields { display: flex; align-items: start; gap: 16px; }
 .team-identity-fields > div:first-child { width: 72px; height: 72px; border-radius: 10px; border-color: var(--nxt5-border-strong); }
@@ -142,7 +145,7 @@
   .has-roster-setup .team-setup-forms { grid-template-columns: minmax(0,1fr); }
 }
 @container teams-page (max-width: 800px) {
-  .team-management-basics, .team-setup-forms { grid-template-columns: minmax(0,1fr); }
+  .team-setup-forms { grid-template-columns: minmax(0,1fr); }
   .team-invitations { padding-top: 24px; border-top: 1px solid var(--nxt5-border); }
   .team-profile-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }

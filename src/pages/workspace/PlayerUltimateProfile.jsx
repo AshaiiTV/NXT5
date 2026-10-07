@@ -516,10 +516,10 @@ function CoachDiagnosticPanel({ player, games, issues = [], strengths = [], onFo
   if (!priority) return null;
   const otherSignals = issues.slice(1);
   return <Surface className="profile-review">
-    <div className="profile-review-layout"><div className="profile-review-observation"><p className="profile-eyebrow">Point à travailler · à confirmer en débrief</p>
+    <div className="profile-review-layout"><div className="profile-review-observation"><p className="profile-eyebrow">À vérifier en débrief</p>
     <h3>{priority.title}</h3>
     <p className="profile-copy">{priority.text}</p></div>
-    <div className="profile-next-step"><h4>À essayer à la prochaine session</h4><p>{priority.action}</p>{onFollowUp && <button type="button" onClick={onFollowUp} className="profile-text-action">Ouvrir les objectifs et les notes <ArrowRight aria-hidden="true" /></button>}</div></div>
+    <div className="profile-next-step"><h4>À essayer à la prochaine session</h4><p>{priority.action}</p>{onFollowUp && <Button type="button" onClick={onFollowUp} icon={ArrowRight}>Ouvrir les objectifs et les notes</Button>}</div></div>
     <details className="profile-disclosure"><summary>Voir les parties à l’origine de cette piste <span>{priority.rows?.length || 0} parties</span></summary><div className="profile-evidence">{(priority.rows || []).slice(0, 5).map((row, index) => <a key={row.match?.id || index} href={`/games?match=${encodeURIComponent(row.match?.id || "")}`} onClick={(event) => { event.preventDefault(); openAppPath(`/games?match=${encodeURIComponent(row.match?.id || "")}`); }}><span><strong>{matchDisplayName(row.match)}</strong><small>{championDisplayName(row.champion)} · {profileHistoryDateLabel(row)} · {row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"} kills / morts / assists</small></span><ArrowRight aria-hidden="true" /></a>)}</div>{priority.rows?.length > 5 && <p>Les 5 premières parties sont affichées. Retrouve toutes les sources dans l’historique.</p>}</details>
     {otherSignals.length > 0 && <details className="profile-disclosure"><summary>Autres pistes à vérifier <span>{otherSignals.length}</span></summary>{otherSignals.map((item) => <article className="profile-other-signal" key={item.title}><h4>{item.title}</h4><p>{item.text}</p><p>{item.action}</p></article>)}</details>}
   </Surface>;

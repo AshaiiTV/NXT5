@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Activity, ArrowDownRight, ArrowLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronLeft, ChevronRight, Clock3, Download, Globe2, Info, Loader2, Monitor, MousePointer2, RefreshCw, Search, ShieldCheck, Target, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
-import { Badge, Button, PageHeader, SelectInput, SkeletonRows, Surface, TextInput } from "../../components/ui/Core.jsx";
+import { Badge, Button, PageHeader, ReadingDetails, SelectInput, SkeletonRows, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { audienceCsv, audienceDate as date, audienceDecimal as decimal, audienceDelta, audienceDuration as duration, audienceNumber as n, audiencePercent as percent, audienceShare, countryLabel, DEVICE_LABELS, finiteNumber, GOAL_LABELS, isAudienceReport, selectAudiencePages, sourceLabel } from "./audience-metrics.js";
 import "./audience.css";
 
@@ -174,12 +174,19 @@ export function AudienceReport({ report }) {
     </div>
     {finiteNumber(totals.sessions) === 0 && <Note className="audience-empty"><strong>Aucune visite mesurée sur cette période.</strong><p>Les statistiques apparaîtront après les premières visites avec consentement. Si des filtres sont actifs, essaie une vue plus large. Aucun historique antérieur à l’installation n’est reconstitué.</p></Note>}
     <div className="audience-main-grid"><Section title="Le rythme des visites" description="L’évolution quotidienne des navigateurs distincts et des pages vues." icon={Activity}><AudienceChart rows={report.timeseries} /></Section><Realtime data={report.realtime} /></div>
-    <Engagement totals={totals} previous={previous} />
     <PopularPages rows={report.pages || []} total={totals.pageviews} />
-    <div className="audience-two-columns"><Acquisition rows={report.sources} sessions={totals.sessions} /><Goals goals={report.goals} totals={totals} previous={previous} /></div>
-    <Campaigns rows={report.campaigns} />
-    <Section title="Les contextes de consultation" icon={Monitor} description="Répartition des sessions, avec les filtres sélectionnés."><div className="audience-breakdowns"><Breakdown title="Appareils" rows={report.devices} field="device" total={totals.sessions} label={(value) => DEVICE_LABELS[value] || value || "Inconnu"} /><Breakdown title="Navigateurs" rows={report.browsers} field="browser" total={totals.sessions} tone="violet" /><Breakdown title="Pays" rows={report.countries} field="country" total={totals.sessions} label={countryLabel} /></div><p className="audience-caption">Le pays, lorsqu’il est disponible, est une localisation approximative fournie par l’hébergement. Aucune adresse IP n’est stockée dans ces statistiques.</p></Section>
-    <AudienceHeatmap rows={report.heatmap} />
+    <ReadingDetails title="L’engagement et les conversions" description="Temps actif, rebond et actions enregistrées" className="audience-reading-details">
+      <Engagement totals={totals} previous={previous} />
+      <Goals goals={report.goals} totals={totals} previous={previous} />
+    </ReadingDetails>
+    <ReadingDetails title="Les sources des visites" description="Référents et campagnes des liens partagés" className="audience-reading-details">
+      <Acquisition rows={report.sources} sessions={totals.sessions} />
+      <Campaigns rows={report.campaigns} />
+    </ReadingDetails>
+    <ReadingDetails title="Les appareils, lieux et horaires" description="Contextes de consultation et répartition par heure" className="audience-reading-details">
+      <Section title="Les contextes de consultation" icon={Monitor} description="Répartition des sessions, avec les filtres sélectionnés."><div className="audience-breakdowns"><Breakdown title="Appareils" rows={report.devices} field="device" total={totals.sessions} label={(value) => DEVICE_LABELS[value] || value || "Inconnu"} /><Breakdown title="Navigateurs" rows={report.browsers} field="browser" total={totals.sessions} tone="violet" /><Breakdown title="Pays" rows={report.countries} field="country" total={totals.sessions} label={countryLabel} /></div><p className="audience-caption">Le pays, lorsqu’il est disponible, est une localisation approximative fournie par l’hébergement. Aucune adresse IP n’est stockée dans ces statistiques.</p></Section>
+      <AudienceHeatmap rows={report.heatmap} />
+    </ReadingDetails>
     <details className="audience-methodology"><summary><ShieldCheck size={18} aria-hidden="true" />Comprendre ces chiffres et leur périmètre</summary><div><p><strong>Seulement les visites consenties.</strong> Le refus et le retrait du consentement arrêtent la collecte. Ces chiffres ne représentent pas toute la fréquentation du site.</p><p><strong>Un navigateur n’est pas une personne.</strong> Un identifiant pseudonyme distingue les navigateurs. Changer d’appareil, effacer ses cookies ou renouveler son consentement peut créer un nouvel identifiant. Les navigateurs distincts ne s’additionnent pas entre journées ou sources.</p><p><strong>Comparer des périodes équivalentes.</strong> Les écarts se rapportent aux {report.period?.days} jours précédents, avec les mêmes filtres. Les taux sont comparés en points. La journée actuelle est encore en cours.</p><p><strong>Conservation limitée.</strong> Les événements sont conservés au maximum {report.retentionDays || 180} jours. Les navigateurs revenus sont ceux déjà observés avant la période, dans cet historique disponible. Les durées sont indicatives : une fermeture brutale ou un blocage réseau peut empêcher le dernier relevé.</p></div></details>
   </div>;
 }

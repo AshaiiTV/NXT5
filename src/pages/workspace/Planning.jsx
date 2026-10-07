@@ -381,6 +381,11 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
               {canEditEvents && canEditSelected && <Button type="button" variant="ghost" icon={CalendarDays} aria-pressed={editingEvents} onClick={() => setEditingEvents((active) => !active)} className={editingEvents ? "border-cyan-200/45 bg-cyan-400/10 text-cyan-100" : ""}>{editingEvents ? "Revenir à mes disponibilités" : "Ajouter une séance"}</Button>}
               <p className="text-sm leading-6 text-slate-300">{selectedFilledSlots} créneaux renseignés sur {selectedFilledDays} jours · {selectedEventCount} séance{selectedEventCount > 1 ? "s" : ""}</p>
             </div>
+            <PlanningAvailabilityGrid rows={planningGridRows} weekDays={weekDays} canEditSelected={canEditSelected} canEditEvents={canEditEvents} editingEvents={editingEvents} draftSlots={draftSlots} onDay={setDaySlots} onTime={setTimeForWeek} onToggle={toggleSlot} onEvent={openPlanningEventMenu} frameTone={frameTone} />
+            <div className="mt-5">
+              <label htmlFor="planning-note" className="nxt5-field-label">Précisions sur tes disponibilités</label>
+              <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} rows={2} placeholder="Ex. : disponible après 20 h, retard possible le jeudi…" className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
+            </div>
             {canEditSelected && !editingEvents && <details className="nxt5-planning-help"><summary>Remplir plusieurs créneaux à la fois</summary><p>Ces raccourcis remplacent tes disponibilités de la semaine affichée. Les séances sont conservées.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("evenings")}>Soirées · 20 h à 23 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("scrim")}>Entraînement · 19 h à 22 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("weekend")}>Week-end · 20 h à 23 h</Button><Button type="button" variant="danger" onClick={() => applyAvailabilityPreset("clear")}>Vider mes disponibilités</Button></div></details>}
             <details className="nxt5-planning-help">
               <summary>Lire le planning et les présences de l’équipe</summary>
@@ -390,17 +395,8 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
               <div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{SESSION_LABELS[item.id]?.label || item.label}</span>)}</div>
               <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">Présences maximum : {bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} créneaux avec {representedRoles} joueurs</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} créneaux avec encadrement</Badge>}</div>
             </details>
-            <PlanningAvailabilityGrid rows={planningGridRows} weekDays={weekDays} canEditSelected={canEditSelected} canEditEvents={canEditEvents} editingEvents={editingEvents} draftSlots={draftSlots} onDay={setDaySlots} onTime={setTimeForWeek} onToggle={toggleSlot} onEvent={openPlanningEventMenu} frameTone={frameTone} />
-            <div className="mt-5">
-              <label htmlFor="planning-note" className="nxt5-field-label">Précisions sur tes disponibilités</label>
-              <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} rows={2} placeholder="Ex. : disponible après 20 h, retard possible le jeudi…" className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
-            </div>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm leading-6 text-slate-400">Les modifications s’enregistrent automatiquement pour la semaine affichée.</p>
-            </div>
           </Surface>
 
-          {false && null}
         </div>
       </div>
     </div>
